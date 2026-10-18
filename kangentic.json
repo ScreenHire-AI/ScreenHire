@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "columns": [
+    {
+      "id": "1fe3f089-d5a2-41d3-a23a-3f1e86e8d50a",
+      "name": "To Do",
+      "role": "todo",
+      "icon": "layers",
+      "color": "#6b7280"
+    },
+    {
+      "id": "73665f9e-605d-42df-9fc6-3716d06d935f",
+      "name": "Planning",
+      "icon": "map",
+      "color": "#8b5cf6",
+      "autoSpawn": true,
+      "permissionMode": "plan",
+      "modelOverride": "opus",
+      "effortOverride": "xhigh",
+      "planExitTarget": "Executing"
+    },
+    {
+      "id": "d33d4435-8173-40eb-9437-9143cf787ee0",
+      "name": "Executing",
+      "icon": "square-terminal",
+      "autoSpawn": true,
+      "modelOverride": "opus",
+      "effortOverride": "high"
+    },
+    {
+      "id": "8d7d067a-f4b7-4782-b965-14550bcbbea1",
+      "name": "Code Review",
+      "icon": "code",
+      "color": "#f59e0b",
+      "autoSpawn": true,
+      "modelOverride": "opus",
+      "effortOverride": "high",
+      "sessionTarget": "isolated",
+      "sessionSpawnStrategy": "always_spawn_new",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Message",
+            "type": "send_message",
+            "message": "/code-review high {{baseBranch}}...HEAD",
+            "mode": "immediate"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bbc605fd-c21e-46f3-b0b3-78c6a897e2f4",
+      "name": "Testing",
+      "icon": "flask-conical",
+      "color": "#06b6d4",
+      "autoSpawn": true,
+      "modelOverride": "sonnet",
+      "effortOverride": "medium"
+    },
+    {
+      "id": "86b15f5e-0b1a-4a74-9278-88a2d343ee95",
+      "name": "Merge",
+      "icon": "merge",
+      "color": "#f97316",
+      "autoSpawn": true,
+      "modelOverride": "sonnet",
+      "effortOverride": "medium"
+    },
+    {
+      "id": "5f906943-df6f-4720-ac95-ae65f2891ca9",
+      "name": "Done",
+      "role": "done",
+      "icon": "circle-check-big",
+      "color": "#10b981"
+    }
+  ],
+  "_modifiedBy": "7ef4fd0cb484"
+}
