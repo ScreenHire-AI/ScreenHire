@@ -85,9 +85,6 @@
     ],
     "deny": []
   },
-  "promptSuggestionEnabled": false,
-  "awaySummaryEnabled": false,
-  "idleCompaction": false,
   "hooks": {
     "PreToolUse": [
       {
