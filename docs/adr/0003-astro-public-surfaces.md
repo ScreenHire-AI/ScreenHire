@@ -47,13 +47,28 @@ islands, Vite DX and image tooling. Angular SSR cannot reach zero JS (64–85 KB
   only where the questionnaire needs rich interaction.
 - Embeddable widget = **iframe** served from our origin (host pages must not be able to forge telemetry or read PII).
 
-### Domains (proposal — owner to confirm names)
-- `screenhire.com` → marketing (SSG/CDN)
-- `app.screenhire.com` → dashboard; `api.screenhire.com` → API
-- **Tenant careers pages on a separate registrable domain** (e.g., `{tenant}.<careers-domain>`), the
-  github.io / myshopify.com pattern: isolates cookies and abuse reputation from the marketing domain, keeps thin job
-  pages from diluting marketing-site SEO, and lets one Search Console domain property cover all tenant subdomains for
-  the Indexing API. Custom customer domains as a paid feature.
+### Domains — configurable, never hard-coded
+Status (2026-10-18): **`screenhire.com` and `screenhire.co` are taken.** **`screenhire.io` is the planned primary**
+(matching the gohire.io pattern); `.ai` / `.app` and a `.com` redirect (e.g. `getscreenhire.com`) are candidates.
+Purchase is tracked in its own board task. Note: in British English "screen hire" also means renting a screen, which
+affects UK search results — marketing copy should always pair the name with "hiring platform".
+
+Every host is configuration (`ScreenHire:Domains:*` in .NET, `PUBLIC_*` env in the Astro/Svelte apps), used for
+careers-page hosts, cookie domains, email sending domain, OAuth redirect URIs and CORS:
+
+| Setting | Planned value | Serves |
+|---|---|---|
+| `BaseDomain` | `screenhire.io` | Marketing site (SSG/CDN) |
+| `AppHost` | `app.{BaseDomain}` | Dashboard (same apex as API for cookie auth) |
+| `ApiHost` | `api.{BaseDomain}` | Public API |
+| `CareersHostPattern` | `{tenant}.{CareersDomain}` | Tenant careers pages |
+| `CareersDomain` | **open decision** — `{BaseDomain}` (e.g. `acme.screenhire.io`) or a separate registrable domain | |
+
+Recommendation for `CareersDomain`: a **separate registrable domain** (the github.io / myshopify.com pattern) isolates
+cookies and abuse reputation from the product domain, keeps thin job pages from diluting marketing-site SEO, and one
+Search Console domain property still covers all tenant subdomains for the Indexing API. Using `{tenant}.screenhire.io`
+is simpler and also works (cookies must then be host-only on careers pages). Because it is configuration, the choice can
+be made when the domains are bought. Custom customer domains remain a paid feature.
 
 ## Consequences
 - A Node runtime in production for `apps/careers` (accepted by owner).

@@ -40,6 +40,10 @@ indicators are presented.
   explain, audit and bias-test them. ML models may produce *signals*; rules produce *levels*.
 - Every level shows its **reason codes**, the **evidence**, and any **counter-evidence** (e.g., "VPN detected — but
   claimed location matches VPN exit country").
+- Every level also carries a **plain-language summary and a suggested next step** ("Ask for a quick video call before
+  the technical screen", "Request ID verification", "No action needed"). Market research (Kyle & Co landscape report,
+  60+ vendors) names the gap as *small teams who can't interpret raw fraud signals* — the explanation + next step is
+  ScreenHire's answer to it.
 
 ## 3. Collection timeline (what, when, on which legal footing)
 
@@ -165,6 +169,12 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   monitoring) ahead of **2 Dec 2027**.
 
 ## 9. MVP scope (proposed)
+
+> Owner's original v1 definition (2026-09-23): an **application-stage** human-vs-AI assessment from three inputs —
+> (1) where the application came from (source, channel, network), (2) the documents submitted, (3) an evaluation of the
+> answers. ID/background checks "might come later". In kickoff the owner selected all four signal categories, so the
+> phasing below is a **proposal awaiting the owner's decision**: application-stage signals in v1; ID/liveness and
+> interview integrity in later phases.
 
 In: notice + accommodation toggle; telemetry aggregates; network/identity/automation signals; prompt-injection +
 generator-metadata + within-employer near-duplicate detection; LLM consistency (resume ↔ answers ↔ uploaded LinkedIn

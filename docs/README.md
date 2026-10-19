@@ -8,6 +8,13 @@ one-click job posting and teardown**.
 > Positioning (from research): *an integrity layer from first click to first day that recruiters and candidates can
 > both understand, at GoHire prices.*
 
+**Why it exists:** the owner's team hires on gohire.io (mainly .NET developer roles), and fake / AI-generated
+candidates get through its screening. **Positioning (owner, 2026-09-23):** a simple, intuitive, affordable tracker for
+small hiring teams in the style of GoHire or BambooHR — not an enterprise fraud platform like Sardine or Ashby.
+Detection runs in the background (custom models possible later). A public job board alongside the tracker is a
+possible later addition. **Domain:** `screenhire.io` planned (not yet bought; `.com` is taken) — the base domain is
+configuration everywhere (ADR-0003).
+
 ## Decision log
 
 | ADR | Decision | Status |

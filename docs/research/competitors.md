@@ -47,6 +47,19 @@
 - **Assessment cheating:** CodeSignal "Suspicion Score" [28]; HackerRank lockdown desktop app; TestGorilla from $215/mo [29].
 - **AI interviewers:** HireVue (focus-loss detection, paste blocking, same-person continuity) [30]; Sapia, micro1.
 
+### Earlier research (naming/discovery task, Sept–Oct 2026)
+
+- **Sardine** — the owner called it "pretty close" to the ScreenHire concept. Enterprise financial-crime platform that
+  added job-application fraud detection in 2026; plugs into an existing ATS via webhooks or hosted forms; passive
+  device, behaviour and network signals plus deepfake detection; sold to security/compliance teams.
+- **Tofu** (hiretofu.com) — candidate-fraud detection as an add-on to an existing ATS.
+- **Pangram, It's AI** — AI-written-text detectors (see `legal.md` on why detector output must not be a verdict).
+- **Ashby** — ATS with built-in fraud signals.
+- **Kyle & Co landscape report** — counts **60+ vendors**; says the market has converged on *"surface signals not
+  verdicts, explain every signal, never auto-reject"*; names the gap as **small teams who can't interpret raw fraud
+  signals**. ScreenHire's opening: an affordable tracker whose assessment comes with a plain-language explanation and a
+  suggested next step.
+
 ## 2. Threat landscape
 
 1. **Auto-apply floods** — LazyApply sells up to 1,500 applications/day [31]; Ashby sees 291 applications per hire, up
