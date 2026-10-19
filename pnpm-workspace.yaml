@@ -1,0 +1,11 @@
+packages:
+  - apps/careers
+  - apps/marketing
+  - apps/dashboard
+  - packages/*
+
+# pnpm 10 blocks dependency build scripts by default; allow only the native builds we rely on.
+onlyBuiltDependencies:
+  - "@tailwindcss/oxide"
+  - esbuild
+  - sharp

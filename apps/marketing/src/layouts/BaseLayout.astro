@@ -1,0 +1,43 @@
+---
+import Seo from '../components/Seo.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  jsonLd?: Record<string, unknown>[];
+}
+
+const { title, description, jsonLd } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <Seo title={title} description={description} jsonLd={jsonLd} />
+  </head>
+  <body class="min-h-screen bg-background text-foreground">
+    <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-3 px-6 py-5">
+      <a href="/" class="flex items-center gap-2.5 text-foreground no-underline">
+        <span class="grid size-8 place-items-center rounded-[9px] bg-foreground font-display text-lg font-extrabold text-background">S</span>
+        <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
+      </a>
+      <nav aria-label="Main" class="flex flex-wrap gap-x-6 gap-y-1 text-[15px] font-semibold">
+        <a href="/#product" class="text-secondary-foreground no-underline hover:text-primary">Product</a>
+        <a href="/#integrity" class="text-secondary-foreground no-underline hover:text-primary">Integrity</a>
+        <a href="/#compliance" class="text-secondary-foreground no-underline hover:text-primary">Hiring-AI law</a>
+      </nav>
+      <div class="flex-1"></div>
+      <a href="/#start" class="inline-flex h-11 items-center rounded-[10px] bg-primary px-5 font-bold text-primary-foreground no-underline">Start free</a>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="mx-auto flex max-w-6xl flex-wrap justify-between gap-6 px-6 py-12 text-sm text-muted-foreground">
+      <span class="font-display text-lg font-bold text-foreground">ScreenHire</span>
+      <span>© {new Date().getFullYear()} ScreenHire</span>
+    </footer>
+  </body>
+</html>

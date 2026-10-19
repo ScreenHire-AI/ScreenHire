@@ -1,0 +1,9 @@
+@api = http://localhost:5080
+
+GET {{api}}/v1/public/organizations/brightwater/jobs
+Accept: application/json
+
+###
+
+GET {{api}}/v1/jobs
+Accept: application/json

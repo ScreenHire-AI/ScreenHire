@@ -1,0 +1,124 @@
+/*
+ * Warm Grid design tokens — the single source of colour, type and radius values (docs/design/design-system.md).
+ * Variable names follow shadcn-svelte so its components theme from these directly; `--status-*` and `--candidate-*`
+ * are ScreenHire additions. Never hard-code these values in app code.
+ */
+
+:root {
+  --radius: 0.625rem;
+
+  --sh-font-display: "Bricolage Grotesque Variable", "Hanken Grotesk Variable", system-ui, sans-serif;
+  --sh-font-body: "Hanken Grotesk Variable", system-ui, sans-serif;
+  --sh-font-data: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  /* Recruiter app — light */
+  --background: #f7f5f0;
+  --foreground: #1c1b19;
+  --card: #ffffff;
+  --card-foreground: #1c1b19;
+  --popover: #ffffff;
+  --popover-foreground: #1c1b19;
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f1eb;
+  --secondary-foreground: #1c1b19;
+  --muted: #fbfaf7;
+  --muted-foreground: #5f5a52;
+  --accent: #eeebfb;
+  --accent-foreground: #2b2788;
+  --destructive: #9a2f17;
+  --border: #e6e1d8;
+  --border-subtle: #efebe4;
+  --input: #ddd7cc;
+  --ring: #4338ca;
+  --row-selected: #f3f1fc;
+
+  --sidebar: #fbfaf6;
+  --sidebar-foreground: #3a3630;
+  --sidebar-primary: #4338ca;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeebfb;
+  --sidebar-accent-foreground: #2b2788;
+  --sidebar-border: #e6e1d8;
+  --sidebar-ring: #4338ca;
+
+  /* Integrity & status semantics: always shape + colour + label (ADR-0004, design-system §2.2) */
+  --status-clear: #0b5d4f;
+  --status-clear-soft: #e3f1ec;
+  --status-clear-mark: #0f766e;
+  --status-review: #7a4205;
+  --status-review-soft: #fbefd3;
+  --status-review-mark: #c77700;
+  --status-verify: #9a2f17;
+  --status-verify-soft: #f9e0d6;
+  --status-verify-mark: #b4461f;
+  --status-ai: #2b2788;
+  --status-ai-soft: #ecebfa;
+
+  /* Candidate & marketing — warm. Careers pages override the cta tokens with the employer brand. */
+  --candidate-background: #fbf6ee;
+  --candidate-surface: #ffffff;
+  --candidate-border: #ede3d3;
+  --candidate-input-border: #d9ccb8;
+  --candidate-foreground: #231f1a;
+  --candidate-muted-foreground: #6a5d4d;
+  --candidate-chip: #f3e7d6;
+  --candidate-chip-foreground: #5a4630;
+  --candidate-cta: #c2462f;
+  --candidate-cta-foreground: #ffffff;
+}
+
+.dark {
+  --background: #141311;
+  --foreground: #edeae4;
+  --card: #1c1b18;
+  --card-foreground: #edeae4;
+  --popover: #1c1b18;
+  --popover-foreground: #edeae4;
+  --primary: #9b9cf8;
+  --primary-foreground: #15132e;
+  --secondary: #23221e;
+  --secondary-foreground: #edeae4;
+  --muted: #181714;
+  --muted-foreground: #a39e95;
+  --accent: #26264a;
+  --accent-foreground: #c7c8fa;
+  --destructive: #f7957a;
+  --border: #2e2c27;
+  --border-subtle: #262420;
+  --input: #3a3731;
+  --ring: #9b9cf8;
+  --row-selected: #2a2722;
+
+  --sidebar: #181714;
+  --sidebar-foreground: #cfcac1;
+  --sidebar-primary: #9b9cf8;
+  --sidebar-primary-foreground: #15132e;
+  --sidebar-accent: #2a2722;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2b2924;
+  --sidebar-ring: #9b9cf8;
+
+  --status-clear: #4fd1b4;
+  --status-clear-soft: #15302a;
+  --status-clear-mark: #4fd1b4;
+  --status-review: #f6cb76;
+  --status-review-soft: #3a2c10;
+  --status-review-mark: #f2b84b;
+  --status-verify: #f7957a;
+  --status-verify-soft: #3d1a10;
+  --status-verify-mark: #f27a55;
+  --status-ai: #c7c8fa;
+  --status-ai-soft: #26264a;
+
+  --candidate-background: #1a1714;
+  --candidate-surface: #23201c;
+  --candidate-border: #332e28;
+  --candidate-input-border: #4a443b;
+  --candidate-foreground: #f2ede6;
+  --candidate-muted-foreground: #b3aba0;
+  --candidate-chip: #2e2a25;
+  --candidate-chip-foreground: #d3ccc2;
+  --candidate-cta: #f08a6e;
+  --candidate-cta-foreground: #1a1310;
+}

@@ -172,16 +172,22 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 
 > Owner's original v1 definition (2026-09-23): an **application-stage** human-vs-AI assessment from three inputs —
 > (1) where the application came from (source, channel, network), (2) the documents submitted, (3) an evaluation of the
-> answers. ID/background checks "might come later". In kickoff the owner selected all four signal categories, so the
-> phasing below is a **proposal awaiting the owner's decision**: application-stage signals in v1; ID/liveness and
-> interview integrity in later phases.
+> answers. ID/background checks "might come later".
+>
+> **Decision (owner, 2026-10-18): v1 is application-stage only.** No biometrics in v1.
 
-In: notice + accommodation toggle; telemetry aggregates; network/identity/automation signals; prompt-injection +
-generator-metadata + within-employer near-duplicate detection; LLM consistency (resume ↔ answers ↔ uploaded LinkedIn
-export); two assessments with reason codes; review actions + audit log; step-up ID via one vendor (wrapped);
-Signal Network built but **flagged off**.
+**Phase 1 (MVP) — application stage:** notice + accommodation toggle; telemetry aggregates; network/identity/automation
+signals; prompt-injection + generator-metadata + within-employer near-duplicate detection; LLM consistency (resume ↔
+answers ↔ uploaded LinkedIn export); two assessments with reason codes, plain-language summary and suggested next step;
+review actions + audit log; Signal Network built but **flagged off**.
 
-Later: interview integrity, mailbox correspondence analysis, network enablement post-legal-review, published accuracy
+**Phase 2 — verification:** step-up ID + liveness via one wrapped vendor (Persona / Veriff / Incode), BIPA release and
+GDPR Art. 9 consent flows, human-check alternative.
+
+**Phase 3 — interview integrity:** ScreenHire interview links with media-artifact checks (virtual camera, injected audio,
+face-swap, second speaker, continuity with verified ID).
+
+**Later:** mailbox correspondence analysis, Signal Network enablement after legal review + DPIA, published accuracy
 reports.
 
 ## Open questions

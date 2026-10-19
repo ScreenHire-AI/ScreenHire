@@ -1,3 +1,33 @@
+# Kangentic / Claude local state
 .kangentic/
 .claude/settings.local.json
 kangentic.local.json
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.binlog
+
+# Node / frontends
+node_modules/
+.pnpm-store/
+dist/
+build/
+.svelte-kit/
+.astro/
+.vite/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/

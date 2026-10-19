@@ -1,0 +1,44 @@
+---
+// Technical-SEO baseline for every marketing page (ADR-0003): canonical URL, Open Graph, Twitter card, JSON-LD.
+interface Props {
+  title: string;
+  description: string;
+  /** Extra schema.org objects for this page; Organization and WebSite are always included. */
+  jsonLd?: Record<string, unknown>[];
+}
+
+const { title, description, jsonLd = [] } = Astro.props;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const canonical = new URL(Astro.url.pathname, site).href;
+
+const graph = [
+  {
+    '@type': 'Organization',
+    '@id': new URL('/#organization', site).href,
+    name: 'ScreenHire',
+    url: site.href,
+  },
+  {
+    '@type': 'WebSite',
+    '@id': new URL('/#website', site).href,
+    name: 'ScreenHire',
+    url: site.href,
+    publisher: { '@id': new URL('/#organization', site).href },
+  },
+  ...jsonLd,
+];
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="ScreenHire" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta name="twitter:card" content="summary_large_image" />
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })} />

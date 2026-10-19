@@ -1,0 +1,79 @@
+# ScreenHire — agent guide
+
+ScreenHire is an affordable applicant tracking system (ATS) for small hiring teams that detects AI-generated, fraudulent
+and bot applicants and explains every signal in plain language. Decisions, research and designs live in
+[`docs/README.md`](docs/README.md) — read the relevant ADR / architecture doc before changing a subsystem.
+
+## Repo layout
+
+| Path | What |
+|---|---|
+| `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
+| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`); emits `packages/api-client/openapi.json` at build |
+| `apps/worker` | .NET background worker (Wolverine messaging lands here) |
+| `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow |
+| `apps/marketing` | Astro 7 static — SEO-first marketing site |
+| `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
+| `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |
+| `packages/api-client` | Orval-generated TS client + Zod schemas (do not edit `src/generated`) |
+| `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
+| `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
+| `tests/` | xUnit v3 + AwesomeAssertions; Aspire integration tests |
+
+## Commands
+
+- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs).
+- Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
+  dashboard :4323; the Aspire dashboard URL is printed on start.
+- **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
+  tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
+  started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
+  name after checking their Aspire labels.
+- Build / check: `dotnet build ScreenHire.slnx`, `pnpm check` (svelte-check `--fail-on-warnings`, astro check, tsc),
+  `pnpm -r build`, `dotnet test --solution ScreenHire.slnx` (Microsoft Testing Platform via `global.json`; the
+  integration tests boot the AppHost, so Docker must be running).
+- After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
+- Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
+
+## Product & legal non-negotiables (ADR-0004, ADR-0005, docs/research/legal.md)
+
+1. **Evidence, not verdicts.** Integrity output is categorical levels with reason codes, evidence, counter-evidence,
+   a plain-language summary and a suggested next step — never a numeric fraud score or "% AI-written".
+2. **Integrity signals never drive rejection.** No auto-reject from `integrity.*` conditions; the workflow engine must
+   refuse such definitions at validation time. No "reject" control inside integrity UI.
+3. **No emotion / intent / honesty / personality inference.** No biometric templates. **v1 has no biometrics at all**
+   (ID/liveness is phase 2, interview integrity phase 3).
+4. **Notice before collection.** Browsing collects only server/security logs. Fingerprinting and form telemetry start at
+   application start, after the notice, and the assistive-tech toggle disables telemetry with no negative inference.
+   Telemetry is aggregates only — never raw keystrokes. Telemetry alone never raises a level.
+5. **No scraping or automated fetching of LinkedIn** (or any third-party profile). Use candidate-supplied data only.
+6. **Tenant isolation.** Every tenant-owned row has `OrganizationId`; EF named query filters + Postgres RLS with
+   transaction-local `set_config('app.tenant_id', …, true)`. Cross-tenant access only via the audited Signal Network
+   path, which stays feature-flagged off until legal review.
+7. **Domains are configuration.** Never hard-code `screenhire.*` hosts (`screenhire.com` is not ours); use
+   `ScreenHire:Domains:*` / env vars (ADR-0003).
+
+## Frontend rules
+
+- **Svelte 5 runes only** (`compilerOptions.runes: true`); no `export let`, `$:`, `on:`, `<slot>`.
+- **SvelteKit 3:** config in `vite.config.ts` (no `svelte.config.js`); import via `#lib/...` with `.js` extensions
+  (not `$lib`); `$app/state` (not `$app/stores`); `$app/env` (not `$app/environment`); tsconfig extends `$app/tsconfig`.
+- **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code — edit freely. Run
+  `pnpm exec svelte-kit sync` before `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install`. Use `field` +
+  superforms 3, not the `form` component; Sheet, not Drawer.
+- **Tokens only:** colours, fonts and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
+  `text-status-review`); never hard-code hex values. Status = shape mark + colour + text label, always.
+- **Public pages ship ~0 KB JS:** Astro components and native HTML controls; Svelte islands only where behaviour is
+  needed. Embeddable apply widget = iframe (never Shadow DOM).
+- Accessibility: WCAG 2.2 AA, visible focus ring, non-drag alternatives for drag-and-drop.
+
+## Backend rules
+
+- .NET 10, central package management (`Directory.Packages.props`). **Licence policy (ADR-0008):** MIT/Apache/BSD
+  preferred; do not add MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText,
+  or Polly/Verify directly. Check the licence of every new package.
+- Minimal APIs with `TypedResults`, one `Map*Endpoints` extension per area under `apps/api/Endpoints`, DTO records in
+  `apps/api/Contracts`. Enums serialize as strings; numbers are strict (clean OpenAPI → clean TS).
+- Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops).
+- Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
+  settings need it.

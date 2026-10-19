@@ -1,0 +1,49 @@
+---
+import CareersLayout from '../../layouts/CareersLayout.astro';
+import { formatSalary, label, listPublicJobs } from '../../lib/api';
+
+// Path-based tenant routing for local development; host-based routing ({tenant}.{CareersDomain}) is a later work item.
+const { organization } = Astro.params;
+const response = await listPublicJobs(organization!);
+
+if (response.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const board = response.data;
+---
+
+<CareersLayout
+  title={`Jobs at ${board.organizationName}`}
+  description={`Open roles at ${board.organizationName}.`}
+  organizationName={board.organizationName}
+  organizationSlug={board.organizationSlug}
+>
+  <h1 class="font-display text-3xl font-bold tracking-tight">Open roles at {board.organizationName}</h1>
+  {
+    board.jobs.length === 0 ? (
+      <p class="mt-6 text-candidate-muted-foreground">There are no open roles right now.</p>
+    ) : (
+      <ul class="mt-6 flex flex-col gap-3">
+        {board.jobs.map((job) => (
+          <li>
+            <a
+              href={`/${board.organizationSlug}/jobs/${job.slug}`}
+              class="flex flex-col gap-2 rounded-2xl border border-candidate-border bg-candidate-surface p-5 text-candidate-foreground no-underline hover:border-candidate-input-border"
+            >
+              <span class="font-display text-xl font-bold">{job.title}</span>
+              <span class="flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
+                <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
+                <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
+                <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
+                {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) && (
+                  <span class="rounded-full bg-candidate-chip px-2.5 py-1">{formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)}</span>
+                )}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</CareersLayout>

@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@import "@screenhire/ui/fonts.css";
+@import "@screenhire/ui/tokens.css";
+@import "@screenhire/ui/theme.css";
+
+@layer base {
+  html {
+    background: var(--candidate-background);
+    color: var(--candidate-foreground);
+    font-family: var(--sh-font-body);
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--candidate-cta);
+    outline-offset: 2px;
+  }
+}

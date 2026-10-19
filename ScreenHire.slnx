@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/apps/" />
+  <Folder Name="/apps/api/">
+    <Project Path="apps/api/ScreenHire.Api.csproj" />
+  </Folder>
+  <Folder Name="/apps/apphost/">
+    <Project Path="apps/apphost/ScreenHire.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/apps/worker/">
+    <Project Path="apps/worker/ScreenHire.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ScreenHire.Domain/ScreenHire.Domain.csproj" />
+    <Project Path="src/ScreenHire.Infrastructure/ScreenHire.Infrastructure.csproj" />
+    <Project Path="src/ScreenHire.ServiceDefaults/ScreenHire.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ScreenHire.IntegrationTests/ScreenHire.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

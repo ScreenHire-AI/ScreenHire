@@ -1,0 +1,274 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "ScreenHire.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/public/organizations/{organizationSlug}/jobs": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "ListPublicJobs",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicJobBoard"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobSlug}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicJob",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicJob"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v1/jobs": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "ListJobs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EmploymentType": {
+        "enum": [
+          "FullTime",
+          "PartTime",
+          "Contract",
+          "Temporary",
+          "Internship"
+        ]
+      },
+      "JobStatus": {
+        "enum": [
+          "Draft",
+          "Open",
+          "Closed"
+        ]
+      },
+      "JobSummary": {
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "location",
+          "workplaceType",
+          "status",
+          "createdAt",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "workplaceType": {
+            "$ref": "#/components/schemas/WorkplaceType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A job as shown in the recruiter dashboard."
+      },
+      "PublicJob": {
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "location",
+          "workplaceType",
+          "employmentType",
+          "salaryMin",
+          "salaryMax",
+          "salaryCurrency",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "workplaceType": {
+            "$ref": "#/components/schemas/WorkplaceType"
+          },
+          "employmentType": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "salaryMin": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "salaryMax": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "salaryCurrency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A job as shown on a public careers page."
+      },
+      "PublicJobBoard": {
+        "required": [
+          "organizationName",
+          "organizationSlug",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "organizationSlug": {
+            "type": "string"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicJob"
+            }
+          }
+        },
+        "description": "The public careers listing for one organization."
+      },
+      "WorkplaceType": {
+        "enum": [
+          "Onsite",
+          "Hybrid",
+          "Remote"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Public careers"
+    },
+    {
+      "name": "Jobs"
+    }
+  ]
+}

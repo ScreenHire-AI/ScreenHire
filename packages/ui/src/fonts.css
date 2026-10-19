@@ -1,0 +1,4 @@
+/* Self-hosted variable fonts (no Google Fonts requests — privacy and performance, ADR-0009). */
+@import "@fontsource-variable/hanken-grotesk";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/jetbrains-mono";

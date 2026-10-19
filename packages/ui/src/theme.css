@@ -1,0 +1,67 @@
+/* Tailwind 4 theme mapping for the tokens in tokens.css. Import after `@import "tailwindcss"`. */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--sh-font-body);
+  --font-display: var(--sh-font-display);
+  --font-mono: var(--sh-font-data);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-row-selected: var(--row-selected);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-status-clear: var(--status-clear);
+  --color-status-clear-soft: var(--status-clear-soft);
+  --color-status-clear-mark: var(--status-clear-mark);
+  --color-status-review: var(--status-review);
+  --color-status-review-soft: var(--status-review-soft);
+  --color-status-review-mark: var(--status-review-mark);
+  --color-status-verify: var(--status-verify);
+  --color-status-verify-soft: var(--status-verify-soft);
+  --color-status-verify-mark: var(--status-verify-mark);
+  --color-status-ai: var(--status-ai);
+  --color-status-ai-soft: var(--status-ai-soft);
+
+  --color-candidate-background: var(--candidate-background);
+  --color-candidate-surface: var(--candidate-surface);
+  --color-candidate-border: var(--candidate-border);
+  --color-candidate-input-border: var(--candidate-input-border);
+  --color-candidate-foreground: var(--candidate-foreground);
+  --color-candidate-muted-foreground: var(--candidate-muted-foreground);
+  --color-candidate-chip: var(--candidate-chip);
+  --color-candidate-chip-foreground: var(--candidate-chip-foreground);
+  --color-candidate-cta: var(--candidate-cta);
+  --color-candidate-cta-foreground: var(--candidate-cta-foreground);
+}

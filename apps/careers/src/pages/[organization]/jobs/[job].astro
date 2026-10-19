@@ -1,0 +1,72 @@
+---
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { formatSalary, getPublicJob, label, listPublicJobs } from '../../../lib/api';
+
+const { organization, job: jobSlug } = Astro.params;
+const [jobResponse, boardResponse] = await Promise.all([
+  getPublicJob(organization!, jobSlug!),
+  listPublicJobs(organization!),
+]);
+
+// Closed jobs become 410 Gone once the API exposes closed status (teardown work item); unknown jobs are 404.
+if (jobResponse.status !== 200 || boardResponse.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const job = jobResponse.data;
+const board = boardResponse.data;
+const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+
+// schema.org JobPosting for Google for Jobs (docs/architecture/job-distribution.md).
+const jobPosting = {
+  '@context': 'https://schema.org',
+  '@type': 'JobPosting',
+  title: job.title,
+  description: `<p>${job.title} at ${board.organizationName}.</p>`,
+  datePosted: job.publishedAt,
+  employmentType: job.employmentType.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
+  hiringOrganization: { '@type': 'Organization', name: board.organizationName },
+  ...(job.workplaceType === 'Remote'
+    ? { jobLocationType: 'TELECOMMUTE', applicantLocationRequirements: { '@type': 'Country', name: job.location } }
+    : { jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: job.location } } }),
+  ...(job.salaryMin != null && {
+    baseSalary: {
+      '@type': 'MonetaryAmount',
+      currency: job.salaryCurrency,
+      value: { '@type': 'QuantitativeValue', minValue: job.salaryMin, maxValue: job.salaryMax, unitText: 'YEAR' },
+    },
+  }),
+};
+---
+
+<CareersLayout
+  title={`${job.title} — ${board.organizationName}`}
+  description={`${job.title} at ${board.organizationName}. ${job.location}.`}
+  organizationName={board.organizationName}
+  organizationSlug={board.organizationSlug}
+>
+  <script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(jobPosting)} />
+
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
+  <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
+    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
+    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
+    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
+    {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
+  </div>
+
+  <section aria-label="How we protect applicants" class="mt-6 rounded-2xl border border-candidate-border bg-candidate-surface p-5">
+    <h2 class="text-base font-bold">How we keep this fair</h2>
+    <p class="mt-1.5 text-sm text-candidate-muted-foreground">
+      We check applications for bots and impersonation. A person reads every one. You'll see exactly what we look at
+      before you start.
+    </p>
+  </section>
+
+  <a
+    href="#apply"
+    class="mt-6 inline-flex h-13 w-full items-center justify-center rounded-[14px] bg-candidate-cta text-base font-bold text-candidate-cta-foreground no-underline sm:w-auto sm:px-8"
+  >
+    Apply for this role
+  </a>
+</CareersLayout>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <UserSecretsId>dotnet-ScreenHire.Worker-f2eb61b2-5cc5-4e89-830c-10941083669c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ScreenHire.ServiceDefaults\ScreenHire.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\src\ScreenHire.Infrastructure\ScreenHire.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

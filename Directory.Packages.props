@@ -1,0 +1,54 @@
+<Project>
+  <!--
+    Central package management. Licence policy (ADR-0008): prefer MIT / Apache-2.0 / BSD / PostgreSQL.
+    Every new package or major-version bump needs a licence check before it lands here.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets the "Transitive pins" group below override versions pulled in by other packages. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <AspireVersion>13.6.1</AspireVersion>
+    <DotNetVersion>10.0.13</DotNetVersion>
+  </PropertyGroup>
+  <ItemGroup Label="Aspire">
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="$(AspireVersion)" />
+  </ItemGroup>
+  <ItemGroup Label="ASP.NET Core / EF Core">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="$(DotNetVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(DotNetVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(DotNetVersion)" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageVersion Include="Pgvector.EntityFrameworkCore" Version="0.3.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
+  </ItemGroup>
+  <ItemGroup Label="Service defaults">
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.17.0" />
+  </ItemGroup>
+  <ItemGroup Label="Transitive pins">
+    <!-- Aligns Aspire.Npgsql.EntityFrameworkCore.PostgreSQL (built against 10.0.12) with our EF Core version. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="$(DotNetVersion)" />
+    <!-- GHSA-qhrr-8q5h-9q3h: MessagePack < 2.5.303 (pulled in by the Aspire AppHost). -->
+    <PackageVersion Include="MessagePack" Version="2.5.307" />
+  </ItemGroup>
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+  </ItemGroup>
+</Project>
