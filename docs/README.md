@@ -40,6 +40,11 @@ configuration everywhere (ADR-0003).
 - [Design System — "Warm Grid"](design/design-system.md) — tokens (light/dark/candidate), type, status semantics,
   components, accessibility, employer branding, voice
 
+## Process
+
+- [Board pipeline](process/board-pipeline.md) — Kangentic columns, outcome lines, notifications and how to unblock a
+  task; where the gate, conflict rules and process guard live
+
 ## Research (snapshot 2026-10-18)
 
 - [Frontend benchmarks](research/frontend.md)
