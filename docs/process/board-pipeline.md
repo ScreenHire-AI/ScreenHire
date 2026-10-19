@@ -13,8 +13,8 @@ To Do → (Planning) → Executing → Code Review → Testing → Merge → Don
                          └─ Blocked ──┘   (at most 3 times)
 ```
 
-Every column after To Do spawns an agent in the task's own git worktree (`.kangentic/worktrees/<n>/`). When that agent
-ends a turn, the column reads **the last line of its final message** and compares it, in code, with the outcome lines
+Every column between To Do and Done spawns an agent in the task's own git worktree (`.kangentic/worktrees/<n>/`).
+When that agent ends a turn, the column reads **the last line of its final message** and compares it, in code, with the outcome lines
 below (ignoring case, punctuation and markdown). The outcome lines are therefore contracts. An agent prints one only
 when its condition holds, alone, with nothing after it.
 
@@ -35,8 +35,8 @@ when its condition holds, alone, with nothing after it.
   depends on have landed.
 - **Code Review** ([`task-review`](../../.claude/skills/task-review/SKILL.md)) runs in a fresh conversation that never
   saw the implementation. It reviews three dimensions in parallel: correctness, the non-negotiables and security, and
-  conventions. It fixes what it can, commits review work as `fix(review): …` / `test(review): …`, and sends back only
-  work that is task-sized or needs a decision.
+  conventions. It fixes what it can, commits review work as `fix(review): …`, `test(review): …` or
+  `docs(review): …`, and sends back only work that is task-sized or needs a decision.
 - **Testing** ([`pull-request`](../../.claude/skills/pull-request/SKILL.md)) commits, merges `origin/main` into the
   branch, runs the full gate with up to three fix rounds, pushes to a public `<type>/<slug>` branch, and opens a PR
   linked to the card. It never merges.
@@ -112,7 +112,7 @@ or rebase it.
 | Column skills | [`task-review`](../../.claude/skills/task-review/SKILL.md), [`pull-request`](../../.claude/skills/pull-request/SKILL.md), [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) |
 | Conflict playbook for integrating `main` (merge, not rebase; regenerate lockfile, API client and migrations) | [`.claude/rules/integration-conflicts.md`](../../.claude/rules/integration-conflicts.md) |
 | Unattended-run rules (never wait for a person, stay local, start from what is merged) | [`.claude/rules/unattended-runs.md`](../../.claude/rules/unattended-runs.md) |
-| Process guard: refuses killing processes by name, port or tree, and Docker prunes | [`scripts/guard-processes.mjs`](../../scripts/guard-processes.mjs), wired as a `PreToolUse` hook in [`.claude/settings.json`](../../.claude/settings.json) |
+| Process guard: refuses killing processes by name, port or tree, stopping a PID started outside this worktree, Docker prunes and sub-command removals, and stopping services, WSL or the machine | [`scripts/guard-processes.mjs`](../../scripts/guard-processes.mjs), wired as a `PreToolUse` hook in [`.claude/settings.json`](../../.claude/settings.json) |
 | Auto-mode allowances for the pipeline (push to the task branch, `gh pr merge`, local builds) | `autoMode` in [`.claude/settings.json`](../../.claude/settings.json) |
 
 Agents may not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, the guard or the pipeline skills unless
