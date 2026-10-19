@@ -21,6 +21,9 @@ mid-task (never as the final gate).
 
 ## Run
 
+Commit (or at least stage) your work first. `verify:contract` compares the regenerated client with git, so correct
+but unstaged generated files read as drift.
+
 Full gate: `pnpm verify`. It runs, in order and stopping at the first failure:
 
 1. `dotnet build ScreenHire.slnx -warnaserror`: compile, analyzers and NuGet audit. This also regenerates

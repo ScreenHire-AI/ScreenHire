@@ -33,6 +33,9 @@ task, and every task that waits on it, until morning.
 
 - First step of every task: `git fetch origin main` and confirm the code your brief builds on (the tasks it waits
   for) is on `origin/main`. If the worktree is behind, `git merge origin/main` before writing code.
+- If a task you wait for is **not** on `origin/main` (its PR is unmerged, or its code is missing), do not build on a
+  guess. Stop, say which task and what is missing, and end the turn with this line alone as the last line:
+  `Blocked: dependency not on main`. The board notifies the owner.
 - Read the docs your brief names before designing anything.
 
 ## Finish in a state the gate accepts
