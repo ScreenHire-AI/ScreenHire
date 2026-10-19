@@ -37,8 +37,28 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - Build / check: `dotnet build ScreenHire.slnx`, `pnpm check` (svelte-check `--fail-on-warnings`, astro check, tsc),
   `pnpm -r build`, `dotnet test --solution ScreenHire.slnx` (Microsoft Testing Platform via `global.json`; the
   integration tests boot the AppHost, so Docker must be running).
+- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and every
+  test suite. It is the only CI for now; see the `/verify` skill.
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
+
+## Board pipeline (Kangentic)
+
+Tasks move Executing → Code Review → Testing → Merge → Done on their own. Workflow tasks skip Planning, which waits
+for a person to approve the plan; their briefs are the plan. Each column's automation reads the **last line** of the
+agent's final message, so these lines are contracts: print one only when its condition holds, alone, with nothing
+after it.
+
+| Column | Skill | Outcome lines |
+|---|---|---|
+| Executing | (the brief) | `Implementation: complete` when the brief is done and `pnpm verify` passes. The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
+| Code Review | `/task-review` (isolated session) | `Verdict: Ready` → Testing; numbered steps + `Verdict: Blocked` → back to Executing (at most 3 times) |
+| Testing | `/pull-request` | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
+| Merge | `/merge-pull-request` | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
+
+Unattended-run rules are in `.claude/rules/unattended-runs.md`, and the conflict playbook for integrating `main` is
+in `.claude/rules/integration-conflicts.md`. `scripts/guard-processes.mjs` is a PreToolUse hook that refuses
+process-killing commands.
 
 ## Product & legal non-negotiables (ADR-0004, ADR-0005, docs/research/legal.md)
 

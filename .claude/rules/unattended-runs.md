@@ -1,0 +1,45 @@
+# Unattended board runs
+
+Workflow tasks run overnight with nobody at the keyboard. A question, a prompt or a missing credential parks the
+task, and every task that waits on it, until morning.
+
+## Never wait for a person
+
+- Do not call AskUserQuestion and do not end a turn with a question. Take the option you would recommend, name the
+  alternative, and record the choice under **Decisions** in the PR body.
+- If the brief conflicts with the code on `main` or with an ADR, follow the ADR, note the conflict under
+  **Decisions**, and carry on.
+- If something is truly impossible without a person (a credential, a paid account, a legal call), build everything
+  around it behind configuration with a local fake, list it under **Owner actions** in the PR body, and finish.
+
+## Stay local
+
+- No deploys, cloud resources, DNS, domains, purchases or third-party sign-ups. Hosting is deferred.
+- No real credentials exist. Every external integration (OIDC providers, email, LLMs, job boards, IP intelligence)
+  sits behind an interface with a local adapter: a container in the AppHost (mock OIDC server, Mailpit) or an
+  in-process fake. A provider with no configuration is hidden, never an error, and no test needs a key or the
+  internet.
+- Never push to `main` directly. Code reaches `main` only through the Merge column's `/merge-pull-request`.
+
+## Leave the process alone
+
+- Do not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, `scripts/guard-processes.mjs` or the
+  pipeline skills (`task-review`, `pull-request`, `merge-pull-request`, `verify`) unless the task is about them.
+- Processes: never stop anything by name, port or process tree (the guard hook refuses it). Run long commands with
+  `run_in_background` and stop them with TaskStop. Before `pnpm dev`, reserve ports with
+  `kangentic_reserve_dev_ports` or set `ScreenHire__PinPorts=false`. Prefer the Aspire test host over a dev server.
+
+## Start from what is merged
+
+- First step of every task: `git fetch origin main` and confirm the code your brief builds on (the tasks it waits
+  for) is on `origin/main`. If the worktree is behind, `git merge origin/main` before writing code.
+- Read the docs your brief names before designing anything.
+
+## Finish in a state the gate accepts
+
+- Tests ship with the code: unit tests for logic, Aspire integration tests for endpoints and data rules, Playwright
+  for user journeys. A brief's acceptance criteria are the minimum.
+- Run targeted tests while you work and `pnpm verify` before you call implementation done.
+- Commit with conventional messages (`feat(auth): ...`). Keep commits focused; the merge squashes them.
+- Board outcome lines are contracts. Print one only when its condition holds, alone, as the last line of the
+  message (see CLAUDE.md, "Board pipeline").

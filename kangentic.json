@@ -22,17 +22,39 @@
     {
       "id": "d33d4435-8173-40eb-9437-9143cf787ee0",
       "name": "Executing",
+      "description": "Implements the brief. Ends \"Implementation: complete\" (gate green), then a findings pass ending \"Findings: applied\" moves it to Code Review.",
       "icon": "square-terminal",
       "autoSpawn": true,
+      "permissionMode": "auto",
       "modelOverride": "opus",
-      "effortOverride": "high"
+      "effortOverride": "high",
+      "automations": {
+        "onTurnEnd": [
+          {
+            "name": "On to Code Review",
+            "type": "move_to_column",
+            "finalLine": "Findings: applied",
+            "maxRuns": 4,
+            "targetColumn": "Code Review"
+          },
+          {
+            "name": "Apply findings",
+            "type": "send_message",
+            "finalLine": "Implementation: complete",
+            "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. If you changed anything, re-run the affected checks and commit. Either way, end your turn with a short summary and the line \"Findings: applied\".",
+            "mode": "immediate"
+          }
+        ]
+      }
     },
     {
       "id": "8d7d067a-f4b7-4782-b965-14550bcbbea1",
       "name": "Code Review",
+      "description": "Fresh-context /task-review: fixes findings, adds tests. \"Verdict: Ready\" → Testing; \"Verdict: Blocked\" → Executing (max 3).",
       "icon": "code",
       "color": "#f59e0b",
       "autoSpawn": true,
+      "permissionMode": "auto",
       "modelOverride": "opus",
       "effortOverride": "high",
       "sessionTarget": "isolated",
@@ -42,8 +64,31 @@
           {
             "name": "Message",
             "type": "send_message",
-            "message": "/code-review high {{baseBranch}}...HEAD",
+            "message": "/task-review {{baseBranch}}",
             "mode": "immediate"
+          }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "Back for revisions",
+            "type": "move_to_column",
+            "finalLine": "Verdict: Blocked",
+            "maxRuns": 3,
+            "targetColumn": "Executing",
+            "message": "Code Review sent this back. Do the numbered steps above its verdict, commit, then end your turn with a short summary and the line \"Findings: applied\".\n\n{{agentReply}}"
+          },
+          {
+            "name": "On to Testing",
+            "type": "move_to_column",
+            "finalLine": "Verdict: Ready",
+            "maxRuns": 3,
+            "targetColumn": "Testing"
+          },
+          {
+            "name": "Review stuck",
+            "type": "notify",
+            "finalLine": "Verdict: Blocked",
+            "title": "Review blocked: #{{taskNumber}} {{title}}"
           }
         ]
       }
@@ -51,20 +96,74 @@
     {
       "id": "bbc605fd-c21e-46f3-b0b3-78c6a897e2f4",
       "name": "Testing",
+      "description": "/pull-request: integrate origin/main, full local gate (pnpm verify), push, open + link PR. \"PR: ready to merge\" → Merge.",
       "icon": "flask-conical",
       "color": "#06b6d4",
       "autoSpawn": true,
+      "permissionMode": "auto",
       "modelOverride": "sonnet",
-      "effortOverride": "medium"
+      "effortOverride": "high",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Message",
+            "type": "send_message",
+            "message": "/pull-request",
+            "mode": "immediate"
+          }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "On to Merge",
+            "type": "move_to_column",
+            "finalLine": "PR: ready to merge",
+            "maxRuns": 3,
+            "targetColumn": "Merge"
+          },
+          {
+            "name": "Testing blocked",
+            "type": "notify",
+            "finalLine": "PR: blocked",
+            "title": "Testing blocked: #{{taskNumber}} {{title}}"
+          }
+        ]
+      }
     },
     {
       "id": "86b15f5e-0b1a-4a74-9278-88a2d343ee95",
       "name": "Merge",
+      "description": "/merge-pull-request: re-gate if main moved, squash-merge, confirm on origin/main, realign. \"PR: merged\" → Done.",
       "icon": "merge",
       "color": "#f97316",
       "autoSpawn": true,
+      "permissionMode": "auto",
       "modelOverride": "sonnet",
-      "effortOverride": "medium"
+      "effortOverride": "high",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Message",
+            "type": "send_message",
+            "message": "/merge-pull-request",
+            "mode": "immediate"
+          }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "Finish",
+            "type": "move_to_column",
+            "finalLine": "PR: merged",
+            "maxRuns": 3,
+            "targetColumn": "Done"
+          },
+          {
+            "name": "Merge blocked",
+            "type": "notify",
+            "finalLine": "PR: blocked",
+            "title": "Merge blocked: #{{taskNumber}} {{title}}"
+          }
+        ]
+      }
     },
     {
       "id": "5f906943-df6f-4720-ac95-ae65f2891ca9",
