@@ -103,6 +103,20 @@ If a root checkout fast-forward fails during Merge, the task still reaches Done.
 prominently (branch, ahead/behind, local commits). Sort out the root checkout yourself; the agents never stash, reset
 or rebase it.
 
+## Troubleshooting
+
+When a notification fires, check this before reading anything else. Run the commands in the task's worktree.
+
+| Column | Notification | First thing to check |
+|---|---|---|
+| Executing | Blocked on a dependency | The dependency's card. If it is not in Done, the problem is there: unblock that task first. If it is in Done, run `git fetch origin main` and `git log --oneline origin/main -- <a file the dependency adds>`. An empty result means its Merge reported `PR: merged` without the code landing, so check its PR with `gh pr view <n> --json state,mergeCommit`. |
+| Code Review | Review blocked | Whether the numbered steps repeat from one return to the next. The same step three times is a disagreement between the brief and the reviewer, not unfinished code, so settle it in the brief. Different steps each time mean the work is still moving: do the remaining steps yourself. |
+| Testing | Testing blocked | The environment, before the code: `gh auth status` and `docker info`. Either one failing explains the block on its own. If both pass, read the gate summary in the last message for the first failing step. |
+| Merge | Merge blocked | `git status`, then `gh pr view <n> --json state,mergeCommit`. Uncommitted files stop the realign, and Done deletes the worktree, so deal with them before anything else. A PR that is already `MERGED` means the block came after the merge: ask the agent to carry on from "Confirm it landed" in [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md). An open PR means the merge itself failed: read the reason in the last message. |
+
+No notification at all, but an idle agent? That is the [silent stall](#the-silent-stall): read the last line of its
+final message.
+
 ## Where the rules live
 
 | What | Where |
