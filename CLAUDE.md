@@ -25,6 +25,11 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
   dashboard :4323; the Aspire dashboard URL is printed on start.
+- **Parallel worktrees:** several Kangentic tasks may run at once. Before `pnpm dev`, check/reserve ports with the
+  Kangentic dev-port tools (`kangentic_check_dev_ports` / `kangentic_reserve_dev_ports`) and pass them as
+  `ScreenHire__Ports__Api|Marketing|Careers|Dashboard`, or run with `ScreenHire__PinPorts=false` for random ports
+  (URLs are shown in the Aspire dashboard). Data volumes are already per-worktree; integration tests use no volumes and
+  random ports.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
