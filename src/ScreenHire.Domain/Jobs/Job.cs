@@ -155,6 +155,47 @@ public sealed class Job : ITenantOwned
     }
 
     /// <summary>
+    /// Replaces the job's workflow with a recruiter's edit of it and starts a new workflow version. The caller has
+    /// validated <paramref name="workflow"/> and checked that no application sits in a stage it drops. The source
+    /// template stays recorded, so the template diff shows this job's edits against the template's newest version.
+    /// </summary>
+    public void ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(workflow);
+        if (Status == JobStatus.Closed)
+        {
+            throw new InvalidOperationException("A closed job cannot be changed; create a new job instead.");
+        }
+
+        Workflow = workflow;
+        WorkflowVersion++;
+        UpdatedAt = now;
+    }
+
+    /// <summary>
+    /// Replaces the job's workflow with a newer published version of its source template, the recruiter's "apply
+    /// update" (workflow-engine.md §1). It replaces the job's own edits too. Unlike <see cref="UseTemplate"/>, an open job
+    /// may take it: a person asked for the change, so nothing is mutated silently.
+    /// </summary>
+    public void ApplyTemplateUpdate(HiringTemplateVersion version, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        if (version.Status != TemplateVersionStatus.Published)
+        {
+            throw new InvalidOperationException("Jobs take published template versions only.");
+        }
+
+        if (version.TemplateId != SourceTemplateId)
+        {
+            throw new InvalidOperationException("A job takes updates from the template it was created from only.");
+        }
+
+        ReviseWorkflow(version.Definition.Workflow, now);
+        SourceTemplateVersionId = version.Id;
+        SourceTemplateVersion = version.Version;
+    }
+
+    /// <summary>
     /// Opens the job and freezes its content as a new <see cref="JobVersion"/>, which the caller saves. Publishing an
     /// open job whose content equals <paramref name="latest"/> changes nothing and returns null, so a repeated click
     /// raises no second event. <paramref name="latest"/> is the job's newest version, or null if it has none.

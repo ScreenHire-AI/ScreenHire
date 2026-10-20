@@ -120,6 +120,20 @@ public sealed record UpdateJobRequest(
     SalaryRequest? Salary = null,
     DateTimeOffset? ValidThrough = null);
 
+/// <summary>
+/// Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. <c>expectedWorkflowVersion</c>
+/// is the <c>workflowVersion</c> the edit started from; if someone saved in between, the request is refused (409) rather
+/// than overwriting their change. A stage that still holds applications cannot be removed.
+/// </summary>
+public sealed record UpdateJobWorkflowRequest(HiringWorkflow Workflow, int ExpectedWorkflowVersion);
+
+/// <summary>
+/// Replaces a job's workflow with a published version of the template it came from (usually the newest, from
+/// <c>GET /v1/jobs/{jobId}/workflow/template-diff</c>). It replaces the job's own edits too, which the diff lists.
+/// <c>expectedWorkflowVersion</c> works as in <see cref="UpdateJobWorkflowRequest"/>.
+/// </summary>
+public sealed record ApplyTemplateUpdateRequest(Guid TemplateVersionId, int ExpectedWorkflowVersion);
+
 /// <summary>A pay range. Currency and period may come from the template's posting defaults on create.</summary>
 public sealed record SalaryRequest(decimal? Min, decimal? Max, string? Currency = null, SalaryPeriod? Period = null);
 
