@@ -53,6 +53,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
 
+    public DbSet<ApplicationFile> ApplicationFiles => Set<ApplicationFile>();
+
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
 
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();

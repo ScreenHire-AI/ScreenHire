@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
@@ -64,8 +65,8 @@ internal static class ApplicationEndpoints
         return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(job, r.Candidate)).ToList());
     }
 
-    // A recruiter adds an application by hand. The candidate is found by email within the organization, or created.
-    // The application starts in the job's first stage, and its Submitted event and ApplicationSubmitted commit with it.
+    // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
+    // organization, or created, and the application starts in the job's first stage.
     private static async Task<Results<Created<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> CreateApplication(
         Guid jobId,
         CreateApplicationRequest request,
@@ -92,42 +93,29 @@ internal static class ApplicationEndpoints
             return TypedResults.Problem("A closed job takes no applications.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        var now = time.GetUtcNow();
-        var email = Candidate.Normalize(request.Candidate.Email);
-        var candidate = await db.Candidates.SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
-        if (candidate is null)
-        {
-            candidate = Candidate.Create(job.OrganizationId, request.Candidate.FullName, request.Candidate.Email, request.Candidate.Phone, now);
-            db.Candidates.Add(candidate);
-        }
-        else if (await db.Applications.AnyAsync(a => a.JobId == jobId && a.CandidateId == candidate.Id, cancellationToken))
+        var submitted = await ApplicationSubmission.SubmitAsync(
+            outbox, job, request.Candidate,
+            new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
+            ApplicationIntake.Recruiter, [], time.GetUtcNow(), tenant.UserId, cancellationToken);
+        if (submitted is not { } created)
         {
             return TypedResults.Problem("This candidate already applied to this job.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        var (application, submitted) = JobApplication.Submit(
-            job, candidate, request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails, now, tenant.UserId);
-        db.Applications.Add(application);
-        db.ApplicationEvents.Add(submitted);
-        await outbox.PublishAsync(new ApplicationSubmitted(
-            application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now));
-        try
-        {
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
-        {
-            return TypedResults.Problem("This candidate applied at the same moment; refresh to see the application.", statusCode: StatusCodes.Status409Conflict);
-        }
-
-        return TypedResults.Created($"/v1/applications/{application.Id}", application.ToDetail(job, candidate));
+        var (application, candidate) = created;
+        return TypedResults.Created($"/v1/applications/{application.Id}", application.ToDetail(job, candidate, []));
     }
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound>> GetApplication(
         Guid applicationId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var row = await LoadAsync(db, applicationId, cancellationToken);
-        return row is null ? TypedResults.NotFound() : TypedResults.Ok(row.Value.Application.ToDetail(row.Value.Job, row.Value.Candidate));
+        if (row is not { } found)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(found.Application.ToDetail(found.Job, found.Candidate, await FilesOfAsync(db, applicationId, cancellationToken)));
     }
 
     // A person moves an application to any stage of its job's workflow. The timeline event and ApplicationMoved commit
@@ -179,7 +167,7 @@ internal static class ApplicationEndpoints
             }
         }
 
-        return TypedResults.Ok(application.ToDetail(job, candidate));
+        return TypedResults.Ok(application.ToDetail(job, candidate, await FilesOfAsync(db, application.Id, cancellationToken)));
     }
 
     private static async Task<Results<Ok<List<ApplicationTimelineEntry>>, NotFound>> GetApplicationTimeline(
@@ -222,6 +210,13 @@ internal static class ApplicationEndpoints
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
             [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate))]));
     }
+
+    private static async Task<List<ApplicationFile>> FilesOfAsync(ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken) =>
+        await db.ApplicationFiles.AsNoTracking()
+            .Where(f => f.ApplicationId == applicationId)
+            .OrderBy(f => f.UploadedAt)
+            .ThenBy(f => f.QuestionId)
+            .ToListAsync(cancellationToken);
 
     private static async Task<(JobApplication Application, Job Job, Candidate Candidate)?> LoadAsync(
         ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken)

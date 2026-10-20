@@ -1,0 +1,36 @@
+---
+// A closed job (410 Gone: it existed and will not come back) or an unknown one (404). The page sets the status; this is
+// what the candidate reads.
+import type { PublicOrganization } from '@screenhire/api-client';
+import CareersLayout from '../layouts/CareersLayout.astro';
+import { basePath } from '../lib/host';
+
+interface Props {
+  organization: PublicOrganization;
+  gone: boolean;
+}
+
+const { organization, gone } = Astro.props;
+const base = basePath(Astro.request, organization.slug);
+---
+
+<CareersLayout
+  title={gone ? `This job has closed | ${organization.name}` : `Job not found | ${organization.name}`}
+  description={gone ? `This job at ${organization.name} is no longer taking applications.` : `We could not find this job at ${organization.name}.`}
+  organizationName={organization.name}
+  organizationSlug={organization.slug}
+  branding={organization.branding}
+  noindex
+>
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">
+    {gone ? 'This job has closed' : 'We could not find this job'}
+  </h1>
+  <p class="mt-3 text-[15px] text-candidate-muted-foreground">
+    {
+      gone
+        ? `${organization.name} is no longer taking applications for this role. If you already applied, your application is still with them.`
+        : 'The link may be mistyped, or the job may never have been published.'
+    }
+  </p>
+  <a href={base || '/'} class="button-primary mt-6">See open roles at {organization.name}</a>
+</CareersLayout>

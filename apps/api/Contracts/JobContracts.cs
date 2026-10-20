@@ -27,8 +27,8 @@ public sealed record PublicJob(
     SalaryPeriod? SalaryPeriod,
     DateTimeOffset? ValidThrough);
 
-/// <summary>The public careers listing for one organization.</summary>
-public sealed record PublicJobBoard(string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs);
+/// <summary>The public careers listing for one organization. <c>branding</c> is null when it has no brand colour.</summary>
+public sealed record PublicJobBoard(string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, PublicBranding? Branding = null);
 
 /// <summary>A job as shown in the recruiter dashboard's list.</summary>
 /// <remarks><c>templateUpdateAvailable</c>: the job's source template has a newer published version than the job copied.</remarks>

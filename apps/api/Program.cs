@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
+using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
@@ -14,6 +15,7 @@ builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
+builder.AddScreenHireApply();
 
 // Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
 // worker handles it (docs/architecture/messaging.md). The API handles only tenant events from the real-time queue,
@@ -47,9 +49,11 @@ app.MapOpenApi().AllowAnonymous();
 app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
+app.MapPublicApplicationEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapOrganizationEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
 app.MapSchemaEndpoints();
@@ -67,6 +71,7 @@ if (app.Environment.IsDevelopment())
     await DevelopmentDataSeeder.MigrateAndSeedAsync(
         ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, DatabasePrecisionTimeProvider.Instance);
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
+    await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
 }
 
 await app.RunAsync();

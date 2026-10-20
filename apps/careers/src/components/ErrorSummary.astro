@@ -1,0 +1,42 @@
+---
+// The problems on a step, as links to their fields, announced and focused when the page loads (WCAG 3.3.1, 3.3.3).
+import { fieldId, type FieldErrors } from '../lib/apply';
+
+interface Props {
+  errors: FieldErrors;
+  /** A problem that belongs to no field. */
+  formError?: string | undefined;
+}
+
+const { errors, formError } = Astro.props;
+const entries = Object.entries(errors);
+---
+
+{
+  (entries.length > 0 || formError) && (
+    <div
+      id="error-summary"
+      role="alert"
+      tabindex="-1"
+      autofocus
+      aria-labelledby="error-summary-heading"
+      class="mb-5 rounded-2xl border-2 border-destructive bg-candidate-surface px-4 py-3.5"
+    >
+      <h2 id="error-summary-heading" class="text-base font-bold">
+        {entries.length > 0 ? 'Check these before you continue' : 'There was a problem'}
+      </h2>
+      {formError && <p class="mt-1 text-sm">{formError}</p>}
+      {entries.length > 0 && (
+        <ul class="mt-1.5 flex flex-col gap-1 text-sm">
+          {entries.map(([name, message]) => (
+            <li>
+              <a href={`#${fieldId(name)}`} class="font-semibold text-destructive underline underline-offset-2">
+                {message}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}

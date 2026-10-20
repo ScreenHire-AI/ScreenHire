@@ -115,12 +115,22 @@ if (frontends != FrontendMode.None)
 
     // Health checks make WaitFor and the test fixtures wait until each server actually answers, not just until the
     // process starts. Careers' "/" redirects to the demo board, which also proves the API round trip.
-    builder.AddJavaScriptApp("careers", "../careers", script)
+    var careers = builder.AddJavaScriptApp("careers", "../careers", script)
         .WithPnpm(install: false)
         .WithHttpEndpoint(port: PortFor("Careers", 4322), env: "PORT")
         .WithEnvironment("API_URL", apiUrl)
         .WithHttpHealthCheck("/")
         .WaitFor(api);
+
+    // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
+    // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
+    // The careers server and the API read the same ScreenHire:Domains settings.
+    var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api })
+    {
+        resource.WithEnvironment("ScreenHire__Domains__CareersDomain", careersDomain)
+            .WithEnvironment("ScreenHire__Domains__CareersHostPattern", "{tenant}.{CareersDomain}");
+    }
 
     builder.AddJavaScriptApp("marketing", "../marketing", script)
         .WithPnpm(install: false)

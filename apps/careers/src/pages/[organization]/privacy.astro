@@ -1,0 +1,99 @@
+---
+// "What we collect and why": the full notice behind "How we keep this fair" (CLAUDE.md non-negotiable 4,
+// docs/research/legal.md). It describes what this build collects, and nothing it does not. When its substance changes,
+// change NOTICE_VERSION in lib/apply.ts too: every application records the version its candidate was shown.
+import CareersLayout from '../../layouts/CareersLayout.astro';
+import { getPublicOrganization } from '../../lib/api';
+import { NOTICE_VERSION } from '../../lib/apply';
+
+const response = await getPublicOrganization(Astro.params.organization!);
+if (response.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = response.data;
+---
+
+<CareersLayout
+  title={`What we collect and why | ${employer.name}`}
+  description={`How ${employer.name} and ScreenHire handle your information when you apply for a job.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+>
+  <article class="flex flex-col gap-6 text-[15px] leading-relaxed [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+    <header>
+      <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">What we collect and why</h1>
+      <p class="mt-2 text-candidate-muted-foreground">
+        {employer.name} uses ScreenHire to receive applications. {employer.name} decides how applications are used;
+        ScreenHire handles them on its behalf.
+      </p>
+    </header>
+
+    <section aria-labelledby="browsing">
+      <h2 id="browsing">While you look at jobs</h2>
+      <p class="mt-2">
+        Only our server logs: your network (IP) address, your browser's name, the page and the time. We use them to keep
+        the site running and secure, and delete them within 30 days. There are no tracking cookies, no analytics and no
+        device fingerprinting on these pages.
+      </p>
+    </section>
+
+    <section aria-labelledby="applying">
+      <h2 id="applying">When you apply</h2>
+      <p class="mt-2">
+        Nothing is collected until you send a step of the form or add a file. A file goes to storage as soon as you choose
+        it, and one that is never sent with an application is deleted after a day. With an application we keep:
+      </p>
+      <ul>
+        <li>what you enter: your name, email, phone number, answers and the files you upload;</li>
+        <li>whether you switched on the assistive technology option;</li>
+        <li>your answer about AI tools, and anything you tell us about how you used them;</li>
+        <li>which version of this notice you were shown.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="checks">
+      <h2 id="checks">What we check, and what we never do</h2>
+      <p class="mt-2">
+        We check applications for signs of bots and impersonation, because they crowd out real candidates. The form has a
+        hidden field that only automated software fills in, and the site may ask your browser to complete a bot challenge
+        from Cloudflare, which then sees your network address and browser. Files are checked to be the type they say they
+        are.
+      </p>
+      <ul class="mt-2">
+        <li>Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.</li>
+        <li>We never give you a score or a percentage, and never guess at your feelings, honesty or personality.</li>
+        <li>We never look at your other tabs or apps, and never use your camera or microphone.</li>
+        <li>We never look up your social media profiles. We only use what you give us.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="assistive">
+      <h2 id="assistive">Assistive technology</h2>
+      <p class="mt-2">
+        Dictation, screen readers, switch access and autofill can look like copying and pasting. If you use them, switch
+        on the assistive technology option at the start of the form. We then turn off any checks on how you type or paste.
+        Using the option is never held against you.
+      </p>
+    </section>
+
+    <section aria-labelledby="ai">
+      <h2 id="ai">AI tools</h2>
+      <p class="mt-2">
+        Each job says whether {employer.name} welcomes AI help with your application. We ask you about it at the end of
+        the form, and a person reads your answer alongside your application.
+      </p>
+    </section>
+
+    <section aria-labelledby="rights">
+      <h2 id="rights">Your choices</h2>
+      <p class="mt-2">
+        You can ask {employer.name} to see, correct or delete your information, and to have a person review anything we
+        flagged about your application. Contact them through the email address they use to write to you.
+      </p>
+    </section>
+
+    <p class="font-mono text-[11px] text-candidate-muted-foreground">NOTICE VERSION {NOTICE_VERSION}</p>
+  </article>
+</CareersLayout>

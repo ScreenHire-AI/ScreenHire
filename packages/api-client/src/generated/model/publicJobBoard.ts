@@ -4,13 +4,15 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { PublicBranding } from './publicBranding.ts';
 import type { PublicJob } from './publicJob.ts';
 
 /**
- * The public careers listing for one organization.
+ * The public careers listing for one organization. `branding` is null when it has no brand colour.
  */
 export interface PublicJobBoard {
   organizationName: string;
   organizationSlug: string;
   jobs: PublicJob[];
+  branding?: null | PublicBranding;
 }

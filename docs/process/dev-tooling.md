@@ -15,7 +15,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`add-realtime-event`](../../.claude/skills/add-realtime-event/SKILL.md) | a change should appear in open dashboards without a reload | an `ITenantEvent` record, its Zod schema and the C#/Zod contract file, the dashboard `load` dependency it invalidates, an optional record topic, integration tests with the SignalR client |
 | [`add-migration`](../../.claude/skills/add-migration/SKILL.md) | an entity or EF configuration changes | naming, generating and reviewing the SQL, the tenant-table checklist (`OrganizationId`, query filter, RLS, grants), the never-edit-merged and merge-conflict rules |
 | [`add-dashboard-page`](../../.claude/skills/add-dashboard-page/SKILL.md) | adding a recruiter-dashboard screen | SvelteKit 3 route with runes, `#lib` imports, `$app/state`, shadcn-svelte, the generated client, loading/empty/error states, Vitest and Playwright tests |
-| [`add-careers-page`](../../.claude/skills/add-careers-page/SKILL.md) | adding a candidate-facing page | Astro SSR route, `CareersLayout`, server-side API data, 404/410, `JobPosting` JSON-LD, no client JS, notice before collection |
+| [`add-careers-page`](../../.claude/skills/add-careers-page/SKILL.md) | adding a candidate-facing page | Astro SSR route, `CareersLayout`, server-side API data, 404/410, tenant-host links, `JobPosting` JSON-LD, no client JS or inline styles, notice before collection |
 | [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, runs `doc-auditor`, fixes drifted docs and prose |
@@ -58,7 +58,7 @@ convention; the rule holds the detail.
 | [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
 | [`utc-timestamps`](../../.claude/rules/utc-timestamps.md) | `src`, `apps/api`, `apps/worker` | `DateTimeOffset` in UTC from `TimeProvider`, `timestamp with time zone` |
 | [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility |
-| [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS, SEO and JSON-LD, domains as configuration, notice before collection |
+| [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS (one upload island), forms that work without JS, strict CSP, SEO and JSON-LD, domains as configuration, notice before collection |
 | [`docs-stay-in-sync`](../../.claude/rules/docs-stay-in-sync.md) | sources that docs enumerate | update the doc that lists an item when the item changes |
 | [`skill-authoring`](../../.claude/rules/skill-authoring.md) | `.claude/skills`, `.claude/agents`, `.claude/rules` | grounded commands, no questions, read-only reviewers, no forked mutating skills |
 
