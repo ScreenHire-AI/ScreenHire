@@ -195,7 +195,8 @@ reports.
 
 What is built, as of 2026-10-20. Code: `src/ScreenHire.Domain/Integrity` (signal model, catalogue, ruleset),
 `src/ScreenHire.Application/Integrity` (analyzers, pipeline, retention, synthetic applicants),
-`src/ScreenHire.Infrastructure/Integrity` (local data sources), `apps/api/Endpoints/IntegrityEndpoints.cs` (API).
+`src/ScreenHire.Infrastructure/Integrity` (local data sources), `apps/api/Endpoints/IntegrityEndpoints.cs` (API),
+`packages/telemetry` and `apps/api/Endpoints/PublicTelemetryEndpoints.cs` (form telemetry).
 
 ### 10.1 Signals and evidence
 
@@ -245,13 +246,51 @@ A later analyzer (content forensics) registers as another `IIntegrityAnalyzer`, 
 | `identity` | `ID_EMAIL_DISPOSABLE`, `ID_EMAIL_NO_MX`, `ID_PHONE_INVALID`, `ID_PHONE_VOIP` | email and phone | MX not checked, number without a country code |
 | `automation` | `AUTO_HONEYPOT`, `AUTO_WEBDRIVER`, `AUTO_SUBMIT_VELOCITY`, `AUTO_TURNSTILE_FAIL` (context only) | honeypot, bot check, markers, form start time | |
 | `duplicates` | `ID_DUPLICATE_IN_ORG` | other candidates' email (plus tag ignored), phone, device hash, resume hash, same organization only | |
-| `behavioural` | `BEH_*` | `ITelemetrySource` (none registered yet) | always, until the telemetry module lands |
+| `behavioural` | `BEH_PASTE_DOMINANT`, `BEH_FOCUS_SWITCHING` | the form telemetry bound to the application (`DatabaseTelemetrySource`, rules in `TelemetryRules`) | no telemetry: JavaScript off, the assistive-technology switch on, or nothing measured |
 
-Every application assessed before the telemetry module lands already has a `behavioural` version 1 run that saw
-nothing, and the pipeline never repeats a run. The telemetry module therefore bumps the analyzer's version and stores
-the aggregates before it publishes `AnalyzeApplicationIntegrity`. The input contract has no typing-rhythm field:
-timing between keys is keystroke dynamics, a behavioural biometric, and v1 has none (CLAUDE.md non-negotiable 3).
-`BEH_CADENCE_ANOMALY` above waits for that task's own legal review.
+Applications assessed before the telemetry module have a `behavioural` version 1 run that saw nothing; version 2
+reads telemetry. There is no typing-rhythm field and no `BEH_CADENCE_ANOMALY` rule: timing between keys is keystroke
+dynamics, a behavioural biometric, and v1 has none (CLAUDE.md non-negotiable 3). Adding it needs its own legal review.
+
+#### Form telemetry
+
+The careers apply page runs `packages/telemetry`, a framework-free module of about 2.2 KB brotli (the package's build
+fails over 5 KB). Per form field it counts typed characters, pasted characters, pastes, focus and blur, time focused
+and whether the browser autofilled it; per page, how often the page was hidden and the automation markers the browser
+reports. It reads only a field's `name`, the length of its value and the kind of edit the browser reports
+(`InputEvent.inputType`). It has no keyboard listener and never reads `data`, the clipboard, the value or the time
+between keys, so key values and content cannot leave the browser.
+
+- **When.** The notice and the assistive-technology switch sit above the first field. On that step the module records
+  nothing until the candidate first uses the form; later steps start at once. With the switch on, the careers server
+  does not start it, and switching it on mid-step discards what was counted. A page view that measured nothing sends
+  nothing.
+- **Session.** `GET .../application-form` carries `telemetry.sessionToken`, a Data Protection token valid for 12 hours
+  that names the organization, the job and a new session id. The careers server keeps the first one in the form's
+  state.
+- **Delivery.** Each time the page is hidden or left, the module sends a cumulative snapshot of that page view with
+  `navigator.sendBeacon` to the careers server's `/{organization}/telemetry?job=<id>`. The relay takes only
+  same-origin `text/plain` bodies, checks them with a strict schema, and forwards them to
+  `POST /v1/public/organizations/{slug}/jobs/{jobId}/telemetry`. The API refuses unknown members at every level, field
+  ids that are not the job's questions or the form's own fields, unknown automation markers, out-of-range counts, a
+  token for another job, and bodies over 32 KB (413). Its own rate limit (`ScreenHire:Apply:TelemetryPermitsPerMinute`,
+  120) keeps beacons from using up the candidate's apply allowance. There is one row per page view: a snapshot with a
+  higher `sequence` replaces the stored one (an upsert), and nothing changes once the session is bound.
+- **Binding.** The last step's snapshot also travels in the form post (`telemetry`), so it is stored before analysis
+  starts. Submission names the session (`telemetrySessionToken`) and, in the application's own transaction, binds the
+  session's snapshots to the application before `ApplicationSubmitted` is published. With the switch on, it deletes
+  them instead. A bad token or snapshot never refuses an application.
+- **Rules** (`TelemetryRules`, free-text answers only, autofilled fields left out). `BEH_PASTE_DOMINANT`: an answer of
+  at least 40 entered characters of which 80% or more were pasted; the evidence is the pasted and entered character
+  counts and the number of pastes. `BEH_FOCUS_SWITCHING`: the page hidden at least 5 times and one answer returned to
+  at least 5 times. Both feed AI assistance, are accessibility-sensitive and never raise a level on their own
+  (`telemetry-never-alone`). Next to a corroborating category other than telemetry they are reasons, and they are
+  never the second category for the top level.
+- **Device check.** On the last step the module also fills `deviceFingerprint`, a SHA-256 of coarse browser traits
+  (user agent, languages, screen, time zone, hardware concurrency; no canvas, audio or font probing), and
+  `automationMarkers`. The API keyed-hashes the fingerprint per organization, as before. It keeps the fingerprint only
+  on the footing `ScreenHire:Integrity:DeviceCheck` gives where the job is: `Notice`, `Consent` (only with the
+  candidate's tick on the details step) or `Off`, taking the most protective of the job's countries.
 
 Rules of thumb in the analyzers:
 
@@ -304,6 +343,7 @@ made with.
 | Table | Holds | Application role |
 |---|---|---|
 | `submission_observations` | raw network and session data of a careers submission: IP address, user agent, device hash, form start time, automation markers, `expires_at` | insert, read, delete (retention) |
+| `telemetry_snapshots` | one page view's form telemetry (counts only), its session, the application once bound, `expires_at` | insert, read, update (upsert, binding), delete (retention, accommodation) |
 | `integrity_analyzer_runs` | one row per analyzer version per application | insert, read |
 | `integrity_signals` | signals with their evidence (JSONB) | insert, read |
 | `integrity_assessments` | each assessment, newest per kind is current | insert, read |
@@ -318,7 +358,9 @@ matches across employers. Evidence keeps the network operator and country, never
 `PurgeExpiredIntegrityData` runs daily at 03:17 UTC and fans out one `PurgeOrganizationIntegrityData` per organization
 (the worker sees no tenant rows without a tenant). It deletes observations past `expires_at`
 (`ScreenHire:Integrity:Retention:RawNetworkDays`, 30, as the privacy page promises; the API and the worker refuse
-to start with more than 30) and asks `ITelemetrySource` to purge expired telemetry. Signals, assessments and the audit log stay for the employer's record period.
+to start with more than 30) and asks `ITelemetrySource` to purge expired telemetry: a bound snapshot lives as long as
+the observation, an unbound one (an application never sent) a day. Signals, assessments and the audit log stay for the
+employer's record period.
 
 ### 10.5 Sources (local or operator-supplied; none needs an account)
 
@@ -331,6 +373,7 @@ to start with more than 30) and asks `ITelemetrySource` to purge expired telemet
 | `Identity:MxLookup` | MX lookups with DnsClient; reserved test domains are never looked up, and a failed lookup is "not checked" | on |
 | `Identity:ExtraDisposableDomains` | more disposable domains, on top of the embedded CC0-1.0 list (`Integrity/Data/README.md`, with its licence beside it) | Development: `tempinbox.example.net` |
 | `SignalNetwork:Enabled` | the Signal Network flag | off; a host refuses to start with it on |
+| `DeviceCheck:Default`, `DeviceCheck:Countries:{CC}` | the device-check basis (`Off`, `Notice`, `Consent`) for a job in no listed country, and per ISO country code | `Notice`; the API's `appsettings.json` lists the EU and EEA countries as `Consent` |
 
 The worker refuses to start when `Network:Ip2AsnFile` or `Network:TorExitListFile` names a file that does not
 exist, because the files are read on the first lookup and a wrong path would fail every analysis. A commercial
@@ -377,9 +420,13 @@ farm, all fictional. They are used three ways:
   the dev frontends), so the local demo shows every level. Skipped for applicants already there. The test stacks do
   not run it.
 
+Each applicant but the farm also has the telemetry its browser would have sent (`SyntheticTelemetry`). The demo binds
+it to the application, and the golden files run it through `TelemetryRules`.
+
 Expected results: genuine and honest AI-assisted `NoConcerns` (the VPN is context, with counter-evidence); the bot and
-every farm member `VerificationRecommended`; AI assistance `NotIndicated` for all, because no content or telemetry
-analyzer exists yet.
+every farm member `VerificationRecommended`; AI assistance `NotIndicated` for all, because no content analyzer exists
+yet. The honest AI-assisted candidate went back and forth to their assistant, so `BEH_FOCUS_SWITCHING` shows on their
+AI assistance assessment as context only.
 
 ### 10.9 Known gaps
 
@@ -395,8 +442,14 @@ analyzer exists yet.
   before the test ran. The trigger is the burst of
   submissions the API makes just after startup; how it delays later real-time delivery is not isolated yet. The demo
   now runs only for `pnpm dev`. Worth a look before real traffic bursts matter.
-- Webdriver markers and the device fingerprint have an API contract (`automationMarkers`, `deviceFingerprint`) but no
-  careers-page script sends them yet; the telemetry module does.
+- The assistive-technology switch turns the whole telemetry module off, automation markers and the device check
+  included, as its brief asked. A script can tick the switch too, so a bot that does loses `AUTO_WEBDRIVER` and the
+  device duplicate check; the network, identity, honeypot and duplicate checks still run.
+- The device-check basis follows where the job is, not where the candidate is, because there is no other footing
+  before submission. A remote job with no country takes `DeviceCheck:Default`.
+- Session tokens need the API's Data Protection keys to be kept and shared across instances in production (an owner
+  action); locally the default key ring is enough.
+- The apply page's JavaScript budget rose from about 20 KB to about 22 KB brotli for the module.
 
 ## Open questions
 
