@@ -65,8 +65,13 @@ provider is a later decision. Sending happens inside the request until Wolverine
 - **Rate limit.** A fixed window per client IP on the challenge and every auth POST, `ScreenHire:Auth:PermitsPerMinute`
   (default 100). Development raises it to 2000 (`apps/api/appsettings.Development.json`): every test signs in
   from 127.0.0.1 against one API, and the integration suite alone sends about 80 such requests in 20 seconds.
-  The per-address email cap is unchanged everywhere and has its own test. Behind a reverse proxy the client IP needs
-  forwarded-headers configuration.
+  The per-address email cap is unchanged everywhere and has its own test. It counts under a per-address advisory
+  lock, so simultaneous requests cannot slip past it. The client IP comes from `X-Forwarded-For`
+  (`UseForwardedHeaders`), believed only from loopback and from the addresses in `ScreenHire:Auth:TrustedProxies`.
+  Loopback covers the dashboard's own `/v1` proxy (`xfwd: true` in `vite.config.ts`). A deployed reverse proxy must
+  be listed, or every visitor shares its bucket.
+- **Email addresses.** The magic-link form takes one bare address. A display name (`Name <a@example.com>`) or a list
+  is refused, so nobody gets a fresh per-address cap by varying the display name.
 
 ## Domains
 
@@ -80,8 +85,9 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 
 `OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. The model allows
 many organizations per user; the dashboard uses the first one joined. Onboarding creates the organization and the
-Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is
-not reserved, because it becomes a careers subdomain.
+Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
+two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
+a careers subdomain.
 
 ## Tenant isolation
 
@@ -94,7 +100,8 @@ Two layers, so one mistake is not a breach.
    (migration `AddSignInAndTenantIsolation`). Policies compare `organization_id` with
    `NULLIF(current_setting('app.tenant_id', true), '')::uuid`. `organizations` is readable by anyone (careers pages
    resolve slugs) and insertable by anyone (onboarding), but only the organization itself may change or delete its
-   row, so its columns must stay safe to show publicly.
+   row, so its columns must stay safe to show publicly. Query it by slug or by the caller's own organization id,
+   never as a list: no policy stops a list of every tenant.
 
 The API and worker connect as `screenhire_app`, a role the migration creates without table ownership or `BYPASSRLS`.
 Migrations run as the owner. In Development the API migrates with the owner's connection string and sets the role's
@@ -120,6 +127,18 @@ Implement `ITenantOwned` on the entity, which gives it the query filter. In its 
 `AddSignInAndTenantIsolation`: enable and force RLS, and add the `tenant_isolation` policy. Grants come from the
 default privileges. Add an integration test that another organization's rows are invisible. `/add-migration` has the
 checklist.
+
+## Deploy prerequisites
+
+Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs the API in production must:
+
+- give `screenhire_app` a login and password, which the migration creates as `NOLOGIN` (the Development seed does it
+  locally);
+- persist the ASP.NET Core Data Protection key ring and protect it at rest. The session, external-sign-in and
+  antiforgery cookies are encrypted with it, so a key ring that lives only in a container signs everyone out on every
+  restart, and a second replica cannot read the first one's cookies. Locally the default key ring in the user profile
+  survives restarts;
+- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`.
 
 ## Local development and tests
 
