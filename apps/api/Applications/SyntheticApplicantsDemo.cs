@@ -12,7 +12,8 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Applications;
 
 /// <summary>
-/// Development only: once the API has started, the synthetic applicants (<see cref="SyntheticApplicants"/>) apply to
+/// Development only, and only when <c>ScreenHire:Demo:SyntheticApplicants</c> is on (the AppHost sets it for
+/// <c>pnpm dev</c>): once the API has started, the synthetic applicants (<see cref="SyntheticApplicants"/>) apply to
 /// Brightwater's "Senior .NET Engineer" job through the same submission path as the careers form, with their network
 /// and session details. The worker then assesses them, so the local demo shows every integrity level. Idempotent: an
 /// applicant whose email already applied is skipped, so it costs nothing on later starts.

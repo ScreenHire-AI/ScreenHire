@@ -362,8 +362,10 @@ farm, all fictional. They are used three ways:
   Rewrite them with `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"`
   and review the diff;
 - `IntegrityTests` (Aspire) submits them over HTTP and reads the assessments back through the API;
-- in Development the API submits them to Brightwater's "Senior .NET Engineer" job once it has started
-  (`SyntheticApplicantsDemo`), so the local demo shows every level. Skipped for applicants already there.
+- with `pnpm dev` the API submits them to Brightwater's "Senior .NET Engineer" job once it has started
+  (`SyntheticApplicantsDemo`, on when `ScreenHire:Demo:SyntheticApplicants` is true, which the AppHost sets only for
+  the dev frontends), so the local demo shows every level. Skipped for applicants already there. The test stacks do
+  not run it.
 
 Expected results: genuine and honest AI-assisted `NoConcerns` (the VPN is context, with counter-evidence); the bot and
 every farm member `VerificationRecommended`; AI assistance `NotIndicated` for all, because no content or telemetry
@@ -376,6 +378,10 @@ analyzer exists yet.
   system template version. Level names in conditions are not validated yet for the same reason: validation would
   block every job copied from that template.
 - Duplicates do not revisit earlier applications (§10.2).
+- With the demo seeding on in the end-to-end stack, `LiveUpdatesTests` failed in 3 of 9 runs: a live `JobClosed` took
+  more than 5 seconds to reach the second browser. With it off, 4 of 4 runs passed. The trigger is the burst of
+  submissions the API makes just after startup; how it delays later real-time delivery is not isolated yet. The demo
+  now runs only for `pnpm dev`. Worth a look before real traffic bursts matter.
 - Webdriver markers and the device fingerprint have an API contract (`automationMarkers`, `deviceFingerprint`) but no
   careers-page script sends them yet; the telemetry module does.
 

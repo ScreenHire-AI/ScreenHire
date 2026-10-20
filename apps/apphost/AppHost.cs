@@ -114,6 +114,14 @@ builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(mailpit)
     .WaitFor(api); // the API applies migrations and sets the app role's password in Development
 
+// The integrity demo: synthetic applicants apply to Brightwater once the API starts (SyntheticApplicantsDemo). Only for
+// `pnpm dev`: the test stacks make their own data, and the startup burst of submissions delayed a later live update in
+// the end-to-end tests (integrity-engine.md §10.9).
+if (frontends == FrontendMode.Dev)
+{
+    api.WithEnvironment("ScreenHire__Demo__SyntheticApplicants", "true");
+}
+
 if (frontends != FrontendMode.None)
 {
     var apiUrl = api.GetEndpoint("http");
