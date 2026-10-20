@@ -1,86 +1,85 @@
 ---
+import JobUnavailable from '../../../components/JobUnavailable.astro';
+import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
-import { formatSalary, getPublicJob, jsonLdScript, label, listPublicJobs } from '../../../lib/api';
+import { formatSalary, getPublicJob, getPublicOrganization, jsonLdScript, label } from '../../../lib/api';
+import { basePath } from '../../../lib/host';
 import { buildJobPosting } from '../../../lib/job-posting';
 
 const { organization, job: jobSlug } = Astro.params;
-const [jobResponse, boardResponse] = await Promise.all([
+const [jobResponse, organizationResponse] = await Promise.all([
   getPublicJob(organization!, jobSlug!),
-  listPublicJobs(organization!),
+  getPublicOrganization(organization!),
 ]);
 
-// A closed job is 410 Gone (teardown, docs/architecture/job-distribution.md); a draft or an unknown job is 404.
-if ((jobResponse.status !== 200 && jobResponse.status !== 410) || boardResponse.status !== 200) {
+if (organizationResponse.status !== 200) {
   return new Response(null, { status: 404 });
 }
 
+const employer = organizationResponse.data;
+const base = basePath(Astro.request, employer.slug);
+
+// A closed job is 410 Gone (teardown, docs/architecture/job-distribution.md), so search engines drop it for good
+// (ADR-0003). The API still sends its last content with validThrough set to when it closed, so the page keeps its
+// JSON-LD and Google reads the posting as expired. A draft or unknown job is 404.
+const job = jobResponse.status === 200 || jobResponse.status === 410 ? jobResponse.data : null;
 const closed = jobResponse.status === 410;
-if (closed) {
-  Astro.response.status = 410;
+if (jobResponse.status !== 200) {
+  Astro.response.status = closed ? 410 : 404;
 }
 
-const job = jobResponse.data;
-const board = boardResponse.data;
-const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-// From the API's domain configuration, so the canonical URL is the one feeds, boards and Google use.
-const boardUrl = board.url;
-const url = job.url;
-
-// For a closed job the API's validThrough is when it closed, so this JSON-LD tells Google the posting has expired.
-const jobPosting = buildJobPosting(job, { organizationName: board.organizationName, boardUrl, url });
+// URLs from the API's domain configuration, so the canonical URL is the one feeds, boards and Google use. A job's URL
+// is its board's URL plus /jobs/{slug} (DomainOptions.CareersJobUrl).
+const posting = job
+  ? jsonLdScript(
+      buildJobPosting(job, { organizationName: employer.name, boardUrl: job.url.slice(0, job.url.lastIndexOf('/jobs/')), url: job.url }),
+    )
+  : '';
+const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) : null;
 ---
 
-<CareersLayout
-  title={`${job.title} — ${board.organizationName}`}
-  description={`${job.title} at ${board.organizationName}. ${job.location}.`}
-  organizationName={board.organizationName}
-  boardUrl={boardUrl}
->
-  <link slot="head" rel="canonical" href={url} />
-  <script slot="head" type="application/ld+json" is:inline set:html={jsonLdScript(jobPosting)} />
+{
+  (!job || closed) && (
+    <JobUnavailable organization={employer} gone={closed}>
+      {posting && <script slot="head" type="application/ld+json" is:inline set:html={posting} />}
+    </JobUnavailable>
+  )
+}
+{
+  job && !closed && (
+    <CareersLayout
+      title={`${job.title} | ${employer.name}`}
+      description={`${job.title} at ${employer.name}. ${job.location}.`}
+      organizationName={employer.name}
+      organizationSlug={employer.slug}
+      branding={employer.branding}
+    >
+      <link slot="head" rel="canonical" href={job.url} />
+      <script slot="head" type="application/ld+json" is:inline set:html={posting} />
 
-  {
-    closed && (
-      <p role="status" class="mb-6 rounded-2xl border border-candidate-border bg-candidate-surface p-5 text-[15px] font-semibold">
-        This role is closed and no longer taking applications.
-      </p>
-    )
-  }
+      <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
+      <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
+        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
+        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
+        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
+        {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
+      </div>
 
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
-  <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
-    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
-    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
-    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
-    {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
-  </div>
+      {job.description && (
+        <section
+          aria-label="About the role"
+          class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+          set:html={job.description}
+        />
+      )}
 
-  {
-    job.description && (
-      <section
-        aria-label="About the role"
-        class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
-        set:html={job.description}
-      />
-    )
-  }
+      <div class="mt-6">
+        <PrivacyNotice base={base} />
+      </div>
 
-  <section aria-label="How we protect applicants" class="mt-6 rounded-2xl border border-candidate-border bg-candidate-surface p-5">
-    <h2 class="text-base font-bold">How we keep this fair</h2>
-    <p class="mt-1.5 text-sm text-candidate-muted-foreground">
-      We check applications for bots and impersonation. A person reads every one. You'll see exactly what we look at
-      before you start.
-    </p>
-  </section>
-
-  {
-    !closed && (
-      <a
-        href="#apply"
-        class="mt-6 inline-flex h-13 w-full items-center justify-center rounded-[14px] bg-candidate-cta text-base font-bold text-candidate-cta-foreground no-underline sm:w-auto sm:px-8"
-      >
+      <a href={`${base}/jobs/${job.slug}/apply`} class="button-primary mt-6 w-full sm:w-auto">
         Apply for this role
       </a>
-    )
-  }
-</CareersLayout>
+    </CareersLayout>
+  )
+}

@@ -201,15 +201,15 @@ read it. Ids are our UUIDs, and `content` is sanitized HTML, which Greenhouse es
   `applicantLocationRequirements`, and `baseSalary`, also when only a minimum or a maximum is set. It also has a
   canonical link.
 - A closed job that was published is `410 Gone` from `GET /v1/public/organizations/{slug}/jobs/{jobSlug}`, with its
-  last content and `validThrough` set to when it closed. The careers page serves 410 with that expired JSON-LD and no
-  apply link. A draft, or a job closed before it was ever published, stays 404.
+  last content and `validThrough` set to when it closed. The careers page serves 410 with `JobUnavailable.astro`, which
+  carries that expired JSON-LD in its head and has no apply link. A draft, or a job closed before it was ever published,
+  stays 404.
 - `/{slug}/sitemap.xml` lists the board page and each open job with `lastmod`.
 - Every URL (canonical, sitemap, feeds, job-board API, Google notifications) is `DomainOptions.CareersJobUrl`, built
   from `ScreenHire:Domains:CareersHostPattern` and `CareersDomain`. The AppHost points `CareersDomain` at the careers
-  app's real endpoint. Pages are routed by path (`/{slug}/jobs/...`) and link with these URLs. In a deployment with a
-  host pattern such as `{tenant}.careers.example.com`, the careers app gets the same value as `CAREERS_HOST_PATTERN`,
-  and `apps/careers/src/middleware.ts` maps each tenant host onto the path routes, so `https://acme.careers.example.com/jobs/x`
-  serves `/acme/jobs/x`. Unset, as in local development and the tests, routing stays by path.
+  app's real endpoint. The careers app reads the same `ScreenHire:Domains:*` keys, and on a tenant host its middleware
+  maps the host onto the path routes (`apps/careers/src/lib/tenancy.ts`), so `https://acme.careers.example.com/jobs/x`
+  serves `/acme/jobs/x`. Without a host pattern, as in local development and the tests, routing stays by path.
 - **Google Indexing API:** `ScreenHire:Distribution:GoogleIndexing:Mode` is `Off` (default, board hidden), `Local`
   (an in-process fake that accepts everything; the tests use it) or `Google` (`ServiceAccountKeyJson`, through
   `Google.Apis.Auth`, POST `urlNotifications:publish`). Publish and close queue an `IndexingNotification`, and a newer
@@ -258,4 +258,4 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
 | `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
 | `CareersDistributionTests` (end-to-end) | the published job's page carries complete JSON-LD and a canonical link and is in the sitemap; closed, it serves 410 with a past `validThrough` and leaves the sitemap |
-| `job-posting.test.ts`, `tenant-host.test.ts` (Vitest) | the JSON-LD builder and the sitemap; which hosts are tenant hosts and the path each maps to |
+| `job-posting.test.ts` (Vitest) | the JSON-LD builder and the sitemap |

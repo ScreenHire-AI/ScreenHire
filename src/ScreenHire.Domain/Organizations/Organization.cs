@@ -31,4 +31,16 @@ public sealed class Organization
 
     /// <summary>Whether partner boards with Indeed-style gates may receive this organization's jobs.</summary>
     public bool MayUsePartnerBoards => IndeedEligible && !IsTrial;
+
+    /// <summary>
+    /// The employer's brand colour (<c>#rrggbb</c>) for its careers pages, or null for ScreenHire's default. Careers
+    /// pages use the <see cref="BrandPalette"/> derived from it, never the raw colour.
+    /// </summary>
+    public string? BrandColor { get; private set; }
+
+    /// <summary>The careers-page palette, or null when the organization has no brand colour.</summary>
+    public BrandPalette? GetBrandPalette() => BrandColor is null ? null : BrandPalette.Derive(BrandColor);
+
+    /// <summary>Sets or clears the brand colour; throws <see cref="FormatException"/> unless it is <c>#rrggbb</c>.</summary>
+    public void SetBrandColor(string? color) => BrandColor = color is null ? null : BrandPalette.Normalize(color);
 }

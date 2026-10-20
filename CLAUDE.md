@@ -11,7 +11,7 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
 | `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`) and the SignalR hub (`Realtime/*`, `/v1/hubs/events`); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
-| `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow |
+| `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow ([`docs/architecture/apply-flow.md`](docs/architecture/apply-flow.md)) |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
 | `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |

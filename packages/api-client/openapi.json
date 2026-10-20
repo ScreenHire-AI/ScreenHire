@@ -298,6 +298,39 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicOrganization",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOrganization"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/jobs": {
       "get": {
         "tags": [
@@ -375,6 +408,307 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobSlug}/application-form": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicApplicationForm",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApplicationForm"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/questions/{questionId}/uploads": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "CreatePublicUpload",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTicket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/questions/{questionId}/uploads/{uploadId}/verify": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "VerifyPublicUpload",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedFile"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/applications": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "SubmitPublicApplication",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicApplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApplicationReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1895,6 +2229,86 @@
         }
       }
     },
+    "/v1/organization/branding": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationBranding",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationBranding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "UpdateOrganizationBranding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBrandingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationBranding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/workflows/validate": {
       "post": {
         "tags": [
@@ -2187,7 +2601,8 @@
           "DidNotUse",
           "Used"
         ],
-        "description": "The candidate's answer to \"did you use AI tools to apply?\"."
+        "description": "The candidate's answer to \"did you use AI tools to apply?\".",
+        "default": "NotProvided"
       },
       "AiUsePolicy": {
         "enum": [
@@ -2236,6 +2651,33 @@
         },
         "description": "What is serving this API: the product name, the build version and the hosting environment."
       },
+      "ApplicationAnswer": {
+        "required": [
+          "questionId"
+        ],
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "values": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`."
+      },
       "ApplicationDetail": {
         "required": [
           "id",
@@ -2249,7 +2691,10 @@
           "aiUseDetails",
           "submittedAt",
           "stageEnteredAt",
-          "tags"
+          "tags",
+          "source",
+          "answers",
+          "files"
         ],
         "type": "object",
         "properties": {
@@ -2299,9 +2744,24 @@
             "items": {
               "type": "string"
             }
+          },
+          "source": {
+            "$ref": "#/components/schemas/ApplicationSource"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationFileSummary"
+            }
           }
         },
-        "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, and the candidate's\r\ndeclarations."
+        "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
       },
       "ApplicationEventType": {
         "enum": [
@@ -2309,6 +2769,57 @@
           "StageChanged",
           "TagAdded"
         ]
+      },
+      "ApplicationFileSummary": {
+        "required": [
+          "id",
+          "questionId",
+          "uploadId",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "scanStatus",
+          "uploadedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questionId": {
+            "type": "string"
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "scanStatus": {
+            "$ref": "#/components/schemas/MalwareScanStatus"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A file the candidate uploaded. `scanStatus` is the malware scan's result; `NotScanned` means no scanner is configured."
+      },
+      "ApplicationSource": {
+        "enum": [
+          "Recruiter",
+          "CareersSite"
+        ],
+        "description": "Where an application came from. Automation conditions read it as `application.source`."
       },
       "ApplicationStage": {
         "required": [
@@ -4547,6 +5058,14 @@
         },
         "description": "Redeems the token from an emailed sign-in link."
       },
+      "MalwareScanStatus": {
+        "enum": [
+          "Pending",
+          "Clean",
+          "Infected",
+          "NotScanned"
+        ]
+      },
       "ManualAutomationQueued": {
         "required": [
           "applicationId",
@@ -4602,6 +5121,36 @@
           }
         },
         "description": "Creates the signed-in user's organization, with them as its Owner."
+      },
+      "OrganizationBranding": {
+        "required": [
+          "brandColor",
+          "palette",
+          "brandAdjusted"
+        ],
+        "type": "object",
+        "properties": {
+          "brandColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "palette": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBranding"
+              }
+            ]
+          },
+          "brandAdjusted": {
+            "type": "boolean"
+          }
+        },
+        "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable."
       },
       "OrganizationRole": {
         "enum": [
@@ -4719,6 +5268,134 @@
             ]
           }
         }
+      },
+      "PublicApplicationForm": {
+        "required": [
+          "organization",
+          "job",
+          "questions",
+          "aiUsePolicy",
+          "uploads",
+          "turnstileSiteKey"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganization"
+          },
+          "job": {
+            "$ref": "#/components/schemas/PublicJob"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestion"
+            }
+          },
+          "aiUsePolicy": {
+            "$ref": "#/components/schemas/AiUsePolicy"
+          },
+          "uploads": {
+            "$ref": "#/components/schemas/PublicUploadSettings"
+          },
+          "turnstileSiteKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured."
+      },
+      "PublicApplicationReceipt": {
+        "required": [
+          "applicationId",
+          "submittedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Confirms that an application arrived."
+      },
+      "PublicApplicationRequest": {
+        "required": [
+          "candidate",
+          "privacyNoticeVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateInput"
+          },
+          "privacyNoticeVersion": {
+            "type": "string"
+          },
+          "answers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
+          },
+          "accommodationRequested": {
+            "type": "boolean",
+            "default": false
+          },
+          "aiUseDeclaration": {
+            "$ref": "#/components/schemas/AiUseDeclaration"
+          },
+          "aiUseDetails": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "honeypotFilled": {
+            "type": "boolean",
+            "default": false
+          },
+          "botCheckToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
+      },
+      "PublicBranding": {
+        "required": [
+          "brand",
+          "onBrand",
+          "brandText",
+          "brandUi"
+        ],
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "onBrand": {
+            "type": "string"
+          },
+          "brandText": {
+            "type": "string"
+          },
+          "brandUi": {
+            "type": "string"
+          }
+        },
+        "description": "The careers-page colours derived from the organization's brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`."
       },
       "PublicJob": {
         "required": [
@@ -4863,9 +5540,138 @@
           },
           "url": {
             "type": "string"
+          },
+          "branding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBranding"
+              }
+            ]
           }
         },
-        "description": "The public careers listing for one organization. `url` is the board's careers page."
+        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is null when it\r\nhas no brand colour."
+      },
+      "PublicOrganization": {
+        "required": [
+          "name",
+          "slug",
+          "branding"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "branding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBranding"
+              }
+            ]
+          }
+        },
+        "description": "An organization as its careers pages show it."
+      },
+      "PublicQuestion": {
+        "required": [
+          "id",
+          "type",
+          "label",
+          "required",
+          "helpText",
+          "options",
+          "min",
+          "max",
+          "maxLength",
+          "acceptedFileTypes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/QuestionType"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "helpText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            }
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "maxLength": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "acceptedFileTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it."
+      },
+      "PublicUploadSettings": {
+        "required": [
+          "maxBytes",
+          "origin"
+        ],
+        "type": "object",
+        "properties": {
+          "maxBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "origin": {
+            "type": "string"
+          }
+        },
+        "description": "Limits on candidate uploads. `origin` is where upload links point, for the page's content security policy."
       },
       "PublishJobRequest": {
         "type": "object",
@@ -5263,6 +6069,21 @@
           "Manual"
         ]
       },
+      "UpdateBrandingRequest": {
+        "required": [
+          "brandColor"
+        ],
+        "type": "object",
+        "properties": {
+          "brandColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default."
+      },
       "UpdateHiringTemplateRequest": {
         "required": [
           "name"
@@ -5365,6 +6186,88 @@
           }
         },
         "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
+      },
+      "UploadedFile": {
+        "required": [
+          "uploadId",
+          "fileName",
+          "contentType",
+          "sizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "An upload that was found and checked. Its `uploadId` is the answer to its file question."
+      },
+      "UploadRequest": {
+        "required": [
+          "fileName",
+          "sizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Asks for a link to upload one file for a file question. `sizeBytes` is the size the candidate's device reports."
+      },
+      "UploadTicket": {
+        "required": [
+          "uploadId",
+          "uploadUrl",
+          "method",
+          "headers",
+          "expiresAt",
+          "maxBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "method": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maxBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`."
       },
       "ValidateWorkflowRequest": {
         "required": [
@@ -5517,6 +6420,9 @@
     },
     {
       "name": "Public job board"
+    },
+    {
+      "name": "Organization"
     },
     {
       "name": "Workflows"

@@ -8,7 +8,7 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
 | .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails), pure API logic (mappings, validation, the workflow diff, sanitizing). The API grants it `InternalsVisibleTo`. | Nothing |
-| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib/format.ts`), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
+| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib`: formatting, the apply flow's state and checks, tenant hosts, the brand stylesheet), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
@@ -141,9 +141,13 @@ its queue with `MessagingHost.StartPublisherToAppHostQueuesAsync`. What each tes
 healthy, and launches one headless Chromium for the assembly. Test classes derive from `BrowserTest`, which gives:
 
 - `Page`, in a **new browser context per test** (no shared cookies or storage);
-- `GoToAsync("careers", "/brightwater")`, which resolves the URL from Aspire and expects a 2xx;
+- `GoToAsync("careers", "/brightwater")`, which resolves the URL from Aspire and expects a 2xx, and `OpenAsync`, which
+  returns the response whatever its status (a 404 or 410 page);
+- `WithoutJavaScriptAsync()`, which swaps `Page` for one in a context with JavaScript off, for journeys that must work
+  on plain HTML (the careers apply flow);
 - `ExpectNoAccessibilityViolationsAsync()`, which runs axe for WCAG 2.2 A/AA and lists every violation with its
-  selector. Fix violations; do not exclude rules. If one must be excluded, scope it to one selector with a reason;
+  selector. Fix violations; do not exclude rules. If one must be excluded, scope it to one selector with a reason. With
+  JavaScript off, axe cannot run in the page, so it checks the same HTML served again to a page that runs scripts;
 - **a full-page screenshot when a test fails**, at
   `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/screenshots/<test>.png` (the path is printed in the test output).
 

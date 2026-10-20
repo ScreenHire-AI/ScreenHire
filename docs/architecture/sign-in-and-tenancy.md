@@ -78,8 +78,9 @@ waits for SMTP; moving the send to a worker message is a later change.
 
 `ScreenHire:Domains` (`apps/api/Configuration/DomainOptions.cs`, validated at start) holds `Scheme`, `BaseDomain`,
 `AppHost`, `ApiHost`, `CareersDomain`, `CareersHostPattern` and an optional `CookieDomain`. Development defaults are
-in `apps/api/appsettings.Development.json`; the AppHost overrides `AppHost` and `ApiHost` with the real endpoints,
-because tests use random ports. `AppHost` drives OIDC redirect URIs, emailed links, redirects after sign-in and the
+in `apps/api/appsettings.Development.json`; the AppHost overrides `AppHost`, `ApiHost` and `CareersDomain` with the
+real endpoints, because tests use random ports, and gives the careers server the same `CareersDomain` and
+`CareersHostPattern` (`{tenant}.{CareersDomain}`) for tenant hosts (`docs/architecture/apply-flow.md` section 6). `AppHost` drives OIDC redirect URIs, emailed links, redirects after sign-in and the
 CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach tenant careers pages.
 
 ## Organizations and roles
@@ -92,7 +93,8 @@ a careers subdomain.
 
 Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
 applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
-write, Viewers only read, and anyone else gets 403. The role is read per request. Today every member is an Owner,
+write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its careers branding)
+call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request. Today every member is an Owner,
 because onboarding is the one way to join an organization; a flow that lets someone join with another role must
 check that its own routes use the same filter.
 
@@ -142,7 +144,7 @@ Who the tenant is:
 | Request | Tenant |
 |---|---|
 | Signed in | `TenantResolutionMiddleware`: the user's first membership, read on every request |
-| Public careers endpoint | The organization whose slug is in the route |
+| Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization |
 | Onboarding | The new organization, from just before it is saved |
 | Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn |
 

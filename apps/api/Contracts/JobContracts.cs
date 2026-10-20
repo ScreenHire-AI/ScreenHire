@@ -32,8 +32,12 @@ public sealed record PublicJob(
     DateTimeOffset? UpdatedAt,
     string Url);
 
-/// <summary>The public careers listing for one organization. <c>url</c> is the board's careers page.</summary>
-public sealed record PublicJobBoard(string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url);
+/// <summary>
+/// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is null when it
+/// has no brand colour.
+/// </summary>
+public sealed record PublicJobBoard(
+    string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url, PublicBranding? Branding = null);
 
 /// <summary>A job as shown in the recruiter dashboard's list.</summary>
 /// <remarks><c>templateUpdateAvailable</c>: the job's source template has a newer published version than the job copied.</remarks>

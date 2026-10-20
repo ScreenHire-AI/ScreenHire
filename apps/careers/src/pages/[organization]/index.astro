@@ -1,8 +1,9 @@
 ---
 import CareersLayout from '../../layouts/CareersLayout.astro';
 import { formatSalary, label, listPublicJobs } from '../../lib/api';
+import { basePath } from '../../lib/host';
 
-// Routed by path; on a tenant host (CAREERS_HOST_PATTERN) src/middleware.ts maps the host onto these routes.
+// On a tenant host the middleware rewrites `/` here; otherwise the organization is in the path (lib/tenancy.ts).
 const { organization } = Astro.params;
 const response = await listPublicJobs(organization!);
 
@@ -11,13 +12,15 @@ if (response.status !== 200) {
 }
 
 const board = response.data;
+const base = basePath(Astro.request, board.organizationSlug);
 ---
 
 <CareersLayout
   title={`Jobs at ${board.organizationName}`}
   description={`Open roles at ${board.organizationName}.`}
   organizationName={board.organizationName}
-  boardUrl={board.url}
+  organizationSlug={board.organizationSlug}
+  branding={board.branding}
 >
   <h1 class="font-display text-3xl font-bold tracking-tight">Open roles at {board.organizationName}</h1>
   {
@@ -28,7 +31,7 @@ const board = response.data;
         {board.jobs.map((job) => (
           <li>
             <a
-              href={job.url}
+              href={`${base}/jobs/${job.slug}`}
               class="flex flex-col gap-2 rounded-2xl border border-candidate-border bg-candidate-surface p-5 text-candidate-foreground no-underline hover:border-candidate-input-border"
             >
               <span class="font-display text-xl font-bold">{job.title}</span>

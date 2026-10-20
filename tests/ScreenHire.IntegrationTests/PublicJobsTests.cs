@@ -63,7 +63,7 @@ public sealed class PublicJobsTests(AppHostFixture fixture)
     [InlineData("closed", HttpStatusCode.Gone)]
     [InlineData("closed-unpublished", HttpStatusCode.NotFound)]
     [InlineData("missing", HttpStatusCode.NotFound)]
-    public async Task Job_page_is_served_only_while_the_job_is_open(string slug, HttpStatusCode expected)
+    public async Task Job_page_is_served_only_while_the_job_is_open_and_is_gone_once_closed(string slug, HttpStatusCode expected)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var now = DateTimeOffset.UtcNow;

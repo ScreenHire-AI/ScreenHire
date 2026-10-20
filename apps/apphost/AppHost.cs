@@ -149,6 +149,16 @@ if (frontends != FrontendMode.None)
         .WithHttpHealthCheck("/")
         .WaitFor(api);
 
+    // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
+    // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
+    // The careers server and the API read the same ScreenHire:Domains settings.
+    var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api })
+    {
+        resource.WithEnvironment("ScreenHire__Domains__CareersDomain", careersDomain)
+            .WithEnvironment("ScreenHire__Domains__CareersHostPattern", "{tenant}.{CareersDomain}");
+    }
+
     builder.AddJavaScriptApp("marketing", "../marketing", script)
         .WithPnpm(install: false)
         .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")

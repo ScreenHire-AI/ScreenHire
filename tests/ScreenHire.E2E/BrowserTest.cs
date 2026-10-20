@@ -14,6 +14,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     private static readonly List<string> WcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
     private IBrowserContext? context;
+    private bool javaScriptEnabled = true;
 
     protected E2EFixture Fixture => fixture;
 
@@ -48,17 +49,61 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     /// <summary>Opens <paramref name="path"/> on an Aspire resource and expects a successful response.</summary>
     protected async Task GoToAsync(string resource, string path)
     {
+        var response = await OpenAsync(resource, path);
+        response.Ok.Should().BeTrue("GET {0} on {1} returned HTTP {2}", path, resource, response.Status);
+    }
+
+    /// <summary>Opens <paramref name="path"/> on an Aspire resource, whatever the status, such as a 404 or 410 page.</summary>
+    protected async Task<IResponse> OpenAsync(string resource, string path)
+    {
         var response = await Page.GotoAsync(new Uri(fixture.GetEndpoint(resource), path).ToString());
         response.Should().NotBeNull();
-        response!.Ok.Should().BeTrue("GET {0} on {1} returned HTTP {2}", path, resource, response.Status);
+        return response!;
+    }
+
+    /// <summary>
+    /// Replaces <see cref="Page"/> with one in a fresh context that runs no JavaScript, like a browser with scripts
+    /// turned off, for journeys that must work on plain HTML.
+    /// </summary>
+    protected async Task WithoutJavaScriptAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+
+        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false });
+        Page = await context.NewPageAsync();
+        javaScriptEnabled = false;
     }
 
     /// <summary>Runs axe on the current page and fails with a readable list of every WCAG 2.2 AA violation.</summary>
+    /// <remarks>
+    /// axe runs as a script in the page, which a context without JavaScript never executes (the call would wait
+    /// forever). There, the page's HTML as the browser has it is served again, with the same URL and stylesheets, to a
+    /// page that runs scripts, and axe checks that copy.
+    /// </remarks>
     protected async Task ExpectNoAccessibilityViolationsAsync()
     {
-        var result = await Page.RunAxe(new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
+        if (javaScriptEnabled)
+        {
+            await CheckAsync(Page);
+            return;
+        }
 
-        result.Violations.Should().BeEmpty("axe found WCAG 2.2 AA violations on {0}:{1}", Page.Url, Describe(result.Violations));
+        var html = await Page.ContentAsync();
+        await using var copy = await fixture.Browser.NewContextAsync(new() { BypassCSP = true });
+        var page = await copy.NewPageAsync();
+        await page.RouteAsync(Page.Url, route => route.FulfillAsync(new() { Body = html, ContentType = "text/html; charset=utf-8" }));
+        await page.GotoAsync(Page.Url);
+        await CheckAsync(page);
+    }
+
+    private static async Task CheckAsync(IPage page)
+    {
+        var result = await page.RunAxe(new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
+
+        result.Violations.Should().BeEmpty("axe found WCAG 2.2 AA violations on {0}:{1}", page.Url, Describe(result.Violations));
     }
 
     private static string Describe(IEnumerable<AxeResultItem> violations)

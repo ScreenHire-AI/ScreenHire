@@ -1,0 +1,46 @@
+---
+// Where a submitted application lands (POST, then redirect, then this GET), so a refresh never sends it twice. It holds
+// nothing about the candidate, and reads the same whether this was a new application or one already on file.
+import CareersLayout from '../../../../layouts/CareersLayout.astro';
+import { getPublicJob, getPublicOrganization } from '../../../../lib/api';
+import { basePath } from '../../../../lib/host';
+
+const { organization, job: jobSlug } = Astro.params;
+const [organizationResponse, jobResponse] = await Promise.all([getPublicOrganization(organization!), getPublicJob(organization!, jobSlug!)]);
+if (organizationResponse.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = organizationResponse.data;
+const base = basePath(Astro.request, employer.slug);
+// The job may have closed since; the confirmation stands either way.
+const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
+---
+
+<CareersLayout
+  title={`Application sent | ${employer.name}`}
+  description={`Your application to ${employer.name} was sent.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">Application sent</h1>
+  <p class="mt-3 text-[15px]">
+    Thank you for applying{jobTitle && <> for <strong>{jobTitle}</strong></>} at {employer.name}. We have your application.
+  </p>
+
+  <section aria-labelledby="next-heading" class="mt-6 rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
+    <h2 id="next-heading" class="text-base font-bold">What happens next</h2>
+    <ul class="mt-1.5 flex list-disc flex-col gap-1 pl-5 text-sm">
+      <li>A person at {employer.name} reads your application. No software makes a decision about you.</li>
+      <li>{employer.name} contacts you by email about next steps.</li>
+      <li>If anything we checked needs a closer look, a person decides what to do, and you can ask for a human review.</li>
+    </ul>
+  </section>
+
+  <p class="mt-6 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+  <a href={base || '/'} class="button-secondary mt-4">See other open roles</a>
+</CareersLayout>

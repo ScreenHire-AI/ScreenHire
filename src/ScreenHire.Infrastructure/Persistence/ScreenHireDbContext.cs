@@ -64,6 +64,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     /// <summary>The local sandbox board's own listings (see <see cref="SandboxListing"/>).</summary>
     public DbSet<SandboxListing> SandboxListings => Set<SandboxListing>();
 
+    public DbSet<ApplicationFile> ApplicationFiles => Set<ApplicationFile>();
+
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
 
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();

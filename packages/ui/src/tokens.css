@@ -66,6 +66,9 @@
   --candidate-chip-foreground: #5a4630;
   --candidate-cta: #c2462f;
   --candidate-cta-foreground: #ffffff;
+  /* Brand-coloured text on the page (4.5:1) and brand borders and focus rings (3:1). */
+  --candidate-brand-text: #c2462f;
+  --candidate-brand-ui: #c2462f;
 }
 
 .dark {
@@ -121,4 +124,6 @@
   --candidate-chip-foreground: #d3ccc2;
   --candidate-cta: #f08a6e;
   --candidate-cta-foreground: #1a1310;
+  --candidate-brand-text: #f08a6e;
+  --candidate-brand-ui: #f08a6e;
 }
