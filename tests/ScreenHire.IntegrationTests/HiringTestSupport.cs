@@ -178,7 +178,7 @@ internal static class Samples
             ["match"] = "All",
             ["rules"] = new JsonArray(new JsonObject { ["fact"] = "application.tags", ["operator"] = "Contains", ["value"] = tag }),
         },
-        ["actions"] = new JsonArray(new JsonObject { ["type"] = "SendEmail", ["emailTemplate"] = "follow-up" }),
+        ["actions"] = new JsonArray(new JsonObject { ["type"] = "SendEmail", ["emailTemplate"] = "stage-change" }),
     };
 
     /// <summary>An automation on a signal fact (<c>integrity.authenticity</c>) whose only action is <paramref name="action"/>.</summary>

@@ -54,6 +54,8 @@ app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
 app.MapOrganizationEndpoints();
+app.MapWorkflowEndpoints();
+app.MapAutomationEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 

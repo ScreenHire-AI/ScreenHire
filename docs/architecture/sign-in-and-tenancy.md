@@ -170,7 +170,12 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
   antiforgery cookies are encrypted with it, so a key ring that lives only in a container signs everyone out on every
   restart, and a second replica cannot read the first one's cookies. Locally the default key ring in the user profile
   survives restarts;
-- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`.
+- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`;
+- give the worker an SMTP connection (`ConnectionStrings:mailpit` until the production provider is chosen) and
+  `ScreenHire:Email:From`, or automations skip their emails (docs/architecture/workflow-engine.md section 8);
+- give the worker a secret `ScreenHire:Webhooks:SigningKey`, or CallWebhook automations fail as issues. Never share
+  it: give each organization's receivers that organization's derived key (`WebhookSignature.OrganizationKey`,
+  docs/architecture/workflow-engine.md section 8).
 
 ## Local development and tests
 

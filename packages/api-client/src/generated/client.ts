@@ -8,7 +8,10 @@ import type {
   ApiMeta,
   ApplicationDetail,
   ApplicationSummary,
+  ApplicationTaskEntry,
   ApplicationTimelineEntry,
+  AutomationIssue,
+  AutomationRunEntry,
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
@@ -28,27 +31,63 @@ import type {
   JobVersionSummary,
   MagicLinkRequest,
   MagicLinkVerification,
+  ManualAutomationQueued,
   MoveApplicationRequest,
   OnboardingRequest,
-  OrganizationBranding,
   ProblemDetails,
-  PublicApplicationForm,
-  PublicApplicationReceipt,
-  PublicApplicationRequest,
   PublicJob,
   PublicJobBoard,
-  PublicOrganization,
   SignInMethods,
-  UpdateBrandingRequest,
+  SimulateWorkflowRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
   UpdateJobRequest,
-  UploadRequest,
-  UploadTicket,
-  UploadedFile
+  ValidateWorkflowRequest,
+  WorkflowSimulationResult,
+  WorkflowValidationResult
 } from './model';
 
 import { apiFetch } from '../http.ts';
+export type listAutomationIssuesResponse200 = {
+  data: AutomationIssue[]
+  status: 200
+}
+
+export type listAutomationIssuesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAutomationIssuesResponseSuccess = (listAutomationIssuesResponse200) & {
+  headers: Headers;
+};
+export type listAutomationIssuesResponseError = (listAutomationIssuesResponse401) & {
+  headers: Headers;
+};
+
+export type listAutomationIssuesResponse = (listAutomationIssuesResponseSuccess | listAutomationIssuesResponseError)
+
+export const getListAutomationIssuesUrl = () => {
+
+
+
+
+  return `/v1/automation-issues`
+}
+
+export const listAutomationIssues = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listAutomationIssuesResponse> => {
+
+  return apiFetch<listAutomationIssuesResponse>(getListAutomationIssuesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type getMetaResponse200 = {
   data: ApiMeta
   status: 200
@@ -412,46 +451,6 @@ export const signOut = async ( options?: Parameters<typeof apiFetch>[1]): Promis
 
 
 
-export type getPublicOrganizationResponse200 = {
-  data: PublicOrganization
-  status: 200
-}
-
-export type getPublicOrganizationResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getPublicOrganizationResponseSuccess = (getPublicOrganizationResponse200) & {
-  headers: Headers;
-};
-export type getPublicOrganizationResponseError = (getPublicOrganizationResponse404) & {
-  headers: Headers;
-};
-
-export type getPublicOrganizationResponse = (getPublicOrganizationResponseSuccess | getPublicOrganizationResponseError)
-
-export const getGetPublicOrganizationUrl = (organizationSlug: string,) => {
-
-
-
-
-  return `/v1/public/organizations/${organizationSlug}`
-}
-
-export const getPublicOrganization = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicOrganizationResponse> => {
-
-  return apiFetch<getPublicOrganizationResponse>(getGetPublicOrganizationUrl(organizationSlug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
 export type listPublicJobsResponse200 = {
   data: PublicJobBoard
   status: 200
@@ -502,15 +501,10 @@ export type getPublicJobResponse404 = {
   status: 404
 }
 
-export type getPublicJobResponse410 = {
-  data: ProblemDetails
-  status: 410
-}
-
 export type getPublicJobResponseSuccess = (getPublicJobResponse200) & {
   headers: Headers;
 };
-export type getPublicJobResponseError = (getPublicJobResponse404 | getPublicJobResponse410) & {
+export type getPublicJobResponseError = (getPublicJobResponse404) & {
   headers: Headers;
 };
 
@@ -534,265 +528,6 @@ export const getPublicJob = async (organizationSlug: string,
     method: 'GET'
 
 
-  }
-);}
-
-
-
-export type getPublicApplicationFormResponse200 = {
-  data: PublicApplicationForm
-  status: 200
-}
-
-export type getPublicApplicationFormResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getPublicApplicationFormResponse410 = {
-  data: ProblemDetails
-  status: 410
-}
-
-export type getPublicApplicationFormResponseSuccess = (getPublicApplicationFormResponse200) & {
-  headers: Headers;
-};
-export type getPublicApplicationFormResponseError = (getPublicApplicationFormResponse404 | getPublicApplicationFormResponse410) & {
-  headers: Headers;
-};
-
-export type getPublicApplicationFormResponse = (getPublicApplicationFormResponseSuccess | getPublicApplicationFormResponseError)
-
-export const getGetPublicApplicationFormUrl = (organizationSlug: string,
-    jobSlug: string,) => {
-
-
-
-
-  return `/v1/public/organizations/${organizationSlug}/jobs/${jobSlug}/application-form`
-}
-
-export const getPublicApplicationForm = async (organizationSlug: string,
-    jobSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicApplicationFormResponse> => {
-
-  return apiFetch<getPublicApplicationFormResponse>(getGetPublicApplicationFormUrl(organizationSlug,jobSlug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-export type createPublicUploadResponse200 = {
-  data: UploadTicket
-  status: 200
-}
-
-export type createPublicUploadResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type createPublicUploadResponse404 = {
-  data: void
-  status: 404
-}
-
-export type createPublicUploadResponse410 = {
-  data: ProblemDetails
-  status: 410
-}
-
-export type createPublicUploadResponse429 = {
-  data: void
-  status: 429
-}
-
-export type createPublicUploadResponseSuccess = (createPublicUploadResponse200) & {
-  headers: Headers;
-};
-export type createPublicUploadResponseError = (createPublicUploadResponse400 | createPublicUploadResponse404 | createPublicUploadResponse410 | createPublicUploadResponse429) & {
-  headers: Headers;
-};
-
-export type createPublicUploadResponse = (createPublicUploadResponseSuccess | createPublicUploadResponseError)
-
-export const getCreatePublicUploadUrl = (organizationSlug: string,
-    jobId: string,
-    questionId: string,) => {
-
-
-
-
-  return `/v1/public/organizations/${organizationSlug}/jobs/${jobId}/questions/${questionId}/uploads`
-}
-
-export const createPublicUpload = async (organizationSlug: string,
-    jobId: string,
-    questionId: string,
-    uploadRequest: UploadRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createPublicUploadResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<createPublicUploadResponse>(getCreatePublicUploadUrl(organizationSlug,jobId,questionId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(uploadRequest)
-  }
-);}
-
-
-
-export type verifyPublicUploadResponse200 = {
-  data: UploadedFile
-  status: 200
-}
-
-export type verifyPublicUploadResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type verifyPublicUploadResponse404 = {
-  data: void
-  status: 404
-}
-
-export type verifyPublicUploadResponse410 = {
-  data: ProblemDetails
-  status: 410
-}
-
-export type verifyPublicUploadResponse429 = {
-  data: void
-  status: 429
-}
-
-export type verifyPublicUploadResponseSuccess = (verifyPublicUploadResponse200) & {
-  headers: Headers;
-};
-export type verifyPublicUploadResponseError = (verifyPublicUploadResponse400 | verifyPublicUploadResponse404 | verifyPublicUploadResponse410 | verifyPublicUploadResponse429) & {
-  headers: Headers;
-};
-
-export type verifyPublicUploadResponse = (verifyPublicUploadResponseSuccess | verifyPublicUploadResponseError)
-
-export const getVerifyPublicUploadUrl = (organizationSlug: string,
-    jobId: string,
-    questionId: string,
-    uploadId: string,) => {
-
-
-
-
-  return `/v1/public/organizations/${organizationSlug}/jobs/${jobId}/questions/${questionId}/uploads/${uploadId}/verify`
-}
-
-export const verifyPublicUpload = async (organizationSlug: string,
-    jobId: string,
-    questionId: string,
-    uploadId: string, options?: Parameters<typeof apiFetch>[1]): Promise<verifyPublicUploadResponse> => {
-
-  return apiFetch<verifyPublicUploadResponse>(getVerifyPublicUploadUrl(organizationSlug,jobId,questionId,uploadId),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-export type submitPublicApplicationResponse201 = {
-  data: PublicApplicationReceipt
-  status: 201
-}
-
-export type submitPublicApplicationResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type submitPublicApplicationResponse404 = {
-  data: void
-  status: 404
-}
-
-export type submitPublicApplicationResponse409 = {
-  data: ProblemDetails
-  status: 409
-}
-
-export type submitPublicApplicationResponse410 = {
-  data: ProblemDetails
-  status: 410
-}
-
-export type submitPublicApplicationResponse429 = {
-  data: void
-  status: 429
-}
-
-export type submitPublicApplicationResponseSuccess = (submitPublicApplicationResponse201) & {
-  headers: Headers;
-};
-export type submitPublicApplicationResponseError = (submitPublicApplicationResponse400 | submitPublicApplicationResponse404 | submitPublicApplicationResponse409 | submitPublicApplicationResponse410 | submitPublicApplicationResponse429) & {
-  headers: Headers;
-};
-
-export type submitPublicApplicationResponse = (submitPublicApplicationResponseSuccess | submitPublicApplicationResponseError)
-
-export const getSubmitPublicApplicationUrl = (organizationSlug: string,
-    jobId: string,) => {
-
-
-
-
-  return `/v1/public/organizations/${organizationSlug}/jobs/${jobId}/applications`
-}
-
-export const submitPublicApplication = async (organizationSlug: string,
-    jobId: string,
-    publicApplicationRequest: PublicApplicationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<submitPublicApplicationResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<submitPublicApplicationResponse>(getSubmitPublicApplicationUrl(organizationSlug,jobId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(publicApplicationRequest)
   }
 );}
 
@@ -2134,94 +1869,34 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
 
 
 
-export type getOrganizationBrandingResponse200 = {
-  data: OrganizationBranding
+export type validateWorkflowResponse200 = {
+  data: WorkflowValidationResult
   status: 200
 }
 
-export type getOrganizationBrandingResponse401 = {
+export type validateWorkflowResponse401 = {
   data: void
   status: 401
 }
 
-export type getOrganizationBrandingResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getOrganizationBrandingResponseSuccess = (getOrganizationBrandingResponse200) & {
+export type validateWorkflowResponseSuccess = (validateWorkflowResponse200) & {
   headers: Headers;
 };
-export type getOrganizationBrandingResponseError = (getOrganizationBrandingResponse401 | getOrganizationBrandingResponse404) & {
+export type validateWorkflowResponseError = (validateWorkflowResponse401) & {
   headers: Headers;
 };
 
-export type getOrganizationBrandingResponse = (getOrganizationBrandingResponseSuccess | getOrganizationBrandingResponseError)
+export type validateWorkflowResponse = (validateWorkflowResponseSuccess | validateWorkflowResponseError)
 
-export const getGetOrganizationBrandingUrl = () => {
-
-
+export const getValidateWorkflowUrl = () => {
 
 
-  return `/v1/organization/branding`
+
+
+  return `/v1/workflows/validate`
 }
 
-export const getOrganizationBranding = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationBrandingResponse> => {
-
-  return apiFetch<getOrganizationBrandingResponse>(getGetOrganizationBrandingUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-export type updateOrganizationBrandingResponse200 = {
-  data: OrganizationBranding
-  status: 200
-}
-
-export type updateOrganizationBrandingResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type updateOrganizationBrandingResponse401 = {
-  data: void
-  status: 401
-}
-
-export type updateOrganizationBrandingResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type updateOrganizationBrandingResponse404 = {
-  data: void
-  status: 404
-}
-
-export type updateOrganizationBrandingResponseSuccess = (updateOrganizationBrandingResponse200) & {
-  headers: Headers;
-};
-export type updateOrganizationBrandingResponseError = (updateOrganizationBrandingResponse400 | updateOrganizationBrandingResponse401 | updateOrganizationBrandingResponse403 | updateOrganizationBrandingResponse404) & {
-  headers: Headers;
-};
-
-export type updateOrganizationBrandingResponse = (updateOrganizationBrandingResponseSuccess | updateOrganizationBrandingResponseError)
-
-export const getUpdateOrganizationBrandingUrl = () => {
-
-
-
-
-  return `/v1/organization/branding`
-}
-
-export const updateOrganizationBranding = async (updateBrandingRequest: UpdateBrandingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationBrandingResponse> => {
+export const validateWorkflow = async (validateWorkflowRequest: ValidateWorkflowRequest, options?: Parameters<typeof apiFetch>[1]): Promise<validateWorkflowResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2237,12 +1912,218 @@ export const updateOrganizationBranding = async (updateBrandingRequest: UpdateBr
     }
     return headers;
   };
-return apiFetch<updateOrganizationBrandingResponse>(getUpdateOrganizationBrandingUrl(),
+return apiFetch<validateWorkflowResponse>(getValidateWorkflowUrl(),
   {
     ...options,
-    method: 'PUT',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateBrandingRequest)
+    body: JSON.stringify(validateWorkflowRequest)
+  }
+);}
+
+
+
+export type simulateWorkflowResponse200 = {
+  data: WorkflowSimulationResult
+  status: 200
+}
+
+export type simulateWorkflowResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type simulateWorkflowResponse401 = {
+  data: void
+  status: 401
+}
+
+export type simulateWorkflowResponseSuccess = (simulateWorkflowResponse200) & {
+  headers: Headers;
+};
+export type simulateWorkflowResponseError = (simulateWorkflowResponse400 | simulateWorkflowResponse401) & {
+  headers: Headers;
+};
+
+export type simulateWorkflowResponse = (simulateWorkflowResponseSuccess | simulateWorkflowResponseError)
+
+export const getSimulateWorkflowUrl = () => {
+
+
+
+
+  return `/v1/workflows/simulate`
+}
+
+export const simulateWorkflow = async (simulateWorkflowRequest: SimulateWorkflowRequest, options?: Parameters<typeof apiFetch>[1]): Promise<simulateWorkflowResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<simulateWorkflowResponse>(getSimulateWorkflowUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(simulateWorkflowRequest)
+  }
+);}
+
+
+
+export type listAutomationRunsResponse200 = {
+  data: AutomationRunEntry[]
+  status: 200
+}
+
+export type listAutomationRunsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAutomationRunsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listAutomationRunsResponseSuccess = (listAutomationRunsResponse200) & {
+  headers: Headers;
+};
+export type listAutomationRunsResponseError = (listAutomationRunsResponse401 | listAutomationRunsResponse404) & {
+  headers: Headers;
+};
+
+export type listAutomationRunsResponse = (listAutomationRunsResponseSuccess | listAutomationRunsResponseError)
+
+export const getListAutomationRunsUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/automation-runs`
+}
+
+export const listAutomationRuns = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listAutomationRunsResponse> => {
+
+  return apiFetch<listAutomationRunsResponse>(getListAutomationRunsUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listApplicationTasksResponse200 = {
+  data: ApplicationTaskEntry[]
+  status: 200
+}
+
+export type listApplicationTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationTasksResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationTasksResponseSuccess = (listApplicationTasksResponse200) & {
+  headers: Headers;
+};
+export type listApplicationTasksResponseError = (listApplicationTasksResponse401 | listApplicationTasksResponse404) & {
+  headers: Headers;
+};
+
+export type listApplicationTasksResponse = (listApplicationTasksResponseSuccess | listApplicationTasksResponseError)
+
+export const getListApplicationTasksUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tasks`
+}
+
+export const listApplicationTasks = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationTasksResponse> => {
+
+  return apiFetch<listApplicationTasksResponse>(getListApplicationTasksUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type runManualAutomationResponse202 = {
+  data: ManualAutomationQueued
+  status: 202
+}
+
+export type runManualAutomationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type runManualAutomationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type runManualAutomationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type runManualAutomationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type runManualAutomationResponseSuccess = (runManualAutomationResponse202) & {
+  headers: Headers;
+};
+export type runManualAutomationResponseError = (runManualAutomationResponse400 | runManualAutomationResponse401 | runManualAutomationResponse403 | runManualAutomationResponse404) & {
+  headers: Headers;
+};
+
+export type runManualAutomationResponse = (runManualAutomationResponseSuccess | runManualAutomationResponseError)
+
+export const getRunManualAutomationUrl = (applicationId: string,
+    automationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/automations/${automationId}/run`
+}
+
+export const runManualAutomation = async (applicationId: string,
+    automationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<runManualAutomationResponse> => {
+
+  return apiFetch<runManualAutomationResponse>(getRunManualAutomationUrl(applicationId,automationId),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 

@@ -30,8 +30,8 @@ public sealed record ApplicationSummary(
     DateTimeOffset StageEnteredAt);
 
 /// <summary>
-/// One application: the candidate, the job, where it is in the job's workflow, the candidate's declarations, answers
-/// and files.
+/// One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's
+/// declarations, answers and files.
 /// </summary>
 /// <remarks>
 /// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>answers</c> are
@@ -50,6 +50,7 @@ public sealed record ApplicationDetail(
     string? AiUseDetails,
     DateTimeOffset SubmittedAt,
     DateTimeOffset StageEnteredAt,
+    IReadOnlyList<string> Tags,
     ApplicationSource Source,
     IReadOnlyList<ApplicationAnswer> Answers,
     IReadOnlyList<ApplicationFileSummary> Files);
@@ -59,8 +60,17 @@ public sealed record ApplicationFileSummary(
     Guid Id, string QuestionId, Guid UploadId, string FileName, string ContentType, long SizeBytes, MalwareScanStatus ScanStatus, DateTimeOffset UploadedAt);
 
 /// <summary>One entry of an application's timeline, oldest first. Members that do not apply to the type are null.</summary>
+/// <remarks><c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did.</remarks>
 public sealed record ApplicationTimelineEntry(
-    Guid Id, ApplicationEventType Type, DateTimeOffset OccurredAt, Guid? ActorUserId, string? FromStageId, string? ToStageId, string? Note);
+    Guid Id,
+    ApplicationEventType Type,
+    DateTimeOffset OccurredAt,
+    Guid? ActorUserId,
+    string? FromStageId,
+    string? ToStageId,
+    string? Note,
+    string? Tag,
+    Guid? AutomationRunId);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
@@ -96,14 +106,16 @@ internal static class ApplicationMappings
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
-            application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Source,
+            application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
+            application.Source,
             application.Answers, [.. files.Select(f => f.ToSummary())]);
 
     public static ApplicationFileSummary ToSummary(this ApplicationFile file) =>
         new(file.Id, file.QuestionId, file.UploadId, file.FileName, file.ContentType, file.SizeBytes, file.ScanStatus, file.UploadedAt);
 
     public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry) =>
-        new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note);
+        new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note,
+            entry.Data.Tag, entry.Data.AutomationRunId);
 }
 
 internal sealed class CreateApplicationRequestValidator : AbstractValidator<CreateApplicationRequest>

@@ -43,6 +43,9 @@ public sealed class JobApplication : ITenantOwned
 
     public DateTimeOffset StageEnteredAt { get; private set; }
 
+    /// <summary>Labels automations and people put on the application; conditions read them as <c>application.tags</c>.</summary>
+    public List<string> Tags { get; private set; } = [];
+
     /// <summary>Where the application came from.</summary>
     public ApplicationSource Source { get; init; }
 
@@ -114,7 +117,7 @@ public sealed class JobApplication : ITenantOwned
     /// Moves the application to <paramref name="target"/>, a stage of its job's workflow, and returns the timeline event.
     /// Moving to the stage it is already in changes nothing and returns null.
     /// </summary>
-    public ApplicationEvent? MoveTo(WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note)
+    public ApplicationEvent? MoveTo(WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null)
     {
         ArgumentNullException.ThrowIfNull(target);
         if (target.Id == CurrentStageId)
@@ -127,9 +130,26 @@ public sealed class JobApplication : ITenantOwned
         StageEnteredAt = now;
         return NewEvent(
             ApplicationEventType.StageChanged,
-            new ApplicationEventData(from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim()),
+            new ApplicationEventData(from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId),
             now,
             actorUserId);
+    }
+
+    /// <summary>
+    /// Adds <paramref name="tag"/> (trimmed; tags compare ignoring case) and returns the timeline event. A tag the
+    /// application already has changes nothing and returns null.
+    /// </summary>
+    public ApplicationEvent? AddTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+        var trimmed = tag.Trim();
+        if (Tags.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        Tags = [.. Tags, trimmed];
+        return NewEvent(ApplicationEventType.TagAdded, new ApplicationEventData(Tag: trimmed, AutomationRunId: automationRunId), now, actorUserId);
     }
 
     private ApplicationEvent NewEvent(ApplicationEventType type, ApplicationEventData data, DateTimeOffset now, Guid? actorUserId) =>

@@ -6,6 +6,19 @@
  */
 import * as zod from 'zod';
 
+export const ListAutomationIssuesResponseItem = zod.object({
+  "runId": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "jobId": zod.uuid(),
+  "automationId": zod.string(),
+  "automationName": zod.string(),
+  "status": zod.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
+  "detail": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\r\nfailed (an action failed after its retries). Newest first; the run has the full record.')
+export const ListAutomationIssuesResponse = zod.array(ListAutomationIssuesResponseItem)
+
+
 export const GetMetaResponse = zod.object({
   "name": zod.string(),
   "version": zod.string(),
@@ -81,22 +94,6 @@ export const CompleteOnboardingResponse = zod.object({
 export const SignOutResponse = zod.void()
 
 
-export const GetPublicOrganizationParams = zod.object({
-  "organizationSlug": zod.string()
-})
-
-export const GetPublicOrganizationResponse = zod.object({
-  "name": zod.string(),
-  "slug": zod.string(),
-  "branding": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')])
-}).describe('An organization as its careers pages show it.')
-
-
 export const ListPublicJobsParams = zod.object({
   "organizationSlug": zod.string()
 })
@@ -125,14 +122,8 @@ export const ListPublicJobsResponse = zod.object({
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable()
-}).describe('A job as shown on a public careers page.')),
-  "branding": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]).optional()
-}).describe('The public careers listing for one organization. `branding` is null when it has no brand colour.')
+}).describe('A job as shown on a public careers page.'))
+}).describe('The public careers listing for one organization.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -162,138 +153,6 @@ export const GetPublicJobResponse = zod.object({
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable()
 }).describe('A job as shown on a public careers page.')
-
-
-export const GetPublicApplicationFormParams = zod.object({
-  "organizationSlug": zod.string(),
-  "jobSlug": zod.string()
-})
-
-export const GetPublicApplicationFormResponse = zod.object({
-  "organization": zod.object({
-  "name": zod.string(),
-  "slug": zod.string(),
-  "branding": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')])
-}).describe('An organization as its careers pages show it.'),
-  "job": zod.object({
-  "id": zod.uuid(),
-  "title": zod.string(),
-  "slug": zod.string(),
-  "location": zod.string(),
-  "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
-  "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
-  "salaryMin": zod.number().nullable(),
-  "salaryMax": zod.number().nullable(),
-  "salaryCurrency": zod.string().nullable(),
-  "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "description": zod.string(),
-  "department": zod.string().nullable(),
-  "locations": zod.array(zod.object({
-  "city": zod.string().nullable(),
-  "region": zod.string().nullable(),
-  "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
-  "applicantLocationRequirements": zod.array(zod.string()),
-  "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable()
-}).describe('A job as shown on a public careers page.'),
-  "questions": zod.array(zod.object({
-  "id": zod.string(),
-  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
-  "label": zod.string(),
-  "required": zod.boolean(),
-  "helpText": zod.string().nullable(),
-  "options": zod.array(zod.object({
-  "id": zod.string(),
-  "label": zod.string()
-})).nullable(),
-  "min": zod.number().nullable(),
-  "max": zod.number().nullable(),
-  "maxLength": zod.int().nullable(),
-  "acceptedFileTypes": zod.array(zod.string()).nullable()
-}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it.')),
-  "aiUsePolicy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
-  "uploads": zod.object({
-  "maxBytes": zod.int(),
-  "origin": zod.string()
-}).describe('Limits on candidate uploads. `origin` is where upload links point, for the page\'s content security policy.'),
-  "turnstileSiteKey": zod.string().nullable()
-}).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.')
-
-
-export const CreatePublicUploadParams = zod.object({
-  "organizationSlug": zod.string(),
-  "jobId": zod.uuid(),
-  "questionId": zod.string()
-})
-
-export const CreatePublicUploadBody = zod.object({
-  "fileName": zod.string(),
-  "sizeBytes": zod.int()
-}).describe('Asks for a link to upload one file for a file question. `sizeBytes` is the size the candidate\'s device reports.')
-
-export const CreatePublicUploadResponse = zod.object({
-  "uploadId": zod.uuid(),
-  "uploadUrl": zod.url(),
-  "method": zod.string(),
-  "headers": zod.record(zod.string(), zod.string()),
-  "expiresAt": zod.iso.datetime({"offset":true}),
-  "maxBytes": zod.int()
-}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`.')
-
-
-export const VerifyPublicUploadParams = zod.object({
-  "organizationSlug": zod.string(),
-  "jobId": zod.uuid(),
-  "questionId": zod.string(),
-  "uploadId": zod.uuid()
-})
-
-export const VerifyPublicUploadResponse = zod.object({
-  "uploadId": zod.uuid(),
-  "fileName": zod.string(),
-  "contentType": zod.string(),
-  "sizeBytes": zod.int()
-}).describe('An upload that was found and checked. Its `uploadId` is the answer to its file question.')
-
-
-export const SubmitPublicApplicationParams = zod.object({
-  "organizationSlug": zod.string(),
-  "jobId": zod.uuid()
-})
-
-export const submitPublicApplicationBodyAccommodationRequestedDefault = false;
-export const submitPublicApplicationBodyAiUseDeclarationDefault = `NotProvided`;
-export const submitPublicApplicationBodyHoneypotFilledDefault = false;
-
-export const SubmitPublicApplicationBody = zod.object({
-  "candidate": zod.object({
-  "fullName": zod.string(),
-  "email": zod.string(),
-  "phone": zod.string().nullish()
-}),
-  "privacyNoticeVersion": zod.string(),
-  "answers": zod.array(zod.object({
-  "questionId": zod.string(),
-  "value": zod.string().nullish(),
-  "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
-  "accommodationRequested": zod.boolean().default(submitPublicApplicationBodyAccommodationRequestedDefault),
-  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(submitPublicApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
-  "aiUseDetails": zod.string().nullish(),
-  "honeypotFilled": zod.boolean().default(submitPublicApplicationBodyHoneypotFilledDefault),
-  "botCheckToken": zod.string().nullish()
-}).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
-
-export const SubmitPublicApplicationResponse = zod.object({
-  "applicationId": zod.uuid(),
-  "submittedAt": zod.iso.datetime({"offset":true})
-}).describe('Confirms that an application arrived.')
 
 
 export const ListJobsResponseItem = zod.object({
@@ -1730,7 +1589,6 @@ export const CreateApplicationParams = zod.object({
 })
 
 export const createApplicationBodyAccommodationRequestedDefault = false;
-export const createApplicationBodyAiUseDeclarationDefault = `NotProvided`;
 
 export const CreateApplicationBody = zod.object({
   "candidate": zod.object({
@@ -1739,11 +1597,9 @@ export const CreateApplicationBody = zod.object({
   "phone": zod.string().nullish()
 }),
   "accommodationRequested": zod.boolean().default(createApplicationBodyAccommodationRequestedDefault),
-  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).optional().describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish()
 }).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
-
-export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 
 export const CreateApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -1763,34 +1619,17 @@ export const CreateApplicationResponse = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "workflowVersion": zod.int(),
   "accommodationRequested": zod.boolean(),
-  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createApplicationResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
-  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
-  "answers": zod.array(zod.object({
-  "questionId": zod.string(),
-  "value": zod.string().nullish(),
-  "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
-  "files": zod.array(zod.object({
-  "id": zod.uuid(),
-  "questionId": zod.string(),
-  "uploadId": zod.uuid(),
-  "fileName": zod.string(),
-  "contentType": zod.string(),
-  "sizeBytes": zod.int(),
-  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
-  "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, the candidate\'s declarations, answers\r\nand files.')
+  "tags": zod.array(zod.string())
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, and the candidate\'s\r\ndeclarations.')
 
 
 export const GetApplicationParams = zod.object({
   "applicationId": zod.uuid()
 })
-
-export const getApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 
 export const GetApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -1810,27 +1649,12 @@ export const GetApplicationResponse = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "workflowVersion": zod.int(),
   "accommodationRequested": zod.boolean(),
-  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(getApplicationResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
-  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
-  "answers": zod.array(zod.object({
-  "questionId": zod.string(),
-  "value": zod.string().nullish(),
-  "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
-  "files": zod.array(zod.object({
-  "id": zod.uuid(),
-  "questionId": zod.string(),
-  "uploadId": zod.uuid(),
-  "fileName": zod.string(),
-  "contentType": zod.string(),
-  "sizeBytes": zod.int(),
-  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
-  "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, the candidate\'s declarations, answers\r\nand files.')
+  "tags": zod.array(zod.string())
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, and the candidate\'s\r\ndeclarations.')
 
 
 export const MoveApplicationParams = zod.object({
@@ -1841,8 +1665,6 @@ export const MoveApplicationBody = zod.object({
   "toStageId": zod.string(),
   "note": zod.string().nullish()
 }).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here.')
-
-export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 
 export const MoveApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -1862,27 +1684,12 @@ export const MoveApplicationResponse = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "workflowVersion": zod.int(),
   "accommodationRequested": zod.boolean(),
-  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(moveApplicationResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
-  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
-  "answers": zod.array(zod.object({
-  "questionId": zod.string(),
-  "value": zod.string().nullish(),
-  "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
-  "files": zod.array(zod.object({
-  "id": zod.uuid(),
-  "questionId": zod.string(),
-  "uploadId": zod.uuid(),
-  "fileName": zod.string(),
-  "contentType": zod.string(),
-  "sizeBytes": zod.int(),
-  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
-  "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, the candidate\'s declarations, answers\r\nand files.')
+  "tags": zod.array(zod.string())
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, and the candidate\'s\r\ndeclarations.')
 
 
 export const GetApplicationTimelineParams = zod.object({
@@ -1891,12 +1698,14 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
   "toStageId": zod.string().nullable(),
-  "note": zod.string().nullable()
+  "note": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "automationRunId": zod.uuid().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -1937,32 +1746,295 @@ export const GetCandidateResponse = zod.object({
 }).describe('A candidate and every application they made to the organization.')
 
 
-export const GetOrganizationBrandingResponse = zod.object({
-  "brandColor": zod.string().nullable(),
-  "palette": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
-  "brandAdjusted": zod.boolean()
-}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
+export const validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const validateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
+export const validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+
+export const ValidateWorkflowBody = zod.object({
+  "workflow": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "slaDays": zod.int().nullish()
+}).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
+  "questionnaire": zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The screening questions a candidate answers when applying.'),
+  "integrityPolicy": zod.object({
+  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The template\'s integrity settings (ADR-0004). Only the AI-use policy exists so far.'),
+  "automations": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish()
+}),
+  "conditions": zod.union([zod.null(),zod.object({
+  "match": zod.enum(['All', 'Any']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "negate": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+  "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
+  "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.')
+}).describe('A workflow to check, as the builder holds it before saving.')
+
+export const ValidateWorkflowResponse = zod.object({
+  "valid": zod.boolean(),
+  "errors": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
 
 
-export const UpdateOrganizationBrandingBody = zod.object({
-  "brandColor": zod.string().nullable()
-}).describe('Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire\'s default.')
+export const simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
+export const simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
+export const simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const simulateWorkflowBodyAccommodationRequestedDefault = false;
 
-export const UpdateOrganizationBrandingResponse = zod.object({
-  "brandColor": zod.string().nullable(),
-  "palette": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
-  "brandAdjusted": zod.boolean()
-}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+export const SimulateWorkflowBody = zod.object({
+  "workflow": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "slaDays": zod.int().nullish()
+}).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
+  "questionnaire": zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The screening questions a candidate answers when applying.'),
+  "integrityPolicy": zod.object({
+  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The template\'s integrity settings (ADR-0004). Only the AI-use policy exists so far.'),
+  "automations": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish()
+}),
+  "conditions": zod.union([zod.null(),zod.object({
+  "match": zod.enum(['All', 'Any']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "negate": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+  "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
+  "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish()
+}),
+  "facts": zod.union([zod.null(),zod.object({
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "values": zod.array(zod.string())
+}).describe('A candidate\'s answer to one question. A multiple-choice answer has one value per chosen option.')),
+  "tags": zod.array(zod.string()),
+  "source": zod.string().nullish(),
+  "hoursInStage": zod.int().nullish(),
+  "integrityAuthenticity": zod.string().nullish(),
+  "integrityAiAssistance": zod.string().nullish(),
+  "verificationResult": zod.string().nullish()
+}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.')]).optional(),
+  "accommodationRequested": zod.boolean().default(simulateWorkflowBodyAccommodationRequestedDefault),
+  "chain": zod.array(zod.string()).nullish()
+}).describe('"Test this workflow" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application\'s snapshot; leave members out\r\nfor facts it does not have.')
+
+export const SimulateWorkflowResponse = zod.object({
+  "automations": zod.array(zod.object({
+  "automationId": zod.string(),
+  "name": zod.string(),
+  "outcome": zod.enum(['Matched', 'NotMatched', 'Skipped', 'Blocked']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "held": zod.boolean()
+}).describe('One rule\'s result, so an audit or a simulation shows which conditions held.')),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+  "reason": zod.string().nullable()
+}).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
+})
+
+
+export const ListAutomationRunsParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const ListAutomationRunsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "jobId": zod.uuid(),
+  "automationId": zod.string(),
+  "automationName": zod.string(),
+  "workflowVersion": zod.int(),
+  "trigger": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "triggerStageId": zod.string().nullable(),
+  "eventId": zod.uuid(),
+  "eventOccurredAt": zod.iso.datetime({"offset":true}),
+  "chain": zod.array(zod.string()),
+  "actorUserId": zod.uuid().nullable(),
+  "facts": zod.object({
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "values": zod.array(zod.string())
+}).describe('A candidate\'s answer to one question. A multiple-choice answer has one value per chosen option.')),
+  "tags": zod.array(zod.string()),
+  "source": zod.string().nullish(),
+  "hoursInStage": zod.int().nullish(),
+  "integrityAuthenticity": zod.string().nullish(),
+  "integrityAiAssistance": zod.string().nullish(),
+  "verificationResult": zod.string().nullish()
+}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.'),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "held": zod.boolean()
+}).describe('One rule\'s result, so an audit or a simulation shows which conditions held.')),
+  "status": zod.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
+  "detail": zod.string().nullable(),
+  "actions": zod.array(zod.object({
+  "index": zod.int(),
+  "action": zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.'),
+  "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
+  "detail": zod.string().nullable(),
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+})),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did.')
+export const ListAutomationRunsResponse = zod.array(ListAutomationRunsResponseItem)
+
+
+export const ListApplicationTasksParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const ListApplicationTasksResponseItem = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
+
+
+export const RunManualAutomationParams = zod.object({
+  "applicationId": zod.uuid(),
+  "automationId": zod.string()
+})
+
+export const RunManualAutomationHeader = zod.object({
+  "Idempotency-Key": zod.string().optional()
+})
+
+export const RunManualAutomationResponse = zod.object({
+  "applicationId": zod.uuid(),
+  "automationId": zod.string(),
+  "eventId": zod.uuid()
+}).describe('A manual automation was queued. `eventId` keys its run: find it in the application\'s automation runs.')
 
 
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()

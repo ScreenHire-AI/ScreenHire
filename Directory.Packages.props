@@ -36,6 +36,8 @@
     <PackageVersion Include="MailKit" Version="4.18.1" />
     <!-- Job description rich text. MIT, as are its AngleSharp and AngleSharp.Css dependencies. -->
     <PackageVersion Include="HtmlSanitizer" Version="9.2.1039" />
+    <!-- Transactional email templates (Liquid). MIT; its dependencies Parlot (BSD-3-Clause) and TimeZoneConverter (MIT). -->
+    <PackageVersion Include="Fluid.Core" Version="2.40.0" />
   </ItemGroup>
   <ItemGroup Label="Messaging">
     <!-- Wolverine (ADR-0008): MIT, as are its JasperFx, Weasel and Cronos dependencies; NewId is Apache-2.0. -->
