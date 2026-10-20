@@ -164,6 +164,40 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
         stored.Count("workflow.automations").Should().Be(0);
     }
 
+    // Publishing refuses such a version, so it is written as the owner: it stands for one published before the
+    // guardrail tightened. Applying it must be refused all the same.
+    [Fact]
+    public async Task A_template_update_whose_integrity_signal_drives_a_rejection_is_refused()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var (templateId, version1) = await recruiter.CreatePublishedTemplateAsync("Old guardrail");
+        var job = await CreateTemplateJobAsync(recruiter, version1);
+        var version2 = await PublishVersion2Async(recruiter, templateId, "screening", "Phone screen");
+        var definition = await Samples.DefinitionOfAsync(recruiter, templateId, 2);
+        var automation = Samples.IntegrityAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "Not a fit" });
+        automation["conditions"]!["rules"]![0]!["value"] = "VerificationRecommended";
+        definition["workflow"]!["automations"] = new JsonArray(automation);
+        await using (var connection = new Npgsql.NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(ct)))
+        {
+            await connection.OpenAsync(ct);
+            await using var command = new Npgsql.NpgsqlCommand(
+                "UPDATE hiring_template_versions SET definition = @definition::jsonb WHERE id = @id", connection);
+            command.Parameters.AddWithValue("definition", definition.ToJsonString());
+            command.Parameters.AddWithValue("id", version2);
+            (await command.ExecuteNonQueryAsync(ct)).Should().Be(1);
+        }
+
+        var apply = await recruiter.PostAsync($"/v1/jobs/{job.Id()}/workflow/apply-template-update", ApplyRequest(version2, 1));
+
+        apply.Expect(HttpStatusCode.BadRequest).At("errors").GetProperty("workflow.automations[0].actions[0]")[0].GetString()
+            .Should().Contain("Integrity signals never drive rejection");
+        var stored = await recruiter.GetAsync($"/v1/jobs/{job.Id()}");
+        stored.At("workflowVersion").GetInt32().Should().Be(1);
+        stored.At("template.version").GetInt32().Should().Be(1);
+        stored.Text("workflow.stages.1.name").Should().Be("Screening");
+    }
+
     [Fact]
     public async Task An_integrity_signal_may_still_route_a_candidate_for_review_in_a_jobs_workflow()
     {
