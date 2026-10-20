@@ -15,7 +15,10 @@ export const POST: APIRoute = async ({ params, request, clientAddress, url }) =>
   const site = request.headers.get('sec-fetch-site');
   if (site !== null && site !== 'same-origin') return new Response(null, { status: 403 });
   if (!request.headers.get('content-type')?.startsWith('text/plain')) return new Response(null, { status: 415 });
-  if (Number(request.headers.get('content-length') ?? 0) > MAX_TELEMETRY_BYTES) return new Response(null, { status: 413 });
+  // sendBeacon always sends a length. Without one (a chunked body), request.text() would buffer whatever arrives.
+  const length = Number(request.headers.get('content-length') ?? Number.NaN);
+  if (!Number.isFinite(length)) return new Response(null, { status: 411 });
+  if (length > MAX_TELEMETRY_BYTES) return new Response(null, { status: 413 });
 
   const jobId = url.searchParams.get('job') ?? '';
   const body = await request.text();

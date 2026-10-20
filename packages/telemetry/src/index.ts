@@ -9,7 +9,7 @@ import { Collector, editKind, fieldIdOf, type Snapshot } from './collector.ts';
 import { automationMarkers, deviceFingerprint } from './device.ts';
 
 export { Collector, editKind, fieldIdOf, MAX_FIELDS, type EditKind, type FieldAggregate, type Snapshot } from './collector.ts';
-export { automationMarkers, deviceFingerprint, type AutomationMarker } from './device.ts';
+export { AUTOMATION_MARKERS, automationMarkers, deviceFingerprint, type AutomationMarker } from './device.ts';
 
 export interface TelemetryOptions {
   /** Where snapshots go: the careers server's same-origin relay. */
@@ -96,7 +96,8 @@ export function startTelemetry(form: HTMLFormElement, options: TelemetryOptions)
   };
 
   const onFocusIn = (event: Event) => {
-    start();
+    // Reaching the switch is not using the form: keyboard and screen-reader users arrive at it first.
+    if (event.target !== optOut) start();
     const field = tracked(event.target);
     if (!field || !collector) return;
     const [id, element] = field;

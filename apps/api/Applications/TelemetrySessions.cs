@@ -104,10 +104,16 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
     }
 
     /// <summary>
-    /// Binds the session's snapshots to a new application, with the final snapshot the submission carried, in the
-    /// submission's own transaction (the caller saves). With the assistive-technology switch on, the session's snapshots
-    /// are deleted instead: the module should have sent none, and none are kept.
+    /// Binds the session's snapshots to a new application in the submission's own transaction (the caller saves). With
+    /// the assistive-technology switch on, the session's snapshots are deleted instead: the module should have sent none,
+    /// and none are kept. A session that already belongs to an application binds nothing to a second one.
     /// </summary>
+    /// <remarks>
+    /// The final snapshot is stored first with the beacons' own upsert (<see cref="StoreAsync"/>), never added to the
+    /// context. A beacon for the same page view can land while the form post is in flight, and an insert would then break
+    /// the unique index and lose the application. If the submission fails after this, the snapshot stays unbound and
+    /// expires like any beacon's.
+    /// </remarks>
     public static async Task BindToApplicationAsync(
         ScreenHireDbContext db,
         Guid applicationId,
@@ -118,6 +124,16 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
         IntegrityOptions options,
         CancellationToken cancellationToken)
     {
+        if (await db.TelemetrySnapshots.AnyAsync(s => s.SessionId == binding.SessionId && s.ApplicationId != null, cancellationToken))
+        {
+            return;
+        }
+
+        if (!accommodationRequested && binding.FinalSnapshot is { } final)
+        {
+            await StoreAsync(db, job, binding.SessionId, final, now, cancellationToken);
+        }
+
         var snapshots = await db.TelemetrySnapshots
             .Where(s => s.SessionId == binding.SessionId && s.JobId == job.Id && s.ApplicationId == null)
             .ToListAsync(cancellationToken);
@@ -125,35 +141,6 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
         {
             db.TelemetrySnapshots.RemoveRange(snapshots);
             return;
-        }
-
-        if (binding.FinalSnapshot is { } final)
-        {
-            var fields = final.Fields.Select(f => f.ToDomain()).ToList();
-            var page = final.Page.ToDomain();
-            if (snapshots.FirstOrDefault(s => s.PageViewId == final.PageViewId) is { } stored)
-            {
-                if (final.Sequence > stored.Sequence)
-                {
-                    (stored.Sequence, stored.Fields, stored.Page, stored.ReceivedAt) = (final.Sequence, fields, page, now);
-                }
-            }
-            else
-            {
-                var added = new TelemetrySnapshot
-                {
-                    OrganizationId = job.OrganizationId,
-                    JobId = job.Id,
-                    SessionId = binding.SessionId,
-                    PageViewId = final.PageViewId,
-                    Sequence = final.Sequence,
-                    Fields = fields,
-                    Page = page,
-                    ReceivedAt = now,
-                };
-                db.TelemetrySnapshots.Add(added);
-                snapshots.Add(added);
-            }
         }
 
         foreach (var snapshot in snapshots)

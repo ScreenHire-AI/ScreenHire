@@ -2,13 +2,11 @@
 // snapshot shape, strict, so nothing but counts and known ids travels on (integrity-engine.md §10.2). The API checks it
 // all again, including the field ids against the job's questions.
 import type { TelemetrySnapshotInput } from '@screenhire/api-client';
+import { AUTOMATION_MARKERS, MAX_FIELDS } from '@screenhire/telemetry';
 import { z } from 'astro/zod';
 
 /** The largest snapshot taken, as the API (`PublicTelemetryEndpoints.MaxBodyBytes`). */
 export const MAX_TELEMETRY_BYTES = 32 * 1024;
-
-/** The automation markers the module reports. */
-export const AUTOMATION_MARKERS = ['webdriver', 'headless', 'phantom', 'selenium', 'nightmare', 'chromedriver'] as const;
 
 const count = z.number().int().min(0).max(1_000_000_000);
 
@@ -29,7 +27,7 @@ const snapshotSchema = z.strictObject({
         autofilled: z.boolean(),
       }),
     )
-    .max(110),
+    .max(MAX_FIELDS),
   page: z.strictObject({
     visibilityChanges: count,
     automationMarkers: z.array(z.enum(AUTOMATION_MARKERS)).max(AUTOMATION_MARKERS.length),

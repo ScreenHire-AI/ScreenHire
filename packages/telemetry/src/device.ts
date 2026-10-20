@@ -2,7 +2,9 @@
 // the candidate typed.
 
 /** The markers the API knows (`TelemetrySnapshotInputValidator.KnownMarkers`), in a fixed order. */
-export type AutomationMarker = 'webdriver' | 'headless' | 'phantom' | 'selenium' | 'nightmare' | 'chromedriver';
+export const AUTOMATION_MARKERS = ['webdriver', 'headless', 'phantom', 'selenium', 'nightmare', 'chromedriver'] as const;
+
+export type AutomationMarker = (typeof AUTOMATION_MARKERS)[number];
 
 /** Automation frameworks' tell-tale traits: `navigator.webdriver`, a headless user agent and globals drivers inject. */
 export function automationMarkers(w: Window = window): AutomationMarker[] {
