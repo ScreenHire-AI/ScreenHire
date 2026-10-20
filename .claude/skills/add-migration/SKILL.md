@@ -31,12 +31,14 @@ A table that holds one organization's data (jobs, candidates, applications, temp
 - [ ] an `OrganizationId` column, a foreign key to `organizations`, and indexes that start with it
       (`HasIndex(x => new { x.OrganizationId, x.Slug }).IsUnique()` in `JobConfiguration.cs` is the pattern);
 - [ ] uniqueness scoped to the organization, never global (two tenants may both have a `backend-engineer` job);
-- [ ] once tenancy is on `main` (look for a tenant query filter in `ScreenHireDbContext.OnModelCreating`): the named
-      query filter for the entity, and in the migration, raw SQL that enables row-level security and adds the
-      policy and grants, following the earliest migration on `main` that does so:
-      `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, `FORCE ROW LEVEL SECURITY`, a policy comparing
-      `organization_id` with `current_setting('app.tenant_id', true)::uuid`, and grants to the application role.
-      Before tenancy lands, there is no policy to copy: every query filters by organization explicitly.
+- [ ] the entity implements `ITenantOwned` (`src/ScreenHire.Domain/Organizations`), which gives it the named query
+      filter `Tenant` in `ScreenHireDbContext.OnModelCreating`;
+- [ ] in the migration, raw SQL that copies the `jobs` block of `AddSignInAndTenantIsolation`:
+      `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, `FORCE ROW LEVEL SECURITY`, and a `tenant_isolation` policy with
+      `USING` and `WITH CHECK` on `organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid`
+      (the `NULLIF` matters: an unset setting reads back as `''`). The `screenhire_app` grants come from that
+      migration's default privileges; `Down` drops the policy and disables RLS. `RowLevelSecurityTests` fails while
+      a table with an `organization_id` column has no forced policy.
 
 Run the `tenant-isolation-guard` agent on the change before you finish.
 

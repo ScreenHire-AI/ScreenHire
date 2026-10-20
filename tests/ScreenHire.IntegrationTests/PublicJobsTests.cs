@@ -87,17 +87,25 @@ public sealed class PublicJobsTests(AppHostFixture fixture)
         var cancellationToken = TestContext.Current.CancellationToken;
         var owner = await fixture.CreateOrganizationAsync(org =>
         {
-            var job = TestData.NewJob(org, "shared-slug");
+            var job = TestData.NewJob(org, "shared-slug", "Owner's job");
             job.Publish(DateTimeOffset.UtcNow);
             return [job];
         }, cancellationToken);
         var other = await fixture.CreateOrganizationAsync(cancellationToken: cancellationToken);
+        // The same slug, open, in a third organization: a query not scoped to the route's organization would find two.
+        await fixture.CreateOrganizationAsync(org =>
+        {
+            var job = TestData.NewJob(org, "shared-slug", "Someone else's job");
+            job.Publish(DateTimeOffset.UtcNow);
+            return [job];
+        }, cancellationToken);
         using var client = fixture.CreateHttpClient("api");
 
         var ownResponse = await client.GetAsync($"/v1/public/organizations/{owner.Slug}/jobs/shared-slug", cancellationToken);
         var otherResponse = await client.GetAsync($"/v1/public/organizations/{other.Slug}/jobs/shared-slug", cancellationToken);
 
         ownResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ownResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken)).GetProperty("title").GetString().Should().Be("Owner's job");
         otherResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

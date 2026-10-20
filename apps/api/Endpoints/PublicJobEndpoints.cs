@@ -63,6 +63,8 @@ internal static class PublicJobEndpoints
         var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Slug == slug, cancellationToken);
         if (organization is not null)
         {
+            // Replaces a signed-in caller's own organization for this request, which is safe only because every route
+            // in this group reads, and reads only what a careers page shows. Never add a write here.
             tenant.SetOrganization(organization.Id);
         }
 

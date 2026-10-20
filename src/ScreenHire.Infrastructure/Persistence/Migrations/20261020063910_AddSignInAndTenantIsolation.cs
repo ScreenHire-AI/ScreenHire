@@ -28,7 +28,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             GRANT USAGE ON SCHEMA public TO screenhire_app;
             GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO screenhire_app;
             GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO screenhire_app;
-            -- Tables and sequences that later migrations create (as the same owner) get the same grants.
+            -- Tables and sequences that later migrations create (as the same owner) get the same grants. The Identity
+            -- tables (users, user_*) and magic_link_tokens are global by design: sign-in finds a user before any tenant
+            -- is known, so they have no organization_id and no policy. A new tenant table still needs its own policy.
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO screenhire_app;
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO screenhire_app;
             -- Only the owner migrates.
@@ -66,17 +68,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             """;
 
         private const string DisableRowLevelSecurity = """
-            DROP POLICY tenant_update ON organizations;
-            DROP POLICY tenant_delete ON organizations;
-            DROP POLICY create_any ON organizations;
-            DROP POLICY public_read ON organizations;
+            DROP POLICY IF EXISTS tenant_update ON organizations;
+            DROP POLICY IF EXISTS tenant_delete ON organizations;
+            DROP POLICY IF EXISTS create_any ON organizations;
+            DROP POLICY IF EXISTS public_read ON organizations;
             ALTER TABLE organizations NO FORCE ROW LEVEL SECURITY;
             ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
 
-            DROP POLICY own_memberships ON organization_members;
-            DROP POLICY tenant_isolation ON organization_members;
+            DROP POLICY IF EXISTS own_memberships ON organization_members;
+            DROP POLICY IF EXISTS tenant_isolation ON organization_members;
 
-            DROP POLICY tenant_isolation ON jobs;
+            DROP POLICY IF EXISTS tenant_isolation ON jobs;
             ALTER TABLE jobs NO FORCE ROW LEVEL SECURITY;
             ALTER TABLE jobs DISABLE ROW LEVEL SECURITY;
 
@@ -85,7 +87,15 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             REVOKE ALL ON ALL TABLES IN SCHEMA public FROM screenhire_app;
             REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM screenhire_app;
             REVOKE USAGE ON SCHEMA public FROM screenhire_app;
-            DROP ROLE IF EXISTS screenhire_app;
+
+            -- Roles are cluster-wide: keep it if another database on the server still grants it something.
+            DO $$
+            BEGIN
+                DROP ROLE IF EXISTS screenhire_app;
+            EXCEPTION WHEN dependent_objects_still_exist THEN
+                RAISE NOTICE 'screenhire_app is still used by another database; leaving the role in place.';
+            END
+            $$;
             """;
 
         /// <inheritdoc />

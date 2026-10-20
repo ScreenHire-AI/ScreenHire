@@ -154,6 +154,94 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
             .Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
+    [Fact]
+    public async Task Every_table_with_an_organization_id_has_forced_row_level_security_and_a_policy()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+
+        // A new tenant table that forgot its migration's RLS block would be readable by every tenant: the default
+        // privileges grant the application role every new table. This catches it.
+        await using var command = new NpgsqlCommand("""
+            SELECT c.relname
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+            WHERE c.relkind = 'r'
+              AND (c.relname = 'organizations'
+                   OR EXISTS (SELECT FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'organization_id' AND NOT a.attisdropped))
+              AND NOT (c.relrowsecurity AND c.relforcerowsecurity
+                       AND EXISTS (SELECT FROM pg_policies p WHERE p.schemaname = 'public' AND p.tablename = c.relname))
+            """, connection);
+        var unprotected = new List<string>();
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                unprotected.Add(reader.GetString(0));
+            }
+        }
+
+        unprotected.Should().BeEmpty("every tenant-owned table needs the tenant_isolation policy (see /add-migration)");
+    }
+
+    [Fact]
+    public async Task Pooled_connection_carries_no_tenant_into_the_next_context()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var first = await fixture.CreateOrganizationAsync(org => [TestData.NewJob(org, "first")], cancellationToken);
+        var second = await fixture.CreateOrganizationAsync(org => [TestData.NewJob(org, "second")], cancellationToken);
+        // One physical connection, so every context below reuses the one before it.
+        var connectionString = new NpgsqlConnectionStringBuilder(await fixture.GetAppConnectionStringAsync(cancellationToken))
+        {
+            MaxPoolSize = 1,
+            ApplicationName = $"pool-test-{Guid.NewGuid():N}",
+        }.ConnectionString;
+
+        ScreenHireDbContext Context(Guid? organizationId)
+        {
+            var tenant = new TenantContext();
+            if (organizationId is { } id)
+            {
+                tenant.SetOrganization(id);
+            }
+
+            return new ScreenHireDbContext(
+                new DbContextOptionsBuilder<ScreenHireDbContext>().UseNpgsql(connectionString).UseScreenHireConventions().Options, tenant);
+        }
+
+        await using (var db = Context(first.Id))
+        {
+            (await db.Jobs.Select(j => j.Slug).ToListAsync(cancellationToken)).Should().Equal("first"); // no transaction
+            db.Jobs.Add(TestData.NewJob(first, "first-again"));
+            await db.SaveChangesAsync(cancellationToken); // in a transaction
+        }
+
+        await using (var none = Context(null))
+        {
+            (await none.Jobs.IgnoreQueryFilters([ScreenHireDbContext.TenantFilter]).CountAsync(cancellationToken))
+                .Should().Be(0, "the first context's tenant ended with its transactions");
+        }
+
+        await using var next = Context(second.Id);
+        (await next.Jobs.IgnoreQueryFilters([ScreenHireDbContext.TenantFilter]).Select(j => j.Slug).ToListAsync(cancellationToken))
+            .Should().Equal("second");
+    }
+
+    [Fact]
+    public async Task Tenant_cannot_delete_another_organization()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var mine = await fixture.CreateOrganizationAsync(cancellationToken: cancellationToken);
+        var theirs = await fixture.CreateOrganizationAsync(org => [TestData.NewJob(org, "kept")], cancellationToken);
+        var tenant = new TenantContext();
+        tenant.SetOrganization(mine.Id);
+        await using var db = await fixture.CreateDbContextAsync(tenant, cancellationToken);
+
+        (await db.Organizations.Where(o => o.Id == theirs.Id).ExecuteDeleteAsync(cancellationToken)).Should().Be(0);
+        (await db.Organizations.AnyAsync(o => o.Id == theirs.Id, cancellationToken)).Should().BeTrue("organizations are publicly readable");
+    }
+
     private static async Task<long> CountAsync(string connectionString, string table, CancellationToken cancellationToken)
     {
         await using var connection = new NpgsqlConnection(connectionString);

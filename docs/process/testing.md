@@ -91,13 +91,19 @@ There is no reset between tests and no Respawn. Instead:
   AppHost therefore never see each other's data, in any order or in parallel.
 - **The seeded demo organization (`brightwater`) is read-only.** Assert on it (the end-to-end journeys do), never
   change it: other tests count its jobs.
-- `TestData` is the one place tests write to the database directly. When tenant isolation (row-level security) lands,
-  adapt it there rather than in each test. Today it connects as Aspire's `postgres` superuser, which owns the tables
-  and so bypasses RLS. With RLS, `TestData` must write as the application's own role (not the owner, no
-  `BYPASSRLS`) with a transaction-local `set_config('app.tenant_id', …, true)`. Otherwise every test passes without
-  exercising RLS. Add an integration test that proves a cross-tenant read fails in the database itself.
-- **Authentication:** when sign-in lands, end-to-end tests sign in through the local mock OIDC server in the AppHost,
-  as a user does. Never add an auth bypass, test-only endpoint or anonymous policy to keep a test green.
+- `TestData` is the one place tests write to the database directly. It writes as the application role
+  (`screenhire_app`, which neither owns the tables nor bypasses RLS) with the organization as tenant, so row-level
+  security checks test data too. `fixture.CreateDbContextAsync(tenant, ...)` gives a context on the same role.
+  `fixture.GetOwnerConnectionStringAsync` is the superuser, only for state no endpoint can reach (an expired sign-in
+  link), never for tenant data. `RowLevelSecurityTests` proves the database itself refuses cross-tenant reads and
+  writes.
+- **Authentication.** Tests sign in as a person does, never through a bypass, test-only endpoint or anonymous policy.
+  In integration tests, `ApiSession` is one client with its own cookie jar (never share one across tests) that sends
+  the antiforgery header on POSTs and signs in with `SignInWithMagicLinkAsync(email)` (the link read from Mailpit) or
+  `SignInWithDevSsoAsync(username)` (the mock provider's login form). `ApiSession.NewEmail()` gives each test its own
+  address and account; `OnboardAsync()` gives it its own organization. End-to-end tests click through the sign-in
+  pages; `fixture.Mailpit` reads the emailed link. The seeded Brightwater Owner (`avery@brightwater.example.com`, Dev
+  SSO user `brightwater-owner`) is read-only like its organization: sign in as them, change nothing.
 
 ### `E2EFixture` and `BrowserTest` (`tests/ScreenHire.E2E`)
 

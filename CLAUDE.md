@@ -27,7 +27,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
-  dashboard :4323; the Aspire dashboard URL is printed on start.
+  dashboard :4323; the Aspire dashboard URL is printed on start. Sign in to the dashboard with **Dev SSO** (the
+  local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email lands in **Mailpit**.
+  Both run on random ports shown in the Aspire dashboard. No real provider accounts or secrets are needed.
 - **Parallel worktrees:** several Kangentic tasks may run at once. Before `pnpm dev`, check/reserve ports with the
   Kangentic dev-port tools (`kangentic_check_dev_ports` / `kangentic_reserve_dev_ports`) and pass them as
   `ScreenHire__Ports__Api|Marketing|Careers|Dashboard`, or run with `ScreenHire__PinPorts=false` for random ports
@@ -115,6 +117,11 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 - Minimal APIs with `TypedResults`, one `Map*Endpoints` extension per area under `apps/api/Endpoints`, DTO records in
   `apps/api/Contracts`. Enums serialize as strings; numbers are strict (clean OpenAPI → clean TS).
 - Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops).
+- Sign-in and tenancy (`docs/architecture/sign-in-and-tenancy.md`): every route needs a signed-in user unless it
+  calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Tenant-owned entities
+  implement `ITenantOwned` and get a row-level security policy in their migration. The API and worker connect as
+  `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic
+  OIDC providers appear only when their client id and secret are in user secrets.
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
   settings need it.
 

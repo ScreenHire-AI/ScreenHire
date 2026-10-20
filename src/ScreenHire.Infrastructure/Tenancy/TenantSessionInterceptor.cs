@@ -23,6 +23,11 @@ namespace ScreenHire.Infrastructure.Tenancy;
 /// </para>
 /// <para>Either way <c>set_config(..., true)</c> ends with the transaction, so nothing leaks to the next user of a pooled
 /// connection.</para>
+/// <para>
+/// A context with neither an organization nor a user sends nothing: an unset setting, or one a finished transaction
+/// reverted, already means "no tenant rows" to every policy. That also keeps migrations free of the extra statement,
+/// some of which must not run inside a transaction block.
+/// </para>
 /// </remarks>
 public sealed class TenantSessionInterceptor : DbCommandInterceptor
 {
@@ -76,7 +81,7 @@ public sealed class TenantSessionInterceptor : DbCommandInterceptor
 
     private static void Apply(DbCommand command, CommandEventData eventData)
     {
-        if (eventData.Context is not ScreenHireDbContext context)
+        if (eventData.Context is not ScreenHireDbContext { Tenant: { OrganizationId: not null } or { UserId: not null } } context)
         {
             return;
         }
@@ -93,7 +98,7 @@ public sealed class TenantSessionInterceptor : DbCommandInterceptor
 
     private static async ValueTask ApplyAsync(DbCommand command, CommandEventData eventData, CancellationToken cancellationToken)
     {
-        if (eventData.Context is not ScreenHireDbContext context)
+        if (eventData.Context is not ScreenHireDbContext { Tenant: { OrganizationId: not null } or { UserId: not null } } context)
         {
             return;
         }

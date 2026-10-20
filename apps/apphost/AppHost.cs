@@ -62,7 +62,7 @@ var mailpit = builder.AddMailPit("mailpit")
 
 var api = builder.AddProject<Projects.ScreenHire_Api>("api")
     .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Api", 5080))
-    .WithReference(database).WaitFor(database)
+    .WaitFor(database)
     .WithReference(appDatabase)
     .WithReference(mailpit).WaitFor(mailpit)
     .WithReference(blobs).WaitFor(blobs)
@@ -75,6 +75,10 @@ var api = builder.AddProject<Projects.ScreenHire_Api>("api")
 // and DevSso/login.html lists them. The API sees it as any other generic provider (ScreenHire:Auth:Oidc:dev-sso).
 if (builder.Environment.IsDevelopment())
 {
+    // The owner's credentials reach the API only in Development, where it migrates and seeds at startup. Outside
+    // Development it holds only the row-level-security-bound application role.
+    api.WithReference(database);
+
     var devSsoSecret = builder.AddParameter(
         "dev-sso-client-secret", new GenerateParameterDefault { MinLength = 24, Special = false }, secret: true);
     var devSso = builder.AddContainer("dev-sso", "navikt/mock-oauth2-server", "6.1.2")
