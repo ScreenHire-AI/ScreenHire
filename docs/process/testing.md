@@ -150,3 +150,6 @@ Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Targe
 | Vitest | none | 27 tests, ~1 s per package |
 
 Measured 2026-10-20 over two consecutive runs with no changes in between; both passed.
+
+With the marketing site v1 (Lighthouse on 15 pages, 49 .NET tests, 73 Vitest tests), `pnpm verify` took 2 min 42 s
+and 2 min 38 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.
