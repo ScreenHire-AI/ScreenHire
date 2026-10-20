@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
@@ -51,6 +52,16 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<JobApplication> Applications => Set<JobApplication>();
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
+
+    public DbSet<JobPosting> JobPostings => Set<JobPosting>();
+
+    public DbSet<IndexingNotification> IndexingNotifications => Set<IndexingNotification>();
+
+    /// <summary>Indexing API calls used per UTC day, for the whole deployment: no tenant data, no tenant filter.</summary>
+    public DbSet<IndexingQuotaDay> IndexingQuotaDays => Set<IndexingQuotaDay>();
+
+    /// <summary>The local sandbox board's own listings (see <see cref="SandboxListing"/>).</summary>
+    public DbSet<SandboxListing> SandboxListings => Set<SandboxListing>();
 
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 

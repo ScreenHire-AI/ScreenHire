@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Distribution;
+using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -236,6 +238,9 @@ public static class ScreenHireMessaging
     {
         ArgumentNullException.ThrowIfNull(opts);
         opts.Schedules.ScheduleRecurring<ReportOpenJobs>("*/5 * * * *");
+        // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
+        opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
+        opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");
     }
 
     /// <summary>
