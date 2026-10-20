@@ -173,5 +173,5 @@ tests, of which integration is 19 tests in about 53 s. The longest is `Recurring
 agent acts on a manual trigger on its next tick, and that interval is not configurable. It runs in parallel with the
 others, and the `WorkerLifecycle` collection runs alone after them.
 
-With the marketing site v1 (Lighthouse on 15 pages, 49 .NET tests, 73 Vitest tests), `pnpm verify` took 2 min 42 s
-and 2 min 38 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.
+With the marketing site v1 on top of messaging (Lighthouse on 15 pages, 59 .NET tests, 73 Vitest tests), `pnpm verify`
+took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.
