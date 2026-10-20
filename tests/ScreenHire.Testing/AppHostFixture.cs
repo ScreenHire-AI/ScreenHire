@@ -77,10 +77,15 @@ public class AppHostFixture : IAsyncLifetime
     /// </summary>
     public async Task<ScreenHireDbContext> CreateDbContextAsync(CancellationToken cancellationToken)
     {
-        var connectionString = await App.GetConnectionStringAsync("screenhire", cancellationToken);
+        var connectionString = await GetDatabaseConnectionStringAsync(cancellationToken);
         var options = new DbContextOptionsBuilder<ScreenHireDbContext>().UseNpgsql(connectionString).UseScreenHireConventions().Options;
         return new ScreenHireDbContext(options);
     }
+
+    /// <summary>The application database's connection string, for tests that read tables EF does not map (Wolverine's).</summary>
+    public async Task<string> GetDatabaseConnectionStringAsync(CancellationToken cancellationToken) =>
+        await App.GetConnectionStringAsync("screenhire", cancellationToken)
+        ?? throw new InvalidOperationException("The AppHost has no 'screenhire' connection string.");
 
     public virtual async ValueTask DisposeAsync()
     {
