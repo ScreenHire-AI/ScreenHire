@@ -35,9 +35,18 @@ public class AppHostFixture : IAsyncLifetime
             ["--ScreenHire:PersistData=false", "--ScreenHire:PinPorts=false", $"--ScreenHire:Frontends={Frontends}"],
             startup.Token);
         app = await builder.BuildAsync(startup.Token);
-        await app.StartAsync(startup.Token);
-        await Task.WhenAll(RequiredResources.Select(resource =>
-            app.ResourceNotifications.WaitForResourceHealthyAsync(resource, startup.Token)));
+        try
+        {
+            await app.StartAsync(startup.Token);
+            await Task.WhenAll(RequiredResources.Select(resource =>
+                app.ResourceNotifications.WaitForResourceHealthyAsync(resource, startup.Token)));
+        }
+        catch
+        {
+            // A failed start must not leave containers and processes behind, whether or not xUnit disposes us.
+            await DisposeAppAsync();
+            throw;
+        }
     }
 
     public HttpClient CreateHttpClient(string resource) => App.CreateHttpClient(resource, "http");
@@ -57,11 +66,18 @@ public class AppHostFixture : IAsyncLifetime
 
     public virtual async ValueTask DisposeAsync()
     {
+        await DisposeAppAsync();
+        GC.SuppressFinalize(this);
+    }
+
+    // Idempotent: runs after a failed start and again if xUnit then disposes the fixture.
+    private async ValueTask DisposeAppAsync()
+    {
         if (app is not null)
         {
-            await app.DisposeAsync();
+            var started = app;
+            app = null;
+            await started.DisposeAsync();
         }
-
-        GC.SuppressFinalize(this);
     }
 }

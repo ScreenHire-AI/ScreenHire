@@ -29,19 +29,36 @@ public sealed class E2EFixture : AppHostFixture
         // Cheap checks first, so a missing prerequisite fails in seconds with a fix rather than after booting Aspire.
         EnsureBuildOutputExists();
         playwright = await Playwright.CreateAsync();
-        browser = await LaunchChromiumAsync(playwright);
-        await base.InitializeAsync();
+        try
+        {
+            browser = await LaunchChromiumAsync(playwright);
+            await base.InitializeAsync();
+        }
+        catch
+        {
+            // Stop the Playwright driver and browser even if xUnit does not dispose a fixture that failed to start.
+            await DisposeBrowserAsync();
+            throw;
+        }
     }
 
     public override async ValueTask DisposeAsync()
     {
+        await DisposeBrowserAsync();
+        await base.DisposeAsync();
+    }
+
+    // Idempotent: runs after a failed start and again if xUnit then disposes the fixture.
+    private async ValueTask DisposeBrowserAsync()
+    {
         if (browser is not null)
         {
             await browser.DisposeAsync();
+            browser = null;
         }
 
         playwright?.Dispose();
-        await base.DisposeAsync();
+        playwright = null;
     }
 
     private static void EnsureBuildOutputExists()
