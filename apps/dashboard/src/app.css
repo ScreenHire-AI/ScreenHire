@@ -51,6 +51,7 @@
   --xy-attribution-background-color: var(--card);
 }
 
-.svelte-flow__attribution a {
+/* More specific than Svelte Flow's own rule, whose stylesheet loads after this one. */
+.svelte-flow .svelte-flow__attribution a {
   color: var(--muted-foreground);
 }
