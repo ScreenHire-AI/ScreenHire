@@ -11,7 +11,7 @@ paths:
 ---
 # Rule: documentation tracks source
 
-Some docs enumerate things the code defines: the root `package.json` scripts, the AppHost resources and ports, the
+Some docs enumerate things the code defines: the root `package.json` scripts, the AppHost ports and settings, the
 projects in the repo layout, the skills, agents and rules in `.claude/`, and the files in `docs/`. When one side
 changes and the other does not, the next agent follows stale instructions. The `/sync-docs` skill owns the full
 source-to-doc table; this rule is the reminder that fires when you touch one of those sources.
@@ -21,7 +21,7 @@ source-to-doc table; this rule is the reminder that fires when you touch one of 
 When you add, rename or remove an enumerated item, update the doc that lists it in the same change:
 
 - a root script or a changed command: CLAUDE.md "Commands", and `.claude/skills/verify/SKILL.md` for gate scripts;
-- an AppHost resource, port or setting: CLAUDE.md "Commands" and the header comment in `apps/apphost/AppHost.cs`;
+- a pinned AppHost port: CLAUDE.md "Commands"; an AppHost setting: the header comment in `apps/apphost/AppHost.cs`;
 - a project or top-level folder: the CLAUDE.md "Repo layout" table;
 - a skill, agent or rule: `docs/process/dev-tooling.md`;
 - a file under `docs/`: the index in `docs/README.md`.

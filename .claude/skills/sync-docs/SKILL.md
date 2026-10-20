@@ -17,10 +17,10 @@ Each row is a list in a doc that must match a source exactly.
 
 | Anchor | Source | Doc (canonical list) |
 |---|---|---|
-| Root scripts | `scripts` in `package.json` | CLAUDE.md "Commands"; the gate scripts also in `.claude/skills/verify/SKILL.md` |
-| AppHost resources and ports | `apps/apphost/AppHost.cs` (`Add*` resources, `PortFor` defaults) | CLAUDE.md "Commands" (the ports line) |
-| AppHost settings | `ScreenHire:*` keys read in `AppHost.cs` | the header comment in `AppHost.cs`; CLAUDE.md "Parallel worktrees" |
-| Projects and top-level folders | `ScreenHire.slnx`, `apps/*`, `packages/*`, `src/*`, `tests/*` | CLAUDE.md "Repo layout" |
+| Root scripts | every key of `scripts` in `package.json` | CLAUDE.md "Commands" (each script named) |
+| Pinned ports | every `PortFor("<Name>", <port>)` in `apps/apphost/AppHost.cs` | CLAUDE.md "Commands" (the `pnpm dev` ports line) |
+| AppHost settings | every `ScreenHire:*` key read in `AppHost.cs` | the header comment in `AppHost.cs` |
+| Projects | every folder directly under `apps/`, `packages/` and `src/` | CLAUDE.md "Repo layout" (one row each; `tests/` is one row for all test projects) |
 | Skills, agents, rules | `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, `.claude/rules/*.md` | `docs/process/dev-tooling.md` |
 | Docs files and ADRs | `docs/**/*.md` | `docs/README.md` (decision log and section lists) |
 

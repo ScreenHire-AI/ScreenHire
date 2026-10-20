@@ -2,8 +2,8 @@
 name: doc-auditor
 model: haiku
 description: |
-  Read-only documentation anchor auditor. Mechanically compares lists that docs keep (root scripts, AppHost
-  resources and ports, projects, skills/agents/rules, docs files) with the source that defines them, and reports
+  Read-only documentation anchor auditor. Mechanically compares lists that docs keep (root scripts, pinned
+  ports, AppHost settings, projects, skills/agents/rules, docs files) with the source that defines them, and reports
   items missing from or extra in each doc. Use from /sync-docs, or with "all" before a release-like check.
 tools: Read, Glob, Grep
 ---
@@ -23,11 +23,9 @@ For each anchor:
 
 1. **Extract from source.** Read the source and list every item exactly as written:
    - root scripts: the keys of `scripts` in `package.json`;
-   - AppHost resources and ports: the first argument of every `Add*` call that creates a resource in
-     `apps/apphost/AppHost.cs`, and every `PortFor("<Name>", <port>)` pair;
+   - pinned ports: every `PortFor("<Name>", <port>)` pair in `apps/apphost/AppHost.cs`;
    - AppHost settings: every `settings["..."]` key and `Ports:<Name>` read in `AppHost.cs`;
-   - projects: every `Path` in `ScreenHire.slnx`, and every folder directly under `apps/`, `packages/`, `src/` and
-     `tests/` (Glob);
+   - projects: every folder directly under `apps/`, `packages/` and `src/` (Glob);
    - tooling: every `.claude/skills/*/SKILL.md` folder name, `.claude/agents/*.md` and `.claude/rules/*.md` file
      name;
    - docs: every `docs/**/*.md` file.

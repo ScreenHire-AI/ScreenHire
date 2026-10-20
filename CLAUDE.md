@@ -18,6 +18,7 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 | `packages/api-client` | Orval-generated TS client + Zod schemas (do not edit `src/generated`) |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
+| `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
 | `tests/` | xUnit v3 + AwesomeAssertions; Aspire integration tests |
 
 ## Commands
@@ -34,11 +35,12 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
   name after checking their Aspire labels.
-- Build / check: `dotnet build ScreenHire.slnx`, `pnpm check` (svelte-check `--fail-on-warnings`, astro check, tsc),
-  `pnpm -r build`, `dotnet test --solution ScreenHire.slnx` (Microsoft Testing Platform via `global.json`; the
-  integration tests boot the AppHost, so Docker must be running).
+- Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
+  `--fail-on-warnings`, astro check, tsc), `dotnet test --solution ScreenHire.slnx` (Microsoft Testing Platform via
+  `global.json`; the integration tests boot the AppHost, so Docker must be running).
 - **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and every
-  test suite. It is the only CI for now; see the `/verify` skill.
+  test suite (steps `verify:dotnet`, `verify:contract`, `verify:test` run alone too). It is the only CI for now; see
+  the `/verify` skill.
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 
