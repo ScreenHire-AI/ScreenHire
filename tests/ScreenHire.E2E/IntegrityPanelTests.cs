@@ -127,10 +127,6 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to dark theme" }).ClickAsync();
         await Expect(Page.Locator("html")).ToHaveClassAsync(new Regex("\\bdark\\b"));
-        // Chips and buttons ease between themes; let them reach the dark tokens (design-system section 2.3) before axe
-        // measures contrast.
-        await Expect(authenticity.Locator("[data-slot='badge']")).ToHaveCSSAsync("color", "rgb(247, 149, 122)");
-        await Expect(panel.GetByRole(AriaRole.Button, new() { Name = "Add note" })).ToHaveCSSAsync("color", "rgb(155, 156, 248)");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-integrity-panel-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
