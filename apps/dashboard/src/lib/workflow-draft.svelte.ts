@@ -28,6 +28,13 @@ export function createWorkflowDraft() {
       workflow = value;
     },
     /**
+     * The key of the stored version the edit started from. It stays put while a newer version waits in `outdated`, so a
+     * save can name the version it was based on and be refused if someone else saved since.
+     */
+    get source() {
+      return source;
+    },
+    /**
      * Starts editing `loaded` when `key` (which version, in which state) differs from what is being edited. With unsaved
      * changes it keeps them and sets `outdated` instead: someone else's save never wipes work in progress.
      */

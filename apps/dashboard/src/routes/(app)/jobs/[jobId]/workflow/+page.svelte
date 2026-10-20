@@ -41,6 +41,9 @@
   $effect(() => {
     if (detail) draft.load(detail.workflow, `${detail.id}:${detail.workflowVersion}`);
   });
+  // The version the edit started from, not the newest one fetched: after someone else saves, the refetch moves
+  // `detail.workflowVersion` on while the unsaved edit stays, and saving it must be refused rather than overwrite theirs.
+  const baseVersion = $derived(Number(draft.source.split(':').at(-1)));
 
   const readonly = $derived(detail?.status === 'Closed');
   let status = $state('');
@@ -58,7 +61,7 @@
     try {
       const response = await save.mutateAsync({
         jobId: params.jobId,
-        data: { workflow: draft.workflow, expectedWorkflowVersion: detail.workflowVersion },
+        data: { workflow: draft.workflow, expectedWorkflowVersion: baseVersion },
       });
       draft.saved(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
       status = `Saved. The job's workflow is now version ${response.data.workflowVersion}.`;

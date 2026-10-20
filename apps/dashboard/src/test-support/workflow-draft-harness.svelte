@@ -25,4 +25,5 @@
 <button type="button" onclick={() => draft.discardForNewer()}>Load theirs</button>
 <p data-testid="second-stage">{draft.workflow?.stages[1]?.name}</p>
 <p data-testid="dirty">{draft.dirty ? 'unsaved' : 'saved'}</p>
+<p data-testid="source">{draft.source}</p>
 <p data-testid="outdated">{draft.outdated ? 'outdated' : 'current'}</p>

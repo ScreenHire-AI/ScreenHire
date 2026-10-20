@@ -39,10 +39,13 @@ describe('createWorkflowDraft', () => {
 
     expect(text('second-stage')).toBe('Phone screen');
     expect(text('outdated')).toBe('outdated');
+    // A save names the version the edit started from, so the API refuses it instead of overwriting theirs.
+    expect(text('source')).toBe('job:1');
 
     await click('Load theirs');
 
     expect(text('second-stage')).toBe('Recruiter call');
+    expect(text('source')).toBe('job:2');
     expect(text('dirty')).toBe('saved');
     expect(text('outdated')).toBe('current');
   });
