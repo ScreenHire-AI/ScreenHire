@@ -50,13 +50,18 @@ public sealed class DeadLetterTests(AppHostFixture fixture)
 
         worker.Logs.Entries.Where(e => e.Exception?.Message.Contains(markerText, StringComparison.Ordinal) == true)
             .Should().HaveCountGreaterThanOrEqualTo(attempts.Length, "every failed attempt is logged with its exception");
-        worker.Logs.Entries.Should().Contain(
-            e => e.Level == LogLevel.Error && e.Message.Contains("moved to the error queue", StringComparison.Ordinal)
-                && e.Exception != null && e.Exception.Message.Contains(markerText, StringComparison.Ordinal),
-            "moving a message to the dead-letter table is logged as an error with its exception");
-
-        spanEvents.Should().Contain("wolverine.error.queued", "the message's trace records the move to the dead-letter table");
-        deadLettered.Sum().Should().BeGreaterThanOrEqualTo(1, "the wolverine-dead-letter-queue counter counts it");
+        // The log entry, the span's end and the counter can land just after the dead-letter row, so wait for each.
+        await WolverineStore.WaitUntilAsync(
+            () => Task.FromResult(worker.Logs.Entries.Any(
+                e => e.Level == LogLevel.Error && e.Message.Contains("moved to the error queue", StringComparison.Ordinal)
+                    && e.Exception != null && e.Exception.Message.Contains(markerText, StringComparison.Ordinal))),
+            "the move to the dead-letter table to be logged as an error with its exception", cancellationToken);
+        await WolverineStore.WaitUntilAsync(
+            () => Task.FromResult(spanEvents.Contains("wolverine.error.queued")),
+            "the message's trace to record the move to the dead-letter table", cancellationToken);
+        await WolverineStore.WaitUntilAsync(
+            () => Task.FromResult(deadLettered.Sum() >= 1),
+            "the wolverine-dead-letter-queue counter to count it", cancellationToken);
     }
 
     [Fact]
