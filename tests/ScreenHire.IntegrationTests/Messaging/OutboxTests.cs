@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.IntegrationTests.Messaging;
@@ -31,7 +32,7 @@ public sealed class OutboxTests(AppHostFixture fixture)
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         }
 
-        (await JobExistsAsync(job.Id, cancellationToken)).Should().BeTrue();
+        (await JobExistsAsync(organization.Id, job.Id, cancellationToken)).Should().BeTrue();
         await WolverineStore.WaitUntilAsync(
             async () => await publisher.Store.CountQueuedAsync(settings.WorkerQueue, job.Id.ToString(), cancellationToken) == 1,
             "JobPublished to reach the worker queue", cancellationToken);
@@ -57,14 +58,16 @@ public sealed class OutboxTests(AppHostFixture fixture)
             await save.Should().ThrowAsync<DbUpdateException>("job slugs are unique within an organization");
         }
 
-        (await JobExistsAsync(duplicate.Id, cancellationToken)).Should().BeFalse();
+        (await JobExistsAsync(organization.Id, duplicate.Id, cancellationToken)).Should().BeFalse();
         (await publisher.Store.CountOutgoingAsync(duplicate.Id.ToString(), cancellationToken)).Should().Be(0, "the outbox row rolled back with the job");
         (await publisher.Store.CountQueuedAsync(settings.WorkerQueue, duplicate.Id.ToString(), cancellationToken)).Should().Be(0, "nothing was sent");
     }
 
-    private async Task<bool> JobExistsAsync(Guid id, CancellationToken cancellationToken)
+    private async Task<bool> JobExistsAsync(Guid organizationId, Guid id, CancellationToken cancellationToken)
     {
-        await using var db = await fixture.CreateDbContextAsync(cancellationToken);
+        var tenant = new TenantContext();
+        tenant.SetOrganization(organizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, cancellationToken);
         return await db.Jobs.AnyAsync(j => j.Id == id, cancellationToken);
     }
 }

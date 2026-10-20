@@ -1,10 +1,12 @@
+using ScreenHire.Domain.Organizations;
+
 namespace ScreenHire.Domain.Jobs;
 
 /// <summary>
 /// A job opening. The canonical job model is a superset of schema.org <c>JobPosting</c>
 /// (see docs/architecture/job-distribution.md); this is the minimal slice the scaffold needs.
 /// </summary>
-public sealed class Job
+public sealed class Job : ITenantOwned
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

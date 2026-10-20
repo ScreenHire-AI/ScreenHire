@@ -13,7 +13,7 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(200);
 
     public static async Task<WolverineStore> ForAppHostAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
-        new(await fixture.GetDatabaseConnectionStringAsync(cancellationToken));
+        new(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
 
     public Task<long> CountOutgoingAsync(string bodyContains, CancellationToken cancellationToken) =>
         CountAsync("wolverine_outgoing_envelopes", bodyContains, cancellationToken);

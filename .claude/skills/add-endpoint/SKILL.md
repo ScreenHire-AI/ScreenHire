@@ -54,15 +54,26 @@ internal static class MetaEndpoints
 - Then add one line to `apps/api/Program.cs` next to the others: `app.Map<Area>Endpoints();`. Keep the edit to that
   line; `Program.cs` is a file every task touches.
 
-## 3. Authorization
+## 3. Authorization and tenancy
 
-- **Public route** (careers pages, metadata): add `.AllowAnonymous()` to the group, so it stays public when sign-in
-  adds a fallback policy.
-- **Dashboard route:** once sign-in is on `main` (an `AddAuthorization` call in `Program.cs`), add
-  `.RequireAuthorization()` to the group. Until then keep the placeholder comment `JobEndpoints.cs` carries and
-  filter by organization explicitly; the route must not be deployed.
-- Every query on a tenant-owned table is scoped to one organization. Before tenancy lands that is an explicit
-  `OrganizationId` filter; after it, the named query filter does it and an explicit filter is redundant, not wrong.
+`docs/architecture/sign-in-and-tenancy.md` is the background. A fallback policy in
+`apps/api/Auth/AuthenticationSetup.cs` makes every route require a signed-in user unless it opts out.
+
+- **Public route** (careers pages, metadata): `.AllowAnonymous()` on the group. A public route that reads tenant data
+  takes the organization slug from the route, resolves it, and calls `TenantContext.SetOrganization(id)` before any
+  tenant query (`PublicJobEndpoints.FindOrganizationAsync` is the pattern). Public routes only read.
+- **Dashboard route:** `.RequireAuthorization()` on the group, and `.Produces(StatusCodes.Status401Unauthorized)` on
+  each route so the generated client types the 401 (`JobEndpoints.cs`). `TenantResolutionMiddleware` has already
+  set the tenant to the signed-in user's organization.
+- **Never filter by organization yourself, and never take an organization id from the route, query or body.** The
+  named query filter `Tenant` and row-level security scope every query on an `ITenantOwned` entity. A handler that
+  needs the current organization's id reads `ITenantContext.OrganizationId`. Never call `IgnoreQueryFilters()`.
+- **Mutations** (POST, PUT, PATCH, DELETE) under cookie auth need the antiforgery header: add
+  `.RequireAntiforgeryToken()` (`apps/api/Auth/Antiforgery.cs`) to the group. The generated client sends the header
+  by itself. Endpoints that send email or accept guesses also get
+  `.RequireRateLimiting(AuthenticationSetup.RateLimitPolicy)`.
+- A handler that takes only `HttpContext` binds as a `RequestDelegate` and drops its result (analyzer ASP0016): map it
+  as `(Delegate)Handler`.
 
 ## 4. Validation
 
@@ -78,7 +89,13 @@ unexpected throws and becomes a 500 problem-details response through `UseExcepti
 ## 5. Integration test
 
 Integration tests boot the whole AppHost with Docker (`docker info` must succeed). Add a test class per area in
-`tests/ScreenHire.IntegrationTests/<Area>Tests.cs`:
+`tests/ScreenHire.IntegrationTests/<Area>Tests.cs`.
+
+For a signed-in route, use `ApiSession` from `tests/ScreenHire.Testing`: one per signed-in user, never shared between
+tests. `await session.SignInWithMagicLinkAsync(ApiSession.NewEmail(), ct)` signs in a new user,
+`await session.OnboardAsync(ct)` gives them an organization, `fixture.AddJobsAsync(organizationId, ...)` adds data,
+and `session.PostAsync(path, body, ct)` sends the antiforgery header. Cover 401 when signed out, and 404 for another
+organization's row fetched by its id (`TenantIsolationTests.cs` is the pattern). Also:
 
 - If the project has a shared Aspire fixture (see `docs/process/testing.md`), use it. Otherwise copy the boot sequence
   of `PublicJobsTests.cs` exactly: `DistributedApplicationTestingBuilder.CreateAsync<Projects.ScreenHire_AppHost>`

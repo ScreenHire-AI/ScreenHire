@@ -22,6 +22,22 @@
 | Observability | OpenTelemetry → Grafana Cloud Free | Aspire dashboard in dev |
 | Tests | xUnit v3, AwesomeAssertions, Aspire.Hosting.Testing, **Microsoft.Playwright** (MIT) for end-to-end, Deque.AxeCore.Playwright for accessibility; Testcontainers, Respawn, Bogus when needed | No FluentAssertions 8, no Verify 33+. Tests isolate data per organization rather than resetting (docs/process/testing.md) |
 
+## Notes from implementation
+
+- **Sign-in (2026-10-20).** Identity with cookie auth landed as decided, with OpenID Connect handlers for Google,
+  Microsoft and generic providers, and emailed links in a hashed, single-use token table (Identity's token providers
+  are stateless). Locally, navikt/mock-oauth2-server (MIT) is "Dev SSO" and Mailpit (MIT, through
+  CommunityToolkit.Aspire.Hosting.MailPit) catches email; MailKit (MIT) is the SMTP adapter. Soluto's
+  oidc-server-mock was rejected: it now builds on Duende IdentityServer. Details:
+  `docs/architecture/sign-in-and-tenancy.md`.
+- **Passkeys deferred.** .NET 10 has passkey support in `SignInManager`, but only the Blazor template wires the
+  WebAuthn endpoints and UI. Adding them means Identity schema version 3 (a `user_passkeys` table), our own
+  attestation and assertion endpoints, and dashboard WebAuthn calls. That is its own task; nothing in the current
+  design blocks it.
+- **Multi-tenancy (2026-10-20).** The named query filter is `Tenant`, on every `ITenantOwned` entity. RLS settings
+  are set per command by an EF command interceptor rather than once per transaction, because EF runs plain queries
+  without a transaction; SaveChanges always runs in one so the setting can go first as its own command.
+
 ## Licence policy
 - Prefer MIT / Apache-2.0 / BSD / PostgreSQL licences.
 - **CI licence check** (NuGet + npm) fails on unapproved licences; every major-version bump is a licence review.

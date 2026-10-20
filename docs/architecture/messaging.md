@@ -38,23 +38,40 @@ durability mode for the API (`Balanced`, which brings back leader election and a
 worker. Decide that in the task that needs it and update this page.
 
 Both hosts keep every Wolverine table, including the queue tables, in the `wolverine` schema of the application
-database. Wolverine creates and updates them at startup (`AutoProvision` plus JasperFx resource setup). They are not
-part of the EF Core model, so EF migrations never touch them.
+database (`DatabaseRegistration.MessagingSchema`). They are not part of the EF Core model.
+
+## Roles and provisioning
+
+The API and the worker connect as `screenhire_app` for EF and for Wolverine alike (`ScreenHireMessaging.ConnectionName`
+is `DatabaseRegistration.AppConnectionName`). That role is bound by row-level security and may read and write
+Wolverine's rows but not create tables, so the hosts never patch the schema at startup
+(`AutoBuildMessageStorageOnStartup = None`, no `AutoProvision`, no resource setup).
+
+The owner provisions instead, in two steps that always run in this order:
+
+1. The EF migrations. `GrantAppRoleMessagingAccess` creates the `wolverine` schema and grants `screenhire_app`
+   `USAGE`, `SELECT`, `INSERT`, `UPDATE` and `DELETE`, with default privileges for tables the owner creates later.
+2. `ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString)`, which builds a throwaway Wolverine host with
+   the worker's configuration and its schedules and runs JasperFx resource setup. Run it again after every Wolverine
+   upgrade.
+
+In Development the API runs both at startup, before it listens; the worker waits for a healthy API. In production the
+deploy step runs both (`docs/architecture/sign-in-and-tenancy.md`, "Deploy prerequisites"), and neither host holds the
+owner's credentials. Tests' private-schema hosts (`MessagingHost`) connect as the owner with
+`MessagingSettings.AutoProvision = true`; `WorkerMessagingTests` exercises the real hosts as `screenhire_app`.
 
 ## Constraints
 
 - **Direct connections.** Leader election uses Postgres advisory locks and the inbox needs a real session. Never put
   a transaction-mode PgBouncer between the hosts and Postgres.
-- **No EF retrying execution strategy.** Aspire's `AddNpgsqlDbContext` enables one by default, and it refuses the
-  explicit transaction the outbox and the handler middleware open. Both hosts register the context with
-  `settings.DisableRetry = true`. Wolverine's error policy retries failed messages instead.
+- **No EF retrying execution strategy.** Aspire enables one by default, and it refuses the explicit transaction the
+  outbox and the handler middleware open. Both hosts register the context through `AddScreenHireDatabase`, which
+  turns it off (`DisableRetry`). Wolverine's error policy retries failed messages instead.
 - **Runtime code generation.** Wolverine compiles handler adapters at startup (`TypeLoadMode.Dynamic`), which needs
   `WolverineFx.RuntimeCompilation` (Roslyn). Pre-generated code (`TypeLoadMode.Static`) would cut cold start for
   production; it is not set up yet.
-- **Schema ownership.** Wolverine creates and migrates its own tables at startup, so the hosts' database role must be
-  allowed to create the `wolverine` schema. ADR-0008's production app role neither owns tables nor bypasses RLS;
-  when that role lands, the deploy step has to provision the `wolverine` schema (or grant it to a separate role) and
-  the hosts stop creating it.
+- **Schema ownership.** The owner creates and migrates Wolverine's tables (see Roles and provisioning). A host that
+  fails at startup with `relation "wolverine.…" does not exist` after a Wolverine upgrade is missing step 2.
 - **OpenAPI at build time.** The API build runs `Program` under `GetDocument.Insider`, which starts the host without
   the AppHost. Publishing setup detects it and registers Wolverine in `MediatorOnly` mode with no database, so the
   build never connects anywhere.
@@ -84,10 +101,28 @@ the `DbContext` already run in one transaction with their outbox (`AutoApplyTran
 users may see. The real-time work fans every `ITenantEvent` out to that organization's clients, so a feature task
 only defines the event. Events carry ids and the facts a client needs to refresh, never personal data.
 
-Once row-level security lands, a worker handler sees no tenant rows until it sets the tenant. The tenancy work adds
-Wolverine middleware that runs `set_config('app.tenant_id', <OrganizationId>, true)` inside the handler's
-transaction (`AutoApplyTransactions` already gives each handler one). Messages that touch tenant data therefore
-carry `OrganizationId`, whether or not they are `ITenantEvent`s.
+A worker handler connects as `screenhire_app` too, so it sees no tenant rows until it has a tenant. Every message that
+touches one organization's data implements `ITenantMessage` (`OrganizationId`); `ITenantEvent` extends it.
+`TenantMessageMiddleware` runs before each such handler and makes `OrganizationId` the tenant of the handler's scope,
+and `TenantSessionInterceptor` then sets `app.tenant_id` inside the handler's transaction (`AutoApplyTransactions`
+gives each handler one). The tenant filter and row-level security scope the handler exactly as they scope a request.
+`JobPublishedHandler` reads its job back, so a missing tenant fails loudly and goes through the retry policy.
+
+Wolverine's code generation would construct `TenantContext` itself; `ConfigureHandler` makes it come from the
+handler's scope (`AlwaysUseServiceLocationFor`), so the middleware and the DbContext share one instance.
+
+A handler for work that is not about one organization, such as `ReportOpenJobs`, has no tenant and sees no tenant
+rows. It never goes around the policies: it lists organizations (readable by anyone) and sets each one as the tenant
+in turn.
+
+### How tenant data stays apart in Wolverine's tables
+
+Wolverine's tables (outbox, queue, inbox, dead letters) have no row-level security: they hold envelopes, not tenant
+rows, and only the hosts read them. Message bodies stay safe by what they carry. A message holds the organization id
+and other ids, plus the facts its handler needs, never names, emails, answers or other personal data, and never
+another organization's data. The handler reads anything else it needs from the database, as the message's tenant, so
+row-level security decides what it can see. The dead-letter table keeps a failed message's full body, which is one more
+reason the body has nothing worth leaking.
 
 ## Idempotency
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
 using Wolverine;
 
 namespace ScreenHire.IntegrationTests.Messaging;
@@ -34,7 +35,7 @@ internal sealed class MessagingHost : IAsyncDisposable
 
     /// <summary>Starts a publisher configured like the API (<see cref="ScreenHireMessaging.ConfigurePublisher"/>).</summary>
     public static Task<MessagingHost> StartPublisherAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
-        StartAsync(fixture, new MessagingSettings { Schema = NewSchema() }, ScreenHireMessaging.ConfigurePublisher, cancellationToken);
+        StartAsync(fixture, new MessagingSettings { Schema = NewSchema(), AutoProvision = true }, ScreenHireMessaging.ConfigurePublisher, cancellationToken);
 
     /// <summary>
     /// Starts a handler configured like the worker (<see cref="ScreenHireMessaging.ConfigureHandler"/>), in solo mode so
@@ -63,11 +64,15 @@ internal sealed class MessagingHost : IAsyncDisposable
     private static async Task<MessagingHost> StartAsync(
         AppHostFixture fixture, MessagingSettings settings, Action<WolverineOptions, string, MessagingSettings> configure, CancellationToken cancellationToken)
     {
-        var connectionString = await fixture.GetDatabaseConnectionStringAsync(cancellationToken);
+        var connectionString = await fixture.GetOwnerConnectionStringAsync(cancellationToken);
         var logs = new CapturedLogs();
 
         var builder = Host.CreateApplicationBuilder();
         builder.Logging.ClearProviders().AddProvider(logs);
+        // As the owner, which creates the private schema. Row-level security is not what these hosts test;
+        // WorkerMessagingTests covers the real API and worker, which connect as screenhire_app.
+        builder.Services.AddScoped<TenantContext>();
+        builder.Services.AddScoped<ITenantContext>(services => services.GetRequiredService<TenantContext>());
         builder.Services.AddDbContext<ScreenHireDbContext>(options => options.UseNpgsql(connectionString).UseScreenHireConventions());
         builder.UseWolverine(opts => configure(opts, connectionString, settings));
         builder.Services.AddResourceSetupOnStartup();

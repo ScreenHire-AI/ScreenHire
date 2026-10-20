@@ -3,6 +3,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
 using Xunit;
 
 namespace ScreenHire.Testing;
@@ -71,21 +72,35 @@ public class AppHostFixture : IAsyncLifetime
 
     public Uri GetEndpoint(string resource) => App.GetEndpoint(resource, "http");
 
+    /// <summary>The email the stack has sent, from the AppHost's Mailpit container.</summary>
+    public Mailpit Mailpit => new(GetEndpoint("mailpit"));
+
     /// <summary>
-    /// A context on the AppHost's database. Prefer <see cref="TestData"/> over writing through this directly, so the
-    /// tenant rules (row-level security) only need adapting in one place.
+    /// A context on the AppHost's database as the application role (<c>screenhire_app</c>), so row-level security
+    /// applies exactly as it does in the API: it sees and writes only <paramref name="tenant"/>'s organization. Prefer
+    /// <see cref="TestData"/> over writing through this directly.
     /// </summary>
-    public async Task<ScreenHireDbContext> CreateDbContextAsync(CancellationToken cancellationToken)
+    public async Task<ScreenHireDbContext> CreateDbContextAsync(ITenantContext tenant, CancellationToken cancellationToken)
     {
-        var connectionString = await GetDatabaseConnectionStringAsync(cancellationToken);
-        var options = new DbContextOptionsBuilder<ScreenHireDbContext>().UseNpgsql(connectionString).UseScreenHireConventions().Options;
-        return new ScreenHireDbContext(options);
+        var options = new DbContextOptionsBuilder<ScreenHireDbContext>()
+            .UseNpgsql(await GetAppConnectionStringAsync(cancellationToken))
+            .UseScreenHireConventions()
+            .Options;
+        return new ScreenHireDbContext(options, tenant);
     }
 
-    /// <summary>The application database's connection string, for tests that read tables EF does not map (Wolverine's).</summary>
-    public async Task<string> GetDatabaseConnectionStringAsync(CancellationToken cancellationToken) =>
-        await App.GetConnectionStringAsync("screenhire", cancellationToken)
-        ?? throw new InvalidOperationException("The AppHost has no 'screenhire' connection string.");
+    /// <summary>The connection string the API and worker use: the <c>screenhire_app</c> role, bound by row-level security.</summary>
+    public async Task<string> GetAppConnectionStringAsync(CancellationToken cancellationToken) =>
+        await App.GetConnectionStringAsync(DatabaseRegistration.AppConnectionName, cancellationToken)
+        ?? throw new InvalidOperationException("The AppHost has no application-role connection string.");
+
+    /// <summary>
+    /// The table owner's connection string (a superuser, which bypasses row-level security). Only for arranging state no
+    /// endpoint can reach, such as an expired sign-in link; never for tenant data.
+    /// </summary>
+    public async Task<string> GetOwnerConnectionStringAsync(CancellationToken cancellationToken) =>
+        await App.GetConnectionStringAsync(DatabaseRegistration.OwnerConnectionName, cancellationToken)
+        ?? throw new InvalidOperationException("The AppHost has no owner connection string.");
 
     public virtual async ValueTask DisposeAsync()
     {

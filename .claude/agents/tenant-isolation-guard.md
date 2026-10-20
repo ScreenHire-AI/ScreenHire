@@ -25,10 +25,11 @@ Read `src/ScreenHire.Infrastructure/Persistence/ScreenHireDbContext.cs` and grep
 `ROW LEVEL SECURITY` and `app.tenant_id`.
 
 - **Before tenancy:** no query filter and no RLS exist. Every query on a tenant table must filter by organization
-  explicitly (`JobEndpoints.ListJobs` filters by the demo organization), and dashboard endpoints carry the
-  "must not be deployed" placeholder.
-- **After tenancy:** the named query filters and RLS policies on `main` are the pattern. Every new tenant table
-  follows them.
+  explicitly.
+- **After tenancy** (the `AddSignInAndTenantIsolation` migration exists): the named query filter `Tenant` on every
+  `ITenantOwned` entity and the RLS policies in that migration are the pattern, described in
+  `docs/architecture/sign-in-and-tenancy.md`. Every new tenant table follows them, and the API and worker connect
+  as `screenhire_app`.
 
 ## Checks
 
@@ -40,7 +41,7 @@ Read `src/ScreenHire.Infrastructure/Persistence/ScreenHireDbContext.cs` and grep
 3. **Filter bypass.** `IgnoreQueryFilters()` appears only on the audited cross-tenant path, with a comment and an
    audit write. Never in an endpoint.
 4. **RLS (after tenancy).** Each new tenant table's migration enables and forces row-level security, adds the policy
-   on `organization_id = current_setting('app.tenant_id', true)::uuid`, and grants the application role what it
+   on `organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid`, and grants the application role what it
    needs and no more. The tenant id is set with `set_config('app.tenant_id', ..., true)` (transaction-local), never
    session-wide, so a pooled connection cannot carry it into the next request.
 5. **Identifiers from the client.** An endpoint never trusts an `organizationId` from the route, query or body for

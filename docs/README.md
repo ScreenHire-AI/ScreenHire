@@ -36,6 +36,8 @@ configuration everywhere (ADR-0003).
 - [Job Distribution Engine](architecture/job-distribution.md) — adapters, posting state machine, honest teardown
 - [Messaging](architecture/messaging.md) - Wolverine on Postgres: outbox, worker queue, idempotency, retries and
   dead letters, cron, telemetry
+- [Sign-in and tenant isolation](architecture/sign-in-and-tenancy.md) - providers, email links, domains,
+  organizations, the query filter and row-level security, Dev SSO and Mailpit
 
 ## Design
 

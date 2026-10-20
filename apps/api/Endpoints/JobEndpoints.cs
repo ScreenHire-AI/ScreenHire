@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Domain.Jobs;
@@ -8,18 +9,23 @@ using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
 
-/// <summary>Recruiter-dashboard endpoints.</summary>
+/// <summary>
+/// Recruiter-dashboard endpoints. They need a signed-in user, and the tenant query filter (backed by row-level
+/// security) scopes every query to that user's organization, so no handler filters by organization itself.
+/// </summary>
 internal static class JobEndpoints
 {
     public static IEndpointRouteBuilder MapJobEndpoints(this IEndpointRouteBuilder app)
     {
-        // Authentication and tenant resolution are added by the auth and multi-tenancy work items.
-        // Until then this group must not be deployed: ListJobs serves the seeded demo organization only, and
-        // PublishJob changes any organization's job by id.
-        var group = app.MapGroup("/v1/jobs").WithTags("Jobs");
+        var group = app.MapGroup("/v1/jobs").WithTags("Jobs").RequireAuthorization();
 
-        group.MapGet("/", ListJobs).WithName("ListJobs");
-        group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob").ProducesProblem(StatusCodes.Status409Conflict);
+        // 401 comes from the authentication middleware, so the handlers' signatures cannot declare it.
+        group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
+            .RequireAntiforgeryToken()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         return app;
     }
@@ -27,16 +33,22 @@ internal static class JobEndpoints
     private static async Task<List<JobSummary>> ListJobs(ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var jobs = await db.Jobs.AsNoTracking()
-            .Where(j => db.Organizations.Any(o => o.Id == j.OrganizationId && o.Slug == DevelopmentDataSeeder.DemoOrganizationSlug))
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return [.. jobs.Select(j => j.ToSummary())];
     }
 
-    // Until tenancy lands this finds the job by id alone; the auth and multi-tenancy work items scope it to the
-    // signed-in organization. The job change and JobPublished commit in one transaction (the EF Core outbox), and the
-    // worker handles the event.
+    // Another organization's job is a 404, exactly like a job that does not exist.
+    private static async Task<Results<Ok<JobSummary>, NotFound>> GetJob(Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        return job is null ? TypedResults.NotFound() : TypedResults.Ok(job.ToSummary());
+    }
+
+    // The tenant filter and row-level security scope the lookup to the signed-in organization, so another
+    // organization's job is a 404 like a missing one. The job change and JobPublished commit in one transaction (the
+    // EF Core outbox), and the worker handles the event.
     private static async Task<Results<Ok<JobSummary>, NotFound, ProblemHttpResult>> PublishJob(
         Guid jobId, IDbContextOutbox<ScreenHireDbContext> outbox, TimeProvider time, CancellationToken cancellationToken)
     {

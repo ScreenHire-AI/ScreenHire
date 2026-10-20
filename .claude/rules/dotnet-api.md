@@ -37,21 +37,27 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
 - Errors are problem details: `TypedResults.ValidationProblem` for bad input (validated with FluentValidation,
   ADR-0008), `NotFound` for a missing row or another tenant's row (never 403, which leaks existence), and
   unhandled exceptions become 500s through `UseExceptionHandler`. Never put exception text in a response.
-- Public routes call `.AllowAnonymous()`. Dashboard routes call `.RequireAuthorization()` once sign-in is on `main`;
-  until then they carry the placeholder comment in `JobEndpoints.cs`.
+- Every route requires a signed-in user (a fallback policy) unless it calls `.AllowAnonymous()`. Public routes do;
+  dashboard groups also say `.RequireAuthorization()`, for the reader. Cookie-authenticated mutations add
+  `.RequireAntiforgeryToken()`. Details: `docs/architecture/sign-in-and-tenancy.md` and `/add-endpoint`.
 - After any endpoint or contract change: `pnpm generate:api`, then commit `openapi.json` and `src/generated`.
 
 ## Data
 
 - EF Core with Npgsql, snake_case names (`UseScreenHireConventions()`), enums stored as text with a max length.
-- Every tenant-owned entity has `OrganizationId`, an index that starts with it, and (once tenancy lands) a named
-  query filter plus a Postgres RLS policy keyed on `app.tenant_id`, set transaction-locally with
-  `set_config('app.tenant_id', ..., true)`. Before tenancy lands, filter by organization explicitly in every query.
+- Every tenant-owned entity implements `ITenantOwned` (so it gets the named query filter `Tenant`), has an index that
+  starts with `OrganizationId`, and a Postgres RLS policy keyed on `app.tenant_id`, which `TenantSessionInterceptor`
+  sets transaction-locally with `set_config('app.tenant_id', ..., true)`. Handlers do not filter by organization
+  themselves. The API and worker connect as `screenhire_app`, bound by RLS; only migrations run as the owner.
+- Inside an explicit transaction, do not stream a query (`AsAsyncEnumerable`) while running another: the interceptor
+  sends its own command first, and Npgsql allows one open reader per connection.
 - Never call `IgnoreQueryFilters()` in an endpoint. Only the audited, feature-flagged Signal Network path (ADR-0005)
   reads across organizations.
 - Times are `DateTimeOffset` from `TimeProvider` (`.claude/rules/utc-timestamps.md`).
 - Reads use `AsNoTracking()`. Pass the request's `CancellationToken` to every async EF call. Load what the response
-  needs in one query; never query inside a loop.
+  needs in one query; never query inside a loop. The exception is a system message that walks every organization
+  in turn (`ReportOpenJobs`): row-level security gives the worker no cross-tenant read, so it sets each tenant and
+  queries once per organization.
 - Connect to Postgres directly, never through transaction-mode PgBouncer: Wolverine leader election and
   transaction-local tenant settings need a real session.
 
@@ -67,8 +73,9 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
 - Every external integration (email, OIDC, LLMs, job boards, IP intelligence) sits behind an interface with a local
   adapter: a container in the AppHost or an in-process fake. A provider with no configuration is hidden, never an
   error, and no test needs a key or the internet.
-- Hosts and domains come from configuration (`ScreenHire:Domains:*`, ADR-0003). Never hard-code a `screenhire.*`
-  host.
+- Hosts and domains come from configuration (`ScreenHire:Domains:*` through `DomainOptions`, ADR-0003). Never
+  hard-code a `screenhire.*` host. Email goes through `IEmailSender`; check it is registered before offering a
+  feature that sends mail.
 - Logs carry ids, never personal data: no names, emails, resume text, answers or raw IP addresses in log messages.
 
 ## Tests

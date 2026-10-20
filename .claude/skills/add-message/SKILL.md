@@ -1,5 +1,5 @@
 ---
-description: Add a Wolverine message or domain event with its worker handler - contract in src/ScreenHire.Application, publishing through the EF Core outbox in the same transaction as the change, idempotency (inbox, [Deduplicated] keys, idempotent effects), ITenantEvent for client-visible events, scheduled or recurring delivery, and an Aspire integration test. Use for any background work, domain event or job.
+description: Add a Wolverine message or domain event with its worker handler - contract in src/ScreenHire.Application, publishing through the EF Core outbox in the same transaction as the change, idempotency (inbox, [Deduplicated] keys, idempotent effects), ITenantMessage for messages about one organization's data and ITenantEvent for client-visible events, scheduled or recurring delivery, and an Aspire integration test. Use for any background work, domain event or job.
 argument-hint: [MessageName - what triggers it and what the handler does]
 ---
 
@@ -20,8 +20,10 @@ Add a `public sealed record` in `src/ScreenHire.Application/<Area>/<MessageName>
 says what happened (event, past tense: `JobPublished`) or what to do (command, imperative: `SyncJobPosting`).
 
 - Carry ids and the facts the handler needs, never personal data (names, emails, resume text, answers).
-- If clients of one organization may see it, implement `ITenantEvent` (`OrganizationId`). The real-time fan-out
-  picks it up; nothing else to wire.
+- If it is about one organization's data, implement `ITenantMessage` (`OrganizationId`): the worker makes that
+  organization the tenant before the handler runs, and without it the handler sees no tenant rows
+  (docs/architecture/messaging.md, Tenant events). If that organization's clients may see it, implement
+  `ITenantEvent` instead, which extends it; the real-time fan-out picks it up.
 - If two envelopes could carry the same intent (a client retry, a schedule that fires twice, a fan-out per board),
   add an idempotency key built from stable ids, such as `$"{applicationId}:{automationId}:{eventId}"`. Never build it
   from the clock or a new `Guid`.

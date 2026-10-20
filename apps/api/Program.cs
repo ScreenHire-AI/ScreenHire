@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
+using ScreenHire.Api.Auth;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
@@ -7,13 +8,9 @@ using ScreenHire.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-// No EF retrying execution strategy: it refuses the explicit transaction that Wolverine's outbox and handler
-// middleware open. Failed messages are retried by Wolverine's error policy instead (ScreenHireMessaging).
-builder.AddNpgsqlDbContext<ScreenHireDbContext>(
-    ScreenHireMessaging.ConnectionName,
-    settings => settings.DisableRetry = true,
-    options => options.UseScreenHireConventions());
+builder.AddScreenHireDatabase();
 builder.AddAzureBlobServiceClient("blobs");
+builder.AddScreenHireAuthentication();
 
 // Wolverine publishing only: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with
 // the data and the worker handles it (docs/architecture/messaging.md).
@@ -31,20 +28,33 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(); // first: the rate limiter partitions on the client address it restores
 app.UseExceptionHandler();
+app.UseCors();
+app.UseAuthentication();
+app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseAuthorization();
+app.UseRateLimiter();
+
 app.MapDefaultEndpoints();
-app.MapOpenApi();
+app.MapOpenApi().AllowAnonymous();
 app.MapMetaEndpoints();
+app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapJobEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapScalarApiReference();
+    app.MapScalarApiReference().AllowAnonymous();
 
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ScreenHireDbContext>();
-    await DevelopmentDataSeeder.MigrateAndSeedAsync(db, TimeProvider.System);
+    // As the owner, before Kestrel listens: the schema, the app role's login, Wolverine's tables, then the demo data.
+    // The worker waits for a healthy API, so it starts with all of it in place. Outside Development the deploy step runs
+    // the same two steps (docs/architecture/sign-in-and-tenancy.md, "Deploy prerequisites").
+    var ownerConnectionString = builder.Configuration.GetConnectionString(DatabaseRegistration.OwnerConnectionName)
+        ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.OwnerConnectionName} is not set.");
+    await DevelopmentDataSeeder.MigrateAndSeedAsync(
+        ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, TimeProvider.System);
+    await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
 }
 
 await app.RunAsync();
