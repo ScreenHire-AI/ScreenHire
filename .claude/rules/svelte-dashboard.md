@@ -54,7 +54,8 @@ new route is the `/add-dashboard-page` skill.
 - Status is a shape mark, a colour and a text label, always all three (design-system section 2.2). Colour alone
   fails WCAG 1.4.1.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
-  reject control (ADR-0004).
+  reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves
+  take their stages from `bulkMoveStages` (`#lib/integrity.ts`).
 - Accessibility is WCAG 2.2 AA: a visible focus ring on every interactive element, labels on every input, landmark
   and heading structure, and a non-drag alternative for every drag-and-drop interaction (a menu or buttons that move
   the item).

@@ -148,15 +148,19 @@
 <section aria-labelledby="integrity-heading" class="flex min-w-0 flex-col rounded-xl border border-border bg-card">
   <h2 id="integrity-heading" class="border-b border-border-subtle px-4 py-3 text-sm font-bold">Integrity</h2>
 
+  <!-- A failed background refetch keeps the evidence on screen, under the error. -->
   {#if integrity.isError}
     <div class="px-4 py-3.5">
       <QueryError message={describeError(integrity.error, 'Could not load the integrity checks')} onretry={() => integrity.refetch()} />
     </div>
-  {:else if !detail}
-    <div aria-hidden="true" class="flex flex-col gap-2 px-4 py-3.5">
-      <Skeleton class="h-5 w-48" />
-      <Skeleton class="h-12 w-full" />
-    </div>
+  {/if}
+  {#if !detail}
+    {#if !integrity.isError}
+      <div aria-hidden="true" class="flex flex-col gap-2 px-4 py-3.5">
+        <Skeleton class="h-5 w-48" />
+        <Skeleton class="h-12 w-full" />
+      </div>
+    {/if}
   {:else if detail.status === 'Pending' || (!detail.authenticity && !detail.aiAssistance)}
     <p class="flex items-center gap-2 border-b border-border-subtle px-4 py-3.5 text-muted-foreground">
       <StatusMark shape="ring" tone="neutral" />
@@ -170,15 +174,15 @@
   {#if detail}
     <div class="flex flex-col gap-2.5 border-b border-border-subtle px-4 py-3.5">
       <div class="flex flex-wrap items-center gap-1.5">
-        <Button disabled aria-describedby={detail.requestVerification.available ? undefined : 'request-verification-hint'}>Request verification</Button>
+        <!-- Disabled until identity verification ships (phase 2). A disabled button takes no focus, so the hint below is
+             visible text as well as its description. -->
+        <Button disabled aria-describedby="request-verification-hint">Request verification</Button>
         <Button variant="ghost" class="font-bold text-primary" onclick={() => (noteOpen = true)}>Add note</Button>
       </div>
-      {#if !detail.requestVerification.available}
-        <p id="request-verification-hint" class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
-          <span class="rounded-sm bg-secondary px-1.5 py-px font-mono text-[10.5px] tracking-[0.06em] text-secondary-foreground uppercase">Phase 2</span>
-          {detail.requestVerification.reason ?? 'Identity verification is not available yet.'}
-        </p>
-      {/if}
+      <p id="request-verification-hint" class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+        <span class="rounded-sm bg-secondary px-1.5 py-px font-mono text-[10.5px] tracking-[0.06em] text-secondary-foreground uppercase">Phase 2</span>
+        {detail.requestVerification.reason ?? 'Identity verification is not available yet.'}
+      </p>
       <p role="status" class="text-[12.5px] text-muted-foreground empty:hidden">{announcement}</p>
     </div>
 

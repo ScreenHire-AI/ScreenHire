@@ -17,7 +17,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { age, ago, employmentLabel, formatSalary, formatShortDate, initials, sourceLabel } from '#lib/format.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
-  import { chipOf, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { bulkMoveStages, chipOf, isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -41,7 +41,7 @@
   const all = $derived(applications.data?.data ?? []);
 
   let stageFilter = $state<string | null>(null);
-  // Set from the overview's legend or the filter menu.
+  // Set from the overview's legend or the filter menu, through setIntegrityFilter.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
   let view = $state<'table' | 'board'>('table');
   let activeId = $state<string | null>(null);
@@ -52,7 +52,8 @@
   const shown = $derived(
     all.filter((application) => (!stageFilter || application.stage.id === stageFilter) && matchesIntegrityFilter(application, integrityFilter)),
   );
-  const filtering = $derived(Boolean(stageFilter || integrityFilter.authenticity || integrityFilter.aiAssistance));
+  const filtering = $derived(Boolean(stageFilter) || isIntegrityFiltered(integrityFilter));
+  const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   const active = $derived(all.find((application) => application.id === activeId));
   const selected = $derived(all.filter((application) => selectedIds.includes(application.id)));
   const countIn = (stageId: string) => all.filter((application) => application.stage.id === stageId).length;
@@ -75,6 +76,14 @@
       event.preventDefault();
       view = view === 'table' ? 'board' : 'table';
     }
+  }
+
+  // A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
+  // filter's menu (bulkMoveStages). The filter applies to the table, so it shows the table.
+  function setIntegrityFilter(next: IntegrityFilter) {
+    integrityFilter = next;
+    selectedIds = [];
+    view = 'table';
   }
 
   async function moveSelected(stage: (typeof stages)[number]) {
@@ -135,7 +144,7 @@
     <DistributionStrip job={detail} boards={boards.data?.data ?? []} />
 
     {#if applications.isSuccess && all.length > 0}
-      <IntegrityOverview applications={all} bind:filter={integrityFilter} />
+      <IntegrityOverview applications={all} bind:filter={() => integrityFilter, setIntegrityFilter} />
     {/if}
 
     <div class="flex flex-wrap items-start gap-3.5">
@@ -170,7 +179,7 @@
           {/if}
           <div class="flex flex-wrap items-center gap-2">
             {#if view === 'table'}
-              <IntegrityFilterMenu bind:filter={integrityFilter} />
+              <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
             {/if}
             {#if view === 'table' && selected.length > 0}
               <DropdownMenu.Root>
@@ -178,7 +187,7 @@
                   Move {selected.length} selected…
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content align="end" class="w-52">
-                  {#each stages as stage (stage.id)}
+                  {#each moveTargets as stage (stage.id)}
                     <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
                   {/each}
                 </DropdownMenu.Content>

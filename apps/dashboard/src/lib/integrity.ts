@@ -6,6 +6,7 @@ import type {
   AuthenticityLevel,
   DismissReason,
   IntegritySummary,
+  StageKind,
 } from '@screenhire/api-client';
 import type { BadgeVariant } from '#lib/components/ui/badge/index.js';
 import type { MarkShape, MarkTone } from '#lib/distribution.js';
@@ -39,6 +40,10 @@ export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
   SomeIndicators: { label: 'Some indicators', short: 'Some', shape: 'ring', tone: 'ai', variant: 'ai', rank: 1 },
   StrongIndicators: { label: 'Strong indicators', short: 'Strong', shape: 'ring', tone: 'ai', variant: 'ai', rank: 2 },
 };
+
+/** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
+export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
+export const aiAssistanceOrder = ['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const satisfies readonly AiAssistanceLevel[];
 
 /** An application whose checks have not finished: the API sends no integrity summary yet. */
 export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Pending', shape: 'ring', tone: 'neutral', variant: 'outline', rank: -1 };
@@ -89,6 +94,19 @@ export function matchesIntegrityFilter(application: ApplicationSummary, filter: 
   return !filter.aiAssistance || integrity?.aiAssistance === filter.aiAssistance;
 }
 
+export function isIntegrityFiltered(filter: IntegrityFilter): boolean {
+  return Boolean(filter.authenticity || filter.aiAssistance);
+}
+
+/**
+ * The stages a bulk move offers. While an integrity filter picks the rows, no bulk action may end a candidacy: a
+ * filtered "select all" then Rejected would be rejection driven by integrity signals (ADR-0004). One candidate at a time
+ * still moves anywhere, because that is a person's decision about that candidate.
+ */
+export function bulkMoveStages<Stage extends { kind: StageKind }>(stages: readonly Stage[], filter: IntegrityFilter): Stage[] {
+  return isIntegrityFiltered(filter) ? stages.filter((stage) => stage.kind !== 'Rejected' && stage.kind !== 'Withdrawn') : [...stages];
+}
+
 export interface IntegrityOverview {
   total: number;
   pending: number;
@@ -102,7 +120,7 @@ export function integrityOverview(applications: readonly ApplicationSummary[]): 
   const overview: IntegrityOverview = {
     total: applications.length,
     pending: 0,
-    levels: { NoConcerns: 0, ReviewSuggested: 0, VerificationRecommended: 0 },
+    levels: Object.fromEntries(authenticityOrder.map((level) => [level, 0])) as Record<AuthenticityLevel, number>,
     dismissed: 0,
   };
   for (const { integrity } of applications) {

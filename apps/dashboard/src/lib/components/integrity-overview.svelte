@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ApplicationSummary, AuthenticityLevel } from '@screenhire/api-client';
   import StatusMark from '#lib/components/status-mark.svelte';
-  import { authenticityLevels, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
+  import { authenticityLevels, authenticityOrder, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
 
   // A job's authenticity at a glance (design-system section 1): a numeric legend, each entry a toggle that filters the
   // candidate table, and a stacked bar. The bar is decoration for sighted readers; the legend carries the numbers.
@@ -23,7 +23,7 @@
   };
 
   const entries = $derived([
-    ...(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const).map((id) => ({ id, view: authenticityLevels[id], count: overview.levels[id] })),
+    ...authenticityOrder.map((id) => ({ id, view: authenticityLevels[id], count: overview.levels[id] })),
     ...(overview.pending > 0 ? [{ id: 'Pending' as const, view: pendingLevel, count: overview.pending }] : []),
   ]);
 

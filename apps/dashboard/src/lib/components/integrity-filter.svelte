@@ -4,7 +4,14 @@
   import StatusMark from '#lib/components/status-mark.svelte';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
-  import { aiAssistanceLevels, authenticityLevels, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
+  import {
+    aiAssistanceLevels,
+    aiAssistanceOrder,
+    authenticityLevels,
+    authenticityOrder,
+    pendingLevel,
+    type IntegrityFilter,
+  } from '#lib/integrity.js';
   import { cn } from '#lib/utils.js';
 
   // Filters the candidate table by either assessment's level. The page applies it to the rows before the table sees
@@ -12,10 +19,10 @@
   let { filter = $bindable() }: { filter: IntegrityFilter } = $props();
 
   const authenticityOptions = [
-    ...(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const).map((id) => ({ id, view: authenticityLevels[id] })),
+    ...authenticityOrder.map((id) => ({ id, view: authenticityLevels[id] })),
     { id: 'Pending' as const, view: pendingLevel },
   ];
-  const aiOptions = (['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const).map((id) => ({ id, view: aiAssistanceLevels[id] }));
+  const aiOptions = aiAssistanceOrder.map((id) => ({ id, view: aiAssistanceLevels[id] }));
 
   const active = $derived(
     [

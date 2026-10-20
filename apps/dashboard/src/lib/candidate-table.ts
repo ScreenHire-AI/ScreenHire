@@ -20,10 +20,11 @@ export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSumma
 
 /**
  * Builds extra columns for the table's `extraColumns` slot, which sits between Stage and Source. The integrity columns
- * (`integrityColumns` in #lib/integrity-columns.ts) go there:
+ * go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
+ * column that only draws something is a display column:
  *
  * ```ts
- * const integrity = candidateColumns.display({ id: 'authenticity', header: 'Authenticity', cell: ({ row }) => ... });
+ * const tags = candidateColumns.display({ id: 'tags', header: 'Tags', cell: ({ row }) => ... });
  * ```
  */
 export const candidateColumns = createColumnHelper<CandidateTableFeatures, ApplicationSummary>();
