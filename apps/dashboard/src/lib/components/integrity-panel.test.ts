@@ -1,6 +1,9 @@
 import type { ApplicationIntegrity } from '@screenhire/api-client';
+import { QueryClient } from '@tanstack/svelte-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { invalidatePath } from '#lib/query.js';
+import { invalidations } from '#lib/realtime.js';
 import { apiStub, user } from '../../test-support/fixtures.js';
 import {
   authenticityAssessmentId,
@@ -174,6 +177,22 @@ describe('integrity panel', () => {
     expect(authenticity).toHaveTextContent('Suggested next step: No action needed.');
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
     expect(within(section('Review log')).getByText('No review actions yet.')).toBeInTheDocument();
+  });
+
+  it('turns from pending to assessed when IntegrityAssessed arrives, without a reload', async () => {
+    let assessed = false;
+    vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET ${base}`]: () => Response.json(assessed ? botIntegrity() : pendingIntegrity()) })));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId }, client } });
+    await screen.findByText(/Checks are still running/);
+
+    // What the shell's live connection does with the event (#lib/realtime.ts).
+    assessed = true;
+    await Promise.all((invalidations.IntegrityAssessed ?? []).map((path) => invalidatePath(client, path)));
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(within(authenticity).getByText('Authenticity: Verification recommended')).toBeInTheDocument();
+    expect(screen.queryByText(/Checks are still running/)).not.toBeInTheDocument();
   });
 
   it('says the checks are still running while they are', async () => {
