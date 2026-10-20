@@ -1,44 +1,60 @@
 ---
-// Technical-SEO baseline for every marketing page (ADR-0003): canonical URL, Open Graph, Twitter card, JSON-LD.
+// Technical-SEO baseline for every marketing page (ADR-0003): canonical URL, hreflang, Open Graph and Twitter card with
+// the page's build-time image, and one JSON-LD @graph.
+import { HREFLANGS, OG_IMAGE_SIZE, absoluteUrl, ogImagePath, siteGraph, type JsonLd } from '../lib/seo';
+
 interface Props {
   title: string;
   description: string;
   /** Extra schema.org objects for this page; Organization and WebSite are always included. */
-  jsonLd?: Record<string, unknown>[];
+  jsonLd?: JsonLd[];
+  /** `article` for law entries and blog posts. */
+  ogType?: 'website' | 'article';
+  /** For pages that must not be indexed (404): no canonical, hreflang or social image. */
+  noindex?: boolean;
 }
 
-const { title, description, jsonLd = [] } = Astro.props;
+const { title, description, jsonLd = [], ogType = 'website', noindex = false } = Astro.props;
 const site = Astro.site ?? new URL(Astro.url.origin);
-const canonical = new URL(Astro.url.pathname, site).href;
-
-const graph = [
-  {
-    '@type': 'Organization',
-    '@id': new URL('/#organization', site).href,
-    name: 'ScreenHire',
-    url: site.href,
-  },
-  {
-    '@type': 'WebSite',
-    '@id': new URL('/#website', site).href,
-    name: 'ScreenHire',
-    url: site.href,
-    publisher: { '@id': new URL('/#organization', site).href },
-  },
-  ...jsonLd,
-];
+const canonical = absoluteUrl(Astro.url.pathname, site);
+const ogImage = absoluteUrl(ogImagePath(Astro.url.pathname), site);
+const graph = { '@context': 'https://schema.org', '@graph': [...siteGraph(site), ...jsonLd] };
 ---
 
 <title>{title}</title>
 <meta name="description" content={description} />
-<link rel="canonical" href={canonical} />
+{
+  noindex ? (
+    <meta name="robots" content="noindex" />
+  ) : (
+    <>
+      <link rel="canonical" href={canonical} />
+      {HREFLANGS.map((lang) => <link rel="alternate" hreflang={lang} href={canonical} />)}
+    </>
+  )
+}
 <link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="alternate" type="application/rss+xml" title="ScreenHire blog" href="/rss.xml" />
 
-<meta property="og:type" content="website" />
+<meta property="og:type" content={ogType} />
 <meta property="og:site_name" content="ScreenHire" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:locale:alternate" content="en_GB" />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:url" content={canonical} />
+{
+  !noindex && (
+    <>
+      <meta property="og:url" content={canonical} />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:image:type" content="image/png" />
+      <meta property="og:image:width" content={String(OG_IMAGE_SIZE.width)} />
+      <meta property="og:image:height" content={String(OG_IMAGE_SIZE.height)} />
+      <meta property="og:image:alt" content={title} />
+      <meta name="twitter:image" content={ogImage} />
+    </>
+  )
+}
 <meta name="twitter:card" content="summary_large_image" />
 
-<script type="application/ld+json" is:inline set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })} />
+<script type="application/ld+json" is:inline set:html={JSON.stringify(graph)} />

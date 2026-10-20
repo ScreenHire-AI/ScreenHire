@@ -1,0 +1,18 @@
+---
+// Cookieless analytics (ADR-0003), off by default. It renders only when PUBLIC_ANALYTICS names a provider and
+// PUBLIC_ANALYTICS_SCRIPT_URL points at its script, which should be a self-hosted or first-party proxied instance.
+// Both providers set no cookies and store no personal data, so no consent banner is needed. This is the one script
+// a marketing page may carry besides JSON-LD (.claude/rules/astro-public.md); careers pages never load it.
+import { PUBLIC_ANALYTICS, PUBLIC_ANALYTICS_SCRIPT_URL, PUBLIC_ANALYTICS_SITE_ID } from 'astro:env/server';
+
+const site = Astro.site ?? new URL(Astro.url.origin);
+const enabled = PUBLIC_ANALYTICS !== 'off' && PUBLIC_ANALYTICS_SCRIPT_URL !== undefined;
+const plausibleDomain = PUBLIC_ANALYTICS_SITE_ID ?? site.hostname;
+---
+
+{enabled && PUBLIC_ANALYTICS === 'plausible' && <script is:inline defer data-domain={plausibleDomain} src={PUBLIC_ANALYTICS_SCRIPT_URL} />}
+{
+  enabled && PUBLIC_ANALYTICS === 'umami' && PUBLIC_ANALYTICS_SITE_ID && (
+    <script is:inline defer data-website-id={PUBLIC_ANALYTICS_SITE_ID} src={PUBLIC_ANALYTICS_SCRIPT_URL} />
+  )
+}

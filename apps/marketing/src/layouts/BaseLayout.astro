@@ -1,14 +1,28 @@
 ---
+import { Font } from 'astro:assets';
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import Analytics from '../components/Analytics.astro';
 import Seo from '../components/Seo.astro';
+import { footerNav, mainNav, pages } from '../lib/pages';
+import { breadcrumbList, type Crumb, type JsonLd } from '../lib/seo';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description: string;
-  jsonLd?: Record<string, unknown>[];
+  jsonLd?: JsonLd[];
+  /** The trail after Home, ending with this page. Renders a visible trail and BreadcrumbList JSON-LD. */
+  breadcrumbs?: Crumb[];
+  ogType?: 'website' | 'article';
+  noindex?: boolean;
 }
 
-const { title, description, jsonLd } = Astro.props;
+const { title, description, jsonLd = [], breadcrumbs, ogType, noindex } = Astro.props;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const graph = breadcrumbs ? [breadcrumbList(breadcrumbs, site), ...jsonLd] : jsonLd;
+const current = Astro.url.pathname;
+const isCurrent = (path: string) => current === path || (path !== '/' && current.startsWith(path));
+const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined;
 ---
 
 <!doctype html>
@@ -16,28 +30,91 @@ const { title, description, jsonLd } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <Seo title={title} description={description} jsonLd={jsonLd} />
+    <Font cssVariable="--font-hanken" preload />
+    <Font cssVariable="--font-bricolage" />
+    <Font cssVariable="--font-jetbrains" />
+    <Seo title={title} description={description} jsonLd={graph} ogType={ogType} noindex={noindex} />
+    <Analytics />
   </head>
   <body class="min-h-screen bg-background text-foreground">
+    <a
+      href="#main"
+      class="sr-only rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+      >Skip to content</a
+    >
     <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-3 px-6 py-5">
       <a href="/" class="flex items-center gap-2.5 text-foreground no-underline">
-        <span class="grid size-8 place-items-center rounded-[9px] bg-foreground font-display text-lg font-extrabold text-background">S</span>
+        <span
+          aria-hidden="true"
+          class="grid size-8 place-items-center rounded-[9px] bg-foreground font-display text-lg font-extrabold text-background"
+          >S</span
+        >
         <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
       </a>
       <nav aria-label="Main" class="flex flex-wrap gap-x-6 gap-y-1 text-[15px] font-semibold">
-        <a href="/#product" class="text-secondary-foreground no-underline hover:text-primary">Product</a>
-        <a href="/#integrity" class="text-secondary-foreground no-underline hover:text-primary">Integrity</a>
-        <a href="/#compliance" class="text-secondary-foreground no-underline hover:text-primary">Hiring-AI law</a>
+        {
+          mainNav.map((page) => (
+            <a
+              href={page.path}
+              aria-current={isCurrent(page.path) ? 'page' : undefined}
+              class="text-secondary-foreground no-underline hover:text-primary aria-[current=page]:text-primary"
+            >
+              {page.label}
+            </a>
+          ))
+        }
       </nav>
       <div class="flex-1"></div>
-      <a href="/#start" class="inline-flex h-11 items-center rounded-[10px] bg-primary px-5 font-bold text-primary-foreground no-underline">Start free</a>
+      <div class="flex items-center gap-2.5">
+        {signInUrl && <a href={signInUrl} class="px-1.5 py-2 font-semibold text-foreground no-underline hover:text-primary">Sign in</a>}
+        <a
+          href={pages.pricing.path}
+          class="inline-flex h-11 items-center rounded-[10px] bg-primary px-5 font-bold text-primary-foreground no-underline hover:bg-primary/90"
+          >Start free</a
+        >
+      </div>
     </header>
-    <main>
+    {
+      breadcrumbs && (
+        <nav aria-label="Breadcrumb" class="mx-auto max-w-6xl px-6">
+          <ol class="flex flex-wrap gap-x-2 font-mono text-xs text-muted-foreground uppercase">
+            <li>
+              <a href="/" class="text-muted-foreground hover:text-primary">Home</a>
+            </li>
+            {breadcrumbs.map((crumb, index) => (
+              <li class="flex gap-x-2">
+                <span aria-hidden="true">/</span>
+                {index === breadcrumbs.length - 1 ? (
+                  <span aria-current="page">{crumb.name}</span>
+                ) : (
+                  <a href={crumb.path} class="text-muted-foreground hover:text-primary">
+                    {crumb.name}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )
+    }
+    <main id="main">
       <slot />
     </main>
-    <footer class="mx-auto flex max-w-6xl flex-wrap justify-between gap-6 px-6 py-12 text-sm text-muted-foreground">
-      <span class="font-display text-lg font-bold text-foreground">ScreenHire</span>
-      <span>© {new Date().getFullYear()} ScreenHire</span>
+    <footer class="border-t border-border">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-6 px-6 py-12 text-sm text-muted-foreground">
+        <span class="font-display text-lg font-bold text-foreground">ScreenHire</span>
+        <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2">
+          {
+            footerNav.map((page) => (
+              <a href={page.path} class="text-muted-foreground hover:text-primary">
+                {page.label}
+              </a>
+            ))
+          }
+          <a href="/rss.xml" class="text-muted-foreground hover:text-primary">RSS</a>
+        </nav>
+        <span>© {new Date().getUTCFullYear()} ScreenHire</span>
+      </div>
     </footer>
   </body>
 </html>

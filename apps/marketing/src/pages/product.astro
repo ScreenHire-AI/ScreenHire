@@ -1,0 +1,126 @@
+---
+import PageHeader from '../components/PageHeader.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { pages } from '../lib/pages';
+import { plans, pricedOffers } from '../lib/pricing';
+import { softwareApplication } from '../lib/seo';
+
+const { title, description, path, label } = pages.product;
+const site = Astro.site ?? new URL(Astro.url.origin);
+
+// Each section describes the product as designed in docs/architecture (integrity engine, job distribution, workflow
+// engine). Keep the copy in step with those docs.
+const sections = [
+  {
+    id: 'integrity',
+    kicker: 'Applicant integrity',
+    title: 'Two questions, answered separately',
+    body: 'Most tools blur "used AI" with "is a fraud". ScreenHire keeps them apart, because many genuine applicants use AI to polish an application.',
+    points: [
+      'Authenticity: is this a real, unique person who is who they say they are? Levels are No concerns, Review suggested and Verification recommended.',
+      'AI assistance: how much of the content looks generated or templated? This is information, judged against the AI policy you set for each job.',
+      'Every level lists its reason codes, the evidence, any counter-evidence, a plain-language summary and a suggested next step.',
+      'A level above the lowest needs signals from at least two independent categories. Typing and paste signals alone never raise a level.',
+    ],
+  },
+  {
+    id: 'workflows',
+    kicker: 'Hiring workflows',
+    title: 'Templates you build once and tailor per job',
+    body: 'A hiring template bundles stages, screening questions, automations and posting defaults for a type of role.',
+    points: [
+      'Templates are versioned. A job copies a version, and you choose when to apply a newer one, so live jobs never change under you.',
+      'Automations route, tag, assign or request verification. Rules built on integrity signals can never reject anyone.',
+      'Everything you can do in the dashboard is available through the public API.',
+    ],
+  },
+  {
+    id: 'distribution',
+    kicker: 'Job distribution',
+    title: 'Post everywhere, remove everywhere, with honest status',
+    body: 'Publish a job to your careers page, Google for Jobs and job boards in one step, and close it the same way.',
+    points: [
+      'Your careers page and Google for Jobs update at once. A closed job page returns "gone" and Google is notified.',
+      'Each board shows its own status. Boards that refresh on a schedule show when removal is expected, never a false "removed" tick.',
+    ],
+  },
+  {
+    id: 'candidates',
+    kicker: 'Candidate experience',
+    title: 'Fast for applicants, told up front',
+    body: 'Careers pages are light enough to load quickly on a phone, and applying works as a plain web form.',
+    points: [
+      'Browsing a careers page collects server and security logs only.',
+      'Before anything else is collected, the application form explains what is checked and why.',
+      'Applicants who use assistive technology can switch typing signals off, and switching them off is never held against them.',
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: label, path }]}
+  jsonLd={[softwareApplication(description, site, pricedOffers(plans))]}
+>
+  <PageHeader
+    kicker="Product"
+    title="An applicant tracker that tells you who is really applying."
+    lead="ScreenHire is an applicant tracking system for small hiring teams, with an integrity layer that explains every flag in plain language. A person always makes the decision."
+  />
+
+  <nav aria-label="On this page" class="mx-auto max-w-6xl px-6">
+    <ul class="flex flex-wrap gap-2">
+      {
+        sections.map((section) => (
+          <li>
+            <a
+              href={`#${section.id}`}
+              class="inline-block rounded-full border border-input bg-card px-3 py-1.5 text-sm font-semibold text-foreground no-underline hover:border-primary"
+            >
+              {section.kicker}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  {
+    sections.map((section) => (
+      <section id={section.id} aria-labelledby={`${section.id}-title`} class="mx-auto grid max-w-6xl gap-6 px-6 py-12 md:grid-cols-[1fr_1.4fr]">
+        <div class="flex flex-col gap-3">
+          <p class="font-mono text-xs tracking-[0.08em] text-muted-foreground uppercase">{section.kicker}</p>
+          <h2 id={`${section.id}-title`} class="font-display text-3xl leading-tight font-bold tracking-tight">
+            {section.title}
+          </h2>
+          <p class="text-secondary-foreground">{section.body}</p>
+        </div>
+        <ul class="flex flex-col gap-3">
+          {section.points.map((point) => (
+            <li class="rounded-xl border border-border bg-card px-5 py-4 text-secondary-foreground">{point}</li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+
+  <section aria-labelledby="next-title" class="mx-auto max-w-6xl px-6 pt-4 pb-16">
+    <div class="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-border bg-card p-7">
+      <h2 id="next-title" class="font-display text-2xl font-bold tracking-tight">See exactly what we check, and what we never do.</h2>
+      <div class="flex flex-wrap gap-3">
+        <a
+          href={pages.detection.path}
+          class="inline-flex h-12 items-center rounded-xl bg-primary px-5 font-bold text-primary-foreground no-underline hover:bg-primary/90"
+          >How detection works</a
+        >
+        <a
+          href={pages.pricing.path}
+          class="inline-flex h-12 items-center rounded-xl border border-input px-5 font-bold text-foreground no-underline hover:border-primary"
+          >Pricing</a
+        >
+      </div>
+    </div>
+  </section>
+</BaseLayout>

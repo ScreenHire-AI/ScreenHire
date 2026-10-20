@@ -1,0 +1,180 @@
+---
+import Faqs from '../components/Faqs.astro';
+import PageHeader from '../components/PageHeader.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { pages } from '../lib/pages';
+import { faqPage, type Faq } from '../lib/seo';
+
+const { title, description, path, label } = pages.detection;
+
+// Source of truth: ADR-0004 and docs/architecture/integrity-engine.md. v1 covers the application stage only; ID
+// verification and interview checks are later phases, and the copy says so.
+const levels = [
+  { name: 'No concerns', mark: 'rounded-full bg-status-clear-mark', chip: 'bg-status-clear-soft text-status-clear' },
+  { name: 'Review suggested', mark: 'rotate-45 bg-status-review-mark', chip: 'bg-status-review-soft text-status-review' },
+  { name: 'Verification recommended', mark: 'bg-status-verify-mark', chip: 'bg-status-verify-soft text-status-verify' },
+];
+
+const categories = [
+  {
+    name: 'Network',
+    examples: 'A hosting-provider network instead of a home or mobile one, or a location that does not match the one the applicant gave. A VPN on its own is context, never a reason.',
+  },
+  {
+    name: 'Identity and contact',
+    examples: 'A disposable email address, an email domain that cannot receive mail, a VoIP phone number, or the same details on several applications to your company.',
+  },
+  {
+    name: 'Automation',
+    examples: 'Browser automation markers, a hidden form field that only a bot would fill, or a long form completed faster than a person could read it.',
+  },
+  {
+    name: 'Behaviour, as session totals',
+    examples: 'How much of an answer was pasted and how often focus left the form, counted in the browser. We never record keystrokes, and these signals alone never raise a level.',
+  },
+  {
+    name: 'Content',
+    examples: 'Hidden instructions aimed at AI screeners inside a resume, answers near-identical to other applicants for the same job, or a resume file created moments before it was submitted.',
+  },
+];
+
+const timeline = [
+  { phase: 'Browsing your careers page', collected: 'Server and security logs only. No fingerprinting, no tracking cookies, no typing signals.' },
+  {
+    phase: 'Starting an application',
+    collected: 'The applicant first sees a plain-language notice and the assistive-technology switch. Only then does the form start counting session totals.',
+  },
+  { phase: 'Submitting', collected: 'The answers, the resume and contact details, plus network, email and phone checks.' },
+  { phase: 'After submission', collected: 'Content checks and duplicate checks within your company.' },
+];
+
+const never = [
+  'Reject, or move anyone to a rejected stage, because of an integrity signal. Workflows that try are refused when you save them.',
+  'Give a fraud score or a "% AI-written" number.',
+  'Infer emotion, stress, honesty, intent or personality from text, typing, face or voice.',
+  'Collect biometrics. This release has no face, voice or ID-document checks at all.',
+  'Record raw keystrokes, what was typed, mouse paths or the screen.',
+  'Scrape LinkedIn or any other site. We only use what the applicant gives us.',
+  'Treat using assistive technology, or switching typing signals off, as a signal.',
+];
+
+const faqs: Faq[] = [
+  {
+    question: 'Does ScreenHire reject applicants automatically?',
+    answer:
+      'No. Integrity levels can route an application, tag it, assign it or suggest verification. A person on your team makes every decision, and ScreenHire refuses workflows that would reject on integrity signals.',
+  },
+  {
+    question: 'Does ScreenHire detect AI-written applications?',
+    answer:
+      'It reports indicators of AI assistance, such as answers pasted in whole or near-identical to other applicants, as information. It never gives a "% AI-written" figure, and each job can allow AI help, allow it with disclosure, or ask applicants not to use it.',
+  },
+  {
+    question: 'What happens if an applicant uses a screen reader or dictation?',
+    answer:
+      'Dictation, screen readers and autofill can look like pasting. Applicants can switch typing signals off before they start, with no negative inference, and typing signals alone can never raise a level.',
+  },
+  {
+    question: 'When does ScreenHire start collecting data about an applicant?',
+    answer:
+      'When they start an application and after they have seen the notice. Browsing a careers page only creates the server and security logs that any website keeps.',
+  },
+  {
+    question: 'Is ScreenHire a fraud score?',
+    answer:
+      'No. Each assessment is a level with reason codes, evidence, counter-evidence, a plain-language summary and a suggested next step, produced by documented, versioned rules that can be audited.',
+  },
+];
+---
+
+<BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]} jsonLd={[faqPage(faqs)]}>
+  <PageHeader
+    kicker="How detection works"
+    title="Evidence, not verdicts."
+    lead="ScreenHire looks for signs that an application came from a bot, an impersonator or a copy-paste operation. It shows your team what it saw and why it matters, then gets out of the way. A person decides."
+  />
+
+  <section aria-labelledby="levels-title" class="mx-auto max-w-6xl px-6 py-10">
+    <h2 id="levels-title" class="font-display text-3xl font-bold tracking-tight">What a flag looks like</h2>
+    <p class="mt-3 max-w-3xl text-secondary-foreground">
+      Each application gets two separate assessments: authenticity (is this a real, unique person?) and AI assistance (how
+      much looks generated?). Authenticity has three levels:
+    </p>
+    <ul class="mt-5 flex flex-wrap gap-2.5">
+      {
+        levels.map((level) => (
+          <li class:list={['inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold', level.chip]}>
+            <span aria-hidden="true" class:list={['size-2', level.mark]} />
+            {level.name}
+          </li>
+        ))
+      }
+    </ul>
+    <p class="mt-5 max-w-3xl text-secondary-foreground">
+      Every level above "No concerns" comes with its reason codes, the evidence behind each, anything that counts in the
+      applicant's favour, a short summary in plain language and a suggested next step, such as "a short video call before
+      the technical screen". A level above the lowest needs signals from at least two independent categories.
+    </p>
+  </section>
+
+  <section aria-labelledby="signals-title" class="mx-auto max-w-6xl px-6 py-10">
+    <h2 id="signals-title" class="font-display text-3xl font-bold tracking-tight">What we look at</h2>
+    <dl class="mt-6 grid gap-4 md:grid-cols-2">
+      {
+        categories.map((category) => (
+          <div class="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-5">
+            <dt class="font-bold">{category.name}</dt>
+            <dd class="text-secondary-foreground">{category.examples}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section aria-labelledby="when-title" class="mx-auto max-w-6xl px-6 py-10">
+    <h2 id="when-title" class="font-display text-3xl font-bold tracking-tight">When we collect it</h2>
+    <ol class="mt-6 grid gap-4 md:grid-cols-4">
+      {
+        timeline.map((step, index) => (
+          <li class="flex flex-col gap-1.5 border-t-2 border-foreground pt-3">
+            <span class="font-mono text-xs text-muted-foreground">STEP 0{index + 1}</span>
+            <span class="font-bold">{step.phase}</span>
+            <span class="text-[15px] text-secondary-foreground">{step.collected}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section aria-labelledby="never-title" class="mx-auto max-w-6xl px-6 py-10">
+    <div class="rounded-2xl bg-foreground p-7 text-background">
+      <h2 id="never-title" class="font-display text-3xl font-bold tracking-tight">What we never do</h2>
+      <ul class="mt-5 grid gap-x-8 gap-y-3 md:grid-cols-2">
+        {never.map((item) => <li class="border-t border-background/25 pt-3">{item}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="fair-title" class="mx-auto max-w-6xl px-6 py-10">
+    <h2 id="fair-title" class="font-display text-3xl font-bold tracking-tight">Fair to candidates</h2>
+    <div class="mt-4 grid gap-6 md:grid-cols-2">
+      <p class="text-secondary-foreground">
+        Many people who use AI on an application are real candidates polishing their writing, not fraudsters. That is why AI
+        assistance is a separate assessment, shown as information and judged against the policy you set for each job.
+        Applicants can say up front that they used AI.
+      </p>
+      <p class="text-secondary-foreground">
+        Detection makes mistakes, and the people it gets wrong are often the ones with the least power in a hiring process.
+        So the evidence is shown alongside the counter-evidence, a person reviews it, and every action is logged. Levels
+        come from documented, versioned rules rather than a black box, so they can be explained and tested for bias.
+      </p>
+    </div>
+    <p class="mt-6">
+      <a href={pages.laws.path} class="font-semibold text-primary underline-offset-2 hover:underline"
+        >See the laws these rules are built around</a
+      >
+    </p>
+  </section>
+
+  <Faqs faqs={faqs} />
+</BaseLayout>

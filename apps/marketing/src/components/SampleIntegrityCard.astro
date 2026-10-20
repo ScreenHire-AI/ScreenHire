@@ -1,0 +1,55 @@
+---
+// The hero illustration: what a recruiter sees on a flagged application. Fictional applicant, real reason codes from
+// docs/architecture/integrity-engine.md. Status is mark + colour + label (design system §2.2).
+const evidence = [
+  { code: 'NET_DATACENTER_IP', text: 'Applied from a hosting-provider network in Frankfurt. Says they live in Leeds, UK.' },
+  { code: 'ID_EMAIL_NEW', text: 'Email domain registered 2 days ago.' },
+  { code: 'CNT_NEAR_DUPLICATE_ANSWER', text: 'Answer 2 is near-identical to 4 other applications for this job.' },
+];
+const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
+---
+
+<figure class="flex min-w-0 flex-1 basis-[440px] flex-col gap-3">
+  <div class="overflow-hidden rounded-xl border border-border bg-card">
+    <div class="flex items-center gap-2.5 border-b border-border-subtle px-4 py-3.5">
+      <span aria-hidden="true" class="grid size-[38px] place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">JW</span>
+      <div class="flex min-w-0 flex-1 flex-col">
+        <span class="font-display text-lg font-bold">Jonas Weber</span>
+        <span class="text-[13px] text-muted-foreground">Senior Product Designer · applied 3h ago</span>
+      </div>
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-status-review-soft px-2.5 py-0.5 text-[12.5px] font-bold text-status-review">
+        <span aria-hidden="true" class="size-1.5 rotate-45 bg-status-review-mark"></span>Review suggested
+      </span>
+    </div>
+    <ul class="flex flex-col gap-2 px-4 py-3.5 text-sm">
+      {
+        evidence.map((item) => (
+          <li class="flex flex-col gap-px rounded-[10px] border border-border-subtle bg-muted px-3 py-2">
+            <span class="font-mono text-[10.5px] text-muted-foreground">{item.code}</span>
+            <span class="font-semibold">{item.text}</span>
+          </li>
+        ))
+      }
+      <li class="mt-0.5 flex items-center gap-2 text-[13px] text-status-clear">
+        <span aria-hidden="true" class="size-[7px] rounded-full bg-status-clear-mark"></span>Counter-evidence: the phone number is a
+        UK mobile, not a VoIP line.
+      </li>
+    </ul>
+    <p class="border-t border-border-subtle bg-muted px-4 py-2.5 text-[13px] text-secondary-foreground">
+      Suggested next step: a short video call before the portfolio review.
+    </p>
+  </div>
+  <div class="ml-0 flex flex-wrap items-center overflow-hidden rounded-xl border border-border bg-card text-[13.5px] sm:ml-10">
+    <span class="border-r border-border-subtle px-3 py-2 font-mono text-[10.5px] tracking-[0.08em] text-muted-foreground">POSTED</span>
+    {
+      boards.map((board) => (
+        <span class="inline-flex items-center gap-1.5 border-r border-border-subtle px-3 py-2 font-semibold last:border-r-0">
+          <span aria-hidden="true" class="size-[7px] rounded-full bg-status-clear-mark" />
+          {board}
+          <span class="font-mono text-[10.5px] text-status-clear">LIVE</span>
+        </span>
+      ))
+    }
+  </div>
+  <figcaption class="font-mono text-[11px] text-muted-foreground">Example applicant. Fictional data.</figcaption>
+</figure>

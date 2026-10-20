@@ -1,0 +1,47 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render, type CollectionEntry } from 'astro:content';
+import PageHeader from '../../components/PageHeader.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { publishedPosts } from '../../lib/blog';
+import { pages } from '../../lib/pages';
+import { article, formatDate } from '../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const posts = await publishedPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const site = Astro.site ?? new URL(Astro.url.origin);
+const path = `${pages.blog.path}${post.id}/`;
+const { title, description, published, updated } = post.data;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  ogType="article"
+  breadcrumbs={[
+    { name: pages.blog.label, path: pages.blog.path },
+    { name: title, path },
+  ]}
+  jsonLd={[article({ type: 'BlogPosting', headline: title, description, path, datePublished: published, dateModified: updated }, site)]}
+>
+  <PageHeader kicker="Blog" title={title} lead={description}>
+    <p class="font-mono text-xs text-muted-foreground uppercase">
+      ScreenHire team · <time datetime={published}>{formatDate(published)}</time>
+      {updated && <> · updated <time datetime={updated}>{formatDate(updated)}</time></>}
+    </p>
+  </PageHeader>
+  <div class="mx-auto max-w-6xl px-6 pb-16">
+    <article class="prose">
+      <Content />
+    </article>
+  </div>
+</BaseLayout>
