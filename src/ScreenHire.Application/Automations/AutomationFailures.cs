@@ -32,13 +32,15 @@ public static class AutomationFailures
     }
 
     /// <summary>
-    /// Services the automation handlers take: transactional email (hidden when no sender is registered) and the
-    /// CallWebhook adapter. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
+    /// Services the automation handlers take: the clock, transactional email (hidden when no sender is registered) and
+    /// the CallWebhook adapter. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
     /// the handlers has them.
     /// </summary>
     public static IServiceCollection AddScreenHireAutomations(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        // The API and worker register this already; TryAdd covers any other host that runs the handlers.
+        services.TryAddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
         services.TryAddSingleton<EmailTemplates>();
         services.TryAddSingleton<TransactionalEmail>();
 
