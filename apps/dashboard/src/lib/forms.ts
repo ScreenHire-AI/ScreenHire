@@ -32,3 +32,26 @@ export function slugify(name: string): string {
     .slice(0, 63)
     .replace(/-+$/g, '');
 }
+
+/** Country codes from what a person typed ("gb, ie" or "GB IE"): upper-cased, in order, each once. */
+export function countryCodes(text: string): string[] {
+  return [...new Set(text.split(/[\s,;]+/).filter(Boolean).map((code) => code.toUpperCase()))];
+}
+
+/** Whether every code is an ISO 3166-1 alpha-2 code, as the API requires. */
+export const areCountryCodes = (codes: readonly string[]): boolean => codes.every((code) => /^[A-Z]{2}$/.test(code));
+
+/**
+ * Plain text as the HTML a job description is: a paragraph per blank-line-separated block, line breaks kept, and every
+ * character escaped. The API sanitizes the result again.
+ */
+export function paragraphs(text: string): string {
+  const escape = (value: string) =>
+    value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => `<p>${block.split('\n').map((line) => escape(line.trim())).join('<br>')}</p>`)
+    .join('');
+}

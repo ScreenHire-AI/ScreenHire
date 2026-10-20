@@ -2,7 +2,7 @@ import { CompleteOnboardingBody } from '@screenhire/api-client/zod';
 import { defaults } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { describe, expect, it } from 'vitest';
-import { applyValidationProblem, slugify } from './forms.js';
+import { applyValidationProblem, areCountryCodes, countryCodes, paragraphs, slugify } from './forms.js';
 
 describe('applyValidationProblem', () => {
   it("puts the API's errors on the fields they name, and unknown fields on the form", () => {
@@ -41,5 +41,34 @@ describe('slugify', () => {
 
     expect(slug.length).toBeLessThanOrEqual(63);
     expect(slug.endsWith('-')).toBe(false);
+  });
+});
+
+describe('countryCodes', () => {
+  it('reads codes separated by commas or spaces, upper-cased and each once', () => {
+    expect(countryCodes(' gb, IE;ie  fr ')).toEqual(['GB', 'IE', 'FR']);
+    expect(countryCodes('')).toEqual([]);
+  });
+
+  it('tells real two-letter codes from anything else', () => {
+    expect(areCountryCodes(['GB', 'IE'])).toBe(true);
+    expect(areCountryCodes(['GB', 'UK1'])).toBe(false);
+    expect(areCountryCodes(['ENGLAND'])).toBe(false);
+  });
+});
+
+describe('paragraphs', () => {
+  it('makes a paragraph per block and keeps line breaks', () => {
+    expect(paragraphs('Build the API.\nOwn it in production.\n\n  Remote in the UK.  ')).toBe(
+      '<p>Build the API.<br>Own it in production.</p><p>Remote in the UK.</p>',
+    );
+  });
+
+  it('escapes markup instead of passing it on', () => {
+    expect(paragraphs('<script>alert("x")</script> & more')).toBe('<p>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; more</p>');
+  });
+
+  it('is empty for blank text', () => {
+    expect(paragraphs(' \n\n ')).toBe('');
   });
 });

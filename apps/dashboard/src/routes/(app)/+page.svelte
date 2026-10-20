@@ -22,9 +22,10 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
-  import { applyValidationProblem } from '#lib/forms.js';
+  import { applyValidationProblem, areCountryCodes, countryCodes, paragraphs } from '#lib/forms.js';
   import { formatShortDate } from '#lib/format.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -63,17 +64,41 @@
   const usable = $derived((templates.data?.data ?? []).filter((template) => template.latestPublishedVersionId));
 
   // The select's "none" is an empty string, which the body's uuid would refuse; it becomes null on the way out.
-  const newJobSchema = CreateJobBody.pick({ title: true }).extend({
-    title: z.string().trim().min(1, 'Give the job a title.'),
-    templateVersionId: z.string(),
-  });
+  // Where the work happens is asked here because publishing needs it (JobPublishValidator) and the dashboard has no
+  // other place to set it yet; so is a description when no template brings one.
+  const newJobSchema = CreateJobBody.pick({ title: true })
+    .extend({
+      title: z.string().trim().min(1, 'Give the job a title.'),
+      templateVersionId: z.string(),
+      workplaceType: z.enum(['', 'Remote', 'Hybrid', 'Onsite']),
+      countries: z.string(),
+      city: z.string().max(100, 'Keep the city to 100 characters or fewer.'),
+      country: z.string(),
+      description: z.string(),
+    })
+    .superRefine((value, context) => {
+      const issue = (path: string, message: string) => context.addIssue({ code: 'custom', path: [path], message });
+      if (value.workplaceType === '') issue('workplaceType', 'Choose where the work happens.');
+      if (value.workplaceType === 'Remote') {
+        const codes = countryCodes(value.countries);
+        if (codes.length === 0) issue('countries', 'List the countries candidates can work from, such as GB, IE.');
+        else if (!areCountryCodes(codes)) issue('countries', 'Use two-letter country codes, such as GB.');
+      }
+
+      if ((value.workplaceType === 'Hybrid' || value.workplaceType === 'Onsite') && !areCountryCodes([value.country.trim().toUpperCase()])) {
+        issue('country', 'Give the country as a two-letter code, such as GB.');
+      }
+
+      if (!value.templateVersionId && !value.description.trim()) issue('description', 'Describe the job, or choose a template that has a description.');
+    });
+  const emptyNewJob = { title: '', templateVersionId: '', workplaceType: '', countries: '', city: '', country: '', description: '' } as const;
   const {
     form: newJob,
     errors: newJobErrors,
     enhance: newJobEnhance,
     submitting: newJobSubmitting,
     reset: resetNewJob,
-  } = superForm(defaults({ title: '', templateVersionId: '' }, zod4(newJobSchema)), {
+  } = superForm(defaults({ ...emptyNewJob }, zod4(newJobSchema)), {
     SPA: true,
     validators: zod4(newJobSchema),
     resetForm: false,
@@ -81,9 +106,18 @@
     invalidateAll: false,
     async onUpdate({ form }) {
       if (!form.valid) return;
+      const { title, templateVersionId, workplaceType, countries, city, country, description } = form.data;
+      const remote = workplaceType === 'Remote';
       try {
         const response = await create.mutateAsync({
-          data: { title: form.data.title.trim(), templateVersionId: form.data.templateVersionId || null },
+          data: {
+            title: title.trim(),
+            templateVersionId: templateVersionId || null,
+            workplaceType: workplaceType || null,
+            applicantLocationRequirements: remote ? countryCodes(countries) : null,
+            locations: remote ? null : [{ city: city.trim() || null, country: country.trim().toUpperCase() }],
+            description: description.trim() ? paragraphs(description) : null,
+          },
         });
         creating = false;
         await goto(`/jobs/${response.data.id}`);
@@ -99,7 +133,7 @@
   });
 
   $effect(() => {
-    if (creating) resetNewJob({ data: { title: '', templateVersionId: '' } });
+    if (creating) resetNewJob({ data: { ...emptyNewJob } });
   });
 
   async function act(job: JobSummary, action: NonNullable<(typeof actions)[JobStatus]>) {
@@ -232,6 +266,85 @@
           {/each}
         </select>
         <Field.Error id="new-job-template-error" errors={$newJobErrors.templateVersionId?.map((message) => ({ message }))} />
+      </Field.Field>
+      <Field.Field data-invalid={$newJobErrors.workplaceType ? true : undefined}>
+        <Field.Label for="new-job-workplace">Workplace</Field.Label>
+        <select
+          id="new-job-workplace"
+          name="workplaceType"
+          class={selectClass}
+          required
+          bind:value={$newJob.workplaceType}
+          aria-invalid={$newJobErrors.workplaceType ? 'true' : undefined}
+          aria-describedby={$newJobErrors.workplaceType ? 'new-job-workplace-error' : undefined}
+        >
+          <option value="">Choose where the work happens</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="Onsite">On-site</option>
+        </select>
+        <Field.Error id="new-job-workplace-error" errors={$newJobErrors.workplaceType?.map((message) => ({ message }))} />
+      </Field.Field>
+      {#if $newJob.workplaceType === 'Remote'}
+        <Field.Field data-invalid={$newJobErrors.countries ? true : undefined}>
+          <Field.Label for="new-job-countries">Countries candidates can work from</Field.Label>
+          <Input
+            id="new-job-countries"
+            name="countries"
+            required
+            autocomplete="off"
+            bind:value={$newJob.countries}
+            aria-invalid={$newJobErrors.countries ? 'true' : undefined}
+            aria-describedby={$newJobErrors.countries ? 'new-job-countries-hint new-job-countries-error' : 'new-job-countries-hint'}
+          />
+          <Field.Description id="new-job-countries-hint">Two-letter codes, separated by commas, such as GB, IE.</Field.Description>
+          <Field.Error id="new-job-countries-error" errors={$newJobErrors.countries?.map((message) => ({ message }))} />
+        </Field.Field>
+      {:else if $newJob.workplaceType}
+        <div class="grid grid-cols-[1fr_8rem] gap-3">
+          <Field.Field data-invalid={$newJobErrors.city ? true : undefined}>
+            <Field.Label for="new-job-city">City</Field.Label>
+            <Input
+              id="new-job-city"
+              name="city"
+              maxlength={100}
+              bind:value={$newJob.city}
+              aria-invalid={$newJobErrors.city ? 'true' : undefined}
+              aria-describedby={$newJobErrors.city ? 'new-job-city-error' : undefined}
+            />
+            <Field.Error id="new-job-city-error" errors={$newJobErrors.city?.map((message) => ({ message }))} />
+          </Field.Field>
+          <Field.Field data-invalid={$newJobErrors.country ? true : undefined}>
+            <Field.Label for="new-job-country">Country</Field.Label>
+            <Input
+              id="new-job-country"
+              name="country"
+              required
+              maxlength={2}
+              autocomplete="off"
+              bind:value={$newJob.country}
+              aria-invalid={$newJobErrors.country ? 'true' : undefined}
+              aria-describedby={$newJobErrors.country ? 'new-job-country-hint new-job-country-error' : 'new-job-country-hint'}
+            />
+            <Field.Description id="new-job-country-hint">Code, such as GB</Field.Description>
+            <Field.Error id="new-job-country-error" errors={$newJobErrors.country?.map((message) => ({ message }))} />
+          </Field.Field>
+        </div>
+      {/if}
+      <Field.Field data-invalid={$newJobErrors.description ? true : undefined}>
+        <Field.Label for="new-job-description">Description</Field.Label>
+        <Textarea
+          id="new-job-description"
+          name="description"
+          rows={4}
+          bind:value={$newJob.description}
+          aria-invalid={$newJobErrors.description ? 'true' : undefined}
+          aria-describedby={$newJobErrors.description ? 'new-job-description-hint new-job-description-error' : 'new-job-description-hint'}
+        />
+        <Field.Description id="new-job-description-hint">
+          {$newJob.templateVersionId ? "Optional: leave it empty to start from the template's description." : 'What the job is, for the careers page and the boards.'}
+        </Field.Description>
+        <Field.Error id="new-job-description-error" errors={$newJobErrors.description?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $newJobErrors._errors}
         <p role="alert" class="text-sm text-destructive">{$newJobErrors._errors[0]}</p>

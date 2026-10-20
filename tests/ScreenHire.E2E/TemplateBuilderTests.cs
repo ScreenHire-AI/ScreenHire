@@ -117,6 +117,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var newJob = Page.GetByRole(AriaRole.Dialog, new() { Name = "New job" });
         await newJob.GetByLabel("Title").FillAsync("Warehouse associate, nights");
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
+        await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "On-site" });
+        await newJob.GetByLabel("City").FillAsync("Leeds");
+        await newJob.GetByLabel("Country").FillAsync("GB");
         await newJob.GetByRole(AriaRole.Button, new() { Name = "Create job" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Warehouse associate, nights");
         await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Workflow") }).ClickAsync();
