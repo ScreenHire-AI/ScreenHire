@@ -1,8 +1,14 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Configuration;
+using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Templates;
@@ -23,36 +29,54 @@ namespace ScreenHire.Api.Demo;
 /// <list type="number">
 /// <item>Brightwater's own template, "Brightwater engineering": the "Software engineer" system template plus emails to the
 /// candidate when they apply and when they reach Screening or Interview.</item>
-/// <item>The same emails on the "Senior .NET Engineer" job's workflow, as a recruiter would add them, so moving a candidate
-/// there sends an email to Mailpit.</item>
+/// <item>The same emails on the three open jobs' workflows, as a recruiter would add them, so moving a candidate there
+/// sends an email to Mailpit.</item>
 /// <item>A draft job from the template, "Backend Engineer (Payments)", for the demo to publish to every board.</item>
+/// <item>The open jobs posted to boards through the same publish as the dashboard's: the .NET and designer jobs to every
+/// board, the frontend job to the careers page and the sandbox board only.</item>
+/// <item>"Support Engineer", from the template, published to every board, for the closed job below.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
-/// <item>The people in <see cref="DemoCandidates"/> apply to the other open jobs and are moved to their stages.</item>
+/// <item>The people in <see cref="DemoCandidates"/> apply to their jobs and are moved through their stages, with notes.</item>
+/// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.</item>
 /// </list>
-/// Each step first looks for what it adds (a template, automation, job or candidate that exists is left alone), so later
-/// starts add nothing, and a data volume from before a step existed gets that step. A step does not repair itself: a
-/// candidate whose move failed stays where they applied, and a demo email someone removed from the .NET job comes back on
-/// the next start.
+/// Each step first looks for what it adds (a template, automation, job, posting or candidate that exists is left alone),
+/// so later starts add nothing, and a data volume from before a step existed gets that step. A step does not repair
+/// itself: a candidate whose move failed stays where they got to, a job someone took off a board stays off it, and a demo
+/// email someone removed from a job comes back on the next start.
 /// </summary>
 /// <remarks>
 /// A one-shot startup step, not a loop. It runs after startup rather than in <see cref="DevelopmentDataSeeder"/>
-/// because submissions and moves publish through Wolverine's outbox, which needs the started host.
+/// because submissions and moves publish through Wolverine's outbox, which needs the started host. It is also the API's
+/// <c>development-demo</c> health check: <c>/health</c> answers Unhealthy until every step has run, so the worker, the
+/// frontends and <c>/preview</c>, which wait for a healthy API, start with the demo data in place. No step may wait for
+/// the worker, which only starts once the API is healthy.
 /// </remarks>
 internal sealed partial class DevelopmentDemo(
-    IServiceScopeFactory scopes, IHostApplicationLifetime lifetime, TimeProvider time, ILogger<DevelopmentDemo> logger) : BackgroundService
+    IServiceScopeFactory scopes, IHostApplicationLifetime lifetime, TimeProvider time, ILogger<DevelopmentDemo> logger)
+    : BackgroundService, IHealthCheck
 {
     public const string TemplateName = "Brightwater engineering";
 
-    public const string SyntheticApplicantsJobSlug = "senior-dotnet-engineer";
+    public const string SyntheticApplicantsJobSlug = DemoCandidates.SeniorDotnetEngineer;
 
     public const string DraftJobSlug = "backend-engineer-payments";
+
+    public const string ClosedJobSlug = DemoCandidates.SupportEngineer;
 
     /// <summary>The careers notice version the demo applicants "saw" (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
     public const string PrivacyNoticeVersion = "2026-10-20.4";
 
-    /// <summary>The emails the template and the .NET job send. Ids are stable, so a later start finds them.</summary>
+    /// <summary>The seeded open jobs that get the candidate emails, and the boards each is posted to (null: every board).</summary>
+    public static IReadOnlyList<(string Slug, IReadOnlyList<string>? Boards)> OpenJobs { get; } =
+    [
+        (SyntheticApplicantsJobSlug, null),
+        (DemoCandidates.ProductDesigner, null),
+        (DemoCandidates.FrontendEngineer, [Boards.CareersPage, Boards.Sandbox]),
+    ];
+
+    /// <summary>The emails the template and the open jobs send. Ids are stable, so a later start finds them.</summary>
     public static IReadOnlyList<Automation> CandidateEmails { get; } =
     [
         new("demo_application_received", "Confirm the application to the candidate", new(TriggerType.ApplicationSubmitted), null,
@@ -63,39 +87,72 @@ internal sealed partial class DevelopmentDemo(
             [new(ActionType.SendEmail, EmailTemplate: EmailTemplateIds.StageChange)]),
     ];
 
+    private volatile bool finished;
+
+    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default) =>
+        Task.FromResult(finished
+            ? HealthCheckResult.Healthy()
+            : HealthCheckResult.Unhealthy("The local demo's data is still being added."));
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider")
+        try
         {
-            return; // the build's OpenAPI generation starts the host without a database
-        }
+            if (Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider")
+            {
+                return; // the build's OpenAPI generation starts the host without a database
+            }
 
-        var started = new TaskCompletionSource();
-        await using (lifetime.ApplicationStarted.Register(() => started.TrySetResult()))
+            var started = new TaskCompletionSource();
+            await using (lifetime.ApplicationStarted.Register(() => started.TrySetResult()))
+            {
+                await started.Task.WaitAsync(stoppingToken);
+            }
+
+            await SeedAsync(stoppingToken);
+        }
+        finally
         {
-            await started.Task.WaitAsync(stoppingToken);
+            // A failed step is logged and the API turns healthy anyway: demo data never holds up the stack.
+            finished = true;
         }
+    }
 
+    private async Task SeedAsync(CancellationToken stoppingToken)
+    {
         // Without Brightwater every step finds nothing to add to.
         var template = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
-        await TryAsync(() => SeedJobEmailsAsync(stoppingToken), stoppingToken);
+        foreach (var (slug, _) in OpenJobs)
+        {
+            await TryAsync(() => SeedJobEmailsAsync(slug, stoppingToken), stoppingToken);
+        }
+
         if (template is { } published)
         {
-            await TryAsync(() => SeedDraftJobAsync(published, stoppingToken), stoppingToken);
+            await TryAsync(() => SeedJobFromTemplateAsync(published, DraftJobSlug, DraftJob, stoppingToken), stoppingToken);
+            await TryAsync(() => SeedJobFromTemplateAsync(published, ClosedJobSlug, ClosedJob, stoppingToken), stoppingToken);
         }
+
+        foreach (var (slug, boards) in OpenJobs)
+        {
+            await TryAsync(() => PostAsync(slug, boards, stoppingToken), stoppingToken);
+        }
+
+        await TryAsync(() => PostAsync(ClosedJobSlug, boards: null, stoppingToken), stoppingToken);
 
         var applicants = 0;
         foreach (var applicant in SyntheticApplicants.All)
         {
-            applicants += await TryAsync(() => ApplyAsync(SyntheticApplicantsJobSlug, applicant, stageId: null, stoppingToken), stoppingToken) ? 1 : 0;
+            applicants += await TryAsync(() => ApplyAsync(SyntheticApplicantsJobSlug, applicant, moves: [], stoppingToken), stoppingToken) ? 1 : 0;
         }
 
         var candidates = 0;
         foreach (var candidate in DemoCandidates.All)
         {
-            candidates += await TryAsync(() => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.StageId, stoppingToken), stoppingToken) ? 1 : 0;
+            candidates += await TryAsync(() => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.Moves, stoppingToken), stoppingToken) ? 1 : 0;
         }
 
+        await TryAsync(() => CloseAsync(ClosedJobSlug, stoppingToken), stoppingToken);
         LogSeeded(logger, applicants, candidates);
     }
 
@@ -162,7 +219,7 @@ internal sealed partial class DevelopmentDemo(
             .SingleOrDefaultAsync(cancellationToken);
         if (existing is not null)
         {
-            // Never a second template of the name: the demo's job uses the newest published version, or is skipped.
+            // Never a second template of the name: the demo's jobs use the newest published version, or are skipped.
             return existing.Versions.OrderByDescending(v => v.Version).FirstOrDefault(v => v.Status == TemplateVersionStatus.Published) is { } published
                 ? (existing.Id, published.Id)
                 : null;
@@ -192,7 +249,7 @@ internal sealed partial class DevelopmentDemo(
         return (template.Id, version.Id);
     }
 
-    private async Task SeedJobEmailsAsync(CancellationToken cancellationToken)
+    private async Task SeedJobEmailsAsync(string slug, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -200,7 +257,7 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        var job = await step.Outbox.DbContext.Jobs.SingleOrDefaultAsync(j => j.Slug == SyntheticApplicantsJobSlug, cancellationToken);
+        var job = await step.Outbox.DbContext.Jobs.SingleOrDefaultAsync(j => j.Slug == slug, cancellationToken);
         if (job is null || job.Status == JobStatus.Closed)
         {
             return;
@@ -218,7 +275,9 @@ internal sealed partial class DevelopmentDemo(
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
-    private async Task SeedDraftJobAsync((Guid TemplateId, Guid VersionId) template, CancellationToken cancellationToken)
+    // A job from Brightwater's template, as a recruiter creates it on the dashboard: a draft until something publishes it.
+    private async Task SeedJobFromTemplateAsync(
+        (Guid TemplateId, Guid VersionId) template, string slug, Func<Guid, DateTimeOffset, Job> create, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -227,15 +286,24 @@ internal sealed partial class DevelopmentDemo(
         }
 
         var db = step.Outbox.DbContext;
-        if (await db.Jobs.AnyAsync(j => j.Slug == DraftJobSlug, cancellationToken))
+        if (await db.Jobs.AnyAsync(j => j.Slug == slug, cancellationToken))
         {
             return;
         }
 
         var version = await db.HiringTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == template.VersionId, cancellationToken);
+        var job = create(step.OrganizationId, step.Now);
+        job.UseTemplate(version);
+        db.Jobs.Add(job);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static Job DraftJob(Guid organizationId, DateTimeOffset now)
+    {
         var job = new Job
         {
-            OrganizationId = step.OrganizationId,
+            OrganizationId = organizationId,
+            CreatedAt = now,
             Title = "Backend Engineer (Payments)",
             Slug = DraftJobSlug,
             Department = "Engineering",
@@ -251,17 +319,94 @@ internal sealed partial class DevelopmentDemo(
             WorkplaceType = WorkplaceType.Remote,
             EmploymentType = EmploymentType.FullTime,
             ApplicantLocationRequirements = ["GB", "IE"],
-            CreatedAt = step.Now,
         };
         job.SetSalary(new JobSalary(70_000, 90_000, "GBP", SalaryPeriod.Year));
-        job.UseTemplate(version);
-        db.Jobs.Add(job);
-        await db.SaveChangesAsync(cancellationToken);
+        return job;
     }
 
-    // Submits one applicant through the careers submission path, then moves them to `stageId` as Brightwater's Owner.
-    // False when they had already applied or the job is not there.
-    private async Task<bool> ApplyAsync(string jobSlug, SyntheticApplicant applicant, string? stageId, CancellationToken cancellationToken)
+    private static Job ClosedJob(Guid organizationId, DateTimeOffset now)
+    {
+        var job = new Job
+        {
+            OrganizationId = organizationId,
+            CreatedAt = now,
+            Title = "Support Engineer",
+            Slug = ClosedJobSlug,
+            Department = "Engineering",
+            Description =
+                "<p>Our support engineers are the second line for venues whose bookings or payouts look wrong. You read logs " +
+                "and queries, fix what you can, and hand the rest to the product teams with everything they need.</p>" +
+                "<h2>What you will do</h2><ul><li>Investigate payment and booking issues across our services.</li>" +
+                "<li>Write runbooks so first-line support can solve more on their own.</li></ul>",
+            WorkplaceType = WorkplaceType.Remote,
+            EmploymentType = EmploymentType.FullTime,
+            ApplicantLocationRequirements = ["GB", "IE"],
+        };
+        job.SetSalary(new JobSalary(45_000, 55_000, "GBP", SalaryPeriod.Year));
+        return job;
+    }
+
+    // Posts the job through the dashboard's publish: opens a draft, or posts an open job to boards. Only a job on no board
+    // at all, so a board someone took it off stays off.
+    private async Task PostAsync(string slug, IReadOnlyList<string>? boards, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var job = await db.Jobs.SingleOrDefaultAsync(j => j.Slug == slug, cancellationToken);
+        if (job is null || job.Status == JobStatus.Closed || await db.JobPostings.AnyAsync(p => p.JobId == job.Id, cancellationToken))
+        {
+            return;
+        }
+
+        var services = step.Services;
+        var refused = await JobEndpoints.PublishAsync(
+            step.Outbox,
+            services.GetRequiredService<JobPublishValidator>(),
+            services.GetRequiredService<DistributionPlanner>(),
+            services.GetRequiredService<BoardRegistry>(),
+            services.GetRequiredService<IOptions<DomainOptions>>().Value,
+            job, boards, step.Now, cancellationToken);
+        if (refused is not null)
+        {
+            var reason = refused.Result switch
+            {
+                ValidationProblem invalid => string.Join("; ", invalid.ProblemDetails.Errors.SelectMany(e => e.Value)),
+                ProblemHttpResult problem => problem.ProblemDetails.Detail,
+                _ => null,
+            };
+            throw new InvalidOperationException($"The demo could not publish '{slug}': {reason}");
+        }
+    }
+
+    // Closes the job and takes it down everywhere through the dashboard's close, once its candidates have applied.
+    private async Task CloseAsync(string slug, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        {
+            return;
+        }
+
+        var job = await step.Outbox.DbContext.Jobs.SingleOrDefaultAsync(j => j.Slug == slug, cancellationToken);
+        if (job is not { Status: JobStatus.Open })
+        {
+            return;
+        }
+
+        if (await JobEndpoints.CloseAsync(step.Outbox, step.Services.GetRequiredService<DistributionPlanner>(), job, step.Now, cancellationToken) is { } conflict)
+        {
+            throw new InvalidOperationException($"The demo could not close '{slug}': {conflict.ProblemDetails.Detail}");
+        }
+    }
+
+    // Submits one applicant through the careers submission path, then makes `moves` in order as Brightwater's Owner.
+    // False when they had already applied or the job is not open.
+    private async Task<bool> ApplyAsync(string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -298,19 +443,45 @@ internal sealed partial class DevelopmentDemo(
             return false;
         }
 
-        if (stageId is not null && job.Workflow.FindStage(stageId) is { } target && application.CurrentStageId != target.Id)
+        if (moves.Count > 0)
         {
-            var from = application.CurrentStageId;
-            var now = time.GetUtcNow();
-            if (application.MoveTo(target, now, step.Owner, note: null) is { } moved)
-            {
-                db.ApplicationEvents.Add(moved);
-                await step.Outbox.PublishAsync(new ApplicationMoved(application.OrganizationId, application.Id, application.JobId, from, target.Id, moved.Id, now));
-                await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-            }
+            await MoveAsync(application.Id, moves, cancellationToken);
         }
 
         return true;
+    }
+
+    // Makes `moves` in order as Brightwater's Owner, in a scope of its own like the dashboard's move request: an outbox
+    // that has already flushed once (the submission's) keeps later messages in its table without sending them. One commit
+    // for all the moves; a move to a stage the job lacks stops the rest.
+    private async Task MoveAsync(Guid applicationId, IReadOnlyList<DemoMove> moves, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var application = await db.Applications.SingleAsync(a => a.Id == applicationId, cancellationToken);
+        var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+        foreach (var move in moves)
+        {
+            if (job.Workflow.FindStage(move.StageId) is not { } target)
+            {
+                throw new InvalidOperationException($"The demo moves an applicant to '{move.StageId}', which '{job.Slug}' has no stage for.");
+            }
+
+            var from = application.CurrentStageId;
+            var now = time.GetUtcNow();
+            if (application.MoveTo(target, now, step.Owner, move.Note) is { } moved)
+            {
+                db.ApplicationEvents.Add(moved);
+                await step.Outbox.PublishAsync(new ApplicationMoved(application.OrganizationId, application.Id, application.JobId, from, target.Id, moved.Id, now));
+            }
+        }
+
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
     // What the applicant's browser would have sent, as the last page's snapshot of a session of its own.
