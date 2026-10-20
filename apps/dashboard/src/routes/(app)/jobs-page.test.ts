@@ -100,6 +100,21 @@ describe('jobs page actions', () => {
       expect(screen.getByRole('status')).toHaveTextContent('Could not publish Customer Success Lead (HTTP 409).'),
     );
   });
+
+  it('says so when the request never reaches the API, and lets the person try again', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => Promise.reject(new TypeError('Failed to fetch'))));
+    render(Page, { props: { params: {}, data: { user, jobs } } });
+    const close = screen.getByRole('button', { name: 'Close Senior .NET Engineer' });
+
+    await fireEvent.click(close);
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Could not close Senior .NET Engineer. Check your connection and try again.',
+      ),
+    );
+    expect(close).toBeEnabled();
+  });
 });
 
 describe('jobs page load', () => {

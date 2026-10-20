@@ -37,6 +37,8 @@
       }
       // Refetch now; other signed-in tabs and teammates get the same change through live updates.
       await invalidate(jobsDependency);
+    } catch {
+      failure = `Could not ${action.label.toLowerCase()} ${job.title}. Check your connection and try again.`;
     } finally {
       busyJobId = null;
     }
