@@ -74,8 +74,9 @@
     <Dialog.Header>
       <Dialog.Title>Dismiss this {name} assessment?</Dialog.Title>
       <Dialog.Description>
-        The level and its evidence stay on record. Your reason and your name go in the review log, and the candidate leaves
-        the "Needs review" queue.
+        The level and its evidence stay on record. Your reason and your name go in the review log{assessment?.kind === 'authenticity'
+          ? ', and the candidate leaves the "Needs review" queue.'
+          : '.'}
       </Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
