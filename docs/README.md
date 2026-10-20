@@ -44,6 +44,7 @@ configuration everywhere (ADR-0003).
 
 - [Board pipeline](process/board-pipeline.md) — Kangentic columns, outcome lines, notifications and how to unblock a
   task; where the gate, conflict rules and process guard live
+- [Claude Code tooling](process/dev-tooling.md) - the skills, agents and rules in `.claude/`, and when to use each
 
 ## Research (snapshot 2026-10-18)
 

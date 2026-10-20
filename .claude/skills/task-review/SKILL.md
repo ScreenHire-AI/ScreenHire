@@ -27,9 +27,16 @@ An empty diff means the task did nothing: that is `Verdict: Blocked` with "imple
 
 ## 2. Find
 
-Launch three reviewers in parallel with the Agent tool (`general-purpose`), each given the diff range, the brief and
+Launch three reviewers in parallel with the Agent tool (`review-finder`), each given the diff range, the brief and
 its dimension. Tell each to read the changed files in full, report findings as `file:line`, severity
 (blocker / major / minor), the evidence and the fix, and to change nothing.
+
+In the same parallel batch, launch the specialists (`.claude/agents/`), each given the diff range and the brief:
+`tenant-isolation-guard` and `integrity-guardrails` always (each says `NOT APPLICABLE` when the diff does not touch
+its area), `licence-check` when `Directory.Packages.props` or a `package.json` changed, and `migration-safety` when
+`src/ScreenHire.Infrastructure/Persistence/` or `src/ScreenHire.Domain/` changed. They go deeper on the
+non-negotiables than dimension 2; dimension 2 still covers its whole list. If an agent type is not available in
+this session, use `general-purpose` with the contents of `.claude/agents/<name>.md` as the start of its prompt.
 
 1. **Correctness and completeness.** Does the code do what the brief says? Every acceptance criterion met and
    tested? Edge cases, error paths, concurrency, async misuse, N+1 queries, missing awaits, time zones (store UTC),
@@ -58,7 +65,7 @@ its dimension. Tell each to read the changed files in full, report findings as `
 
 1. Check every finding yourself against the code. Drop the ones that do not hold and list them as refuted.
 2. Fix every confirmed finding you can do well inside a review: code, tests, docs. Add tests for any acceptance
-   criterion or changed behaviour that has none.
+   criterion or changed behaviour that has none (the `test-builder` agent in write mode picks the tier).
 3. Run what proves the fixes: `pnpm verify:dotnet`, `pnpm check`, and the affected test projects or suites.
 4. Commit review work separately from the implementer's: `fix(review): ...`, `test(review): ...`, `docs(review): ...`.
    If you confirmed nothing, make no commit.

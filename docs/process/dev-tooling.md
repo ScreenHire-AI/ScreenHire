@@ -1,0 +1,72 @@
+# Claude Code tooling
+
+What each skill, agent and rule in [`.claude/`](../../.claude/) is for, and when to reach for it. Agents working on
+the board use these so every task follows the same paths; people can run any skill too (`/add-endpoint ...`). The
+files are the source of truth. If this page and a file disagree, fix this page (`/sync-docs` checks it).
+
+## Skills
+
+A skill is a procedure, run with `/<name>` or loaded by Claude Code when the task matches its description.
+
+| Skill | Use it when | What it does |
+|---|---|---|
+| [`add-endpoint`](../../.claude/skills/add-endpoint/SKILL.md) | adding or changing an API route or a request/response shape | DTO records in `Contracts/`, a `Map*Endpoints` area with `TypedResults`, authorization and validation, an Aspire integration test, `pnpm generate:api` |
+| [`add-migration`](../../.claude/skills/add-migration/SKILL.md) | an entity or EF configuration changes | naming, generating and reviewing the SQL, the tenant-table checklist (`OrganizationId`, query filter, RLS, grants), the never-edit-merged and merge-conflict rules |
+| [`add-dashboard-page`](../../.claude/skills/add-dashboard-page/SKILL.md) | adding a recruiter-dashboard screen | SvelteKit 3 route with runes, `#lib` imports, `$app/state`, shadcn-svelte, the generated client, loading/empty/error states, Vitest and Playwright tests |
+| [`add-careers-page`](../../.claude/skills/add-careers-page/SKILL.md) | adding a candidate-facing page | Astro SSR route, `CareersLayout`, server-side API data, 404/410, `JobPosting` JSON-LD, no client JS, notice before collection |
+| [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
+| [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
+| [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, runs `doc-auditor`, fixes drifted docs and prose |
+| [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
+| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
+| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate, push, open and link the PR |
+| [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | re-gate if `main` moved, squash-merge, confirm, realign |
+
+The last four are the board pipeline ([board-pipeline.md](board-pipeline.md)). Change them only in a task about the
+pipeline.
+
+## Agents
+
+An agent is a subagent with its own instructions and tools, started with the Agent tool. Reviewers are read-only and
+report findings as `file:line`, severity, evidence and fix; the caller verifies and applies them.
+
+| Agent | Access | Started by | What it checks or does |
+|---|---|---|---|
+| [`review-finder`](../../.claude/agents/review-finder.md) | read-only | `/task-review` (one per dimension) | one review dimension: correctness, non-negotiables and security, or conventions |
+| [`tenant-isolation-guard`](../../.claude/agents/tenant-isolation-guard.md) | read-only | `/task-review`, `/add-migration` | `OrganizationId` on tenant rows, query scope, named query filters, RLS, cross-tenant paths |
+| [`integrity-guardrails`](../../.claude/agents/integrity-guardrails.md) | read-only | `/task-review` | no scores, no rejection from integrity, no emotion or biometric inference, notice before collection, telemetry aggregates only, no scraping |
+| [`licence-check`](../../.claude/agents/licence-check.md) | read-only | `/task-review`, any skill that adds a package | every new NuGet or npm package against ADR-0008 |
+| [`migration-safety`](../../.claude/agents/migration-safety.md) | read-only | `/add-migration`, `/task-review` | generated SQL, types, existing data, destructive operations, snapshot drift, RLS for tenant tables |
+| [`doc-auditor`](../../.claude/agents/doc-auditor.md) | read-only | `/sync-docs` | lists in docs against the sources that define them |
+| [`test-builder`](../../.claude/agents/test-builder.md) | writes tests | the page and endpoint skills, `/task-review` | picks the tier, writes and red-greens tests; audit-only mode returns a gap table |
+
+## Rules
+
+A rule is standing guidance in [`.claude/rules/`](../../.claude/rules/). A rule with a `paths:` list loads only
+when Claude Code reads a matching file; the others always load. CLAUDE.md keeps the one-line version of each
+convention; the rule holds the detail.
+
+| Rule | Loads for | What it says |
+|---|---|---|
+| [`unattended-runs`](../../.claude/rules/unattended-runs.md) | always | never wait for a person, stay local, start from what is merged, finish in a state the gate accepts |
+| [`integration-conflicts`](../../.claude/rules/integration-conflicts.md) | always | merge `main` (not rebase); take `main` and regenerate the lockfile, the API client and migrations |
+| [`writing-style`](../../.claude/rules/writing-style.md) | always | prose without model tells: no em-dashes or curly quotes, plain words, short sentences |
+| [`no-personal-info`](../../.claude/rules/no-personal-info.md) | always | no personal paths, emails, secrets or real applicant data in committed files |
+| [`cli-features-over-custom-layers`](../../.claude/rules/cli-features-over-custom-layers.md) | always | use Aspire, ASP.NET Core, EF Core, Orval and Claude Code features before writing a layer; no model-name lists |
+| [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
+| [`utc-timestamps`](../../.claude/rules/utc-timestamps.md) | `src`, `apps/api`, `apps/worker` | `DateTimeOffset` in UTC from `TimeProvider`, `timestamp with time zone` |
+| [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility |
+| [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS, SEO and JSON-LD, domains as configuration, notice before collection |
+| [`docs-stay-in-sync`](../../.claude/rules/docs-stay-in-sync.md) | sources that docs enumerate | update the doc that lists an item when the item changes |
+| [`skill-authoring`](../../.claude/rules/skill-authoring.md) | `.claude/skills`, `.claude/agents`, `.claude/rules` | grounded commands, no questions, read-only reviewers, no forked mutating skills |
+
+## Tiers that may not exist yet
+
+The test steps in the skills and in `test-builder` name four tiers: `tests/ScreenHire.UnitTests`, Vitest `test`
+scripts, `tests/ScreenHire.IntegrationTests` and `tests/ScreenHire.E2E`. Each step says what to do when its tier is
+missing on a branch: cover the behaviour at a tier that exists and say so in the summary.
+
+## Adding to this
+
+Follow [`skill-authoring`](../../.claude/rules/skill-authoring.md): run every command once, word not-yet-merged
+dependencies by what exists, and add a row here in the same change.

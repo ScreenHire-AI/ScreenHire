@@ -80,11 +80,13 @@ process-killing commands.
 
 ## Frontend rules
 
+Detail and the add-component command: `.claude/rules/svelte-dashboard.md` and `.claude/rules/astro-public.md`.
+Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
+
 - **Svelte 5 runes only** (`compilerOptions.runes: true`); no `export let`, `$:`, `on:`, `<slot>`.
 - **SvelteKit 3:** config in `vite.config.ts` (no `svelte.config.js`); import via `#lib/...` with `.js` extensions
   (not `$lib`); `$app/state` (not `$app/stores`); `$app/env` (not `$app/environment`); tsconfig extends `$app/tsconfig`.
-- **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code — edit freely. Run
-  `pnpm exec svelte-kit sync` before `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install`. Use `field` +
+- **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
 - **Tokens only:** colours, fonts and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
   `text-status-review`); never hard-code hex values. Status = shape mark + colour + text label, always.
@@ -94,6 +96,9 @@ process-killing commands.
 
 ## Backend rules
 
+Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Procedures: `/add-endpoint`,
+`/add-migration`.
+
 - .NET 10, central package management (`Directory.Packages.props`). **Licence policy (ADR-0008):** MIT/Apache/BSD
   preferred; do not add MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText,
   or Polly/Verify directly. Check the licence of every new package.
@@ -102,3 +107,9 @@ process-killing commands.
 - Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops).
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
   settings need it.
+
+## Claude Code tooling
+
+Skills (`/add-endpoint`, `/add-migration`, `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`,
+`/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
+[`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).
