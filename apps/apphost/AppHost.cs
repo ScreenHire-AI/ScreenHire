@@ -5,10 +5,14 @@
 //   PersistData (default true)  keep Postgres/Azurite data in volumes. Volume names come from Aspire and include a
 //                               hash of this AppHost's path, so each git worktree gets its own data.
 //   PinPorts    (default true)  stable local URLs; set false (as the integration tests do) for random ports, or
-//                               override individual ports with Ports:Api / Ports:Marketing / Ports:Careers / Ports:Dashboard.
+//                               override individual ports with Ports:Api / Ports:Marketing / Ports:Careers / Ports:Dashboard
+//                               / Ports:Mailpit (its web UI) / Ports:DevSso.
 //   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
+//   Demo        (on with Dev)   the local demo's data on Brightwater (the API's DevelopmentDemo): on with Frontends Dev,
+//                               off with Built and None, which the test stacks use. The integration tests'
+//                               DevelopmentDemoTests turn it on for a stack of their own.
 //   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
 //                               the same boards (ScreenHire.Application DistributionOptions). appsettings.Development.json
 //                               turns on the local sandbox board, a fake that must never reach real tenants;
@@ -32,6 +36,7 @@ var frontends = settings["Frontends"] is not { } frontendsSetting
     : Enum.TryParse<FrontendMode>(frontendsSetting, ignoreCase: true, out var mode) && Enum.IsDefined(mode)
         ? mode
         : throw new InvalidOperationException($"ScreenHire:Frontends must be Dev, Built or None, not '{frontendsSetting}'.");
+var demo = bool.TryParse(settings["Demo"], out var demoSetting) ? demoSetting : frontends == FrontendMode.Dev;
 int? PortFor(string name, int fallback) =>
     !pinPorts ? null : int.TryParse(settings[$"Ports:{name}"], out var port) ? port : fallback;
 
@@ -64,9 +69,10 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator =>
 });
 var blobs = storage.AddBlobs("blobs");
 
-// Mailpit catches every email the stack sends (sign-in links, automation emails); its web UI and HTTP API show them. Random ports, like
-// the other containers, so worktrees never collide; the Aspire dashboard shows the URL.
-var mailpit = builder.AddMailPit("mailpit")
+// Mailpit catches every email the stack sends (sign-in links, automation emails); its web UI and HTTP API show them. The
+// web UI is pinned like the apps (Ports:Mailpit, default 8025, Mailpit's usual port) so the local guide can link it; SMTP
+// stays random, since only the API and worker use it, through Aspire's reference.
+var mailpit = builder.AddMailPit("mailpit", httpPort: PortFor("Mailpit", 8025))
     // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
     .WithEnvironment("MP_SMTP_DISABLE_RDNS", "true");
 
@@ -99,7 +105,7 @@ if (builder.Environment.IsDevelopment())
         "dev-sso-client-secret", new GenerateParameterDefault { MinLength = 24, Special = false }, secret: true);
     var devSso = builder.AddContainer("dev-sso", "navikt/mock-oauth2-server", "6.1.2")
         .WithImageRegistry("ghcr.io")
-        .WithHttpEndpoint(targetPort: 8080)
+        .WithHttpEndpoint(port: PortFor("DevSso", 5090), targetPort: 8080)
         .WithEnvironment("SERVER_PORT", "8080")
         .WithEnvironment("JSON_CONFIG", File.ReadAllText(Path.Combine(builder.AppHostDirectory, "DevSso", "config.json")))
         .WithContainerFiles("/dev-sso", Path.Combine(builder.AppHostDirectory, "DevSso"))
@@ -165,12 +171,13 @@ if (string.Equals(settings["Integrity:Llm:Provider"], "Anthropic", StringCompari
     worker.WithEnvironment("ScreenHire__Integrity__Llm__Anthropic__ApiKey", anthropicKey);
 }
 
-// The integrity demo: synthetic applicants apply to Brightwater once the API starts (SyntheticApplicantsDemo). Only for
-// `pnpm dev`: the test stacks make their own data, and the startup burst of submissions delayed a later live update in
-// the end-to-end tests (integrity-engine.md §10.9).
-if (frontends == FrontendMode.Dev)
+// The local demo's data (the API's DevelopmentDemo, docs/operations/local-demo.md): Brightwater's template, a draft job,
+// the synthetic applicants and candidates in every stage, once the API starts. Only for `pnpm dev` by default: the test
+// stacks make their own data and treat Brightwater as the seeder leaves it, and the startup burst of submissions delayed
+// a later live update in the end-to-end tests (integrity-engine.md §10.9).
+if (demo)
 {
-    api.WithEnvironment("ScreenHire__Demo__SyntheticApplicants", "true");
+    api.WithEnvironment("ScreenHire__Demo__Enabled", "true");
 }
 
 if (frontends != FrontendMode.None)

@@ -95,6 +95,10 @@ There is no reset between tests and no Respawn. Instead:
   AppHost therefore never see each other's data, in any order or in parallel.
 - **The seeded demo organization (`brightwater`) is read-only.** Assert on it (the end-to-end journeys do), never
   change it: other tests count its jobs.
+- **A test that needs a different stack gets a fixture of its own.** Subclass `AppHostFixture`, add the AppHost
+  settings through `ExtraArguments`, and use it as the class's `IClassFixture`. `DevelopmentDemoTests` does this with
+  `--ScreenHire:Demo=true`: it checks the data `pnpm dev` seeds on Brightwater, and that a second start of the API adds
+  none, on a stack the other tests never see. Each such fixture boots another stack, about 25 s, so keep them rare.
 - `TestData` is the one place tests write to the database directly. It writes as the application role
   (`screenhire_app`, which neither owns the tables nor bypasses RLS) with the organization as tenant, so row-level
   security checks test data too. `fixture.CreateDbContextAsync(tenant, ...)` gives a context on the same role.
@@ -158,6 +162,14 @@ healthy, and launches one headless Chromium for the assembly. Test classes deriv
 Assert on what a person sees (headings, rows, cell text, links by accessible name) with Playwright's `Expect(...)`,
 which retries until its timeout. Status codes alone are not an end-to-end assertion.
 
+`AcceptanceJourneyTests` is the MVP acceptance journey: the whole product in one test, in the order a hiring team meets
+it (Dev SSO sign-in and onboarding, a job from a template, publish to the careers page and the sandbox board, a genuine
+candidate and a bot applying on the careers site while the job is open, their levels and evidence arriving live, a move
+that sends the stage-change email to Mailpit, and the teardown). The other classes go deep on each step; this one
+proves the steps connect, so a change that breaks the hand-off between two areas fails here. It keeps the integrity
+levels deterministic in a browser: the genuine candidate's browser runs no JavaScript, so Playwright's automation
+markers and the device check never reach the API, and the bot uses Playwright's browser as it is.
+
 ### Golden files
 
 Two unit tests compare output with files in the repository, and fail with the command that rewrites them:
@@ -213,3 +225,7 @@ others, and the `WorkerLifecycle` collection runs alone after them.
 
 With the marketing site v1 on top of messaging (Lighthouse on 15 pages, 59 .NET tests, 73 Vitest tests), `pnpm verify`
 took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.
+
+With the MVP acceptance journey (881 .NET tests), `pnpm verify` took 3 min 55 s and 3 min 40 s over
+two consecutive runs on 2026-10-20; both passed. The end-to-end assembly, the journey included, takes about 65 s of
+that, in parallel with the integration tests (about 85 s).

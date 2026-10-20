@@ -24,11 +24,25 @@ export function invalidatePath(client: QueryClient, path: string): Promise<void>
   return client.invalidateQueries({ queryKey: path.split('/').filter(Boolean) });
 }
 
-/** A sentence for a failed request: the API's own problem detail when it gave one. */
+/**
+ * A sentence for a failed request: the API's own problem detail when it gave one, or a validation problem's messages
+ * (a publish the job is not ready for says what is missing).
+ */
 export function describeError(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {
-    return error.body && typeof error.body === 'object' && 'detail' in error.body ? error.message : `${fallback} (HTTP ${error.status}).`;
+    if (error.body && typeof error.body === 'object' && 'detail' in error.body) return error.message;
+    const messages = validationMessages(error.body);
+    return messages.length > 0 ? `${fallback}: ${messages.join(' ')}` : `${fallback} (HTTP ${error.status}).`;
   }
 
   return `${fallback}. Check your connection and try again.`;
+}
+
+// Every message of a validation problem (`errors`: field name to messages), each once, in the API's order.
+function validationMessages(body: unknown): string[] {
+  if (!body || typeof body !== 'object' || !('errors' in body) || !body.errors || typeof body.errors !== 'object') return [];
+  const messages = Object.values(body.errors as Record<string, unknown>)
+    .flatMap((value) => (Array.isArray(value) ? value : []))
+    .filter((message): message is string => typeof message === 'string');
+  return [...new Set(messages)];
 }

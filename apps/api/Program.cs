@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Demo;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
@@ -25,11 +26,11 @@ builder.AddScreenHireApiMessaging(TenantEventPusher.For);
 builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
-if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:SyntheticApplicants"))
+if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
 {
-    // The integrity demo: synthetic applicants apply to Brightwater once the API has started. The AppHost turns it on
-    // for `pnpm dev` only.
-    builder.Services.AddHostedService<SyntheticApplicantsDemo>();
+    // The local demo's data: Brightwater's template, a draft job, the synthetic applicants and candidates in every
+    // stage, once the API has started (docs/operations/local-demo.md). The AppHost turns it on for `pnpm dev` only.
+    builder.Services.AddHostedService<DevelopmentDemo>();
 }
 
 builder.Services.AddProblemDetails();

@@ -23,6 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The demo's candidate list, so DevelopmentDemoTests checks the data the API seeds. The file is internal to the API,
+         whose project the tests do not reference; it needs only the Application and Domain projects. -->
+    <Compile Include="..\..\apps\api\Demo\DemoCandidates.cs" Link="Demo\DemoCandidates.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="System.Net" />
     <Using Include="ScreenHire.Testing" />
     <Using Include="AwesomeAssertions" />

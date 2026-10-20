@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Demo;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
@@ -204,7 +205,13 @@ public sealed class IntegrityAdapterTests
         var careers = System.Text.RegularExpressions.Regex.Match(apply, @"export const NOTICE_VERSION = '([^']+)'");
 
         careers.Success.Should().BeTrue("apps/careers/src/lib/apply.ts exports NOTICE_VERSION");
-        SyntheticApplicantsDemo.PrivacyNoticeVersion.Should().Be(careers.Groups[1].Value);
+        DevelopmentDemo.PrivacyNoticeVersion.Should().Be(careers.Groups[1].Value);
+
+        // The test helpers' copy, read as text: this project does not reference ScreenHire.Testing.
+        var helpers = File.ReadAllText(RepositoryFiles.PathTo("tests", "ScreenHire.Testing", "SyntheticApplications.cs"));
+        var tests = System.Text.RegularExpressions.Regex.Match(helpers, @"PrivacyNoticeVersion = ""([^""]+)""");
+        tests.Success.Should().BeTrue("tests/ScreenHire.Testing/SyntheticApplications.cs declares PrivacyNoticeVersion");
+        tests.Groups[1].Value.Should().Be(careers.Groups[1].Value);
     }
 
     [Fact]

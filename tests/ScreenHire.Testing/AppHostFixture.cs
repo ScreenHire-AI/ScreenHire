@@ -26,6 +26,12 @@ public class AppHostFixture : IAsyncLifetime
     /// <summary>The AppHost's <c>ScreenHire:Frontends</c> mode. <c>None</c> starts only the API, worker and infrastructure.</summary>
     protected virtual string Frontends => "None";
 
+    /// <summary>
+    /// More AppHost arguments (<c>--ScreenHire:Setting=value</c>), after the standard ones, for a fixture that needs a
+    /// stack with a setting of its own. The shared fixture adds none.
+    /// </summary>
+    protected virtual IReadOnlyList<string> ExtraArguments => [];
+
     /// <summary>Resources that must report healthy before any test runs.</summary>
     protected virtual IReadOnlyList<string> RequiredResources => ["api"];
 
@@ -45,6 +51,7 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Distribution:Sandbox:AcceptanceDelay={SandboxDelay}",
                 $"--ScreenHire:Distribution:Sandbox:RemovalDelay={SandboxDelay}",
                 "--ScreenHire:Distribution:GoogleIndexing:Mode=Local",
+                .. ExtraArguments,
             ],
             startup.Token);
         app = await builder.BuildAsync(startup.Token);
