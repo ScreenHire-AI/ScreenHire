@@ -128,6 +128,8 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
   hosts; without it every candidate shares the proxy's address. Until then Astro also sees its own origin as
   `localhost`, so a browser that sends `Origin` without `Sec-Fetch-Site` (older Safari) gets 403 from Astro's form
   origin check on every step.
+- The lifecycle rule above is what makes the privacy page's "deleted after a day" true for files never sent with an
+  application; nothing in the application deletes them.
 - Keep server and CDN access logs for no more than 30 days: the privacy page promises it, and nothing in the
   application enforces it.
 - Optionally configure Turnstile keys, and a malware scanner behind `IMalwareScanner`.

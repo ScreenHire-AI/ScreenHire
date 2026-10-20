@@ -22,11 +22,18 @@ internal static class FileTypes
     /// <summary>The most bytes <see cref="Matches"/> reads.</summary>
     public const int SignatureLength = 8;
 
-    /// <summary>The extensions a question accepts: its own list within the allowed types, or every allowed type.</summary>
-    public static IReadOnlyList<string> AcceptedBy(IReadOnlyList<string>? questionTypes) =>
-        questionTypes is { Count: > 0 }
-            ? [.. questionTypes.Select(t => t.ToLowerInvariant()).Where(ByExtension.ContainsKey).Distinct()]
-            : [.. ByExtension.Keys];
+    /// <summary>
+    /// The extensions a question accepts: its own list within the allowed types, or every allowed type. A list with no
+    /// allowed type in it (the definition validator takes any extension, such as <c>.exe</c>) also gets every allowed
+    /// type, because an empty list would leave the question impossible to answer.
+    /// </summary>
+    public static IReadOnlyList<string> AcceptedBy(IReadOnlyList<string>? questionTypes)
+    {
+        var own = questionTypes is null
+            ? []
+            : questionTypes.Select(t => t.ToLowerInvariant()).Where(ByExtension.ContainsKey).Distinct().ToList();
+        return own.Count > 0 ? own : [.. ByExtension.Keys];
+    }
 
     /// <summary>The extensions for a candidate to read: "PDF or DOCX".</summary>
     public static string Describe(IReadOnlyList<string> extensions) =>

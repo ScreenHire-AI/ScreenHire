@@ -32,6 +32,7 @@ public sealed class FileTypesTests
     {
         FileTypes.AcceptedBy([".PDF", ".docx", ".exe"]).Should().Equal(".pdf", ".docx");
         FileTypes.AcceptedBy(null).Should().Contain([".pdf", ".docx", ".doc", ".png", ".jpg"]).And.NotContain(".exe");
+        FileTypes.AcceptedBy([".exe"]).Should().Equal(FileTypes.AcceptedBy(null), "a question is never left unanswerable");
     }
 
     [Theory]
