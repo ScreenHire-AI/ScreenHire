@@ -46,8 +46,9 @@ same emails and anything you changed.
 ### Start over
 
 - **A clean demo, keeping your data:** `/preview fresh`, or
-  `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false`. It runs with no volumes at all and deletes
-  nothing; the next normal start has your data back.
+  `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false` (add
+  `--isolated` before `--` in a worktree). It runs with no volumes at all and deletes nothing; the next normal start has
+  your data back.
 - **Wipe this clone's data for good:** stop the stack, then remove its three data volumes one at a time by exact name,
   as `/preview` reports them: `screenhire.apphost-<hash>-postgres-data`, `-storage-data` and `-mailpit-data`, each with
   its own `docker volume rm`. The hash comes from this clone's path, so other worktrees' volumes have other names; never
@@ -67,8 +68,8 @@ same emails and anything you changed.
 
 These are the main checkout's ports. `/preview` in a worktree starts with `--isolated`, so every port, the Aspire
 dashboard's included, is random; it prints the real ones (`dotnet aspire describe` lists them too). Another stack already
-on one of these ports? Pin others with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashboard`, `__Mailpit`
-or `__DevSso`, or run with `ScreenHire__PinPorts=false` for random app ports, which the Aspire dashboard lists.
+on one of these ports? Start this one with `dotnet aspire start --isolated` (what `/preview` does in a worktree), or move
+single ports with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashboard`, `__Mailpit` or `__DevSso`.
 
 ## Demo logins
 

@@ -132,9 +132,10 @@ Messages cross processes, so these tests wait on Wolverine's tables in Postgres,
   (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and
   drops the schema afterwards. Use it to make a handler fail or a transaction roll back without touching the running
   worker.
-- A test that stops or restarts the worker joins the `WorkerLifecycle` collection
-  (`[Collection(nameof(WorkerLifecycle))]`). xUnit runs that collection on its own after the parallel tests, so no
-  other test waits on a stopped worker.
+- A test that stops or restarts the worker joins the `WorkerLifecycle` collection (`[Collection<WorkerLifecycle>]`).
+  xUnit runs that collection on its own after the parallel tests, so no other test waits on a stopped worker. Refer
+  to a collection by its type, never `[Collection(nameof(...))]`: a `[CollectionDefinition]` without a name is matched
+  by type, and a string quietly makes a separate collection that runs in parallel.
 
 What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
 
