@@ -72,7 +72,7 @@ export function buildJobPosting(job: PublicJob, context: JobPostingContext): Rec
 }
 
 /** A tenant's sitemap: the board page and every open job's page, with lastmod from the job's last change. */
-export function buildSitemap(boardUrl: string, jobs: Pick<PublicJob, 'slug' | 'updatedAt' | 'publishedAt'>[]): string {
+export function buildSitemap(boardUrl: string, jobs: Pick<PublicJob, 'url' | 'updatedAt' | 'publishedAt'>[]): string {
   const entry = (loc: string, lastmod?: string | null) =>
     `  <url><loc>${escapeHtml(loc)}</loc>${lastmod ? `<lastmod>${escapeHtml(lastmod)}</lastmod>` : ''}</url>`;
   const newest = jobs.map((job) => job.updatedAt ?? job.publishedAt).filter((date): date is string => date != null).sort().at(-1);
@@ -80,7 +80,7 @@ export function buildSitemap(boardUrl: string, jobs: Pick<PublicJob, 'slug' | 'u
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     entry(boardUrl, newest),
-    ...jobs.map((job) => entry(`${boardUrl}/jobs/${job.slug}`, job.updatedAt ?? job.publishedAt)),
+    ...jobs.map((job) => entry(job.url, job.updatedAt ?? job.publishedAt)),
     '</urlset>',
     '',
   ].join('\n');

@@ -12,12 +12,13 @@ public sealed class JobMappingsTests
     {
         var job = OpenJob();
 
-        var publicJob = job.ToPublicJob();
+        var publicJob = job.ToPublicJob("https://careers.example.com/acme/jobs/frontend-engineer-svelte");
 
         publicJob.Should().BeEquivalentTo(new PublicJob(
             job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
             EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Engineering",
-            [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null, Published));
+            [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null, Published,
+            "https://careers.example.com/acme/jobs/frontend-engineer-svelte"));
     }
 
     [Fact]
@@ -27,7 +28,7 @@ public sealed class JobMappingsTests
         var closedAt = Published.AddDays(3);
         job.Close(closedAt);
 
-        job.ToPublicJob().ValidThrough.Should().Be(closedAt, "the careers page's 410 carries a past validThrough for Google");
+        job.ToPublicJob("https://careers.example.com/acme/jobs/a").ValidThrough.Should().Be(closedAt, "the careers page's 410 carries a past validThrough for Google");
     }
 
     [Fact]

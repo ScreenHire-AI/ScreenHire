@@ -7,10 +7,11 @@
 import type { PublicJob } from './publicJob.ts';
 
 /**
- * The public careers listing for one organization.
+ * The public careers listing for one organization. `url` is the board's careers page.
  */
 export interface PublicJobBoard {
   organizationName: string;
   organizationSlug: string;
   jobs: PublicJob[];
+  url: string;
 }

@@ -4067,7 +4067,8 @@
           "applicantLocationRequirements",
           "salaryPeriod",
           "validThrough",
-          "updatedAt"
+          "updatedAt",
+          "url"
         ],
         "type": "object",
         "properties": {
@@ -4161,6 +4162,9 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "url": {
+            "type": "string"
           }
         },
         "description": "A job as shown on a public careers page."
@@ -4169,7 +4173,8 @@
         "required": [
           "organizationName",
           "organizationSlug",
-          "jobs"
+          "jobs",
+          "url"
         ],
         "type": "object",
         "properties": {
@@ -4184,9 +4189,12 @@
             "items": {
               "$ref": "#/components/schemas/PublicJob"
             }
+          },
+          "url": {
+            "type": "string"
           }
         },
-        "description": "The public careers listing for one organization."
+        "description": "The public careers listing for one organization. `url` is the board's careers page."
       },
       "PublishJobRequest": {
         "type": "object",

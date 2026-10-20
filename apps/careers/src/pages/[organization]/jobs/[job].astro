@@ -22,8 +22,9 @@ if (closed) {
 const job = jobResponse.data;
 const board = boardResponse.data;
 const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-const boardUrl = `${Astro.url.origin}/${board.organizationSlug}`;
-const url = `${boardUrl}/jobs/${job.slug}`;
+// From the API's domain configuration, so the canonical URL is the one feeds, boards and Google use.
+const boardUrl = board.url;
+const url = job.url;
 
 // For a closed job the API's validThrough is when it closed, so this JSON-LD tells Google the posting has expired.
 const jobPosting = buildJobPosting(job, { organizationName: board.organizationName, boardUrl, url });

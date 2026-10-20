@@ -37,4 +37,5 @@ export interface PublicJob {
   validThrough: string | null;
   /** @nullable */
   updatedAt: string | null;
+  url: string;
 }

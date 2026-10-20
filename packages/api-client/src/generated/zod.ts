@@ -124,9 +124,11 @@ export const ListPublicJobsResponse = zod.object({
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('A job as shown on a public careers page.'))
-}).describe('The public careers listing for one organization.')
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "url": zod.string()
+}).describe('A job as shown on a public careers page.')),
+  "url": zod.string()
+}).describe('The public careers listing for one organization. `url` is the board\'s careers page.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -155,7 +157,8 @@ export const GetPublicJobResponse = zod.object({
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "url": zod.string()
 }).describe('A job as shown on a public careers page.')
 
 

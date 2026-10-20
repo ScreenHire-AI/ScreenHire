@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
@@ -26,7 +28,7 @@ internal static class PublicJobEndpoints
     }
 
     private static async Task<Results<Ok<PublicJobBoard>, NotFound>> ListOpenJobs(
-        string organizationSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
+        string organizationSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)
     {
         var organization = await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken);
         if (organization is null)
@@ -39,16 +41,19 @@ internal static class PublicJobEndpoints
             .OrderByDescending(j => j.PublishedAt)
             .ToListAsync(cancellationToken);
 
-        return TypedResults.Ok(new PublicJobBoard(organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob())]));
+        return TypedResults.Ok(new PublicJobBoard(
+            organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, j.Slug)))],
+            domains.Value.CareersBoardUrl(organization.Slug)));
     }
 
     // An open job is 200. A closed job that was once published is 410 Gone with its last content and validThrough set to
     // when it closed, so the careers page can serve 410 with expired JobPosting JSON-LD (teardown, job-distribution.md).
     // A draft, a job closed before it was ever published, or an unknown slug is 404: nothing public ever existed.
     private static async Task<Results<Ok<PublicJob>, JsonHttpResult<PublicJob>, NotFound>> GetOpenJob(
-        string organizationSlug, string jobSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
+        string organizationSlug, string jobSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains,
+        CancellationToken cancellationToken)
     {
-        if (await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken) is null)
+        if (await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken) is not { } organization)
         {
             return TypedResults.NotFound();
         }
@@ -59,8 +64,9 @@ internal static class PublicJobEndpoints
         return job switch
         {
             null => TypedResults.NotFound(),
-            { Status: JobStatus.Closed } => TypedResults.Json(job.ToPublicJob(), statusCode: StatusCodes.Status410Gone),
-            _ => TypedResults.Ok(job.ToPublicJob()),
+            { Status: JobStatus.Closed } => TypedResults.Json(
+                job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)), statusCode: StatusCodes.Status410Gone),
+            _ => TypedResults.Ok(job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug))),
         };
     }
 

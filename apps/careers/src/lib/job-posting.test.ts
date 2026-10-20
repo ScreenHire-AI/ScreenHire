@@ -26,6 +26,7 @@ const job = (overrides: Partial<PublicJob> = {}): PublicJob => ({
   salaryPeriod: 'Year',
   validThrough: '2026-11-01T00:00:00+00:00',
   updatedAt: '2026-10-02T09:00:00+00:00',
+  url: 'https://careers.example.com/harbour/jobs/engineer',
   ...overrides,
 });
 
@@ -98,8 +99,8 @@ describe('buildJobPosting', () => {
 describe('buildSitemap', () => {
   it('lists the board and each job with its last change', () => {
     const xml = buildSitemap(context.boardUrl, [
-      { slug: 'engineer', updatedAt: '2026-10-02T09:00:00+00:00', publishedAt: '2026-10-01T09:00:00+00:00' },
-      { slug: 'designer', updatedAt: null, publishedAt: '2026-10-03T09:00:00+00:00' },
+      { url: `${context.boardUrl}/jobs/engineer`, updatedAt: '2026-10-02T09:00:00+00:00', publishedAt: '2026-10-01T09:00:00+00:00' },
+      { url: `${context.boardUrl}/jobs/designer`, updatedAt: null, publishedAt: '2026-10-03T09:00:00+00:00' },
     ]);
 
     expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');

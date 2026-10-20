@@ -9,7 +9,8 @@ namespace ScreenHire.Api.Contracts;
 /// <c>location</c> is a display label; structured data (JSON-LD, feeds) reads <c>locations</c> and
 /// <c>applicantLocationRequirements</c>. <c>description</c> is sanitized HTML. <c>updatedAt</c> is the last change to
 /// the posting content, for sitemaps' <c>lastmod</c>. For a closed job (410 Gone), <c>validThrough</c> is when it closed,
-/// so the page's JSON-LD tells Google it has expired.
+/// so the page's JSON-LD tells Google it has expired. <c>url</c> is the job's careers page, from the deployment's
+/// domain configuration: the canonical URL that feeds, boards and Google all use.
 /// </remarks>
 public sealed record PublicJob(
     Guid Id,
@@ -28,10 +29,11 @@ public sealed record PublicJob(
     IReadOnlyList<string> ApplicantLocationRequirements,
     SalaryPeriod? SalaryPeriod,
     DateTimeOffset? ValidThrough,
-    DateTimeOffset? UpdatedAt);
+    DateTimeOffset? UpdatedAt,
+    string Url);
 
-/// <summary>The public careers listing for one organization.</summary>
-public sealed record PublicJobBoard(string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs);
+/// <summary>The public careers listing for one organization. <c>url</c> is the board's careers page.</summary>
+public sealed record PublicJobBoard(string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url);
 
 /// <summary>A job as shown in the recruiter dashboard's list.</summary>
 /// <remarks><c>templateUpdateAvailable</c>: the job's source template has a newer published version than the job copied.</remarks>
@@ -152,11 +154,11 @@ internal static class JobMappings
     public static string LocationLabel(this Job job) =>
         JobLocation.Describe(job.WorkplaceType, job.Locations, job.ApplicantLocationRequirements);
 
-    public static PublicJob ToPublicJob(this Job job) =>
+    public static PublicJob ToPublicJob(this Job job, string url) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.EmploymentType,
             job.SalaryMin, job.SalaryMax, job.SalaryCurrency, job.PublishedAt, job.Description, job.Department,
             job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period,
-            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt);
+            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url);
 
     public static JobSummary ToSummary(this Job job, int? latestTemplateVersion = null) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.Status, job.CreatedAt, job.PublishedAt,
