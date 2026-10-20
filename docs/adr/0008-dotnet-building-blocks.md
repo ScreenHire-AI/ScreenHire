@@ -35,3 +35,4 @@ Packages outside the preferred licences, each limited to the scope stated. Anyth
 | Package | Licence | Scope | Why it is acceptable |
 |---|---|---|---|
 | `Deque.AxeCore.Commons` (axe-core), via `Deque.AxeCore.Playwright` (MIT) | MPL-2.0 | Test-only: `tests/ScreenHire.E2E` | The whole package is MPL-2.0 (Deque's .NET code and the bundled axe-core). Its copyleft is file-level: it applies only to modified versions of those files, which we neither modify nor ship; it never reaches a production artefact. Added 2026-10-20 with the test harness. |
+| `axe-core` (npm), via `lighthouse` (Apache-2.0) | MPL-2.0 | Dev-only: `apps/marketing/scripts/lighthouse.mjs` (`pnpm verify:lighthouse`) | Lighthouse bundles axe-core for its accessibility audits. The copyleft is file-level and covers only modified versions of those files, which we neither modify nor ship; `lighthouse` is a devDependency and never reaches the built site. Added 2026-10-20 with the marketing budgets. |

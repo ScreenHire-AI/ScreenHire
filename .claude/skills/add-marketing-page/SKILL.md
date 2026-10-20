@@ -15,8 +15,8 @@ The marketing site is static (no adapter in `apps/marketing/astro.config.mjs`) a
 
 - A law tracker entry, blog post or comparison is a content-collection file, not a page: add
   `src/content/laws/<id>.md`, `src/content/blog/<id>.md` or `src/content/comparisons/<id>.yaml`. The schemas in
-  `src/content.config.ts` say which fields are required (law entries need `lastReviewed` and `sources`). The
-  routes under `src/pages/hiring-ai-laws/`, `blog/` and `compare/` render them. Skip to step 3.
+  `src/content.config.ts` say which fields are required (law entries need `published`, `lastReviewed` and `sources`).
+  The routes under `src/pages/hiring-ai-laws/`, `blog/` and `compare/` render them. Skip to step 3.
 - Anything else is a page: step 2.
 
 ## 2. Page

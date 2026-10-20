@@ -42,9 +42,9 @@ Full gate: `pnpm verify`. It runs, in order and stopping at the first failure:
 7. `dotnet test --solution ScreenHire.slnx`: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire, frontends
    off) and `ScreenHire.E2E` (Playwright and axe against the step 4 builds), run in parallel.
 
-With warm caches the full gate took under a minute on the owner's machine before step 6 (47 to 54 s in October 2026);
-Lighthouse adds about 90 s. Most of the rest is booting the two AppHosts. The first run after a dependency or container-image change is slower (restores and image
-pulls). A warm run that takes several minutes means something is waiting on a timeout: read the output.
+With warm caches the full gate takes about 3 minutes on the owner's machine (2 min 54 s to 2 min 58 s in October
+2026), about 90 s of it Lighthouse. Most of the rest is booting the two AppHosts. The first run after a dependency or
+container-image change is slower (restores and image pulls). A warm run that takes several minutes means something is waiting on a timeout: read the output.
 
 Quick: `pnpm verify:dotnet`, then `pnpm verify:contract`, then `pnpm check`, then `pnpm -r --if-present test`.
 
