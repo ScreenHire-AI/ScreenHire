@@ -9,6 +9,7 @@ export * from './apiMeta.ts';
 export * from './employmentType.ts';
 export * from './jobStatus.ts';
 export * from './jobSummary.ts';
+export * from './problemDetails.ts';
 export * from './publicJob.ts';
 export * from './publicJobBoard.ts';
 export * from './workplaceType.ts';

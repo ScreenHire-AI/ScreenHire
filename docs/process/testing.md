@@ -9,7 +9,7 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 |---|---|---|---|
 | .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle), pure API logic (mappings, validation). The API grants it `InternalsVisibleTo`. | Nothing |
 | Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `apps/careers` (`src/lib/format.ts`) | Frontend logic and component rendering with fixed data | Nothing |
-| Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), anything that needs Postgres | Docker |
+| Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
 Pick the lowest tier that can catch the bug. A rule in the domain gets a unit test even when an integration test also
@@ -99,6 +99,23 @@ There is no reset between tests and no Respawn. Instead:
 - **Authentication:** when sign-in lands, end-to-end tests sign in through the local mock OIDC server in the AppHost,
   as a user does. Never add an auth bypass, test-only endpoint or anonymous policy to keep a test green.
 
+### Messaging tests (`tests/ScreenHire.IntegrationTests/Messaging`)
+
+Messages cross processes, so these tests wait on Wolverine's tables in Postgres, never on time:
+
+- `WolverineStore` counts a message in the outbox, the worker queue, the inbox (handled or not) or the dead-letter
+  table, found by an id in its body so a test only sees its own messages. `WolverineStore.WaitUntilAsync` polls a
+  condition with a 60-second deadline.
+- `MessagingHost` starts an in-process Wolverine host with the API's or the worker's setup
+  (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and
+  drops the schema afterwards. Use it to make a handler fail or a transaction roll back without touching the running
+  worker.
+- A test that stops or restarts the worker joins the `WorkerLifecycle` collection
+  (`[Collection(nameof(WorkerLifecycle))]`). xUnit runs that collection on its own after the parallel tests, so no
+  other test waits on a stopped worker.
+
+What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
+
 ### `E2EFixture` and `BrowserTest` (`tests/ScreenHire.E2E`)
 
 `E2EFixture` extends `AppHostFixture` with `Frontends=Built`, waits for the API and all three frontends to be
@@ -132,3 +149,8 @@ Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Targe
 | Vitest | none | 27 tests, ~1 s per package |
 
 Measured 2026-10-20 over two consecutive runs with no changes in between; both passed.
+
+With messaging (2026-10-20, two consecutive passing runs): `pnpm verify` 79-83 s; .NET tests ~54 s wall clock for 35
+tests, of which integration is 19 tests in about 53 s. The longest is `RecurringMessageTests` (~33 s): Wolverine's recurring
+agent acts on a manual trigger on its next tick, and that interval is not configurable. It runs in parallel with the
+others, and the `WorkerLifecycle` collection runs alone after them.

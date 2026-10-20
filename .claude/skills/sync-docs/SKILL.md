@@ -38,7 +38,7 @@ design tokens (`packages/ui/src/tokens.css` is the source; `docs/design/design-s
 2. **Anchors.** Map the changed files to the rows above. Spawn the `doc-auditor` agent with the list of anchors to
    check (or `all`). It reports items missing from or extra in each doc, with `file:line`.
 3. **Prose.** For each changed source file, find the docs that describe it: `docs/architecture/*.md` for the
-   integrity, workflow and distribution subsystems, ADRs that name it, `.claude/rules/*.md` that name its paths,
+   integrity, workflow, distribution and messaging subsystems, ADRs that name it, `.claude/rules/*.md` that name its paths,
    and skills whose steps run it. Use Grep for the file name, the type name and the command. Read each hit and
    decide whether the text is still true.
 4. **Fix.** Edit the docs so they match the code. Keep each doc's structure and voice. New prose follows

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Message contracts, handlers and the shared Wolverine setup. Referenced by the API (publishes) and the worker (handles). -->
+
+  <ItemGroup>
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.Postgresql" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenHire.Domain\ScreenHire.Domain.csproj" />
+    <ProjectReference Include="..\ScreenHire.Infrastructure\ScreenHire.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -34,6 +34,8 @@ configuration everywhere (ADR-0003).
 - [Integrity Engine](architecture/integrity-engine.md) — signals, two assessments, collection timeline, Signal Network
 - [Workflow Engine](architecture/workflow-engine.md) — templates, stages, automations, guardrails, execution model
 - [Job Distribution Engine](architecture/job-distribution.md) — adapters, posting state machine, honest teardown
+- [Messaging](architecture/messaging.md) - Wolverine on Postgres: outbox, worker queue, idempotency, retries and
+  dead letters, cron, telemetry
 
 ## Design
 

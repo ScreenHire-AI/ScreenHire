@@ -57,11 +57,15 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    // Wolverine's meter is "Wolverine:<service name>": messages sent, succeeded, failed, dead-lettered.
+                    .AddMeter("Wolverine:*");
             })
             .WithTracing(tracing =>
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
+                    // One span per message sent and handled, linked to the request that published it.
+                    .AddSource("Wolverine")
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>

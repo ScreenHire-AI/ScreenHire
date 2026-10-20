@@ -1,12 +1,18 @@
+using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
-using ScreenHire.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<ScreenHireDbContext>("screenhire", configureDbContextOptions: options => options.UseScreenHireConventions());
+// No EF retrying execution strategy: it refuses the explicit transaction that Wolverine's outbox and handler
+// middleware open. Failed messages are retried by Wolverine's error policy instead (ScreenHireMessaging).
+builder.AddNpgsqlDbContext<ScreenHireDbContext>(
+    ScreenHireMessaging.ConnectionName,
+    settings => settings.DisableRetry = true,
+    options => options.UseScreenHireConventions());
 
-// Wolverine (durable jobs + transactional outbox, ADR-0008) replaces this heartbeat in the messaging work item.
-builder.Services.AddHostedService<HeartbeatWorker>();
+// Wolverine: the worker queue's durable inbox, every handler in ScreenHire.Application, the durability agent and the
+// cron schedules (ADR-0008, docs/architecture/messaging.md).
+builder.AddScreenHireMessageHandling();
 
 await builder.Build().RunAsync();
