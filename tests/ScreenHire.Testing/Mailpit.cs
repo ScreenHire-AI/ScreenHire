@@ -38,10 +38,6 @@ public sealed partial class Mailpit(Uri baseAddress)
     public async Task<Uri> WaitForSignInLinkAsync(string address, CancellationToken cancellationToken) =>
         (await WaitForSignInLinksAsync(address, 1, cancellationToken))[0];
 
-    /// <summary>Every email to <paramref name="address"/>, newest first: subject and plain-text body.</summary>
-    public async Task<IReadOnlyList<MailpitMessage>> MessagesAsync(string address, CancellationToken cancellationToken) =>
-        await MessagesToAsync(address, cancellationToken);
-
     /// <summary>Waits until at least <paramref name="count"/> emails have reached <paramref name="address"/>, then returns them all.</summary>
     public async Task<IReadOnlyList<MailpitMessage>> WaitForMessagesAsync(string address, int count, CancellationToken cancellationToken)
     {
@@ -49,7 +45,7 @@ public sealed partial class Mailpit(Uri baseAddress)
         deadline.CancelAfter(MessageTimeout);
         while (true)
         {
-            var messages = await MessagesToAsync(address, cancellationToken);
+            var messages = await MessagesAsync(address, cancellationToken);
             if (messages.Count >= count)
             {
                 return messages;
@@ -90,14 +86,16 @@ public sealed partial class Mailpit(Uri baseAddress)
     }
 
     private async Task<IReadOnlyList<Uri>> SignInLinksAsync(string address, CancellationToken cancellationToken) =>
-        [.. (await MessagesToAsync(address, cancellationToken))
+        [.. (await MessagesAsync(address, cancellationToken))
             .Select(message => SignInLink().Match(message.Text))
             .Where(match => match.Success)
             .Select(match => new Uri(match.Value))];
 
-    // The one place that searches Mailpit and fetches message bodies: the subject and plain-text body of every message
-    // to the address, newest first.
-    private async Task<IReadOnlyList<MailpitMessage>> MessagesToAsync(string address, CancellationToken cancellationToken)
+    /// <summary>
+    /// Every email to <paramref name="address"/>, newest first: subject and bodies. The one place that searches Mailpit
+    /// and fetches message bodies.
+    /// </summary>
+    public async Task<IReadOnlyList<MailpitMessage>> MessagesAsync(string address, CancellationToken cancellationToken)
     {
         var search = await Client.GetFromJsonAsync<JsonElement>(
             new Uri(baseAddress, $"/api/v1/search?query={Uri.EscapeDataString($"to:\"{address}\"")}"), cancellationToken);

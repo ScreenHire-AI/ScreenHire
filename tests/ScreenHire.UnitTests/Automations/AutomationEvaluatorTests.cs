@@ -65,6 +65,23 @@ public sealed class AutomationEvaluatorTests
             .HoursInStage.Should().Be(48);
     }
 
+    // A timer is keyed on its stage entry (that is how leaving the stage cancels it) but fires at its due time, so it sees
+    // what happened while it waited, and nothing after.
+    [Fact]
+    public void A_timer_sees_the_tags_added_while_it_waited_and_counts_hours_from_the_stage_entry()
+    {
+        var submitted = Event(ApplicationEventType.Submitted, Start, new(ToStageId: "applied"));
+        var moved = Event(ApplicationEventType.StageChanged, Start.AddHours(2), new("applied", "screening"));
+        var reviewed = Event(ApplicationEventType.TagAdded, Start.AddHours(10), new(Tag: "reviewed"));
+        var late = Event(ApplicationEventType.TagAdded, Start.AddHours(30), new(Tag: "late"));
+        var due = moved.OccurredAt.AddHours(24);
+
+        var facts = AutomationFacts.FromTimeline([submitted, moved, reviewed, late], moved.Id, TriggerType.TimeElapsed, due);
+
+        facts.Tags.Should().Equal("reviewed");
+        facts.HoursInStage.Should().Be(24);
+    }
+
     [Fact]
     public void An_automation_that_its_own_actions_led_back_to_is_blocked_as_a_cycle()
     {

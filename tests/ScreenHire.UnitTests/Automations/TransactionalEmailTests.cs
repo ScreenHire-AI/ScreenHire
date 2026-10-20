@@ -68,6 +68,20 @@ public sealed class TransactionalEmailTests
         WebhookSignature.Create("key", sentAt.AddSeconds(1), body).Should().NotBe(signature);
     }
 
+    // Each organization's receivers get that organization's key, so one organization cannot sign for another.
+    [Fact]
+    public void Each_organization_signs_webhooks_with_its_own_key_derived_from_the_platform_key()
+    {
+        var first = Guid.CreateVersion7();
+        var second = Guid.CreateVersion7();
+
+        var key = WebhookSignature.OrganizationKey("platform", first);
+
+        key.Should().Be(WebhookSignature.OrganizationKey("platform", first)).And.NotBe("platform").And.HaveLength(64);
+        WebhookSignature.OrganizationKey("platform", second).Should().NotBe(key);
+        WebhookSignature.OrganizationKey("other-platform", first).Should().NotBe(key);
+    }
+
     [Fact]
     public void A_manual_run_key_gives_the_same_event_id_for_the_same_application_and_automation_only()
     {
@@ -94,6 +108,13 @@ public sealed class TransactionalEmailTests
     [InlineData("fe80::1", false)]
     [InlineData("fd00::1", false)]
     [InlineData("::ffff:10.0.0.1", false)]
+    [InlineData("64:ff9b::a9fe:a9fe", false)] // NAT64 of 169.254.169.254
+    [InlineData("64:ff9b::808:808", true)] // NAT64 of 8.8.8.8
+    [InlineData("64:ff9b:1::a00:1", false)]
+    [InlineData("2002:a00:1::1", false)] // 6to4 of 10.0.0.1
+    [InlineData("2002:808:808::1", true)] // 6to4 of 8.8.8.8
+    [InlineData("2001:0:4136:e378::1", false)] // Teredo
+    [InlineData("2001:db8::1", false)]
     public void Webhooks_reach_public_addresses_only(string address, bool allowed) =>
         WebhookAddresses.IsPublic(IPAddress.Parse(address)).Should().Be(allowed);
 }

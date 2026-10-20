@@ -130,6 +130,23 @@ public sealed class WorkflowEngineValidationTests
             "automations[0].actions[0].emailTemplate", "automations[1].actions[0].emailTemplate");
     }
 
+    // "Moved to the next step: Rejected" would be a rejection email no Reject action guarded.
+    [Theory]
+    [InlineData("rejected", true)]
+    [InlineData("withdrawn", true)]
+    [InlineData("screening", false)]
+    public void The_stage_change_email_is_not_sent_on_entering_an_ended_stage(string stageId, bool refused)
+    {
+        var workflow = Workflow(automations:
+        [
+            new("mailer", "Mailer", new AutomationTrigger(TriggerType.StageEntered, stageId), null,
+                [new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change")]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Select(e => e.Path).Should()
+            .BeEquivalentTo(refused ? ["automations[0].actions[0].emailTemplate"] : Array.Empty<string>());
+    }
+
     // The validator judges a tainted tag with the evaluator's own comparison, so a rule the worker would match ("1.0"
     // equals the tag "1" as a number) cannot slip past the guardrail.
     [Fact]

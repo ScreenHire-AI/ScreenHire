@@ -309,6 +309,41 @@ public sealed class DefinitionValidatorTests
         Paths(workflow).Should().Equal("automations[2].actions[0]");
     }
 
+    // A signal-driven move also fires StageExited on the stage it leaves, which can be any stage the application is in
+    // when the action runs. So once a signal moves applications, every StageExited automation counts as signal-driven.
+    [Fact]
+    public void A_signal_cannot_be_laundered_through_the_stage_it_moves_an_application_out_of()
+    {
+        var workflow = Workflow(
+            stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("verify", "Verification", StageKind.Verification),
+                new WorkflowStage("parked", "Not progressing", StageKind.Custom)],
+            automations:
+            [
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route",
+                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park",
+                    new AutomationTrigger(TriggerType.StageExited, "screening")),
+            ]);
+
+        AssertRefusedAsSignalDriven(workflow, "automations[1].actions[0]");
+    }
+
+    [Fact]
+    public void A_stage_exit_automation_is_ordinary_when_no_signal_moves_applications()
+    {
+        var workflow = Workflow(
+            stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("parked", "Not progressing", StageKind.Custom)],
+            automations:
+            [
+                Automation(null, new AutomationAction(ActionType.AddTag, Tag: "integrity-review"), "tag",
+                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park",
+                    new AutomationTrigger(TriggerType.StageExited, "screening")),
+            ]);
+
+        Paths(workflow).Should().BeEmpty();
+    }
+
     // A tag a signal sets is read through application.tags by substring (Contains) or by list (In). Either way the reader
     // is signal-driven, so it may not reject or move to a rejected stage.
     [Theory]
