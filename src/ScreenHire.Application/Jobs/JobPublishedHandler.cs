@@ -5,9 +5,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Application.Jobs;
 
 /// <summary>
-/// Runs in the worker once per <see cref="JobPublished"/>. Job distribution (docs/architecture/job-distribution.md)
-/// hangs its board postings off this event; today it reads the job back as its organization and records that the
-/// worker saw it.
+/// Runs in the worker once per <see cref="JobPublished"/>: reads the job back as its organization and records that the
+/// worker saw it. Board postings come from the publish transaction itself (docs/architecture/job-distribution.md §5).
 /// </summary>
 public static partial class JobPublishedHandler
 {

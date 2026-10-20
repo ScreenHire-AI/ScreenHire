@@ -71,6 +71,10 @@ It always passes `PersistData=false` (no volumes: fresh Postgres and Azurite) an
 a run never collides with a running dev stack or a sibling worktree, and Aspire removes its containers on dispose.
 The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 
+It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
+board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
+and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
+
 | Mode | Starts | Used by |
 |---|---|---|
 | `Dev` (default) | `dev` scripts with hot reload | `pnpm dev` |
@@ -110,7 +114,8 @@ There is no reset between tests and no Respawn. Instead:
 Messages cross processes, so these tests wait on Wolverine's tables in Postgres, never on time:
 
 - `WolverineStore` counts a message in the outbox, the worker queue, the inbox (handled or not) or the dead-letter
-  table, found by an id in its body so a test only sees its own messages. `WolverineStore.WaitUntilAsync` polls a
+  table, found by an id in its body so a test only sees its own messages. A published job's id is in its postings' commands and events too, so
+  each count takes an optional message type (`".JobPublished"`) to narrow it. `WolverineStore.WaitUntilAsync` polls a
   condition with a 60-second deadline.
 - `MessagingHost` starts an in-process Wolverine host with the API's or the worker's setup
   (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and

@@ -144,7 +144,9 @@ Wolverine delivers at least once. Three layers keep a handler's effect exactly o
    twice. Give the message an idempotency key (for example `(applicationId, automationId, eventId)` from
    docs/architecture/workflow-engine.md, or `(jobId, boardId, jobVersion)` from job-distribution.md) and mark the
    handler `[Deduplicated(ValueSource.InputMember, nameof(Message.IdempotencyKey))]`. The worker turns on
-   `MessageDeduplicationMode.CompareByHash`, which stores claims for 24 hours by default.
+   `MessageDeduplicationMode.CompareByHash`, which stores claims for 24 hours by default. `SyncJobPosting` is the first
+   handler that uses it; its key adds the action and the posting's request sequence, so a deliberate second request
+   for the same version is not dropped as a duplicate.
 3. **Effects.** Make the side effect itself idempotent: a unique index on the natural key, a state check
    ("already open, nothing to do"), or an upsert. This is the only layer that holds after the deduplication window.
 
@@ -172,6 +174,11 @@ event or not, carries personal data; the workflow engine will surface its own de
 - **Recurring:** `opts.Schedules.ScheduleRecurring<T>("cron")` in `ScheduleRecurringMessages`, worker only. Times are
   UTC. The example is `ReportOpenJobs` every five minutes, which replaced the scaffold's heartbeat loop. A schedule
   faster than every five seconds is refused.
+- **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
+  `ReconcileJobPosting` for the time the board gave, as a cascading message (`OutgoingMessages.Schedule`). Two
+  recurring messages back it up: `ReconcileJobPostings` every five minutes and `DispatchIndexingNotifications` every
+  minute. Both walk the organizations and hand each organization's work to an `ITenantMessage`, which runs as that
+  organization.
 
 ## Telemetry
 
