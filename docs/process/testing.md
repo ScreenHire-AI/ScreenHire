@@ -150,7 +150,7 @@ Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Targe
 
 Measured 2026-10-20 over two consecutive runs with no changes in between; both passed.
 
-With messaging (2026-10-20, two consecutive passing runs): `pnpm verify` 83 s; .NET tests ~53 s wall clock for 34
-tests, of which integration is 18 tests in 52 s. The longest is `RecurringMessageTests` (~33 s): Wolverine's recurring
+With messaging (2026-10-20, two consecutive passing runs): `pnpm verify` 79-83 s; .NET tests ~54 s wall clock for 35
+tests, of which integration is 19 tests in about 53 s. The longest is `RecurringMessageTests` (~33 s): Wolverine's recurring
 agent acts on a manual trigger on its next tick, and that interval is not configurable. It runs in parallel with the
 others, and the `WorkerLifecycle` collection runs alone after them.

@@ -67,13 +67,11 @@ Every command in these files was run once when they were written (October 2026),
 
 | Command | Named in | Why not |
 |---|---|---|
-| `dotnet test --project tests/ScreenHire.UnitTests ...` | `test-builder` | the project is not on `main` yet |
-| `dotnet test --project tests/ScreenHire.E2E ...` | `test-builder`, the three page skills | the project is not on `main` yet |
-| `pnpm --filter <package> test` | `test-builder`, `add-dashboard-page`, `add-careers-page` | no package has a Vitest `test` script yet |
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
 
-The test steps say what to do when a tier is missing on a branch: cover the behaviour at a tier that exists and say
-so in the summary. When the unit, Vitest and end-to-end tiers land, run one command from each and update this table.
+The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
+`pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run
+once on 2026-10-20, after the test harness landed.
 
 ## Adding to this
 
