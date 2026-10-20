@@ -100,8 +100,9 @@ from an organization stops their events when they reconnect. A connection keeps 
   after each reconnect and calls `onResumed` handlers so the app refetches.
 - `createConnectionState(client)` is a runes store (`$state`) with the connection status, for the shell's indicator.
 - `invalidateOnEvents(client, map, invalidate)` invalidates cache keys by event type, and every mapped key after a
-  reconnect. The dashboard maps `JobPublished` and `JobClosed` to `api:jobs`, which the jobs list's `load` declares
-  with `depends`. `apps/dashboard/src/lib/realtime.ts` holds the map.
+  reconnect. The dashboard maps each event to the API paths it changes (`JobPublished` to `/v1/jobs`,
+  `ApplicationMoved` to `/v1/jobs`, `/v1/applications` and `/v1/candidates`), and invalidates every TanStack Query
+  query under each path. `apps/dashboard/src/lib/realtime.ts` holds the map.
 - `realtimeEventSchemas` has a Zod schema per event. `parseRealtimeEvent` ignores an unknown type, which a newer API may
   send, and throws on a known type that does not match its schema.
 

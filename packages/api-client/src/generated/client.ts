@@ -2000,6 +2000,46 @@ return apiFetch<createApplicationResponse>(getCreateApplicationUrl(jobId),
 
 
 
+export type listApplicationsResponse200 = {
+  data: ApplicationSummary[]
+  status: 200
+}
+
+export type listApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationsResponseSuccess = (listApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listApplicationsResponseError = (listApplicationsResponse401) & {
+  headers: Headers;
+};
+
+export type listApplicationsResponse = (listApplicationsResponseSuccess | listApplicationsResponseError)
+
+export const getListApplicationsUrl = () => {
+
+
+
+
+  return `/v1/applications`
+}
+
+export const listApplications = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationsResponse> => {
+
+  return apiFetch<listApplicationsResponse>(getListApplicationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type getApplicationResponse200 = {
   data: ApplicationDetail
   status: 200
@@ -2155,6 +2195,51 @@ export const getGetApplicationTimelineUrl = (applicationId: string,) => {
 export const getApplicationTimeline = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationTimelineResponse> => {
 
   return apiFetch<getApplicationTimelineResponse>(getGetApplicationTimelineUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type downloadApplicationFileResponse401 = {
+  data: void
+  status: 401
+}
+
+export type downloadApplicationFileResponse404 = {
+  data: void
+  status: 404
+}
+
+export type downloadApplicationFileResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+;
+export type downloadApplicationFileResponseError = (downloadApplicationFileResponse401 | downloadApplicationFileResponse404 | downloadApplicationFileResponse409) & {
+  headers: Headers;
+};
+
+export type downloadApplicationFileResponse = (downloadApplicationFileResponseError)
+
+export const getDownloadApplicationFileUrl = (applicationId: string,
+    fileId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/files/${fileId}`
+}
+
+export const downloadApplicationFile = async (applicationId: string,
+    fileId: string, options?: Parameters<typeof apiFetch>[1]): Promise<downloadApplicationFileResponse> => {
+
+  return apiFetch<downloadApplicationFileResponse>(getDownloadApplicationFileUrl(applicationId,fileId),
   {
     ...options,
     method: 'GET'

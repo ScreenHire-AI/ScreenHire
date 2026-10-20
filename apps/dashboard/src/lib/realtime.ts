@@ -1,4 +1,3 @@
-import { invalidate } from '$app/navigation';
 import {
   createConnectionState,
   invalidateOnEvents,
@@ -6,20 +5,28 @@ import {
   type ConnectionState,
   type InvalidationMap,
 } from '@screenhire/realtime';
+import type { QueryClient } from '@tanstack/svelte-query';
+import { invalidatePath } from '#lib/query.js';
 
-/** The SvelteKit dependency the jobs list's `load` declares; live job events invalidate it. */
-export const jobsDependency = 'api:jobs';
+/** API paths whose queries live events make stale; `invalidatePath` covers every query under each. */
+export const jobsPath = '/v1/jobs';
+export const applicationsPath = '/v1/applications';
+export const candidatesPath = '/v1/candidates';
 
 /**
- * Which `load` dependencies each tenant event makes stale. Add a line when a page shows what an event changes.
- * HiringTemplateVersionPublished is here because the jobs list shows "template update available". The application
- * events and JobPostingsChanged (a job's board postings) have no page yet; the pipeline and distribution views map them
- * when they land.
+ * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
+ * `/v1/jobs` covers the jobs list, each job (its postings and applicant count) and each job's applications.
+ * HiringTemplateVersionPublished is here because the jobs list shows "template update available"; an automation run
+ * can tag an application, which its page shows.
  */
 export const invalidations: InvalidationMap = {
-  JobPublished: [jobsDependency],
-  JobClosed: [jobsDependency],
-  HiringTemplateVersionPublished: [jobsDependency],
+  JobPublished: [jobsPath],
+  JobClosed: [jobsPath],
+  JobPostingsChanged: [jobsPath],
+  HiringTemplateVersionPublished: [jobsPath],
+  ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
+  AutomationRunFinished: [applicationsPath],
 };
 
 export interface LiveUpdates {
@@ -31,13 +38,14 @@ export interface LiveUpdates {
 }
 
 /**
- * Connects the signed-in shell to the API's real-time hub. Events re-run the `load` functions that depend on what
- * changed, and a reconnect re-runs all of them, so the screen catches up on anything it missed.
+ * Connects the signed-in shell to the API's real-time hub. Events mark the queries that show what changed as stale,
+ * so the ones on screen refetch, and a reconnect does that for all of them, so the screen catches up on anything it
+ * missed.
  */
-export function startLiveUpdates(): LiveUpdates {
+export function startLiveUpdates(queryClient: QueryClient): LiveUpdates {
   const client = new RealtimeClient();
   const connection = createConnectionState(client);
-  const stopInvalidating = invalidateOnEvents(client, invalidations, invalidate);
+  const stopInvalidating = invalidateOnEvents(client, invalidations, (path) => invalidatePath(queryClient, path));
   void client.start();
 
   return {

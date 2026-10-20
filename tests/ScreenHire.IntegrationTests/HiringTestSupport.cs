@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -118,6 +120,40 @@ internal sealed class Tenant(ApiSession session, Guid organizationId, Guid userI
 
 internal static class HiringTestExtensions
 {
+    /// <summary>
+    /// Adds a file row with the given scan result to an application, as its organization. Its blob does not exist: the
+    /// download endpoint refuses or redirects on the row alone.
+    /// </summary>
+    public static async Task<Guid> AddApplicationFileAsync(
+        this AppHostFixture fixture, Guid organizationId, Guid applicationId, MalwareScanStatus status)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var tenant = new TenantContext();
+        tenant.SetOrganization(organizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, cancellationToken);
+        var file = new ApplicationFile
+        {
+            OrganizationId = organizationId,
+            ApplicationId = applicationId,
+            QuestionId = "resume",
+            UploadId = Guid.NewGuid(),
+            BlobName = $"{organizationId}/unused/resume/{Guid.NewGuid()}/cv.pdf",
+            FileName = "cv.pdf",
+            ContentType = "application/pdf",
+            SizeBytes = 10,
+            Sha256 = new string('0', 64),
+            UploadedAt = DateTimeOffset.UtcNow,
+        };
+        if (status != MalwareScanStatus.Pending)
+        {
+            file.RecordScan(status, DateTimeOffset.UtcNow);
+        }
+
+        db.ApplicationFiles.Add(file);
+        await db.SaveChangesAsync(cancellationToken);
+        return file.Id;
+    }
+
     /// <summary>
     /// Signs a new person in with an emailed link and onboards them into a new organization, as
     /// <c>TenantIsolationTests</c> does. Dispose the result.

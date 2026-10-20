@@ -1,5 +1,5 @@
 ---
-description: Add a live update for the recruiter dashboard - an ITenantEvent record in src/ScreenHire.Application raised through the outbox, its Zod schema in packages/realtime, the C#/Zod contract file, the dashboard load dependency it invalidates, an optional record topic (ITopicEvent), and tests. Use whenever a change should appear in open dashboards without a reload.
+description: Add a live update for the recruiter dashboard - an ITenantEvent record in src/ScreenHire.Application raised through the outbox, its Zod schema in packages/realtime, the C#/Zod contract file, the dashboard queries it invalidates, an optional record topic (ITopicEvent), and tests. Use whenever a change should appear in open dashboards without a reload.
 argument-hint: [EventName - what happened, and which screen should refresh]
 ---
 
@@ -50,10 +50,10 @@ passes only when every event in the file parses with its schema and every proper
 
 ## 3. The dashboard
 
-- The page whose data the event changes declares a dependency in its `load`: `depends('api:<name>')`, as the jobs
-  list does with `jobsDependency`.
-- Map the event to that key in `invalidations` in `apps/dashboard/src/lib/realtime.ts`. The shell connects once, and
-  re-runs every mapped `load` after a reconnect, so a page never needs its own connection.
+- Map the event to the API paths whose data it changes in `invalidations` in `apps/dashboard/src/lib/realtime.ts`
+  (`jobsPath`, `applicationsPath`, ...). Every query under a path is invalidated, because the generated query keys
+  are the path's segments, so the page's own query needs no extra wiring. The shell connects once, and invalidates
+  every mapped path after a reconnect, so a page never needs its own connection.
 - For an `ITopicEvent`, the page subscribes while it is open. The shell's `startLiveUpdates()` returns `subscribe`;
   pass it down or move the instance into a context when the first page needs it, and call the returned function when
   the page closes.

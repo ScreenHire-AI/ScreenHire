@@ -5,8 +5,8 @@ argument-hint: [route path - what it shows]
 
 # Add a dashboard page
 
-Read `.claude/rules/svelte-dashboard.md` first. `apps/dashboard/src/routes/+page.svelte` and `+page.ts` (the jobs
-table) are the reference page. The visual language is `docs/design/design-system.md`.
+Read `.claude/rules/svelte-dashboard.md` first. `apps/dashboard/src/routes/(app)/+page.svelte` (the jobs table) and
+`(app)/jobs/[jobId]/+page.svelte` (the job's pipeline) are the reference pages. The visual language is `docs/design/design-system.md`.
 
 **Page:** $ARGUMENTS
 
@@ -17,42 +17,39 @@ write the page. The page imports only generated functions and types from `@scree
 
 ## 2. Route files
 
-`apps/dashboard/src/routes/<path>/+page.ts` loads the data:
+Signed-in pages live under `apps/dashboard/src/routes/(app)/`. `<path>/+page.svelte` queries its own data with the
+generated TanStack Query hooks; there is no `+page.ts`:
 
-```ts
-import { error } from '@sveltejs/kit';
-import { listJobs } from '@screenhire/api-client';
-import type { PageLoad } from './$types';
+```svelte
+<script lang="ts">
+  import { createGetJob } from '@screenhire/api-client/svelte-query';
+  import type { PageProps } from './$types';
 
-export const load: PageLoad = async () => {
-  const response = await listJobs();
-  if (response.status !== 200) error(response.status, 'Could not load jobs.');
-  return { jobs: response.data };
-};
+  let { params }: PageProps = $props();
+  const job = createGetJob(() => params.jobId);
+  const detail = $derived(job.data?.data);
+</script>
 ```
 
-`apps/dashboard/src/routes/<path>/+page.svelte` renders it:
-
-- `let { data }: PageProps = $props();` with `PageProps` from `./$types`; derived values with `$derived(...)`.
-- `<svelte:head><title>Page · ScreenHire</title></svelte:head>`, one `h1`, and the header and `main` structure of
-  the jobs page.
+- Route params come from `PageProps`; derived values with `$derived(...)`. Mutations use the generated
+  `create<Operation>` hooks with `onSettled: () => invalidatePath(queryClient, jobsPath)` (`#lib/query.ts`).
+- `<svelte:head><title>Page · ScreenHire</title></svelte:head>`, the `TopBar` with the page's breadcrumbs, one `h1`,
+  and the `main` structure of the jobs page.
 - Imports from `#lib/...` with `.js` extensions. `page` and `navigating` come from `$app/state`.
-- Add the route to the `navigation` list in `src/routes/+layout.svelte` if it is a top-level section, and set
-  `aria-current` from `page.url.pathname`.
+- Add the route to `sections` in `#lib/shell.ts` if it is a top-level section: the sidebar, its G shortcut and the
+  command palette all read that list.
 
 ## 3. States
 
 Every page handles all four:
 
-- **Loading.** `load` runs before the page renders. For data that should not block the page, call the client in the
-  component and render `{#await promise}` with a `Skeleton` placeholder of the same shape. If
-  `#lib/components/ui/skeleton` does not exist yet, add `skeleton` with the command in section 4, or use plain
-  markup of the same shape.
+- **Loading.** While `query.isPending`, render `Skeleton` placeholders of the same shape (`#lib/components/ui/skeleton`),
+  `aria-hidden`, with a visually hidden "Loading…" status where nothing else says so.
 - **Empty.** An `{:else}` branch on the `{#each}` with one line that says what is missing and, when the user can fix
   it, the action ("No jobs yet." plus a "Create job" button).
-- **Error.** `error(status, message)` in `load` renders the nearest `+error.svelte` (`page.status`, `page.error` from
-  `$app/state`). If the route has no `+error.svelte` above it, add one at `src/routes/+error.svelte` with a heading,
-  the message, and a link back. Never show raw response bodies or stack traces.
+- **Error.** When `query.isError`, render `QueryError` (`#lib/components/query-error.svelte`) with
+  `describeError(query.error, 'Could not load …')` and a retry. A 404 (`query.error.status`) gets its own heading
+  and a link back. Never show raw response bodies or stack traces.
 - **Success.** The real content.
 
 ## 4. Components

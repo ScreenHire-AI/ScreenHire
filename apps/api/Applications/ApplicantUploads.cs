@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Security.Cryptography;
 using Azure;
 using Azure.Storage.Blobs;
@@ -63,6 +64,34 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
         }
 
         return new UploadTicket(uploadId, url, "PUT", new Dictionary<string, string> { ["x-ms-blob-type"] = "BlockBlob" }, expiresAt, MaxBytes);
+    }
+
+    /// <summary>
+    /// A read-only link to one stored file, valid for <see cref="ApplyOptions.DownloadLinkLifetime"/>, that downloads it
+    /// under <paramref name="fileName"/> rather than opening it in the browser. Reviewers get these, so file bytes never
+    /// pass through the API in this direction either.
+    /// </summary>
+    public async Task<Uri> IssueReadLinkAsync(string blobName, string fileName, CancellationToken cancellationToken)
+    {
+        var blob = Container.GetBlobClient(blobName);
+        var expiresAt = time.GetUtcNow() + Settings.DownloadLinkLifetime;
+        var sas = new BlobSasBuilder(BlobSasPermissions.Read, expiresAt)
+        {
+            BlobContainerName = blob.BlobContainerName,
+            BlobName = blob.Name,
+            Resource = "b",
+            Protocol = blob.Uri.Scheme == Uri.UriSchemeHttps ? SasProtocol.Https : SasProtocol.HttpsAndHttp,
+            // Storage answers with this header, so a document is saved, never rendered on the storage origin.
+            ContentDisposition = new ContentDisposition { DispositionType = "attachment", FileName = fileName }.ToString(),
+        };
+
+        if (blob.CanGenerateSasUri)
+        {
+            return blob.GenerateSasUri(sas);
+        }
+
+        var key = await blobs.GetUserDelegationKeyAsync(time.GetUtcNow().AddMinutes(-5), expiresAt, cancellationToken);
+        return new BlobUriBuilder(blob.Uri) { Sas = sas.ToSasQueryParameters(key.Value, blobs.AccountName) }.ToUri();
     }
 
     /// <summary>
