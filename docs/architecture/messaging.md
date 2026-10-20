@@ -70,7 +70,10 @@ await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
 ```
 
 Publish only on a real state change. `POST /v1/jobs/{jobId}/publish` raises `JobPublished` when a draft goes live,
-and publishing an open job again commits nothing and raises nothing.
+and publishing an open job again commits nothing and raises nothing. That state check is not race-proof: `Job` has
+no concurrency token, so two simultaneous requests for one draft both commit and raise two events. Today's handler
+only logs. The board-posting handler from job-distribution.md must hold on its own idempotency key and effect check
+(see Idempotency).
 
 Inside a worker handler, return the next message (a cascading message) or take `IMessageContext`. Handlers that take
 the `DbContext` already run in one transaction with their outbox (`AutoApplyTransactions`).
@@ -80,6 +83,11 @@ the `DbContext` already run in one transaction with their outbox (`AutoApplyTran
 `ITenantEvent` marks an integration event that belongs to one organization (`OrganizationId`) and that its signed-in
 users may see. The real-time work fans every `ITenantEvent` out to that organization's clients, so a feature task
 only defines the event. Events carry ids and the facts a client needs to refresh, never personal data.
+
+Once row-level security lands, a worker handler sees no tenant rows until it sets the tenant. The tenancy work adds
+Wolverine middleware that runs `set_config('app.tenant_id', <OrganizationId>, true)` inside the handler's
+transaction (`AutoApplyTransactions` already gives each handler one). Messages that touch tenant data therefore
+carry `OrganizationId`, whether or not they are `ITenantEvent`s.
 
 ## Idempotency
 
@@ -107,7 +115,8 @@ Every handler in the worker runs under one policy (`ApplyErrorPolicy`):
 Each failure is logged at Error with the exception, the move to the dead-letter table is logged as "moved to the error
 queue", the message's trace records `wolverine.envelope.retried` and `wolverine.error.queued`, and the
 `wolverine-dead-letter-queue` counter goes up. The Aspire dashboard shows all three. A message in the dead-letter
-table stays until someone replays or deletes it; the workflow engine will surface its own dead letters as an
+table stays until someone replays or deletes it, with its full body. That is one more reason no message, tenant
+event or not, carries personal data; the workflow engine will surface its own dead letters as an
 "automation issues" inbox (workflow-engine.md section 3).
 
 ## Scheduled and recurring messages
