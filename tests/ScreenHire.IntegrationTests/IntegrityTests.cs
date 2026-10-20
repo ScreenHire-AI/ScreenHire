@@ -358,51 +358,9 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         return (slug, jobId);
     }
 
-    // Applies as the careers server does for this applicant: the resume upload, then the submission with the session
-    // context and the candidate's address forwarded.
-    private async Task<Guid> ApplyAsync(string slug, Guid jobId, SyntheticApplicant applicant, bool accommodation = false)
-    {
-        using var client = fixture.CreateHttpClient("api");
-        var prefix = $"/v1/public/organizations/{slug}/jobs/{jobId}";
-        var resume = applicant.ResumeBytes();
-        var ticketResponse = await client.PostAsJsonAsync($"{prefix}/questions/resume/uploads", new { fileName = applicant.ResumeFileName, sizeBytes = resume.Length }, Ct);
-        ticketResponse.StatusCode.Should().Be(HttpStatusCode.OK, await ticketResponse.Content.ReadAsStringAsync(Ct));
-        var ticket = await ticketResponse.Content.ReadFromJsonAsync<JsonElement>(Ct);
-        using (var storage = new HttpClient())
-        using (var put = new HttpRequestMessage(HttpMethod.Put, ticket.GetProperty("uploadUrl").GetString()) { Content = new ByteArrayContent(resume) })
-        {
-            foreach (var header in ticket.GetProperty("headers").EnumerateObject())
-            {
-                put.Headers.Add(header.Name, header.Value.GetString());
-            }
-
-            (await storage.SendAsync(put, Ct)).IsSuccessStatusCode.Should().BeTrue();
-        }
-
-        var uploadId = ticket.GetProperty("uploadId").GetGuid();
-        (await client.PostAsync($"{prefix}/questions/resume/uploads/{uploadId}/verify", null, Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var body = new JsonObject
-        {
-            ["candidate"] = new JsonObject { ["fullName"] = applicant.FullName, ["email"] = applicant.Email, ["phone"] = applicant.Phone },
-            ["privacyNoticeVersion"] = "2026-10-20.2",
-            ["answers"] = new JsonArray(new JsonObject { ["questionId"] = "resume", ["value"] = uploadId.ToString() }),
-            // The default workflow wants AI use disclosed, so an applicant who did not say is sent as "did not use".
-            ["aiUseDeclaration"] = (applicant.AiUseDeclaration == AiUseDeclaration.NotProvided ? AiUseDeclaration.DidNotUse : applicant.AiUseDeclaration).ToString(),
-            ["aiUseDetails"] = applicant.AiUseDetails,
-            ["honeypotFilled"] = applicant.HoneypotFilled,
-            ["accommodationRequested"] = accommodation,
-            ["userAgent"] = applicant.UserAgent,
-            ["formStartedAt"] = DateTimeOffset.UtcNow - applicant.TimeToComplete,
-            ["automationMarkers"] = new JsonArray([.. applicant.AutomationMarkers.Select(m => JsonValue.Create(m))]),
-            ["deviceFingerprint"] = applicant.DeviceFingerprint,
-        };
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{prefix}/applications") { Content = JsonContent.Create(body) };
-        request.Headers.Add("X-Forwarded-For", applicant.IpAddress);
-        using var response = await client.SendAsync(request, Ct);
-        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
-        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("applicationId").GetGuid();
-    }
+    // Applies as the careers server does for this applicant (SyntheticApplications in ScreenHire.Testing).
+    private Task<Guid> ApplyAsync(string slug, Guid jobId, SyntheticApplicant applicant, bool accommodation = false) =>
+        fixture.ApplyAsync(slug, jobId, applicant, Ct, accommodation);
 
     // The application's integrity once the worker has assessed it.
     private static async Task<ApiResult> AssessedAsync(Tenant tenant, Guid applicationId)

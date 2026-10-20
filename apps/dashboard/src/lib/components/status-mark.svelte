@@ -14,6 +14,7 @@
     verify: 'bg-status-verify-mark border-status-verify-mark',
     neutral: 'bg-muted-foreground border-muted-foreground',
     primary: 'bg-primary border-primary',
+    ai: 'bg-status-ai border-status-ai',
   };
 </script>
 

@@ -2,6 +2,7 @@
   import { getDownloadApplicationFileUrl, type ApplicationAnswer, type ApplicationTimelineEntry, type Question } from '@screenhire/api-client';
   import { ApiError, createGetApplication, createGetApplicationTimeline, createGetJob } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import IntegrityPanel from '#lib/components/integrity-panel.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -180,24 +181,28 @@
         </section>
       </div>
 
-      <section aria-labelledby="timeline-heading" class="flex min-w-0 flex-[1_1_300px] flex-col rounded-xl border border-border bg-card px-4 py-3.5">
-        <h2 id="timeline-heading" class="mb-2 text-sm font-bold">Timeline</h2>
-        {#if timeline.isError}
-          <QueryError message={describeError(timeline.error, 'Could not load the timeline')} onretry={() => timeline.refetch()} />
-        {:else if !timeline.data}
-          <Skeleton class="h-16 w-full" />
-        {:else}
-          <ol class="flex flex-col gap-3 border-l border-border pl-4">
-            {#each timeline.data.data.toReversed() as entry (entry.id)}
-              <li class="flex flex-col gap-0.5">
-                <span class="font-semibold">{describeEvent(entry)} <span class="font-normal text-muted-foreground">{actor(entry)}</span></span>
-                {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
-                <time datetime={entry.occurredAt} class="font-mono text-[11px] text-muted-foreground">{formatDateTime(entry.occurredAt)}</time>
-              </li>
-            {/each}
-          </ol>
-        {/if}
-      </section>
+      <div class="flex min-w-0 flex-[1_1_360px] flex-col gap-3.5">
+        <IntegrityPanel applicationId={detail.id} />
+
+        <section aria-labelledby="timeline-heading" class="flex min-w-0 flex-col rounded-xl border border-border bg-card px-4 py-3.5">
+          <h2 id="timeline-heading" class="mb-2 text-sm font-bold">Timeline</h2>
+          {#if timeline.isError}
+            <QueryError message={describeError(timeline.error, 'Could not load the timeline')} onretry={() => timeline.refetch()} />
+          {:else if !timeline.data}
+            <Skeleton class="h-16 w-full" />
+          {:else}
+            <ol class="flex flex-col gap-3 border-l border-border pl-4">
+              {#each timeline.data.data.toReversed() as entry (entry.id)}
+                <li class="flex flex-col gap-0.5">
+                  <span class="font-semibold">{describeEvent(entry)} <span class="font-normal text-muted-foreground">{actor(entry)}</span></span>
+                  {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
+                  <time datetime={entry.occurredAt} class="font-mono text-[11px] text-muted-foreground">{formatDateTime(entry.occurredAt)}</time>
+                </li>
+              {/each}
+            </ol>
+          {/if}
+        </section>
+      </div>
     </div>
   {/if}
 </main>
