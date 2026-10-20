@@ -309,7 +309,7 @@ Rules of thumb in the analyzers:
   matches them, so the first member of a farm carries no duplicate signal of its own.
 - **Phone numbers** use libphonenumber. A number without a country code is checked only when the job is in exactly one
   country; otherwise it is not a signal.
-- **Accommodation** (the assistive-technology switch): the API stores no form start time, accessibility-sensitive
+- **Accommodation** (the assistive-technology switch): the API stores no form start time, device hash, automation markers or telemetry, accessibility-sensitive
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 

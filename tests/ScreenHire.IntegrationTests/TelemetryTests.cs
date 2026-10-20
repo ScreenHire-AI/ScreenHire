@@ -155,6 +155,26 @@ public sealed class TelemetryTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task With_the_assistive_technology_switch_no_device_check_or_markers_are_kept_whatever_is_sent()
+    {
+        var (organization, jobs) = await OrganizationWithJobsAsync(("uk", ["GB"]));
+        using var client = fixture.CreateHttpClient("api");
+
+        var accommodated = await ApplyAsync(
+            client, organization, jobs[0], "ari.moss@example.com", accommodation: true, fingerprint: Fingerprint('d'), markers: ["webdriver"]);
+        var measured = await ApplyAsync(
+            client, organization, jobs[0], "kim.lowe@example.com", fingerprint: Fingerprint('e'), markers: ["webdriver", "my-own-marker"]);
+
+        await using var db = await TenantDbAsync(organization.Id);
+        var off = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == accommodated, Ct);
+        off.DeviceHash.Should().BeNull();
+        off.AutomationMarkers.Should().BeEmpty();
+        var on = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == measured, Ct);
+        on.DeviceHash.Should().NotBeNull();
+        on.AutomationMarkers.Should().Equal("webdriver"); // only the module's fixed list
+    }
+
+    [Fact]
     public async Task Where_the_job_needs_consent_a_device_fingerprint_is_kept_only_with_the_tick()
     {
         var (organization, jobs) = await OrganizationWithJobsAsync(("germany", ["DE"]), ("uk", ["GB"]));
@@ -243,7 +263,8 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         JsonObject? final = null,
         bool accommodation = false,
         string? fingerprint = null,
-        bool deviceCheckConsent = false)
+        bool deviceCheckConsent = false,
+        string[]? markers = null)
     {
         var prefix = $"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}";
         var ticketResponse = await client.PostAsJsonAsync($"{prefix}/questions/resume/uploads", new { fileName = "cv.pdf", sizeBytes = Pdf.Length }, Ct);
@@ -275,6 +296,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
             ["aiUseDeclaration"] = "DidNotUse",
             ["accommodationRequested"] = accommodation,
             ["deviceFingerprint"] = fingerprint,
+            ["automationMarkers"] = new JsonArray([.. (markers ?? []).Select(m => JsonValue.Create(m))]),
             ["deviceCheckConsent"] = deviceCheckConsent,
             ["telemetrySessionToken"] = token,
             ["telemetry"] = final,
