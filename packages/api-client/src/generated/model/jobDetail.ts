@@ -7,6 +7,7 @@
 import type { EmploymentType } from './employmentType.ts';
 import type { HiringWorkflow } from './hiringWorkflow.ts';
 import type { JobLocation } from './jobLocation.ts';
+import type { JobPostingStatus } from './jobPostingStatus.ts';
 import type { JobSalary } from './jobSalary.ts';
 import type { JobStatus } from './jobStatus.ts';
 import type { JobTemplateSource } from './jobTemplateSource.ts';
@@ -43,4 +44,5 @@ export interface JobDetail {
   publishedAt: string | null;
   /** @nullable */
   closedAt: string | null;
+  postings: JobPostingStatus[];
 }

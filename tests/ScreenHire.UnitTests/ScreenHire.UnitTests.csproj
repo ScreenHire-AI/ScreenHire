@@ -23,6 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Schemas written from each job board's published feed format; FeedFormatTests validates every feed against them. -->
+    <None Update="Distribution\Schemas\*.xsd" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="AwesomeAssertions" />
     <Using Include="Xunit" />
   </ItemGroup>

@@ -21,17 +21,19 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     public static async Task<WolverineStore> ForAppHostApiAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
         new(await fixture.GetOwnerConnectionStringAsync(cancellationToken), DatabaseRegistration.ApiMessagingSchema);
 
-    public Task<long> CountOutgoingAsync(string bodyContains, CancellationToken cancellationToken) =>
-        CountAsync("wolverine_outgoing_envelopes", bodyContains, cancellationToken);
+    // In every Count method, messageType, when given, narrows to messages whose type name contains it (such as
+    // ".JobPublished"): one job's id is in many messages' bodies (its events, its postings' commands and events).
+    public Task<long> CountOutgoingAsync(string bodyContains, CancellationToken cancellationToken, string? messageType = null) =>
+        CountAsync("wolverine_outgoing_envelopes", bodyContains, cancellationToken, messageType: messageType);
 
-    public Task<long> CountQueuedAsync(string queue, string bodyContains, CancellationToken cancellationToken) =>
-        CountAsync($"wolverine_queue_{queue}", bodyContains, cancellationToken);
+    public Task<long> CountQueuedAsync(string queue, string bodyContains, CancellationToken cancellationToken, string? messageType = null) =>
+        CountAsync($"wolverine_queue_{queue}", bodyContains, cancellationToken, messageType: messageType);
 
-    public Task<long> CountIncomingAsync(string bodyContains, CancellationToken cancellationToken) =>
-        CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken);
+    public Task<long> CountIncomingAsync(string bodyContains, CancellationToken cancellationToken, string? messageType = null) =>
+        CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, messageType: messageType);
 
-    public Task<long> CountHandledAsync(string bodyContains, CancellationToken cancellationToken) =>
-        CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, "status = 'Handled'");
+    public Task<long> CountHandledAsync(string bodyContains, CancellationToken cancellationToken, string? messageType = null) =>
+        CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, "status = 'Handled'", messageType);
 
     /// <summary>Messages waiting for their scheduled time, such as a workflow engine timer.</summary>
     public Task<long> CountScheduledAsync(string bodyContains, CancellationToken cancellationToken) =>
@@ -93,13 +95,19 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     // Bodies are bytea: the message's JSON, or (in queue tables) a binary envelope that contains it.
     private const string BodyMatches = "position(convert_to(@needle, 'UTF8') in body) > 0";
 
-    private async Task<long> CountAsync(string table, string bodyContains, CancellationToken cancellationToken, string? filter = null)
+    private async Task<long> CountAsync(
+        string table, string bodyContains, CancellationToken cancellationToken, string? filter = null, string? messageType = null)
     {
         await using var connection = await OpenAsync(cancellationToken);
         await using var command = new NpgsqlCommand(
-            $"select count(*) from {schema}.{table} where {BodyMatches}{(filter is null ? "" : $" and {filter}")}",
+            $"select count(*) from {schema}.{table} where {BodyMatches}{(filter is null ? "" : $" and {filter}")}" +
+            (messageType is null ? "" : " and position(@type in message_type) > 0"),
             connection);
         command.Parameters.AddWithValue("needle", bodyContains);
+        if (messageType is not null)
+        {
+            command.Parameters.AddWithValue("type", messageType);
+        }
         return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
     }
 

@@ -7,7 +7,10 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>A job as shown on a public careers page.</summary>
 /// <remarks>
 /// <c>location</c> is a display label; structured data (JSON-LD, feeds) reads <c>locations</c> and
-/// <c>applicantLocationRequirements</c>. <c>description</c> is sanitized HTML.
+/// <c>applicantLocationRequirements</c>. <c>description</c> is sanitized HTML. <c>updatedAt</c> is the last change to
+/// the posting content, for sitemaps' <c>lastmod</c>. For a closed job (410 Gone), <c>validThrough</c> is when it closed,
+/// so the page's JSON-LD tells Google it has expired. <c>url</c> is the job's careers page, from the deployment's
+/// domain configuration: the canonical URL that feeds, boards and Google all use.
 /// </remarks>
 public sealed record PublicJob(
     Guid Id,
@@ -25,10 +28,16 @@ public sealed record PublicJob(
     IReadOnlyList<JobLocation> Locations,
     IReadOnlyList<string> ApplicantLocationRequirements,
     SalaryPeriod? SalaryPeriod,
-    DateTimeOffset? ValidThrough);
+    DateTimeOffset? ValidThrough,
+    DateTimeOffset? UpdatedAt,
+    string Url);
 
-/// <summary>The public careers listing for one organization. <c>branding</c> is null when it has no brand colour.</summary>
-public sealed record PublicJobBoard(string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, PublicBranding? Branding = null);
+/// <summary>
+/// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is null when it
+/// has no brand colour.
+/// </summary>
+public sealed record PublicJobBoard(
+    string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url, PublicBranding? Branding = null);
 
 /// <summary>A job as shown in the recruiter dashboard's list.</summary>
 /// <remarks><c>templateUpdateAvailable</c>: the job's source template has a newer published version than the job copied.</remarks>
@@ -49,6 +58,7 @@ public sealed record JobSummary(
 /// <remarks>
 /// <c>publishedVersion</c> is the newest <c>JobVersion</c> (0 before the first publish). <c>hasUnpublishedChanges</c>
 /// means the job is open and its content differs from that version: publishing again freezes a new version.
+/// <c>postings</c> is the job on each board it was published to, with each board's state and estimate.
 /// </remarks>
 public sealed record JobDetail(
     Guid Id,
@@ -72,7 +82,8 @@ public sealed record JobDetail(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     DateTimeOffset? PublishedAt,
-    DateTimeOffset? ClosedAt);
+    DateTimeOffset? ClosedAt,
+    IReadOnlyList<JobPostingStatus> Postings);
 
 /// <summary>The template version a job's workflow was copied from, and whether a newer one is published.</summary>
 public sealed record JobTemplateSource(
@@ -147,10 +158,11 @@ internal static class JobMappings
     public static string LocationLabel(this Job job) =>
         JobLocation.Describe(job.WorkplaceType, job.Locations, job.ApplicantLocationRequirements);
 
-    public static PublicJob ToPublicJob(this Job job) =>
+    public static PublicJob ToPublicJob(this Job job, string url) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.EmploymentType,
             job.SalaryMin, job.SalaryMax, job.SalaryCurrency, job.PublishedAt, job.Description, job.Department,
-            job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period, job.ValidThrough);
+            job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period,
+            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url);
 
     public static JobSummary ToSummary(this Job job, int? latestTemplateVersion = null) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.Status, job.CreatedAt, job.PublishedAt,
@@ -160,12 +172,14 @@ internal static class JobMappings
     /// <param name="latestSnapshot">The newest <c>JobVersion</c>'s content, or null if it was never published.</param>
     /// <param name="templateName">The source template's name, if the job has one.</param>
     /// <param name="latestTemplateVersion">The source template's newest published version number.</param>
-    public static JobDetail ToDetail(this Job job, JobSnapshot? latestSnapshot, string? templateName, int? latestTemplateVersion) =>
+    /// <param name="postings">The job's postings, as statuses.</param>
+    public static JobDetail ToDetail(
+        this Job job, JobSnapshot? latestSnapshot, string? templateName, int? latestTemplateVersion, IReadOnlyList<JobPostingStatus> postings) =>
         new(job.Id, job.Title, job.Slug, job.Status, job.Description, job.Department, job.EmploymentType, job.WorkplaceType,
             job.Locations, job.ApplicantLocationRequirements, job.LocationLabel(), job.Salary, job.ValidThrough,
             job.Workflow, job.WorkflowVersion, job.ToTemplateSource(templateName, latestTemplateVersion), job.PublishedVersion,
             job.Status == JobStatus.Open && latestSnapshot != job.Snapshot(),
-            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt);
+            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings);
 
     private static JobTemplateSource? ToTemplateSource(this Job job, string? templateName, int? latestTemplateVersion) =>
         job is { SourceTemplateId: { } templateId, SourceTemplateVersionId: { } versionId, SourceTemplateVersion: { } version }

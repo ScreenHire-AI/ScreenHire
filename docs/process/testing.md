@@ -77,6 +77,10 @@ The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 | `Built` | `preview` scripts over `pnpm -r build` output: what ships | `tests/ScreenHire.E2E` |
 | `None` | no JS apps; API, worker and infrastructure only | `tests/ScreenHire.IntegrationTests` |
 
+It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
+board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
+and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
+
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
 demo data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
@@ -110,7 +114,8 @@ There is no reset between tests and no Respawn. Instead:
 Messages cross processes, so these tests wait on Wolverine's tables in Postgres, never on time:
 
 - `WolverineStore` counts a message in the outbox, the worker queue, the inbox (handled or not) or the dead-letter
-  table, found by an id in its body so a test only sees its own messages. `WolverineStore.WaitUntilAsync` polls a
+  table, found by an id in its body so a test only sees its own messages. A published job's id is in its postings' commands and events too, so
+  each count takes an optional message type (`".JobPublished"`) to narrow it. `WolverineStore.WaitUntilAsync` polls a
   condition with a 60-second deadline.
 - `MessagingHost` starts an in-process Wolverine host with the API's or the worker's setup
   (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and

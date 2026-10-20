@@ -9,6 +9,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Distribution;
+using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -141,7 +143,9 @@ public static class ScreenHireMessaging
 
         // Durable, like the publishing side of the same queue: Wolverine keeps one mode per endpoint for both directions.
         // The inbox is the API's own (settings.Schema), so the worker's durability agent never sees these envelopes.
-        opts.ListenToPostgresqlQueue(settings.RealtimeQueue).UseDurableInbox();
+        // Postgres queues are polled, and an idle listener otherwise waits ScheduledJobPollingTime (5 s) between polls:
+        // too long for a live update, which is the one message whose latency people see.
+        opts.ListenToPostgresqlQueue(settings.RealtimeQueue).UseDurableInbox().PollingInterval(settings.RealtimePollingInterval);
 
         if (tenantEventHandler is not null)
         {
@@ -187,7 +191,9 @@ public static class ScreenHireMessaging
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
 
         UsePostgres(opts, connectionString, settings);
-        opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox();
+        // Polled, like the real-time queue: a chain of events (an automation moving an application, which raises the next
+        // ApplicationMoved) waits one idle poll per hop, so the default 5 s adds up.
+        opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox().PollingInterval(settings.WorkerPollingInterval);
         RouteTenantEvents(opts, settings);
 
         // Messages a handler publishes to another handler in the worker go through durable local queues, so they
@@ -246,6 +252,9 @@ public static class ScreenHireMessaging
     {
         ArgumentNullException.ThrowIfNull(opts);
         opts.Schedules.ScheduleRecurring<ReportOpenJobs>("*/5 * * * *");
+        // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
+        opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
+        opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");
     }
 
     /// <summary>

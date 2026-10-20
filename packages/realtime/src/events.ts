@@ -44,6 +44,8 @@ export const realtimeEventSchemas = {
     publishedAt: instant,
   }),
   JobClosed: z.object({ organizationId: id, jobId: id, closedAt: instant }),
+  // A job's postings changed (docs/architecture/job-distribution.md): the dashboard refetches GET /v1/jobs/{jobId}/postings.
+  JobPostingsChanged: z.object({ organizationId: id, jobId: id, changedAt: instant }),
   // version and jobVersionId came after the first JobPublished; an envelope queued before them carries version 1 and null.
   JobPublished: z.object({
     organizationId: id,

@@ -18,6 +18,9 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
 {
     private const string WorkerQueue = "worker";
 
+    // A published job's id is also in its postings' commands and events (job distribution), so counts name the type.
+    private const string JobPublishedType = ".JobPublished";
+
     [Fact]
     public async Task Publishing_a_job_commits_it_with_its_event_and_the_worker_handles_the_event_once()
     {
@@ -36,12 +39,12 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
         var jobId = job.Id.ToString();
         // The handler reads the job back, which works only when the worker set the message's tenant (JobPublishedHandler).
         await WolverineStore.WaitUntilAsync(
-            async () => await store.CountHandledAsync(jobId, cancellationToken) == 1, "the worker to handle JobPublished", cancellationToken);
-        (await store.CountIncomingAsync(jobId, cancellationToken)).Should().Be(1, "the event is delivered to the worker exactly once");
+            async () => await store.CountHandledAsync(jobId, cancellationToken, JobPublishedType) == 1, "the worker to handle JobPublished", cancellationToken);
+        (await store.CountIncomingAsync(jobId, cancellationToken, JobPublishedType)).Should().Be(1, "the event is delivered to the worker exactly once");
         // The API's outbox sends to the worker queue and the real-time queue separately; both rows go once sent.
         await WolverineStore.WaitUntilAsync(
             async () => await CountApiOutboxAsync(jobId, cancellationToken) == 0, "the API's outbox to be flushed", cancellationToken);
-        (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken)).Should().Be(0, "the worker took the event off the queue");
+        (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken, JobPublishedType)).Should().Be(0, "the worker took the event off the queue");
         (await store.GetDeadLettersAsync(jobId, cancellationToken)).Should().BeEmpty("the handler found the job as its tenant");
     }
 
@@ -56,7 +59,7 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
 
         (await PublishAsync(session, job.Id, cancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
         await WolverineStore.WaitUntilAsync(
-            async () => await store.CountHandledAsync(jobId, cancellationToken) == 1, "the worker to handle JobPublished", cancellationToken);
+            async () => await store.CountHandledAsync(jobId, cancellationToken, JobPublishedType) == 1, "the worker to handle JobPublished", cancellationToken);
         await WolverineStore.WaitUntilAsync(
             async () => await CountApiOutboxAsync(jobId, cancellationToken) == 0, "the API's outbox to be flushed", cancellationToken);
 
@@ -64,8 +67,8 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
 
         // The second call commits nothing, so there is no outbox row, queue row or delivery to wait for.
         (await CountApiOutboxAsync(jobId, cancellationToken)).Should().Be(0);
-        (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken)).Should().Be(0);
-        (await store.CountIncomingAsync(jobId, cancellationToken)).Should().Be(1);
+        (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken, JobPublishedType)).Should().Be(0);
+        (await store.CountIncomingAsync(jobId, cancellationToken, JobPublishedType)).Should().Be(1);
     }
 
     [Fact]
@@ -84,8 +87,8 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
 
             // Committed and sent: the event waits in the Postgres queue, and nothing has received it.
             await WolverineStore.WaitUntilAsync(
-                async () => await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken) == 1, "JobPublished to reach the worker queue", cancellationToken);
-            (await store.CountIncomingAsync(jobId, cancellationToken)).Should().Be(0, "no process handles messages while the worker is stopped");
+                async () => await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken, JobPublishedType) == 1, "JobPublished to reach the worker queue", cancellationToken);
+            (await store.CountIncomingAsync(jobId, cancellationToken, JobPublishedType)).Should().Be(0, "no process handles messages while the worker is stopped");
         }
         finally
         {
@@ -93,8 +96,8 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
         }
 
         await WolverineStore.WaitUntilAsync(
-            async () => await store.CountHandledAsync(jobId, cancellationToken) == 1, "the restarted worker to handle JobPublished", cancellationToken);
-        (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken)).Should().Be(0);
+            async () => await store.CountHandledAsync(jobId, cancellationToken, JobPublishedType) == 1, "the restarted worker to handle JobPublished", cancellationToken);
+        (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken, JobPublishedType)).Should().Be(0);
     }
 
     [Fact]

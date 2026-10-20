@@ -29,6 +29,11 @@ API endpoint or worker handler
    name and `data` is the record, camelCased, with enums as strings and strict numbers (`RealtimeSetup.ConfigureJson`,
    the same rules as the REST API).
 
+Wolverine's Postgres transport polls its queues instead of listening for notifications, and an idle listener waits
+`ScheduledJobPollingTime` (5 s) between polls by default. The API's `realtime` listener polls every
+`MessagingSettings.RealtimePollingInterval` (250 ms) instead, so an event reaches open tabs within a fraction of a
+second. The 5 s default let live updates miss the end-to-end tests' 5 s budget once job distribution added traffic.
+
 An event that waits in `realtime` longer than `MessagingSettings.RealtimeEventLifetime` (one minute) is discarded: a
 live update that arrives late is noise. A failed push is retried twice, then dropped with the error logged. Delivery
 is best-effort on purpose. A client that loses its connection refetches what it shows when it comes back, so a missed
@@ -137,6 +142,7 @@ otherwise run.
 | `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none |
 | `AutomationRealtimeTests` (integration) | a NotifyTeam automation raises `TeamNotified` and `AutomationRunFinished` to its own organization, with ids and the status only, and never to another |
 | `JobCloseTests` (integration) | `POST /v1/jobs/{id}/close` closes once and raises `JobClosed` once; 404 for another organization; antiforgery and sign-in |
+| `DistributionTests` (integration) | publish and close raise one `JobPostingsChanged` per change, not one per board (job-distribution.md §5) |
 | `RealtimeContractTests`, `RealtimeGroupsTests` (unit) | the contract file; group names and topic routing |
 | `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling (against the real SignalR stack too), schema parsing, invalidation, the runes store |
 | `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |

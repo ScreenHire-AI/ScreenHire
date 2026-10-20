@@ -9,7 +9,13 @@
 //   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
+//   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
+//                               the same boards (ScreenHire.Application DistributionOptions). appsettings.Development.json
+//                               turns on the local sandbox board, a fake that must never reach real tenants;
+//                               GoogleIndexing:Mode is Off unless set (Local is the fake); in Google mode the key comes
+//                               from the secret parameter google-indexing-service-account-key, never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -101,12 +107,33 @@ if (builder.Environment.IsDevelopment())
 var webhookSigningKey = builder.AddParameter(
     "webhook-signing-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
 
-builder.AddProject<Projects.ScreenHire_Worker>("worker")
+var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
     .WithEnvironment("ScreenHire__Webhooks__SigningKey", webhookSigningKey)
     // Automations send transactional email (application received, stage change) from the worker.
     .WithReference(mailpit)
     .WaitFor(api); // the API applies migrations and sets the app role's password in Development
+
+foreach (var (key, value) in settings.GetSection("Distribution").AsEnumerable(makePathsRelative: true))
+{
+    // The service account key is a secret: it goes through the parameter below, never as plain configuration.
+    if (value is not null && !key.Equals("GoogleIndexing:ServiceAccountKeyJson", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Distribution__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+// The real Indexing API's service account key (job-distribution.md section 5), only in Google mode: a secret parameter,
+// set with `dotnet user-secrets set Parameters:google-indexing-service-account-key "<json>"` in apps/apphost or by the
+// deployment's secret store. In Off or Local mode there is no parameter, so nothing asks for a key.
+if (string.Equals(settings["Distribution:GoogleIndexing:Mode"], "Google", StringComparison.OrdinalIgnoreCase))
+{
+    var googleKey = builder.AddParameter("google-indexing-service-account-key", secret: true);
+    api.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
+    worker.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
+}
 
 if (frontends != FrontendMode.None)
 {
@@ -124,7 +151,8 @@ if (frontends != FrontendMode.None)
 
     // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
     // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
-    // The careers server and the API read the same ScreenHire:Domains settings.
+    // The careers server and the API read the same ScreenHire:Domains settings, so the canonical, sitemap, feed, job-board
+    // API and Google URLs the API builds are these tenant hosts.
     var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
     foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api })
     {

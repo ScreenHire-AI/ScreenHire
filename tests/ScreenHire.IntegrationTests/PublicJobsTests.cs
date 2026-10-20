@@ -56,10 +56,12 @@ public sealed class PublicJobsTests(AppHostFixture fixture)
             .Should().Equal("newer", "older");
     }
 
+    // A closed job that was public is 410 Gone (teardown); one closed before it was ever published never existed publicly.
     [Theory]
     [InlineData("open", HttpStatusCode.OK)]
     [InlineData("draft", HttpStatusCode.NotFound)]
     [InlineData("closed", HttpStatusCode.Gone)]
+    [InlineData("closed-unpublished", HttpStatusCode.NotFound)]
     [InlineData("missing", HttpStatusCode.NotFound)]
     public async Task Job_page_is_served_only_while_the_job_is_open_and_is_gone_once_closed(string slug, HttpStatusCode expected)
     {
@@ -72,13 +74,20 @@ public sealed class PublicJobsTests(AppHostFixture fixture)
             var closed = TestData.NewJob(org, "closed");
             closed.Publish(now);
             closed.Close(now);
-            return [open, closed, TestData.NewJob(org, "draft")];
+            var closedUnpublished = TestData.NewJob(org, "closed-unpublished");
+            closedUnpublished.Close(now);
+            return [open, closed, closedUnpublished, TestData.NewJob(org, "draft")];
         }, cancellationToken);
         using var client = fixture.CreateHttpClient("api");
 
         var response = await client.GetAsync($"/v1/public/organizations/{organization.Slug}/jobs/{slug}", cancellationToken);
 
         response.StatusCode.Should().Be(expected);
+        if (expected == HttpStatusCode.Gone)
+        {
+            var gone = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            gone.GetProperty("validThrough").GetDateTimeOffset().Should().BeCloseTo(now, TimeSpan.FromSeconds(1), "a closed job expired when it closed");
+        }
     }
 
     [Fact]

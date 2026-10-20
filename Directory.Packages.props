@@ -26,6 +26,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetVersion)" />
+    <!-- MIT. IHttpClientFactory for the Google Indexing API client in ScreenHire.Application. -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(DotNetVersion)" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
@@ -46,6 +48,10 @@
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.51.1" />
     <!-- Roslyn for Wolverine's runtime handler code generation (TypeLoadMode.Dynamic); MIT, as is Microsoft.CodeAnalysis. -->
     <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.51.1" />
+  </ItemGroup>
+  <ItemGroup Label="Job distribution">
+    <!-- Apache-2.0, as are Google.Apis and Google.Apis.Core; Newtonsoft.Json is MIT. Service-account tokens for Google's Indexing API. -->
+    <PackageVersion Include="Google.Apis.Auth" Version="1.69.0" />
   </ItemGroup>
   <ItemGroup Label="Service defaults">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />

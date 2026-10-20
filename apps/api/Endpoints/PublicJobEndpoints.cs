@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Jobs;
-using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -27,7 +28,7 @@ internal static class PublicJobEndpoints
 
         group.MapGet("/", GetOrganization).WithName("GetPublicOrganization");
         group.MapGet("/jobs", ListOpenJobs).WithName("ListPublicJobs");
-        group.MapGet("/jobs/{jobSlug}", GetOpenJob).WithName("GetPublicJob").ProducesProblem(StatusCodes.Status410Gone);
+        group.MapGet("/jobs/{jobSlug}", GetOpenJob).WithName("GetPublicJob").Produces<PublicJob>(StatusCodes.Status410Gone);
         group.MapGet("/jobs/{jobSlug}/application-form", GetApplicationForm).WithName("GetPublicApplicationForm")
             .ProducesProblem(StatusCodes.Status410Gone);
 
@@ -37,14 +38,14 @@ internal static class PublicJobEndpoints
     private static async Task<Results<Ok<PublicOrganization>, NotFound>> GetOrganization(
         string organizationSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
     {
-        var organization = await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken);
+        var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
         return organization is null ? TypedResults.NotFound() : TypedResults.Ok(organization.ToPublic());
     }
 
     private static async Task<Results<Ok<PublicJobBoard>, NotFound>> ListOpenJobs(
-        string organizationSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
+        string organizationSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)
     {
-        var organization = await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken);
+        var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
         if (organization is null)
         {
             return TypedResults.NotFound();
@@ -56,25 +57,37 @@ internal static class PublicJobEndpoints
             .ToListAsync(cancellationToken);
 
         return TypedResults.Ok(new PublicJobBoard(
-            organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob())], organization.ToPublic().Branding));
+            organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, j.Slug)))],
+            domains.Value.CareersBoardUrl(organization.Slug), organization.ToPublic().Branding));
     }
 
-    private static async Task<Results<Ok<PublicJob>, NotFound, ProblemHttpResult>> GetOpenJob(
-        string organizationSlug, string jobSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
+    // An open job is 200. A closed job that was once published is 410 Gone with its last content and validThrough set to
+    // when it closed, so the careers page can serve 410 with expired JobPosting JSON-LD (teardown, job-distribution.md).
+    // A draft, a job closed before it was ever published, or an unknown slug is 404: nothing public ever existed.
+    private static async Task<Results<Ok<PublicJob>, JsonHttpResult<PublicJob>, NotFound>> GetOpenJob(
+        string organizationSlug, string jobSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains,
+        CancellationToken cancellationToken)
     {
-        if (await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken) is null)
+        if (await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken) is not { } organization)
         {
             return TypedResults.NotFound();
         }
 
-        var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Slug == jobSlug, cancellationToken);
+        var job = await db.Jobs.AsNoTracking()
+            .SingleOrDefaultAsync(j => j.Slug == jobSlug && j.Status != JobStatus.Draft && j.PublishedAt != null, cancellationToken);
+
         return job switch
         {
-            { Status: JobStatus.Open } => TypedResults.Ok(job.ToPublicJob()),
-            { Status: JobStatus.Closed, PublishedAt: not null } => Gone(),
-            _ => TypedResults.NotFound(),
+            null => TypedResults.NotFound(),
+            { Status: JobStatus.Closed } => TypedResults.Json(
+                job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)), statusCode: StatusCodes.Status410Gone),
+            _ => TypedResults.Ok(job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug))),
         };
     }
+
+    /// <summary>410 for a job that was published and has closed, where no job content is returned (the apply flow).</summary>
+    internal static ProblemHttpResult Gone() =>
+        TypedResults.Problem(title: "This job is closed", detail: "It no longer takes applications.", statusCode: StatusCodes.Status410Gone);
 
     private static async Task<Results<Ok<PublicApplicationForm>, NotFound, ProblemHttpResult>> GetApplicationForm(
         string organizationSlug,
@@ -83,9 +96,10 @@ internal static class PublicJobEndpoints
         TenantContext tenant,
         ApplicantUploads uploads,
         TurnstileVerifier turnstile,
+        IOptions<DomainOptions> domains,
         CancellationToken cancellationToken)
     {
-        var organization = await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken);
+        var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
         if (organization is null)
         {
             return TypedResults.NotFound();
@@ -99,30 +113,10 @@ internal static class PublicJobEndpoints
 
         return TypedResults.Ok(new PublicApplicationForm(
             organization.ToPublic(),
-            job.ToPublicJob(),
+            job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)),
             [.. ApplicationForm.QuestionsFor(job.Workflow).Select(q => q.ToPublic(FileTypes.AcceptedBy))],
             job.Workflow.IntegrityPolicy.AiUse,
             new PublicUploadSettings(uploads.MaxBytes, uploads.Origin),
             turnstile.SiteKey));
-    }
-
-    /// <summary>410 for a job that was published and has closed.</summary>
-    internal static ProblemHttpResult Gone() =>
-        TypedResults.Problem(title: "This job is closed", detail: "It no longer takes applications.", statusCode: StatusCodes.Status410Gone);
-
-    /// <summary>
-    /// The organization with <paramref name="slug"/>, made the request's tenant. This replaces a signed-in caller's own
-    /// organization for the request, which is safe here because these routes read only what a careers page shows.
-    /// </summary>
-    internal static async Task<Organization?> FindOrganizationAsync(
-        string slug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
-    {
-        var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Slug == slug, cancellationToken);
-        if (organization is not null)
-        {
-            tenant.SetOrganization(organization.Id);
-        }
-
-        return organization;
     }
 }

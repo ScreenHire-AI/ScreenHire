@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Talent.com's XML feed, written from the element list Talent.com publishes for ATS partners:
+  https://www.talent.com/integrations (accessed 2026-10-20). Required and recommended elements as the page lists them;
+  dates in its suggested yyyy-MM-ddTHH:mm:ssZ, except expirationdate, for which it suggests MM-dd-yyyyTHH:mm:ssZ.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="source">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="publisher" type="xs:string" minOccurs="0" />
+        <xs:element name="publisherurl" type="xs:anyURI" minOccurs="0" />
+        <xs:element name="lastbuilddate" type="isoDate" minOccurs="0" />
+        <xs:element name="job" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="referencenumber" type="nonEmpty" />
+              <xs:element name="title" type="nonEmpty" />
+              <xs:element name="company" type="nonEmpty" />
+              <xs:element name="city" type="xs:string" />
+              <xs:element name="state" type="xs:string" />
+              <xs:element name="country" type="nonEmpty" />
+              <xs:element name="dateposted" type="isoDate" />
+              <xs:element name="url" type="xs:anyURI" />
+              <xs:element name="description" type="nonEmpty" />
+              <xs:element name="expirationdate" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:pattern value="\d{2}-\d{2}-\d{4}T\d{2}:\d{2}:\d{2}Z" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="streetaddress" type="xs:string" minOccurs="0" />
+              <xs:element name="postalcode" type="xs:string" minOccurs="0" />
+              <xs:element name="jobtype" type="xs:string" minOccurs="0" />
+              <xs:element name="isremote" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="yes" />
+                    <xs:enumeration value="no" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="benefit" type="xs:string" minOccurs="0" />
+              <xs:element name="category" type="xs:string" minOccurs="0" />
+              <xs:element name="logo" type="xs:anyURI" minOccurs="0" />
+              <xs:element name="cpc" type="xs:integer" minOccurs="0" />
+              <xs:element name="salary" minOccurs="0">
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="salary_min" type="xs:decimal" minOccurs="0" />
+                    <xs:element name="salary_max" type="xs:decimal" minOccurs="0" />
+                    <xs:element name="salary_currency" type="xs:string" minOccurs="0" />
+                    <xs:element name="period" minOccurs="0">
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:enumeration value="year" />
+                          <xs:enumeration value="month" />
+                          <xs:enumeration value="week" />
+                          <xs:enumeration value="day" />
+                          <xs:enumeration value="hour" />
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="type" type="xs:string" minOccurs="0" />
+                  </xs:all>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="talent-apply-data" type="xs:string" minOccurs="0" />
+            </xs:all>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="nonEmpty">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="isoDate">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>
