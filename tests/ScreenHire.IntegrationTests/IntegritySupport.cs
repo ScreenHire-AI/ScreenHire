@@ -37,53 +37,16 @@ internal static class IntegritySupport
         return (slug, jobId);
     }
 
-    /// <summary>
-    /// Applies as <paramref name="applicant"/>: their resume, then any <paramref name="files"/> for other file questions,
-    /// then the submission with <paramref name="answers"/> (none by default: the default workflow asks nothing else).
-    /// </summary>
-    public static async Task<Guid> ApplyAsync(
+    /// <summary>Applies as the careers server does (<see cref="SyntheticApplications.ApplyAsync"/>); the default workflow asks nothing but the resume.</summary>
+    public static Task<Guid> ApplyAsync(
         AppHostFixture fixture,
         string slug,
         Guid jobId,
         SyntheticApplicant applicant,
         bool accommodation = false,
         IReadOnlyList<ApplicationAnswer>? answers = null,
-        IReadOnlyList<(string QuestionId, string FileName, byte[] Content)>? files = null)
-    {
-        using var client = fixture.CreateHttpClient("api");
-        var prefix = $"/v1/public/organizations/{slug}/jobs/{jobId}";
-        var submitted = new JsonArray(Answer("resume", (await UploadAsync(client, prefix, "resume", applicant.ResumeFileName, applicant.ResumeBytes())).ToString()));
-        foreach (var (questionId, fileName, content) in files ?? [])
-        {
-            submitted.Add(Answer(questionId, (await UploadAsync(client, prefix, questionId, fileName, content)).ToString()));
-        }
-
-        foreach (var answer in answers ?? [])
-        {
-            submitted.Add(Answer(answer.QuestionId, answer.Value!));
-        }
-
-        var body = new JsonObject
-        {
-            ["candidate"] = new JsonObject { ["fullName"] = applicant.FullName, ["email"] = applicant.Email, ["phone"] = applicant.Phone },
-            ["privacyNoticeVersion"] = "2026-10-20.3",
-            ["answers"] = submitted,
-            // The default workflow wants AI use disclosed, so an applicant who did not say is sent as "did not use".
-            ["aiUseDeclaration"] = (applicant.AiUseDeclaration == AiUseDeclaration.NotProvided ? AiUseDeclaration.DidNotUse : applicant.AiUseDeclaration).ToString(),
-            ["aiUseDetails"] = applicant.AiUseDetails,
-            ["honeypotFilled"] = applicant.HoneypotFilled,
-            ["accommodationRequested"] = accommodation,
-            ["userAgent"] = applicant.UserAgent,
-            ["formStartedAt"] = DateTimeOffset.UtcNow - applicant.TimeToComplete,
-            ["automationMarkers"] = new JsonArray([.. applicant.AutomationMarkers.Select(m => JsonValue.Create(m))]),
-            ["deviceFingerprint"] = applicant.DeviceFingerprint,
-        };
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{prefix}/applications") { Content = JsonContent.Create(body) };
-        request.Headers.Add("X-Forwarded-For", applicant.IpAddress);
-        using var response = await client.SendAsync(request, Ct);
-        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
-        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("applicationId").GetGuid();
-    }
+        IReadOnlyList<(string QuestionId, string FileName, byte[] Content)>? files = null) =>
+        fixture.ApplyAsync(slug, jobId, applicant, Ct, accommodation, answers, files);
 
     /// <summary>The application's integrity once the worker has assessed it at least once.</summary>
     public static async Task<ApiResult> AssessedAsync(Tenant tenant, Guid applicationId)
@@ -123,28 +86,5 @@ internal static class IntegritySupport
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);
         return await fixture.CreateDbContextAsync(tenant, Ct);
-    }
-
-    private static JsonObject Answer(string questionId, string value) => new() { ["questionId"] = questionId, ["value"] = value };
-
-    private static async Task<Guid> UploadAsync(HttpClient client, string prefix, string questionId, string fileName, byte[] content)
-    {
-        var ticketResponse = await client.PostAsJsonAsync($"{prefix}/questions/{questionId}/uploads", new { fileName, sizeBytes = content.Length }, Ct);
-        ticketResponse.StatusCode.Should().Be(HttpStatusCode.OK, await ticketResponse.Content.ReadAsStringAsync(Ct));
-        var ticket = await ticketResponse.Content.ReadFromJsonAsync<JsonElement>(Ct);
-        using (var storage = new HttpClient())
-        using (var put = new HttpRequestMessage(HttpMethod.Put, ticket.GetProperty("uploadUrl").GetString()) { Content = new ByteArrayContent(content) })
-        {
-            foreach (var header in ticket.GetProperty("headers").EnumerateObject())
-            {
-                put.Headers.Add(header.Name, header.Value.GetString());
-            }
-
-            (await storage.SendAsync(put, Ct)).IsSuccessStatusCode.Should().BeTrue();
-        }
-
-        var uploadId = ticket.GetProperty("uploadId").GetGuid();
-        (await client.PostAsync($"{prefix}/questions/{questionId}/uploads/{uploadId}/verify", null, Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
-        return uploadId;
     }
 }

@@ -17,7 +17,8 @@ export const candidatesPath = '/v1/candidates';
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
  * `/v1/jobs` covers the jobs list, each job (its postings and applicant count) and each job's applications.
  * HiringTemplateVersionPublished is here because the jobs list shows "template update available"; an automation run
- * can tag an application, which its page shows.
+ * can tag an application, which its page shows. IntegrityAssessed changes the chips in every list, the job's overview
+ * and the application's integrity panel (`/v1/applications/{id}/integrity`).
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
@@ -27,6 +28,7 @@ export const invalidations: InvalidationMap = {
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
   AutomationRunFinished: [applicationsPath],
+  IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
 };
 
 export interface LiveUpdates {

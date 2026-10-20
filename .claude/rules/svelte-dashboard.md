@@ -54,7 +54,8 @@ new route is the `/add-dashboard-page` skill.
 - Status is a shape mark, a colour and a text label, always all three (design-system section 2.2). Colour alone
   fails WCAG 1.4.1.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
-  reject control (ADR-0004).
+  reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves
+  take their stages from `bulkMoveStages` (`#lib/integrity.ts`).
 - Accessibility is WCAG 2.2 AA: a visible focus ring on every interactive element, labels on every input, landmark
   and heading structure, and a non-drag alternative for every drag-and-drop interaction (a menu or buttons that move
   the item).
@@ -63,8 +64,13 @@ new route is the `/add-dashboard-page` skill.
   (`isTypingTarget` in `#lib/shortcuts.ts`), and work only while their table or board has focus, except the G chords.
   Every shortcut has a visible control and a visible hint.
 - The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
-  `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`.
-  Saved views are the list in `#lib/saved-views.ts`.
+  `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`. The
+  integrity chips are `integrityColumns` (`#lib/integrity-columns.ts`). The table sorts (a column with an accessor gets
+  a header button and `aria-sort`) but never filters: pages filter the rows they pass in (stage, saved view,
+  `IntegrityFilter`), so the footer count and "select all" match what is shown. Saved views are the list in
+  `#lib/saved-views.ts`.
+- Integrity levels are drawn from `#lib/integrity.ts` (label, shape, tone, badge variant) through `IntegrityChip`;
+  evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 
 ## Checks
 

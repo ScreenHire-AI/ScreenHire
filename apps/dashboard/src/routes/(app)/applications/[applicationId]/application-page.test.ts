@@ -2,10 +2,12 @@ import type { ApplicationDetail, ApplicationTimelineEntry, JobDetail } from '@sc
 import { render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId, stages, user } from '../../../../test-support/fixtures.js';
+import { pendingIntegrity } from '../../../../test-support/integrity-fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') } }));
+// superforms (the integrity panel's dialogs) reads `navigating` too.
+vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
 
 const applicationId = '01a157d4-0000-7000-8000-000000000300';
 const resumeId = '01a157d4-0000-7000-8000-000000000301';
@@ -91,6 +93,7 @@ beforeEach(() => {
         [`GET /v1/applications/${applicationId}`]: () => Response.json(application),
         [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(timeline),
         [`GET /v1/jobs/${jobId}`]: () => Response.json(job),
+        [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...pendingIntegrity(), applicationId }),
       }),
     ),
   );
@@ -143,6 +146,14 @@ describe('application page', () => {
       'Applied on the careers page, into Applied',
     ]);
     expect(within(region).getByText('"Strong portfolio."')).toBeInTheDocument();
+  });
+
+  it('shows the integrity panel beside the timeline, waiting for the checks', async () => {
+    renderPage();
+    const panel = await screen.findByRole('region', { name: 'Integrity' });
+
+    await within(panel).findByText(/Checks are still running/);
+    expect(panel).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
   it("shows the candidate's declarations", async () => {
