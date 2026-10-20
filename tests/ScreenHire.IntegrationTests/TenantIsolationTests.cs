@@ -68,6 +68,27 @@ public sealed class TenantIsolationTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Visiting_another_organizations_careers_page_does_not_change_whose_jobs_a_user_sees()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var (a, organizationA) = await SignedInWithOrganizationAsync(cancellationToken);
+        await fixture.AddJobsAsync(organizationA, [TestData.NewJob(organizationA, "a-draft")], cancellationToken);
+        var other = await fixture.CreateOrganizationAsync(org =>
+        {
+            var job = TestData.NewJob(org, "b-open");
+            job.Publish(DateTimeOffset.UtcNow);
+            return [job, TestData.NewJob(org, "b-draft")];
+        }, cancellationToken);
+
+        var board = await a.Client.GetFromJsonAsync<JsonElement>($"/v1/public/organizations/{other.Slug}/jobs", cancellationToken);
+        var own = await a.Client.GetFromJsonAsync<JsonElement>("/v1/jobs", cancellationToken);
+
+        board.GetProperty("jobs").EnumerateArray().Select(j => j.GetProperty("slug").GetString()).Should().Equal("b-open");
+        own.EnumerateArray().Select(j => j.GetProperty("slug").GetString()).Should().Equal("a-draft");
+        a.Dispose();
+    }
+
+    [Fact]
     public async Task User_without_an_organization_sees_no_jobs()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

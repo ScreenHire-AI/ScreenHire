@@ -66,6 +66,56 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_user_sees_their_own_memberships_and_nobody_elses()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        Guid mine, theirs;
+        using (var a = new ApiSession(fixture))
+        {
+            await a.SignInWithMagicLinkAsync(ApiSession.NewEmail("a"), cancellationToken);
+            mine = await a.OnboardAsync(cancellationToken);
+        }
+
+        using (var b = new ApiSession(fixture))
+        {
+            await b.SignInWithMagicLinkAsync(ApiSession.NewEmail("b"), cancellationToken);
+            theirs = await b.OnboardAsync(cancellationToken);
+        }
+
+        await using var owner = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
+        await owner.OpenAsync(cancellationToken);
+        await using var find = new NpgsqlCommand("SELECT user_id FROM organization_members WHERE organization_id = @org", owner);
+        find.Parameters.AddWithValue("org", mine);
+        var userA = (Guid)(await find.ExecuteScalarAsync(cancellationToken))!;
+
+        // As user A with no organization chosen yet, as the API is while it looks up A's membership.
+        await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "SELECT set_config('app.user_id', @user, true); SELECT array_agg(organization_id) FROM organization_members;", connection, transaction);
+        command.Parameters.AddWithValue("user", userA.ToString());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        await reader.NextResultAsync(cancellationToken);
+        await reader.ReadAsync(cancellationToken);
+
+        reader.GetFieldValue<Guid[]>(0).Should().Equal([mine], "user B's membership in {0} stays hidden", theirs);
+    }
+
+    [Fact]
+    public async Task App_role_cannot_read_the_migrations_history()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""SELECT count(*) FROM "__EFMigrationsHistory" """, connection);
+
+        var query = () => command.ExecuteScalarAsync(cancellationToken);
+
+        (await query.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
     public async Task App_role_cannot_switch_row_security_off()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

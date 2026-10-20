@@ -42,6 +42,31 @@ public sealed class OnboardingTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Double_submit_creates_one_organization()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var session = new ApiSession(fixture);
+        var email = ApiSession.NewEmail();
+        await session.SignInWithMagicLinkAsync(email, cancellationToken);
+        await session.CurrentUserAsync(cancellationToken); // the antiforgery token both requests share
+
+        var attempts = await Task.WhenAll(Enumerable.Range(0, 2).Select(i => session.PostAsync(
+            "/v1/auth/onboarding", new { organizationName = $"Twice {i}", slug = $"twice-{i}-{Guid.NewGuid():N}" }, cancellationToken)));
+
+        attempts.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
+        await using var connection = new Npgsql.NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var count = new Npgsql.NpgsqlCommand(
+            "SELECT count(*) FROM organization_members m JOIN users u ON u.id = m.user_id WHERE u.email = @email", connection);
+        count.Parameters.AddWithValue("email", email);
+        ((long)(await count.ExecuteScalarAsync(cancellationToken))!).Should().Be(1);
+        foreach (var attempt in attempts)
+        {
+            attempt.Dispose();
+        }
+    }
+
+    [Fact]
     public async Task Taken_slug_is_refused_and_does_not_join_its_organization()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

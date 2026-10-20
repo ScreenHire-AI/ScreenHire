@@ -80,7 +80,7 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 
 `OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. The model allows
 many organizations per user; the dashboard uses the first one joined. Onboarding creates the organization and the
-Owner membership in one transaction. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is
+Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is
 not reserved, because it becomes a careers subdomain.
 
 ## Tenant isolation

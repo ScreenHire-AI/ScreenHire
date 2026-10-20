@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using ScreenHire.Api.Auth;
@@ -192,14 +193,30 @@ internal static class AuthEndpoints
 
         if (tenant.OrganizationId is not null)
         {
-            return TypedResults.Conflict(new ProblemDetails
-            {
-                Title = "Already onboarded",
-                Detail = "You already belong to an organization.",
-                Status = StatusCodes.Status409Conflict,
-            });
+            return AlreadyOnboarded();
         }
 
+        // One transaction holding a per-user advisory lock, so a double submit cannot create two organizations: the
+        // second request waits, then finds the first one's membership. Inside the execution strategy, because Aspire's
+        // retrying strategy refuses transactions started outside it.
+        return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.ExecuteSqlAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({user.Id.ToString()}, 0))", cancellationToken);
+            if (await db.OrganizationMembers.AnyAsync(m => m.UserId == user.Id, cancellationToken))
+            {
+                return AlreadyOnboarded();
+            }
+
+            return await CreateOrganizationAsync(request, user, tenant, db, time, transaction, cancellationToken);
+        });
+    }
+
+    private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CreateOrganizationAsync(
+        OnboardingRequest request, ApplicationUser user, TenantContext tenant, ScreenHireDbContext db, TimeProvider time,
+        IDbContextTransaction transaction, CancellationToken cancellationToken)
+    {
         if (await db.Organizations.AnyAsync(o => o.Slug == request.Slug, cancellationToken))
         {
             return SlugTaken();
@@ -226,6 +243,7 @@ internal static class AuthEndpoints
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
@@ -234,6 +252,14 @@ internal static class AuthEndpoints
 
         return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
     }
+
+    private static Conflict<ProblemDetails> AlreadyOnboarded() =>
+        TypedResults.Conflict(new ProblemDetails
+        {
+            Title = "Already onboarded",
+            Detail = "You already belong to an organization.",
+            Status = StatusCodes.Status409Conflict,
+        });
 
     private static async Task<NoContent> SignOut(HttpContext context)
     {
