@@ -1854,7 +1854,9 @@ export const ListJobApplicationsResponseItem = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
-  "stageEnteredAt": zod.iso.datetime({"offset":true})
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "jobTitle": zod.string(),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.')
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
@@ -1919,6 +1921,24 @@ export const CreateApplicationResponse = zod.object({
   "uploadedAt": zod.iso.datetime({"offset":true})
 }).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+
+
+export const ListApplicationsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "jobId": zod.uuid(),
+  "candidateId": zod.uuid(),
+  "candidateName": zod.string(),
+  "stage": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "jobTitle": zod.string(),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.')
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
+export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
 
 export const GetApplicationParams = zod.object({
@@ -2040,6 +2060,14 @@ export const GetApplicationTimelineResponseItem = zod.object({
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
 
+export const DownloadApplicationFileParams = zod.object({
+  "applicationId": zod.uuid(),
+  "fileId": zod.uuid()
+})
+
+export const DownloadApplicationFileResponse = zod.void()
+
+
 export const ListCandidatesResponseItem = zod.object({
   "id": zod.uuid(),
   "fullName": zod.string(),
@@ -2071,7 +2099,9 @@ export const GetCandidateResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
-  "stageEnteredAt": zod.iso.datetime({"offset":true})
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "jobTitle": zod.string(),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.')
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.'))
 }).describe('A candidate and every application they made to the organization.')
 

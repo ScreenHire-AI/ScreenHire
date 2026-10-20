@@ -15,6 +15,24 @@ export default defineConfig({
       },
     },
   },
+  // TanStack Query (svelte-query v6, options as accessors) for the dashboard: query keys split by path segment
+  // (`['v1', 'jobs', jobId]`), so invalidating `['v1', 'jobs']` covers every query under it, and query functions that
+  // throw on a status outside 2xx, so failed queries reach the error state. The careers app keeps the fetch client.
+  screenhireSvelteQuery: {
+    input: { target: './openapi.json' },
+    output: {
+      target: './src/generated/svelte-query.ts',
+      schemas: './src/generated/model',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+      mode: 'single',
+      override: {
+        mutator: { path: './src/http.ts', name: 'apiQueryFetch' },
+        fetch: { forceSuccessResponse: true },
+        query: { shouldSplitQueryKey: true },
+      },
+    },
+  },
   screenhireZod: {
     input: { target: './openapi.json' },
     output: {

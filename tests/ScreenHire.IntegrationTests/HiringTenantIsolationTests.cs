@@ -75,6 +75,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
             ["timeline"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/timeline"),
             ["move"] = await a.PostAsync($"/v1/applications/{scene.BApplicationId}/move", new JsonObject { ["toStageId"] = "screening" }),
             ["candidate"] = await a.GetAsync($"/v1/candidates/{scene.BCandidateId}"),
+            ["file"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/files/{Guid.NewGuid()}"),
         };
 
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");
@@ -130,6 +131,8 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
         var templatesB = await b.GetAsync("/v1/templates");
         var candidatesA = await a.GetAsync("/v1/candidates");
         var candidatesB = await b.GetAsync("/v1/candidates");
+        var applicationsA = await a.GetAsync("/v1/applications");
+        var applicationsB = await b.GetAsync("/v1/applications");
 
         Ids(jobsA).Should().Equal(aJob.Id());
         Ids(jobsB).Should().Equal(scene.BJobId);
@@ -138,6 +141,9 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
         candidatesA.Count().Should().Be(1);
         candidatesA.Text("0.fullName").Should().Be("Jordan Lee");
         Ids(candidatesB).Should().Equal(scene.BCandidateId);
+        applicationsA.Count().Should().Be(1);
+        applicationsA.Text("0.candidateName").Should().Be("Jordan Lee");
+        Ids(applicationsB).Should().Equal(scene.BApplicationId);
     }
 
     private static List<Guid> Ids(ApiResult list) =>

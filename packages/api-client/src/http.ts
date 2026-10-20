@@ -46,3 +46,32 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
 
   return { data, status: response.status, headers: response.headers } as T;
 }
+
+/** A request the API answered with a status outside 2xx, as the query client sees it. */
+export class ApiError extends Error {
+  readonly status: number;
+  /** The response body: a problem details object for most errors, undefined when there was none. */
+  readonly body: unknown;
+
+  constructor(status: number, body: unknown) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? body.detail : undefined;
+    super(typeof detail === 'string' ? detail : `The API answered HTTP ${status}.`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+/**
+ * Orval mutator for the TanStack Query client (`./svelte-query`). The same request as {@link apiFetch}, but a status
+ * outside 2xx throws {@link ApiError}: TanStack Query treats only a thrown error as a failed query, and the generated
+ * query functions are typed with success responses only (`forceSuccessResponse` in orval.config.ts).
+ */
+export async function apiQueryFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const result = await apiFetch<{ data: unknown; status: number }>(url, init);
+  if (result.status < 200 || result.status > 299) {
+    throw new ApiError(result.status, result.data);
+  }
+
+  return result as T;
+}

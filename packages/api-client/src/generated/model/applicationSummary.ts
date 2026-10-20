@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ApplicationSource } from './applicationSource.ts';
 import type { ApplicationStage } from './applicationStage.ts';
 
 /**
@@ -18,4 +19,6 @@ export interface ApplicationSummary {
   stage: ApplicationStage;
   submittedAt: string;
   stageEnteredAt: string;
+  jobTitle: string;
+  source: ApplicationSource;
 }
