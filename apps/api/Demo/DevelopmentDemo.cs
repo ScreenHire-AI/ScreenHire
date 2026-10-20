@@ -31,7 +31,7 @@ namespace ScreenHire.Api.Demo;
 /// candidate when they apply and when they reach Screening or Interview.</item>
 /// <item>The same emails on the three open jobs' workflows, as a recruiter would add them, so moving a candidate there
 /// sends an email to Mailpit.</item>
-/// <item>A draft job from the template, "Backend Engineer (Payments)", for the demo to publish to every board.</item>
+/// <item>A draft job from the template, "Backend Engineer (Payments)", left on no board for a person to publish during the demo.</item>
 /// <item>The open jobs posted to boards through the same publish as the dashboard's: the .NET and designer jobs to every
 /// board, the frontend job to the careers page and the sandbox board only.</item>
 /// <item>"Support Engineer", from the template, published to every board, for the closed job below.</item>
@@ -39,7 +39,8 @@ namespace ScreenHire.Api.Demo;
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
 /// <item>The people in <see cref="DemoCandidates"/> apply to their jobs and are moved through their stages, with notes.</item>
-/// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.</item>
+/// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.
+/// It stays open until all its candidates have applied, so a start that failed one leaves it for the next start.</item>
 /// </list>
 /// Each step first looks for what it adds (a template, automation, job, posting or candidate that exists is left alone),
 /// so later starts add nothing, and a data volume from before a step existed gets that step. A step does not repair
@@ -121,13 +122,13 @@ internal sealed partial class DevelopmentDemo(
     private async Task SeedAsync(CancellationToken stoppingToken)
     {
         // Without Brightwater every step finds nothing to add to.
-        var template = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
+        var templateVersion = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
         foreach (var (slug, _) in OpenJobs)
         {
             await TryAsync(() => SeedJobEmailsAsync(slug, stoppingToken), stoppingToken);
         }
 
-        if (template is { } published)
+        if (templateVersion is { } published)
         {
             await TryAsync(() => SeedJobFromTemplateAsync(published, DraftJobSlug, DraftJob, stoppingToken), stoppingToken);
             await TryAsync(() => SeedJobFromTemplateAsync(published, ClosedJobSlug, ClosedJob, stoppingToken), stoppingToken);
@@ -205,7 +206,8 @@ internal sealed partial class DevelopmentDemo(
         return new Step(services, outbox, organization.Id, owner, time.GetUtcNow());
     }
 
-    private async Task<(Guid TemplateId, Guid VersionId)?> SeedTemplateAsync(CancellationToken cancellationToken)
+    // The id of the template's newest published version, which the demo's jobs are created from.
+    private async Task<Guid?> SeedTemplateAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -221,7 +223,7 @@ internal sealed partial class DevelopmentDemo(
         {
             // Never a second template of the name: the demo's jobs use the newest published version, or are skipped.
             return existing.Versions.OrderByDescending(v => v.Version).FirstOrDefault(v => v.Status == TemplateVersionStatus.Published) is { } published
-                ? (existing.Id, published.Id)
+                ? published.Id
                 : null;
         }
 
@@ -246,7 +248,7 @@ internal sealed partial class DevelopmentDemo(
         db.HiringTemplates.Add(template);
         await step.Outbox.PublishAsync(new HiringTemplateVersionPublished(step.OrganizationId, template.Id, version.Id, version.Version, step.Now));
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-        return (template.Id, version.Id);
+        return version.Id;
     }
 
     private async Task SeedJobEmailsAsync(string slug, CancellationToken cancellationToken)
@@ -277,7 +279,7 @@ internal sealed partial class DevelopmentDemo(
 
     // A job from Brightwater's template, as a recruiter creates it on the dashboard: a draft until something publishes it.
     private async Task SeedJobFromTemplateAsync(
-        (Guid TemplateId, Guid VersionId) template, string slug, Func<Guid, DateTimeOffset, Job> create, CancellationToken cancellationToken)
+        Guid templateVersionId, string slug, Func<Guid, DateTimeOffset, Job> create, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -291,7 +293,7 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        var version = await db.HiringTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == template.VersionId, cancellationToken);
+        var version = await db.HiringTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == templateVersionId, cancellationToken);
         var job = create(step.OrganizationId, step.Now);
         job.UseTemplate(version);
         db.Jobs.Add(job);
@@ -392,10 +394,20 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        var job = await step.Outbox.DbContext.Jobs.SingleOrDefaultAsync(j => j.Slug == slug, cancellationToken);
+        var db = step.Outbox.DbContext;
+        var job = await db.Jobs.SingleOrDefaultAsync(j => j.Slug == slug, cancellationToken);
         if (job is not { Status: JobStatus.Open })
         {
             return;
+        }
+
+        // Only once all its candidates are in: a closed job takes no more applications, so one that failed to apply
+        // could never apply on a later start.
+        var expected = DemoCandidates.All.Where(c => c.JobSlug == slug).Select(c => Domain.Candidates.Candidate.Normalize(c.Applicant.Email)).ToList();
+        var applied = await db.Candidates.CountAsync(c => expected.Contains(c.NormalizedEmail), cancellationToken);
+        if (applied < expected.Count)
+        {
+            throw new InvalidOperationException($"The demo leaves '{slug}' open: {applied} of its {expected.Count} candidates applied.");
         }
 
         if (await JobEndpoints.CloseAsync(step.Outbox, step.Services.GetRequiredService<DistributionPlanner>(), job, step.Now, cancellationToken) is { } conflict)
