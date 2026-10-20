@@ -77,8 +77,8 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 
 ## Board pipeline (Kangentic)
 
-Tasks move Executing → Code Review → Testing → Merge → Done on their own. Workflow tasks skip Planning, which waits
-for a person to approve the plan; their briefs are the plan. Each column's automation reads the **last line** of the
+Tasks move Executing → Code Review → Testing → Merge → Done on their own. Workflow tasks skip Planning, where Kangentic
+approves the plan automatically; their briefs are the plan. Each column's automation reads the **last line** of the
 agent's final message, so these lines are contracts: print one only when its condition holds, alone, with nothing
 after it.
 
@@ -163,5 +163,5 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 ## Claude Code tooling
 
 Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-realtime-event`, `/add-dashboard-page`, `/add-careers-page`,
-`/add-marketing-page`, `/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
+`/add-marketing-page`, `/commit`, `/merge-back`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
 [`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).

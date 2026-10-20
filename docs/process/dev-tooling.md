@@ -18,6 +18,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`add-careers-page`](../../.claude/skills/add-careers-page/SKILL.md) | adding a candidate-facing page | Astro SSR route, `CareersLayout`, server-side API data, 404/410, tenant-host links, `JobPosting` JSON-LD, no client JS or inline styles, notice before collection |
 | [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
+| [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, runs `doc-auditor`, fixes drifted docs and prose |
 | [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
 | [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
@@ -69,6 +70,7 @@ Every command in these files was run once when they were written (October 2026),
 | Command | Named in | Why not |
 |---|---|---|
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
+| `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
 `pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run

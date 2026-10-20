@@ -21,7 +21,7 @@ when its condition holds, alone, with nothing after it.
 | Column | Agent | What starts the work | Exit lines |
 |---|---|---|---|
 | To Do | — | — | You (or a workflow) move the task on |
-| Planning | Opus, plan mode | Spawns on entry | Plan approval by a person → Executing. **Workflow tasks skip this column:** their brief is the plan. |
+| Planning | Opus, plan mode | Spawns on entry | Kangentic approves the plan (`planApproval: automatic`) → Executing. **Workflow tasks skip this column:** their brief is the plan. |
 | Executing | Opus, auto mode | Spawns on entry with the brief | `Implementation: complete`, then `Findings: applied`; or `Blocked: dependency not on main` |
 | Code Review | Opus, auto mode, **isolated session, new every time** | `/task-review <base>` | `Verdict: Ready` / `Verdict: Blocked` |
 | Testing | Sonnet, auto mode | `/pull-request` | `PR: ready to merge` / `PR: blocked` |

@@ -20,6 +20,8 @@ task, and every task that waits on it, until morning.
   in-process fake. A provider with no configuration is hidden, never an error, and no test needs a key or the
   internet.
 - Never push to `main` directly. Code reaches `main` only through the Merge column's `/merge-pull-request`.
+  `/merge-back` is the owner's escape hatch from the root checkout. Run it only when a person asks; it refuses
+  inside a task worktree.
 
 ## Leave the process alone
 
