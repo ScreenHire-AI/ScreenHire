@@ -6,14 +6,15 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Application.Jobs;
 
 /// <summary>
-/// A job stopped taking applications. Published with the change, through the outbox. Job distribution will take its
-/// board postings down from here (docs/architecture/job-distribution.md); today the dashboard's jobs list refreshes on it.
+/// A job stopped taking applications. Published with the change, through the outbox; the dashboard's jobs list
+/// refreshes on it. The close transaction itself takes the job's board postings down (docs/architecture/
+/// job-distribution.md §5), so nothing here depends on this event arriving.
 /// </summary>
 public sealed record JobClosed(Guid OrganizationId, Guid JobId, DateTimeOffset ClosedAt) : ITenantEvent;
 
 /// <summary>
-/// Runs in the worker once per <see cref="JobClosed"/>. Teardown (docs/architecture/job-distribution.md §2) hangs off
-/// this event; today it reads the job back as its organization and records that the worker saw it.
+/// Runs in the worker once per <see cref="JobClosed"/>: reads the job back as its organization and records that the
+/// worker saw it. Teardown runs in the close transaction, not here.
 /// </summary>
 public static partial class JobClosedHandler
 {

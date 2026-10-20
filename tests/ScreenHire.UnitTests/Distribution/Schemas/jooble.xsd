@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Jooble's XML feed, written from a live feed Jooble indexes (https://qhse-professionals.nl/em-jobfeed/jooble, linked
+  from that site's Jooble documentation, accessed 2026-10-20): <jobs><job id> with link, name, region and description,
+  plus optional salary, company, dates and job type. Jooble's own specification
+  (https://jooble.org/files/xml_feed_specifications.pdf) could not be read as text, so the dd.MM.yyyy date format is
+  not verified against it.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="jobs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="job" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="link" type="xs:anyURI" />
+              <xs:element name="name" type="nonEmpty" />
+              <xs:element name="region" type="nonEmpty" />
+              <xs:element name="salary" type="xs:string" minOccurs="0" />
+              <xs:element name="description" type="nonEmpty" />
+              <xs:element name="company" type="xs:string" minOccurs="0" />
+              <xs:element name="pubdate" type="joobleDate" minOccurs="0" />
+              <xs:element name="updated" type="joobleDate" minOccurs="0" />
+              <xs:element name="expire" type="joobleDate" minOccurs="0" />
+              <xs:element name="jobtype" type="xs:string" minOccurs="0" />
+            </xs:all>
+            <xs:attribute name="id" type="nonEmpty" use="required" />
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="nonEmpty">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="joobleDate">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\d{2}\.\d{2}\.\d{4}" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

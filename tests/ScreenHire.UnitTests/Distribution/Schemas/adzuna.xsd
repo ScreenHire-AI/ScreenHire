@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adzuna's XML feed, written from the tag table of Adzuna's XML specification
+  (https://www.adzuna.co.uk/jobs/xml-specification.html, read through the copy at
+  https://docs.qhse-professionals.nl/job-feeds/xml-feeds/adzuna, accessed 2026-10-20; Adzuna's own page refused automated
+  reads). Mandatory tags are required; enumerated values are Adzuna's lists.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="jobs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="job" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="title" type="nonEmpty" />
+              <xs:element name="id" type="nonEmpty" />
+              <xs:element name="description" type="nonEmpty" />
+              <xs:element name="url" type="xs:anyURI" />
+              <xs:element name="location" type="nonEmpty" />
+              <xs:element name="geo_lat" type="xs:decimal" minOccurs="0" />
+              <xs:element name="geo_lng" type="xs:decimal" minOccurs="0" />
+              <xs:element name="postcode" type="xs:string" minOccurs="0" />
+              <xs:element name="country">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:pattern value="[A-Z]{2}" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="salary" type="xs:string" minOccurs="0" />
+              <xs:element name="salary_min" type="xs:decimal" minOccurs="0" />
+              <xs:element name="salary_max" type="xs:decimal" minOccurs="0" />
+              <xs:element name="salary_frequency" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="hour" />
+                    <xs:enumeration value="day" />
+                    <xs:enumeration value="month" />
+                    <xs:enumeration value="year" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="salary_currency" type="xs:string" minOccurs="0" />
+              <xs:element name="company" type="xs:string" minOccurs="0" />
+              <xs:element name="category" type="xs:string" minOccurs="0" />
+              <xs:element name="contract_type" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="permanent" />
+                    <xs:enumeration value="contract" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="contract_time" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="full_time" />
+                    <xs:enumeration value="part_time" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="date" type="xs:date" minOccurs="0" />
+              <xs:element name="cpc" type="xs:decimal" minOccurs="0" />
+            </xs:all>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="nonEmpty">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

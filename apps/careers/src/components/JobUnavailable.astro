@@ -1,6 +1,6 @@
 ---
 // A closed job (410 Gone: it existed and will not come back) or an unknown one (404). The page sets the status; this is
-// what the candidate reads.
+// what the candidate reads. A closed job's page passes its expired JSON-LD through the head slot.
 import type { PublicOrganization } from '@screenhire/api-client';
 import CareersLayout from '../layouts/CareersLayout.astro';
 import { basePath } from '../lib/host';
@@ -22,6 +22,7 @@ const base = basePath(Astro.request, organization.slug);
   branding={organization.branding}
   noindex
 >
+  <slot name="head" slot="head" />
   <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">
     {gone ? 'This job has closed' : 'We could not find this job'}
   </h1>

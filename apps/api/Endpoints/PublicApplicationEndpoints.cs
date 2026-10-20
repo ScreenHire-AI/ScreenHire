@@ -239,7 +239,7 @@ internal static class PublicApplicationEndpoints
     private static async Task<(Job? Job, ProblemHttpResult? Gone)> FindOpenJobAsync(
         string organizationSlug, Guid jobId, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
     {
-        if (await PublicJobEndpoints.FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken) is null)
+        if (await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken) is null)
         {
             return (null, null);
         }

@@ -5,15 +5,14 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
-  AddIntegrityNoteRequest,
   ApiMeta,
   ApplicationDetail,
-  ApplicationIntegrity,
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
   AutomationIssue,
   AutomationRunEntry,
+  BoardSummary,
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
@@ -22,16 +21,20 @@ import type {
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
   CurrentUser,
-  DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
   HttpValidationProblemDetails,
+  JobBoardInfo,
+  JobBoardJob,
+  JobBoardJobList,
   JobDetail,
+  JobPostingStatus,
   JobSummary,
   JobTemplateDiff,
   JobVersionDetail,
   JobVersionSummary,
+  ListJobBoardJobsParams,
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
@@ -45,6 +48,8 @@ import type {
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
+  PublishJobRequest,
+  SandboxBoardListing,
   SignInMethods,
   SimulateWorkflowRequest,
   UpdateBrandingRequest,
@@ -60,6 +65,46 @@ import type {
 } from './model';
 
 import { apiFetch } from '../http.ts';
+export type listSandboxListingsResponse200 = {
+  data: SandboxBoardListing[]
+  status: 200
+}
+
+export type listSandboxListingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listSandboxListingsResponseSuccess = (listSandboxListingsResponse200) & {
+  headers: Headers;
+};
+export type listSandboxListingsResponseError = (listSandboxListingsResponse404) & {
+  headers: Headers;
+};
+
+export type listSandboxListingsResponse = (listSandboxListingsResponseSuccess | listSandboxListingsResponseError)
+
+export const getListSandboxListingsUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/sandbox-board/${organizationSlug}/listings`
+}
+
+export const listSandboxListings = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<listSandboxListingsResponse> => {
+
+  return apiFetch<listSandboxListingsResponse>(getListSandboxListingsUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type listAutomationIssuesResponse200 = {
   data: AutomationIssue[]
   status: 200
@@ -554,7 +599,7 @@ export type getPublicJobResponse404 = {
 }
 
 export type getPublicJobResponse410 = {
-  data: ProblemDetails
+  data: PublicJob
   status: 410
 }
 
@@ -1125,14 +1170,29 @@ export const getPublishJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/publish`
 }
 
-export const publishJob = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<publishJobResponse> => {
+export const publishJob = async (jobId: string,
+    nullPublishJobRequest?: null | PublishJobRequest, options?: Parameters<typeof apiFetch>[1]): Promise<publishJobResponse> => {
 
-  return apiFetch<publishJobResponse>(getPublishJobUrl(jobId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<publishJobResponse>(getPublishJobUrl(jobId),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(nullPublishJobRequest)
   }
 );}
 
@@ -2185,41 +2245,36 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
 
 
 
-export type getApplicationIntegrityResponse200 = {
-  data: ApplicationIntegrity
+export type listBoardsResponse200 = {
+  data: BoardSummary[]
   status: 200
 }
 
-export type getApplicationIntegrityResponse401 = {
+export type listBoardsResponse401 = {
   data: void
   status: 401
 }
 
-export type getApplicationIntegrityResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getApplicationIntegrityResponseSuccess = (getApplicationIntegrityResponse200) & {
+export type listBoardsResponseSuccess = (listBoardsResponse200) & {
   headers: Headers;
 };
-export type getApplicationIntegrityResponseError = (getApplicationIntegrityResponse401 | getApplicationIntegrityResponse404) & {
+export type listBoardsResponseError = (listBoardsResponse401) & {
   headers: Headers;
 };
 
-export type getApplicationIntegrityResponse = (getApplicationIntegrityResponseSuccess | getApplicationIntegrityResponseError)
+export type listBoardsResponse = (listBoardsResponseSuccess | listBoardsResponseError)
 
-export const getGetApplicationIntegrityUrl = (applicationId: string,) => {
-
-
+export const getListBoardsUrl = () => {
 
 
-  return `/v1/applications/${applicationId}/integrity`
+
+
+  return `/v1/boards`
 }
 
-export const getApplicationIntegrity = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationIntegrityResponse> => {
+export const listBoards = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listBoardsResponse> => {
 
-  return apiFetch<getApplicationIntegrityResponse>(getGetApplicationIntegrityUrl(applicationId),
+  return apiFetch<listBoardsResponse>(getListBoardsUrl(),
   {
     ...options,
     method: 'GET'
@@ -2230,189 +2285,232 @@ export const getApplicationIntegrity = async (applicationId: string, options?: P
 
 
 
-export type dismissIntegrityAssessmentResponse200 = {
-  data: ApplicationIntegrity
+export type listJobPostingsResponse200 = {
+  data: JobPostingStatus[]
   status: 200
 }
 
-export type dismissIntegrityAssessmentResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type dismissIntegrityAssessmentResponse401 = {
+export type listJobPostingsResponse401 = {
   data: void
   status: 401
 }
 
-export type dismissIntegrityAssessmentResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type dismissIntegrityAssessmentResponse404 = {
+export type listJobPostingsResponse404 = {
   data: void
   status: 404
 }
 
-export type dismissIntegrityAssessmentResponse409 = {
+export type listJobPostingsResponseSuccess = (listJobPostingsResponse200) & {
+  headers: Headers;
+};
+export type listJobPostingsResponseError = (listJobPostingsResponse401 | listJobPostingsResponse404) & {
+  headers: Headers;
+};
+
+export type listJobPostingsResponse = (listJobPostingsResponseSuccess | listJobPostingsResponseError)
+
+export const getListJobPostingsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/postings`
+}
+
+export const listJobPostings = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listJobPostingsResponse> => {
+
+  return apiFetch<listJobPostingsResponse>(getListJobPostingsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type closeJobPostingResponse200 = {
+  data: JobPostingStatus
+  status: 200
+}
+
+export type closeJobPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type closeJobPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type closeJobPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type closeJobPostingResponse409 = {
   data: ProblemDetails
   status: 409
 }
 
-export type dismissIntegrityAssessmentResponseSuccess = (dismissIntegrityAssessmentResponse200) & {
+export type closeJobPostingResponseSuccess = (closeJobPostingResponse200) & {
   headers: Headers;
 };
-export type dismissIntegrityAssessmentResponseError = (dismissIntegrityAssessmentResponse400 | dismissIntegrityAssessmentResponse401 | dismissIntegrityAssessmentResponse403 | dismissIntegrityAssessmentResponse404 | dismissIntegrityAssessmentResponse409) & {
-  headers: Headers;
-};
-
-export type dismissIntegrityAssessmentResponse = (dismissIntegrityAssessmentResponseSuccess | dismissIntegrityAssessmentResponseError)
-
-export const getDismissIntegrityAssessmentUrl = (applicationId: string,
-    assessmentId: string,) => {
-
-
-
-
-  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/dismiss`
-}
-
-export const dismissIntegrityAssessment = async (applicationId: string,
-    assessmentId: string,
-    dismissIntegrityAssessmentRequest: DismissIntegrityAssessmentRequest, options?: Parameters<typeof apiFetch>[1]): Promise<dismissIntegrityAssessmentResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<dismissIntegrityAssessmentResponse>(getDismissIntegrityAssessmentUrl(applicationId,assessmentId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(dismissIntegrityAssessmentRequest)
-  }
-);}
-
-
-
-export type addIntegrityNoteResponse200 = {
-  data: ApplicationIntegrity
-  status: 200
-}
-
-export type addIntegrityNoteResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type addIntegrityNoteResponse401 = {
-  data: void
-  status: 401
-}
-
-export type addIntegrityNoteResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type addIntegrityNoteResponse404 = {
-  data: void
-  status: 404
-}
-
-export type addIntegrityNoteResponseSuccess = (addIntegrityNoteResponse200) & {
-  headers: Headers;
-};
-export type addIntegrityNoteResponseError = (addIntegrityNoteResponse400 | addIntegrityNoteResponse401 | addIntegrityNoteResponse403 | addIntegrityNoteResponse404) & {
+export type closeJobPostingResponseError = (closeJobPostingResponse401 | closeJobPostingResponse403 | closeJobPostingResponse404 | closeJobPostingResponse409) & {
   headers: Headers;
 };
 
-export type addIntegrityNoteResponse = (addIntegrityNoteResponseSuccess | addIntegrityNoteResponseError)
+export type closeJobPostingResponse = (closeJobPostingResponseSuccess | closeJobPostingResponseError)
 
-export const getAddIntegrityNoteUrl = (applicationId: string,) => {
+export const getCloseJobPostingUrl = (jobId: string,
+    boardId: string,) => {
 
 
 
 
-  return `/v1/applications/${applicationId}/integrity/notes`
+  return `/v1/jobs/${jobId}/postings/${boardId}/close`
 }
 
-export const addIntegrityNote = async (applicationId: string,
-    addIntegrityNoteRequest: AddIntegrityNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addIntegrityNoteResponse> => {
+export const closeJobPosting = async (jobId: string,
+    boardId: string, options?: Parameters<typeof apiFetch>[1]): Promise<closeJobPostingResponse> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<addIntegrityNoteResponse>(getAddIntegrityNoteUrl(applicationId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(addIntegrityNoteRequest)
-  }
-);}
-
-
-
-export type requestIdentityVerificationResponse401 = {
-  data: void
-  status: 401
-}
-
-export type requestIdentityVerificationResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type requestIdentityVerificationResponse404 = {
-  data: void
-  status: 404
-}
-
-;
-export type requestIdentityVerificationResponseError = (requestIdentityVerificationResponse401 | requestIdentityVerificationResponse403 | requestIdentityVerificationResponse404) & {
-  headers: Headers;
-};
-
-export type requestIdentityVerificationResponse = (requestIdentityVerificationResponseError)
-
-export const getRequestIdentityVerificationUrl = (applicationId: string,) => {
-
-
-
-
-  return `/v1/applications/${applicationId}/integrity/request-verification`
-}
-
-export const requestIdentityVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<requestIdentityVerificationResponse> => {
-
-  return apiFetch<requestIdentityVerificationResponse>(getRequestIdentityVerificationUrl(applicationId),
+  return apiFetch<closeJobPostingResponse>(getCloseJobPostingUrl(jobId,boardId),
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getJobBoardResponse200 = {
+  data: JobBoardInfo
+  status: 200
+}
+
+export type getJobBoardResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobBoardResponseSuccess = (getJobBoardResponse200) & {
+  headers: Headers;
+};
+export type getJobBoardResponseError = (getJobBoardResponse404) & {
+  headers: Headers;
+};
+
+export type getJobBoardResponse = (getJobBoardResponseSuccess | getJobBoardResponseError)
+
+export const getGetJobBoardUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/boards/${organizationSlug}`
+}
+
+export const getJobBoard = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobBoardResponse> => {
+
+  return apiFetch<getJobBoardResponse>(getGetJobBoardUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listJobBoardJobsResponse200 = {
+  data: JobBoardJobList
+  status: 200
+}
+
+export type listJobBoardJobsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listJobBoardJobsResponseSuccess = (listJobBoardJobsResponse200) & {
+  headers: Headers;
+};
+export type listJobBoardJobsResponseError = (listJobBoardJobsResponse404) & {
+  headers: Headers;
+};
+
+export type listJobBoardJobsResponse = (listJobBoardJobsResponseSuccess | listJobBoardJobsResponseError)
+
+export const getListJobBoardJobsUrl = (organizationSlug: string,
+    params?: ListJobBoardJobsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/public/boards/${organizationSlug}/jobs?${stringifiedParams}` : `/v1/public/boards/${organizationSlug}/jobs`
+}
+
+export const listJobBoardJobs = async (organizationSlug: string,
+    params?: ListJobBoardJobsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listJobBoardJobsResponse> => {
+
+  return apiFetch<listJobBoardJobsResponse>(getListJobBoardJobsUrl(organizationSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getJobBoardJobResponse200 = {
+  data: JobBoardJob
+  status: 200
+}
+
+export type getJobBoardJobResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobBoardJobResponseSuccess = (getJobBoardJobResponse200) & {
+  headers: Headers;
+};
+export type getJobBoardJobResponseError = (getJobBoardJobResponse404) & {
+  headers: Headers;
+};
+
+export type getJobBoardJobResponse = (getJobBoardJobResponseSuccess | getJobBoardJobResponseError)
+
+export const getGetJobBoardJobUrl = (organizationSlug: string,
+    jobId: string,) => {
+
+
+
+
+  return `/v1/public/boards/${organizationSlug}/jobs/${jobId}`
+}
+
+export const getJobBoardJob = async (organizationSlug: string,
+    jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobBoardJobResponse> => {
+
+  return apiFetch<getJobBoardJobResponse>(getGetJobBoardJobUrl(organizationSlug,jobId),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

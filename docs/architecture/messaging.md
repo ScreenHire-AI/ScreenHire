@@ -28,6 +28,11 @@ API (publishes; handles tenant events only)  Postgres (screenhire database)     
 | Storage schema | `wolverine_api`: its own outbox, the `realtime` inbox, its own node records | `wolverine` |
 | Durability mode | `Balanced`, in its own cluster: leader election and a durability agent for its own outbox | `Balanced`: leader election, durability agent, recurring schedules |
 
+Wolverine's Postgres transport polls queue tables; it does not use `LISTEN/NOTIFY`. An idle listener waits
+`ScheduledJobPollingTime` (5 s) between polls by default, and every hop of a chain of events waits one poll, so both
+listeners poll faster: the worker every `MessagingSettings.WorkerPollingInterval` and the API's `realtime` listener
+every `RealtimePollingInterval` (250 ms each). That is four small queries a second per listener while idle.
+
 The API never runs background work. That is deliberate: a message published while the worker is down waits in the
 queue table and runs when the worker comes back. The one thing the API handles is a tenant event on the `realtime`
 queue, which it pushes to connected dashboards ([real-time updates](realtime.md)). Receiving needs listeners, which
@@ -144,7 +149,9 @@ Wolverine delivers at least once. Three layers keep a handler's effect exactly o
    twice. Give the message an idempotency key (for example `(applicationId, automationId, eventId)` from
    docs/architecture/workflow-engine.md, or `(jobId, boardId, jobVersion)` from job-distribution.md) and mark the
    handler `[Deduplicated(ValueSource.InputMember, nameof(Message.IdempotencyKey))]`. The worker turns on
-   `MessageDeduplicationMode.CompareByHash`, which stores claims for 24 hours by default.
+   `MessageDeduplicationMode.CompareByHash`, which stores claims for 24 hours by default. `SyncJobPosting` is the first
+   handler that uses it; its key adds the action and the posting's request sequence, so a deliberate second request
+   for the same version is not dropped as a duplicate.
 3. **Effects.** Make the side effect itself idempotent: a unique index on the natural key, a state check
    ("already open, nothing to do"), or an upsert. This is the only layer that holds after the deduplication window.
 
@@ -177,6 +184,11 @@ nothing.
   UTC. The example is `ReportOpenJobs` every five minutes, which replaced the scaffold's heartbeat loop. The integrity
   engine's retention sweep, `PurgeExpiredIntegrityData`, runs daily and fans out one tenant message per organization.
   A schedule faster than every five seconds is refused.
+- **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
+  `ReconcileJobPosting` for the time the board gave, as a cascading message (`OutgoingMessages.Schedule`). Two
+  recurring messages back it up: `ReconcileJobPostings` every five minutes and `DispatchIndexingNotifications` every
+  minute. Both walk the organizations and hand each organization's work to an `ITenantMessage`, which runs as that
+  organization.
 
 ## Telemetry
 

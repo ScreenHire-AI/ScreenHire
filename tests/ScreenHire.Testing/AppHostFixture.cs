@@ -18,6 +18,9 @@ public class AppHostFixture : IAsyncLifetime
 {
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
 
+    /// <summary>The sandbox board's acceptance and removal delay in the test stack.</summary>
+    public static readonly TimeSpan SandboxDelay = TimeSpan.FromSeconds(4);
+
     private DistributedApplication? app;
 
     /// <summary>The AppHost's <c>ScreenHire:Frontends</c> mode. <c>None</c> starts only the API, worker and infrastructure.</summary>
@@ -34,7 +37,15 @@ public class AppHostFixture : IAsyncLifetime
         startup.CancelAfter(StartupTimeout);
 
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.ScreenHire_AppHost>(
-            ["--ScreenHire:PersistData=false", "--ScreenHire:PinPorts=false", $"--ScreenHire:Frontends={Frontends}"],
+            [
+                "--ScreenHire:PersistData=false", "--ScreenHire:PinPorts=false", $"--ScreenHire:Frontends={Frontends}",
+                // Job distribution: a quick sandbox board, so its delayed acceptance and removal fit in a test, and the
+                // local Indexing API fake, so the Google queue runs with no account.
+                "--ScreenHire:Distribution:Sandbox:Enabled=true",
+                $"--ScreenHire:Distribution:Sandbox:AcceptanceDelay={SandboxDelay}",
+                $"--ScreenHire:Distribution:Sandbox:RemovalDelay={SandboxDelay}",
+                "--ScreenHire:Distribution:GoogleIndexing:Mode=Local",
+            ],
             startup.Token);
         app = await builder.BuildAsync(startup.Token);
         try

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ScreenHire's own generic job feed (board id xml-feed): the canonical job model's structured fields, described in
+  docs/architecture/job-distribution.md ("Feeds"). This schema is the format's definition.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="source">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="publisher" type="nonEmpty" />
+        <xs:element name="publisherurl" type="xs:anyURI" />
+        <xs:element name="lastbuilddate" type="isoDate" />
+        <xs:element name="job" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="referencenumber" type="nonEmpty" />
+              <xs:element name="version" type="xs:positiveInteger" />
+              <xs:element name="title" type="nonEmpty" />
+              <xs:element name="company" type="nonEmpty" />
+              <xs:element name="url" type="xs:anyURI" />
+              <xs:element name="dateposted" type="isoDate" />
+              <xs:element name="updated" type="isoDate" />
+              <xs:element name="validthrough" type="isoDate" minOccurs="0" />
+              <xs:element name="employmenttype">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="FullTime" />
+                    <xs:enumeration value="PartTime" />
+                    <xs:enumeration value="Contract" />
+                    <xs:enumeration value="Temporary" />
+                    <xs:enumeration value="Internship" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="workplacetype">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="Onsite" />
+                    <xs:enumeration value="Hybrid" />
+                    <xs:enumeration value="Remote" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="department" type="xs:string" minOccurs="0" />
+              <xs:element name="locations" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="location" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="city" type="xs:string" minOccurs="0" />
+                          <xs:element name="region" type="xs:string" minOccurs="0" />
+                          <xs:element name="country" type="countryCode" minOccurs="0" />
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="applicantcountries" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="country" type="countryCode" maxOccurs="unbounded" />
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="salary" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="min" type="xs:decimal" minOccurs="0" />
+                    <xs:element name="max" type="xs:decimal" minOccurs="0" />
+                    <xs:element name="currency">
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:pattern value="[A-Z]{3}" />
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="period">
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:enumeration value="Hour" />
+                          <xs:enumeration value="Day" />
+                          <xs:enumeration value="Week" />
+                          <xs:enumeration value="Month" />
+                          <xs:enumeration value="Year" />
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="description" type="xs:string" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="nonEmpty">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="isoDate">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="countryCode">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{2}" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

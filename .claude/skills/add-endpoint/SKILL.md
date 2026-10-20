@@ -61,7 +61,7 @@ internal static class MetaEndpoints
 
 - **Public route** (careers pages, metadata): `.AllowAnonymous()` on the group. A public route that reads tenant data
   takes the organization slug from the route, resolves it, and calls `TenantContext.SetOrganization(id)` before any
-  tenant query (`PublicJobEndpoints.FindOrganizationAsync` is the pattern). Public routes only read.
+  tenant query (`PublicOrganizations.FindAsync` is the pattern). Public routes only read.
 - **Dashboard route:** `.RequireAuthorization()` on the group, and `.Produces(StatusCodes.Status401Unauthorized)` on
   each route so the generated client types the 401 (`JobEndpoints.cs`). `TenantResolutionMiddleware` has already
   set the tenant to the signed-in user's organization.

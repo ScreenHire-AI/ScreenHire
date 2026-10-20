@@ -6,6 +6,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -34,6 +35,7 @@ if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>(
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
 builder.Services.AddHiringValidation();
+builder.AddJobDistribution();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -61,6 +63,8 @@ app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
 app.MapIntegrityEndpoints();
+app.MapDistributionEndpoints();
+app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
