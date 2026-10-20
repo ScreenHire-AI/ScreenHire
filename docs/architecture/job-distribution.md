@@ -145,8 +145,8 @@ publish answer that arrives after a close is a no-op. `JobPostingTests` covers t
 ### Worker, idempotency and reconciliation
 
 - `SyncJobPosting` (`ITenantMessage`) carries `(jobId, boardId, jobVersion)`, the action and the posting's request
-  `Sequence`. Its `IdempotencyKey` is all five, and the handler is `[Deduplicated]` on it. The same request delivered
-  twice runs once. A later request for the same version, such as posting again after a close or a resend, is new.
+  `Sequence`. Its `IdempotencyKey` is all five, and the handler is `[Deduplicated]` on it: the worker records a claim
+  per key in `wolverine.wolverine_deduplication_hashed`. The same request delivered twice runs once. A later request for the same version, such as posting again after a close or a resend, is new.
 - The handler takes a row lock on the posting (`SELECT ... FOR UPDATE` in the handler's transaction), so a publish, a
   close and a status check for one posting never interleave around a board call. It acts only while the posting still
   wants exactly that request, which makes the effect idempotent after the deduplication window too.
@@ -206,8 +206,10 @@ read it. Ids are our UUIDs, and `content` is sanitized HTML, which Greenhouse es
 - `/{slug}/sitemap.xml` lists the board page and each open job with `lastmod`.
 - Every URL (canonical, sitemap, feeds, job-board API, Google notifications) is `DomainOptions.CareersJobUrl`, built
   from `ScreenHire:Domains:CareersHostPattern` and `CareersDomain`. The AppHost points `CareersDomain` at the careers
-  app's real endpoint. Careers pages still route by path (`/{slug}/jobs/...`); host-based tenant routing is a later
-  item, and it must keep these URLs and the routes in step.
+  app's real endpoint. Pages are routed by path (`/{slug}/jobs/...`) and link with these URLs. In a deployment with a
+  host pattern such as `{tenant}.careers.example.com`, the careers app gets the same value as `CAREERS_HOST_PATTERN`,
+  and `apps/careers/src/middleware.ts` maps each tenant host onto the path routes, so `https://acme.careers.example.com/jobs/x`
+  serves `/acme/jobs/x`. Unset, as in local development and the tests, routing stays by path.
 - **Google Indexing API:** `ScreenHire:Distribution:GoogleIndexing:Mode` is `Off` (default, board hidden), `Local`
   (an in-process fake that accepts everything; the tests use it) or `Google` (`ServiceAccountKeyJson`, through
   `Google.Apis.Auth`, POST `urlNotifications:publish`). Publish and close queue an `IndexingNotification`, and a newer
@@ -234,14 +236,16 @@ the MVP.
 ### Configuration
 
 All under `ScreenHire:Distribution` (`DistributionOptions`). The AppHost forwards every key it is given to both the
-API and the worker, so they agree on which boards exist: `Sandbox:*`, `GoogleIndexing:Mode`, `ServiceAccountKeyJson`
-and `DailyQuota`, `StatusPollInterval`, `ResendAfter` and `MaxResends`.
+API and the worker, so they agree on which boards exist: `Sandbox:*`, `GoogleIndexing:Mode` and `DailyQuota`,
+`StatusPollInterval`, `ResendAfter` and `MaxResends`. The one exception is the Google service account key. With
+`GoogleIndexing:Mode=Google` the AppHost declares the secret parameter `google-indexing-service-account-key` (user
+secrets locally, the secret store in a deployment) and passes it to both as `GoogleIndexing:ServiceAccountKeyJson`.
 
 ### Not built yet
 
 - Auto-expiry: nothing closes a job when its `validThrough` passes yet.
 - One ATS-wide feed across tenants, and the CDN in front of feeds.
-- Host-based careers routing and per-domain Search Console verification.
+- Per-domain Search Console verification, and custom tenant domains (host routing covers `{tenant}.{CareersDomain}` only).
 - Credential vault, inbound apply webhooks, and every partner or paid board (§4 phases 2 to 4).
 - The distribution UI (the recruiter-dashboard task builds it on these endpoints).
 
@@ -252,6 +256,6 @@ and `DailyQuota`, `StatusPollInterval`, `ResendAfter` and `MaxResends`.
 | `JobPostingTests` (unit) | every transition, issues keeping a posting in Draft, stale versions, no Closed without confirmation, resends and Error |
 | `DistributionPlannerTests`, `IndexingPlanTests` (unit) | the default boards, per-board states and estimates on publish and close, one event per change, one command per push board, the idempotency key, partner gating, hidden boards; deletes first within the quota |
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
-| `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed |
+| `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
 | `CareersDistributionTests` (end-to-end) | the published job's page carries complete JSON-LD and a canonical link and is in the sitemap; closed, it serves 410 with a past `validThrough` and leaves the sitemap |
-| `job-posting.test.ts` (Vitest) | the JSON-LD builder and the sitemap |
+| `job-posting.test.ts`, `tenant-host.test.ts` (Vitest) | the JSON-LD builder and the sitemap; which hosts are tenant hosts and the path each maps to |

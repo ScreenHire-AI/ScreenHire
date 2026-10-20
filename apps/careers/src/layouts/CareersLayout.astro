@@ -5,10 +5,11 @@ interface Props {
   title: string;
   description: string;
   organizationName: string;
-  organizationSlug: string;
+  /** The board's URL from the API, so links work on a tenant host and on the path-routed local board alike. */
+  boardUrl: string;
 }
 
-const { title, description, organizationName, organizationSlug } = Astro.props;
+const { title, description, organizationName, boardUrl } = Astro.props;
 ---
 
 <!doctype html>
@@ -23,13 +24,13 @@ const { title, description, organizationName, organizationSlug } = Astro.props;
   <body class="flex min-h-screen flex-col bg-candidate-background text-candidate-foreground">
     <header class="border-b border-candidate-border">
       <div class="mx-auto flex h-15 max-w-3xl items-center justify-between px-5">
-        <a href={`/${organizationSlug}`} class="flex items-center gap-2.5 font-bold text-candidate-foreground no-underline">
+        <a href={boardUrl} class="flex items-center gap-2.5 font-bold text-candidate-foreground no-underline">
           <span class="grid size-8 place-items-center rounded-full bg-candidate-cta font-display font-extrabold text-candidate-cta-foreground">
             {organizationName.charAt(0)}
           </span>
           {organizationName}
         </a>
-        <a href={`/${organizationSlug}`} class="text-sm font-semibold text-candidate-foreground">All jobs</a>
+        <a href={boardUrl} class="text-sm font-semibold text-candidate-foreground">All jobs</a>
       </div>
     </header>
     <main class="mx-auto w-full max-w-3xl flex-1 px-5 py-8">

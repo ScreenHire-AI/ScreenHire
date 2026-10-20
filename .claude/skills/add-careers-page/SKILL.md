@@ -18,7 +18,8 @@ demand on Node (`output: 'server'` in `apps/careers/astro.config.mjs`) so a clos
   `API_URL`. Never call `fetch` on an API route directly, and never from the browser.
 - Fetch independent data with `Promise.all`.
 - If the organization or the item does not exist, `return new Response(null, { status: 404 });` before rendering.
-  A job that existed and closed returns 410 once the API exposes the closed state.
+  A job that was published and closed is a 410 from the API (`GET .../jobs/{jobSlug}`); serve 410 with its
+  expired JSON-LD, as `jobs/[job].astro` does.
 - If the page needs data the API lacks, add a public endpoint under `/v1/public/...` with `/add-endpoint` first.
 
 ## 2. Layout and SEO
@@ -28,7 +29,7 @@ demand on Node (`output: 'server'` in `apps/careers/astro.config.mjs`) so a clos
   title={`${job.title} at ${board.organizationName}`}
   description={`${job.title} at ${board.organizationName}. ${job.location}.`}
   organizationName={board.organizationName}
-  organizationSlug={board.organizationSlug}
+  boardUrl={board.url}
 >
   <script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
   ...
@@ -51,7 +52,9 @@ demand on Node (`output: 'server'` in `apps/careers/astro.config.mjs`) so a clos
 - Copy follows the design system voice: plain, honest about what ScreenHire checks, and clear that a person reviews
   every application. Never say an application can be rejected automatically.
 - Labels for enums go through `label()` and money through `formatSalary()` in `src/lib/api.ts`.
-- Use the organization's slug and name from the API. Tenant hosts come from configuration, never a literal domain.
+- Use the organization's slug and name from the API. Link with the API's absolute URLs (`board.url`, `job.url`),
+  never `/${slug}/...`: they are right on a tenant host (`src/middleware.ts`) and on the path-routed local board.
+  Tenant hosts come from configuration, never a literal domain.
 
 ## 4. Checks
 

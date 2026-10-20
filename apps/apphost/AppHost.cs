@@ -12,7 +12,8 @@
 //   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
 //                               the same boards (ScreenHire.Application DistributionOptions). appsettings.Development.json
 //                               turns on the local sandbox board, a fake that must never reach real tenants;
-//                               GoogleIndexing:Mode is Off unless set (Local is the fake).
+//                               GoogleIndexing:Mode is Off unless set (Local is the fake); in Google mode the key comes
+//                               from the secret parameter google-indexing-service-account-key, never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -115,12 +116,23 @@ var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
 
 foreach (var (key, value) in settings.GetSection("Distribution").AsEnumerable(makePathsRelative: true))
 {
-    if (value is not null)
+    // The service account key is a secret: it goes through the parameter below, never as plain configuration.
+    if (value is not null && !key.Equals("GoogleIndexing:ServiceAccountKeyJson", StringComparison.OrdinalIgnoreCase))
     {
         var name = $"ScreenHire__Distribution__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
     }
+}
+
+// The real Indexing API's service account key (job-distribution.md section 5), only in Google mode: a secret parameter,
+// set with `dotnet user-secrets set Parameters:google-indexing-service-account-key "<json>"` in apps/apphost or by the
+// deployment's secret store. In Off or Local mode there is no parameter, so nothing asks for a key.
+if (string.Equals(settings["Distribution:GoogleIndexing:Mode"], "Google", StringComparison.OrdinalIgnoreCase))
+{
+    var googleKey = builder.AddParameter("google-indexing-service-account-key", secret: true);
+    api.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
+    worker.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
 }
 
 if (frontends != FrontendMode.None)

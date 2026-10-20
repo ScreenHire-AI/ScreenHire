@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Infrastructure.Tenancy;
@@ -253,6 +255,47 @@ public sealed class DistributionTests(AppHostFixture fixture)
             "URL_DELETED to be sent", Ct);
         Postings((await recruiter.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.OK))["google"]
             .Should().Be("Closing", "an accepted URL_DELETED is a request, not a confirmed removal");
+    }
+
+    // [Deduplicated] on SyncJobPosting: the worker records a claim for each command's idempotency key, and a duplicate of a
+    // command already handled changes nothing. The posting's own state checks would also stop this duplicate, so the
+    // claim is what shows the attribute is wired.
+    [Fact]
+    public async Task A_duplicate_board_command_is_claimed_once_and_changes_nothing()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var jobId = (await recruiter.CreateJobAsync(PublishableJob("Duplicate command"))).Id();
+        var postingId = PostingOf(await recruiter.PublishJobAsync(jobId), "sandbox").GetProperty("id").GetGuid();
+        await WaitForPostingAsync(recruiter, jobId, "sandbox", "Live");
+        var original = new SyncJobPosting(recruiter.OrganizationId, postingId, jobId, "sandbox", 1, PostingAction.Publish, Sequence: 1);
+
+        (await CountClaimsAsync(original.IdempotencyKey)).Should().Be(1, "the worker claimed the command's key");
+
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await using (var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct))
+        {
+            await sender.Services.GetRequiredService<IMessageBus>().PublishAsync(original);
+            await WolverineStore.WaitUntilAsync(
+                async () => await store.CountQueuedAsync("worker", postingId.ToString(), Ct, ".SyncJobPosting") == 0
+                    && await store.CountIncomingAsync(postingId.ToString(), Ct, ".SyncJobPosting") == 2,
+                "the duplicate to reach the worker", Ct);
+        }
+
+        (await CountClaimsAsync(original.IdempotencyKey)).Should().Be(1);
+        (await store.GetDeadLettersAsync(postingId.ToString(), Ct)).Should().BeEmpty();
+        var sandbox = PostingOf((await recruiter.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.OK), "sandbox");
+        sandbox.GetProperty("state").GetString().Should().Be("Live");
+        (await SandboxListingsAsync(recruiter, await SlugOfAsync(recruiter.OrganizationId))).Should().ContainSingle(l => l == jobId);
+    }
+
+    private async Task<long> CountClaimsAsync(string key)
+    {
+        await using var connection = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct));
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand(
+            "select count(*) from wolverine.wolverine_deduplication_hashed where deduplication_id = @key", connection);
+        command.Parameters.AddWithValue("key", key);
+        return (long)(await command.ExecuteScalarAsync(Ct))!;
     }
 
     /// <summary>A remote job whose description clears every board's minimum length.</summary>

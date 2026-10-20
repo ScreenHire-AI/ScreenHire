@@ -34,7 +34,7 @@ const jobPosting = buildJobPosting(job, { organizationName: board.organizationNa
   title={`${job.title} — ${board.organizationName}`}
   description={`${job.title} at ${board.organizationName}. ${job.location}.`}
   organizationName={board.organizationName}
-  organizationSlug={board.organizationSlug}
+  boardUrl={boardUrl}
 >
   <link slot="head" rel="canonical" href={url} />
   <script slot="head" type="application/ld+json" is:inline set:html={jsonLdScript(jobPosting)} />
