@@ -70,7 +70,7 @@
 <div class="flex min-h-screen flex-wrap">
   <nav
     aria-label="Main"
-    class="flex max-w-full flex-[1_1_232px] flex-col gap-3.5 border-r border-sidebar-border bg-sidebar px-3 py-3.5"
+    class="flex max-w-full min-w-0 flex-[1_1_232px] flex-col gap-3.5 border-r border-sidebar-border bg-sidebar px-3 py-3.5"
   >
     <a href="/" class="flex items-center gap-2.5 px-1.5 py-1 text-foreground no-underline">
       <span class="grid size-7 place-items-center rounded-lg bg-foreground font-display font-extrabold text-background">S</span>
