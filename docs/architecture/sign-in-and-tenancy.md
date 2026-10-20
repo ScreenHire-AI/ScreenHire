@@ -63,7 +63,10 @@ provider is a later decision. Sending happens inside the request until Wolverine
   readable `XSRF-TOKEN` cookie on `providers` and `me`, and the generated client's `apiFetch` echoes it on every
   non-GET request. Tokens are bound to the user, so sign-in and sign-out re-issue them.
 - **Rate limit.** A fixed window per client IP on the challenge and every auth POST, `ScreenHire:Auth:PermitsPerMinute`
-  (default 100). Behind a reverse proxy the client IP needs forwarded-headers configuration.
+  (default 100). Development raises it to 2000 (`apps/api/appsettings.Development.json`): every test signs in
+  from 127.0.0.1 against one API, and the integration suite alone sends about 80 such requests in 20 seconds.
+  The per-address email cap is unchanged everywhere and has its own test. Behind a reverse proxy the client IP needs
+  forwarded-headers configuration.
 
 ## Domains
 

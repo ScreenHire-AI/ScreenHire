@@ -134,7 +134,7 @@ Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Targe
 | | Before this harness | After |
 |---|---|---|
 | `pnpm verify` | 80 s | 47–54 s |
-| .NET tests | 49 s: 2 integration tests, each booting its own AppHost with every frontend | ~27 s wall clock for 24 tests: unit (9, <1 s), integration (8, 19 s, frontends off) and end-to-end (7, 27 s) in parallel, one AppHost per assembly |
-| Vitest | none | 27 tests, ~1 s per package |
+| .NET tests | 49 s: 2 integration tests, each booting its own AppHost with every frontend | ~33 s wall clock for 111 tests: unit (49, <1 s), integration (52, 20 s, frontends off) and end-to-end (10, 33 s) in parallel, one AppHost per assembly (measured 2026-10-20 with sign-in) |
+| Vitest | none | 53 tests, ~1 to 9 s per package |
 
 Measured 2026-10-20 over two consecutive runs with no changes in between; both passed.
