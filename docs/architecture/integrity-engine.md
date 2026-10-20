@@ -270,7 +270,7 @@ between keys, so key values and content cannot leave the browser.
   state.
 - **Delivery.** Each time the page is hidden or left, the module sends a cumulative snapshot of that page view with
   `navigator.sendBeacon` to the careers server's `/{organization}/telemetry?job=<id>`. The relay takes only
-  same-origin `text/plain` bodies, checks them with a strict schema, and forwards them to
+  same-origin `text/plain` bodies that state their length, checks them with a strict schema, and forwards them to
   `POST /v1/public/organizations/{slug}/jobs/{jobId}/telemetry`. The API refuses unknown members at every level, field
   ids that are not the job's questions or the form's own fields, unknown automation markers, out-of-range counts, a
   token for another job, and bodies over 32 KB (413). Its own rate limit (`ScreenHire:Apply:TelemetryPermitsPerMinute`,
@@ -284,7 +284,9 @@ between keys, so key values and content cannot leave the browser.
   strict parsing never sends.
 - **Rules** (`TelemetryRules`, free-text answers only, autofilled fields left out). `BEH_PASTE_DOMINANT`: an answer of
   at least 40 entered characters of which 80% or more were pasted; the evidence is the pasted and entered character
-  counts and the number of pastes. `BEH_FOCUS_SWITCHING`: the page hidden at least 5 times and one answer returned to
+  counts and the number of pastes. Entered characters are the growth in the field's length, so a paste over selected
+  text counts only what it added. That undercounts a full replacement, which errs toward no signal.
+  `BEH_FOCUS_SWITCHING`: the page hidden at least 5 times and one answer returned to
   at least 5 times. Both feed AI assistance and are accessibility-sensitive. Alone they are not shown on the
   assessment at all (`telemetry-only-alongside-another-category`); next to another category they are context, and
   reasons only when a category other than telemetry corroborates (`telemetry-never-alone`). They are never the second
@@ -461,4 +463,7 @@ yet. The honest AI-assisted candidate went back and forth to their assistant, so
 - Vendor choices: IP intelligence (MaxMind GeoLite2/GeoIP2, IPinfo), email/phone checks, IDV (Persona / Veriff /
   Incode) — pricing and DPAs.
 - Per-jurisdiction fingerprint basis (consent vs strictly necessary) defaults for EU tenants.
+- The device-check basis for a job with no country (remote, anywhere). It takes `DeviceCheck:Default` (`Notice`), so a
+  candidate in the EU applying to such a job gets no consent tick. Setting the default to `Consent` closes that at the
+  cost of asking everyone else; a legal call for the owner.
 - Exact level thresholds — calibrate on synthetic + pilot data; publish methodology.
