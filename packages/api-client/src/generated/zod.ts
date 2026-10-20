@@ -1937,6 +1937,34 @@ export const GetCandidateResponse = zod.object({
 }).describe('A candidate and every application they made to the organization.')
 
 
+export const GetOrganizationBrandingResponse = zod.object({
+  "brandColor": zod.string().nullable(),
+  "palette": zod.union([zod.null(),zod.object({
+  "brand": zod.string(),
+  "onBrand": zod.string(),
+  "brandText": zod.string(),
+  "brandUi": zod.string()
+}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
+  "brandAdjusted": zod.boolean()
+}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+
+
+export const UpdateOrganizationBrandingBody = zod.object({
+  "brandColor": zod.string().nullable()
+}).describe('Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire\'s default.')
+
+export const UpdateOrganizationBrandingResponse = zod.object({
+  "brandColor": zod.string().nullable(),
+  "palette": zod.union([zod.null(),zod.object({
+  "brand": zod.string(),
+  "onBrand": zod.string(),
+  "brandText": zod.string(),
+  "brandUi": zod.string()
+}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
+  "brandAdjusted": zod.boolean()
+}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+
+
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()
 
 

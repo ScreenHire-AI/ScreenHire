@@ -53,6 +53,7 @@ app.MapPublicApplicationEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapOrganizationEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 

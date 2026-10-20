@@ -93,7 +93,8 @@ a careers subdomain.
 
 Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
 applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
-write, Viewers only read, and anyone else gets 403. The role is read per request. Today every member is an Owner,
+write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its careers branding)
+call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request. Today every member is an Owner,
 because onboarding is the one way to join an organization; a flow that lets someone join with another role must
 check that its own routes use the same filter.
 

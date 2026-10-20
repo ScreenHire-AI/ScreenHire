@@ -22,7 +22,19 @@ internal static class HiringAuthorization
 {
     private static readonly OrganizationRole[] Writers = [OrganizationRole.Owner, OrganizationRole.Admin, OrganizationRole.Recruiter];
 
+    private static readonly OrganizationRole[] Administrators = [OrganizationRole.Owner, OrganizationRole.Admin];
+
     public static RouteHandlerBuilder RequireHiringRole(this RouteHandlerBuilder builder) =>
+        builder.RequireRole(Writers, "Read-only role", "Your role can see hiring data but not change it. Ask an owner or admin.");
+
+    /// <summary>
+    /// For routes that change the organization itself, such as its careers-page branding: Owners and Admins only, with the
+    /// same 403 problem bodies as <see cref="RequireHiringRole"/>.
+    /// </summary>
+    public static RouteHandlerBuilder RequireOrganizationAdmin(this RouteHandlerBuilder builder) =>
+        builder.RequireRole(Administrators, "Owners and admins only", "Only an owner or admin can change the organization's settings.");
+
+    private static RouteHandlerBuilder RequireRole(this RouteHandlerBuilder builder, OrganizationRole[] allowed, string title, string detail) =>
         builder
             .AddEndpointFilter(async (invocation, next) =>
             {
@@ -41,12 +53,9 @@ internal static class HiringAuthorization
                     .Where(m => m.OrganizationId == organizationId && m.UserId == userId)
                     .Select(m => (OrganizationRole?)m.Role)
                     .SingleOrDefaultAsync(invocation.HttpContext.RequestAborted);
-                return role is { } found && Writers.Contains(found)
+                return role is { } found && allowed.Contains(found)
                     ? await next(invocation)
-                    : TypedResults.Problem(
-                        title: "Read-only role",
-                        detail: "Your role can see hiring data but not change it. Ask an owner or admin.",
-                        statusCode: StatusCodes.Status403Forbidden);
+                    : TypedResults.Problem(title: title, detail: detail, statusCode: StatusCodes.Status403Forbidden);
             })
             .ProducesProblem(StatusCodes.Status403Forbidden);
 }

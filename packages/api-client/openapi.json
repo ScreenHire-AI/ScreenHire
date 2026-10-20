@@ -1904,6 +1904,86 @@
         }
       }
     },
+    "/v1/organization/branding": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationBranding",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationBranding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "UpdateOrganizationBranding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBrandingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationBranding"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -3680,6 +3760,36 @@
         },
         "description": "Creates the signed-in user's organization, with them as its Owner."
       },
+      "OrganizationBranding": {
+        "required": [
+          "brandColor",
+          "palette",
+          "brandAdjusted"
+        ],
+        "type": "object",
+        "properties": {
+          "brandColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "palette": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBranding"
+              }
+            ]
+          },
+          "brandAdjusted": {
+            "type": "boolean"
+          }
+        },
+        "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable."
+      },
       "OrganizationRole": {
         "enum": [
           "Owner",
@@ -4418,6 +4528,21 @@
           "Manual"
         ]
       },
+      "UpdateBrandingRequest": {
+        "required": [
+          "brandColor"
+        ],
+        "type": "object",
+        "properties": {
+          "brandColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default."
+      },
       "UpdateHiringTemplateRequest": {
         "required": [
           "name"
@@ -4697,6 +4822,9 @@
     },
     {
       "name": "Candidates"
+    },
+    {
+      "name": "Organization"
     },
     {
       "name": "Schemas"

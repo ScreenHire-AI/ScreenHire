@@ -30,6 +30,7 @@ import type {
   MagicLinkVerification,
   MoveApplicationRequest,
   OnboardingRequest,
+  OrganizationBranding,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -38,6 +39,7 @@ import type {
   PublicJobBoard,
   PublicOrganization,
   SignInMethods,
+  UpdateBrandingRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
   UpdateJobRequest,
@@ -2127,6 +2129,120 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type getOrganizationBrandingResponse200 = {
+  data: OrganizationBranding
+  status: 200
+}
+
+export type getOrganizationBrandingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationBrandingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationBrandingResponseSuccess = (getOrganizationBrandingResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationBrandingResponseError = (getOrganizationBrandingResponse401 | getOrganizationBrandingResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationBrandingResponse = (getOrganizationBrandingResponseSuccess | getOrganizationBrandingResponseError)
+
+export const getGetOrganizationBrandingUrl = () => {
+
+
+
+
+  return `/v1/organization/branding`
+}
+
+export const getOrganizationBranding = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationBrandingResponse> => {
+
+  return apiFetch<getOrganizationBrandingResponse>(getGetOrganizationBrandingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateOrganizationBrandingResponse200 = {
+  data: OrganizationBranding
+  status: 200
+}
+
+export type updateOrganizationBrandingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationBrandingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationBrandingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationBrandingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateOrganizationBrandingResponseSuccess = (updateOrganizationBrandingResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationBrandingResponseError = (updateOrganizationBrandingResponse400 | updateOrganizationBrandingResponse401 | updateOrganizationBrandingResponse403 | updateOrganizationBrandingResponse404) & {
+  headers: Headers;
+};
+
+export type updateOrganizationBrandingResponse = (updateOrganizationBrandingResponseSuccess | updateOrganizationBrandingResponseError)
+
+export const getUpdateOrganizationBrandingUrl = () => {
+
+
+
+
+  return `/v1/organization/branding`
+}
+
+export const updateOrganizationBranding = async (updateBrandingRequest: UpdateBrandingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationBrandingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOrganizationBrandingResponse>(getUpdateOrganizationBrandingUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateBrandingRequest)
   }
 );}
 
