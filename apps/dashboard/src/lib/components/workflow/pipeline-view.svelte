@@ -48,7 +48,7 @@
     {/if}
     <div class="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="sm" onclick={() => onopen(stageId)}>
-        Automations<span class="sr-only"> for {name}</span>
+        Automations <span class="sr-only">for {name}</span>
         <span class="font-mono text-[11px] text-muted-foreground tabular-nums">{automations.length}</span>
       </Button>
       {#if problems > 0}

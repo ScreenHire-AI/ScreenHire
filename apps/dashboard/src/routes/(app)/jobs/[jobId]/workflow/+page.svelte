@@ -114,7 +114,7 @@
     </div>
     <p class="sr-only" role="status">Loading the workflow…</p>
   {:else}
-    <section aria-label="Workflow" class="flex flex-wrap items-start justify-between gap-3">
+    <section aria-label="Job workflow" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex min-w-0 flex-col gap-1.5">
         <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">Workflow: {detail.title}</h1>
         <p class="font-mono text-[11.5px] text-muted-foreground uppercase">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { Background, Controls, SvelteFlow, type Edge } from '@xyflow/svelte';
+  import { untrack } from 'svelte';
   import '@xyflow/svelte/dist/style.css';
   import { errorsUnder } from '#lib/workflow.js';
   import { toGraph, type StepNode } from '#lib/workflow-graph.js';
@@ -12,13 +13,26 @@
 
   const nodeTypes = { step: StepNodeView };
 
-  let nodes = $state.raw<StepNode[]>([]);
-  let edges = $state.raw<Edge[]>([]);
+  function project() {
+    const graph = toGraph(workflow);
+    return {
+      nodes: graph.nodes.map((node) => ({ ...node, data: { ...node.data, invalid: errorsUnder(errors, node.data.path).length > 0, onedit } })),
+      edges: graph.edges,
+    };
+  }
+
+  // Built before the first render, so fitView frames the real graph; rebuilt on every change after that. Svelte Flow
+  // binds the arrays (it writes measured sizes back), so they are state rather than derived.
+  const initial = untrack(project);
+  let nodes = $state.raw<StepNode[]>(initial.nodes);
+  let edges = $state.raw<Edge[]>(initial.edges);
 
   $effect(() => {
-    const graph = toGraph(workflow);
-    nodes = graph.nodes.map((node) => ({ ...node, data: { ...node.data, invalid: errorsUnder(errors, node.data.path).length > 0, onedit } }));
-    edges = graph.edges;
+    const next = project();
+    untrack(() => {
+      nodes = next.nodes;
+      edges = next.edges;
+    });
   });
 </script>
 

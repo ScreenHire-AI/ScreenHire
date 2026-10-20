@@ -81,7 +81,7 @@
   <div class="flex items-start justify-between gap-2">
     <h3 id={`${uid}-heading`} class="font-bold">{automation.name || 'Untitled automation'}</h3>
     <Button variant="ghost" size="sm" class="text-destructive" onclick={onremove}>
-      <Trash2Icon aria-hidden="true" />Remove<span class="sr-only"> {automation.name}</span>
+      <Trash2Icon aria-hidden="true" />Remove <span class="sr-only">{automation.name}</span>
     </Button>
   </div>
   <FieldErrors id={`${uid}-errors`} messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.actions`)]} />
@@ -143,14 +143,14 @@
           <li class="flex flex-col gap-1.5 rounded-lg border border-border-subtle bg-muted/40 p-2.5">
             <div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
               <label class={labelClass}>
-                Fact<span class="sr-only"> for condition {ruleIndex + 1}</span>
+                Fact <span class="sr-only">for condition {ruleIndex + 1}</span>
                 <select class={selectClass} value={rule.fact} onchange={(event) => setFact(ruleIndex, event.currentTarget.value)}>
                   {#if !fact}<option value={rule.fact}>{rule.fact}</option>{/if}
                   {#each facts as option (option.fact)}<option value={option.fact}>{option.label}</option>{/each}
                 </select>
               </label>
               <label class={labelClass}>
-                Test<span class="sr-only"> for condition {ruleIndex + 1}</span>
+                Test <span class="sr-only">for condition {ruleIndex + 1}</span>
                 <select class={selectClass} value={rule.operator} onchange={(event) => setOperator(ruleIndex, event.currentTarget.value as ConditionOperator)}>
                   {#each fact ? operatorsFor(fact.type) : [rule.operator] as operator (operator)}<option value={operator}>{operatorLabels[operator]}</option>{/each}
                 </select>
@@ -159,7 +159,7 @@
                 <span></span>
               {:else if rule.operator === 'In'}
                 <label class={labelClass}>
-                  Values, separated by commas<span class="sr-only"> for condition {ruleIndex + 1}</span>
+                  Values, separated by commas <span class="sr-only">for condition {ruleIndex + 1}</span>
                   <Input
                     value={(rule.values ?? []).join(', ')}
                     onchange={(event) =>
@@ -171,14 +171,14 @@
                 </label>
               {:else if fact?.values}
                 <label class={labelClass}>
-                  Value<span class="sr-only"> for condition {ruleIndex + 1}</span>
+                  Value <span class="sr-only">for condition {ruleIndex + 1}</span>
                   <select class={selectClass} bind:value={rule.value}>
                     {#each fact.values as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
                   </select>
                 </label>
               {:else}
                 <label class={labelClass}>
-                  Value<span class="sr-only"> for condition {ruleIndex + 1}</span>
+                  Value <span class="sr-only">for condition {ruleIndex + 1}</span>
                   <Input bind:value={rule.value} maxlength={200} />
                 </label>
               {/if}

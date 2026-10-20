@@ -50,7 +50,7 @@ demand on Node (`output: 'server'` in `apps/careers/astro.config.mjs`) so a clos
 - Candidate tokens only: `bg-candidate-background`, `text-candidate-foreground`, `bg-candidate-cta`,
   `text-candidate-muted-foreground`, `border-candidate-border`. No hex values.
 - No client JavaScript. Links, native forms (posted to an Astro Action, as the apply flow does) and `<details>`. The only
-  `<script>` is the JSON-LD one, unless the page needs an island such as `FileUpload.svelte`.
+  `<script>` is the JSON-LD one, unless the page needs an island such as `FileField.svelte`.
 - No inline styles: the content security policy forbids them. Employer colours come from the brand tokens
   (`bg-candidate-cta`, `text-candidate-brand-text`), never a computed style.
 - Browsing collects nothing beyond server logs: no analytics, fingerprinting or telemetry scripts. Those start only

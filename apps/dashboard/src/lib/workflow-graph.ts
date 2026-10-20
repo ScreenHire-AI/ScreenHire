@@ -37,7 +37,7 @@ export function toGraph(workflow: HiringWorkflow): { nodes: StepNode[]; edges: E
       node(stageNode(stage.id), index * COLUMN, STAGES_Y, {
         kind: 'stage',
         title: stage.name,
-        detail: stage.kind,
+        detail: stage.kind === stage.name ? '' : stage.kind,
         automation: null,
         path: `stages[${index}]`,
         disabled: false,

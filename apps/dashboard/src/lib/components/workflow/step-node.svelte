@@ -27,7 +27,7 @@
     <button
       type="button"
       class="nodrag nopan mt-1 self-start rounded-md border border-border px-2 py-0.5 text-[11.5px] font-semibold hover:bg-muted"
-      onclick={() => edit(data.automation!)}>Edit<span class="sr-only"> {data.title}</span></button
+      onclick={() => edit(data.automation!)}>Edit <span class="sr-only">{data.title}</span></button
     >
   {/if}
 </div>

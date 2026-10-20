@@ -86,7 +86,9 @@
         The same workflow as a graph: stages along the top, then each automation from trigger to actions. Edit an automation
         from its node, or in the pipeline view.
       </p>
-      <WorkflowGraph {workflow} {errors} onedit={openAutomation} />
+      <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph fits its view to the size
+           it mounts at, which is nothing while hidden. -->
+      {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} onedit={openAutomation} />{/if}
     </Tabs.Content>
     <Tabs.Content value="questionnaire" class="pt-2">
       <QuestionnaireBuilder bind:workflow {errors} {readonly} />
