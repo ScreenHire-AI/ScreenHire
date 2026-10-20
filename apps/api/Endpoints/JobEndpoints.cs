@@ -486,6 +486,6 @@ internal static class JobEndpoints
                 ValidationExtensions.Problem("description", $"At most {JobContentValidator.MaxDescriptionLength} characters."))
             : null;
 
-    private static ProblemHttpResult ChangedMeanwhile() =>
+    internal static ProblemHttpResult ChangedMeanwhile() =>
         TypedResults.Problem("Someone else changed this job at the same moment; refresh and try again.", statusCode: StatusCodes.Status409Conflict);
 }

@@ -84,7 +84,15 @@ internal static class DistributionEndpoints
 
         if (db.ChangeTracker.HasChanges())
         {
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // A board's answer for this posting was saved after we loaded it.
+                return JobEndpoints.ChangedMeanwhile();
+            }
         }
 
         var saved = await db.JobPostings.AsNoTracking().SingleAsync(p => p.Id == posting.Id, cancellationToken);

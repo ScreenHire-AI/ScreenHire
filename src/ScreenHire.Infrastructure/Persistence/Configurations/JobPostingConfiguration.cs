@@ -18,6 +18,11 @@ internal sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPost
         builder.Property(p => p.Issues);
         builder.Ignore(p => p.IsActive);
 
+        // Optimistic concurrency on Postgres' xmin system column (no real column), as on jobs: the API changes postings
+        // without the worker's row lock, so a publish or close that loaded a posting before a board's answer was saved
+        // fails instead of writing its stale state over that answer.
+        builder.Property<uint>("Version").IsRowVersion();
+
         // Composite: a posting always belongs to a job of its own organization.
         builder.HasOne<Job>().WithMany()
             .HasForeignKey(p => new { p.OrganizationId, p.JobId })
