@@ -495,7 +495,11 @@ assessment, shown next to it as context; it is never a reason on its own.
   more than 5 seconds to reach the second browser. With it off, 10 of 10 runs passed. The demo itself finished well
   before the test ran. The trigger is the burst of
   submissions the API makes just after startup; how it delays later real-time delivery is not isolated yet. The demo
-  now runs only for `pnpm dev`. Worth a look before real traffic bursts matter.
+  now runs only for `pnpm dev`. Worth a look before real traffic bursts matter. One lead: until October 2026 the demo
+  published its candidates' moves on the submission's outbox after that outbox had flushed, and those
+  `ApplicationMoved` envelopes stayed in the API's outgoing table unsent. The demo now moves candidates in a scope of
+  its own; whether the stuck envelopes were behind the late `JobClosed` was not measured. The API now reports healthy
+  only once the demo's steps have run, and `/preview` waits for the integrity chips before it checks anything live.
 - The assistive-technology switch turns the whole telemetry module off, automation markers and the device check
   included, as its brief asked. A script can tick the switch too, so a bot that does loses `AUTO_WEBDRIVER` and the
   device duplicate check; the network, identity, honeypot and duplicate checks still run.

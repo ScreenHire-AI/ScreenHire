@@ -15,6 +15,7 @@ namespace ScreenHire.IntegrationTests.Demo;
 /// what the API itself adds is there at once; what the worker does afterwards (emails) is awaited with a deadline.
 /// Template, job, board, stage and automation names are written out here from that guide, not read from the seeder.
 /// </summary>
+[Collection(nameof(DevelopmentDemoRun))]
 public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClassFixture<DevelopmentDemoFixture>
 {
     private const string TemplateName = "Brightwater engineering";
