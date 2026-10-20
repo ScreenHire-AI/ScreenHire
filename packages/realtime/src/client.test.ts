@@ -1,6 +1,5 @@
-import { HttpError } from '@microsoft/signalr';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RealtimeClient, type ConnectionStatus, type HubConnectionLike } from './client.js';
+import { RealtimeClient, type ConnectionHooks, type ConnectionStatus, type HubConnectionLike } from './client.js';
 import type { RealtimeEvent } from './events.js';
 
 /** A hub connection the test drives: it records calls and fires SignalR's callbacks on demand. */
@@ -8,6 +7,7 @@ class FakeConnection implements HubConnectionLike {
   readonly invocations: unknown[][] = [];
   readonly handlers = new Map<string, (...args: unknown[]) => void>();
   startResults: Array<() => Promise<void>> = [];
+  hooks!: ConnectionHooks;
   starts = 0;
   stops = 0;
   #reconnecting?: () => void;
@@ -63,15 +63,24 @@ class FakeConnection implements HubConnectionLike {
 function setUp() {
   const connection = new FakeConnection();
   const timers: Array<{ callback: () => void; ms: number }> = [];
+  const clock = { now: 0 };
   const client = new RealtimeClient({
-    createConnection: () => connection,
+    createConnection: (_url, hooks) => {
+      connection.hooks = hooks;
+      return connection;
+    },
     retryDelay: (attempt) => 1_000 * (attempt + 1),
     setTimeout: (callback, ms) => timers.push({ callback, ms }),
+    now: () => clock.now,
   });
   const statuses: ConnectionStatus[] = [];
   client.onStatusChange((status) => statuses.push(status));
-  return { connection, client, timers, statuses };
+  return { connection, client, timers, statuses, clock };
 }
+
+// What HubConnection.start() rejects with when negotiate gets a 401: SignalR's FailedToNegotiateWithServerError, which
+// keeps only the message. The status code reaches the client through ConnectionHooks.onUnauthorized instead.
+const negotiateFailed = () => new Error("Failed to complete negotiation with the server: Error: Unauthorized: Status code '401'");
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -87,6 +96,7 @@ const jobPublished = {
 describe('RealtimeClient', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('connects and reports each status', async () => {
@@ -144,12 +154,67 @@ describe('RealtimeClient', () => {
 
   it('stops trying when the API answers 401: the session is gone', async () => {
     const { client, connection, timers } = setUp();
-    connection.startResults = [() => Promise.reject(new HttpError('Unauthorized', 401))];
+    connection.startResults = [
+      () => {
+        connection.hooks.onUnauthorized();
+        return Promise.reject(negotiateFailed());
+      },
+    ];
 
     await client.start();
 
     expect(client.status).toBe('disconnected');
     expect(timers).toEqual([]);
+  });
+
+  it('keeps retrying a start that fails for any other reason', async () => {
+    const { client, connection, timers } = setUp();
+    connection.startResults = [() => Promise.reject(new Error('Failed to fetch'))];
+
+    await client.start();
+
+    expect(client.status).toBe('connecting');
+    expect(timers.map((timer) => timer.ms)).toEqual([1_000]);
+  });
+
+  it('gives up reconnecting once the session is gone', async () => {
+    const { client, connection, timers } = setUp();
+    await client.start();
+    expect(connection.hooks.reconnectDelay(0)).toBe(1_000);
+
+    // SignalR's automatic reconnect negotiates again, gets 401, asks for the next delay, then closes.
+    connection.hooks.onUnauthorized();
+    expect(connection.hooks.reconnectDelay(1)).toBeNull();
+    connection.close();
+
+    expect(client.status).toBe('disconnected');
+    expect(timers).toEqual([]);
+  });
+
+  it('keeps the backoff growing when the server closes the connection soon after it opens', async () => {
+    const { client, connection, timers, clock } = setUp();
+    await client.start();
+
+    connection.close();
+    timers[0]!.callback();
+    await flush();
+    clock.now += 500;
+    connection.close();
+
+    expect(timers.map((timer) => timer.ms)).toEqual([1_000, 2_000]);
+  });
+
+  it('starts the backoff over after a connection that stayed up', async () => {
+    const { client, connection, timers, clock } = setUp();
+    await client.start();
+    connection.close();
+    timers[0]!.callback();
+    await flush();
+
+    clock.now += 60_000;
+    connection.close();
+
+    expect(timers.map((timer) => timer.ms)).toEqual([1_000, 1_000]);
   });
 
   it('subscribes once connected, and again after every reconnect', async () => {
@@ -223,6 +288,22 @@ describe('RealtimeClient', () => {
 
     expect(client.status).toBe('disconnected');
     expect(connection.stops).toBe(1);
+    expect(timers).toEqual([]);
+  });
+
+  it('stops on a 401 from the real SignalR connection', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 401, statusText: 'Unauthorized' })));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const timers: number[] = [];
+    const client = new RealtimeClient({
+      url: 'http://localhost:5080/v1/hubs/events',
+      setTimeout: (_callback, ms) => timers.push(ms),
+    });
+
+    await client.start();
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(client.status).toBe('disconnected');
     expect(timers).toEqual([]);
   });
 });

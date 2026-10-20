@@ -1,4 +1,4 @@
-import { HttpError, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { DefaultHttpClient, HttpError, HubConnectionBuilder, LogLevel, NullLogger, type HttpRequest, type HttpResponse } from '@microsoft/signalr';
 import { reconnectDelay } from './backoff.js';
 import { parseRealtimeEvent, type RealtimeEvent } from './events.js';
 
@@ -23,22 +23,60 @@ export interface HubConnectionLike {
   onclose(callback: (error?: Error) => void): void;
 }
 
+/** What the client gives the connection it builds. */
+export interface ConnectionHooks {
+  /** Delay before SignalR's automatic reconnect attempt n (0-based), or null to give up: the session is gone. */
+  reconnectDelay(attempt: number): number | null;
+  /** Call when the API answers any of the connection's requests with 401. */
+  onUnauthorized(): void;
+}
+
 export interface RealtimeClientOptions {
   /** The hub's URL; defaults to {@link defaultHubUrl}. */
   url?: string;
   /** Builds the connection. Tests pass a fake; the default is a real SignalR connection with automatic reconnect. */
-  createConnection?: (url: string, retryDelay: (attempt: number) => number) => HubConnectionLike;
+  createConnection?: (url: string, hooks: ConnectionHooks) => HubConnectionLike;
   /** Delay before reconnect attempt n (0-based); defaults to {@link reconnectDelay}. */
   retryDelay?: (attempt: number) => number;
   /** Timer, swappable for tests. */
   setTimeout?: (callback: () => void, ms: number) => unknown;
+  /** Clock in milliseconds, swappable for tests. */
+  now?: () => number;
 }
 
-function createSignalRConnection(url: string, retryDelay: (attempt: number) => number): HubConnectionLike {
+/** A connection must stay up this long before a drop starts the backoff from the beginning again. */
+const stableConnectionMs = 10_000;
+
+/**
+ * SignalR's own HTTP client, plus a report of every 401. SignalR wraps a failed negotiate in an error that drops the
+ * status code, so the client cannot tell "signed out" from "API down" by the error `start()` rejects with.
+ */
+class SessionAwareHttpClient extends DefaultHttpClient {
+  readonly #onUnauthorized: () => void;
+
+  constructor(onUnauthorized: () => void) {
+    super(NullLogger.instance);
+    this.#onUnauthorized = onUnauthorized;
+  }
+
+  override async send(request: HttpRequest): Promise<HttpResponse> {
+    try {
+      return await super.send(request);
+    } catch (error) {
+      if (error instanceof HttpError && error.statusCode === 401) {
+        this.#onUnauthorized();
+      }
+
+      throw error;
+    }
+  }
+}
+
+function createSignalRConnection(url: string, hooks: ConnectionHooks): HubConnectionLike {
   return new HubConnectionBuilder()
-    .withUrl(url, { withCredentials: true })
-    // Never returns null, so SignalR keeps trying for as long as the page is open.
-    .withAutomaticReconnect({ nextRetryDelayInMilliseconds: (context) => retryDelay(context.previousRetryCount) })
+    .withUrl(url, { withCredentials: true, httpClient: new SessionAwareHttpClient(() => hooks.onUnauthorized()) })
+    // Returns null only once the API has answered 401; otherwise SignalR keeps trying for as long as the page is open.
+    .withAutomaticReconnect({ nextRetryDelayInMilliseconds: (context) => hooks.reconnectDelay(context.previousRetryCount) })
     .configureLogging(LogLevel.Warning)
     .build();
 }
@@ -55,9 +93,12 @@ export class RealtimeClient {
   #stopped = true;
   #attempt = 0;
   #everConnected = false;
+  #sessionGone = false;
+  #connectedAt = 0;
   readonly #connection: HubConnectionLike;
   readonly #retryDelay: (attempt: number) => number;
   readonly #setTimeout: (callback: () => void, ms: number) => unknown;
+  readonly #now: () => number;
   readonly #eventHandlers = new Set<(event: RealtimeEvent) => void>();
   readonly #statusHandlers = new Set<(status: ConnectionStatus) => void>();
   readonly #resumedHandlers = new Set<() => void>();
@@ -66,18 +107,37 @@ export class RealtimeClient {
   constructor(options: RealtimeClientOptions = {}) {
     this.#retryDelay = options.retryDelay ?? reconnectDelay;
     this.#setTimeout = options.setTimeout ?? ((callback, ms) => globalThis.setTimeout(callback, ms));
+    this.#now = options.now ?? Date.now;
     const create = options.createConnection ?? createSignalRConnection;
-    this.#connection = create(options.url ?? defaultHubUrl, this.#retryDelay);
+    this.#connection = create(options.url ?? defaultHubUrl, {
+      reconnectDelay: (attempt) => (this.#sessionGone ? null : this.#retryDelay(attempt)),
+      onUnauthorized: () => {
+        this.#sessionGone = true;
+      },
+    });
 
     this.#connection.on('ReceiveEvent', (raw) => this.#receive(raw));
     this.#connection.onreconnecting(() => this.#setStatus('reconnecting'));
     this.#connection.onreconnected(() => void this.#connected());
-    // SignalR gave up on this connection (or the server closed it). Start over unless someone stopped the client.
+    // SignalR gave up on this connection (or the server closed it). Start over unless someone stopped the client or
+    // the session is gone. A connection the server closed soon after it opened (a user with no organization) keeps
+    // the backoff growing instead of retrying every second.
     this.#connection.onclose(() => {
-      if (!this.#stopped) {
-        this.#setStatus('connecting');
-        this.#scheduleStart();
+      if (this.#stopped) {
+        return;
       }
+
+      if (this.#sessionGone) {
+        this.#signedOut();
+        return;
+      }
+
+      if (this.#now() - this.#connectedAt >= stableConnectionMs) {
+        this.#attempt = 0;
+      }
+
+      this.#setStatus('connecting');
+      this.#scheduleStart();
     });
   }
 
@@ -92,6 +152,7 @@ export class RealtimeClient {
     }
 
     this.#stopped = false;
+    this.#sessionGone = false;
     this.#attempt = 0;
     this.#setStatus('connecting');
     return this.#tryStart();
@@ -146,10 +207,8 @@ export class RealtimeClient {
         return;
       }
 
-      if (error instanceof HttpError && error.statusCode === 401) {
-        // Signed out or the session expired: retrying cannot help. The next navigation sends the person to sign in.
-        this.#stopped = true;
-        this.#setStatus('disconnected');
+      if (this.#sessionGone || (error instanceof HttpError && error.statusCode === 401)) {
+        this.#signedOut();
         return;
       }
 
@@ -174,8 +233,14 @@ export class RealtimeClient {
     }, delay);
   }
 
+  // Signed out or the session expired: retrying cannot help. The next navigation sends the person to sign in.
+  #signedOut(): void {
+    this.#stopped = true;
+    this.#setStatus('disconnected');
+  }
+
   async #connected(): Promise<void> {
-    this.#attempt = 0;
+    this.#connectedAt = this.#now();
     this.#setStatus('connected');
     await Promise.all([...this.#subscriptions.values()].map(({ topic, id }) => this.#invoke('Subscribe', topic, id)));
     if (this.#everConnected) {
