@@ -1,4 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
@@ -81,10 +84,12 @@ internal static class AutomationEndpoints
     }
 
     // A person runs a Manual automation for one application. The worker evaluates it like any other trigger, conditions
-    // and guardrails included; the request id keys the run, and the user who asked is recorded on it.
+    // and guardrails included, and records the user who asked. With an Idempotency-Key header the run's event id comes
+    // from the key, so a retried request runs nothing twice; without one, every request is its own run.
     private static async Task<Results<Accepted<ManualAutomationQueued>, NotFound, ValidationProblem>> RunManualAutomation(
         Guid applicationId,
         string automationId,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         TimeProvider time,
@@ -109,11 +114,27 @@ internal static class AutomationEndpoints
                 "automationId", "Only an enabled automation with a Manual trigger can be run by hand."));
         }
 
-        var eventId = Guid.CreateVersion7();
+        if (idempotencyKey is { Length: 0 or > 200 })
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("Idempotency-Key", "An idempotency key is 1 to 200 characters."));
+        }
+
+        var eventId = idempotencyKey is null ? Guid.CreateVersion7() : ManualEventId(application.Id, automation.Id, idempotencyKey);
         await outbox.PublishAsync(new RunAutomations(
             application.OrganizationId, application.Id, TriggerType.Manual, null, eventId, time.GetUtcNow(), automation.Id, ActorUserId: tenant.UserId));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Accepted(
             $"/v1/applications/{application.Id}/automation-runs", new ManualAutomationQueued(application.Id, automation.Id, eventId));
+    }
+
+    // The same key for the same application and automation always gives the same id (an RFC 9562 version 8 UUID from
+    // SHA-256), and different applications never share one.
+    internal static Guid ManualEventId(Guid applicationId, string automationId, string idempotencyKey)
+    {
+        Span<byte> bytes = stackalloc byte[16];
+        SHA256.HashData(Encoding.UTF8.GetBytes($"{applicationId}:{automationId}:{idempotencyKey}"))[..16].CopyTo(bytes);
+        bytes[6] = (byte)((bytes[6] & 0x0F) | 0x80);
+        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+        return new Guid(bytes, bigEndian: true);
     }
 }

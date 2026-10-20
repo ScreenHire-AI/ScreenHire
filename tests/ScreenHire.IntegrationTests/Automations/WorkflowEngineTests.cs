@@ -125,6 +125,76 @@ public sealed class WorkflowEngineTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_retried_manual_run_with_the_same_idempotency_key_runs_once()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await AutomationSamples.JobWithAutomationsAsync(recruiter, "Retried manual run", new JsonObject
+        {
+            ["id"] = "flag",
+            ["name"] = "Flag",
+            ["trigger"] = new JsonObject { ["type"] = "Manual" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "CreateTask", ["note"] = "Call the candidate back." }),
+        });
+        var application = await recruiter.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"));
+        var headers = new Dictionary<string, string> { ["Idempotency-Key"] = "click-1" };
+
+        async Task<Guid> RunAsync()
+        {
+            using var response = await recruiter.Session.PostAsync(
+                $"/v1/applications/{application.Id()}/automations/flag/run", new JsonObject(), headers, Ct);
+            response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+            return body.RootElement.GetProperty("eventId").GetGuid();
+        }
+
+        var first = await RunAsync();
+        await AutomationSamples.WaitForRunAsync(recruiter, application.Id(), "flag", "Completed");
+        var retried = await RunAsync();
+
+        retried.Should().Be(first, "the key, not the request, names the run");
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(first.ToString(), Ct) >= 2, "the worker to handle the retried request", Ct);
+        (await recruiter.GetAsync($"/v1/applications/{application.Id()}/automation-runs")).Count().Should().Be(1);
+        (await recruiter.GetAsync($"/v1/applications/{application.Id()}/tasks")).Count().Should().Be(1);
+    }
+
+    // The validator ran when the workflow was saved; a workflow its rules no longer accept (here, an email template that
+    // is gone) is blocked at run time rather than run. No endpoint can store such a workflow, so the test rewrites the
+    // job's copy as the owner, standing in for a workflow saved before the rule changed.
+    [Fact]
+    public async Task A_workflow_that_no_longer_validates_is_blocked_and_shown_as_an_issue()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await AutomationSamples.JobWithAutomationsAsync(recruiter, "Outdated workflow", new JsonObject
+        {
+            ["id"] = "received",
+            ["name"] = "Confirm the application",
+            ["trigger"] = new JsonObject { ["type"] = "ApplicationSubmitted" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "SendEmail", ["emailTemplate"] = "application-received" }),
+        });
+        await using (var connection = new Npgsql.NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct)))
+        {
+            await connection.OpenAsync(Ct);
+            await using var command = new Npgsql.NpgsqlCommand(
+                "UPDATE jobs SET workflow = replace(workflow::text, '\"application-received\"', '\"retired-template\"')::jsonb WHERE id = @id",
+                connection);
+            command.Parameters.AddWithValue("id", job);
+            (await command.ExecuteNonQueryAsync(Ct)).Should().Be(1);
+        }
+
+        var candidateEmail = ApiSession.NewEmail("candidate");
+        var application = await recruiter.CreateApplicationAsync(job, candidateEmail);
+
+        var blocked = await AutomationSamples.WaitForRunAsync(recruiter, application.Id(), "received", "Blocked");
+        blocked.GetProperty("detail").GetString().Should().Contain("no longer passes validation").And.Contain("emailTemplate");
+        blocked.GetProperty("actions").GetArrayLength().Should().Be(0);
+        (await recruiter.GetAsync("/v1/automation-issues")).Body.EnumerateArray()
+            .Should().Contain(i => i.GetProperty("runId").GetGuid() == blocked.GetProperty("id").GetGuid());
+        (await fixture.Mailpit.MessagesAsync(candidateEmail, Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Two_automations_that_move_an_application_back_and_forth_are_stopped_as_a_loop()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
@@ -165,7 +235,8 @@ public sealed class WorkflowEngineTests(AppHostFixture fixture)
         var (run, action) = await RecordWebhookRunAsync(recruiter, job.Id(), application.Id(), "https://10.0.0.1/hook");
 
         var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), AutoProvision = true, RetryDelays = [], ScheduledRetryDelays = [] };
-        await using (var worker = await MessagingHost.StartHandlerAsync(fixture, settings, [], Ct))
+        var signing = new Dictionary<string, string?> { ["ScreenHire:Webhooks:SigningKey"] = "test-signing-key" };
+        await using (var worker = await MessagingHost.StartHandlerAsync(fixture, settings, [], Ct, configuration: signing))
         {
             await worker.Services.GetRequiredService<IMessageBus>().SendAsync(
                 new ExecuteAutomationAction(recruiter.OrganizationId, action.Id, run.ActionKey(0)));

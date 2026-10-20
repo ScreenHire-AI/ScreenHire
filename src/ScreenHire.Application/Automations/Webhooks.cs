@@ -1,6 +1,8 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace ScreenHire.Application.Automations;
@@ -8,7 +10,7 @@ namespace ScreenHire.Application.Automations;
 /// <summary>
 /// What a CallWebhook action posts: ids and the automation, never candidate details. The receiver fetches anything else
 /// through the API with its own credentials. <c>Idempotency-Key</c> carries the action's key, so a receiver can drop a
-/// retried delivery.
+/// retried delivery, and <c>ScreenHire-Signature</c> lets it check the body came from us (<see cref="WebhookSignature"/>).
 /// </summary>
 public sealed record WebhookPayload(
     string Type, Guid OrganizationId, Guid ApplicationId, Guid JobId, string AutomationId, Guid RunId, Guid EventId, DateTimeOffset SentAt);
@@ -16,6 +18,9 @@ public sealed record WebhookPayload(
 /// <summary>Posts one webhook. The HTTP adapter is <see cref="HttpWebhookSender"/>; tests replace it.</summary>
 public interface IWebhookSender
 {
+    /// <summary>False when no signing key is configured: nothing is sent, because a receiver could not trust it.</summary>
+    bool IsConfigured { get; }
+
     /// <summary>Posts <paramref name="payload"/> and returns the status code; throws when the receiver does not accept it.</summary>
     Task<int> PostAsync(Uri url, string idempotencyKey, WebhookPayload payload, CancellationToken cancellationToken);
 }
@@ -32,6 +37,30 @@ public sealed class WebhookOptions
     public bool AllowPrivateNetworks { get; set; }
 
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// The HMAC-SHA256 key every delivery is signed with. The AppHost generates one locally; production sets its own
+    /// secret. Without one, CallWebhook actions fail with an issue rather than send something unverifiable.
+    /// </summary>
+    public string? SigningKey { get; set; }
+}
+
+/// <summary>
+/// How a receiver checks a webhook: <c>ScreenHire-Signature: t={unix seconds},v1={hex}</c>, where the hex is
+/// HMAC-SHA256 of <c>{t}.{raw body}</c> under the shared key. Including the time lets a receiver refuse old replays.
+/// </summary>
+public static class WebhookSignature
+{
+    public const string Header = "ScreenHire-Signature";
+
+    public static string Create(string key, DateTimeOffset sentAt, string body)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(body);
+        var timestamp = sentAt.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes($"{timestamp}.{body}"));
+        return $"t={timestamp},v1={Convert.ToHexStringLower(mac)}";
+    }
 }
 
 /// <summary>
@@ -46,13 +75,23 @@ public sealed class WebhookOptions
 /// </remarks>
 public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebhookSender, IDisposable
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
     private readonly HttpClient client = new(CreateHandler(options)) { Timeout = options.Value.Timeout };
+
+    public bool IsConfigured => !string.IsNullOrEmpty(options.Value.SigningKey);
 
     public async Task<int> PostAsync(Uri url, string idempotencyKey, WebhookPayload payload, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(url);
-        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(payload) };
+        ArgumentNullException.ThrowIfNull(payload);
+        var key = options.Value.SigningKey ?? throw new InvalidOperationException("No webhook signing key is configured.");
+
+        // Serialized once, so the signature covers exactly the bytes sent.
+        var body = JsonSerializer.Serialize(payload, Json);
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
         request.Headers.Add("Idempotency-Key", idempotencyKey);
+        request.Headers.Add(WebhookSignature.Header, WebhookSignature.Create(key, payload.SentAt, body));
 
         using var response = await client.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();

@@ -2026,6 +2026,10 @@ export const RunManualAutomationParams = zod.object({
   "automationId": zod.string()
 })
 
+export const RunManualAutomationHeader = zod.object({
+  "Idempotency-Key": zod.string().optional()
+})
+
 export const RunManualAutomationResponse = zod.object({
   "applicationId": zod.uuid(),
   "automationId": zod.string(),

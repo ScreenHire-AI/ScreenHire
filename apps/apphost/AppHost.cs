@@ -96,8 +96,14 @@ if (builder.Environment.IsDevelopment())
         .WaitFor(devSso);
 }
 
+// The key CallWebhook automations sign their deliveries with (ScreenHire:Webhooks:SigningKey). Generated per run
+// locally; production sets its own secret.
+var webhookSigningKey = builder.AddParameter(
+    "webhook-signing-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+
 builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
+    .WithEnvironment("ScreenHire__Webhooks__SigningKey", webhookSigningKey)
     // Automations send transactional email (application received, stage change) from the worker.
     .WithReference(mailpit)
     .WaitFor(api); // the API applies migrations and sets the app role's password in Development

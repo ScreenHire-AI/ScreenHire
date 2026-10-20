@@ -1,4 +1,7 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Email;
@@ -49,6 +52,32 @@ public sealed class TransactionalEmailTests
         {
             Templates.Invoking(t => t.Render(id, "a@example.com", new("A", "B", "C"))).Should().NotThrow();
         }
+    }
+
+    [Fact]
+    public void A_webhook_signature_covers_the_time_and_the_exact_body()
+    {
+        var sentAt = new DateTimeOffset(2026, 10, 20, 9, 0, 0, TimeSpan.Zero);
+        const string body = "{\"a\":1}";
+        var signature = WebhookSignature.Create("key", sentAt, body);
+
+        var expected = Convert.ToHexStringLower(HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes("key"), Encoding.UTF8.GetBytes($"{sentAt.ToUnixTimeSeconds()}.{body}")));
+        signature.Should().Be($"t={sentAt.ToUnixTimeSeconds()},v1={expected}");
+        WebhookSignature.Create("key", sentAt, "{\"a\":2}").Should().NotBe(signature);
+        WebhookSignature.Create("key", sentAt.AddSeconds(1), body).Should().NotBe(signature);
+    }
+
+    [Fact]
+    public void A_manual_run_key_gives_the_same_event_id_for_the_same_application_and_automation_only()
+    {
+        var application = Guid.CreateVersion7();
+        var id = AutomationEndpoints.ManualEventId(application, "flag", "click-1");
+
+        AutomationEndpoints.ManualEventId(application, "flag", "click-1").Should().Be(id);
+        AutomationEndpoints.ManualEventId(Guid.CreateVersion7(), "flag", "click-1").Should().NotBe(id);
+        AutomationEndpoints.ManualEventId(application, "other", "click-1").Should().NotBe(id);
+        id.Version.Should().Be(8);
     }
 
     [Theory]

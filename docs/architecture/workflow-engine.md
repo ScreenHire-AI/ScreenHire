@@ -149,7 +149,7 @@ Code: `src/ScreenHire.Domain/Automations` (facts, evaluator, run records) and `s
 worker handlers, which write and send nothing when the job has no matching automation. `TimeElapsed` is a scheduled
 `RunAutomations` message, due `afterHours` after the stage entry it counts from; when it fires it does nothing if the
 application has left that stage entry, which is how leaving the stage cancels it. `Manual` is
-`POST /v1/applications/{id}/automations/{automationId}/run`. `QuestionnaireCompleted`, `IntegrityAssessed` and
+`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. `QuestionnaireCompleted`, `IntegrityAssessed` and
 `ReviewerDecision` are valid in definitions and run through `RunAutomations`, but nothing raises them yet: the apply
 flow, the integrity engine and reviewer decisions publish that message when they land.
 
@@ -177,7 +177,7 @@ done. Email and webhooks happen before that commit; a crash in between can repea
 | `CreateTask` | Creates a `Task` with the note. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
 | `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` with the reason, saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone or with a workflow that no longer validates, it queues a rejection review instead: the candidate must be told why. |
-| `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time). No HTTP retries of its own: Wolverine retries the action. Not signed yet. |
+| `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under `ScreenHire:Webhooks:SigningKey` (the AppHost generates one locally). Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
 | `RequestVerification`, `SendQuestionnaire`, `ScheduleInterview` | Refused at save. Verification is phase 2; the other two need features that do not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
 
 **Loops and depth.** A run records the chain of automations whose actions led to it. An automation already in its own
@@ -211,8 +211,9 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - "Cancelled on stage exit" means the timer is dropped when it fires, not removed when the stage is left: its scheduled
   envelope stays in Wolverine's tables until it falls due (up to 8760 hours), then finds the application has left that
   stage entry and does nothing. Removing scheduled envelopes by hand would couple the engine to Wolverine's tables.
-- A manual run is keyed on an id the API makes per request, so a retried POST runs the automation a second time: one
-  click is one intent. An `Idempotency-Key` from the client can replace it when the dashboard needs retries.
+- A manual run is keyed on the client's `Idempotency-Key` when it sends one (a version 8 UUID from SHA-256 of the
+  application, the automation and the key), so a retried POST runs nothing twice. Without the header each request is
+  its own run: one click, one intent.
 - Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
   either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
 

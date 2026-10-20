@@ -36,11 +36,17 @@ public sealed class ApiSession : IDisposable
     public Task<HttpResponseMessage> PostAsync<T>(string path, T body, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Post, path, body, cancellationToken);
 
+    /// <summary>A JSON POST like <see cref="PostAsync{T}(string, T, CancellationToken)"/>, with extra request headers.</summary>
+    public Task<HttpResponseMessage> PostAsync<T>(
+        string path, T body, IReadOnlyDictionary<string, string> headers, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Post, path, body, cancellationToken, headers);
+
     /// <summary>Sends a JSON PUT with the antiforgery header, fetching a token first if this session has none.</summary>
     public Task<HttpResponseMessage> PutAsync<T>(string path, T body, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Put, path, body, cancellationToken);
 
-    private async Task<HttpResponseMessage> SendAsync<T>(HttpMethod method, string path, T body, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> SendAsync<T>(
+        HttpMethod method, string path, T body, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? headers = null)
     {
         if (AntiforgeryToken() is null)
         {
@@ -49,6 +55,11 @@ public sealed class ApiSession : IDisposable
 
         using var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) };
         request.Headers.Add(AntiforgeryHeader, AntiforgeryToken());
+        foreach (var (name, value) in headers ?? new Dictionary<string, string>())
+        {
+            request.Headers.Add(name, value);
+        }
+
         return await Client.SendAsync(request, cancellationToken);
     }
 

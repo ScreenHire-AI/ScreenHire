@@ -241,6 +241,11 @@ public static partial class ExecuteAutomationActionHandler
 
     private static async Task<(AutomationActionStatus, string)> CallWebhookAsync(ActionContext context, Uri url, CancellationToken cancellationToken)
     {
+        if (!context.Webhooks.IsConfigured)
+        {
+            return Failed("Webhook signing is not set up (ScreenHire:Webhooks:SigningKey), so nothing was sent.");
+        }
+
         var run = context.Run;
         var status = await context.Webhooks.PostAsync(
             url,
