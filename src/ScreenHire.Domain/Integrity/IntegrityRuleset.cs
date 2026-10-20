@@ -17,7 +17,8 @@ namespace ScreenHire.Domain.Integrity;
 /// accommodation itself is never a signal and never appears in the output.</item>
 /// <item>A category <em>corroborates</em> when its signals' weights add up to at least
 /// <see cref="CorroboratingWeight"/> (Low 1, Medium 2, High 3). Context-only signals add their weight only next to a
-/// signal of the same category that is not context-only.</item>
+/// signal of the same category that is not context-only. Informational signals (<c>CNT_TEMPLATED_ANSWER</c>) add
+/// nothing.</item>
 /// <item><c>telemetry-never-alone</c>: if no category other than <see cref="SignalCategory.Behavioural"/>
 /// corroborates, the level is the lowest.</item>
 /// <item><c>two-independent-categories</c>: if fewer than two categories corroborate, the level is the lowest.</item>
@@ -30,7 +31,7 @@ namespace ScreenHire.Domain.Integrity;
 public static class IntegrityRuleset
 {
     /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes.</summary>
-    public const string Version = "2026-10-20.2";
+    public const string Version = "2026-10-20.3";
 
     public const int CorroboratingWeight = 2;
 
@@ -126,8 +127,8 @@ public static class IntegrityRuleset
 
     private static int CategoryWeight(List<IntegritySignal> signals)
     {
-        var direct = signals.Where(s => !s.ContextOnly).Sum(s => WeightOf(s.Weight));
-        return direct == 0 ? 0 : direct + signals.Where(s => s.ContextOnly).Sum(s => WeightOf(s.Weight));
+        var direct = signals.Where(s => !s.ContextOnly && !s.Informational).Sum(s => WeightOf(s.Weight));
+        return direct == 0 ? 0 : direct + signals.Where(s => s.ContextOnly && !s.Informational).Sum(s => WeightOf(s.Weight));
     }
 
     private static int WeightOf(SignalWeight weight) => weight switch

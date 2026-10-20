@@ -52,6 +52,11 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             }
 
             var result = await analyzer.AnalyzeAsync(context, cancellationToken);
+            if (!result.Ready)
+            {
+                continue; // its input is still being prepared; the stage preparing it publishes this message again
+            }
+
             var runId = Guid.CreateVersion7();
             var written = ToSignals(result.Signals, application, runId, analyzer, now);
             db.IntegrityAnalyzerRuns.Add(new IntegrityAnalyzerRun
@@ -77,6 +82,10 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
     /// accommodation, accessibility-sensitive signals are not stored at all (CLAUDE.md non-negotiable 4); the ruleset
     /// drops any that were stored before.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// An LLM-derived signal does not cite a span from each of two sources (integrity-engine.md §5: evidence, not
+    /// verdicts). A model's say-so is never stored as a signal.
+    /// </exception>
     public static List<IntegritySignal> ToSignals(
         IReadOnlyList<ObservedSignal> observed, JobApplication application, Guid runId, IIntegrityAnalyzer analyzer, DateTimeOffset now)
     {
@@ -90,6 +99,12 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             if (definition.AccessibilitySensitive && application.AccommodationRequested)
             {
                 continue;
+            }
+
+            if (signal.Llm is not null && !CitesBothSources(signal))
+            {
+                throw new InvalidOperationException(
+                    $"Analyzer {analyzer.Name} reported an LLM-derived {signal.Code} without a quoted span from each source.");
             }
 
             signals.Add(new IntegritySignal
@@ -107,6 +122,8 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
                 ObservedAt = now,
                 AccessibilitySensitive = definition.AccessibilitySensitive,
                 ContextOnly = definition.ContextOnly,
+                Informational = definition.Informational,
+                Llm = signal.Llm,
                 Explanation = definition.Explain(signal.Values),
                 Evidence = signal.Evidence,
                 CounterEvidence = signal.CounterEvidence ?? [],
@@ -114,6 +131,19 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
         }
 
         return signals;
+    }
+
+    /// <summary>
+    /// Whether an LLM-derived signal cites its evidence: at least one text comparison with a quoted span on both sides,
+    /// each labelled with its source.
+    /// </summary>
+    public static bool CitesBothSources(ObservedSignal signal)
+    {
+        ArgumentNullException.ThrowIfNull(signal);
+        return signal.Evidence.Any(e => e.Kind == EvidenceKind.TextComparison
+            && e.Left is { } left && !string.IsNullOrWhiteSpace(left.Text) && !string.IsNullOrWhiteSpace(left.Label)
+            && e.Right is { } right && !string.IsNullOrWhiteSpace(right.Text) && !string.IsNullOrWhiteSpace(right.Label)
+            && !string.Equals(left.Label, right.Label, StringComparison.Ordinal));
     }
 
     private async Task<OutgoingMessages> AssessAsync(

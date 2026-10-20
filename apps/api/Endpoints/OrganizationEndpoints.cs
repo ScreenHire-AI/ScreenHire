@@ -1,7 +1,9 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -9,7 +11,7 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The signed-in user's organization: today its careers-page branding. Saving a brand colour derives and checks the
+/// The signed-in user's organization: its careers-page branding and its integrity settings. Saving a brand colour derives and checks the
 /// palette on the server (design-system §7); a colour that fails a contrast minimum is darkened, never refused, so only a
 /// malformed colour is a 400.
 /// </summary>
@@ -23,7 +25,56 @@ internal static class OrganizationEndpoints
             .RequireAntiforgeryToken()
             .RequireOrganizationAdmin()
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/integrity-settings", GetIntegritySettings).WithName("GetOrganizationIntegritySettings")
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/integrity-settings", UpdateIntegritySettings).WithName("UpdateOrganizationIntegritySettings")
+            .RequireAntiforgeryToken()
+            .RequireOrganizationAdmin()
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
+    }
+
+    private static async Task<Ok<OrganizationIntegritySettings>> GetIntegritySettings(
+        ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+    {
+        var settings = await db.IntegritySettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        return TypedResults.Ok(await ToIntegritySettingsAsync(db, settings, time.GetUtcNow(), cancellationToken));
+    }
+
+    // Upserts the organization's row. The check runs per application when it is next triggered; turning it on does not
+    // reach back to applications already checked or skipped.
+    private static async Task<Results<Ok<OrganizationIntegritySettings>, ValidationProblem>> UpdateIntegritySettings(
+        UpdateIntegritySettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (request.MonthlyTokenBudget is { } budget && budget is < 1 or > IntegritySettings.MaxMonthlyTokenBudget)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "monthlyTokenBudget", $"A monthly budget is between 1 and {IntegritySettings.MaxMonthlyTokenBudget.ToString("N0", CultureInfo.InvariantCulture)} tokens."));
+        }
+
+        var now = time.GetUtcNow();
+        var settings = await db.IntegritySettings.SingleOrDefaultAsync(cancellationToken);
+        if (settings is null)
+        {
+            settings = new IntegritySettings { OrganizationId = tenant.OrganizationId!.Value };
+            db.IntegritySettings.Add(settings);
+        }
+
+        settings.LlmConsistencyCheckEnabled = request.LlmConsistencyCheck;
+        settings.MonthlyTokenBudget = request.MonthlyTokenBudget;
+        settings.UpdatedAt = now;
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(await ToIntegritySettingsAsync(db, settings, now, cancellationToken));
+    }
+
+    private static async Task<OrganizationIntegritySettings> ToIntegritySettingsAsync(
+        ScreenHireDbContext db, IntegritySettings? settings, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        var used = await db.ConsistencyChecks.AsNoTracking()
+            .Where(c => c.StartedAt >= monthStart)
+            .SumAsync(c => c.InputTokens + c.OutputTokens, cancellationToken);
+        return new OrganizationIntegritySettings(settings?.LlmConsistencyCheckEnabled ?? false, settings?.MonthlyTokenBudget, used);
     }
 
     private static async Task<Results<Ok<OrganizationBranding>, NotFound>> GetBranding(

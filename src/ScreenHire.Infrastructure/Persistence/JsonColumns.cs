@@ -23,9 +23,12 @@ public static class JsonColumns
     /// <summary>The serializer options for every JSONB column, and for the JSON Schema the API publishes.</summary>
     public static JsonSerializerOptions SerializerOptions { get; } = CreateOptions();
 
-    /// <summary>Stores the property as <c>jsonb</c>, compared by its JSON so change tracking sees edits inside lists.</summary>
+    /// <summary>
+    /// Stores the property as <c>jsonb</c>, compared by its JSON so change tracking sees edits inside lists. A nullable
+    /// property stores SQL null for null; EF never passes null to the converter.
+    /// </summary>
     public static PropertyBuilder<T> HasJsonColumn<T>(this PropertyBuilder<T> property)
-        where T : class
+        where T : class?
     {
         ArgumentNullException.ThrowIfNull(property);
         var converter = new ValueConverter<T, string>(value => Serialize(value), json => Deserialize<T>(json));
