@@ -477,7 +477,7 @@ Four stages, each idempotent on its own:
    an admin turns it on), at least two sources with text, a configured model, and the monthly token budget. Then it
    claims a `consistency_checks` row (unique per application and prompt version) and asks the model with no database
    transaction open. A claim is taken over once it is older than the longest a check can take: four calls, each with
-   one SDK retry, all timing out, plus a minute. A redelivered message for a finished check sends the pipeline again,
+   the SDK's two retries, all timing out, plus a minute. A redelivered message for a finished check sends the pipeline again,
    because this handler has no outbox and the first reassessment may have been lost.
 
    The check has two steps behind `IChatClient` (Microsoft.Extensions.AI). The extraction model lists each source's
@@ -513,7 +513,8 @@ the last can overshoot by a few checks' worth.
 
 **Known gaps.**
 - Parsing runs in the worker process. A crafted PDF that expands to gigabytes can still exhaust its memory; the slot
-  limit only stops parses piling up. The real fix is parsing in a separate process with memory and time caps.
+  limit only stops parses piling up. A Word part is capped at 5 million characters unzipped, but its document tree is
+  still built in memory. The real fix is parsing in a separate process with memory and time caps.
 - PDF white-text detection asks whether something is drawn behind a letter, not how much contrast there is, so white
   text on a pale full-page fill is not reported. Word text boxes and style-level colours are not read for hiding.
 - A transient provider error (a 429 or 5xx after the retry) records the check as `Unavailable` for good; it is not

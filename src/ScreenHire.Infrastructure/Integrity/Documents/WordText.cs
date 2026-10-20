@@ -13,8 +13,11 @@ namespace ScreenHire.Infrastructure.Integrity.Documents;
 /// </summary>
 internal static class WordText
 {
-    /// <summary>The most characters one part of the package may hold once unzipped. A long resume is well under 1 million.</summary>
-    private const long MaxCharactersInPart = 20_000_000;
+    /// <summary>
+    /// The most characters one part of the package may hold once unzipped, markup included. A long resume is well under
+    /// 1 million; the cap also bounds the document tree the parser builds in memory.
+    /// </summary>
+    private const long MaxCharactersInPart = 5_000_000;
 
     /// <summary>Font sizes in Word are half-points; under 4 is under 2 points.</summary>
     private const int TinyHalfPoints = 4;

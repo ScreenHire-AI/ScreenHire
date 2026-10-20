@@ -21,10 +21,10 @@ public sealed class LlmAccess
     }
 
     /// <summary>
-    /// Retries the SDK makes after a failed call, set explicitly so the longest a check can take is known (see
-    /// <see cref="ConsistencyChecker.MaxCalls"/>) and a claim is never taken over while it is still working.
+    /// Retries the SDK makes after a failed call (its own default, two), set explicitly so the longest a check can take
+    /// is known (see <see cref="ConsistencyChecker.MaxCalls"/>) and a claim is never taken over while it is still working.
     /// </summary>
-    public const int MaxRetries = 1;
+    public const int MaxRetries = 2;
 
     /// <summary>The client, or null when no model is configured.</summary>
     public IChatClient? Client { get; }
