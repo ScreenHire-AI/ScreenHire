@@ -3,6 +3,7 @@
 @import "@screenhire/ui/fonts.css";
 @import "@screenhire/ui/tokens.css";
 @import "@screenhire/ui/theme.css";
+@import "@screenhire/ui/questions.css";
 
 @layer base {
   * {
