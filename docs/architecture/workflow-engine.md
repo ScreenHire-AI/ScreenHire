@@ -169,24 +169,26 @@ done. Email and webhooks happen before that commit; a crash in between can repea
 
 | Action | What v1 does |
 |---|---|
-| `SendEmail` | Renders the named template (`application-received`, `stage-change`, `application-rejected`) to the candidate. Skipped when email is not configured. |
+| `SendEmail` | Renders `application-received` or `stage-change` to the candidate. Skipped when email is not configured. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
 | `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. |
 | `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards. |
 | `CreateTask` | Creates a `Task` with the note. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
-| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` (or the named template) with the reason, then moves to the rejected stage. Without email, or if the opt-in is gone, it queues a rejection review instead: the candidate must be told why. |
+| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` with the reason, saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone or with a workflow that no longer validates, it queues a rejection review instead: the candidate must be told why. |
 | `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time). No HTTP retries of its own: Wolverine retries the action. Not signed yet. |
 | `RequestVerification`, `SendQuestionnaire`, `ScheduleInterview` | Refused at save. Verification is phase 2; the other two need features that do not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
 
 **Loops and depth.** A run records the chain of automations whose actions led to it. An automation already in its own
 chain is a loop, and a chain of `AutomationEvaluator.MaxDepth` (10) stops there; either way the run is `Blocked` and
 nothing runs. The engine also re-validates the job's workflow before running anything, so a definition saved under
-older rules is blocked rather than run.
+older rules is blocked rather than run. A tag counts as signal-tainted by the evaluator's own comparison, so the validator and the
+worker cannot disagree about which rules read it.
 
 **Accommodation.** For an application with an accommodation, an automation with a `TimeElapsed` trigger or a condition
-on `application.hoursInStage` (or, later, a `telemetry.*` fact) is skipped: recorded as `Skipped`, with no actions.
+on `application.hoursInStage` (or, later, a `telemetry.*` fact) is skipped: recorded as `Skipped` ("Not evaluated for
+this application"), with no actions. Its stored snapshot leaves the timing facts out.
 
 **Issues and events.** `GET /v1/automation-issues` lists blocked and failed runs, newest first. An action that fails
 after every retry goes to the dead-letter table, and the error policy's last step (`AutomationFailures`) publishes

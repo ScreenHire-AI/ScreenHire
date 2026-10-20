@@ -80,7 +80,13 @@ public static class AutomationEngine
             var now = time.GetUtcNow();
             foreach (var (trigger, automation) in candidates)
             {
+                // Timing facts are switched off for an application with an accommodation: not evaluated, and not stored.
                 var facts = AutomationFacts.FromTimeline(timeline, trigger.EventId, trigger.Trigger, trigger.OccurredAt);
+                if (application.AccommodationRequested)
+                {
+                    facts = facts with { HoursInStage = null };
+                }
+
                 var evaluation = invalid is null
                     ? AutomationEvaluator.Evaluate(automation, facts, application.AccommodationRequested, chain)
                     : new AutomationEvaluation(EvaluationOutcome.Blocked, [],

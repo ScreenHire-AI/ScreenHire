@@ -280,6 +280,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "ApplicationId")
                         .HasDatabaseName("ix_application_tasks_organization_id_application_id");
 
+                    b.HasIndex("OrganizationId", "AutomationRunId")
+                        .HasDatabaseName("ix_application_tasks_organization_id_automation_run_id");
+
                     b.ToTable("application_tasks", (string)null);
                 });
 
@@ -439,6 +442,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasAlternateKey("OrganizationId", "Id")
                         .HasName("ak_automation_runs_organization_id_id");
+
+                    b.HasIndex("OrganizationId", "JobId")
+                        .HasDatabaseName("ix_automation_runs_organization_id_job_id");
 
                     b.HasIndex("OrganizationId", "Status", "CreatedAt")
                         .HasDatabaseName("ix_automation_runs_organization_id_status_created_at");
@@ -1085,6 +1091,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_application_tasks_applications_organization_id_application_");
+
+                    b.HasOne("ScreenHire.Domain.Automations.AutomationRun", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "AutomationRunId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_application_tasks_automation_runs_organization_id_automatio");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Automations.AutomationActionRun", b =>
@@ -1107,6 +1120,14 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_automation_runs_applications_organization_id_application_id");
+
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_runs_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Candidates.Candidate", b =>

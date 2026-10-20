@@ -227,7 +227,7 @@ public sealed class DefinitionValidatorTests
         [
             Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Looks automated"), "a",
                 new AutomationTrigger(TriggerType.IntegrityAssessed)),
-            Automation(null, new AutomationAction(ActionType.SendEmail, EmailTemplate: "application-rejected"), "b",
+            Automation(null, new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "b",
                 new AutomationTrigger(TriggerType.VerificationCompleted)),
         ]);
 
@@ -285,7 +285,7 @@ public sealed class DefinitionValidatorTests
             Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
                 new AutomationAction(ActionType.AddTag, Tag: "Integrity-Review"), "tagger", new AutomationTrigger(TriggerType.IntegrityAssessed)),
             Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "integrity-review")),
-                new AutomationAction(ActionType.SendEmail, EmailTemplate: "application-rejected"), "mailer"),
+                new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "mailer"),
             Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral")),
                 new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "unrelated"),
         ]);

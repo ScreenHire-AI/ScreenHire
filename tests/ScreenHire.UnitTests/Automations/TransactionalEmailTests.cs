@@ -28,7 +28,8 @@ public sealed class TransactionalEmailTests
     {
         var email = Templates.Render(EmailTemplateIds.ApplicationRejected, "sam@example.com", new("Sam", "Driver", "Brightwater", Reason: "This role needs a driving licence."));
 
-        email.TextBody.Should().Contain("The reason: This role needs a driving licence.");
+        email.TextBody.Should().Contain("The reason: This role needs a driving licence.")
+            .And.Contain("made automatically").And.Contain("a person will review your application");
     }
 
     [Fact]

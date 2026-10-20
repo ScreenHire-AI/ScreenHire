@@ -57,7 +57,7 @@ public static class AutomationEvaluator
         if (accommodationRequested
             && (automation.Trigger.Type == TriggerType.TimeElapsed || rules.Any(r => FactSchema.IsTimingOrTelemetry(r.Fact))))
         {
-            return new(EvaluationOutcome.Skipped, [], "Uses timing facts, which are switched off for this application.");
+            return new(EvaluationOutcome.Skipped, [], "Not evaluated for this application.");
         }
 
         var results = rules.Select(rule => new RuleResult(rule.Fact, rule.Operator, Holds(rule, facts))).ToList();

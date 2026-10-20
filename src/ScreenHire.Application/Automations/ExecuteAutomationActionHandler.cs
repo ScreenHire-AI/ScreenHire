@@ -206,19 +206,22 @@ public static partial class ExecuteAutomationActionHandler
 
     /// <summary>
     /// The one action that rejects without a person, allowed only for an opted-in knockout automation (the validator
-    /// checked, and this re-checks the opt-in). The candidate is always told why; if email is not set up, the candidate
+    /// checked, and this re-checks the workflow and the opt-in). The candidate is always told why; if email is not set up, the candidate
     /// cannot be told, so a person decides instead (workflow-engine.md §2, guardrail 2).
     /// </summary>
     private static async Task<(AutomationActionStatus, string)> RejectAsync(
         ActionContext context, AutomationAction action, CancellationToken cancellationToken)
     {
+        // The run was recorded when the workflow validated; re-check now, because the workflow or the rules may have
+        // changed while the action waited. Anything short of a valid, opted-in knockout goes to a person.
         var automation = context.Job.Workflow.Automations.FirstOrDefault(a => a.Id == context.Run.AutomationId);
-        if (automation is not { AllowAutoReject: true } || !context.Email.IsConfigured)
+        var stillValid = DefinitionValidator.Validate(context.Job.Workflow).Count == 0;
+        if (automation is not { AllowAutoReject: true } || !stillValid || !context.Email.IsConfigured)
         {
             return AddTask(context, ApplicationTaskKind.RejectionReview, action.Reason!, null,
-                automation is not { AllowAutoReject: true }
-                    ? "Queued for a person to decide: the automation is no longer opted in to rejecting."
-                    : "Queued for a person to decide: email is not set up, so the candidate could not be told why.");
+                automation is not { AllowAutoReject: true } ? "Queued for a person to decide: the automation is no longer opted in to rejecting."
+                : !stillValid ? "Queued for a person to decide: the job's workflow no longer passes validation."
+                : "Queued for a person to decide: email is not set up, so the candidate could not be told why.");
         }
 
         if (CurrentStage(context)?.Kind.IsTerminal() == true)
@@ -231,7 +234,7 @@ public static partial class ExecuteAutomationActionHandler
             return Failed("The workflow has no rejected stage.");
         }
 
-        await SendEmailAsync(context, action.EmailTemplate ?? EmailTemplateIds.ApplicationRejected, action.Reason, cancellationToken);
+        await SendEmailAsync(context, EmailTemplateIds.ApplicationRejected, action.Reason, cancellationToken);
         Move(context, rejected, $"Rejected by the automation \"{context.Run.AutomationName}\": {action.Reason}");
         return Completed("Rejected, and told the candidate why.");
     }

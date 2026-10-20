@@ -113,6 +113,41 @@ public sealed class WorkflowEngineValidationTests
             .Which.Message.Should().Contain("application-received, application-rejected, stage-change");
     }
 
+    [Fact]
+    public void Only_a_reject_action_sends_the_rejection_email()
+    {
+        var workflow = Workflow([WorkAuthorization],
+        [
+            new("mailer", "Mailer", new AutomationTrigger(TriggerType.ApplicationSubmitted), null,
+                [new AutomationAction(ActionType.SendEmail, EmailTemplate: "application-rejected")]),
+            new("knockout", "Knockout", new AutomationTrigger(TriggerType.QuestionnaireCompleted),
+                Rules(new AutomationCondition("answers.work_authorization", ConditionOperator.EqualTo, "no")),
+                [new AutomationAction(ActionType.Reject, EmailTemplate: "stage-change", Reason: "No right to work.")],
+                AllowAutoReject: true),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Select(e => e.Path).Should().BeEquivalentTo(
+            "automations[0].actions[0].emailTemplate", "automations[1].actions[0].emailTemplate");
+    }
+
+    // The validator judges a tainted tag with the evaluator's own comparison, so a rule the worker would match ("1.0"
+    // equals the tag "1" as a number) cannot slip past the guardrail.
+    [Fact]
+    public void A_signal_tag_read_through_a_numeric_match_still_counts_as_signal_driven()
+    {
+        var workflow = Workflow(automations:
+        [
+            new("tagger", "Tagger", new AutomationTrigger(TriggerType.IntegrityAssessed),
+                Rules(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                [new AutomationAction(ActionType.AddTag, Tag: "1")]),
+            new("queue", "Queue", new AutomationTrigger(TriggerType.QuestionnaireCompleted),
+                Rules(new AutomationCondition("application.tags", ConditionOperator.In, Values: ["1.0"])),
+                [new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Flagged")]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Select(e => e.Path).Should().Equal("automations[1].actions[0]");
+    }
+
     // The typed facts schema: each fact type takes the operators that make sense for it, and operands it can hold.
     [Theory]
     [InlineData("answers.work_authorization", ConditionOperator.GreaterThan, "no", "operator")]

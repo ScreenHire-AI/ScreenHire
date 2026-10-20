@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
+using ScreenHire.Domain.Jobs;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
 
@@ -18,10 +19,14 @@ internal sealed class AutomationRunConfiguration : IEntityTypeConfiguration<Auto
         builder.Property(r => r.Facts).HasJsonColumn();
         builder.Property(r => r.RuleResults).HasJsonColumn();
 
-        // Composite tenant key: a run belongs to an application of its own organization.
+        // Composite tenant keys: a run belongs to an application and a job of its own organization.
         builder.HasOne<JobApplication>().WithMany()
             .HasForeignKey(r => new { r.OrganizationId, r.ApplicationId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasAlternateKey(r => new { r.OrganizationId, r.Id });
@@ -62,6 +67,11 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
         builder.HasOne<JobApplication>().WithMany()
             .HasForeignKey(t => new { t.OrganizationId, t.ApplicationId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // The run that created the task, in the same organization (null for a task a person adds later).
+        builder.HasOne<AutomationRun>().WithMany()
+            .HasForeignKey(t => new { t.OrganizationId, t.AutomationRunId })
+            .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(t => new { t.OrganizationId, t.ApplicationId });
     }

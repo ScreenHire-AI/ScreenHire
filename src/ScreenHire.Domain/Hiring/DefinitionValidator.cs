@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using ScreenHire.Domain.Automations;
 
 namespace ScreenHire.Domain.Hiring;
 
@@ -391,12 +392,12 @@ public static partial class DefinitionValidator
             && (FactSchema.IsSignal(rule.Fact) || (rule.Fact == FactSchema.Tags && ReadsTaintedTag(rule, taintedTags)))) == true;
     }
 
-    // Conservative: any test that could match a tainted tag counts.
+    // A rule reads a tainted tag if it would hold for an application carrying that tag, judged by the evaluator itself so
+    // the validator and the worker can never compare tags differently. A negated rule depends on the tag's absence, which
+    // a signal decides as much as its presence, so it counts whenever a signal adds any tag.
     private static bool ReadsTaintedTag(AutomationCondition rule, HashSet<string> taintedTags) =>
         taintedTags.Count > 0
-        && (rule.Operator == ConditionOperator.Exists
-            || (rule.Value is { } value && taintedTags.Any(t => t.Contains(value, StringComparison.OrdinalIgnoreCase)))
-            || (rule.Values?.Any(v => v is not null && taintedTags.Contains(v)) == true));
+        && (rule.Negate || taintedTags.Any(tag => AutomationEvaluator.Holds(rule, new AutomationFacts([], [tag]))));
 
     private static void ValidateTrigger(
         AutomationTrigger? trigger, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
@@ -602,6 +603,16 @@ public static partial class DefinitionValidator
         if (action.EmailTemplate is not null && !EmailTemplateIds.All.Contains(action.EmailTemplate))
         {
             errors.Add(new(Join(path, "emailTemplate"), $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}."));
+        }
+        else if (action.Type == ActionType.SendEmail && action.EmailTemplate == EmailTemplateIds.ApplicationRejected)
+        {
+            // The rejection email tells a candidate they are out, so it goes only with a Reject action, which the
+            // knockout and opt-in rules guard (workflow-engine.md §2, guardrail 2).
+            errors.Add(new(Join(path, "emailTemplate"), "The rejection email is sent only by a Reject action. Use QueueForRejectionReview so a person decides."));
+        }
+        else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
+        {
+            errors.Add(new(Join(path, "emailTemplate"), $"A Reject action sends {EmailTemplateIds.ApplicationRejected}, with its reason; leave emailTemplate out."));
         }
 
         ValidateText(action.Tag, Join(path, "tag"), 50, required: false, errors);

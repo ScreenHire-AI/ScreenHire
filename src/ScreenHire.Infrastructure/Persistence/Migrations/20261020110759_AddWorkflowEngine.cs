@@ -46,31 +46,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 defaultValueSql: "'{}'::text[]");
 
             migrationBuilder.CreateTable(
-                name: "application_tasks",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    organization_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    application_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    kind = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
-                    assignee_user_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    automation_run_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_application_tasks", x => x.id);
-                    table.ForeignKey(
-                        name: "fk_application_tasks_applications_organization_id_application_",
-                        columns: x => new { x.organization_id, x.application_id },
-                        principalTable: "applications",
-                        principalColumns: new[] { "organization_id", "id" },
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "automation_runs",
                 columns: table => new
                 {
@@ -103,6 +78,43 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         name: "fk_automation_runs_applications_organization_id_application_id",
                         columns: x => new { x.organization_id, x.application_id },
                         principalTable: "applications",
+                        principalColumns: new[] { "organization_id", "id" },
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_automation_runs_jobs_organization_id_job_id",
+                        columns: x => new { x.organization_id, x.job_id },
+                        principalTable: "jobs",
+                        principalColumns: new[] { "organization_id", "id" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "application_tasks",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    organization_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    application_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    kind = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    assignee_user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    automation_run_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_application_tasks", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_application_tasks_applications_organization_id_application_",
+                        columns: x => new { x.organization_id, x.application_id },
+                        principalTable: "applications",
+                        principalColumns: new[] { "organization_id", "id" },
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_application_tasks_automation_runs_organization_id_automatio",
+                        columns: x => new { x.organization_id, x.automation_run_id },
+                        principalTable: "automation_runs",
                         principalColumns: new[] { "organization_id", "id" },
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -138,6 +150,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 columns: new[] { "organization_id", "application_id" });
 
             migrationBuilder.CreateIndex(
+                name: "ix_application_tasks_organization_id_automation_run_id",
+                table: "application_tasks",
+                columns: new[] { "organization_id", "automation_run_id" });
+
+            migrationBuilder.CreateIndex(
                 name: "ix_automation_action_runs_organization_id_run_id_index",
                 table: "automation_action_runs",
                 columns: new[] { "organization_id", "run_id", "index" },
@@ -148,6 +165,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 table: "automation_runs",
                 columns: new[] { "organization_id", "application_id", "automation_id", "event_id" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_automation_runs_organization_id_job_id",
+                table: "automation_runs",
+                columns: new[] { "organization_id", "job_id" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_automation_runs_organization_id_status_created_at",

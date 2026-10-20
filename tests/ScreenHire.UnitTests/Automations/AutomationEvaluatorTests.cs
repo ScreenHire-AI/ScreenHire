@@ -103,6 +103,21 @@ public sealed class AutomationEvaluatorTests
         AutomationEvaluator.Evaluate(slow, facts, accommodationRequested: false, []).Outcome.Should().Be(EvaluationOutcome.Matched);
     }
 
+    // Telemetry facts arrive with the integrity engine; the skip already covers their prefix.
+    [Fact]
+    public void An_accommodation_skips_automations_that_use_telemetry()
+    {
+        FactSchema.IsTimingOrTelemetry("telemetry.pasteEvents").Should().BeTrue();
+        FactSchema.IsTimingOrTelemetry(FactSchema.Tags).Should().BeFalse();
+        var telemetry = Automation("paste", new AutomationTrigger(TriggerType.QuestionnaireCompleted),
+            Conditions(ConditionMatch.All, new AutomationCondition("telemetry.pasteEvents", ConditionOperator.GreaterThan, "3")));
+
+        var evaluation = AutomationEvaluator.Evaluate(telemetry, AutomationFacts.None, accommodationRequested: true, []);
+
+        evaluation.Outcome.Should().Be(EvaluationOutcome.Skipped);
+        evaluation.Reason.Should().Be("Not evaluated for this application.", "the record says nothing about why");
+    }
+
     [Theory]
     [InlineData("answers.work_authorization", ConditionOperator.EqualTo, "no", false, true)]
     [InlineData("answers.work_authorization", ConditionOperator.EqualTo, "NO", false, true)]
