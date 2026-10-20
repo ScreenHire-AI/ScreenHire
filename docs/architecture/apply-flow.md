@@ -77,8 +77,9 @@ through the API. The link writes its blob once and cannot replace it, so the fil
 3. `POST .../uploads/{uploadId}/verify`: the API finds the blob under the route's organization and job, checks its real
    size and that its first bytes match its extension, hashes it (SHA-256), and deletes it if it fails.
 
-With JavaScript, the `FileField` Svelte island (`packages/ui/src/questions/FileField.svelte`) does this from the browser through the careers `/uploads` endpoint
-(a bare `fetch`, which keeps the page under its ~20 KB JavaScript budget) and leaves only the upload id in the form.
+With JavaScript, the `FileField` Svelte island (`packages/ui/src/questions/FileField.svelte`) does this from the
+browser through the careers `/uploads` endpoint (a bare `fetch`, which keeps the page under its ~20 KB JavaScript
+budget) and leaves only the upload id in the form.
 Without JavaScript, the file posts with the step and the careers server does the same three calls. Either way the
 candidate hears about a wrong or oversized file at the step where they chose it. Submission checks every file again,
 stores an `ApplicationFile` per file and publishes one `ScanApplicationFile` message each; the worker's

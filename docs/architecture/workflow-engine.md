@@ -161,8 +161,10 @@ The data model and API from the jobs and templates task, and the engine that run
   job (409), and take `expectedWorkflowVersion`, so a stale editor gets 409 rather than overwriting someone's change.
   Each change adds one to the job's `workflowVersion` and raises `JobWorkflowChanged` through the outbox, so open
   dashboards refetch the job; an editor with unsaved changes keeps them and says a newer version exists. Neither
-  republishes the job: the careers form reads the workflow live. There is no stage mapping yet: a change that drops a stage still holding applications is refused
-  (400 on `workflow.stages`, naming the stage) until someone moves those candidates.
+  republishes the job: the careers form reads the workflow live. There is no stage mapping yet. A change that drops a
+  stage still holding applications is refused (400 on `workflow.stages`, naming the stage) until someone moves those
+  candidates. The check reads the applications before the save and takes no lock, so an application that arrives in
+  or moves to that stage in between is not caught.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with
   `POST /v1/jobs/{jobId}/applications`; the careers apply flow is its own task.
@@ -256,7 +258,6 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - A job's applications do not keep the workflow version they arrived under: the engine runs the job's current
   workflow for all of them (section 3 says otherwise). An application keeps its `workflowVersion` as a record, and a
   `Reject` whose run started before a workflow change falls back to a rejection review, as above.
-- The job workflow edit is `PUT`, not `PATCH` as section 5 first said: the request carries the whole workflow.
 - Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
   either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
 
