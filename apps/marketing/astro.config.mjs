@@ -36,9 +36,10 @@ export default defineConfig({
   ],
   env: {
     schema: {
-      // Cookieless analytics (ADR-0003), off unless the provider and its script URL are both set.
+      // Cookieless analytics (ADR-0003), off unless the provider and a first-party, site-relative script path are set
+      // (src/lib/analytics.ts).
       PUBLIC_ANALYTICS: envField.enum({ context: 'server', access: 'public', values: ['off', 'plausible', 'umami'], default: 'off' }),
-      PUBLIC_ANALYTICS_SCRIPT_URL: envField.string({ context: 'server', access: 'public', optional: true, url: true }),
+      PUBLIC_ANALYTICS_SCRIPT_PATH: envField.string({ context: 'server', access: 'public', optional: true, startsWith: '/' }),
       // Plausible's data-domain (defaults to the SITE_URL host) or Umami's website id.
       PUBLIC_ANALYTICS_SITE_ID: envField.string({ context: 'server', access: 'public', optional: true }),
       // The recruiter dashboard. When set, the header shows "Sign in"; hosts are never hard-coded (ADR-0003).

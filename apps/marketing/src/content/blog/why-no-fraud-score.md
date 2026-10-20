@@ -4,7 +4,7 @@ description: 'A single number feels decisive, but it hides the evidence a review
 published: '2026-10-20'
 ---
 
-Most applicant fraud tools end in a number. "Fraud risk: 82." "61% AI-written." It looks decisive, it sorts nicely, and it is the wrong thing to hand a small hiring team.
+Most applicant fraud tools end in a number: a fraud risk out of 100, or a percentage of the text that was "AI-written". It looks decisive, it sorts nicely, and it is the wrong thing to hand a small hiring team.
 
 ## A number hides the part you need
 
@@ -26,13 +26,13 @@ Typing and paste signals get the same caution. Dictation software, screen reader
 
 ## The law points the same way
 
-Rules on automated decisions in hiring keep converging on the same ideas: tell people, explain the decision, and let a person review it. The UK's new Article 22C requires the right to human intervention and to contest a solely automated significant decision. Colorado's SB 26-189 asks for meaningful human review. The EU AI Act treats recruitment AI as high-risk from 2 December 2027 and has banned emotion recognition at work since February 2025. Our [hiring-AI law tracker](/hiring-ai-laws/) has the details and sources.
+Rules on automated decisions in hiring keep converging on the same ideas: tell people, explain the decision, and let a person review it. The UK's new Article 22C requires the right to human intervention and to contest a solely automated significant decision. Colorado's SB 26-189 asks for meaningful human review where commercially reasonable. The EU AI Act treats recruitment AI as high-risk from 2 December 2027 and has banned emotion recognition at work since February 2025. Our [hiring-AI law tracker](/hiring-ai-laws/) has the details and sources.
 
 A level with evidence gives the reviewer something real to review. A score invites a rubber stamp.
 
 ## What this means in practice
 
-- Nothing is rejected automatically. Integrity levels can route, tag, assign or suggest verification, and ScreenHire refuses workflows that try to reject on them.
+- Integrity signals never reject anyone. Integrity levels can route, tag, assign or suggest verification, and ScreenHire refuses workflows that try to reject on them.
 - A level above the lowest needs signals from at least two independent categories, such as network and identity.
 - Levels come from documented, versioned rules, so we can explain any result and test the rules for bias.
 

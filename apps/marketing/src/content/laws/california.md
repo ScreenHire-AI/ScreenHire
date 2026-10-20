@@ -42,14 +42,14 @@ Separately, SB 690 (signed 30 September 2026) removed private pen-register claim
 
 ## What it means if you use software to screen applicants
 
-- Expect to give applicants notice of ADMT use and a way to opt out or access information by 1 January 2027.
+- Expect to give applicants notice of ADMT use and, subject to the regulation's exceptions, a way to opt out or access information by 1 January 2027.
 - Observing applicants systematically needs a risk assessment.
 - Test tools for disparate impact, and keep automated-decision records for four years.
-- Do not capture keystrokes or replay sessions on application forms.
+- Capturing keystrokes or replaying sessions on application forms invites wiretap claims under CIPA section 631.
 
 ## How ScreenHire is designed around it
 
-- A person reviews the evidence and makes every decision.
+- A person reviews the evidence behind every integrity level, and integrity signals never reject anyone.
 - Typing signals are session totals counted in the applicant's browser. We never record keystrokes or replay sessions.
 - Applicants who use assistive technology can switch typing signals off, with no negative inference.
 - Integrity flags, evidence and reviewer actions stay in the employer's account for the record periods the law requires.

@@ -34,13 +34,16 @@ Full gate: `pnpm verify`. It runs, in order and stopping at the first failure:
 2. `verify:contract`: regenerates the TypeScript client and fails if `packages/api-client` differs from what is
    committed. Fix by committing the regenerated files, after checking the API change was intended.
 3. `pnpm check`: svelte-check (`--fail-on-warnings`), astro check, tsc.
-4. `pnpm -r build`: every frontend production build.
-5. `pnpm -r --if-present test`: Vitest (`apps/dashboard`, `apps/careers`, `packages/api-client`).
-6. `dotnet test --solution ScreenHire.slnx`: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire, frontends
+4. `pnpm -r build`: every frontend production build. The marketing build also fails on more than 15 KB of JS per
+   page or a broken internal link (`apps/marketing/scripts/check-dist.mjs`).
+5. `pnpm -r --if-present test`: Vitest (`apps/dashboard`, `apps/careers`, `apps/marketing`, `packages/api-client`).
+6. `verify:lighthouse`: headless Lighthouse on every marketing page in the sitemap (mobile LCP under 1.8 s, CLS
+   under 0.05), using Playwright's Chromium from `pnpm e2e:install`. About 90 s.
+7. `dotnet test --solution ScreenHire.slnx`: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire, frontends
    off) and `ScreenHire.E2E` (Playwright and axe against the step 4 builds), run in parallel.
 
-With warm caches the full gate takes under a minute on the owner's machine (47–54 s in October 2026); most of it is
-booting the two AppHosts. The first run after a dependency or container-image change is slower (restores and image
+With warm caches the full gate took under a minute on the owner's machine before step 6 (47 to 54 s in October 2026);
+Lighthouse adds about 90 s. Most of the rest is booting the two AppHosts. The first run after a dependency or container-image change is slower (restores and image
 pulls). A warm run that takes several minutes means something is waiting on a timeout: read the output.
 
 Quick: `pnpm verify:dotnet`, then `pnpm verify:contract`, then `pnpm check`, then `pnpm -r --if-present test`.

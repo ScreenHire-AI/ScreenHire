@@ -42,7 +42,8 @@ const timeline = [
   { phase: 'Browsing your careers page', collected: 'Server and security logs only. No fingerprinting, no tracking cookies, no typing signals.' },
   {
     phase: 'Starting an application',
-    collected: 'The applicant first sees a plain-language notice and the assistive-technology switch. Only then does the form start counting session totals.',
+    collected:
+      'The applicant first sees a plain-language notice and the assistive-technology switch. Only then does the form set a session cookie, a device identifier unique to your company, and start counting session totals.',
   },
   { phase: 'Submitting', collected: 'The answers, the resume and contact details, plus network, email and phone checks.' },
   { phase: 'After submission', collected: 'Content checks and duplicate checks within your company.' },
@@ -52,7 +53,7 @@ const never = [
   'Reject, or move anyone to a rejected stage, because of an integrity signal. Workflows that try are refused when you save them.',
   'Give a fraud score or a "% AI-written" number.',
   'Infer emotion, stress, honesty, intent or personality from text, typing, face or voice.',
-  'Collect biometrics. This release has no face, voice or ID-document checks at all.',
+  'Build biometric templates, or identify anyone from how they type.',
   'Record raw keystrokes, what was typed, mouse paths or the screen.',
   'Scrape LinkedIn or any other site. We only use what the applicant gives us.',
   'Treat using assistive technology, or switching typing signals off, as a signal.',
@@ -60,9 +61,9 @@ const never = [
 
 const faqs: Faq[] = [
   {
-    question: 'Does ScreenHire reject applicants automatically?',
+    question: 'Does ScreenHire reject applicants because of a fraud flag?',
     answer:
-      'No. Integrity levels can route an application, tag it, assign it or suggest verification. A person on your team makes every decision, and ScreenHire refuses workflows that would reject on integrity signals.',
+      'Not because of integrity signals. Integrity levels can route an application, tag it, assign it or suggest verification, and ScreenHire refuses workflows that would reject on them. A person on your team makes the decision.',
   },
   {
     question: 'Does ScreenHire detect AI-written applications?',
@@ -144,6 +145,11 @@ const faqs: Faq[] = [
         ))
       }
     </ol>
+    <p class="mt-6 max-w-3xl text-secondary-foreground">
+      This release has no biometric checks: no face, voice or ID-document checks at all. Optional ID verification is
+      planned for a later release. When it arrives it will store only pass or fail, and a check with a person will always
+      be offered instead.
+    </p>
   </section>
 
   <section aria-labelledby="never-title" class="mx-auto max-w-6xl px-6 py-10">

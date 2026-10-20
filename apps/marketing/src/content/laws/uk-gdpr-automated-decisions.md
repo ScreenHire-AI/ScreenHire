@@ -36,7 +36,7 @@ The Data (Use and Access) Act 2025 replaced the UK GDPR's rule on automated deci
 
 ## What it means if you use software to screen applicants
 
-Rejecting an applicant is a significant decision. If software makes it with no meaningful human involvement, you must inform the applicant and let them make representations, obtain human intervention and contest the decision [1]. A person who rubber-stamps a tool's output is unlikely to count as meaningful involvement.
+Rejecting an applicant is likely to have a significant effect on them. If software makes that decision with no meaningful human involvement, you must inform the applicant and let them make representations, obtain human intervention and contest the decision [1]. The test is whether the human involvement is meaningful, so a review that only confirms a tool's output may not be enough.
 
 Separately, the UK cookie rules (PECR Schedule A1, paragraph 4(2)(c)) now exempt access to a device that is strictly necessary to prevent or detect fraud [2][3].
 
@@ -44,7 +44,7 @@ The ICO's 2024 audit of AI recruitment tools found vendors classing themselves a
 
 ## How ScreenHire is designed around it
 
-- A person makes every hiring decision. Integrity levels can route, tag, assign or suggest verification, and workflows that would reject on integrity signals are refused.
+- Integrity signals never make a hiring decision. Integrity levels can route, tag, assign or suggest verification, and workflows that would reject on integrity signals are refused.
 - Each flag shows its evidence and counter-evidence, so the reviewer weighs something real rather than accepting a score.
 - Candidate-facing notice comes before collection, and the design includes a "why we asked you to verify" page and a way to ask for human review.
 

@@ -36,6 +36,7 @@ describe('page registry', () => {
 
   it('writes no em dashes, en dashes or curly quotes (.claude/rules/writing-style.md)', () => {
     const text = JSON.stringify([all, notFound]);
-    expect(text).not.toMatch(/[–—‘’“”]/);
+    const forbidden = [0x2013, 0x2014, 0x2018, 0x2019, 0x201c, 0x201d].map((code) => String.fromCharCode(code));
+    expect([...text].filter((character) => forbidden.includes(character))).toEqual([]);
   });
 });

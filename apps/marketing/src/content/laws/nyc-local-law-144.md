@@ -41,7 +41,7 @@ In December 2025 the State Comptroller found DCWP's enforcement ineffective [2].
 
 ## How ScreenHire is designed around it
 
-- Integrity levels never reject anyone, and a person decides. Where possible, that keeps integrity checks out of the role the law targets.
+- Integrity levels never reject anyone, and a person decides. That is meant to keep integrity checks from substantially assisting a hiring decision, but whether a flag counts as an AEDT is unsettled (see below).
 - We plan to run yearly bias audits in the style of Local Law 144 on our own flag rates.
 - Every level records the version of the rules that produced it, so an audit can be reproduced.
 

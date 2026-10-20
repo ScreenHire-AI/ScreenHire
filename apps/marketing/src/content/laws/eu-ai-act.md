@@ -28,7 +28,7 @@ faqs:
   - question: 'Is AI used in recruitment high-risk under the EU AI Act?'
     answer: 'AI systems used for recruitment and selection are listed in Annex III, point 4(a). A system that profiles people cannot use the Article 6(3) exemption, so it is high-risk. Those obligations apply from 2 December 2027.'
   - question: 'Can hiring software detect emotions or stress in candidates?'
-    answer: 'Not in the EU. Article 5(1)(f) bans emotion recognition in the workplace, and the Commission guidelines include recruitment. The ban has applied since 2 February 2025.'
+    answer: 'Not to infer emotions. Article 5(1)(f) bans emotion recognition in the workplace, and the Commission guidelines include recruitment. The ban has applied since 2 February 2025.'
 ---
 
 ## What it is
@@ -46,7 +46,7 @@ In July 2026 the EU adopted amendments, known as the Digital Omnibus, that moved
 ## How ScreenHire is designed around it
 
 - No emotion, stress, honesty, intent or personality inference from text, typing, face or voice, anywhere in the product.
-- Integrity output is a level with reason codes, evidence and counter-evidence. There is no opaque score, and nothing is rejected automatically.
+- Integrity output is a level with reason codes, evidence and counter-evidence. There is no opaque score, and integrity signals never reject anyone.
 - Levels come from versioned, documented rules, and every assessment records which ruleset produced it, so it can be explained and audited.
 - We are building to the provider standard for high-risk systems now, ahead of the 2027 date.
 

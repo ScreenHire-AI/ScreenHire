@@ -113,7 +113,10 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
           }
           <a href="/rss.xml" class="text-muted-foreground hover:text-primary">RSS</a>
         </nav>
-        <span>© {new Date().getUTCFullYear()} ScreenHire</span>
+        <div class="flex flex-col gap-1">
+          <span>© {new Date().getUTCFullYear()} ScreenHire</span>
+          <span>ScreenHire is in development. Product pages describe it as designed.</span>
+        </div>
       </div>
     </footer>
   </body>

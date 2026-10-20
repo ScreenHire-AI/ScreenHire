@@ -12,7 +12,7 @@ asOf: '2026-10-18'
 rows:
   - topic: 'Entry price'
     competitor: '£89 or $99 a month for 3 active jobs. Growth is £149 a month for 10 jobs, and Pro is £249 a month for unlimited jobs.'
-    screenhire: '[YOUR PRICE] a month.'
+    screenhire: 'Monthly plans. See the pricing page.'
   - topic: 'Users'
     competitor: 'Unlimited users on every plan.'
     screenhire: 'Unlimited users on every plan.'

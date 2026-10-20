@@ -90,6 +90,11 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         (await ScriptTypesAsync()).Should().OnlyContain(type => type == "application/ld+json", "pages without islands ship no JavaScript");
         scriptRequests.Should().BeEmpty();
         await ExpectNoAccessibilityViolationsAsync();
+
+        // Phone width: nothing may force a horizontal scroll (wide tables scroll inside their own box).
+        await Page.SetViewportSizeAsync(390, 844);
+        var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+        overflow.Should().Be(0, "{0} must fit a 390px-wide phone without scrolling sideways", path);
     }
 
     [Fact]
