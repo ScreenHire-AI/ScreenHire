@@ -41,6 +41,8 @@ function signal(code: string, title: string, overrides: Partial<IntegritySignalV
     countsTowardLevel: true,
     contextOnly: false,
     accessibilitySensitive: false,
+    informational: false,
+    llm: null,
     explanation: `${title}.`,
     evidence: [],
     counterEvidence: [],
@@ -94,6 +96,7 @@ export function botIntegrity(overrides: Partial<ApplicationIntegrity> = {}): App
       policyContext: 'NotDisclosed',
     },
     reviewLog: [],
+    consistencyCheck: null,
     requestVerification: { available: false, reason: 'Identity verification arrives in phase 2.' },
     ...overrides,
   };
