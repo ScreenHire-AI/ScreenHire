@@ -107,8 +107,8 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
             await Expect(cells.Nth(0)).ToHaveTextAsync(title);
             await Expect(cells.Nth(1)).ToHaveTextAsync(location);
             await Expect(cells.Nth(2)).ToHaveTextAsync(status);
-            // Published date ("20 Oct", "5 Sept") for open jobs; a dash for the draft, which was never published.
-            await Expect(cells.Nth(3)).ToHaveTextAsync(status == "Draft" ? new Regex("^—$") : PublishedDate());
+            // Published date ("20 Oct", "5 Sept") for open jobs; a hyphen for the draft, which was never published.
+            await Expect(cells.Nth(3)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
         }
 
         await Expect(Page.GetByText("4 jobs · 3 open")).ToBeVisibleAsync();
