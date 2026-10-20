@@ -41,10 +41,16 @@ internal sealed class MessagingHost : IAsyncDisposable
     /// its agents start at once, plus any extra handler types the test brings.
     /// </summary>
     public static Task<MessagingHost> StartHandlerAsync(
-        AppHostFixture fixture, MessagingSettings settings, IEnumerable<Type> handlerTypes, CancellationToken cancellationToken) =>
+        AppHostFixture fixture, MessagingSettings settings, IEnumerable<Type> handlerTypes, CancellationToken cancellationToken,
+        bool withRecurringSchedules = false) =>
         StartAsync(fixture, settings, (opts, connectionString, s) =>
         {
             ScreenHireMessaging.ConfigureHandler(opts, connectionString, s);
+            if (withRecurringSchedules)
+            {
+                ScreenHireMessaging.ScheduleRecurringMessages(opts);
+            }
+
             opts.Durability.Mode = DurabilityMode.Solo;
             foreach (var handlerType in handlerTypes)
             {

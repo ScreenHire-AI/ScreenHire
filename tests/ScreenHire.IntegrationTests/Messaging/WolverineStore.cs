@@ -27,6 +27,17 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     public Task<long> CountHandledAsync(string bodyContains, CancellationToken cancellationToken) =>
         CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, "status = 'Handled'");
 
+    /// <summary>Handled messages of one type. Only meaningful in a private schema, where every message is the test's own.</summary>
+    public async Task<long> CountHandledOfTypeAsync(string messageTypeContains, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"select count(*) from {schema}.wolverine_incoming_envelopes where status = 'Handled' and position(@type in message_type) > 0",
+            connection);
+        command.Parameters.AddWithValue("type", messageTypeContains);
+        return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
+
     public async Task<IReadOnlyList<DeadLetter>> GetDeadLettersAsync(string bodyContains, CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);

@@ -134,8 +134,11 @@ public static class ScreenHireMessaging
     }
 
     /// <summary>Cron schedules run in the worker only, owned by its durability agent. Times are UTC.</summary>
-    private static void ScheduleRecurringMessages(WolverineOptions opts) =>
+    public static void ScheduleRecurringMessages(WolverineOptions opts)
+    {
+        ArgumentNullException.ThrowIfNull(opts);
         opts.Schedules.ScheduleRecurring<ReportOpenJobs>("*/5 * * * *");
+    }
 
     private static void UsePostgres(WolverineOptions opts, string connectionString, MessagingSettings settings)
     {
