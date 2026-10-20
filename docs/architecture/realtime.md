@@ -29,6 +29,11 @@ API endpoint or worker handler
    name and `data` is the record, camelCased, with enums as strings and strict numbers (`RealtimeSetup.ConfigureJson`,
    the same rules as the REST API).
 
+Wolverine's Postgres transport polls its queues instead of listening for notifications, and an idle listener waits
+`ScheduledJobPollingTime` (5 s) between polls by default. The API's `realtime` listener polls every
+`MessagingSettings.RealtimePollingInterval` (250 ms) instead, so an event reaches open tabs within a fraction of a
+second. The 5 s default let live updates miss the end-to-end tests' 5 s budget once job distribution added traffic.
+
 An event that waits in `realtime` longer than `MessagingSettings.RealtimeEventLifetime` (one minute) is discarded: a
 live update that arrives late is noise. A failed push is retried twice, then dropped with the error logged. Delivery
 is best-effort on purpose. A client that loses its connection refetches what it shows when it comes back, so a missed

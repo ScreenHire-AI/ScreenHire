@@ -51,6 +51,12 @@ public sealed class MessagingSettings
     public TimeSpan RealtimeEventLifetime { get; init; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
+    /// How often the API polls <see cref="RealtimeQueue"/> while it is idle. Wolverine's Postgres transport polls rather
+    /// than listens, and its default (5 s) would let a live update sit in the queue for seconds.
+    /// </summary>
+    public TimeSpan RealtimePollingInterval { get; init; } = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>
     /// In-process retries after a handler throws. The listener holds the message while it waits, so keep these short.
     /// </summary>
     public TimeSpan[] RetryDelays { get; init; } = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30)];

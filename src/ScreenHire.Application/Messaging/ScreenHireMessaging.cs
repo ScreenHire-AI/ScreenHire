@@ -140,7 +140,9 @@ public static class ScreenHireMessaging
 
         // Durable, like the publishing side of the same queue: Wolverine keeps one mode per endpoint for both directions.
         // The inbox is the API's own (settings.Schema), so the worker's durability agent never sees these envelopes.
-        opts.ListenToPostgresqlQueue(settings.RealtimeQueue).UseDurableInbox();
+        // Postgres queues are polled, and an idle listener otherwise waits ScheduledJobPollingTime (5 s) between polls:
+        // too long for a live update, which is the one message whose latency people see.
+        opts.ListenToPostgresqlQueue(settings.RealtimeQueue).UseDurableInbox().PollingInterval(settings.RealtimePollingInterval);
 
         if (tenantEventHandler is not null)
         {
