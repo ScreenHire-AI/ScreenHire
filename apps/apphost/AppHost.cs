@@ -10,6 +10,9 @@
 //   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
+//   Demo        (on with Dev)   the local demo's data on Brightwater (the API's DevelopmentDemo): on with Frontends Dev,
+//                               off with Built and None, which the test stacks use. The integration tests'
+//                               DevelopmentDemoTests turn it on for a stack of their own.
 //   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
 //                               the same boards (ScreenHire.Application DistributionOptions). appsettings.Development.json
 //                               turns on the local sandbox board, a fake that must never reach real tenants;
@@ -33,6 +36,7 @@ var frontends = settings["Frontends"] is not { } frontendsSetting
     : Enum.TryParse<FrontendMode>(frontendsSetting, ignoreCase: true, out var mode) && Enum.IsDefined(mode)
         ? mode
         : throw new InvalidOperationException($"ScreenHire:Frontends must be Dev, Built or None, not '{frontendsSetting}'.");
+var demo = bool.TryParse(settings["Demo"], out var demoSetting) ? demoSetting : frontends == FrontendMode.Dev;
 int? PortFor(string name, int fallback) =>
     !pinPorts ? null : int.TryParse(settings[$"Ports:{name}"], out var port) ? port : fallback;
 
@@ -168,10 +172,10 @@ if (string.Equals(settings["Integrity:Llm:Provider"], "Anthropic", StringCompari
 }
 
 // The local demo's data (the API's DevelopmentDemo, docs/operations/local-demo.md): Brightwater's template, a draft job,
-// the synthetic applicants and candidates in every stage, once the API starts. Only for `pnpm dev`: the test stacks make
-// their own data and treat Brightwater as the seeder leaves it, and the startup burst of submissions delayed a later
-// live update in the end-to-end tests (integrity-engine.md §10.9).
-if (frontends == FrontendMode.Dev)
+// the synthetic applicants and candidates in every stage, once the API starts. Only for `pnpm dev` by default: the test
+// stacks make their own data and treat Brightwater as the seeder leaves it, and the startup burst of submissions delayed
+// a later live update in the end-to-end tests (integrity-engine.md §10.9).
+if (demo)
 {
     api.WithEnvironment("ScreenHire__Demo__Enabled", "true");
 }

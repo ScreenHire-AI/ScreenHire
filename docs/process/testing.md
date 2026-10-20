@@ -95,6 +95,10 @@ There is no reset between tests and no Respawn. Instead:
   AppHost therefore never see each other's data, in any order or in parallel.
 - **The seeded demo organization (`brightwater`) is read-only.** Assert on it (the end-to-end journeys do), never
   change it: other tests count its jobs.
+- **A test that needs a different stack gets a fixture of its own.** Subclass `AppHostFixture`, add the AppHost
+  settings through `ExtraArguments`, and use it as the class's `IClassFixture`. `DevelopmentDemoTests` does this with
+  `--ScreenHire:Demo=true`: it checks the data `pnpm dev` seeds on Brightwater, and that a second start of the API adds
+  none, on a stack the other tests never see. Each such fixture boots another stack, about 25 s, so keep them rare.
 - `TestData` is the one place tests write to the database directly. It writes as the application role
   (`screenhire_app`, which neither owns the tables nor bypasses RLS) with the organization as tenant, so row-level
   security checks test data too. `fixture.CreateDbContextAsync(tenant, ...)` gives a context on the same role.
