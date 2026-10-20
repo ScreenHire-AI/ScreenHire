@@ -1,0 +1,15 @@
+---
+// The shared question component as a hydrated Astro island, for the island-build test. The apply page renders it on
+// the server only; this proves it also works where a page needs it interactive.
+import type { QuestionSpec } from '@screenhire/ui/questions';
+import { QuestionField } from '@screenhire/ui/questions';
+
+interface Props {
+  question: QuestionSpec;
+  answer?: string | string[];
+}
+
+const { question, answer } = Astro.props;
+---
+
+<QuestionField client:load question={question} answer={answer} />

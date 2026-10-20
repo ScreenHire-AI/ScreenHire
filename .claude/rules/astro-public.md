@@ -14,8 +14,10 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 
 - **No client JavaScript by default.** Astro components and native HTML (`<details>`, `<dialog>`, forms that post).
   A Svelte island (`client:visible`, `client:idle`) only where the page needs behaviour HTML cannot give, and the
-  PR says why. The one island today is the apply form's `FileUpload.svelte` (direct-to-storage upload), and the page
-  works without it. Other than islands, the only `<script>` on a page is JSON-LD (`type="application/ld+json"`).
+  PR says why. The one island today is the apply form's `FileField.svelte` (direct-to-storage upload, from
+  `@screenhire/ui/questions`), and the page works without it. The other shared question components render on the
+  server only, with no client directive. Other than islands, the only `<script>` on a page is JSON-LD
+  (`type="application/ld+json"`).
 - **Careers forms are native forms posted to an Astro Action** and must work with JavaScript off
   (`docs/architecture/apply-flow.md`). The apply page stays within about 20 KB of brotli JavaScript (an end-to-end
   test measures it); islands call careers endpoints with a bare `fetch` rather than the actions client to stay there.

@@ -243,6 +243,73 @@ public sealed class JobLifecycleTests
         use.Should().Throw<InvalidOperationException>().WithMessage("*published template versions only*");
     }
 
+    [Fact]
+    public void Revising_the_workflow_starts_a_new_workflow_version_and_keeps_the_source_template()
+    {
+        var job = NewJob();
+        var template = HiringTemplate.Create(job.OrganizationId, "Engineering", null, Definition("onsite"), Monday, null);
+        template.Publish(template.Versions[0], Monday, null);
+        job.UseTemplate(template.Versions[0]);
+        job.Publish(Monday);
+        var edited = job.Workflow with { Stages = [.. job.Workflow.Stages, new("offer", "Offer", StageKind.Offer)] };
+
+        job.ReviseWorkflow(edited, Monday.AddDays(1));
+
+        job.Workflow.Should().BeSameAs(edited);
+        job.WorkflowVersion.Should().Be(2);
+        job.SourceTemplateVersion.Should().Be(1);
+        job.UpdatedAt.Should().Be(Monday.AddDays(1));
+    }
+
+    [Fact]
+    public void A_closed_job_keeps_its_workflow()
+    {
+        var job = NewJob();
+        job.Close(Monday);
+
+        var revise = () => job.ReviseWorkflow(HiringWorkflow.Default, Monday);
+
+        revise.Should().Throw<InvalidOperationException>().WithMessage("*closed job*");
+    }
+
+    [Fact]
+    public void Applying_a_template_update_takes_the_newer_version_on_an_open_job()
+    {
+        var job = NewJob();
+        var template = HiringTemplate.Create(job.OrganizationId, "Engineering", null, Definition("onsite"), Monday, null);
+        template.Publish(template.Versions[0], Monday, null);
+        job.UseTemplate(template.Versions[0]);
+        job.Publish(Monday);
+        var second = template.CreateDraft(Definition("panel"), Monday, null);
+        template.Publish(second, Monday.AddDays(2), null);
+
+        job.ApplyTemplateUpdate(second, Monday.AddDays(3));
+
+        job.Workflow.Should().Be(second.Definition.Workflow);
+        job.SourceTemplateVersionId.Should().Be(second.Id);
+        job.SourceTemplateVersion.Should().Be(2);
+        job.WorkflowVersion.Should().Be(2);
+    }
+
+    [Fact]
+    public void A_template_update_comes_from_the_source_template_and_a_published_version()
+    {
+        var job = NewJob();
+        var template = HiringTemplate.Create(job.OrganizationId, "Engineering", null, Definition("onsite"), Monday, null);
+        template.Publish(template.Versions[0], Monday, null);
+        job.UseTemplate(template.Versions[0]);
+        var draft = template.CreateDraft(Definition("panel"), Monday, null);
+        var other = HiringTemplate.Create(job.OrganizationId, "Sales", null, Definition("call"), Monday, null);
+        other.Publish(other.Versions[0], Monday, null);
+
+        var fromDraft = () => job.ApplyTemplateUpdate(draft, Monday);
+        var fromOther = () => job.ApplyTemplateUpdate(other.Versions[0], Monday);
+
+        fromDraft.Should().Throw<InvalidOperationException>().WithMessage("*published*");
+        fromOther.Should().Throw<InvalidOperationException>().WithMessage("*template it was created from*");
+        job.WorkflowVersion.Should().Be(1);
+    }
+
     [Theory]
     [InlineData(WorkplaceType.Remote, "Remote (GB, IE)")]
     [InlineData(WorkplaceType.Hybrid, "London, England, GB; Leeds, GB")]

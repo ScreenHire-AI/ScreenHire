@@ -48,6 +48,27 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_job_workflow_change_reaches_its_own_organization_with_the_new_version_and_never_another()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        await using var ourClient = await EventsConnection.ConnectAsync(ours.Session, cancellationToken);
+        await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, cancellationToken);
+        var job = await ours.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        var workflow = JsonNode.Parse(job.At("workflow").GetRawText())!.AsObject();
+        workflow["stages"]![1]!["name"] = "Phone screen";
+
+        (await ours.PutAsync($"/v1/jobs/{job.Id()}/workflow", new JsonObject { ["workflow"] = workflow, ["expectedWorkflowVersion"] = 1 }))
+            .Expect(HttpStatusCode.OK);
+
+        var changed = await ourClient.WaitForAsync("JobWorkflowChanged", "jobId", job.Id(), cancellationToken);
+        changed.GetProperty("organizationId").GetGuid().Should().Be(ours.OrganizationId);
+        changed.GetProperty("workflowVersion").GetInt32().Should().Be(2);
+        theirClient.ReceivedAnythingAbout(job.Id()).Should().BeFalse("another organization's workflow changes never reach us");
+    }
+
+    [Fact]
     public async Task An_integrity_assessment_reaches_its_own_organization_with_levels_and_no_evidence()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

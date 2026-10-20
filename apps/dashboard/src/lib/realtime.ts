@@ -12,19 +12,22 @@ import { invalidatePath } from '#lib/query.js';
 export const jobsPath = '/v1/jobs';
 export const applicationsPath = '/v1/applications';
 export const candidatesPath = '/v1/candidates';
+export const templatesPath = '/v1/templates';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
  * `/v1/jobs` covers the jobs list, each job (its postings and applicant count) and each job's applications.
- * HiringTemplateVersionPublished is here because the jobs list shows "template update available"; an automation run
- * can tag an application, which its page shows. IntegrityAssessed changes the chips in every list, the job's overview
- * and the application's integrity panel (`/v1/applications/{id}/integrity`).
+ * HiringTemplateVersionPublished is here because the jobs list shows "template update available" and the templates
+ * pages show each template's versions; an automation run can tag an application, which its page shows.
+ * IntegrityAssessed changes the chips in every list, the job's overview and the application's integrity panel
+ * (`/v1/applications/{id}/integrity`).
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
   JobClosed: [jobsPath],
   JobPostingsChanged: [jobsPath],
-  HiringTemplateVersionPublished: [jobsPath],
+  JobWorkflowChanged: [jobsPath],
+  HiringTemplateVersionPublished: [jobsPath, templatesPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
   AutomationRunFinished: [applicationsPath],

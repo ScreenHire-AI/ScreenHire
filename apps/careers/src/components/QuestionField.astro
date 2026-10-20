@@ -1,12 +1,13 @@
 ---
-// One question, rendered from the job's definition with native controls. File questions are the upload island.
+// One question, rendered by the shared question components (packages/ui), the same ones the dashboard's questionnaire
+// preview shows. Rendered on the server only, so they ship no JavaScript, except file questions: those are FileField
+// islands, which send files straight to storage once hydrated.
 import type { PublicQuestion } from '@screenhire/api-client';
+import { fileHintFor, QuestionField } from '@screenhire/ui/questions';
+// Its own module, so the island's chunk holds the file field alone rather than every question component.
+import FileField from '@screenhire/ui/questions/FileField.svelte';
 import { fields, type ApplyState, type FieldErrors } from '../lib/apply';
-import { acceptedLabel, describeSize } from '../lib/files';
 import { basePath } from '../lib/host';
-import ChoiceField from './ChoiceField.astro';
-import FileUpload from './FileUpload.svelte';
-import TextField from './TextField.astro';
 
 interface Props {
   question: PublicQuestion;
@@ -18,65 +19,24 @@ interface Props {
 }
 
 const { question, state, errors, organization, jobId, maxBytes } = Astro.props;
-const name = fields.answer(question.id);
-const answer = state.answers[question.id];
-const selected = answer === undefined ? [] : Array.isArray(answer) ? answer : [answer];
-const single = typeof answer === 'string' ? answer : '';
-const accepted = question.acceptedFileTypes ?? [];
-const fileHint = [question.helpText, `${acceptedLabel(accepted)}, up to ${describeSize(maxBytes)}.`].filter(Boolean).join(' ');
-
-const range =
-  question.type === 'Number' && (question.min != null || question.max != null)
-    ? `A number${question.min != null ? ` from ${question.min}` : ''}${question.max != null ? ` up to ${question.max}` : ''}.`
-    : null;
-const hint = [question.helpText, range].filter(Boolean).join(' ') || null;
-const choices =
-  question.type === 'YesNo'
-    ? [
-        { value: 'yes', label: 'Yes' },
-        { value: 'no', label: 'No' },
-      ]
-    : (question.options ?? []).map((option) => ({ value: option.id, label: option.label }));
 ---
 
 {
   question.type === 'File' ? (
-    <FileUpload
+    <FileField
       client:load
       questionId={question.id}
       label={question.label}
       required={question.required}
-      hint={fileHint}
-      accept={accepted}
+      hint={fileHintFor(question, maxBytes)}
+      accept={question.acceptedFileTypes ?? []}
       maxBytes={maxBytes}
       endpoint={`${basePath(Astro.request, organization)}/uploads`}
       jobId={jobId}
       current={state.files[question.id] ?? null}
       error={errors[fields.file(question.id)] ?? null}
     />
-  ) : question.type === 'YesNo' || question.type === 'SingleChoice' || question.type === 'MultiChoice' ? (
-    <ChoiceField
-      name={name}
-      legend={question.label}
-      hint={hint}
-      required={question.required}
-      error={errors[name]}
-      selected={selected}
-      multiple={question.type === 'MultiChoice'}
-      options={choices}
-    />
   ) : (
-    <TextField
-      name={name}
-      label={question.label}
-      hint={hint}
-      value={single}
-      error={errors[name]}
-      required={question.required}
-      type={question.type === 'Url' ? 'url' : 'text'}
-      inputmode={question.type === 'Number' ? 'decimal' : question.type === 'Url' ? 'url' : undefined}
-      maxlength={question.maxLength}
-      multiline={question.type === 'LongText'}
-    />
+    <QuestionField question={question} answer={state.answers[question.id]} error={errors[fields.answer(question.id)] ?? null} />
   )
 }

@@ -134,11 +134,16 @@
           {#each meta as part (part)}<li>{part}</li>{/each}
         </ul>
       </div>
-      {#if detail.status === 'Open'}
-        <Button variant="outline" class="h-[34px] border-destructive/40 font-semibold text-destructive" onclick={() => (confirmClose = true)}
-          >Close &amp; remove everywhere</Button
-        >
-      {/if}
+      <div class="flex flex-wrap gap-2">
+        <a href={`/jobs/${detail.id}/workflow`} class={cn(buttonVariants({ variant: 'outline' }), 'h-[34px] font-semibold')}>
+          Workflow{#if detail.template?.updateAvailable}<span class="text-primary"> · update available</span>{/if}
+        </a>
+        {#if detail.status === 'Open'}
+          <Button variant="outline" class="h-[34px] border-destructive/40 font-semibold text-destructive" onclick={() => (confirmClose = true)}
+            >Close &amp; remove everywhere</Button
+          >
+        {/if}
+      </div>
     </section>
 
     <DistributionStrip job={detail} boards={boards.data?.data ?? []} />

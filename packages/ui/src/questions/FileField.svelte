@@ -1,10 +1,13 @@
 <script lang="ts">
   // A file question's field. Server-rendered, it is a plain named file input that posts with the form, and the careers
-  // server uploads the file (no JavaScript needed). Once hydrated, it sends the chosen file straight to storage through
-  // an upload link the API issues, has the API check it, and leaves only the upload's reference in the form: the input
-  // loses its name, so the bytes are never posted twice. It talks to the careers server's uploads endpoint
-  // (pages/[organization]/uploads.ts), never to the API.
-  import { describeSize, fileProblem, type UploadRef } from '../lib/files';
+  // server uploads the file (no JavaScript needed). Hydrated as the careers apply page's island, with an `endpoint`, it
+  // sends the chosen file straight to storage through an upload link the API issues, has the API check it, and leaves
+  // only the upload's reference in the form: the input loses its name, so the bytes are never posted twice. It talks to
+  // the careers server's uploads endpoint (apps/careers/src/pages/[organization]/uploads.ts), never to the API. Without
+  // an endpoint (the dashboard's preview) it stays a plain file input.
+  import { untrack } from 'svelte';
+  import { describeSize, fileProblem, type UploadRef } from './files';
+  import { fieldId, fields } from './model';
 
   interface Props {
     questionId: string;
@@ -13,30 +16,42 @@
     hint: string;
     accept: string[];
     maxBytes: number;
-    /** The careers server's uploads endpoint for the organization. */
-    endpoint: string;
-    jobId: string;
-    current: UploadRef | null;
-    error: string | null;
+    /** The careers server's uploads endpoint for the organization; without one, nothing uploads until the form posts. */
+    endpoint?: string | null;
+    jobId?: string | null;
+    current?: UploadRef | null;
+    error?: string | null;
   }
 
-  const { questionId, label, required, hint, accept, maxBytes, endpoint, jobId, current: initial, error: initialError }: Props =
-    $props();
+  const {
+    questionId,
+    label,
+    required,
+    hint,
+    accept,
+    maxBytes,
+    endpoint = null,
+    jobId = null,
+    current: initial = null,
+    error: initialError = null,
+  }: Props = $props();
 
-  // Ids match fieldId() in ../lib/apply, so the error summary's links land on the input.
-  const inputId = `field-file-${questionId}`;
+  // The same ids the careers error summary links to. A mounted field keeps its question.
+  const inputId = untrack(() => fieldId(fields.file(questionId)));
   const hintId = `${inputId}-hint`;
   const errorId = `${inputId}-error`;
   const statusId = `${inputId}-status`;
   const failed = 'We could not upload this file. Try again in a moment.';
 
-  let current = $state(initial);
-  let error = $state(initialError);
+  // The server-rendered starting values; the island keeps its own from then on.
+  let current = $state(untrack(() => initial));
+  let error = $state(untrack(() => initialError));
   let uploading = $state(false);
   let hydrated = $state(false);
   let input: HTMLInputElement | undefined = $state();
 
   $effect(() => {
+    if (!endpoint) return;
     hydrated = true;
     // A file chosen before the island hydrated fired its change event too early: upload it now.
     if (input?.files?.length) void upload();
@@ -44,7 +59,7 @@
 
   // One call to the uploads endpoint; its answer, or the problem it reported.
   async function call<T>(body: Record<string, unknown>): Promise<T> {
-    const response = await fetch(endpoint, {
+    const response = await fetch(endpoint!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jobId, questionId, ...body }),
@@ -56,7 +71,7 @@
 
   async function upload() {
     const file = input?.files?.[0];
-    if (!file || !input) return;
+    if (!file || !input || !endpoint) return;
     const problem = fileProblem(file, accept, maxBytes);
     if (problem) {
       error = problem;
@@ -102,7 +117,7 @@
       bind:this={input}
       type="file"
       id={inputId}
-      name={hydrated ? undefined : `file:${questionId}`}
+      name={hydrated ? undefined : fields.file(questionId)}
       accept={accept.join(',')}
       required={required && !current}
       disabled={uploading}
@@ -120,6 +135,6 @@
     {/if}
   </p>
   {#if current}
-    <input type="hidden" name={`upload:${questionId}`} value={JSON.stringify(current)} />
+    <input type="hidden" name={fields.upload(questionId)} value={JSON.stringify(current)} />
   {/if}
 </div>
