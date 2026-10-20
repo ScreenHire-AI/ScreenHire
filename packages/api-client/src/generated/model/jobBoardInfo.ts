@@ -6,7 +6,7 @@
  */
 
 /**
- * A tenant's board in the public job-board API (Greenhouse-style: `GET /v1/boards/{token}`).
+ * A tenant's board in the public job-board API (Greenhouse-style: `GET /v1/public/boards/{organizationSlug}`).
  */
 export interface JobBoardInfo {
   name: string;

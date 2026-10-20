@@ -21,9 +21,8 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     public static async Task<WolverineStore> ForAppHostApiAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
         new(await fixture.GetOwnerConnectionStringAsync(cancellationToken), DatabaseRegistration.ApiMessagingSchema);
 
-    // messageType, when given, narrows to messages whose type name contains it (such as ".JobPublished"): one job's id is
-    // in many messages' bodies (its events, its postings' commands and events).
-
+    // In every Count method, messageType, when given, narrows to messages whose type name contains it (such as
+    // ".JobPublished"): one job's id is in many messages' bodies (its events, its postings' commands and events).
     public Task<long> CountOutgoingAsync(string bodyContains, CancellationToken cancellationToken, string? messageType = null) =>
         CountAsync("wolverine_outgoing_envelopes", bodyContains, cancellationToken, messageType: messageType);
 

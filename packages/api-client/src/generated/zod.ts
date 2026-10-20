@@ -1940,7 +1940,7 @@ export const GetJobBoardResponse = zod.object({
   "name": zod.string(),
   "content": zod.string(),
   "absolute_url": zod.string()
-}).describe('A tenant\'s board in the public job-board API (Greenhouse-style: `GET /v1/boards/{token}`).')
+}).describe('A tenant\'s board in the public job-board API (Greenhouse-style: `GET /v1/public/boards/{organizationSlug}`).')
 
 
 export const ListJobBoardJobsParams = zod.object({

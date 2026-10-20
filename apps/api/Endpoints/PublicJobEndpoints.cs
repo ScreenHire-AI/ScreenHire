@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Jobs;
-using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -30,7 +29,7 @@ internal static class PublicJobEndpoints
     private static async Task<Results<Ok<PublicJobBoard>, NotFound>> ListOpenJobs(
         string organizationSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)
     {
-        var organization = await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken);
+        var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
         if (organization is null)
         {
             return TypedResults.NotFound();
@@ -53,7 +52,7 @@ internal static class PublicJobEndpoints
         string organizationSlug, string jobSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains,
         CancellationToken cancellationToken)
     {
-        if (await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken) is not { } organization)
+        if (await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken) is not { } organization)
         {
             return TypedResults.NotFound();
         }
@@ -69,8 +68,4 @@ internal static class PublicJobEndpoints
             _ => TypedResults.Ok(job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug))),
         };
     }
-
-    private static Task<Organization?> FindOrganizationAsync(
-        string slug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken) =>
-        PublicOrganizations.FindAsync(slug, db, tenant, cancellationToken);
 }

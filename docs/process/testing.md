@@ -71,15 +71,15 @@ It always passes `PersistData=false` (no volumes: fresh Postgres and Azurite) an
 a run never collides with a running dev stack or a sibling worktree, and Aspire removes its containers on dispose.
 The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 
-It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
-board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
-and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
-
 | Mode | Starts | Used by |
 |---|---|---|
 | `Dev` (default) | `dev` scripts with hot reload | `pnpm dev` |
 | `Built` | `preview` scripts over `pnpm -r build` output: what ships | `tests/ScreenHire.E2E` |
 | `None` | no JS apps; API, worker and infrastructure only | `tests/ScreenHire.IntegrationTests` |
+
+It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
+board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
+and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
 
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and

@@ -61,7 +61,7 @@ public sealed record PublishJobRequest(IReadOnlyList<string>? Boards = null);
 /// <summary>One listing on the local sandbox board, as the board itself would show it.</summary>
 public sealed record SandboxBoardListing(Guid Id, Guid JobId, int JobVersion, string Title, string Url, DateTimeOffset AcceptedAt);
 
-/// <summary>A tenant's board in the public job-board API (Greenhouse-style: <c>GET /v1/boards/{token}</c>).</summary>
+/// <summary>A tenant's board in the public job-board API (Greenhouse-style: <c>GET /v1/public/boards/{organizationSlug}</c>).</summary>
 public sealed record JobBoardInfo(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("content")] string Content,
