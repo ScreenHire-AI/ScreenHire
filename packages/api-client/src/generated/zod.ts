@@ -6,6 +6,34 @@
  */
 import * as zod from 'zod';
 
+export const SendPublicTelemetryParams = zod.object({
+  "organizationSlug": zod.string(),
+  "jobId": zod.uuid()
+})
+
+export const SendPublicTelemetryBody = zod.object({
+  "sessionToken": zod.string(),
+  "pageViewId": zod.uuid(),
+  "sequence": zod.int(),
+  "fields": zod.array(zod.object({
+  "fieldId": zod.string(),
+  "pasteCount": zod.int(),
+  "pastedCharacters": zod.int(),
+  "typedCharacters": zod.int(),
+  "focusCount": zod.int(),
+  "blurCount": zod.int(),
+  "activeMilliseconds": zod.int(),
+  "autofilled": zod.boolean()
+}).describe('Counts for one form field. `fieldId` is a question id or one of the form\'s own fields (`fullName`, ...).')),
+  "page": zod.object({
+  "visibilityChanges": zod.int(),
+  "automationMarkers": zod.array(zod.string())
+}).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...).')
+}).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit.')
+
+export const SendPublicTelemetryResponse = zod.void()
+
+
 export const ListSandboxListingsParams = zod.object({
   "organizationSlug": zod.string()
 })
@@ -257,8 +285,12 @@ export const GetPublicApplicationFormResponse = zod.object({
   "maxBytes": zod.int(),
   "origin": zod.string()
 }).describe('Limits on candidate uploads. `origin` is where upload links point, for the page\'s content security policy.'),
-  "turnstileSiteKey": zod.string().nullable()
-}).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.')
+  "turnstileSiteKey": zod.string().nullable(),
+  "telemetry": zod.object({
+  "sessionToken": zod.string(),
+  "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\r\nfingerprint"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code.')
+}).describe('What the careers page\'s telemetry module may do on this form (integrity-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate\'s tick).')
+}).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.')
 
 
 export const CreatePublicUploadParams = zod.object({
@@ -305,6 +337,7 @@ export const SubmitPublicApplicationParams = zod.object({
 export const submitPublicApplicationBodyAccommodationRequestedDefault = false;
 export const submitPublicApplicationBodyAiUseDeclarationDefault = `NotProvided`;
 export const submitPublicApplicationBodyHoneypotFilledDefault = false;
+export const submitPublicApplicationBodyDeviceCheckConsentDefault = false;
 
 export const SubmitPublicApplicationBody = zod.object({
   "candidate": zod.object({
@@ -326,7 +359,28 @@ export const SubmitPublicApplicationBody = zod.object({
   "userAgent": zod.string().nullish(),
   "formStartedAt": zod.iso.datetime({"offset":true}).nullish(),
   "automationMarkers": zod.array(zod.string()).nullish(),
-  "deviceFingerprint": zod.string().nullish()
+  "deviceFingerprint": zod.string().nullish(),
+  "deviceCheckConsent": zod.boolean().default(submitPublicApplicationBodyDeviceCheckConsentDefault),
+  "telemetrySessionToken": zod.string().nullish(),
+  "telemetry": zod.union([zod.null(),zod.object({
+  "sessionToken": zod.string(),
+  "pageViewId": zod.uuid(),
+  "sequence": zod.int(),
+  "fields": zod.array(zod.object({
+  "fieldId": zod.string(),
+  "pasteCount": zod.int(),
+  "pastedCharacters": zod.int(),
+  "typedCharacters": zod.int(),
+  "focusCount": zod.int(),
+  "blurCount": zod.int(),
+  "activeMilliseconds": zod.int(),
+  "autofilled": zod.boolean()
+}).describe('Counts for one form field. `fieldId` is a question id or one of the form\'s own fields (`fullName`, ...).')),
+  "page": zod.object({
+  "visibilityChanges": zod.int(),
+  "automationMarkers": zod.array(zod.string())
+}).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...).')
+}).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit.')]).optional()
 }).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
 
 export const SubmitPublicApplicationResponse = zod.object({

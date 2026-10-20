@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
@@ -122,6 +123,28 @@ internal sealed class SubmissionObservationConfiguration : IEntityTypeConfigurat
         // Within-organization duplicate checks find other applications from the same device.
         builder.HasIndex(o => new { o.OrganizationId, o.DeviceHash });
         builder.HasIndex(o => new { o.OrganizationId, o.ExpiresAt });
+    }
+}
+
+internal sealed class TelemetrySnapshotConfiguration : IEntityTypeConfiguration<TelemetrySnapshot>
+{
+    public void Configure(EntityTypeBuilder<TelemetrySnapshot> builder)
+    {
+        builder.Property(s => s.Fields).HasJsonColumn();
+        builder.Property(s => s.Page).HasJsonColumn();
+
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(s => new { s.OrganizationId, s.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(s => new { s.OrganizationId, s.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // One row per page view: a later snapshot of the same page view replaces it (an upsert on this index).
+        builder.HasIndex(s => new { s.OrganizationId, s.SessionId, s.PageViewId }).IsUnique();
+        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId });
+        builder.HasIndex(s => new { s.OrganizationId, s.ExpiresAt });
     }
 }
 

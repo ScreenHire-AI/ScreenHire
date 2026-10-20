@@ -19,6 +19,7 @@ never calls the API.
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
+| `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (integrity-engine.md §10.2, "Form telemetry"). |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -41,8 +42,10 @@ they ship no JavaScript; only file questions hydrate, as `FileField` islands. Th
 ## 2. Notice before collection
 
 Browsing sets no cookies and runs no scripts beyond JSON-LD. The apply page shows the notice and the
-assistive-technology switch above the first field. Nothing is stored until the application is sent; files uploaded
-along the way sit unclaimed in storage until then (section 3).
+assistive-technology switch above the first field. The telemetry module (`packages/telemetry`) records nothing on that
+step until the candidate first uses the form, and the server never starts it with the switch on. Its counts are stored
+unbound and deleted after a day unless the application is sent; files uploaded along the way sit unclaimed in storage
+until then (section 3).
 
 What this build records with an application (`JobApplication`): the answers, the files, the switch
 (`AccommodationRequested`, which later turns telemetry and typing signals off and is never a signal itself), the
@@ -59,10 +62,12 @@ With a careers-site application the API also stores a `SubmissionObservation` fo
 (integrity-engine.md §10): the candidate's address (from `X-Forwarded-For`), their browser's user agent, which the
 careers server passes on as `userAgent` because the API only sees the server's, and `formStartedAt`, the moment the
 careers server first rendered the form (kept in the step state, so it round-trips through the browser and is only a
-hint). The request also takes `automationMarkers` and `deviceFingerprint`, which no careers script sends yet; the
-telemetry module will, starting on the apply page after the notice and respecting the switch. The API hashes a
-fingerprint per organization and never stores it as sent. The observation is deleted after 30 days. The notice and
-the privacy page say all of this (`NOTICE_VERSION` `2026-10-20.2`).
+hint). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
+server passes them on with the session token and the module's last snapshot. The API hashes a fingerprint per
+organization and never stores it as sent, and keeps it only on the job's device-check basis: where that is `Consent`
+(the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
+fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
+the privacy page say all of this (`NOTICE_VERSION` `2026-10-20.4`).
 
 ## 3. Uploads
 

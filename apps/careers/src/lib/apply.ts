@@ -1,7 +1,7 @@
 // The apply flow's state, steps and checks (docs/architecture/apply-flow.md). Pure functions over FormData and the API's
 // form definition, so they unit-test without a server. The API checks everything again on submission; these checks
 // give the candidate an answer at the step where they made the mistake.
-import type { AiUsePolicy, ApplicationAnswer, PublicApplicationRequest, PublicQuestion } from '@screenhire/api-client';
+import type { AiUsePolicy, ApplicationAnswer, PublicApplicationRequest, PublicQuestion, TelemetrySnapshotInput } from '@screenhire/api-client';
 import { parseUploadRef, type UploadRef } from '@screenhire/ui/questions/files';
 import { fieldId, fields, RESUME_QUESTION_ID } from '@screenhire/ui/questions/model';
 
@@ -9,7 +9,7 @@ import { fieldId, fields, RESUME_QUESTION_ID } from '@screenhire/ui/questions/mo
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-20.3';
+export const NOTICE_VERSION = '2026-10-20.4';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
@@ -37,6 +37,13 @@ export interface ApplyState {
    * through the hidden field like everything else, so the integrity engine treats it as a hint (submit velocity).
    */
   startedAt: string;
+  /**
+   * The telemetry session the API issued with the form the first time this server showed it, or empty. The telemetry
+   * module sends its snapshots with it, and submission binds them to the application (integrity-engine.md §10.2).
+   */
+  telemetrySession: string;
+  /** The candidate ticked the device check, where the job's basis asks for consent. */
+  deviceCheckConsent: boolean;
 }
 
 /** Problems to show, by form field name, worded for the candidate. */
@@ -50,7 +57,7 @@ export const MAX_AI_DETAILS = 2000;
 export const MAX_ANSWER = 5000;
 export const MAX_CHOICES = 50;
 
-export const emptyState = (startedAt = ''): ApplyState => ({
+export const emptyState = (startedAt = '', telemetrySession = ''): ApplyState => ({
   fullName: '',
   email: '',
   phone: '',
@@ -60,6 +67,8 @@ export const emptyState = (startedAt = ''): ApplyState => ({
   aiUseDeclaration: 'NotProvided',
   aiUseDetails: '',
   startedAt,
+  telemetrySession,
+  deviceCheckConsent: false,
 });
 
 /** A start time as the API takes it: an ISO 8601 instant that parses, or empty. */
@@ -105,6 +114,8 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
   state.aiUseDeclaration = isAiUseAnswer(input.aiUseDeclaration) ? input.aiUseDeclaration : 'NotProvided';
   state.aiUseDetails = string('aiUseDetails', MAX_AI_DETAILS);
   state.startedAt = parseInstant(input.startedAt);
+  state.telemetrySession = parseToken(input.telemetrySession);
+  state.deviceCheckConsent = input.deviceCheckConsent === true;
 
   if (typeof input.answers === 'object' && input.answers !== null) {
     for (const [id, answer] of Object.entries(input.answers as Record<string, unknown>)) {
@@ -123,6 +134,10 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
   return state;
 }
 
+/** A Data Protection token as the API issues it (base64url), or empty. */
+const parseToken = (value: unknown): string =>
+  typeof value === 'string' && value.length <= 1024 && /^[A-Za-z0-9_-]+$/.test(value) ? value : '';
+
 const isAiUseAnswer = (value: unknown): value is AiUseAnswer => value === 'NotProvided' || value === 'Used' || value === 'DidNotUse';
 
 /** A posted field's trimmed text, or empty when it is missing or a file. */
@@ -138,6 +153,7 @@ export const readDetails = (form: FormData, state: ApplyState): ApplyState => ({
   email: text(form, 'email'),
   phone: text(form, 'phone'),
   accommodationRequested: form.get('accommodationRequested') === 'on',
+  deviceCheckConsent: form.get('deviceCheckConsent') === 'on',
 });
 
 /**
@@ -267,8 +283,18 @@ export function validateReview(state: ApplyState, policy: AiUsePolicy): FieldErr
 export function toRequest(
   state: ApplyState,
   questions: readonly PublicQuestion[],
-  checks: { honeypotFilled: boolean; botCheckToken: string | null; userAgent?: string | null },
+  checks: {
+    honeypotFilled: boolean;
+    botCheckToken: string | null;
+    userAgent?: string | null;
+    /** What the telemetry module put in the form on the last step: its final snapshot, fingerprint and markers. */
+    telemetry?: TelemetrySnapshotInput | null;
+    deviceFingerprint?: string | null;
+    automationMarkers?: string[];
+  },
 ): PublicApplicationRequest {
+  // The module never runs with the assistive-technology switch on; nothing it might have left is sent either.
+  const measured = !state.accommodationRequested;
   const answers: ApplicationAnswer[] = [];
   for (const question of questions) {
     if (question.type === 'File') {
@@ -295,6 +321,11 @@ export function toRequest(
     // the form was first shown.
     userAgent: checks.userAgent ? checks.userAgent.slice(0, 1024) : null,
     formStartedAt: state.startedAt || null,
+    automationMarkers: measured ? (checks.automationMarkers ?? []) : [],
+    deviceFingerprint: measured ? (checks.deviceFingerprint ?? null) : null,
+    deviceCheckConsent: state.deviceCheckConsent,
+    telemetrySessionToken: state.telemetrySession || null,
+    telemetry: measured ? (checks.telemetry ?? null) : null,
   };
 }
 

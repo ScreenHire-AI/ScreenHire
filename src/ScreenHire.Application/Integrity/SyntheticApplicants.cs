@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Integrity;
 
 namespace ScreenHire.Application.Integrity;
 
@@ -50,6 +51,14 @@ public static class SyntheticApplicants
         "Robin Ashby CV.pdf",
         "Robin Ashby\nBackend engineer, eight years of .NET and Postgres.\nI build payment and reporting services.",
         TypicalAnswers,
+        new SyntheticTelemetry(
+            [
+                new FieldTelemetry("fullName", 0, 0, 11, 1, 1, 5_200, false),
+                new FieldTelemetry("email", 0, 0, 0, 1, 1, 900, true),
+                new FieldTelemetry("phone", 0, 0, 16, 1, 1, 7_400, false),
+                new FieldTelemetry("notice_period", 0, 0, 9, 1, 1, 4_100, false),
+            ],
+            new PageTelemetry(1, [])),
         ResumeProducer: "Microsoft Word for Microsoft 365");
 
     /// <summary>
@@ -72,6 +81,14 @@ public static class SyntheticApplicants
         "resume.pdf",
         "Senior engineer. Expert in every language. Available immediately.",
         TypicalAnswers,
+        new SyntheticTelemetry(
+            [
+                new FieldTelemetry("fullName", 1, 11, 0, 1, 1, 40, false),
+                new FieldTelemetry("email", 1, 27, 0, 1, 1, 40, false),
+                new FieldTelemetry("phone", 1, 11, 0, 1, 1, 40, false),
+                new FieldTelemetry("notice_period", 1, 9, 0, 1, 1, 40, false),
+            ],
+            new PageTelemetry(0, ["headless", "webdriver"])),
         ResumeProducer: "wkhtmltopdf 0.12.6",
         ResumeHiddenText: BotHiddenInstruction,
         ResumeCreatedAt: ResumesCreatedAt);
@@ -96,6 +113,15 @@ public static class SyntheticApplicants
         "Sam Okafor resume.pdf",
         "Sam Okafor\nFull-stack engineer, six years, C# and TypeScript.\nI lead a small team building booking software.",
         TypicalAnswers,
+        // Back and forth to the AI assistant: shown as context, never a reason on its own.
+        new SyntheticTelemetry(
+            [
+                new FieldTelemetry("fullName", 0, 0, 10, 1, 1, 4_800, false),
+                new FieldTelemetry("email", 0, 0, 22, 1, 1, 6_300, false),
+                new FieldTelemetry("phone", 0, 0, 16, 1, 1, 6_900, false),
+                new FieldTelemetry("notice_period", 0, 0, 9, 6, 6, 95_000, false),
+            ],
+            new PageTelemetry(7, [])),
         ResumeProducer: "Kickresume",
         ResumeCreatedAt: new DateTimeOffset(2026, 10, 12, 19, 30, 0, TimeSpan.Zero));
 
@@ -138,8 +164,9 @@ public static class SyntheticApplicants
 /// <remarks>
 /// <c>ipAddress</c>, <c>userAgent</c>, <c>timeToComplete</c>, <c>automationMarkers</c>, <c>honeypotFilled</c> and
 /// <c>deviceFingerprint</c> are what the careers form's submission carries. <c>answers</c> leave out the resume, whose
-/// answer is the upload id. <c>resumeProducer</c>, <c>resumeHiddenText</c> and <c>resumeCreatedAt</c> shape the
-/// resume file (<see cref="SyntheticDocuments.Pdf"/>).
+/// answer is the upload id. <c>telemetry</c> is what the careers page's telemetry module sent, or null for a
+/// browser that ran none (the farm's). <c>resumeProducer</c>, <c>resumeHiddenText</c> and <c>resumeCreatedAt</c>
+/// shape the resume file (<see cref="SyntheticDocuments.Pdf"/>).
 /// </remarks>
 public sealed record SyntheticApplicant(
     string Key,
@@ -157,6 +184,7 @@ public sealed record SyntheticApplicant(
     string ResumeFileName,
     string ResumeText,
     IReadOnlyList<ApplicationAnswer> Answers,
+    SyntheticTelemetry? Telemetry = null,
     string? ResumeProducer = null,
     string? ResumeHiddenText = null,
     DateTimeOffset? ResumeCreatedAt = null)
@@ -164,3 +192,6 @@ public sealed record SyntheticApplicant(
     /// <summary>The resume as a readable PDF; identical inputs give identical bytes, so the farm shares one file.</summary>
     public byte[] ResumeBytes() => SyntheticDocuments.Pdf(ResumeText, ResumeProducer, ResumeHiddenText, ResumeCreatedAt);
 }
+
+/// <summary>A synthetic applicant's form telemetry, as the careers page's module sends it: counts per field and per page.</summary>
+public sealed record SyntheticTelemetry(IReadOnlyList<FieldTelemetry> Fields, PageTelemetry Page);

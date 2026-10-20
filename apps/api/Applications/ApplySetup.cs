@@ -11,7 +11,7 @@ namespace ScreenHire.Api.Applications;
 
 internal static class ApplySetup
 {
-    /// <summary>The careers apply flow: upload links, the bot challenge, request validators and the rate limit.</summary>
+    /// <summary>The careers apply flow: upload links, the bot challenge, telemetry sessions, request validators and the rate limits.</summary>
     public static IHostApplicationBuilder AddScreenHireApply(this IHostApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -22,9 +22,11 @@ internal static class ApplySetup
         services.AddIntegrityOptions();
 
         services.AddSingleton<ApplicantUploads>();
+        services.AddSingleton<TelemetrySessions>();
         services.AddHttpClient<TurnstileVerifier>();
         services.AddSingleton<IValidator<PublicApplicationRequest>, PublicApplicationRequestValidator>();
         services.AddSingleton<IValidator<UploadRequest>, UploadRequestValidator>();
+        services.AddSingleton<IValidator<TelemetrySnapshotInput>, TelemetrySnapshotInputValidator>();
 
         // Per candidate address. The careers server forwards it in X-Forwarded-For, which ForwardedHeaders restores only
         // from trusted proxies (ScreenHire:Auth:TrustedProxies; loopback by default), so put the careers servers there.
@@ -34,6 +36,14 @@ internal static class ApplySetup
                 _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = context.RequestServices.GetRequiredService<IOptions<ApplyOptions>>().Value.PermitsPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                })));
+        services.Configure<RateLimiterOptions>(options => options.AddPolicy(ApplyOptions.TelemetryRateLimitPolicy, context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = context.RequestServices.GetRequiredService<IOptions<ApplyOptions>>().Value.TelemetryPermitsPerMinute,
                     Window = TimeSpan.FromMinutes(1),
                 })));
 

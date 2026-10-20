@@ -55,8 +55,9 @@ public sealed class IntegrityRulesetTests
         ]);
 
         ai.Level.Should().Be(nameof(AiAssistanceLevel.NotIndicated));
-        ai.AppliedRules.Should().Contain(IntegrityRuleset.TelemetryNeverAlone);
-        ai.Summary.Should().Contain("never raise a level on their own");
+        ai.AppliedRules.Should().Equal(IntegrityRuleset.TelemetryOnlyAlongsideAnotherCategory);
+        ai.SignalIds.Should().BeEmpty("telemetry alone is not shown at all");
+        ai.Summary.Should().StartWith("No signs that the content was generated or templated.");
     }
 
     [Fact]

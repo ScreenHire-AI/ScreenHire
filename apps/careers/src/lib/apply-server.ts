@@ -30,6 +30,7 @@ import {
   type Step,
 } from './apply';
 import { fileProblem, type UploadRef } from '@screenhire/ui/questions/files';
+import { parseFingerprint, parseMarkers, parseSnapshot } from './telemetry';
 
 /** The honeypot: a field people never see or reach, so only a bot fills it in. Its name avoids anything autofill knows. */
 export const HONEYPOT_FIELD = 'leave_this_empty';
@@ -59,7 +60,7 @@ export const forwardedFor = (address: string | undefined): RequestInit | undefin
 /**
  * Handles one posted step. Back and change buttons (`intent` = `go:<step>`) keep what was typed without checking it.
  * Next checks the step and moves on. On the last step, everything is checked again and sent to the API, with the
- * candidate's browser (`userAgent`) for the integrity engine.
+ * candidate's browser (`userAgent`) and what the telemetry module left in the form for the integrity engine.
  */
 export async function applyStep(form: FormData, clientAddress: string | undefined, userAgent?: string | null): Promise<ApplyResult> {
   const organization = text(form, 'organization');
@@ -108,6 +109,9 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
     honeypotFilled: text(form, HONEYPOT_FIELD) !== '',
     botCheckToken: text(form, TURNSTILE_FIELD) || null,
     userAgent: userAgent ?? null,
+    telemetry: parseSnapshot(form.get('telemetry')),
+    deviceFingerprint: parseFingerprint(form.get('deviceFingerprint')),
+    automationMarkers: parseMarkers(form.get('automationMarkers')),
   });
   const submitted = await submitPublicApplication(organization, definition.job.id, request, forwarded);
   switch (submitted.status) {

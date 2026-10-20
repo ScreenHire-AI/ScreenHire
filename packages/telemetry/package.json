@@ -1,0 +1,22 @@
+{
+  "name": "@screenhire/telemetry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Form telemetry for the careers apply flow: per-field session aggregates computed in the browser (paste counts, typed and pasted characters, focus, time on field, autofill), page-level automation markers and an optional device fingerprint. Framework-free, under 5 KB brotli, never key values, timings per key or field content.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "vite build && node scripts/check-size.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "fast-check": "^3.23.2",
+    "jsdom": "^30.1.3",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

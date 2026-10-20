@@ -84,13 +84,14 @@ internal sealed class IntegrityHarness
         Identity = new IdentityCheckOptions { ExtraDisposableDomains = ["tempinbox.example.net"] },
     };
 
-    public IReadOnlyList<IIntegrityAnalyzer> Analyzers() =>
+    /// <summary>The analyzers, with <paramref name="telemetry"/> as what the careers page's module sent.</summary>
+    public IReadOnlyList<IIntegrityAnalyzer> Analyzers(SyntheticTelemetry? telemetry = null) =>
     [
         new NetworkAnalyzer(new IpIntelligence(Options)),
         new IdentityAnalyzer(new DisposableEmailDomains(Options), Mail),
         new AutomationAnalyzer(),
         new DuplicateAnalyzer(new InMemoryDirectory(earlier)),
-        new BehaviouralAnalyzer(new NoTelemetrySource()),
+        new BehaviouralAnalyzer(new InMemoryTelemetrySource(telemetry, clock)),
         new DocumentAnalyzer(Records),
         new AnswerAnalyzer(Records),
         new ConsistencyAnalyzer(Records),
@@ -145,7 +146,7 @@ internal sealed class IntegrityHarness
 
         var signals = new List<IntegritySignal>();
         var notes = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var analyzer in Analyzers())
+        foreach (var analyzer in Analyzers(applicant.Telemetry))
         {
             var result = await analyzer.AnalyzeAsync(context, TestContext.Current.CancellationToken);
             result.Ready.Should().BeTrue($"the harness prepares every input before {analyzer.Name} runs");
@@ -190,6 +191,18 @@ internal sealed class IntegrityHarness
     }
 
     private sealed record Submitted(JobApplication Application, Candidate Candidate, SubmissionObservation Observation, ApplicationFile File);
+
+    /// <summary>The database source's rules over telemetry held in memory.</summary>
+    private sealed class InMemoryTelemetrySource(SyntheticTelemetry? telemetry, DateTimeOffset now) : ITelemetrySource
+    {
+        public Task<TelemetrySessionAggregates?> GetAsync(Guid applicationId, CancellationToken cancellationToken) =>
+            Task.FromResult(telemetry is null ? null : new TelemetrySessionAggregates(applicationId, telemetry.Fields, telemetry.Page, now));
+
+        public IReadOnlyList<ObservedSignal> Evaluate(TelemetrySessionAggregates session, IntegrityContext context) =>
+            TelemetryRules.Evaluate(session, context);
+
+        public Task<int> PurgeExpiredAsync(DateTimeOffset cutoff, CancellationToken cancellationToken) => Task.FromResult(0);
+    }
 
     /// <summary>The database directory's rules over the applicants submitted so far.</summary>
     private sealed class InMemoryDirectory(List<Submitted> submitted) : IApplicantDirectory

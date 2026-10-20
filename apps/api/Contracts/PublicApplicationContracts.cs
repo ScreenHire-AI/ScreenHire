@@ -42,6 +42,7 @@ public sealed record PublicUploadSettings(long MaxBytes, string Origin);
 /// <summary>
 /// Everything the careers apply page needs for one open job. The resume question comes first
 /// (<see cref="ApplicationForm"/>). <c>turnstileSiteKey</c> is null unless the bot challenge is configured.
+/// <c>telemetry</c> is a new telemetry session for the form; the page keeps the first one it gets.
 /// </summary>
 public sealed record PublicApplicationForm(
     PublicOrganization Organization,
@@ -49,7 +50,8 @@ public sealed record PublicApplicationForm(
     IReadOnlyList<PublicQuestion> Questions,
     AiUsePolicy AiUsePolicy,
     PublicUploadSettings Uploads,
-    string? TurnstileSiteKey);
+    string? TurnstileSiteKey,
+    PublicTelemetrySettings Telemetry);
 
 /// <summary>Asks for a link to upload one file for a file question. <c>sizeBytes</c> is the size the candidate's device reports.</summary>
 public sealed record UploadRequest(string FileName, long SizeBytes);
@@ -77,7 +79,11 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// <c>userAgent</c> is the candidate's browser as the careers server received it; <c>formStartedAt</c> is when the careers
 /// server first showed the form; <c>automationMarkers</c> are markers the page detected, such as <c>webdriver</c>;
 /// <c>deviceFingerprint</c> is the page's device identifier, which the API hashes per organization and never stores as
-/// sent. The candidate's address comes from the connection (<c>X-Forwarded-For</c> from a trusted proxy).
+/// sent, and drops where the job's device-check basis is <c>Off</c>, or <c>Consent</c> without
+/// <c>deviceCheckConsent</c>. The candidate's address comes from the connection (<c>X-Forwarded-For</c> from a trusted
+/// proxy). <c>telemetrySessionToken</c> binds the form's telemetry to the application, and <c>telemetry</c> is the last
+/// page's snapshot, which travels with the form post rather than a beacon so it is stored before analysis starts; an
+/// invalid one is dropped, never a reason to refuse.
 /// </remarks>
 public sealed record PublicApplicationRequest(
     CandidateInput Candidate,
@@ -91,7 +97,10 @@ public sealed record PublicApplicationRequest(
     string? UserAgent = null,
     DateTimeOffset? FormStartedAt = null,
     IReadOnlyList<string>? AutomationMarkers = null,
-    string? DeviceFingerprint = null);
+    string? DeviceFingerprint = null,
+    bool DeviceCheckConsent = false,
+    string? TelemetrySessionToken = null,
+    TelemetrySnapshotInput? Telemetry = null);
 
 /// <summary>Confirms that an application arrived.</summary>
 public sealed record PublicApplicationReceipt(Guid ApplicationId, DateTimeOffset SubmittedAt);
@@ -140,6 +149,7 @@ internal sealed class PublicApplicationRequestValidator : AbstractValidator<Publ
         RuleFor(r => r.AutomationMarkers).Must(m => m is null || m.Count <= 20).WithMessage("At most 20 automation markers.");
         RuleForEach(r => r.AutomationMarkers).NotEmpty().MaximumLength(40);
         RuleFor(r => r.DeviceFingerprint).MaximumLength(256);
+        RuleFor(r => r.TelemetrySessionToken).MaximumLength(1024);
     }
 }
 

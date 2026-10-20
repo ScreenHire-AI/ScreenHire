@@ -6,6 +6,7 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -96,7 +97,10 @@ internal static class PublicJobEndpoints
         TenantContext tenant,
         ApplicantUploads uploads,
         TurnstileVerifier turnstile,
+        TelemetrySessions telemetry,
+        IOptions<IntegrityOptions> integrity,
         IOptions<DomainOptions> domains,
+        TimeProvider time,
         CancellationToken cancellationToken)
     {
         var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
@@ -117,6 +121,8 @@ internal static class PublicJobEndpoints
             [.. ApplicationForm.QuestionsFor(job.Workflow).Select(q => q.ToPublic(FileTypes.AcceptedBy))],
             job.Workflow.IntegrityPolicy.AiUse,
             new PublicUploadSettings(uploads.MaxBytes, uploads.Origin),
-            turnstile.SiteKey));
+            turnstile.SiteKey,
+            new PublicTelemetrySettings(
+                telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, integrity.Value))));
     }
 }

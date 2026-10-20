@@ -57,6 +57,7 @@ import type {
   SandboxBoardListing,
   SignInMethods,
   SimulateWorkflowRequest,
+  TelemetrySnapshotInput,
   UpdateBrandingRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
@@ -72,6 +73,83 @@ import type {
 } from './model';
 
 import { apiFetch } from '../http.ts';
+export type sendPublicTelemetryResponse202 = {
+  data: void
+  status: 202
+}
+
+export type sendPublicTelemetryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendPublicTelemetryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendPublicTelemetryResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type sendPublicTelemetryResponse413 = {
+  data: ProblemDetails
+  status: 413
+}
+
+export type sendPublicTelemetryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type sendPublicTelemetryResponseSuccess = (sendPublicTelemetryResponse202) & {
+  headers: Headers;
+};
+export type sendPublicTelemetryResponseError = (sendPublicTelemetryResponse400 | sendPublicTelemetryResponse404 | sendPublicTelemetryResponse410 | sendPublicTelemetryResponse413 | sendPublicTelemetryResponse429) & {
+  headers: Headers;
+};
+
+export type sendPublicTelemetryResponse = (sendPublicTelemetryResponseSuccess | sendPublicTelemetryResponseError)
+
+export const getSendPublicTelemetryUrl = (organizationSlug: string,
+    jobId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/jobs/${jobId}/telemetry`
+}
+
+export const sendPublicTelemetry = async (organizationSlug: string,
+    jobId: string,
+    telemetrySnapshotInput: TelemetrySnapshotInput, options?: Parameters<typeof apiFetch>[1]): Promise<sendPublicTelemetryResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendPublicTelemetryResponse>(getSendPublicTelemetryUrl(organizationSlug,jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(telemetrySnapshotInput)
+  }
+);}
+
+
+
 export type listSandboxListingsResponse200 = {
   data: SandboxBoardListing[]
   status: 200

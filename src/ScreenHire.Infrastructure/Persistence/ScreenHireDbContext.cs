@@ -83,6 +83,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<SubmissionObservation> SubmissionObservations => Set<SubmissionObservation>();
 
+    public DbSet<TelemetrySnapshot> TelemetrySnapshots => Set<TelemetrySnapshot>();
+
     public DbSet<ApplicationDocument> ApplicationDocuments => Set<ApplicationDocument>();
 
     public DbSet<AnswerFingerprint> AnswerFingerprints => Set<AnswerFingerprint>();

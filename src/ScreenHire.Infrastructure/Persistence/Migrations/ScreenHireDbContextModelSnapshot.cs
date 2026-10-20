@@ -1634,6 +1634,74 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("submission_observations", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.TelemetrySnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Fields")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("fields");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Page")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("page");
+
+                    b.Property<Guid>("PageViewId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("page_view_id");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_telemetry_snapshots");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_telemetry_snapshots_organization_id_application_id");
+
+                    b.HasIndex("OrganizationId", "ExpiresAt")
+                        .HasDatabaseName("ix_telemetry_snapshots_organization_id_expires_at");
+
+                    b.HasIndex("OrganizationId", "JobId")
+                        .HasDatabaseName("ix_telemetry_snapshots_organization_id_job_id");
+
+                    b.HasIndex("OrganizationId", "SessionId", "PageViewId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_telemetry_snapshots_organization_id_session_id_page_view_id");
+
+                    b.ToTable("telemetry_snapshots", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Jobs.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2364,6 +2432,24 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_submission_observations_applications_organization_id_applic");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.TelemetrySnapshot", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_telemetry_snapshots_applications_organization_id_applicatio");
+
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_telemetry_snapshots_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Jobs.Job", b =>

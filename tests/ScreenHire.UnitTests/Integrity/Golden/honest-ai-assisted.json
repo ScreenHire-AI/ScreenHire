@@ -1,6 +1,6 @@
 {
   "applicant": "honest-ai-assisted",
-  "rulesetVersion": "2026-10-20.3",
+  "rulesetVersion": "2026-10-20.4",
   "authenticity": {
     "level": "NoConcerns",
     "reasonCodes": [],
@@ -52,11 +52,44 @@
   "aiAssistance": {
     "level": "NotIndicated",
     "reasonCodes": [],
-    "appliedRules": [],
-    "summary": "One observation from document checks, with nothing from a second, independent kind of check to back it up. Shown for context only. The candidate said they used AI tools, which this job allows when disclosed.",
+    "appliedRules": [
+      "telemetry-never-alone"
+    ],
+    "summary": "2 observations from form behaviour and document checks, with nothing from a second, independent kind of check to back them up. Shown for context only. The candidate said they used AI tools, which this job allows when disclosed.",
     "nextStep": "No action needed.",
     "policyContext": "Disclosed",
     "signals": [
+      {
+        "code": "BEH_FOCUS_SWITCHING",
+        "category": "Behavioural",
+        "weight": "Low",
+        "confidence": "Low",
+        "countsTowardLevel": false,
+        "contextOnly": false,
+        "informational": false,
+        "accessibilitySensitive": true,
+        "source": "behavioural@2",
+        "explanation": "The candidate switched away from the form often while answering \"What is your notice period?\".",
+        "evidence": [
+          {
+            "kind": "Metric",
+            "label": "Times the candidate left the page",
+            "amount": 7,
+            "unit": "times",
+            "reference": 5,
+            "referenceLabel": "Shown from"
+          },
+          {
+            "kind": "Metric",
+            "label": "Times the answer field was returned to",
+            "amount": 6,
+            "unit": "times",
+            "reference": 5,
+            "referenceLabel": "Shown from"
+          }
+        ],
+        "counterEvidence": []
+      },
       {
         "code": "CNT_RESUME_GENERATOR",
         "category": "Document",

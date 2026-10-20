@@ -23,7 +23,7 @@ public static class IntegrityRegistration
         services.TryAddSingleton<IIpIntelligence, IpIntelligence>();
         services.TryAddSingleton<IMailDomainChecker, DnsMailDomainChecker>();
         services.TryAddSingleton<DisposableEmailDomains>();
-        services.TryAddSingleton<ITelemetrySource, NoTelemetrySource>();
+        services.TryAddScoped<ITelemetrySource, DatabaseTelemetrySource>();
         services.TryAddScoped<IApplicantDirectory, DatabaseApplicantDirectory>();
 
         // Content forensics (integrity-engine.md §10.10): the worker registers blob storage for the files first; the

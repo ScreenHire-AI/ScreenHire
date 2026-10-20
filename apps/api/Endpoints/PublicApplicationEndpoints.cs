@@ -145,6 +145,8 @@ internal static class PublicApplicationEndpoints
         TenantContext tenant,
         ApplicantUploads uploads,
         TurnstileVerifier turnstile,
+        TelemetrySessions telemetry,
+        IValidator<TelemetrySnapshotInput> telemetryValidator,
         IOptions<IntegrityOptions> integrity,
         HttpContext http,
         TimeProvider time,
@@ -203,6 +205,15 @@ internal static class PublicApplicationEndpoints
             return TypedResults.ValidationProblem(errors);
         }
 
+        // The device check's footing where the job is (integrity-engine.md §3): the page is not trusted to have asked.
+        var fingerprint = TelemetrySessions.DeviceCheckFor(job, integrity.Value) switch
+        {
+            DeviceCheckBasis.Notice => request.DeviceFingerprint,
+            DeviceCheckBasis.Consent when request.DeviceCheckConsent => request.DeviceFingerprint,
+            _ => null,
+        };
+        var binding = await TelemetryBindingAsync(request, job, telemetry, telemetryValidator, cancellationToken);
+
         var remoteAddress = http.Connection.RemoteIpAddress?.ToString();
         var intake = new ApplicationIntake(
             ApplicationSource.CareersSite,
@@ -215,8 +226,9 @@ internal static class PublicApplicationEndpoints
             outbox, job, request.Candidate,
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             intake, files, time.GetUtcNow(), actorUserId: null, cancellationToken,
-            new SubmissionSession(remoteAddress, request.UserAgent, request.DeviceFingerprint, request.FormStartedAt, request.AutomationMarkers),
-            integrity.Value);
+            new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.FormStartedAt, request.AutomationMarkers),
+            integrity.Value,
+            binding);
         if (submitted is not { } created)
         {
             return TypedResults.Problem(
@@ -228,6 +240,26 @@ internal static class PublicApplicationEndpoints
             (string?)null, new PublicApplicationReceipt(created.Application.Id, created.Application.SubmittedAt));
     }
 
+    // The session the submission names, with its final snapshot when that is valid for this job. Telemetry never refuses
+    // an application: a bad token binds nothing and a bad snapshot is dropped.
+    private static async Task<TelemetryBinding?> TelemetryBindingAsync(
+        PublicApplicationRequest request, Job job, TelemetrySessions sessions, IValidator<TelemetrySnapshotInput> validator,
+        CancellationToken cancellationToken)
+    {
+        if (sessions.Read(request.TelemetrySessionToken, job.OrganizationId, job.Id) is not { } sessionId)
+        {
+            return null;
+        }
+
+        var final = request.Telemetry;
+        var known = TelemetrySessions.FieldIdsFor(job);
+        var valid = final is not null
+            && sessions.Read(final.SessionToken, job.OrganizationId, job.Id) == sessionId
+            && (await validator.ValidateAsync(final, cancellationToken)).IsValid
+            && final.Fields.All(f => known.Contains(f.FieldId));
+        return new TelemetryBinding(sessionId, valid ? final : null);
+    }
+
     private static RouteHandlerBuilder ProducesApplyErrors(this RouteHandlerBuilder builder) =>
         builder.ProducesProblem(StatusCodes.Status410Gone).Produces(StatusCodes.Status429TooManyRequests);
 
@@ -236,7 +268,7 @@ internal static class PublicApplicationEndpoints
 
     // The open job with this id in the slug's organization, or the 410 for one that closed. Neither (a draft, a missing
     // job, another organization's job) is the caller's 404.
-    private static async Task<(Job? Job, ProblemHttpResult? Gone)> FindOpenJobAsync(
+    internal static async Task<(Job? Job, ProblemHttpResult? Gone)> FindOpenJobAsync(
         string organizationSlug, Guid jobId, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
     {
         if (await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken) is null)
