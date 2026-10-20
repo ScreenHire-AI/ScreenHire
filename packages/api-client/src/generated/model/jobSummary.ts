@@ -4,11 +4,12 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { EmploymentType } from './employmentType.ts';
 import type { JobStatus } from './jobStatus.ts';
 import type { WorkplaceType } from './workplaceType.ts';
 
 /**
- * A job as shown in the recruiter dashboard.
+ * A job as shown in the recruiter dashboard's list.
  */
 export interface JobSummary {
   id: string;
@@ -20,4 +21,8 @@ export interface JobSummary {
   createdAt: string;
   /** @nullable */
   publishedAt: string | null;
+  employmentType: EmploymentType;
+  /** @nullable */
+  department: string | null;
+  templateUpdateAvailable: boolean;
 }

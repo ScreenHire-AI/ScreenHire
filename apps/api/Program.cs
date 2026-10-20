@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -18,7 +20,8 @@ builder.AddScreenHireMessagePublishing();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
+builder.Services.AddHiringValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -42,6 +45,9 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapJobEndpoints();
+app.MapTemplateEndpoints();
+app.MapApplicationEndpoints();
+app.MapSchemaEndpoints();
 
 if (app.Environment.IsDevelopment())
 {

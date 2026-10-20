@@ -15,8 +15,9 @@ public sealed class JobMappingsTests
         var publicJob = job.ToPublicJob();
 
         publicJob.Should().BeEquivalentTo(new PublicJob(
-            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, UK", WorkplaceType.Hybrid,
-            EmploymentType.Contract, 60_000, 75_000, "GBP", Published));
+            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
+            EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Engineering",
+            [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null));
     }
 
     [Fact]
@@ -27,8 +28,20 @@ public sealed class JobMappingsTests
         var summary = job.ToSummary();
 
         summary.Should().BeEquivalentTo(new JobSummary(
-            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, UK", WorkplaceType.Hybrid,
-            JobStatus.Open, job.CreatedAt, Published));
+            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
+            JobStatus.Open, job.CreatedAt, Published, EmploymentType.Contract, "Engineering", false));
+    }
+
+    [Fact]
+    public void Detail_shows_unpublished_changes_only_when_an_open_jobs_content_differs_from_its_newest_version()
+    {
+        var job = OpenJob();
+        var published = job.Snapshot();
+
+        job.ToDetail(published, null, null).HasUnpublishedChanges.Should().BeFalse();
+        job.Revise(published with { Title = "Svelte Engineer" }, Published.AddDays(1));
+        job.ToDetail(published, null, null).HasUnpublishedChanges.Should().BeTrue();
+        job.ToDetail(published, null, null).Template.Should().BeNull("the job has no source template");
     }
 
     private static Job OpenJob()
@@ -38,13 +51,13 @@ public sealed class JobMappingsTests
             OrganizationId = Guid.CreateVersion7(),
             Title = "Frontend Engineer (Svelte)",
             Slug = "frontend-engineer-svelte",
-            Location = "London, UK",
+            Description = "<p>Svelte all day.</p>",
+            Department = "Engineering",
+            Locations = [new JobLocation("London", "England", "GB")],
             WorkplaceType = WorkplaceType.Hybrid,
             EmploymentType = EmploymentType.Contract,
-            SalaryMin = 60_000,
-            SalaryMax = 75_000,
-            SalaryCurrency = "GBP",
         };
+        job.SetSalary(new JobSalary(60_000, 75_000, "GBP", SalaryPeriod.Year));
         job.Publish(Published);
         return job;
     }
