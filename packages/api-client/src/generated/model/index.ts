@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './apiMeta.ts';
 export * from './employmentType.ts';
 export * from './jobStatus.ts';
 export * from './jobSummary.ts';

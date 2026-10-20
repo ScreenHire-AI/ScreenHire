@@ -7,3 +7,8 @@ Accept: application/json
 
 GET {{api}}/v1/jobs
 Accept: application/json
+
+###
+
+GET {{api}}/v1/meta
+Accept: application/json
