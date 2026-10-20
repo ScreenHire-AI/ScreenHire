@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HiringWorkflow } from '@screenhire/api-client';
+  import { untrack } from 'svelte';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
 
   // A builder page's local draft without the page. The stored workflow is what the job query returns; the buttons
@@ -7,7 +8,7 @@
   // inside with-query-client.svelte.
   let { first, theirs }: { first: HiringWorkflow; theirs: HiringWorkflow } = $props();
 
-  let stored = $state(first);
+  let stored = $state(untrack(() => first));
   let version = $state(1);
   const draft = createWorkflowDraft();
   $effect(() => draft.load(stored, `job:${version}`));
