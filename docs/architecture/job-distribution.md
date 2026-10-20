@@ -207,9 +207,10 @@ read it. Ids are our UUIDs, and `content` is sanitized HTML, which Greenhouse es
 - `/{slug}/sitemap.xml` lists the board page and each open job with `lastmod`.
 - Every URL (canonical, sitemap, feeds, job-board API, Google notifications) is `DomainOptions.CareersJobUrl`, built
   from `ScreenHire:Domains:CareersHostPattern` and `CareersDomain`. The AppHost points `CareersDomain` at the careers
-  app's real endpoint. The careers app reads the same `ScreenHire:Domains:*` keys, and on a tenant host its middleware
-  maps the host onto the path routes (`apps/careers/src/lib/tenancy.ts`), so `https://acme.careers.example.com/jobs/x`
-  serves `/acme/jobs/x`. Without a host pattern, as in local development and the tests, routing stays by path.
+  app's real endpoint and the host pattern at `{tenant}.{CareersDomain}`, so locally a job's URL is
+  `http://acme.localhost:<port>/jobs/x`. The careers app reads the same `ScreenHire:Domains:*` keys, and on a tenant
+  host its middleware maps the host onto the path routes (`apps/careers/src/lib/tenancy.ts`); the path routes
+  (`/acme/jobs/x`) keep working.
 - **Google Indexing API:** `ScreenHire:Distribution:GoogleIndexing:Mode` is `Off` (default, board hidden), `Local`
   (an in-process fake that accepts everything; the tests use it) or `Google` (`ServiceAccountKeyJson`, through
   `Google.Apis.Auth`, POST `urlNotifications:publish`). Publish and close queue an `IndexingNotification`, and a newer

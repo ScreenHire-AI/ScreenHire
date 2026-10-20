@@ -151,7 +151,8 @@ if (frontends != FrontendMode.None)
 
     // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
     // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
-    // The careers server and the API read the same ScreenHire:Domains settings.
+    // The careers server and the API read the same ScreenHire:Domains settings, so the canonical, sitemap, feed, job-board
+    // API and Google URLs the API builds are these tenant hosts.
     var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
     foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api })
     {
@@ -170,9 +171,6 @@ if (frontends != FrontendMode.None)
         .WithEnvironment("API_URL", apiUrl)
         .WithHttpHealthCheck("/")
         .WaitFor(api);
-
-    // Feeds, the job-board API and Google notifications link to job pages on the careers app's real endpoint.
-    api.WithEnvironment("ScreenHire__Domains__CareersDomain", careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
 
     // Sign-in cookies, OIDC redirect URIs and emailed links point at the dashboard, which reaches the API through its
     // /v1 proxy. Its real endpoint, because ports are random in tests.

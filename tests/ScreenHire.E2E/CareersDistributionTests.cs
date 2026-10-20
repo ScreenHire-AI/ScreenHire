@@ -22,7 +22,9 @@ public sealed class CareersDistributionTests(E2EFixture fixture) : BrowserTest(f
         var slug = (await session.CurrentUserAsync(Ct))!.Value.GetProperty("organization").GetProperty("slug").GetString()!;
         var jobId = await CreateAndPublishAsync(session);
         var careers = Fixture.GetEndpoint("careers");
-        var page = new Uri(careers, $"/{slug}/jobs/distributed-role").ToString();
+        // The canonical URL is on the tenant's own host ({tenant}.{CareersDomain} in the AppHost); the path route serves
+        // the same page.
+        var page = $"{careers.Scheme}://{slug}.{careers.Authority}/jobs/distributed-role";
 
         await GoToAsync("careers", $"/{slug}/jobs/distributed-role");
 
