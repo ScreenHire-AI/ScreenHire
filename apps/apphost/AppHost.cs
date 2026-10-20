@@ -183,9 +183,9 @@ if (string.Equals(settings["Integrity:Llm:Provider"], "Anthropic", StringCompari
 }
 
 // The local demo's data (the API's DevelopmentDemo, docs/operations/local-demo.md): Brightwater's template, jobs on every
-// board, a draft and a closed job, the synthetic applicants and candidates in every stage, once the API starts. Only for `pnpm dev` by default: the test
-// stacks make their own data and treat Brightwater as the seeder leaves it, and the startup burst of submissions delayed
-// a later live update in the end-to-end tests (integrity-engine.md §10.9).
+// board, a draft and a closed job, the synthetic applicants and candidates in every stage, once the API starts. Only for
+// `pnpm dev` by default: the test stacks make their own data and treat Brightwater as the seeder leaves it, and the
+// startup burst of submissions delayed a later live update in the end-to-end tests (integrity-engine.md §10.9).
 if (demo)
 {
     api.WithEnvironment("ScreenHire__Demo__Enabled", "true");

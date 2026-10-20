@@ -71,7 +71,7 @@ Every command in these files was run once when they were written (October 2026),
 | Command | Named in | Why not |
 |---|---|---|
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
-| `dotnet aspire start` without `--isolated`, in the root checkout | `preview` | run from a worktree with `--isolated` only; the root checkout belongs to the owner, whose own stack may be running |
+| `dotnet aspire start` without `--isolated`, in the root checkout | `preview` | agents run it from a worktree, with `--isolated`; the root checkout belongs to the owner, who runs it there and whose own stack may be running |
 | `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,

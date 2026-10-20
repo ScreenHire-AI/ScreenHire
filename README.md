@@ -32,9 +32,8 @@ waits until the demo data is in and reports the URLs and logins; `/preview fresh
 
 Sign in to the dashboard with **Dev SSO**: "Avery Quinn" owns the seeded Brightwater Studio, with open jobs on their
 boards, a draft to publish, a closed job, candidates in every pipeline stage and synthetic applicants at every
-integrity level. Any other email address
-starts a new account. Nothing needs a real account or key: email, sign-in providers, the LLM check, job boards and IP
-data all have local stand-ins.
+integrity level. Any other email address starts a new account. Nothing needs a real account or key: email, sign-in
+providers, the LLM check, job boards and IP data all have local stand-ins.
 
 The demo script, logins, what is faked and how to reset the data: [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
 What is built and what the owner still has to do before real use: [MVP status](docs/README.md#mvp-status).

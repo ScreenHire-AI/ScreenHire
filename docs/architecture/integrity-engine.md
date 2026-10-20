@@ -499,7 +499,7 @@ assessment, shown next to it as context; it is never a reason on its own.
   published its candidates' moves on the submission's outbox after that outbox had flushed, and those
   `ApplicationMoved` envelopes stayed in the API's outgoing table unsent. The demo now moves candidates in a scope of
   its own; whether the stuck envelopes were behind the late `JobClosed` was not measured. The API now reports healthy
-  only once the demo's steps have run, and `/preview` waits for the integrity chips before it checks anything live.
+  only once the demo's steps have run, and `/preview` waits for an integrity chip in the browser pane before it checks anything live.
 - The assistive-technology switch turns the whole telemetry module off, automation markers and the device check
   included, as its brief asked. A script can tick the switch too, so a bot that does loses `AUTO_WEBDRIVER` and the
   device duplicate check; the network, identity, honeypot and duplicate checks still run.
