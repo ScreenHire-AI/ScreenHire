@@ -25,10 +25,10 @@ import {
 } from '../../../../lib/apply';
 import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
 import { describeSize } from '../../../../lib/files';
-import { tenantBase } from '../../../../lib/tenancy';
+import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
-const base = tenantBase(Astro.locals.hostTenant, organization!);
+const base = basePath(Astro.request, organization!);
 const result = Astro.getActionResult(actions.apply);
 if (result?.data?.outcome === 'submitted') {
   return Astro.redirect(`${base}/jobs/${jobSlug}/applied`, 303);

@@ -3,7 +3,7 @@
 // nothing about the candidate, and reads the same whether this was a new application or one already on file.
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicJob, getPublicOrganization } from '../../../../lib/api';
-import { tenantBase } from '../../../../lib/tenancy';
+import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
 const [organizationResponse, jobResponse] = await Promise.all([getPublicOrganization(organization!), getPublicJob(organization!, jobSlug!)]);
@@ -12,7 +12,7 @@ if (organizationResponse.status !== 200) {
 }
 
 const employer = organizationResponse.data;
-const base = tenantBase(Astro.locals.hostTenant, employer.slug);
+const base = basePath(Astro.request, employer.slug);
 // The job may have closed since; the confirmation stands either way.
 const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
 ---

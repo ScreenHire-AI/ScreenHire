@@ -17,8 +17,9 @@ export function brandStylesheet(branding: PublicBranding): { css: string; hash: 
   }
 
   const [brand, onBrand, brandText, brandUi] = colors;
+  // `:root:root` outranks the `:root` defaults in the bundled stylesheet, whichever order the two load in.
   const css =
-    `:root{--candidate-cta:${brand};--candidate-cta-foreground:${onBrand};` +
+    `:root:root{--candidate-cta:${brand};--candidate-cta-foreground:${onBrand};` +
     `--candidate-brand-text:${brandText};--candidate-brand-ui:${brandUi}}\n`;
   return { css, hash: createHash('sha256').update(css).digest('hex').slice(0, 16) };
 }

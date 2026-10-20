@@ -1,9 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
-import { isFrameworkPath, tenantFromHost } from './lib/tenancy';
-
-// The same configuration keys the API reads (ScreenHire:Domains:*), as environment variables.
-const hostPattern = process.env.ScreenHire__Domains__CareersHostPattern;
-const careersDomain = process.env.ScreenHire__Domains__CareersDomain;
+import { hostTenant } from './lib/host';
+import { isFrameworkPath } from './lib/tenancy';
 
 /**
  * Host-based tenant routing and the response headers every careers page gets. On a tenant host
@@ -11,8 +8,7 @@ const careersDomain = process.env.ScreenHire__Domains__CareersDomain;
  * is in the path.
  */
 export const onRequest = defineMiddleware(async (context, next) => {
-  const tenant = tenantFromHost(context.url.host, hostPattern, careersDomain);
-  context.locals.hostTenant = tenant;
+  const tenant = hostTenant(context.request);
 
   const path = context.url.pathname;
   const response = tenant && !isFrameworkPath(path) ? await next(`/${tenant}${path === '/' ? '' : path}${context.url.search}`) : await next();

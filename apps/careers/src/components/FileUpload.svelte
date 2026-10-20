@@ -38,6 +38,8 @@
 
   $effect(() => {
     hydrated = true;
+    // A file chosen before the island hydrated fired its change event too early: upload it now.
+    if (input?.files?.length) void upload();
   });
 
   // One call to the uploads endpoint; its answer, or the problem it reported.

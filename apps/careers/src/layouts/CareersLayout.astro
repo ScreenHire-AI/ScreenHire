@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import type { PublicBranding } from '@screenhire/api-client';
 import { brandStylesheet } from '../lib/brand';
+import { basePath } from '../lib/host';
 
 interface Props {
   title: string;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 const { title, description, organizationName, organizationSlug, branding, noindex = false } = Astro.props;
-const base = Astro.locals.hostTenant ? '' : `/${organizationSlug}`;
+const base = basePath(Astro.request, organizationSlug);
 const brand = branding ? brandStylesheet(branding) : null;
 ---
 

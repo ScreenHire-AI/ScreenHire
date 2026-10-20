@@ -95,8 +95,9 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
   const target = intent.startsWith('go:') ? (intent.slice(3) as Step) : null;
   if (target && steps.includes(target)) return { step: target, state, errors: {} };
 
-  Object.assign(errors, stepErrors(step, state, questions, definition.aiUsePolicy));
-  if (Object.keys(errors).length > 0) return { step, state, errors };
+  // An upload's own problem ("larger than 10 MB") says more than the step's "Add a file." for the same field.
+  const problems = { ...stepErrors(step, state, questions, definition.aiUsePolicy), ...errors };
+  if (Object.keys(problems).length > 0) return { step, state, errors: problems };
   if (step !== 'review') return { step: steps[steps.indexOf(step) + 1]!, state, errors: {} };
 
   // Every step again: the state came back from the browser, and a step can be skipped by posting straight to the last.

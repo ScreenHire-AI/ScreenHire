@@ -1,7 +1,7 @@
 ---
 import CareersLayout from '../../layouts/CareersLayout.astro';
 import { formatSalary, label, listPublicJobs } from '../../lib/api';
-import { tenantBase } from '../../lib/tenancy';
+import { basePath } from '../../lib/host';
 
 // On a tenant host the middleware rewrites `/` here; otherwise the organization is in the path (lib/tenancy.ts).
 const { organization } = Astro.params;
@@ -12,7 +12,7 @@ if (response.status !== 200) {
 }
 
 const board = response.data;
-const base = tenantBase(Astro.locals.hostTenant, board.organizationSlug);
+const base = basePath(Astro.request, board.organizationSlug);
 ---
 
 <CareersLayout

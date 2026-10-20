@@ -3,6 +3,7 @@
 // what the candidate reads.
 import type { PublicOrganization } from '@screenhire/api-client';
 import CareersLayout from '../layouts/CareersLayout.astro';
+import { basePath } from '../lib/host';
 
 interface Props {
   organization: PublicOrganization;
@@ -10,7 +11,7 @@ interface Props {
 }
 
 const { organization, gone } = Astro.props;
-const base = Astro.locals.hostTenant ? '' : `/${organization.slug}`;
+const base = basePath(Astro.request, organization.slug);
 ---
 
 <CareersLayout

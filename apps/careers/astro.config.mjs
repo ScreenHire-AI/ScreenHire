@@ -30,5 +30,6 @@ export default defineConfig({
   },
   // No Markdown code blocks here; Shiki's inline styles would also break the content security policy.
   markdown: { syntaxHighlight: false },
-  vite: { plugins: [tailwindcss()] },
+  // Fonts and other assets stay files: an inlined data: URI is something the content security policy refuses.
+  vite: { plugins: [tailwindcss()], build: { assetsInlineLimit: 0 } },
 });
