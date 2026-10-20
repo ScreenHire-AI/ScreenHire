@@ -27,7 +27,7 @@ pnpm dev       # runs the Aspire AppHost: Postgres (pgvector), Azurite, Mailpit,
 | Aspire dashboard | https://localhost:17113 (the console prints the link with its login token) |
 
 Sign in to the dashboard with **Dev SSO**: "Avery Quinn" owns the seeded Brightwater Studio, with open jobs, a draft
-to publish, candidates in every stage and synthetic applicants at every integrity level. Any other email address
+to publish, candidates across the pipeline and synthetic applicants at every integrity level. Any other email address
 starts a new account. Nothing needs a real account or key: email, sign-in providers, the LLM check, job boards and IP
 data all have local stand-ins.
 

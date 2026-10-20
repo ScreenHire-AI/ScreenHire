@@ -22,15 +22,16 @@ pnpm dev       # = dotnet run --project apps/apphost
 ```
 
 The first start pulls the container images (Postgres with pgvector, Azurite, Mailpit, the Dev SSO server) and takes a
-few minutes; later starts take about 30 seconds. The console prints the Aspire dashboard's link with a login token.
+few minutes; later starts are much quicker. The console prints the Aspire dashboard's link with a login token.
 The API listens only once it has migrated and seeded the database, so when the dashboard shows every resource as
 healthy, the demo data is in. The synthetic applicants' integrity levels follow a few seconds later, once the worker
 has assessed them.
 
-Stop with Ctrl+C. Aspire then removes the containers it started. Data stays in Docker volumes (one set per clone or
-worktree), so the next start has the same candidates and anything you changed. To start from a clean demo, run once
-with `ScreenHire__PersistData=false` (no volumes at all), or, with the stack stopped, delete the two data volumes
-Aspire made for this clone in Docker Desktop (their names end in `postgres-data` and `storage-data`).
+Stop with Ctrl+C. Aspire then removes the containers it started. The database and uploaded files stay in Docker
+volumes (one set per clone or worktree), so the next start has the same candidates and anything you changed. Mailpit
+keeps nothing: its inbox is empty after every restart. To start from a clean demo, run once with
+`ScreenHire__PersistData=false` (no volumes at all), or, with the stack stopped, delete the data volumes Aspire created
+for this clone in Docker Desktop.
 
 ## The URLs
 
@@ -86,15 +87,16 @@ Software engineer pipeline plus the three candidate emails.
    authenticity level, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
-   percentage, no reject button. Open a farm member (Alex Reed, Morgan Hale or Taylor Brook) for "Same device" and
-   "Same resume file", then Sam Okafor, who used AI within the job's policy and raises no concern.
+   percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and
+   "Same resume file" shared with Alex Reed and Morgan Hale, then Sam Okafor, who used AI within the job's policy and
+   raises no concern.
 3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The timeline
-   records the move. In Mailpit, Robin has "We received your application for Senior .NET Engineer" from when they
-   applied and now "An update on your application for Senior .NET Engineer".
+   records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
+   to Robin within a second or two. On the very first start with fresh data, every synthetic applicant's "We received
+   your application" email is there too.
 4. **Publish everywhere (60 s).** Open Backend Engineer (Payments) and press **Publish to 8 boards**. The careers page
    is live at once; the local sandbox board confirms in about 20 seconds; the feed boards show "Sent" with each one's
-   usual delay. Open the careers page from the job's row on the board strip, or go to
-   http://localhost:4322/brightwater.
+   usual delay. The job is now on http://localhost:4322/brightwater.
 5. **Apply as a candidate (60 s).** On the careers page, open the new job and apply: the notice comes first, then three
    short steps. The form works with JavaScript off too. Back in the dashboard, the application appears in the open job
    without a reload, and its chip follows once the checks finish.
@@ -128,4 +130,5 @@ The [MVP status](../README.md#mvp-status) lists what each of these needs before 
   after a cold start is the slowest.
 - **The sandbox board still says "Submitted".** It waits 20 seconds on purpose, like a real board's review.
 - **No email in Mailpit.** Automations send from the worker after the move commits; it takes a second or two. Only
-  Senior .NET Engineer and jobs from "Brightwater engineering" send candidate emails.
+  Senior .NET Engineer and jobs from "Brightwater engineering" send candidate emails, and Mailpit forgets everything
+  when the stack restarts, so earlier emails are gone after a restart.
