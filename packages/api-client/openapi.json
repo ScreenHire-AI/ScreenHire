@@ -5,6 +5,32 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v1/automation-issues": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "operationId": "ListAutomationIssues",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AutomationIssue"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/meta": {
       "get": {
         "tags": [
@@ -1560,6 +1586,234 @@
         }
       }
     },
+    "/v1/workflows/validate": {
+      "post": {
+        "tags": [
+          "Workflows"
+        ],
+        "operationId": "ValidateWorkflow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowValidationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/workflows/simulate": {
+      "post": {
+        "tags": [
+          "Workflows"
+        ],
+        "operationId": "SimulateWorkflow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSimulationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/automation-runs": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "operationId": "ListAutomationRuns",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AutomationRunEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/tasks": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "operationId": "ListApplicationTasks",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationTaskEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/automations/{automationId}/run": {
+      "post": {
+        "tags": [
+          "Automations"
+        ],
+        "operationId": "RunManualAutomation",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualAutomationQueued"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -1634,6 +1888,25 @@
         ],
         "description": "What the employer allows candidates to do with AI tools while applying."
       },
+      "AnswerFact": {
+        "required": [
+          "questionId",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A candidate's answer to one question. A multiple-choice answer has one value per chosen option."
+      },
       "ApiMeta": {
         "required": [
           "name",
@@ -1666,7 +1939,8 @@
           "aiUseDeclaration",
           "aiUseDetails",
           "submittedAt",
-          "stageEnteredAt"
+          "stageEnteredAt",
+          "tags"
         ],
         "type": "object",
         "properties": {
@@ -1710,14 +1984,21 @@
           "stageEnteredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "One application: the candidate, the job, where it is in the job's workflow, and the candidate's declarations."
+        "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, and the candidate's\r\ndeclarations."
       },
       "ApplicationEventType": {
         "enum": [
           "Submitted",
-          "StageChanged"
+          "StageChanged",
+          "TagAdded"
         ]
       },
       "ApplicationStage": {
@@ -1781,6 +2062,68 @@
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
       },
+      "ApplicationTaskEntry": {
+        "required": [
+          "id",
+          "applicationId",
+          "kind",
+          "note",
+          "assigneeUserId",
+          "automationRunId",
+          "createdAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApplicationTaskKind"
+          },
+          "note": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Something a person should do about an application: a review, a to-do, or a rejection to decide on."
+      },
+      "ApplicationTaskKind": {
+        "enum": [
+          "Review",
+          "Task",
+          "RejectionReview"
+        ]
+      },
       "ApplicationTimelineEntry": {
         "required": [
           "id",
@@ -1789,7 +2132,9 @@
           "actorUserId",
           "fromStageId",
           "toStageId",
-          "note"
+          "note",
+          "tag",
+          "automationRunId"
         ],
         "type": "object",
         "properties": {
@@ -1828,6 +2173,19 @@
               "null",
               "string"
             ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -1939,6 +2297,49 @@
         },
         "description": "One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else."
       },
+      "AutomationActionEntry": {
+        "required": [
+          "index",
+          "action",
+          "status",
+          "detail",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "$ref": "#/components/schemas/AutomationAction"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationActionStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AutomationActionStatus": {
+        "enum": [
+          "Pending",
+          "Completed",
+          "Skipped",
+          "Failed"
+        ]
+      },
       "AutomationCondition": {
         "required": [
           "fact",
@@ -1992,6 +2393,230 @@
           }
         },
         "description": "Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a \"not\". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too."
+      },
+      "AutomationFacts": {
+        "required": [
+          "answers",
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnswerFact"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoursInStage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "integrityAuthenticity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "integrityAiAssistance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verificationResult": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What an automation's conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails."
+      },
+      "AutomationIssue": {
+        "required": [
+          "runId",
+          "applicationId",
+          "jobId",
+          "automationId",
+          "automationName",
+          "status",
+          "detail",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "automationName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationRunStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\r\nfailed (an action failed after its retries). Newest first; the run has the full record."
+      },
+      "AutomationRunEntry": {
+        "required": [
+          "id",
+          "applicationId",
+          "jobId",
+          "automationId",
+          "automationName",
+          "workflowVersion",
+          "trigger",
+          "triggerStageId",
+          "eventId",
+          "eventOccurredAt",
+          "chain",
+          "actorUserId",
+          "facts",
+          "rules",
+          "status",
+          "detail",
+          "actions",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "automationName": {
+            "type": "string"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "triggerStageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventOccurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "chain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/AutomationFacts"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleResult"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationRunStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationActionEntry"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did."
+      },
+      "AutomationRunStatus": {
+        "enum": [
+          "NotMatched",
+          "Skipped",
+          "Blocked",
+          "Running",
+          "Completed",
+          "Failed"
+        ]
       },
       "AutomationTrigger": {
         "required": [
@@ -2354,6 +2979,22 @@
         },
         "description": "The signed-in user, and the organization they work in (null until onboarding)."
       },
+      "DefinitionError": {
+        "required": [
+          "path",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "description": "A problem with a definition, at a JSON path such as `workflow.stages[1].id`."
+      },
       "EmploymentType": {
         "enum": [
           "FullTime",
@@ -2361,6 +3002,14 @@
           "Contract",
           "Temporary",
           "Internship"
+        ]
+      },
+      "EvaluationOutcome": {
+        "enum": [
+          "Matched",
+          "NotMatched",
+          "Skipped",
+          "Blocked"
         ]
       },
       "HiringTemplateDefinition": {
@@ -3197,6 +3846,28 @@
         },
         "description": "Redeems the token from an emailed sign-in link."
       },
+      "ManualAutomationQueued": {
+        "required": [
+          "applicationId",
+          "automationId",
+          "eventId"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "A manual automation was queued. `eventId` keys its run: find it in the application's automation runs."
+      },
       "MoveApplicationRequest": {
         "required": [
           "toStageId"
@@ -3592,6 +4263,26 @@
           "File"
         ]
       },
+      "RuleResult": {
+        "required": [
+          "fact",
+          "operator",
+          "held"
+        ],
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "string"
+          },
+          "operator": {
+            "$ref": "#/components/schemas/ConditionOperator"
+          },
+          "held": {
+            "type": "boolean"
+          }
+        },
+        "description": "One rule's result, so an audit or a simulation shows which conditions held."
+      },
       "SalaryPeriod": {
         "enum": [
           "Hour",
@@ -3676,6 +4367,86 @@
           }
         },
         "description": "An identity provider button on the sign-in page."
+      },
+      "SimulatedAutomation": {
+        "required": [
+          "automationId",
+          "name",
+          "outcome",
+          "rules",
+          "actions",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "automationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/EvaluationOutcome"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleResult"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationAction"
+            }
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What one automation would do. Only automations the trigger fires are listed, in definition order."
+      },
+      "SimulateWorkflowRequest": {
+        "required": [
+          "workflow",
+          "trigger"
+        ],
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/HiringWorkflow"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/AutomationTrigger"
+          },
+          "facts": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutomationFacts"
+              }
+            ]
+          },
+          "accommodationRequested": {
+            "type": "boolean",
+            "default": false
+          },
+          "chain": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\r\nfor facts it does not have."
       },
       "StageKind": {
         "enum": [
@@ -3815,6 +4586,18 @@
         },
         "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
       },
+      "ValidateWorkflowRequest": {
+        "required": [
+          "workflow"
+        ],
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/HiringWorkflow"
+          }
+        },
+        "description": "A workflow to check, as the builder holds it before saving."
+      },
       "WorkflowChange": {
         "required": [
           "path",
@@ -3852,6 +4635,20 @@
           "Changed"
         ]
       },
+      "WorkflowSimulationResult": {
+        "required": [
+          "automations"
+        ],
+        "type": "object",
+        "properties": {
+          "automations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimulatedAutomation"
+            }
+          }
+        }
+      },
       "WorkflowStage": {
         "required": [
           "id",
@@ -3879,6 +4676,25 @@
         },
         "description": "One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal."
       },
+      "WorkflowValidationResult": {
+        "required": [
+          "valid",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefinitionError"
+            }
+          }
+        },
+        "description": "The validator's verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at."
+      },
       "WorkplaceType": {
         "enum": [
           "Onsite",
@@ -3889,6 +4705,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Automations"
+    },
     {
       "name": "Meta"
     },
@@ -3909,6 +4728,9 @@
     },
     {
       "name": "Candidates"
+    },
+    {
+      "name": "Workflows"
     },
     {
       "name": "Schemas"

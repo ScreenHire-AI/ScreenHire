@@ -8,7 +8,10 @@ import type {
   ApiMeta,
   ApplicationDetail,
   ApplicationSummary,
+  ApplicationTaskEntry,
   ApplicationTimelineEntry,
+  AutomationIssue,
+  AutomationRunEntry,
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
@@ -28,18 +31,63 @@ import type {
   JobVersionSummary,
   MagicLinkRequest,
   MagicLinkVerification,
+  ManualAutomationQueued,
   MoveApplicationRequest,
   OnboardingRequest,
   ProblemDetails,
   PublicJob,
   PublicJobBoard,
   SignInMethods,
+  SimulateWorkflowRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
-  UpdateJobRequest
+  UpdateJobRequest,
+  ValidateWorkflowRequest,
+  WorkflowSimulationResult,
+  WorkflowValidationResult
 } from './model';
 
 import { apiFetch } from '../http.ts';
+export type listAutomationIssuesResponse200 = {
+  data: AutomationIssue[]
+  status: 200
+}
+
+export type listAutomationIssuesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAutomationIssuesResponseSuccess = (listAutomationIssuesResponse200) & {
+  headers: Headers;
+};
+export type listAutomationIssuesResponseError = (listAutomationIssuesResponse401) & {
+  headers: Headers;
+};
+
+export type listAutomationIssuesResponse = (listAutomationIssuesResponseSuccess | listAutomationIssuesResponseError)
+
+export const getListAutomationIssuesUrl = () => {
+
+
+
+
+  return `/v1/automation-issues`
+}
+
+export const listAutomationIssues = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listAutomationIssuesResponse> => {
+
+  return apiFetch<listAutomationIssuesResponse>(getListAutomationIssuesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type getMetaResponse200 = {
   data: ApiMeta
   status: 200
@@ -1814,6 +1862,266 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type validateWorkflowResponse200 = {
+  data: WorkflowValidationResult
+  status: 200
+}
+
+export type validateWorkflowResponse401 = {
+  data: void
+  status: 401
+}
+
+export type validateWorkflowResponseSuccess = (validateWorkflowResponse200) & {
+  headers: Headers;
+};
+export type validateWorkflowResponseError = (validateWorkflowResponse401) & {
+  headers: Headers;
+};
+
+export type validateWorkflowResponse = (validateWorkflowResponseSuccess | validateWorkflowResponseError)
+
+export const getValidateWorkflowUrl = () => {
+
+
+
+
+  return `/v1/workflows/validate`
+}
+
+export const validateWorkflow = async (validateWorkflowRequest: ValidateWorkflowRequest, options?: Parameters<typeof apiFetch>[1]): Promise<validateWorkflowResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<validateWorkflowResponse>(getValidateWorkflowUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(validateWorkflowRequest)
+  }
+);}
+
+
+
+export type simulateWorkflowResponse200 = {
+  data: WorkflowSimulationResult
+  status: 200
+}
+
+export type simulateWorkflowResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type simulateWorkflowResponse401 = {
+  data: void
+  status: 401
+}
+
+export type simulateWorkflowResponseSuccess = (simulateWorkflowResponse200) & {
+  headers: Headers;
+};
+export type simulateWorkflowResponseError = (simulateWorkflowResponse400 | simulateWorkflowResponse401) & {
+  headers: Headers;
+};
+
+export type simulateWorkflowResponse = (simulateWorkflowResponseSuccess | simulateWorkflowResponseError)
+
+export const getSimulateWorkflowUrl = () => {
+
+
+
+
+  return `/v1/workflows/simulate`
+}
+
+export const simulateWorkflow = async (simulateWorkflowRequest: SimulateWorkflowRequest, options?: Parameters<typeof apiFetch>[1]): Promise<simulateWorkflowResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<simulateWorkflowResponse>(getSimulateWorkflowUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(simulateWorkflowRequest)
+  }
+);}
+
+
+
+export type listAutomationRunsResponse200 = {
+  data: AutomationRunEntry[]
+  status: 200
+}
+
+export type listAutomationRunsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAutomationRunsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listAutomationRunsResponseSuccess = (listAutomationRunsResponse200) & {
+  headers: Headers;
+};
+export type listAutomationRunsResponseError = (listAutomationRunsResponse401 | listAutomationRunsResponse404) & {
+  headers: Headers;
+};
+
+export type listAutomationRunsResponse = (listAutomationRunsResponseSuccess | listAutomationRunsResponseError)
+
+export const getListAutomationRunsUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/automation-runs`
+}
+
+export const listAutomationRuns = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listAutomationRunsResponse> => {
+
+  return apiFetch<listAutomationRunsResponse>(getListAutomationRunsUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listApplicationTasksResponse200 = {
+  data: ApplicationTaskEntry[]
+  status: 200
+}
+
+export type listApplicationTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationTasksResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationTasksResponseSuccess = (listApplicationTasksResponse200) & {
+  headers: Headers;
+};
+export type listApplicationTasksResponseError = (listApplicationTasksResponse401 | listApplicationTasksResponse404) & {
+  headers: Headers;
+};
+
+export type listApplicationTasksResponse = (listApplicationTasksResponseSuccess | listApplicationTasksResponseError)
+
+export const getListApplicationTasksUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tasks`
+}
+
+export const listApplicationTasks = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationTasksResponse> => {
+
+  return apiFetch<listApplicationTasksResponse>(getListApplicationTasksUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type runManualAutomationResponse202 = {
+  data: ManualAutomationQueued
+  status: 202
+}
+
+export type runManualAutomationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type runManualAutomationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type runManualAutomationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type runManualAutomationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type runManualAutomationResponseSuccess = (runManualAutomationResponse202) & {
+  headers: Headers;
+};
+export type runManualAutomationResponseError = (runManualAutomationResponse400 | runManualAutomationResponse401 | runManualAutomationResponse403 | runManualAutomationResponse404) & {
+  headers: Headers;
+};
+
+export type runManualAutomationResponse = (runManualAutomationResponseSuccess | runManualAutomationResponseError)
+
+export const getRunManualAutomationUrl = (applicationId: string,
+    automationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/automations/${automationId}/run`
+}
+
+export const runManualAutomation = async (applicationId: string,
+    automationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<runManualAutomationResponse> => {
+
+  return apiFetch<runManualAutomationResponse>(getRunManualAutomationUrl(applicationId,automationId),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

@@ -50,6 +50,8 @@ app.MapPublicJobEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapWorkflowEndpoints();
+app.MapAutomationEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 

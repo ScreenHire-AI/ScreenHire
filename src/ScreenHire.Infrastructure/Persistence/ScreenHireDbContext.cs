@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -51,6 +52,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<JobApplication> Applications => Set<JobApplication>();
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
+
+    public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
+
+    public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();
+
+    public DbSet<ApplicationTask> ApplicationTasks => Set<ApplicationTask>();
 
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 

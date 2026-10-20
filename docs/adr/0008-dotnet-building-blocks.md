@@ -37,6 +37,12 @@
 - **Multi-tenancy (2026-10-20).** The named query filter is `Tenant`, on every `ITenantOwned` entity. RLS settings
   are set per command by an EF command interceptor rather than once per transaction, because EF runs plain queries
   without a transaction; SaveChanges always runs in one so the setting can go first as its own command.
+- **Workflow engine and transactional email (2026-10-20).** Email templates use Fluid.Core (MIT, Liquid syntax; its
+  dependencies are Parlot, BSD-3-Clause, and TimeZoneConverter, MIT). Scriban (BSD-2-Clause) would also pass the policy; Fluid was
+  chosen for explicit HTML encoding per render, which keeps candidate names out of the markup. The CallWebhook action
+  uses one long-lived `HttpClient`, not `IHttpClientFactory`: the service defaults add a retrying resilience handler to
+  every factory client, Wolverine already retries the action, and the opt-out (`RemoveAllResilienceHandlers`) is still
+  experimental. Details: `docs/architecture/workflow-engine.md` section 8.
 
 ## Licence policy
 - Prefer MIT / Apache-2.0 / BSD / PostgreSQL licences.

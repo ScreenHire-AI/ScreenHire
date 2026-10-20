@@ -26,6 +26,16 @@ export const realtimeEventSchemas = {
     eventId: id,
     submittedAt: instant,
   }),
+  // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
+  AutomationRunFinished: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    runId: id,
+    automationId: z.string(),
+    status: z.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
+    finishedAt: instant,
+  }),
   HiringTemplateVersionPublished: z.object({
     organizationId: id,
     templateId: id,
@@ -43,6 +53,7 @@ export const realtimeEventSchemas = {
     jobVersionId: id.nullable(),
   }),
   LiveUpdatesChecked: z.object({ organizationId: id, checkId: id }),
+  TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
 } as const;
 
 export type RealtimeEventType = keyof typeof realtimeEventSchemas;

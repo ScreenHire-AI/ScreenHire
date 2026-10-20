@@ -23,6 +23,18 @@
     }
   },
   {
+    "type": "AutomationRunFinished",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "runId": "0199f0c4-0000-7000-8000-000000000004",
+      "automationId": "sample-5",
+      "status": "NotMatched",
+      "finishedAt": "2026-10-20T09:07:00+00:00"
+    }
+  },
+  {
     "type": "HiringTemplateVersionPublished",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",
@@ -55,6 +67,16 @@
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",
       "checkId": "0199f0c4-0000-7000-8000-000000000002"
+    }
+  },
+  {
+    "type": "TeamNotified",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "runId": "0199f0c4-0000-7000-8000-000000000004",
+      "notifiedAt": "2026-10-20T09:05:00+00:00"
     }
   }
 ]
