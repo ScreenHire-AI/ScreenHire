@@ -113,13 +113,14 @@ public static class Extensions
         if (app.Environment.IsDevelopment())
         {
             // All health checks must pass for app to be considered ready to accept traffic after starting
-            app.MapHealthChecks(HealthEndpointPath);
+            // Anonymous even when the app requires sign-in everywhere else: Aspire and the test fixtures probe them.
+            app.MapHealthChecks(HealthEndpointPath).AllowAnonymous();
 
             // Only health checks tagged with the "live" tag must pass for app to be considered alive
             app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
             {
                 Predicate = r => r.Tags.Contains("live")
-            });
+            }).AllowAnonymous();
         }
 
         return app;

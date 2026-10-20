@@ -6,9 +6,21 @@
  */
 
 export * from './apiMeta.ts';
+export * from './challengeProviderParams.ts';
+export * from './currentOrganization.ts';
+export * from './currentUser.ts';
 export * from './employmentType.ts';
+export * from './httpValidationProblemDetails.ts';
+export * from './httpValidationProblemDetailsErrors.ts';
 export * from './jobStatus.ts';
 export * from './jobSummary.ts';
+export * from './magicLinkRequest.ts';
+export * from './magicLinkVerification.ts';
+export * from './onboardingRequest.ts';
+export * from './organizationRole.ts';
+export * from './problemDetails.ts';
 export * from './publicJob.ts';
 export * from './publicJobBoard.ts';
+export * from './signInMethods.ts';
+export * from './signInProvider.ts';
 export * from './workplaceType.ts';

@@ -1,0 +1,285 @@
+using System.Security.Claims;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
+using ScreenHire.Api.Auth;
+using ScreenHire.Api.Configuration;
+using ScreenHire.Api.Contracts;
+using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Identity;
+using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
+
+namespace ScreenHire.Api.Endpoints;
+
+/// <summary>
+/// Sign-in, onboarding and sign-out for the recruiter dashboard. There are no passwords: a person signs in with an
+/// identity provider or an emailed link, and the first sign-in creates their account. Every POST needs the antiforgery
+/// header and counts against the per-IP rate limit.
+/// </summary>
+internal static class AuthEndpoints
+{
+    private const string AlreadyUsedLink = "This sign-in link has expired or has already been used. Ask for a new one.";
+
+    public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/v1/auth").WithTags("Auth");
+
+        group.MapGet("/providers", GetSignInMethods).WithName("GetSignInMethods").AllowAnonymous();
+        group.MapGet("/me", GetCurrentUser).WithName("GetCurrentUser").AllowAnonymous();
+        group.MapGet("/challenge/{provider}", ChallengeProvider).WithName("ChallengeProvider").AllowAnonymous()
+            .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy);
+        // Where a provider's handler sends the browser once it has validated the response; a redirect, not an API call.
+        group.MapGet("/callback", CompleteExternalSignIn).WithName("CompleteExternalSignIn").AllowAnonymous()
+            .ExcludeFromDescription();
+
+        var mutations = group.MapGroup("").RequireAntiforgeryToken().RequireRateLimiting(AuthenticationSetup.RateLimitPolicy);
+        mutations.MapPost("/magic-link", RequestMagicLink).WithName("RequestMagicLink").AllowAnonymous();
+        mutations.MapPost("/magic-link/verify", VerifyMagicLink).WithName("VerifyMagicLink").AllowAnonymous();
+        mutations.MapPost("/onboarding", CompleteOnboarding).WithName("CompleteOnboarding");
+        // Cast: a handler taking only HttpContext would otherwise bind as a RequestDelegate and drop its result.
+        mutations.MapPost("/sign-out", (Delegate)SignOut).WithName("SignOut").AllowAnonymous();
+
+        return app;
+    }
+
+    // Also hands out the antiforgery token the sign-in page's POSTs need.
+    private static Ok<SignInMethods> GetSignInMethods(HttpContext context, ExternalProviders providers, IServiceProviderIsService services)
+    {
+        Antiforgery.IssueRequestToken(context);
+        return TypedResults.Ok(new SignInMethods(
+            [.. providers.All.Select(p => new SignInProvider(p.Id, p.DisplayName))],
+            services.IsService(typeof(MagicLinks))));
+    }
+
+    private static async Task<Results<Ok<CurrentUser>, UnauthorizedHttpResult>> GetCurrentUser(
+        HttpContext context, UserManager<ApplicationUser> users, ITenantContext tenant, ScreenHireDbContext db,
+        CancellationToken cancellationToken)
+    {
+        if (await users.GetUserAsync(context.User) is not { } user)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        Antiforgery.IssueRequestToken(context);
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+    }
+
+    private static Results<ChallengeHttpResult, NotFound> ChallengeProvider(
+        string provider, string? returnUrl, ExternalProviders providers, SignInManager<ApplicationUser> signIn)
+    {
+        if (providers.Find(provider) is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var callback = $"/v1/auth/callback?returnUrl={Uri.EscapeDataString(ReturnUrls.Sanitize(returnUrl))}";
+        return TypedResults.Challenge(signIn.ConfigureExternalAuthenticationProperties(provider, callback), [provider]);
+    }
+
+    private static async Task<RedirectHttpResult> CompleteExternalSignIn(
+        string? returnUrl, HttpContext context, SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users,
+        ExternalProviders providers, IOptions<DomainOptions> domains, TimeProvider time)
+    {
+        var appDomains = domains.Value;
+        RedirectHttpResult Failed(string reason) => TypedResults.Redirect(appDomains.AppUrl($"/sign-in?error={reason}").ToString());
+
+        var login = await signIn.GetExternalLoginInfoAsync();
+        try
+        {
+            if (login is null || providers.Find(login.LoginProvider) is not { } provider)
+            {
+                return Failed("provider");
+            }
+
+            var existing = await signIn.ExternalLoginSignInAsync(login.LoginProvider, login.ProviderKey, isPersistent: true, bypassTwoFactor: true);
+            if (!existing.Succeeded)
+            {
+                // A new identity: link it to the user with the same email, or create one, but only when the provider vouches
+                // for the address. Otherwise anyone could claim someone else's account by putting their email on theirs.
+                var email = login.Principal.FindFirstValue("email");
+                if (email is null || !EmailVerification.IsVerified(provider.Kind, login.Principal))
+                {
+                    return Failed("email-unverified");
+                }
+
+                var user = await users.FindByEmailAsync(email)
+                    ?? await CreateUserAsync(users, email, login.Principal.FindFirstValue("name"), time.GetUtcNow());
+                if (user is null || !(await users.AddLoginAsync(user, login)).Succeeded)
+                {
+                    return Failed("provider");
+                }
+
+                await signIn.SignInAsync(user, isPersistent: true, login.LoginProvider);
+            }
+        }
+        finally
+        {
+            await context.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+
+        return TypedResults.Redirect(appDomains.AppUrl(ReturnUrls.Sanitize(returnUrl)).ToString());
+    }
+
+    // The same reply whether or not the address has an account, and whether or not its link limit was reached.
+    private static async Task<Results<Accepted, ValidationProblem, NotFound>> RequestMagicLink(
+        MagicLinkRequest request, IValidator<MagicLinkRequest> validator, IServiceProvider services, CancellationToken cancellationToken)
+    {
+        if (services.GetService<MagicLinks>() is not { } magicLinks)
+        {
+            return TypedResults.NotFound(); // no email sender is configured, so the sign-in page hides the form
+        }
+
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        await magicLinks.SendAsync(request.Email, cancellationToken);
+        return TypedResults.Accepted((string?)null);
+    }
+
+    private static async Task<Results<NoContent, ValidationProblem, NotFound>> VerifyMagicLink(
+        MagicLinkVerification request, IValidator<MagicLinkVerification> validator, IServiceProvider services,
+        HttpContext context, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (services.GetService<MagicLinks>() is not { } magicLinks)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        if (await magicLinks.RedeemAsync(request.Token, cancellationToken) is not { } email)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["token"] = [AlreadyUsedLink] });
+        }
+
+        var user = await users.FindByEmailAsync(email) ?? await CreateUserAsync(users, email, null, time.GetUtcNow())
+            ?? throw new InvalidOperationException("Could not create the user for a redeemed sign-in link.");
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true; // following the link proves the address
+            await users.UpdateAsync(user);
+        }
+
+        await SignInAsync(context, signIn, user);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CompleteOnboarding(
+        OnboardingRequest request, IValidator<OnboardingRequest> validator, HttpContext context, UserManager<ApplicationUser> users,
+        TenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        if (await users.GetUserAsync(context.User) is not { } user)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        if (tenant.OrganizationId is not null)
+        {
+            return TypedResults.Conflict(new ProblemDetails
+            {
+                Title = "Already onboarded",
+                Detail = "You already belong to an organization.",
+                Status = StatusCodes.Status409Conflict,
+            });
+        }
+
+        if (await db.Organizations.AnyAsync(o => o.Slug == request.Slug, cancellationToken))
+        {
+            return SlugTaken();
+        }
+
+        var organization = new Organization
+        {
+            Name = request.OrganizationName.Trim(),
+            Slug = request.Slug,
+            // Data residency (ADR-0007) is not chosen at sign-up yet; every organization starts in the EU region.
+            HomeRegion = "eu",
+        };
+        // The new organization is the tenant from here on, so the membership row passes row-level security's WITH CHECK.
+        tenant.SetOrganization(organization.Id);
+        db.Organizations.Add(organization);
+        db.OrganizationMembers.Add(new OrganizationMember
+        {
+            OrganizationId = organization.Id,
+            UserId = user.Id,
+            Role = OrganizationRole.Owner,
+            CreatedAt = time.GetUtcNow(),
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            return SlugTaken(); // another sign-up took the slug between the check and the insert
+        }
+
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+    }
+
+    private static async Task<NoContent> SignOut(HttpContext context)
+    {
+        await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+        context.User = new ClaimsPrincipal(new ClaimsIdentity());
+        Antiforgery.IssueRequestToken(context);
+        return TypedResults.NoContent();
+    }
+
+    private static ValidationProblem SlugTaken() =>
+        TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["slug"] = ["That address is taken. Choose another."] });
+
+    private static async Task<ApplicationUser?> CreateUserAsync(
+        UserManager<ApplicationUser> users, string email, string? displayName, DateTimeOffset now)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true, // only verified addresses reach here
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim(),
+            CreatedAt = now,
+        };
+        return (await users.CreateAsync(user)).Succeeded ? user : null;
+    }
+
+    // Signs in and re-issues the antiforgery token: tokens are bound to the user, so the anonymous one stops working.
+    private static async Task SignInAsync(HttpContext context, SignInManager<ApplicationUser> signIn, ApplicationUser user)
+    {
+        var principal = await signIn.CreateUserPrincipalAsync(user);
+        await context.SignInAsync(IdentityConstants.ApplicationScheme, principal, new AuthenticationProperties { IsPersistent = true });
+        context.User = principal;
+        Antiforgery.IssueRequestToken(context);
+    }
+
+    private static async Task<CurrentUser> DescribeAsync(
+        ApplicationUser user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var organization = tenant.OrganizationId is { } organizationId
+            ? await db.OrganizationMembers.AsNoTracking()
+                .Where(m => m.OrganizationId == organizationId && m.UserId == user.Id)
+                .Join(db.Organizations, m => m.OrganizationId, o => o.Id, (m, o) => new CurrentOrganization(o.Id, o.Name, o.Slug, m.Role))
+                .SingleOrDefaultAsync(cancellationToken)
+            : null;
+
+        var email = user.Email ?? "";
+        return new CurrentUser(user.Id, email, user.DisplayName ?? email, organization);
+    }
+}

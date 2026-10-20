@@ -1,0 +1,51 @@
+{
+  "interactiveLogin": true,
+  "httpServer": "NettyWrapper",
+  "loginPagePath": "/dev-sso/login.html",
+  "tokenCallbacks": [
+    {
+      "issuerId": "default",
+      "requestMappings": [
+        {
+          "requestParam": "subject",
+          "match": "brightwater-owner",
+          "claims": {
+            "sub": "brightwater-owner",
+            "email": "avery@brightwater.example.com",
+            "email_verified": true,
+            "name": "Avery Quinn"
+          }
+        },
+        {
+          "requestParam": "subject",
+          "match": "new-recruiter",
+          "claims": {
+            "sub": "new-recruiter",
+            "email": "sam@example.org",
+            "email_verified": true,
+            "name": "Sam Rivera"
+          }
+        },
+        {
+          "requestParam": "subject",
+          "match": "unverified",
+          "claims": {
+            "sub": "unverified",
+            "email": "avery@brightwater.example.com",
+            "email_verified": false,
+            "name": "Unverified address"
+          }
+        },
+        {
+          "requestParam": "subject",
+          "match": ".+@.+",
+          "claims": {
+            "email": "${subject}",
+            "email_verified": true,
+            "name": "${subject}"
+          }
+        }
+      ]
+    }
+  ]
+}

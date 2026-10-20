@@ -6,9 +6,17 @@
  */
 import type {
   ApiMeta,
+  ChallengeProviderParams,
+  CurrentUser,
+  HttpValidationProblemDetails,
   JobSummary,
+  MagicLinkRequest,
+  MagicLinkVerification,
+  OnboardingRequest,
+  ProblemDetails,
   PublicJob,
-  PublicJobBoard
+  PublicJobBoard,
+  SignInMethods
 } from './model';
 
 import { apiFetch } from '../http.ts';
@@ -38,6 +46,324 @@ export const getMeta = async ( options?: Parameters<typeof apiFetch>[1]): Promis
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getSignInMethodsResponse200 = {
+  data: SignInMethods
+  status: 200
+}
+
+export type getSignInMethodsResponseSuccess = (getSignInMethodsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getSignInMethodsResponse = (getSignInMethodsResponseSuccess)
+
+export const getGetSignInMethodsUrl = () => {
+
+
+
+
+  return `/v1/auth/providers`
+}
+
+export const getSignInMethods = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSignInMethodsResponse> => {
+
+  return apiFetch<getSignInMethodsResponse>(getGetSignInMethodsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getCurrentUserResponse200 = {
+  data: CurrentUser
+  status: 200
+}
+
+export type getCurrentUserResponseSuccess = (getCurrentUserResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getCurrentUserResponse = (getCurrentUserResponseSuccess)
+
+export const getGetCurrentUserUrl = () => {
+
+
+
+
+  return `/v1/auth/me`
+}
+
+export const getCurrentUser = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getCurrentUserResponse> => {
+
+  return apiFetch<getCurrentUserResponse>(getGetCurrentUserUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type challengeProviderResponse404 = {
+  data: void
+  status: 404
+}
+
+;
+export type challengeProviderResponseError = (challengeProviderResponse404) & {
+  headers: Headers;
+};
+
+export type challengeProviderResponse = (challengeProviderResponseError)
+
+export const getChallengeProviderUrl = (provider: string,
+    params?: ChallengeProviderParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/auth/challenge/${provider}?${stringifiedParams}` : `/v1/auth/challenge/${provider}`
+}
+
+export const challengeProvider = async (provider: string,
+    params?: ChallengeProviderParams, options?: Parameters<typeof apiFetch>[1]): Promise<challengeProviderResponse> => {
+
+  return apiFetch<challengeProviderResponse>(getChallengeProviderUrl(provider,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type requestMagicLinkResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestMagicLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestMagicLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestMagicLinkResponseSuccess = (requestMagicLinkResponse202) & {
+  headers: Headers;
+};
+export type requestMagicLinkResponseError = (requestMagicLinkResponse400 | requestMagicLinkResponse404) & {
+  headers: Headers;
+};
+
+export type requestMagicLinkResponse = (requestMagicLinkResponseSuccess | requestMagicLinkResponseError)
+
+export const getRequestMagicLinkUrl = () => {
+
+
+
+
+  return `/v1/auth/magic-link`
+}
+
+export const requestMagicLink = async (magicLinkRequest: MagicLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestMagicLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<requestMagicLinkResponse>(getRequestMagicLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(magicLinkRequest)
+  }
+);}
+
+
+
+export type verifyMagicLinkResponse204 = {
+  data: void
+  status: 204
+}
+
+export type verifyMagicLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type verifyMagicLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type verifyMagicLinkResponseSuccess = (verifyMagicLinkResponse204) & {
+  headers: Headers;
+};
+export type verifyMagicLinkResponseError = (verifyMagicLinkResponse400 | verifyMagicLinkResponse404) & {
+  headers: Headers;
+};
+
+export type verifyMagicLinkResponse = (verifyMagicLinkResponseSuccess | verifyMagicLinkResponseError)
+
+export const getVerifyMagicLinkUrl = () => {
+
+
+
+
+  return `/v1/auth/magic-link/verify`
+}
+
+export const verifyMagicLink = async (magicLinkVerification: MagicLinkVerification, options?: Parameters<typeof apiFetch>[1]): Promise<verifyMagicLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<verifyMagicLinkResponse>(getVerifyMagicLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(magicLinkVerification)
+  }
+);}
+
+
+
+export type completeOnboardingResponse200 = {
+  data: CurrentUser
+  status: 200
+}
+
+export type completeOnboardingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type completeOnboardingResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type completeOnboardingResponseSuccess = (completeOnboardingResponse200) & {
+  headers: Headers;
+};
+export type completeOnboardingResponseError = (completeOnboardingResponse400 | completeOnboardingResponse409) & {
+  headers: Headers;
+};
+
+export type completeOnboardingResponse = (completeOnboardingResponseSuccess | completeOnboardingResponseError)
+
+export const getCompleteOnboardingUrl = () => {
+
+
+
+
+  return `/v1/auth/onboarding`
+}
+
+export const completeOnboarding = async (onboardingRequest: OnboardingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<completeOnboardingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<completeOnboardingResponse>(getCompleteOnboardingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(onboardingRequest)
+  }
+);}
+
+
+
+export type signOutResponse204 = {
+  data: void
+  status: 204
+}
+
+export type signOutResponseSuccess = (signOutResponse204) & {
+  headers: Headers;
+};
+;
+
+export type signOutResponse = (signOutResponseSuccess)
+
+export const getSignOutUrl = () => {
+
+
+
+
+  return `/v1/auth/sign-out`
+}
+
+export const signOut = async ( options?: Parameters<typeof apiFetch>[1]): Promise<signOutResponse> => {
+
+  return apiFetch<signOutResponse>(getSignOutUrl(),
+  {
+    ...options,
+    method: 'POST'
 
 
   }
@@ -150,6 +476,46 @@ export const getListJobsUrl = () => {
 export const listJobs = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listJobsResponse> => {
 
   return apiFetch<listJobsResponse>(getListJobsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getJobResponse200 = {
+  data: JobSummary
+  status: 200
+}
+
+export type getJobResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobResponseSuccess = (getJobResponse200) & {
+  headers: Headers;
+};
+export type getJobResponseError = (getJobResponse404) & {
+  headers: Headers;
+};
+
+export type getJobResponse = (getJobResponseSuccess | getJobResponseError)
+
+export const getGetJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}`
+}
+
+export const getJob = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobResponse> => {
+
+  return apiFetch<getJobResponse>(getGetJobUrl(jobId),
   {
     ...options,
     method: 'GET'

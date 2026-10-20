@@ -72,6 +72,9 @@ public class AppHostFixture : IAsyncLifetime
 
     public Uri GetEndpoint(string resource) => App.GetEndpoint(resource, "http");
 
+    /// <summary>The email the stack has sent, from the AppHost's Mailpit container.</summary>
+    public Mailpit Mailpit => new(GetEndpoint("mailpit"));
+
     /// <summary>
     /// A context on the AppHost's database as the application role (<c>screenhire_app</c>), so row-level security
     /// applies exactly as it does in the API: it sees and writes only <paramref name="tenant"/>'s organization. Prefer

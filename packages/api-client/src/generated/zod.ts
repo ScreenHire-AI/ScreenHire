@@ -13,6 +13,74 @@ export const GetMetaResponse = zod.object({
 }).describe('What is serving this API: the product name, the build version and the hosting environment.')
 
 
+export const GetSignInMethodsResponse = zod.object({
+  "providers": zod.array(zod.object({
+  "id": zod.string(),
+  "displayName": zod.string()
+}).describe('An identity provider button on the sign-in page.')),
+  "magicLinkEnabled": zod.boolean()
+}).describe('How a person can sign in here: the configured identity providers, and whether email links work.')
+
+
+export const GetCurrentUserResponse = zod.object({
+  "id": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "organization": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])
+}).describe('The organization the signed-in user works in, and their role there.')])
+}).describe('The signed-in user, and the organization they work in (null until onboarding).')
+
+
+export const ChallengeProviderParams = zod.object({
+  "provider": zod.string()
+})
+
+export const ChallengeProviderQueryParams = zod.object({
+  "returnUrl": zod.string().optional()
+})
+
+export const ChallengeProviderResponse = zod.void()
+
+
+export const RequestMagicLinkBody = zod.object({
+  "email": zod.string()
+}).describe('Asks for a sign-in link by email.')
+
+export const RequestMagicLinkResponse = zod.void()
+
+
+export const VerifyMagicLinkBody = zod.object({
+  "token": zod.string()
+}).describe('Redeems the token from an emailed sign-in link.')
+
+export const VerifyMagicLinkResponse = zod.void()
+
+
+export const CompleteOnboardingBody = zod.object({
+  "organizationName": zod.string(),
+  "slug": zod.string()
+}).describe('Creates the signed-in user\'s organization, with them as its Owner.')
+
+export const CompleteOnboardingResponse = zod.object({
+  "id": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "organization": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])
+}).describe('The organization the signed-in user works in, and their role there.')])
+}).describe('The signed-in user, and the organization they work in (null until onboarding).')
+
+
+export const SignOutResponse = zod.void()
+
+
 export const ListPublicJobsParams = zod.object({
   "organizationSlug": zod.string()
 })
@@ -65,3 +133,19 @@ export const ListJobsResponseItem = zod.object({
   "publishedAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('A job as shown in the recruiter dashboard.')
 export const ListJobsResponse = zod.array(ListJobsResponseItem)
+
+
+export const GetJobParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const GetJobResponse = zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "location": zod.string(),
+  "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
+  "status": zod.enum(['Draft', 'Open', 'Closed']),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A job as shown in the recruiter dashboard.')

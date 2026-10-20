@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Dev SSO · ScreenHire local sign-in</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; padding: 32px 16px; line-height: 1.5; }
+      main { max-width: 440px; margin: 0 auto; }
+      form { margin: 0 0 12px; }
+      button, input { font: inherit; padding: 8px 12px; }
+      button { width: 100%; text-align: left; cursor: pointer; }
+      label { display: block; margin: 20px 0 4px; font-weight: 600; }
+      input { width: 100%; box-sizing: border-box; }
+      .any button { margin-top: 8px; text-align: center; }
+      small { display: block; }
+    </style>
+  </head>
+  <body>
+    <!--
+      The local mock OpenID Connect provider (navikt/mock-oauth2-server), Development only. Each form posts a
+      username; apps/apphost/DevSso/config.json maps it to the claims in the ID token. No real account exists.
+    -->
+    <main>
+      <h1>Dev SSO</h1>
+      <p>A local stand-in for an identity provider. Pick a seeded user, or sign in as any email address.</p>
+
+      <form method="post">
+        <input type="hidden" name="username" value="brightwater-owner" />
+        <button type="submit">Avery Quinn<small>Owner of Brightwater Studio (seeded)</small></button>
+      </form>
+      <form method="post">
+        <input type="hidden" name="username" value="new-recruiter" />
+        <button type="submit">Sam Rivera<small>New user with no organization yet</small></button>
+      </form>
+      <form method="post">
+        <input type="hidden" name="username" value="unverified" />
+        <button type="submit">Unverified address<small>A provider that does not vouch for the email</small></button>
+      </form>
+
+      <form method="post" class="any">
+        <label for="email">Any email address</label>
+        <input id="email" name="username" type="email" autocomplete="off" placeholder="name@example.com" required />
+        <button type="submit">Sign in with this address</button>
+      </form>
+    </main>
+  </body>
+</html>

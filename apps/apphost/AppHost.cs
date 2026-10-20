@@ -10,6 +10,8 @@
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
+using Microsoft.Extensions.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var settings = builder.Configuration.GetSection("ScreenHire");
@@ -52,14 +54,43 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator =>
 });
 var blobs = storage.AddBlobs("blobs");
 
+// Mailpit catches every email the stack sends (sign-in links); its web UI and HTTP API show them. Random ports, like
+// the other containers, so worktrees never collide; the Aspire dashboard shows the URL.
+var mailpit = builder.AddMailPit("mailpit")
+    // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
+    .WithEnvironment("MP_SMTP_DISABLE_RDNS", "true");
+
 var api = builder.AddProject<Projects.ScreenHire_Api>("api")
     .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Api", 5080))
     .WithReference(database).WaitFor(database)
     .WithReference(appDatabase)
+    .WithReference(mailpit).WaitFor(mailpit)
     .WithReference(blobs).WaitFor(blobs)
     // Kestrel only listens after the Development migrate-and-seed, so a healthy API has its schema and demo data.
     // Everything that waits for it (worker, frontends, test fixtures) starts after that, not when the process starts.
     .WithHttpHealthCheck("/health");
+
+// Dev SSO: a local mock OpenID Connect provider (navikt/mock-oauth2-server, MIT) with seeded users, so sign-in runs
+// with no real provider account. Development only; DevSso/config.json maps each user to the claims it signs in with,
+// and DevSso/login.html lists them. The API sees it as any other generic provider (ScreenHire:Auth:Oidc:dev-sso).
+if (builder.Environment.IsDevelopment())
+{
+    var devSsoSecret = builder.AddParameter(
+        "dev-sso-client-secret", new GenerateParameterDefault { MinLength = 24, Special = false }, secret: true);
+    var devSso = builder.AddContainer("dev-sso", "navikt/mock-oauth2-server", "6.1.2")
+        .WithImageRegistry("ghcr.io")
+        .WithHttpEndpoint(targetPort: 8080)
+        .WithEnvironment("SERVER_PORT", "8080")
+        .WithEnvironment("JSON_CONFIG", File.ReadAllText(Path.Combine(builder.AppHostDirectory, "DevSso", "config.json")))
+        .WithContainerFiles("/dev-sso", Path.Combine(builder.AppHostDirectory, "DevSso"))
+        .WithHttpHealthCheck("/isalive");
+
+    api.WithEnvironment("ScreenHire__Auth__Oidc__dev-sso__Authority", ReferenceExpression.Create($"{devSso.GetEndpoint("http")}/default"))
+        .WithEnvironment("ScreenHire__Auth__Oidc__dev-sso__ClientId", "screenhire-dev")
+        .WithEnvironment("ScreenHire__Auth__Oidc__dev-sso__ClientSecret", devSsoSecret)
+        .WithEnvironment("ScreenHire__Auth__Oidc__dev-sso__DisplayName", "Dev SSO")
+        .WaitFor(devSso);
+}
 
 builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
@@ -84,13 +115,24 @@ if (frontends != FrontendMode.None)
         .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")
         .WithHttpHealthCheck("/");
 
-    builder.AddViteApp("dashboard", "../dashboard", script)
+    var dashboard = builder.AddViteApp("dashboard", "../dashboard", script)
         .WithPnpm(install: false)
         .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Dashboard", 4323))
         .WithEnvironment("API_URL", apiUrl)
         .WithHttpHealthCheck("/")
         .WaitFor(api);
+
+    // Sign-in cookies, OIDC redirect URIs and emailed links point at the dashboard, which reaches the API through its
+    // /v1 proxy. Its real endpoint, because ports are random in tests.
+    api.WithEnvironment("ScreenHire__Domains__AppHost", dashboard.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
 }
+else
+{
+    // No dashboard: the API serves its own sign-in redirects.
+    api.WithEnvironment("ScreenHire__Domains__AppHost", api.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
+}
+
+api.WithEnvironment("ScreenHire__Domains__ApiHost", api.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
 
 builder.Build().Run();
 
