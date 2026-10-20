@@ -23,6 +23,14 @@ public sealed class Organization
     /// </summary>
     public string? BrandColor { get; private set; }
 
+    /// <summary>
+    /// The organization opted in to the cross-employer Signal Network (ADR-0005): contributing is the price of querying.
+    /// Off by default, and it does nothing while the network's feature flag is off. Like every column here it is readable
+    /// by any tenant under row-level security (organizations are public), so it never goes into a DTO; when the network
+    /// is built, consent moves to a tenant-scoped table.
+    /// </summary>
+    public bool SignalNetworkOptIn { get; set; }
+
     /// <summary>The careers-page palette, or null when the organization has no brand colour.</summary>
     public BrandPalette? GetBrandPalette() => BrandColor is null ? null : BrandPalette.Derive(BrandColor);
 

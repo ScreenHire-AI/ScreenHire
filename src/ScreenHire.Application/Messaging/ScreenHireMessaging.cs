@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -185,6 +186,7 @@ public static class ScreenHireMessaging
 
         // Integrations the handlers use, each with a local adapter until a real one is registered first (CLAUDE.md).
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
+        opts.Services.AddScreenHireIntegrity();
 
         UsePostgres(opts, connectionString, settings);
         opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox();
@@ -246,6 +248,8 @@ public static class ScreenHireMessaging
     {
         ArgumentNullException.ThrowIfNull(opts);
         opts.Schedules.ScheduleRecurring<ReportOpenJobs>("*/5 * * * *");
+        // Raw network and telemetry data past its retention, daily (docs/architecture/integrity-engine.md, "Retention").
+        opts.Schedules.ScheduleRecurring<PurgeExpiredIntegrityData>("17 3 * * *");
     }
 
     /// <summary>

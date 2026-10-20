@@ -73,6 +73,11 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// never held against anyone. <c>privacyNoticeVersion</c> is the notice the candidate was shown before anything was
 /// collected. <c>honeypotFilled</c> and <c>botCheckToken</c> come from the form's bot checks; they are recorded as signals
 /// and never refuse a submission.
+/// The rest is session context for the integrity engine, all optional and none of it ever a reason to refuse:
+/// <c>userAgent</c> is the candidate's browser as the careers server received it; <c>formStartedAt</c> is when the careers
+/// server first showed the form; <c>automationMarkers</c> are markers the page detected, such as <c>webdriver</c>;
+/// <c>deviceFingerprint</c> is the page's device identifier, which the API hashes per organization and never stores as
+/// sent. The candidate's address comes from the connection (<c>X-Forwarded-For</c> from a trusted proxy).
 /// </remarks>
 public sealed record PublicApplicationRequest(
     CandidateInput Candidate,
@@ -82,7 +87,11 @@ public sealed record PublicApplicationRequest(
     AiUseDeclaration AiUseDeclaration = AiUseDeclaration.NotProvided,
     string? AiUseDetails = null,
     bool HoneypotFilled = false,
-    string? BotCheckToken = null);
+    string? BotCheckToken = null,
+    string? UserAgent = null,
+    DateTimeOffset? FormStartedAt = null,
+    IReadOnlyList<string>? AutomationMarkers = null,
+    string? DeviceFingerprint = null);
 
 /// <summary>Confirms that an application arrived.</summary>
 public sealed record PublicApplicationReceipt(Guid ApplicationId, DateTimeOffset SubmittedAt);
@@ -127,6 +136,10 @@ internal sealed class PublicApplicationRequestValidator : AbstractValidator<Publ
         RuleFor(r => r.AiUseDeclaration).IsInEnum();
         RuleFor(r => r.AiUseDetails).MaximumLength(2000);
         RuleFor(r => r.BotCheckToken).MaximumLength(4096);
+        RuleFor(r => r.UserAgent).MaximumLength(1024);
+        RuleFor(r => r.AutomationMarkers).Must(m => m is null || m.Count <= 20).WithMessage("At most 20 automation markers.");
+        RuleForEach(r => r.AutomationMarkers).NotEmpty().MaximumLength(40);
+        RuleFor(r => r.DeviceFingerprint).MaximumLength(256);
     }
 }
 

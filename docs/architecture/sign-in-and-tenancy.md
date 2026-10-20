@@ -120,6 +120,13 @@ Two layers, so one mistake is not a breach.
    request carries. `job_versions` and `application_events` are append-only: `screenhire_app` has no `UPDATE` or
    `DELETE` on them.
 
+   The integrity tables (migration `AddIntegrityEngine`) follow the same pattern. `integrity_analyzer_runs`,
+   `integrity_signals`, `integrity_assessments` and `integrity_review_actions` are append-only for audit;
+   `submission_observations` refuses `UPDATE` but allows `DELETE`, which the retention sweep needs. The sweep walks every
+   organization in turn, like `ReportOpenJobs`. `signal_network_entries` is the one cross-tenant table: row-level
+   security with no policy and no grant to `screenhire_app`, so the application role cannot touch it while the Signal
+   Network stays off (ADR-0005).
+
    System hiring templates are the one shared data: `hiring_templates` and `hiring_template_versions` rows with a NULL
    `organization_id`. A `system_read` policy lets every tenant read them, the write policies require the caller's own
    organization, so no tenant can change one, and the entities carry a hand-written query filter (own organization or

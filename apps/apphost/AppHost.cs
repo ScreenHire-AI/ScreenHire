@@ -60,12 +60,18 @@ var mailpit = builder.AddMailPit("mailpit")
     // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
     .WithEnvironment("MP_SMTP_DISABLE_RDNS", "true");
 
+// The key the API hashes candidates' device fingerprints with, per organization (ScreenHire:Integrity:DeviceHashKey).
+// Generated locally and kept in the AppHost's user secrets like other generated parameters; production sets its own.
+var deviceHashKey = builder.AddParameter(
+    "integrity-device-hash-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+
 var api = builder.AddProject<Projects.ScreenHire_Api>("api")
     .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Api", 5080))
     .WaitFor(database)
     .WithReference(appDatabase)
     .WithReference(mailpit).WaitFor(mailpit)
     .WithReference(blobs).WaitFor(blobs)
+    .WithEnvironment("ScreenHire__Integrity__DeviceHashKey", deviceHashKey)
     // Kestrel only listens after the Development migrate-and-seed, so a healthy API has its schema and demo data.
     // Everything that waits for it (worker, frontends, test fixtures) starts after that, not when the process starts.
     .WithHttpHealthCheck("/health");

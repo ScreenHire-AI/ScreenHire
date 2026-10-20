@@ -43,6 +43,18 @@ export const realtimeEventSchemas = {
     version: z.number().int(),
     publishedAt: instant,
   }),
+  // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#
+  // AuthenticityLevel and AiAssistanceLevel.
+  IntegrityAssessed: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    authenticity: z.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']),
+    aiAssistance: z.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']),
+    rulesetVersion: z.string(),
+    eventId: id,
+    assessedAt: instant,
+  }),
   JobClosed: z.object({ organizationId: id, jobId: id, closedAt: instant }),
   // version and jobVersionId came after the first JobPublished; an envelope queued before them carries version 1 and null.
   JobPublished: z.object({

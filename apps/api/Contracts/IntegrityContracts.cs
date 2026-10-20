@@ -1,0 +1,148 @@
+using FluentValidation;
+using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Integrity;
+
+namespace ScreenHire.Api.Contracts;
+
+/// <summary>
+/// An application's integrity: two separate assessments, each a categorical level with reason codes, the signals and
+/// their evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score
+/// or percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in
+/// <c>reviewLog</c>.
+/// </summary>
+/// <remarks>
+/// <c>status</c> is <c>Pending</c> until the pipeline has assessed the application; both assessments are null then.
+/// <c>requestVerification</c> says whether a reviewer can ask the candidate to verify their identity (phase 2).
+/// </remarks>
+public sealed record ApplicationIntegrity(
+    Guid ApplicationId,
+    IntegrityStatus Status,
+    AuthenticityAssessmentView? Authenticity,
+    AiAssistanceAssessmentView? AiAssistance,
+    IReadOnlyList<IntegrityReviewEntry> ReviewLog,
+    IntegrityActionAvailability RequestVerification);
+
+public enum IntegrityStatus
+{
+    /// <summary>Not assessed yet: the pipeline runs shortly after the application arrives.</summary>
+    Pending,
+    Assessed,
+}
+
+/// <summary>Is this a real, unique, present person who is who they say they are?</summary>
+/// <remarks>
+/// <c>reasonCodes</c> are the codes of the signals that raised the level (empty at <c>NoConcerns</c>). <c>signals</c> are
+/// every signal considered, including context that did not count. <c>dismissal</c> is set when a reviewer set this
+/// assessment aside.
+/// </remarks>
+public sealed record AuthenticityAssessmentView(
+    Guid Id,
+    AuthenticityLevel Level,
+    IReadOnlyList<string> ReasonCodes,
+    string Summary,
+    string NextStep,
+    IReadOnlyList<IntegritySignalView> Signals,
+    string RulesetVersion,
+    DateTimeOffset AssessedAt,
+    IntegrityDismissal? Dismissal);
+
+/// <summary>How much of the content appears generated or templated? Informational, and relative to the job's AI policy.</summary>
+/// <remarks>
+/// <c>policy</c> is the job's AI-use policy, <c>declaration</c> what the candidate said, and <c>policyContext</c> where
+/// the two leave the candidate. A declaration never raises a level.
+/// </remarks>
+public sealed record AiAssistanceAssessmentView(
+    Guid Id,
+    AiAssistanceLevel Level,
+    IReadOnlyList<string> ReasonCodes,
+    string Summary,
+    string NextStep,
+    IReadOnlyList<IntegritySignalView> Signals,
+    string RulesetVersion,
+    DateTimeOffset AssessedAt,
+    IntegrityDismissal? Dismissal,
+    AiUsePolicy Policy,
+    AiUseDeclaration Declaration,
+    AiPolicyContext PolicyContext);
+
+/// <summary>
+/// One signal, renderable by its evidence kinds alone (<c>evidence[].kind</c>). Weight and confidence are categories,
+/// not numbers.
+/// </summary>
+/// <remarks>
+/// <c>countsTowardLevel</c>: the signal is in a category another independent category backs up, so it is one of the
+/// level's reasons. <c>contextOnly</c>: shown for context and never a reason on its own (a VPN, a failed bot challenge).
+/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it.
+/// </remarks>
+public sealed record IntegritySignalView(
+    Guid Id,
+    string Code,
+    string Title,
+    SignalCategory Category,
+    SignalWeight Weight,
+    SignalConfidence Confidence,
+    bool CountsTowardLevel,
+    bool ContextOnly,
+    bool AccessibilitySensitive,
+    string Explanation,
+    IReadOnlyList<SignalEvidence> Evidence,
+    IReadOnlyList<CounterEvidence> CounterEvidence,
+    string Source,
+    int SourceVersion,
+    DateTimeOffset ObservedAt);
+
+/// <summary>A reviewer set an assessment aside. <c>actorName</c> is the reviewer's display name, when they have one.</summary>
+public sealed record IntegrityDismissal(Guid ActionId, DismissReason Reason, string? Note, Guid ActorUserId, string? ActorName, DateTimeOffset DismissedAt);
+
+/// <summary>One entry of the integrity audit log, oldest first.</summary>
+/// <remarks><c>assessmentKind</c> and <c>assessmentId</c> are null for a note on the application's integrity as a whole.</remarks>
+public sealed record IntegrityReviewEntry(
+    Guid Id,
+    IntegrityReviewActionType Type,
+    IntegrityAssessmentKind? AssessmentKind,
+    Guid? AssessmentId,
+    DismissReason? DismissReason,
+    string? Note,
+    Guid ActorUserId,
+    string? ActorName,
+    DateTimeOffset OccurredAt);
+
+/// <summary>Whether an action is offered, and why not when it is not.</summary>
+public sealed record IntegrityActionAvailability(bool Available, string? Reason);
+
+/// <summary>
+/// The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and
+/// whether a reviewer dismissed it. Null on the summary until the application is assessed.
+/// </summary>
+public sealed record IntegritySummary(
+    AuthenticityLevel Authenticity,
+    IReadOnlyList<string> AuthenticityReasons,
+    bool AuthenticityDismissed,
+    AiAssistanceLevel AiAssistance,
+    IReadOnlyList<string> AiAssistanceReasons,
+    bool AiAssistanceDismissed);
+
+/// <summary>Sets an assessment aside. A reason is required; <c>Other</c> also needs a note.</summary>
+public sealed record DismissIntegrityAssessmentRequest(DismissReason Reason, string? Note = null);
+
+/// <summary>Adds a note to the integrity audit log, about one assessment (<c>assessmentId</c>) or the application as a whole.</summary>
+public sealed record AddIntegrityNoteRequest(string Note, Guid? AssessmentId = null);
+
+internal sealed class DismissIntegrityAssessmentRequestValidator : AbstractValidator<DismissIntegrityAssessmentRequest>
+{
+    public DismissIntegrityAssessmentRequestValidator()
+    {
+        RuleFor(r => r.Reason).IsInEnum();
+        RuleFor(r => r.Note).MaximumLength(IntegrityReviewAction.MaxNoteLength);
+        RuleFor(r => r.Note).NotEmpty().WithMessage("Say why you are dismissing it.").When(r => r.Reason == DismissReason.Other);
+    }
+}
+
+internal sealed class AddIntegrityNoteRequestValidator : AbstractValidator<AddIntegrityNoteRequest>
+{
+    public AddIntegrityNoteRequestValidator()
+    {
+        RuleFor(r => r.Note).NotEmpty().WithMessage("Write a note.").MaximumLength(IntegrityReviewAction.MaxNoteLength);
+    }
+}

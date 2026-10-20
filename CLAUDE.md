@@ -61,6 +61,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
   rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
   `pnpm --filter @screenhire/realtime test` passes, and commit both (`/add-realtime-event`).
+- After changing an integrity analyzer, the signal catalogue or the ruleset: `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"`
+  rewrites the synthetic applicants' golden files; review the diff, and bump `IntegrityRuleset.Version` for a rule change
+  ([`docs/architecture/integrity-engine.md`](docs/architecture/integrity-engine.md) §10).
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 
 ## Board pipeline (Kangentic)

@@ -1,0 +1,60 @@
+{
+  "applicant": "honest-ai-assisted",
+  "rulesetVersion": "2026-10-20.2",
+  "authenticity": {
+    "level": "NoConcerns",
+    "reasonCodes": [],
+    "appliedRules": [],
+    "summary": "Shown for context only: sent through a VPN, proxy or Tor. This is never a reason on its own.",
+    "nextStep": "No action needed.",
+    "signals": [
+      {
+        "code": "NET_ANON_PROXY",
+        "category": "Network",
+        "weight": "Low",
+        "confidence": "Medium",
+        "countsTowardLevel": false,
+        "contextOnly": true,
+        "accessibilitySensitive": false,
+        "source": "network@1",
+        "explanation": "The application came through a VPN service. Many people use these for privacy, so this is context only and never a reason on its own.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Service",
+            "value": "A VPN service"
+          },
+          {
+            "kind": "Fact",
+            "label": "Network country",
+            "value": "United Kingdom"
+          },
+          {
+            "kind": "Fact",
+            "label": "Source",
+            "value": "configured ranges"
+          }
+        ],
+        "counterEvidence": [
+          {
+            "explanation": "The exit is in the United Kingdom, the country the candidate's phone number belongs to.",
+            "evidence": {
+              "kind": "Fact",
+              "label": "Phone number country",
+              "value": "United Kingdom"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "aiAssistance": {
+    "level": "NotIndicated",
+    "reasonCodes": [],
+    "appliedRules": [],
+    "summary": "No signs that the content was generated or templated. The candidate said they used AI tools, which this job allows when disclosed.",
+    "nextStep": "No action needed.",
+    "policyContext": "Disclosed",
+    "signals": []
+  }
+}

@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Applications;
@@ -7,6 +8,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -143,6 +145,7 @@ internal static class PublicApplicationEndpoints
         TenantContext tenant,
         ApplicantUploads uploads,
         TurnstileVerifier turnstile,
+        IOptions<IntegrityOptions> integrity,
         HttpContext http,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -211,7 +214,9 @@ internal static class PublicApplicationEndpoints
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, request.Candidate,
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
-            intake, files, time.GetUtcNow(), actorUserId: null, cancellationToken);
+            intake, files, time.GetUtcNow(), actorUserId: null, cancellationToken,
+            new SubmissionSession(remoteAddress, request.UserAgent, request.DeviceFingerprint, request.FormStartedAt, request.AutomationMarkers),
+            integrity.Value);
         if (submitted is not { } created)
         {
             return TypedResults.Problem(

@@ -24,6 +24,12 @@ builder.AddScreenHireApiMessaging(TenantEventPusher.For);
 builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
+if (builder.Environment.IsDevelopment())
+{
+    // The integrity demo: synthetic applicants apply to Brightwater once the API has started.
+    builder.Services.AddHostedService<SyntheticApplicantsDemo>();
+}
+
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
 builder.Services.AddHiringValidation();
@@ -53,6 +59,7 @@ app.MapPublicApplicationEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapIntegrityEndpoints();
 app.MapOrganizationEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();

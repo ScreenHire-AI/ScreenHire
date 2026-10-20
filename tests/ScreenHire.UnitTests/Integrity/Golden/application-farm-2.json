@@ -1,0 +1,146 @@
+{
+  "applicant": "application-farm-2",
+  "rulesetVersion": "2026-10-20.2",
+  "authenticity": {
+    "level": "VerificationRecommended",
+    "reasonCodes": [
+      "AUTO_SUBMIT_VELOCITY",
+      "ID_DUPLICATE_IN_ORG",
+      "NET_DATACENTER_IP",
+      "NET_GEO_CLAIM_MISMATCH"
+    ],
+    "appliedRules": [],
+    "summary": "4 observations from network, identity and automation checks back each other up: completed faster than a person could; shares details with other applicants; sent from a hosting provider's network; network location differs from the location the candidate gave.",
+    "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
+    "signals": [
+      {
+        "code": "AUTO_SUBMIT_VELOCITY",
+        "category": "Automation",
+        "weight": "Medium",
+        "confidence": "Medium",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": true,
+        "source": "automation@1",
+        "explanation": "The form was completed in 20 seconds, faster than reading and answering it plausibly takes (at least 32 seconds).",
+        "evidence": [
+          {
+            "kind": "Metric",
+            "label": "Time from opening the form to sending it",
+            "amount": 20,
+            "unit": "seconds",
+            "reference": 32,
+            "referenceLabel": "Plausible minimum for this form"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "ID_DUPLICATE_IN_ORG",
+        "category": "Identity",
+        "weight": "High",
+        "confidence": "High",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "duplicates@1",
+        "explanation": "This application shares an email address, a phone number, a device and an identical resume file with 1 other application to your organization under different names or email addresses.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Same email address (ignoring a plus tag)",
+            "value": "1 other application"
+          },
+          {
+            "kind": "Fact",
+            "label": "Same phone number",
+            "value": "1 other application"
+          },
+          {
+            "kind": "Fact",
+            "label": "Same device",
+            "value": "1 other application"
+          },
+          {
+            "kind": "Fact",
+            "label": "Same resume file",
+            "value": "1 other application"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "NET_DATACENTER_IP",
+        "category": "Network",
+        "weight": "Medium",
+        "confidence": "High",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "network@1",
+        "explanation": "The application came from Example Cloud Hosting (AS64497), a hosting or cloud provider. People usually apply from a home, mobile or office connection.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Network operator",
+            "value": "Example Cloud Hosting (AS64497)"
+          },
+          {
+            "kind": "Fact",
+            "label": "Network type",
+            "value": "Hosting or cloud provider"
+          },
+          {
+            "kind": "Fact",
+            "label": "Network country",
+            "value": "United States"
+          },
+          {
+            "kind": "Fact",
+            "label": "Source",
+            "value": "configured ranges"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "NET_GEO_CLAIM_MISMATCH",
+        "category": "Network",
+        "weight": "Medium",
+        "confidence": "Medium",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "network@1",
+        "explanation": "The candidate's details point to the United Kingdom, but the application came from a network in the United States.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Phone number country",
+            "value": "United Kingdom"
+          },
+          {
+            "kind": "Fact",
+            "label": "Network country",
+            "value": "United States"
+          },
+          {
+            "kind": "Fact",
+            "label": "Source",
+            "value": "configured ranges"
+          }
+        ],
+        "counterEvidence": []
+      }
+    ]
+  },
+  "aiAssistance": {
+    "level": "NotIndicated",
+    "reasonCodes": [],
+    "appliedRules": [],
+    "summary": "No signs that the content was generated or templated. This job allows AI help when disclosed. Declared AI use: not answered.",
+    "nextStep": "No action needed.",
+    "policyContext": "NotDisclosed",
+    "signals": []
+  }
+}
