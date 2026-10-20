@@ -41,6 +41,27 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         listed.Count().Should().Be(1);
         listed.Text("0.candidateName").Should().Be("Casey Morgan");
         listed.Text("0.stage.id").Should().Be("applied");
+        listed.Text("0.jobTitle").Should().Be("Platform Engineer");
+        listed.Text("0.source").Should().Be("Recruiter");
+    }
+
+    [Fact]
+    public async Task Every_application_in_the_organization_is_listed_newest_first_with_its_job()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var first = await recruiter.CreateJobAsync(Samples.RemoteJob("First role"));
+        var second = await recruiter.CreateJobAsync(Samples.RemoteJob("Second role"));
+        var older = await recruiter.CreateApplicationAsync(first.Id(), CandidateEmail);
+        var newer = await recruiter.CreateApplicationAsync(second.Id(), "jordan.lee@example.com", "Jordan Lee");
+
+        var listed = (await recruiter.GetAsync("/v1/applications")).Expect(HttpStatusCode.OK);
+
+        listed.Body.EnumerateArray().Select(a => a.GetProperty("id").GetGuid()).Should().Equal(newer.Id(), older.Id());
+        listed.Text("0.candidateName").Should().Be("Jordan Lee");
+        listed.Text("0.jobTitle").Should().Be("Second role");
+        listed.Text("0.jobId").Should().Be(second.Text("id"));
+        listed.Text("1.jobTitle").Should().Be("First role");
+        listed.Text("1.stage.name").Should().Be("Applied");
     }
 
     [Fact]

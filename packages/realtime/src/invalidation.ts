@@ -2,8 +2,8 @@ import type { RealtimeClient } from './client.js';
 import type { RealtimeEvent, RealtimeEventType } from './events.js';
 
 /**
- * Which cached queries each event makes stale, as cache keys. In the dashboard a key is a SvelteKit dependency that a
- * `load` function declares with `depends('api:jobs')`; with a query library it would be a query key.
+ * Which cached queries each event makes stale, as cache keys. In the dashboard a key is an API path (`/v1/jobs`), and
+ * every TanStack Query query under that path is invalidated.
  */
 export type InvalidationMap = Partial<Record<RealtimeEventType, readonly string[]>>;
 

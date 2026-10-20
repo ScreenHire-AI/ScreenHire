@@ -85,6 +85,12 @@ stores an `ApplicationFile` per file and publishes one `ScanApplicationFile` mes
 Because an upload id can only be claimed under the organization and job in the route, another tenant's upload, or
 another job's, is simply not found.
 
+Reviewers download a file the same way, without the bytes passing through the API.
+`GET /v1/applications/{applicationId}/files/{fileId}` redirects to a read-only SAS URL for that one blob, valid for
+`ScreenHire:Apply:DownloadLinkLifetime` (5 minutes). The link sets `Content-Disposition: attachment` with the
+candidate's file name, so storage serves the document as a download and never renders it. A file whose scan is
+`Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
+
 ## 4. Submission
 
 `POST /v1/public/organizations/{slug}/jobs/{jobId}/applications` (anonymous, rate-limited per candidate address by the

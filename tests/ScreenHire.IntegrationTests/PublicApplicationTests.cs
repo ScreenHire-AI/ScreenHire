@@ -19,7 +19,7 @@ namespace ScreenHire.IntegrationTests;
 /// </summary>
 public sealed class PublicApplicationTests(AppHostFixture fixture)
 {
-    private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
+    private static readonly byte[] Pdf = CareersUploads.Pdf;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -347,46 +347,15 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         return [.. problem.GetProperty("errors").EnumerateObject().Select(p => p.Name)];
     }
 
-    // Asks for an upload link, sends the bytes the way a browser does, and has the API check them.
-    private static async Task<Guid> UploadAsync(HttpClient client, Organization organization, Job job, string questionId, string fileName, byte[] content)
-    {
-        var ticket = await TicketAsync(client, organization, job, questionId, fileName, content.Length);
-        await PutAsync(ticket, content);
-        var uploadId = ticket.GetProperty("uploadId").GetGuid();
-        var verified = await client.PostAsync(
-            $"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}/questions/{questionId}/uploads/{uploadId}/verify", null, Ct);
-        verified.StatusCode.Should().Be(HttpStatusCode.OK, await verified.Content.ReadAsStringAsync(Ct));
-        return uploadId;
-    }
+    private static Task<Guid> UploadAsync(HttpClient client, Organization organization, Job job, string questionId, string fileName, byte[] content) =>
+        CareersUploads.UploadAsync(client, organization.Slug, job.Id, questionId, fileName, content);
 
-    private static async Task<JsonElement> TicketAsync(HttpClient client, Organization organization, Job job, string questionId, string fileName, long sizeBytes)
-    {
-        var response = await client.PostAsJsonAsync(
-            $"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}/questions/{questionId}/uploads", new { fileName, sizeBytes }, Ct);
-        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
-        return await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-    }
+    private static Task<JsonElement> TicketAsync(HttpClient client, Organization organization, Job job, string questionId, string fileName, long sizeBytes) =>
+        CareersUploads.TicketAsync(client, organization.Slug, job.Id, questionId, fileName, sizeBytes);
 
-    private static async Task PutAsync(JsonElement ticket, byte[] content)
-    {
-        using var response = await SendToStorageAsync(ticket, content);
-        response.IsSuccessStatusCode.Should().BeTrue("blob storage took the upload ({0})", response.StatusCode);
-    }
+    private static Task PutAsync(JsonElement ticket, byte[] content) => CareersUploads.PutAsync(ticket, content);
 
-    private static async Task<HttpResponseMessage> SendToStorageAsync(JsonElement ticket, byte[] content)
-    {
-        using var storage = new HttpClient();
-        using var request = new HttpRequestMessage(new HttpMethod(ticket.GetProperty("method").GetString()!), ticket.GetProperty("uploadUrl").GetString())
-        {
-            Content = new ByteArrayContent(content),
-        };
-        foreach (var header in ticket.GetProperty("headers").EnumerateObject())
-        {
-            request.Headers.Add(header.Name, header.Value.GetString());
-        }
-
-        return await storage.SendAsync(request, Ct);
-    }
+    private static Task<HttpResponseMessage> SendToStorageAsync(JsonElement ticket, byte[] content) => CareersUploads.SendToStorageAsync(ticket, content);
 
     private async Task<(Organization Organization, Job Job)> OrganizationWithEngineeringJobAsync()
     {

@@ -252,7 +252,6 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 - One ATS-wide feed across tenants, and the CDN in front of feeds.
 - Per-domain Search Console verification, and custom tenant domains (host routing covers `{tenant}.{CareersDomain}` only).
 - Credential vault, inbound apply webhooks, and every partner or paid board (§4 phases 2 to 4).
-- The distribution UI (the recruiter-dashboard task builds it on these endpoints).
 
 ### Tests
 

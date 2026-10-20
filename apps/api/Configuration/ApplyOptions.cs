@@ -30,6 +30,10 @@ public sealed class ApplyOptions
     [Range(typeof(TimeSpan), "00:01:00", "01:00:00")]
     public TimeSpan UploadLinkLifetime { get; set; } = TimeSpan.FromMinutes(15);
 
+    /// <summary>How long a reviewer's link to read an uploaded file stays valid. Long enough to start the download.</summary>
+    [Range(typeof(TimeSpan), "00:01:00", "01:00:00")]
+    public TimeSpan DownloadLinkLifetime { get; set; } = TimeSpan.FromMinutes(5);
+
     /// <summary>Requests to the apply write routes one candidate address may make per minute.</summary>
     [Range(1, 100_000)]
     public int PermitsPerMinute { get; set; } = 60;
