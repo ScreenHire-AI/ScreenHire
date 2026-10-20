@@ -28,6 +28,13 @@ internal static class FileTypes
             ? [.. questionTypes.Select(t => t.ToLowerInvariant()).Where(ByExtension.ContainsKey).Distinct()]
             : [.. ByExtension.Keys];
 
+    /// <summary>The extensions for a candidate to read: "PDF or DOCX".</summary>
+    public static string Describe(IReadOnlyList<string> extensions) =>
+        string.Join(" or ", extensions.Select(e => e.TrimStart('.').ToUpperInvariant()).Distinct());
+
+    /// <summary>The candidate's message for a file over <paramref name="maxBytes"/>.</summary>
+    public static string TooLarge(long maxBytes) => $"This file is larger than {maxBytes / (1024 * 1024)} MB.";
+
     /// <summary>The media type for <paramref name="extension"/>, or null if it is not an allowed type.</summary>
     public static string? ContentTypeOf(string extension) => ByExtension.GetValueOrDefault(extension)?.ContentType;
 

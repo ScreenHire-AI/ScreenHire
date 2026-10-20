@@ -57,8 +57,24 @@ public sealed class TurnstileVerifierTests
         result.Should().Be(BotCheckResult.NotChecked);
     }
 
-    private static TurnstileVerifier Verifier(TurnstileOptions options, StubHandler handler) =>
+    [Fact]
+    public async Task A_resilience_timeout_or_open_circuit_is_not_checked_rather_than_an_error()
+    {
+        // The standard resilience handler throws its own exception types, not HttpRequestException.
+        var result = await Verifier(Configured, new ThrowingHandler(new TimeoutException("attempt timed out")))
+            .VerifyAsync("token", null, TestContext.Current.CancellationToken);
+
+        result.Should().Be(BotCheckResult.NotChecked);
+    }
+
+    private static TurnstileVerifier Verifier(TurnstileOptions options, HttpMessageHandler handler) =>
         new(new HttpClient(handler), Options.Create(options), NullLogger<TurnstileVerifier>.Instance);
+
+    private sealed class ThrowingHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(exception);
+    }
 
     private sealed class StubHandler(HttpStatusCode status, string body) : HttpMessageHandler
     {

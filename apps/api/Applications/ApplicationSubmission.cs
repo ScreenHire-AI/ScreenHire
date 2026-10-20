@@ -77,7 +77,11 @@ internal static class ApplicationSubmission
         {
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         }
-        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        // Only the applications index means "already applied". A clash on the candidates index is a new email applying to
+        // two jobs at once; it stays an error the candidate can retry, because the careers page shows "already applied"
+        // as the normal confirmation and the application would be lost without a word.
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation()
+            && exception.InnerException is Npgsql.PostgresException { TableName: "applications" })
         {
             return null; // the same candidate applied to the same job at the same moment
         }

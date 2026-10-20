@@ -42,9 +42,9 @@ internal sealed partial class TurnstileVerifier(HttpClient http, IOptions<Turnst
             var result = await response.Content.ReadFromJsonAsync<SiteVerifyResponse>(cancellationToken);
             return result?.Success == true ? BotCheckResult.Passed : BotCheckResult.Failed;
         }
-        catch (Exception exception) when (
-            exception is HttpRequestException or System.Text.Json.JsonException
-            || (exception is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        // Every failure but the caller's own cancellation: besides HTTP and JSON errors, the standard resilience handler
+        // (ServiceDefaults) throws its own timeout and open-circuit exceptions, and none of them may lose an application.
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             // Cloudflare being unreachable says nothing about the candidate, so it is recorded as no check at all.
             LogUnavailable(logger, exception);

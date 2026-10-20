@@ -41,7 +41,10 @@ const employer = response.data;
 
     <section aria-labelledby="applying">
       <h2 id="applying">When you apply</h2>
-      <p class="mt-2">Nothing is collected until you send a step of the form. Then we keep:</p>
+      <p class="mt-2">
+        Nothing is collected until you send a step of the form or add a file. A file goes to storage as soon as you choose
+        it, and one that is never sent with an application is deleted. With an application we keep:
+      </p>
       <ul>
         <li>what you enter: your name, email, phone number, answers and the files you upload;</li>
         <li>whether you switched on the assistive technology option;</li>
@@ -54,11 +57,12 @@ const employer = response.data;
       <h2 id="checks">What we check, and what we never do</h2>
       <p class="mt-2">
         We check applications for signs of bots and impersonation, because they crowd out real candidates. The form has a
-        hidden field that only automated software fills in, and the site may ask your browser to complete a bot challenge.
-        Files are checked to be the type they say they are.
+        hidden field that only automated software fills in, and the site may ask your browser to complete a bot challenge
+        from Cloudflare, which then sees your network address and browser. Files are checked to be the type they say they
+        are.
       </p>
       <ul class="mt-2">
-        <li>Nothing we check rejects you automatically. A person at {employer.name} reads every application.</li>
+        <li>Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.</li>
         <li>We never give you a score or a percentage, and never guess at your feelings, honesty or personality.</li>
         <li>We never look at your other tabs or apps, and never use your camera or microphone.</li>
         <li>We never look up your social media profiles. We only use what you give us.</li>

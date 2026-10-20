@@ -32,6 +32,12 @@ describe('tenantFromHost', () => {
     expect(tenantRoute('/brightwaterish', 'brightwater')).toEqual({ render: '/brightwater/brightwaterish' });
   });
 
+  it('never redirects a prefixed path off the tenant host', () => {
+    expect(tenantRoute('/brightwater//evil.example/x', 'brightwater')).toEqual({ canonical: '/evil.example/x' });
+    expect(tenantRoute('/brightwater/\\evil.example', 'brightwater')).toEqual({ canonical: '/evil.example' });
+    expect(tenantRoute('/brightwater/', 'brightwater')).toEqual({ canonical: '/' });
+  });
+
   it('never rewrites what Astro serves itself, and prefixes links only without a tenant host', () => {
     expect(isFrameworkPath('/_astro/client.js')).toBe(true);
     expect(isFrameworkPath('/_actions/apply')).toBe(true);

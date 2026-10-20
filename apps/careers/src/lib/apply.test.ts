@@ -142,6 +142,13 @@ describe('validation', () => {
     );
   });
 
+  it('takes numbers written the ways the API reads them', () => {
+    for (const answer of ['5', '+5', '.5', '4.', '-0']) {
+      expect(validateAnswers({ ...emptyState(), answers: { years: answer } }, [years])).toEqual({});
+    }
+    expect(validateAnswers({ ...emptyState(), answers: { years: 'five' } }, [years])).toHaveProperty('q:years');
+  });
+
   it('requires an AI-use answer unless the job allows AI without asking', () => {
     expect(validateReview(emptyState(), 'AllowedWithDisclosure')).toHaveProperty('aiUseDeclaration');
     expect(validateReview(emptyState(), 'NotAllowed')).toHaveProperty('aiUseDeclaration');

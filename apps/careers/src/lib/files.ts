@@ -30,7 +30,8 @@ export interface UploadRef {
   sizeBytes: number;
 }
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A UUID, as upload ids and job ids are. */
+export const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** An upload reference from untrusted JSON (a hidden field), or null when it is not one. */
 export function parseUploadRef(value: unknown): UploadRef | null {

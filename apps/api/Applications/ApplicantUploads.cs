@@ -12,7 +12,7 @@ namespace ScreenHire.Api.Applications;
 
 /// <summary>
 /// Candidate uploads go straight from the candidate (or the careers server, when the browser runs no JavaScript) to
-/// blob storage through a short-lived, write-only link this class issues, so file bytes never pass through the API.
+/// blob storage through a short-lived, create-only link this class issues, so file bytes never pass through the API.
 /// Nothing is stored until the application is submitted, when <see cref="CheckAsync"/> confirms the blob.
 /// </summary>
 /// <remarks>
@@ -33,14 +33,15 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
 
     public long MaxBytes => Settings.MaxUploadBytes;
 
-    /// <summary>A write-only link for one new blob, valid for <see cref="ApplyOptions.UploadLinkLifetime"/>.</summary>
+    /// <summary>A create-only link for one new blob, valid for <see cref="ApplyOptions.UploadLinkLifetime"/>.</summary>
     public async Task<UploadTicket> IssueAsync(
         Guid organizationId, Guid jobId, string questionId, string safeFileName, CancellationToken cancellationToken)
     {
         var uploadId = Guid.NewGuid(); // random, not time-ordered: the id is what lets a later request claim the file
         var blob = Container.GetBlobClient(Prefix(organizationId, jobId, questionId, uploadId) + safeFileName);
         var expiresAt = time.GetUtcNow() + Settings.UploadLinkLifetime;
-        var sas = new BlobSasBuilder(BlobSasPermissions.Create | BlobSasPermissions.Write, expiresAt)
+        // Create only, not Write: the link writes the blob once and cannot replace it after CheckAsync has passed it.
+        var sas = new BlobSasBuilder(BlobSasPermissions.Create, expiresAt)
         {
             BlobContainerName = blob.BlobContainerName,
             BlobName = blob.Name,
@@ -92,7 +93,7 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
         if (size > MaxBytes)
         {
             await DeleteAsync(blob, cancellationToken);
-            return UploadCheck.Failed($"This file is larger than {MaxBytes / (1024 * 1024)} MB.");
+            return UploadCheck.Failed(FileTypes.TooLarge(MaxBytes));
         }
 
         if (size == 0)
@@ -121,7 +122,7 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
         if (!accepted.Contains(extension) || !FileTypes.Matches(extension, head.AsSpan(0, headLength)))
         {
             await DeleteAsync(blob, cancellationToken);
-            return UploadCheck.Failed($"This file is not a {Describe(accepted)} file. Upload a file of one of those types.");
+            return UploadCheck.Failed($"This file is not a {FileTypes.Describe(accepted)} file. Upload a file of one of those types.");
         }
 
         return UploadCheck.Ok(new VerifiedUpload(
@@ -153,9 +154,6 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
 
     private static string Prefix(Guid organizationId, Guid jobId, string questionId, Guid uploadId) =>
         $"{organizationId}/{jobId}/{questionId}/{uploadId}/";
-
-    private static string Describe(IReadOnlyList<string> extensions) =>
-        string.Join(" or ", extensions.Select(e => e.TrimStart('.').ToUpperInvariant()).Distinct());
 
     private static async Task DeleteAsync(BlobClient blob, CancellationToken cancellationToken)
     {

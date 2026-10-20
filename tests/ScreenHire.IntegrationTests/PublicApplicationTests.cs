@@ -207,6 +207,23 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task An_upload_link_writes_its_file_once_and_cannot_replace_it_after_the_check()
+    {
+        var (organization, job) = await OrganizationWithEngineeringJobAsync();
+        using var client = fixture.CreateHttpClient("api");
+        var ticket = await TicketAsync(client, organization, job, "resume", "cv.pdf", Pdf.Length);
+        await PutAsync(ticket, Pdf);
+        var verifyUrl = $"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}/questions/resume/uploads/{ticket.GetProperty("uploadId").GetGuid()}/verify";
+        (await client.PostAsync(verifyUrl, null, Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var replaced = await SendToStorageAsync(ticket, Encoding.ASCII.GetBytes("MZ this is a program, not the checked PDF"));
+
+        replaced.IsSuccessStatusCode.Should().BeFalse("the link may create the blob but not overwrite it ({0})", replaced.StatusCode);
+        var verified = await client.PostAsync(verifyUrl, null, Ct);
+        verified.StatusCode.Should().Be(HttpStatusCode.OK, "the checked file is still the one in storage");
+    }
+
+    [Fact]
     public async Task An_uploaded_file_larger_than_the_limit_is_rejected_and_deleted()
     {
         var (organization, job) = await OrganizationWithEngineeringJobAsync();
@@ -352,6 +369,12 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
 
     private static async Task PutAsync(JsonElement ticket, byte[] content)
     {
+        using var response = await SendToStorageAsync(ticket, content);
+        response.IsSuccessStatusCode.Should().BeTrue("blob storage took the upload ({0})", response.StatusCode);
+    }
+
+    private static async Task<HttpResponseMessage> SendToStorageAsync(JsonElement ticket, byte[] content)
+    {
         using var storage = new HttpClient();
         using var request = new HttpRequestMessage(new HttpMethod(ticket.GetProperty("method").GetString()!), ticket.GetProperty("uploadUrl").GetString())
         {
@@ -362,8 +385,7 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
             request.Headers.Add(header.Name, header.Value.GetString());
         }
 
-        using var response = await storage.SendAsync(request, Ct);
-        response.IsSuccessStatusCode.Should().BeTrue("blob storage took the upload ({0})", response.StatusCode);
+        return await storage.SendAsync(request, Ct);
     }
 
     private async Task<(Organization Organization, Job Job)> OrganizationWithEngineeringJobAsync()

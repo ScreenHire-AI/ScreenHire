@@ -28,7 +28,9 @@ export const isFrameworkPath = (path: string): boolean => /^\/(_astro|_actions|_
 export function tenantRoute(path: string, tenant: string): { render: string } | { canonical: string } {
   const prefix = `/${tenant}`;
   if (path === prefix || path.startsWith(`${prefix}/`)) {
-    return { canonical: path.slice(prefix.length) || '/' };
+    // One leading slash only: `/{tenant}//evil.example` must not become `//evil.example`, which browsers follow to
+    // another site.
+    return { canonical: `/${path.slice(prefix.length).replace(/^[/\\]+/, '')}` };
   }
 
   return { render: `${prefix}${path === '/' ? '' : path}` };

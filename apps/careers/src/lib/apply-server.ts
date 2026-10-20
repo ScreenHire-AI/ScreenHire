@@ -8,6 +8,7 @@ import {
   type PublicQuestion,
   type UploadTicket,
 } from './api';
+import type { AiUsePolicy } from '@screenhire/api-client';
 import {
   emptyState,
   errorsFromProblem,
@@ -19,6 +20,7 @@ import {
   readReview,
   screeningQuestions,
   stepsFor,
+  text,
   toRequest,
   validateAnswers,
   validateDetails,
@@ -53,11 +55,6 @@ const SERVER_PROBLEM = 'Something went wrong on our side. Your answers are still
  */
 export const forwardedFor = (address: string | undefined): RequestInit | undefined =>
   address ? { headers: { 'X-Forwarded-For': address } } : undefined;
-
-const text = (form: FormData, name: string): string => {
-  const value = form.get(name);
-  return typeof value === 'string' ? value.trim() : '';
-};
 
 /**
  * Handles one posted step. Back and change buttons (`intent` = `go:<step>`) keep what was typed without checking it.
@@ -134,7 +131,7 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
   }
 }
 
-function stepErrors(step: Step, state: ApplyState, questions: readonly PublicQuestion[], policy: Parameters<typeof validateReview>[1]) {
+function stepErrors(step: Step, state: ApplyState, questions: readonly PublicQuestion[], policy: AiUsePolicy) {
   switch (step) {
     case 'details':
       return validateDetails(state, questions);

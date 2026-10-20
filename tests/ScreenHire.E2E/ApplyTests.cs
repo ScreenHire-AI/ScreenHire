@@ -146,7 +146,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         await GoToAsync("careers", "/brightwater/privacy");
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("What we collect and why");
-        await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("Nothing we check rejects you automatically");
+        await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("Our checks for bots and impersonation never reject you");
         await ExpectNoAccessibilityViolationsAsync();
     }
 

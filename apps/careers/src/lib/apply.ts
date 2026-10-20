@@ -39,6 +39,9 @@ export const MAX_NAME = 200;
 export const MAX_EMAIL = 320;
 export const MAX_PHONE = 50;
 export const MAX_AI_DETAILS = 2000;
+/** The longest answer and the most choices the API takes (ApplicationForm.LongTextMaxLength, the request validator). */
+export const MAX_ANSWER = 5000;
+export const MAX_CHOICES = 50;
 
 /** Form field names. Question fields are prefixed so they can never clash with the fixed fields. */
 export const fields = {
@@ -102,8 +105,8 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
 
   if (typeof input.answers === 'object' && input.answers !== null) {
     for (const [id, answer] of Object.entries(input.answers as Record<string, unknown>)) {
-      if (typeof answer === 'string') state.answers[id] = answer.slice(0, 5000);
-      else if (Array.isArray(answer)) state.answers[id] = answer.filter((item): item is string => typeof item === 'string').slice(0, 50);
+      if (typeof answer === 'string') state.answers[id] = answer.slice(0, MAX_ANSWER);
+      else if (Array.isArray(answer)) state.answers[id] = answer.filter((item): item is string => typeof item === 'string').slice(0, MAX_CHOICES);
     }
   }
 
@@ -119,7 +122,8 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
 
 const isAiUseAnswer = (value: unknown): value is AiUseAnswer => value === 'NotProvided' || value === 'Used' || value === 'DidNotUse';
 
-const text = (form: FormData, name: string): string => {
+/** A posted field's trimmed text, or empty when it is missing or a file. */
+export const text = (form: FormData, name: string): string => {
   const value = form.get(name);
   return typeof value === 'string' ? value.trim() : '';
 };
@@ -226,7 +230,7 @@ function answerProblem(question: PublicQuestion, answer: string | string[]): str
       return options.has(answer) ? null : 'Choose one of the options.';
     case 'Number': {
       const number = Number(answer);
-      if (!/^-?\d+(\.\d+)?$/.test(answer) || !Number.isFinite(number)) return 'Enter a number.';
+      if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(answer) || !Number.isFinite(number)) return 'Enter a number.';
       if (question.min != null && number < question.min) return `Enter ${question.min} or more.`;
       if (question.max != null && number > question.max) return `Enter ${question.max} or less.`;
       return null;

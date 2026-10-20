@@ -85,13 +85,13 @@ internal static class PublicApplicationEndpoints
         if (fileName is null || !accepted.Contains(Path.GetExtension(fileName)))
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "fileName", $"Upload a {string.Join(" or ", accepted.Select(e => e.TrimStart('.').ToUpperInvariant()))} file."));
+                "fileName", $"Upload a {FileTypes.Describe(accepted)} file."));
         }
 
         if (request.SizeBytes > uploads.MaxBytes)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "sizeBytes", $"This file is larger than {uploads.MaxBytes / (1024 * 1024)} MB."));
+                "sizeBytes", FileTypes.TooLarge(uploads.MaxBytes)));
         }
 
         return TypedResults.Ok(await uploads.IssueAsync(job.OrganizationId, job.Id, question.Id, fileName, cancellationToken));

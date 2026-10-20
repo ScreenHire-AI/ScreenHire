@@ -1,13 +1,13 @@
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { checkUpload, forwardedFor, requestUpload } from '../../lib/apply-server';
+import { uuid } from '../../lib/files';
 import { organizationOf } from '../../lib/host';
 
 // The upload island's two calls: `start` gets a link to send a file straight to storage, `verify` has the API check the
 // file once it is there. A plain JSON endpoint rather than an Astro Action so the island ships a bare fetch instead of
 // the actions client, which keeps the apply page inside its JavaScript budget. Browsers only send cross-origin JSON
 // after a CORS preflight, which this route never answers, so other sites cannot call it.
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const request = z.discriminatedUnion('step', [
   z.object({
     step: z.literal('start'),

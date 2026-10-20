@@ -215,7 +215,7 @@ const answerText = (questionId: string): string => {
               </legend>
               <p id="ai-hint" class="-mt-1 text-[13px] text-candidate-muted-foreground">
                 {policy === 'NotAllowed'
-                  ? `${employer.name} asks for applications written without AI tools. Tell us honestly either way: a person reads every application.`
+                  ? `${employer.name} asks for applications written without AI tools. Tell us either way. A person reads your answer.`
                   : policy === 'AllowedWithDisclosure'
                     ? `${employer.name} welcomes AI help for this role, as long as you say so.`
                     : `${employer.name} welcomes AI help for this role. Telling us is up to you.`}
@@ -254,7 +254,7 @@ const answerText = (questionId: string): string => {
             )}
 
             <p class="text-[13.5px] text-candidate-muted-foreground">
-              A person at {employer.name} reads every application. Nothing in this form rejects you automatically.
+              Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.
             </p>
           </>
         )}
