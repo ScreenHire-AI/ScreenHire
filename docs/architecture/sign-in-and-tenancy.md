@@ -171,8 +171,9 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
 - list its reverse proxies in `ScreenHire:Auth:TrustedProxies`;
 - give the worker an SMTP connection (`ConnectionStrings:mailpit` until the production provider is chosen) and
   `ScreenHire:Email:From`, or automations skip their emails (docs/architecture/workflow-engine.md section 8);
-- give the worker a secret `ScreenHire:Webhooks:SigningKey`, and share it with webhook receivers, or CallWebhook
-  automations fail as issues.
+- give the worker a secret `ScreenHire:Webhooks:SigningKey`, or CallWebhook automations fail as issues. Never share
+  it: give each organization's receivers that organization's derived key (`WebhookSignature.OrganizationKey`,
+  docs/architecture/workflow-engine.md section 8).
 
 ## Local development and tests
 

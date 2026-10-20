@@ -98,7 +98,8 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 `jobs(id, org_id, template_version_id, workflow_jsonb, workflow_version, …)`
 `applications(id, org_id, job_id, candidate_id, stage_id, workflow_version, accommodation, …)`
 `application_events(id, application_id, type, payload_jsonb, occurred_at)` — append-only timeline
-`automation_runs(id, application_id, automation_id, event_id, facts_jsonb, result, error, created_at)`
+`automation_runs`, `automation_action_runs` and `application_tasks` as built in v1: section 8 and the
+`AddWorkflowEngine` migration.
 
 Definitions are stored as validated JSONB with a JSON Schema published alongside the OpenAPI spec, so the dashboard,
 API clients and the engine share one contract.
@@ -117,7 +118,9 @@ The data model and API from the jobs and templates task, and the engine that run
   `IntegrityAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
   workflow: an automation that reads a tag such an automation adds, or fires on a stage it moves applications into,
-  counts as signal-driven too, so a signal cannot be laundered through a tag or a stage. Only an automation whose
+  counts as signal-driven too, so a signal cannot be laundered through a tag or a stage. Once any signal-driven
+  automation moves applications, every `StageExited` automation counts as well: the stage a move leaves is wherever the
+  application is when the action runs, which no definition can know. Only an automation whose
   every condition is a knockout question equal to its disqualifying answer, with `allowAutoReject` set, may `Reject`,
   and it must give the candidate a reason. Accommodation status and the AI-use declaration are not facts. Publishing a
   template version validates it again, so a draft saved under older rules cannot go live.
@@ -169,15 +172,15 @@ done. Email and webhooks happen before that commit; a crash in between can repea
 
 | Action | What v1 does |
 |---|---|
-| `SendEmail` | Renders `application-received` or `stage-change` to the candidate. Skipped when email is not configured. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. |
+| `SendEmail` | Renders `application-received` or `stage-change` to the candidate. Skipped when email is not configured. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
 | `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. |
 | `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards. |
 | `CreateTask` | Creates a `Task` with the note. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
-| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` with the reason, saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone or with a workflow that no longer validates, it queues a rejection review instead: the candidate must be told why. |
-| `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under `ScreenHire:Webhooks:SigningKey` (the AppHost generates one locally). Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
+| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` with the reason, saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
+| `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under the organization's key: hex HMAC-SHA256 of `webhook-signing:{organizationId}` under `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.OrganizationKey`; the AppHost generates the platform key locally). A receiver is given its organization's key only, so it cannot sign for another organization. Never through a proxy, which would resolve the target past the address check. Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
 | `RequestVerification`, `SendQuestionnaire`, `ScheduleInterview` | Refused at save. Verification is phase 2; the other two need features that do not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
 
 **Loops and depth.** A run records the chain of automations whose actions led to it. An automation already in its own
@@ -208,6 +211,9 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   non-terminal stage: a custom stage named "Not progressing" would be a rejection under another name.
 - Conditions stay one level (section 7) rather than a recursive tree, because a recursive schema makes the OpenAPI
   document and the generated client recursive.
+- A `TimeElapsed` run is keyed on its stage entry but reads the timeline as it stood at its due time, so a tag added
+  while it waited counts. Whether it fires at all is decided when it is handled: if the application has left the stage
+  entry by then, even after the due time, it does nothing.
 - "Cancelled on stage exit" means the timer is dropped when it fires, not removed when the stage is left: its scheduled
   envelope stays in Wolverine's tables until it falls due (up to 8760 hours), then finds the application has left that
   stage entry and does nothing. Removing scheduled envelopes by hand would couple the engine to Wolverine's tables.

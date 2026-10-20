@@ -37,6 +37,12 @@
 - **Multi-tenancy (2026-10-20).** The named query filter is `Tenant`, on every `ITenantOwned` entity. RLS settings
   are set per command by an EF command interceptor rather than once per transaction, because EF runs plain queries
   without a transaction; SaveChanges always runs in one so the setting can go first as its own command.
+- **Workflow engine and transactional email (2026-10-20).** Email templates use Fluid.Core (MIT, Liquid syntax; its
+  dependencies are Parlot, BSD-3-Clause, and TimeZoneConverter, MIT). Scriban (BSD-2-Clause) would also pass the policy; Fluid was
+  chosen for explicit HTML encoding per render, which keeps candidate names out of the markup. The CallWebhook action
+  uses one long-lived `HttpClient`, not `IHttpClientFactory`: the service defaults add a retrying resilience handler to
+  every factory client, Wolverine already retries the action, and the opt-out (`RemoveAllResilienceHandlers`) is still
+  experimental. Details: `docs/architecture/workflow-engine.md` section 8.
 
 ## Licence policy
 - Prefer MIT / Apache-2.0 / BSD / PostgreSQL licences.
@@ -52,9 +58,3 @@ Packages outside the preferred licences, each limited to the scope stated. Anyth
 |---|---|---|---|
 | `Deque.AxeCore.Commons` (axe-core), via `Deque.AxeCore.Playwright` (MIT) | MPL-2.0 | Test-only: `tests/ScreenHire.E2E` | The whole package is MPL-2.0 (Deque's .NET code and the bundled axe-core). Its copyleft is file-level: it applies only to modified versions of those files, which we neither modify nor ship; it never reaches a production artefact. Added 2026-10-20 with the test harness. |
 | `axe-core` (npm), via `lighthouse` (Apache-2.0) | MPL-2.0 | Dev-only: `apps/marketing/scripts/lighthouse.mjs` (`pnpm verify:lighthouse`) | Lighthouse bundles axe-core for its accessibility audits. The copyleft is file-level and covers only modified versions of those files, which we neither modify nor ship; `lighthouse` is a devDependency and never reaches the built site. Added 2026-10-20 with the marketing budgets. |
-- **Workflow engine and transactional email (2026-10-20).** Email templates use Fluid.Core (MIT, Liquid syntax; its
-  dependencies are Parlot, BSD-3-Clause, and TimeZoneConverter, MIT). Scriban (BSD-2-Clause) would also pass the policy; Fluid was
-  chosen for explicit HTML encoding per render, which keeps candidate names out of the markup. The CallWebhook action
-  uses one long-lived `HttpClient`, not `IHttpClientFactory`: the service defaults add a retrying resilience handler to
-  every factory client, Wolverine already retries the action, and the opt-out (`RemoveAllResilienceHandlers`) is still
-  experimental. Details: `docs/architecture/workflow-engine.md` section 8.
