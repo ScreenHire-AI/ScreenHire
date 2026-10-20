@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CounterEvidence } from './counterEvidence.ts';
+import type { LlmProvenance } from './llmProvenance.ts';
 import type { SignalCategory } from './signalCategory.ts';
 import type { SignalConfidence } from './signalConfidence.ts';
 import type { SignalEvidence } from './signalEvidence.ts';
@@ -30,4 +31,6 @@ export interface IntegritySignalView {
   source: string;
   sourceVersion: number;
   observedAt: string;
+  informational: boolean;
+  llm: null | LlmProvenance;
 }

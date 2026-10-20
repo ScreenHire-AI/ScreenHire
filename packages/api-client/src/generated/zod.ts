@@ -2167,7 +2167,13 @@ export const GetApplicationIntegrityResponse = zod.object({
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
-  "observedAt": zod.iso.datetime({"offset":true})
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -2242,7 +2248,13 @@ export const GetApplicationIntegrityResponse = zod.object({
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
-  "observedAt": zod.iso.datetime({"offset":true})
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -2272,7 +2284,16 @@ export const GetApplicationIntegrityResponse = zod.object({
   "requestVerification": zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
-}).describe('Whether an action is offered, and why not when it is not.')
+}).describe('Whether an action is offered, and why not when it is not.'),
+  "consistencyCheck": zod.union([zod.null(),zod.object({
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "note": zod.string().nullable(),
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string().nullable(),
+  "consistencyModel": zod.string().nullable(),
+  "contradictions": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
 }).describe('An application\'s integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
 
 
@@ -2353,7 +2374,13 @@ export const DismissIntegrityAssessmentResponse = zod.object({
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
-  "observedAt": zod.iso.datetime({"offset":true})
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -2428,7 +2455,13 @@ export const DismissIntegrityAssessmentResponse = zod.object({
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
-  "observedAt": zod.iso.datetime({"offset":true})
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -2458,7 +2491,16 @@ export const DismissIntegrityAssessmentResponse = zod.object({
   "requestVerification": zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
-}).describe('Whether an action is offered, and why not when it is not.')
+}).describe('Whether an action is offered, and why not when it is not.'),
+  "consistencyCheck": zod.union([zod.null(),zod.object({
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "note": zod.string().nullable(),
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string().nullable(),
+  "consistencyModel": zod.string().nullable(),
+  "contradictions": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
 }).describe('An application\'s integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
 
 
@@ -2538,7 +2580,13 @@ export const AddIntegrityNoteResponse = zod.object({
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
-  "observedAt": zod.iso.datetime({"offset":true})
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -2613,7 +2661,13 @@ export const AddIntegrityNoteResponse = zod.object({
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
-  "observedAt": zod.iso.datetime({"offset":true})
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -2643,7 +2697,16 @@ export const AddIntegrityNoteResponse = zod.object({
   "requestVerification": zod.object({
   "available": zod.boolean(),
   "reason": zod.string().nullable()
-}).describe('Whether an action is offered, and why not when it is not.')
+}).describe('Whether an action is offered, and why not when it is not.'),
+  "consistencyCheck": zod.union([zod.null(),zod.object({
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "note": zod.string().nullable(),
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string().nullable(),
+  "consistencyModel": zod.string().nullable(),
+  "contradictions": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
 }).describe('An application\'s integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
 
 
@@ -2838,6 +2901,25 @@ export const UpdateOrganizationBrandingResponse = zod.object({
 }).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
   "brandAdjusted": zod.boolean()
 }).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+
+
+export const GetOrganizationIntegritySettingsResponse = zod.object({
+  "llmConsistencyCheck": zod.boolean(),
+  "monthlyTokenBudget": zod.int().nullable(),
+  "tokensUsedThisMonth": zod.int()
+}).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month.')
+
+
+export const UpdateOrganizationIntegritySettingsBody = zod.object({
+  "llmConsistencyCheck": zod.boolean(),
+  "monthlyTokenBudget": zod.int().nullish()
+}).describe('Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment\'s default).')
+
+export const UpdateOrganizationIntegritySettingsResponse = zod.object({
+  "llmConsistencyCheck": zod.boolean(),
+  "monthlyTokenBudget": zod.int().nullable(),
+  "tokensUsedThisMonth": zod.int()
+}).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month.')
 
 
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;

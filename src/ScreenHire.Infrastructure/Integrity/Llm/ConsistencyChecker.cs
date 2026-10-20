@@ -164,9 +164,9 @@ public sealed partial class ConsistencyChecker(LlmAccess llm, ILogger<Consistenc
         {
             var plain = c switch
             {
-                '‘' or '’' => '\'',
-                '“' or '”' => '"',
-                '–' or '—' => '-',
+                '\u2018' or '\u2019' => '\'',
+                '\u201C' or '\u201D' => '"',
+                '\u2013' or '\u2014' => '-',
                 _ => c,
             };
             if (char.IsWhiteSpace(plain))

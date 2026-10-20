@@ -44,6 +44,7 @@ import type {
   MoveApplicationRequest,
   OnboardingRequest,
   OrganizationBranding,
+  OrganizationIntegritySettings,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -58,6 +59,7 @@ import type {
   UpdateBrandingRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
+  UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UploadRequest,
   UploadTicket,
@@ -2865,6 +2867,110 @@ return apiFetch<updateOrganizationBrandingResponse>(getUpdateOrganizationBrandin
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateBrandingRequest)
+  }
+);}
+
+
+
+export type getOrganizationIntegritySettingsResponse200 = {
+  data: OrganizationIntegritySettings
+  status: 200
+}
+
+export type getOrganizationIntegritySettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationIntegritySettingsResponseSuccess = (getOrganizationIntegritySettingsResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationIntegritySettingsResponseError = (getOrganizationIntegritySettingsResponse401) & {
+  headers: Headers;
+};
+
+export type getOrganizationIntegritySettingsResponse = (getOrganizationIntegritySettingsResponseSuccess | getOrganizationIntegritySettingsResponseError)
+
+export const getGetOrganizationIntegritySettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/integrity-settings`
+}
+
+export const getOrganizationIntegritySettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationIntegritySettingsResponse> => {
+
+  return apiFetch<getOrganizationIntegritySettingsResponse>(getGetOrganizationIntegritySettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateOrganizationIntegritySettingsResponse200 = {
+  data: OrganizationIntegritySettings
+  status: 200
+}
+
+export type updateOrganizationIntegritySettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationIntegritySettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationIntegritySettingsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationIntegritySettingsResponseSuccess = (updateOrganizationIntegritySettingsResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationIntegritySettingsResponseError = (updateOrganizationIntegritySettingsResponse400 | updateOrganizationIntegritySettingsResponse401 | updateOrganizationIntegritySettingsResponse403) & {
+  headers: Headers;
+};
+
+export type updateOrganizationIntegritySettingsResponse = (updateOrganizationIntegritySettingsResponseSuccess | updateOrganizationIntegritySettingsResponseError)
+
+export const getUpdateOrganizationIntegritySettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/integrity-settings`
+}
+
+export const updateOrganizationIntegritySettings = async (updateIntegritySettingsRequest: UpdateIntegritySettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationIntegritySettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOrganizationIntegritySettingsResponse>(getUpdateOrganizationIntegritySettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateIntegritySettingsRequest)
   }
 );}
 

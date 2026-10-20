@@ -69,7 +69,7 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         var (slug, jobId) = await OpenJobAsync(tenant);
         var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman);
 
-        var integrity = await AssessedAsync(tenant, applicationId);
+        var integrity = await SettledAsync(tenant, applicationId);
 
         integrity.Text("authenticity.level").Should().Be("NoConcerns");
         integrity.At("authenticity.reasonCodes").GetArrayLength().Should().Be(0);
@@ -82,7 +82,7 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         observation.DeviceHash.Should().HaveLength(64).And.NotContain("robin", "the fingerprint is stored only as an organization-salted hash");
         observation.ExpiresAt.Should().BeCloseTo(observation.ObservedAt.AddDays(30), TimeSpan.FromSeconds(1));
         (await db.IntegrityAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).ToListAsync(Ct))
-            .Should().BeEquivalentTo(["network", "identity", "automation", "duplicates", "behavioural"]);
+            .Should().BeEquivalentTo(IntegritySupport.Analyzers);
     }
 
     [Fact]
@@ -189,10 +189,14 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         using var other = await fixture.SignedInWithOrganizationAsync();
         var (slug, jobId) = await OpenJobAsync(tenant);
         var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
-        await AssessedAsync(tenant, applicationId);
+        await SettledAsync(tenant, applicationId);
         (await tenant.PostAsync($"/v1/applications/{applicationId}/integrity/notes", new JsonObject { ["note"] = "Checked the references." }))
             .Expect(HttpStatusCode.OK);
-        string[] tables = ["integrity_analyzer_runs", "integrity_signals", "integrity_assessments", "integrity_review_actions", "submission_observations"];
+        string[] tables =
+        [
+            "integrity_analyzer_runs", "integrity_signals", "integrity_assessments", "integrity_review_actions", "submission_observations",
+            "application_documents", "consistency_checks",
+        ];
 
         // Raw SQL as the application role, past the EF query filter: only the policies stand in the way.
         foreach (var table in tables)
@@ -288,7 +292,7 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         var (slug, jobId) = await OpenJobAsync(tenant);
         var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
-        await AssessedAsync(tenant, applicationId);
+        await SettledAsync(tenant, applicationId);
         await using var db = await TenantDbAsync(tenant.OrganizationId);
         var ran = await db.IntegrityAnalyzerRuns.AsNoTracking().Where(r => r.ApplicationId == applicationId)
             .Select(r => new { r.Analyzer, r.AnalyzerVersion }).ToListAsync(Ct);
@@ -335,89 +339,35 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         var (slug, jobId) = await OpenJobAsync(tenant);
         var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
-        await AssessedAsync(tenant, applicationId);
+        await SettledAsync(tenant, applicationId);
         await using var db = await TenantDbAsync(tenant.OrganizationId);
 
         var update = () => db.IntegrityAssessments.Where(a => a.ApplicationId == applicationId)
             .ExecuteUpdateAsync(s => s.SetProperty(a => a.Level, "NoConcerns"), Ct);
         var delete = () => db.IntegritySignals.Where(s => s.ApplicationId == applicationId).ExecuteDeleteAsync(Ct);
         var network = () => db.SignalNetworkEntries.CountAsync(Ct);
+        // What a file said is a record too: extraction writes it once and nothing rewrites or removes it.
+        var rewrite = () => db.ApplicationDocuments.Where(d => d.ApplicationId == applicationId)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.Text, "edited"), Ct);
+        var forget = () => db.ConsistencyChecks.Where(c => c.ApplicationId == applicationId).ExecuteDeleteAsync(Ct);
 
         (await update.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
         (await delete.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
         (await network.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await rewrite.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await forget.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
     // A published remote job with the default workflow, in the tenant's organization, and the organization's slug.
-    private async Task<(string Slug, Guid JobId)> OpenJobAsync(Tenant tenant)
-    {
-        var jobId = (await tenant.CreateJobAsync(Samples.RemoteJob("Platform Engineer"))).Id();
-        await tenant.PublishJobAsync(jobId);
-        await using var db = await TenantDbAsync(tenant.OrganizationId);
-        var slug = await db.Organizations.Where(o => o.Id == tenant.OrganizationId).Select(o => o.Slug).SingleAsync(Ct);
-        return (slug, jobId);
-    }
+    private Task<(string Slug, Guid JobId)> OpenJobAsync(Tenant tenant) => IntegritySupport.OpenJobAsync(fixture, tenant);
 
-    // Applies as the careers server does for this applicant: the resume upload, then the submission with the session
-    // context and the candidate's address forwarded.
-    private async Task<Guid> ApplyAsync(string slug, Guid jobId, SyntheticApplicant applicant, bool accommodation = false)
-    {
-        using var client = fixture.CreateHttpClient("api");
-        var prefix = $"/v1/public/organizations/{slug}/jobs/{jobId}";
-        var resume = applicant.ResumeBytes();
-        var ticketResponse = await client.PostAsJsonAsync($"{prefix}/questions/resume/uploads", new { fileName = applicant.ResumeFileName, sizeBytes = resume.Length }, Ct);
-        ticketResponse.StatusCode.Should().Be(HttpStatusCode.OK, await ticketResponse.Content.ReadAsStringAsync(Ct));
-        var ticket = await ticketResponse.Content.ReadFromJsonAsync<JsonElement>(Ct);
-        using (var storage = new HttpClient())
-        using (var put = new HttpRequestMessage(HttpMethod.Put, ticket.GetProperty("uploadUrl").GetString()) { Content = new ByteArrayContent(resume) })
-        {
-            foreach (var header in ticket.GetProperty("headers").EnumerateObject())
-            {
-                put.Headers.Add(header.Name, header.Value.GetString());
-            }
+    private Task<Guid> ApplyAsync(string slug, Guid jobId, SyntheticApplicant applicant, bool accommodation = false) =>
+        IntegritySupport.ApplyAsync(fixture, slug, jobId, applicant, accommodation);
 
-            (await storage.SendAsync(put, Ct)).IsSuccessStatusCode.Should().BeTrue();
-        }
+    private static Task<ApiResult> AssessedAsync(Tenant tenant, Guid applicationId) => IntegritySupport.AssessedAsync(tenant, applicationId);
 
-        var uploadId = ticket.GetProperty("uploadId").GetGuid();
-        (await client.PostAsync($"{prefix}/questions/resume/uploads/{uploadId}/verify", null, Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var body = new JsonObject
-        {
-            ["candidate"] = new JsonObject { ["fullName"] = applicant.FullName, ["email"] = applicant.Email, ["phone"] = applicant.Phone },
-            ["privacyNoticeVersion"] = "2026-10-20.2",
-            ["answers"] = new JsonArray(new JsonObject { ["questionId"] = "resume", ["value"] = uploadId.ToString() }),
-            // The default workflow wants AI use disclosed, so an applicant who did not say is sent as "did not use".
-            ["aiUseDeclaration"] = (applicant.AiUseDeclaration == AiUseDeclaration.NotProvided ? AiUseDeclaration.DidNotUse : applicant.AiUseDeclaration).ToString(),
-            ["aiUseDetails"] = applicant.AiUseDetails,
-            ["honeypotFilled"] = applicant.HoneypotFilled,
-            ["accommodationRequested"] = accommodation,
-            ["userAgent"] = applicant.UserAgent,
-            ["formStartedAt"] = DateTimeOffset.UtcNow - applicant.TimeToComplete,
-            ["automationMarkers"] = new JsonArray([.. applicant.AutomationMarkers.Select(m => JsonValue.Create(m))]),
-            ["deviceFingerprint"] = applicant.DeviceFingerprint,
-        };
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{prefix}/applications") { Content = JsonContent.Create(body) };
-        request.Headers.Add("X-Forwarded-For", applicant.IpAddress);
-        using var response = await client.SendAsync(request, Ct);
-        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
-        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("applicationId").GetGuid();
-    }
-
-    // The application's integrity once the worker has assessed it.
-    private static async Task<ApiResult> AssessedAsync(Tenant tenant, Guid applicationId)
-    {
-        ApiResult? result = null;
-        await WolverineStore.WaitUntilAsync(
-            async () =>
-            {
-                result = (await tenant.GetAsync($"/v1/applications/{applicationId}/integrity")).Expect(HttpStatusCode.OK);
-                return result.Text("status") == "Assessed";
-            },
-            "the worker to assess the application",
-            Ct);
-        return result!;
-    }
+    // Every analyzer has run, content forensics included, so row counts no longer change underneath a test.
+    private Task<ApiResult> SettledAsync(Tenant tenant, Guid applicationId) => IntegritySupport.SettledAsync(fixture, tenant, applicationId);
 
     // One scalar statement as the application role with the organization as tenant, in a transaction like the API's.
     private async Task<long> CountAsync(Guid organizationId, string sql, Guid applicationId, Guid? organization = null)
@@ -443,12 +393,7 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         return result;
     }
 
-    private async Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId)
-    {
-        var tenant = new TenantContext();
-        tenant.SetOrganization(organizationId);
-        return await fixture.CreateDbContextAsync(tenant, Ct);
-    }
+    private Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId) => IntegritySupport.TenantDbAsync(fixture, organizationId);
 
     // What the pipeline has written for one application.
     private static async Task<PipelineRecord> RecordAsync(ScreenHireDbContext db, Guid applicationId) => new(
