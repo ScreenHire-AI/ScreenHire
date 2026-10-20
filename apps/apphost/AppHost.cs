@@ -2,17 +2,19 @@
 // (JS apps share one pnpm workspace, so Aspire must not run per-app installs — hence WithPnpm(install: false)).
 //
 // Settings (env `ScreenHire__…` or command-line `--ScreenHire:…`):
-//   PersistData (default true)  keep Postgres/Azurite data in volumes. Volume names come from Aspire and include a
-//                               hash of this AppHost's path, so each git worktree gets its own data.
+//   PersistData (default true)  keep Postgres, Azurite and Mailpit data in volumes. Volume names come from Aspire and
+//                               include a hash of this AppHost's path, so each git worktree gets its own data.
 //   PinPorts    (default true)  stable local URLs; set false (as the integration tests do) for random ports, or
 //                               override individual ports with Ports:Api / Ports:Marketing / Ports:Careers / Ports:Dashboard
-//                               / Ports:Mailpit (its web UI) / Ports:DevSso.
+//                               / Ports:Mailpit (its web UI) / Ports:DevSso. `aspire start --isolated` (what /preview
+//                               uses in a worktree) randomises every port, these and the Aspire dashboard's included.
 //   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
 //   Demo        (on with Dev)   the local demo's data on Brightwater (the API's DevelopmentDemo): on with Frontends Dev,
 //                               off with Built and None, which the test stacks use. The integration tests'
-//                               DevelopmentDemoTests turn it on for a stack of their own.
+//                               DevelopmentDemoTests turn it on for a stack of their own. With it on, the API is healthy
+//                               only once the demo data is in.
 //   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
 //                               the same boards (ScreenHire.Application DistributionOptions). appsettings.Development.json
 //                               turns on the local sandbox board, a fake that must never reach real tenants;
@@ -23,6 +25,7 @@
 //                               None turns the check into "unavailable"; in Anthropic mode the key comes from the secret
 //                               parameter anthropic-api-key, never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -75,21 +78,29 @@ var blobs = storage.AddBlobs("blobs");
 var mailpit = builder.AddMailPit("mailpit", httpPort: PortFor("Mailpit", 8025))
     // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
     .WithEnvironment("MP_SMTP_DISABLE_RDNS", "true");
+if (persistData)
+{
+    // The demo sends its emails once, on the start that adds its candidates, so they stay with the data they belong to.
+    mailpit.WithDataVolume(VolumeNameGenerator.Generate(mailpit, "data"));
+}
 
 // The key the API hashes candidates' device fingerprints with, per organization (ScreenHire:Integrity:DeviceHashKey).
 // Generated locally and kept in the AppHost's user secrets like other generated parameters; production sets its own.
 var deviceHashKey = builder.AddParameter(
     "integrity-device-hash-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
 
-var api = builder.AddProject<Projects.ScreenHire_Api>("api")
+// The API's `http` launch profile only: its `https` profile would add a fixed https://localhost:7080 that nothing uses
+// and that collides when two stacks run side by side.
+var api = builder.AddProject<Projects.ScreenHire_Api>("api", launchProfileName: "http")
     .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Api", 5080))
     .WaitFor(database)
     .WithReference(appDatabase)
     .WithReference(mailpit).WaitFor(mailpit)
     .WithReference(blobs).WaitFor(blobs)
     .WithEnvironment("ScreenHire__Integrity__DeviceHashKey", deviceHashKey)
-    // Kestrel only listens after the Development migrate-and-seed, so a healthy API has its schema and demo data.
-    // Everything that waits for it (worker, frontends, test fixtures) starts after that, not when the process starts.
+    // Kestrel only listens after the Development migrate-and-seed, and with Demo on /health stays unhealthy until the demo
+    // data is in, so a healthy API has its schema and its data. Everything that waits for it (worker, frontends, test
+    // fixtures) starts after that, not when the process starts.
     .WithHttpHealthCheck("/health");
 
 // Dev SSO: a local mock OpenID Connect provider (navikt/mock-oauth2-server, MIT) with seeded users, so sign-in runs
@@ -171,10 +182,10 @@ if (string.Equals(settings["Integrity:Llm:Provider"], "Anthropic", StringCompari
     worker.WithEnvironment("ScreenHire__Integrity__Llm__Anthropic__ApiKey", anthropicKey);
 }
 
-// The local demo's data (the API's DevelopmentDemo, docs/operations/local-demo.md): Brightwater's template, a draft job,
-// the synthetic applicants and candidates in every stage, once the API starts. Only for `pnpm dev` by default: the test
-// stacks make their own data and treat Brightwater as the seeder leaves it, and the startup burst of submissions delayed
-// a later live update in the end-to-end tests (integrity-engine.md §10.9).
+// The local demo's data (the API's DevelopmentDemo, docs/operations/local-demo.md): Brightwater's template, jobs on every
+// board, a draft and a closed job, the synthetic applicants and candidates in every stage, once the API starts. Only for
+// `pnpm dev` by default: the test stacks make their own data and treat Brightwater as the seeder leaves it, and the
+// startup burst of submissions delayed a later live update in the end-to-end tests (integrity-engine.md §10.9).
 if (demo)
 {
     api.WithEnvironment("ScreenHire__Demo__Enabled", "true");

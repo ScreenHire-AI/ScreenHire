@@ -13,7 +13,7 @@ namespace ScreenHire.IntegrationTests.Messaging;
 /// and the worker's handler, which sets the tenant from the message.
 /// These tests stop and start the worker, so their collection runs on its own after the parallel tests.
 /// </summary>
-[Collection(nameof(WorkerLifecycle))]
+[Collection<WorkerLifecycle>]
 public sealed class WorkerMessagingTests(AppHostFixture fixture)
 {
     private const string WorkerQueue = "worker";

@@ -263,13 +263,41 @@ internal static class JobEndpoints
             return TypedResults.NotFound();
         }
 
+        switch ((await PublishAsync(outbox, validator, planner, boards, domains.Value, job, request?.Boards, time.GetUtcNow(), cancellationToken))?.Result)
+        {
+            case ValidationProblem invalid:
+                return invalid;
+            case ProblemHttpResult problem:
+                return problem;
+        }
+
+        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+    }
+
+    /// <summary>
+    /// The publish itself, shared by the endpoint and the local demo (<c>DevelopmentDemo</c>): opens or republishes the
+    /// tracked <paramref name="job"/>, posts it to <paramref name="requestedBoards"/> (or to every board when it is on
+    /// none) and commits through the outbox. Null when it committed or had nothing to change; otherwise the refusal.
+    /// </summary>
+    internal static async Task<Results<ValidationProblem, ProblemHttpResult>?> PublishAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        JobPublishValidator validator,
+        DistributionPlanner planner,
+        BoardRegistry boards,
+        DomainOptions domains,
+        Job job,
+        IReadOnlyList<string>? requestedBoards,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
         if (job.Status == JobStatus.Closed)
         {
             return TypedResults.Problem("A closed job cannot be republished; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
         }
 
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == job.OrganizationId, cancellationToken);
-        if (request?.Boards is { } requested)
+        if (requestedBoards is { } requested)
         {
             var available = boards.AvailableTo(organization).Select(a => a.BoardId).ToHashSet(StringComparer.Ordinal);
             if (requested.FirstOrDefault(b => !available.Contains(b)) is { } unknown)
@@ -279,7 +307,6 @@ internal static class JobEndpoints
             }
         }
 
-        var now = time.GetUtcNow();
         if (job is { ValidThrough: null, PublishedAt: null, SourceTemplateVersionId: { } sourceVersionId })
         {
             // The template's posting duration counts from the first publish.
@@ -319,8 +346,8 @@ internal static class JobEndpoints
         var postings = await db.JobPostings.Where(p => p.JobId == job.Id).ToListAsync(cancellationToken);
         var content = new PostingContent(
             job.Id, current.Version, current.Snapshot, job.PublishedAt!.Value, current.PublishedAt,
-            domains.Value.CareersJobUrl(organization.Slug, job.Slug), organization.Name, organization.Slug);
-        var changes = await planner.PublishAsync(organization, content, postings, request?.Boards, cancellationToken);
+            domains.CareersJobUrl(organization.Slug, job.Slug), organization.Name, organization.Slug);
+        var changes = await planner.PublishAsync(organization, content, postings, requestedBoards, cancellationToken);
         db.JobPostings.AddRange(changes.Added);
         foreach (var message in changes.Messages)
         {
@@ -339,7 +366,7 @@ internal static class JobEndpoints
             }
         }
 
-        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+        return null;
     }
 
     // Closes the job and tears it down everywhere in the same transaction (one-click teardown): the careers page serves
@@ -361,7 +388,23 @@ internal static class JobEndpoints
             return TypedResults.NotFound();
         }
 
-        if (job.Close(time.GetUtcNow()))
+        if (await CloseAsync(outbox, planner, job, time.GetUtcNow(), cancellationToken) is { } conflict)
+        {
+            return conflict;
+        }
+
+        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+    }
+
+    /// <summary>
+    /// The close itself, shared by the endpoint and the local demo: closes the tracked <paramref name="job"/>, tears it
+    /// down on every board and commits through the outbox. Null when it committed or had nothing to change.
+    /// </summary>
+    internal static async Task<ProblemHttpResult?> CloseAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, DistributionPlanner planner, Job job, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        if (job.Close(now))
         {
             await outbox.PublishAsync(new JobClosed(job.OrganizationId, job.Id, job.ClosedAt!.Value));
         }
@@ -384,7 +427,7 @@ internal static class JobEndpoints
             }
         }
 
-        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+        return null;
     }
 
     /// <summary>

@@ -28,8 +28,9 @@ task, and every task that waits on it, until morning.
 - Do not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, `scripts/guard-processes.mjs` or the
   pipeline skills (`task-review`, `pull-request`, `merge-pull-request`, `verify`) unless the task is about them.
 - Processes: never stop anything by name, port or process tree (the guard hook refuses it). Run long commands with
-  `run_in_background` and stop them with TaskStop. Before `pnpm dev`, reserve ports with
-  `kangentic_reserve_dev_ports` or set `ScreenHire__PinPorts=false`. Prefer the Aspire test host over a dev server.
+  `run_in_background` and stop them with TaskStop. To run the stack, use `/preview`: it starts it detached with
+  `dotnet aspire start --isolated` (random ports, nothing to reserve) and stops it with `dotnet aspire stop`. Prefer
+  the Aspire test host over a dev server.
 
 ## Start from what is merged
 

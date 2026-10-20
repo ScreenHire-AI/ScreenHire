@@ -9,3 +9,11 @@ public sealed class DevelopmentDemoFixture : AppHostFixture
 {
     protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Demo=true"];
 }
+
+/// <summary>
+/// The demo's tests, run on their own after the parallel ones: the demo's startup burst (every applicant's integrity
+/// analysis, the boards' syncs) is heavy enough to hold up the shared stack's worker past other tests' deadlines when the
+/// two stacks share the machine.
+/// </summary>
+[CollectionDefinition(DisableParallelization = true)]
+public sealed class DevelopmentDemoRun;

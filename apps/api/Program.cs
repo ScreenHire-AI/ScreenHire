@@ -28,9 +28,12 @@ builder.AddScreenHireRealtime();
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
 {
-    // The local demo's data: Brightwater's template, a draft job, the synthetic applicants and candidates in every
-    // stage, once the API has started (docs/operations/local-demo.md). The AppHost turns it on for `pnpm dev` only.
-    builder.Services.AddHostedService<DevelopmentDemo>();
+    // The local demo's data: Brightwater's template, jobs on every board, a closed job, the synthetic applicants and
+    // candidates in every stage, once the API has started (docs/operations/local-demo.md). The AppHost turns it on for
+    // `pnpm dev` only. It is also a health check, so /health is healthy only once the demo data is in.
+    builder.Services.AddSingleton<DevelopmentDemo>();
+    builder.Services.AddHostedService(services => services.GetRequiredService<DevelopmentDemo>());
+    builder.Services.AddHealthChecks().AddCheck<DevelopmentDemo>("development-demo");
 }
 
 builder.Services.AddProblemDetails();

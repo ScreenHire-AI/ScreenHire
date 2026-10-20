@@ -16,6 +16,13 @@ and a five-minute demo script.
 
 ## Start it
 
+In Claude Code, run **`/preview`** ([the skill](../../.claude/skills/preview/SKILL.md)). It checks Docker and the
+packages, starts the stack in the background with the Aspire CLI (`dotnet aspire start`; in a Kangentic worktree with
+`--isolated`, which gives it random free ports), waits until the demo data is in, and reports the URLs, the logins and
+the Aspire dashboard's link. In a Kangentic task it also signs in as Avery Quinn in the task's browser pane.
+`/preview fresh` starts a clean demo and `/preview stop` stops it. The Aspire CLI is a repo-local tool: run
+`dotnet tool restore` once. Without Claude Code:
+
 ```bash
 pnpm install   # once, and again after pulling changes to any package.json
 pnpm dev       # = dotnet run --project apps/apphost
@@ -23,15 +30,29 @@ pnpm dev       # = dotnet run --project apps/apphost
 
 The first start pulls the container images (Postgres with pgvector, Azurite, Mailpit, the Dev SSO server) and takes a
 few minutes; later starts are much quicker. The console prints the Aspire dashboard's link with a login token.
-The API listens only once it has migrated and seeded the database, so when the dashboard shows every resource as
-healthy, the demo data is in. The synthetic applicants' integrity levels follow a few seconds later, once the worker
-has assessed them.
+The API listens only once it has migrated and seeded the database, and reports healthy only once the demo's data is
+in, so when the dashboard shows every resource as healthy, the demo data is there. The synthetic applicants' integrity
+levels follow within a minute, once the worker has assessed them.
 
-Stop with Ctrl+C. Aspire then removes the containers it started. The database and uploaded files stay in Docker
-volumes (one set per clone or worktree), so the next start has the same candidates and anything you changed. Mailpit
-keeps nothing: its inbox is empty after every restart. To start from a clean demo, run once with
-`ScreenHire__PersistData=false` (no volumes at all), or, with the stack stopped, delete the data volumes Aspire created
-for this clone in Docker Desktop.
+Frontend changes reload on their own while it runs. After a change to the API or the worker, rebuild just that service
+while the rest keeps running: `dotnet aspire resource api rebuild` (or `worker`), or **Rebuild** on the resource in the
+Aspire dashboard. Attach a debugger to the `ScreenHire.Api` or `ScreenHire.Worker` process, or start the AppHost from
+your IDE. After a change to the AppHost itself, start it again; this clone's running stack is replaced.
+
+Stop with Ctrl+C (or `/preview stop`, which is `dotnet aspire stop`). Aspire then removes the containers it started. The database, uploaded files and
+Mailpit's inbox stay in Docker volumes (one set per clone or worktree), so the next start has the same candidates, the
+same emails and anything you changed.
+
+### Start over
+
+- **A clean demo, keeping your data:** `/preview fresh`, or
+  `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false` (add
+  `--isolated` before `--` in a worktree). It runs with no volumes at all and deletes nothing; the next normal start has
+  your data back.
+- **Wipe this clone's data for good:** stop the stack, then remove its three data volumes one at a time by exact name,
+  as `/preview` reports them: `screenhire.apphost-<hash>-postgres-data`, `-storage-data` and `-mailpit-data`, each with
+  its own `docker volume rm`. The hash comes from this clone's path, so other worktrees' volumes have other names; never
+  prune. The next start seeds a new demo.
 
 ## The URLs
 
@@ -45,9 +66,10 @@ for this clone in Docker Desktop.
 | Dev SSO (the local sign-in provider) | http://localhost:5090, reached through "Continue with Dev SSO" on the sign-in page |
 | Aspire dashboard (resources, logs, traces) | https://localhost:17113, with the token from the console |
 
-Another stack already on one of these ports? Pin others with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`,
-`__Dashboard`, `__Mailpit` or `__DevSso`, or run with `ScreenHire__PinPorts=false` for random ports, which the Aspire
-dashboard lists.
+These are the main checkout's ports. `/preview` in a worktree starts with `--isolated`, so every port, the Aspire
+dashboard's included, is random; it prints the real ones (`dotnet aspire describe` lists them too). Another stack already
+on one of these ports? Start this one with `dotnet aspire start --isolated` (what `/preview` does in a worktree), or move
+single ports with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashboard`, `__Mailpit` or `__DevSso`.
 
 ## Demo logins
 
@@ -68,22 +90,42 @@ Brightwater Studio, a fictional booking and payments software company. `Developm
 stack, tests included; `pnpm dev` adds the rest (`DevelopmentDemo` in `apps/api/Demo`). All names, addresses and
 numbers are made up.
 
-| Job | Status | What is in it |
-|---|---|---|
-| Senior .NET Engineer | Open, from the "Software engineer" template | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm. Emails go to candidates when they apply and when they reach Screening or Interview |
-| Senior Product Designer | Open | Three candidates in Applied, Screening and Interview |
-| Frontend Engineer (Svelte) | Open | Three candidates in Screening, Interview and Offer |
-| Backend Engineer (Payments) | Draft, from Brightwater's own template | Ready to publish during the demo |
-| Customer Success Lead | Draft | No template, an on-site job in Manchester |
+| Job | Status | Boards | What is in it |
+|---|---|---|---|
+| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note |
+| Senior Product Designer | Open | Every board | Three candidates in Applied, Screening and Interview |
+| Frontend Engineer (Svelte) | Open | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note) |
+| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Three candidates who went through the stages: one Hired, one Rejected and one Withdrawn, each with the recruiter's notes. Its careers page answers "This job has closed" |
+| Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
+| Customer Success Lead | Draft | None | No template, an on-site job in Manchester |
+
+Between them every stage of both pipelines holds someone. The distribution strips show the states a local stack can
+reach: Live (careers page, sandbox board), Sent (feeds and the job-board API), Needs fixes (a feed that wants a longer
+description), Not posted, Removal requested and Removed. Rejected and Error need a real board's answer and do not occur
+locally.
+
+The three open jobs send the candidate emails: one when a candidate applies, and one when they reach Screening or
+Interview. Mailpit keeps them with the rest of the data. Every candidate except the synthetic applicants is in
+`apps/api/Demo/DemoCandidates.cs`; the synthetic applicants are `SyntheticApplicants` in `ScreenHire.Application`, the
+same people the integrity golden tests use ([integrity-engine.md](../architecture/integrity-engine.md) §10.8).
 
 Templates: the two system templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the
-Software engineer pipeline plus the three candidate emails.
+Software engineer pipeline and questionnaire plus the three candidate emails.
+
+### What is seeded where
+
+| Layer | Runs | Adds |
+|---|---|---|
+| `DevelopmentDataSeeder` (`src/ScreenHire.Infrastructure/Persistence`) | Every stack in Development, tests included, before the API listens | Brightwater Studio, its brand colour and integrity settings, Avery Quinn as Owner, three open jobs and the Customer Success Lead draft. Tests treat it as read-only ([testing.md](../process/testing.md)) |
+| `DevelopmentDemo` (`apps/api/Demo`) | `pnpm dev` and `/preview` only (`ScreenHire:Demo`), after the API starts; `/health` waits for it | Everything else on this page. Each step looks for what it adds first, so a restart with kept data adds nothing |
+| Dev SSO users (`apps/apphost/DevSso`) | Every Development stack | The sign-in choices under "Demo logins" |
+
 
 ## A five-minute demo
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows what is open and what is a draft. The sidebar's
    saved views count what needs attention: "Needs review" and "Verification recommended".
-2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The overview bar sorts the six applicants by
+2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The overview bar sorts the seven applicants by
    authenticity level, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
@@ -92,8 +134,8 @@ Software engineer pipeline plus the three candidate emails.
    raises no concern.
 3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The timeline
    records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
-   to Robin within a second or two. On the very first start with fresh data, every synthetic applicant's "We received
-   your application" email is there too.
+   to Robin within a second or two. Every candidate's "We received your application" email is there too, and the
+   Screening and Interview emails for the designer and frontend candidates.
 4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** shows everything the posting
    carries (salary, location, closing date, description). Press **Publish to 8 boards**. The careers page
    is live at once; the local sandbox board confirms in about 20 seconds; the feed boards show "Sent" with each one's
@@ -104,7 +146,8 @@ Software engineer pipeline plus the three candidate emails.
 6. **Take it down (15 s).** **Close & remove everywhere** on the job page. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
-Extras if there is time: the Templates page and its builder (questions, automations and the guardrail that refuses an
+Extras if there is time: Support Engineer for a closed job and its candidates' timelines with the recruiter's notes,
+the Templates page and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
 
@@ -131,5 +174,5 @@ The [MVP status](../README.md#mvp-status) lists what each of these needs before 
   after a cold start is the slowest.
 - **The sandbox board still says "Submitted".** It waits 20 seconds on purpose, like a real board's review.
 - **No email in Mailpit.** Automations send from the worker after the move commits; it takes a second or two. Only
-  Senior .NET Engineer and jobs from "Brightwater engineering" send candidate emails, and Mailpit forgets everything
-  when the stack restarts, so earlier emails are gone after a restart.
+  the three seeded open jobs and jobs from "Brightwater engineering" send candidate emails. With `fresh` Mailpit
+  starts empty, and the demo's own emails are sent once, on the start that adds their candidates.

@@ -9,17 +9,21 @@ using ScreenHire.Application.Integrity;
 namespace ScreenHire.IntegrationTests.Demo;
 
 /// <summary>
-/// <c>pnpm dev</c> brings up a working demo: after the API starts, Brightwater has its template, the draft job, the
-/// candidate emails on the .NET job and the applicants from <see cref="SyntheticApplicants"/> and <see cref="DemoCandidates"/>
-/// (docs/operations/local-demo.md). The demo runs in the background once the API has started, so each test waits, with a
-/// deadline, for the state it asserts. Template, job and automation names are written out here from that guide, not read
-/// from the seeder.
+/// <c>pnpm dev</c> brings up a working demo: once the API is healthy, Brightwater has its template, the draft and closed
+/// jobs, the open jobs on their boards, the candidate emails and the applicants from <see cref="SyntheticApplicants"/> and
+/// <see cref="DemoCandidates"/> (docs/operations/local-demo.md). The API reports healthy only after the demo has run, so
+/// what the API itself adds is there at once; what the worker does afterwards (emails) is awaited with a deadline.
+/// Template, job, board, stage and automation names are written out here from that guide, not read from the seeder.
 /// </summary>
+[Collection<DevelopmentDemoRun>]
 public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClassFixture<DevelopmentDemoFixture>
 {
     private const string TemplateName = "Brightwater engineering";
     private const string DraftJobSlug = "backend-engineer-payments";
     private const string SeniorDotnetSlug = "senior-dotnet-engineer";
+    private const string ProductDesignerSlug = "senior-product-designer";
+    private const string FrontendSlug = "frontend-engineer-svelte";
+    private const string ClosedJobSlug = "support-engineer";
 
     // The demo logs one line when a start has finished all its steps, whatever it added.
     private const string DemoFinishedLog = "Development demo:";
@@ -27,9 +31,29 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
 
     private static readonly string[] CandidateEmailAutomations = ["demo_application_received", "demo_screening_email", "demo_interview_email"];
 
+    // The stages of the "Software engineer" pipeline and of the default one, together.
+    private static readonly string[] EveryStage = ["applied", "screening", "technical", "interview", "offer", "hired", "rejected", "withdrawn"];
+
     private static readonly TimeSpan Deadline = TimeSpan.FromMinutes(3);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task The_demo_data_is_in_as_soon_as_the_api_is_healthy()
+    {
+        // No polling: the fixture waited for a healthy API, which the demo holds back until its last step has run.
+        using var owner = await SignedInOwnerAsync();
+
+        string?[] unmet =
+        [
+            await TemplateUnmetAsync(owner),
+            await DraftJobUnmetAsync(owner),
+            await ClosedJobUnmetAsync(owner),
+            await SyntheticApplicantsUnmetAsync(owner),
+            await DemoCandidatesUnmetAsync(owner),
+        ];
+        unmet.Should().AllSatisfy(problem => problem.Should().BeNull());
+    }
 
     [Fact]
     public async Task The_brightwater_engineering_template_is_published()
@@ -48,11 +72,14 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
     }
 
     [Fact]
-    public async Task The_dotnet_job_has_the_three_candidate_email_automations()
+    public async Task Each_open_job_has_the_three_candidate_email_automations()
     {
         using var owner = await SignedInOwnerAsync();
 
-        await EventuallyAsync(() => AutomationsUnmetAsync(owner));
+        foreach (var slug in new[] { SeniorDotnetSlug, ProductDesignerSlug, FrontendSlug })
+        {
+            await EventuallyAsync(() => AutomationsUnmetAsync(owner, slug));
+        }
     }
 
     [Fact]
@@ -72,12 +99,89 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
     }
 
     [Fact]
+    public async Task Every_stage_of_both_pipelines_holds_an_application()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        var stages = (await GetAsync(owner, "/v1/applications")).EnumerateArray()
+            .Select(a => a.GetProperty("stage").GetProperty("id").GetString())
+            .ToHashSet();
+        stages.Should().Contain(EveryStage);
+    }
+
+    [Fact]
+    public async Task Each_note_a_recruiter_left_is_on_the_candidates_timeline()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        foreach (var candidate in DemoCandidates.All.Where(c => c.Moves.Any(m => m.Note is not null)))
+        {
+            var application = (await ApplicantsAsync(owner, candidate.JobSlug))
+                .Single(a => a.GetProperty("candidateName").GetString() == candidate.Applicant.FullName);
+            var notes = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}/timeline")).EnumerateArray()
+                .Where(e => e.GetProperty("type").GetString() == "StageChanged")
+                .Select(e => (To: e.GetProperty("toStageId").GetString(), Note: e.GetProperty("note").GetString()))
+                .ToList();
+
+            notes.Should().Equal(candidate.Moves.Select(m => (To: (string?)m.StageId, m.Note)), candidate.Applicant.FullName);
+        }
+    }
+
+    [Fact]
+    public async Task The_open_jobs_are_on_their_boards()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var everyBoard = (await GetAsync(owner, "/v1/boards")).EnumerateArray().Select(b => b.GetProperty("id").GetString()).Order().ToList();
+
+        (await BoardsOfAsync(owner, SeniorDotnetSlug)).Should().Equal(everyBoard);
+        (await BoardsOfAsync(owner, ProductDesignerSlug)).Should().Equal(everyBoard);
+        (await BoardsOfAsync(owner, FrontendSlug)).Should().Equal("careers", "sandbox");
+        (await BoardsOfAsync(owner, DraftJobSlug)).Should().BeEmpty("a draft is on no board");
+    }
+
+    [Fact]
+    public async Task The_support_job_is_closed_and_taken_down_everywhere()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        (await ClosedJobUnmetAsync(owner)).Should().BeNull();
+        var job = (await FindJobAsync(owner, ClosedJobSlug))!.Value;
+        var postings = (await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).GetProperty("postings").EnumerateArray().ToList();
+        postings.Should().NotBeEmpty("it was published to every board before it closed");
+        postings.Should().AllSatisfy(p => p.GetProperty("state").GetString().Should().BeOneOf("Closed", "Closing"));
+
+        using var anonymous = fixture.CreateHttpClient("api");
+        using var response = await anonymous.GetAsync($"/v1/public/organizations/brightwater/jobs/{ClosedJobSlug}", Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Gone, "a published job that closed is gone for good");
+    }
+
+    [Fact]
+    public async Task Each_candidate_email_automation_sent_an_email()
+    {
+        // Who gets which email, from the demo guide: everyone on an open job is told their application arrived, Tom
+        // Whitfield reached Screening and Priya Natarajan reached Interview on the designer job.
+        var mailpit = fixture.Mailpit;
+
+        var robin = await mailpit.WaitForMessagesAsync(SyntheticApplicants.GenuineHuman.Email, 1, Ct);
+        robin.Should().Contain(m => m.Subject == "We received your application for Senior .NET Engineer");
+
+        foreach (var (email, stage) in new[] { ("tom.whitfield@example.org", "Screening"), ("priya.natarajan@example.com", "Interview") })
+        {
+            var sent = await mailpit.WaitForMessagesAsync(email, 2, Ct);
+            sent.Should().Contain(m => m.Subject == "We received your application for Senior Product Designer", email);
+            sent.Should().Contain(
+                m => m.Subject == "An update on your application for Senior Product Designer" && m.Text.Contains(stage, StringComparison.Ordinal),
+                "{0} was moved to {1}", email, stage);
+        }
+    }
+
+    [Fact]
     public async Task Starting_the_api_again_adds_nothing()
     {
         using var first = await SignedInOwnerAsync();
         await EventuallyAsync(async () =>
-            await TemplateUnmetAsync(first) ?? await DraftJobUnmetAsync(first) ?? await AutomationsUnmetAsync(first)
-            ?? await SyntheticApplicantsUnmetAsync(first) ?? await DemoCandidatesUnmetAsync(first));
+            await TemplateUnmetAsync(first) ?? await DraftJobUnmetAsync(first) ?? await AutomationsUnmetAsync(first, SeniorDotnetSlug)
+            ?? await SyntheticApplicantsUnmetAsync(first) ?? await DemoCandidatesUnmetAsync(first) ?? await ClosedJobUnmetAsync(first));
         var before = await CountsAsync(first);
 
         // Watch the API's log from before the restart, so the line the second start logs is told apart from the first's.
@@ -141,11 +245,27 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         return session;
     }
 
-    // What the demo adds, counted: templates, jobs and applications in the organization.
-    private static async Task<(int Templates, int Jobs, int Applications)> CountsAsync(ApiSession owner) =>
-        ((await GetAsync(owner, "/v1/templates")).GetArrayLength(),
-         (await GetAsync(owner, "/v1/jobs")).GetArrayLength(),
-         (await GetAsync(owner, "/v1/applications")).GetArrayLength());
+    // What the demo adds, counted: templates, jobs, applications, postings, and the timeline entries the API writes
+    // (submissions and moves; the worker's tags and assessments arrive on their own schedule, so they are left out).
+    private static async Task<(int Templates, int Jobs, int Applications, int Postings, int Moves)> CountsAsync(ApiSession owner)
+    {
+        var jobs = (await GetAsync(owner, "/v1/jobs")).EnumerateArray().ToList();
+        var applications = (await GetAsync(owner, "/v1/applications")).EnumerateArray().ToList();
+        var postings = 0;
+        foreach (var job in jobs)
+        {
+            postings += (await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).GetProperty("postings").GetArrayLength();
+        }
+
+        var moves = 0;
+        foreach (var application in applications)
+        {
+            moves += (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}/timeline")).EnumerateArray()
+                .Count(e => e.GetProperty("type").GetString() is "Submitted" or "StageChanged");
+        }
+
+        return ((await GetAsync(owner, "/v1/templates")).GetArrayLength(), jobs.Count, applications.Count, postings, moves);
+    }
 
     private static async Task<string?> TemplateUnmetAsync(ApiSession owner)
     {
@@ -172,36 +292,41 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             : $"'{TemplateName}' lists no version with status Published";
     }
 
-    private static async Task<string?> DraftJobUnmetAsync(ApiSession owner)
+    private static async Task<string?> DraftJobUnmetAsync(ApiSession owner) => await JobStatusUnmetAsync(owner, DraftJobSlug, "Draft");
+
+    private static async Task<string?> ClosedJobUnmetAsync(ApiSession owner) => await JobStatusUnmetAsync(owner, ClosedJobSlug, "Closed");
+
+    private static async Task<string?> JobStatusUnmetAsync(ApiSession owner, string slug, string status)
     {
-        var job = await FindJobAsync(owner, DraftJobSlug);
-        return job is null ? $"no job '{DraftJobSlug}'"
-            : job.Value.GetProperty("status").GetString() == "Draft" ? null
-            : $"'{DraftJobSlug}' is {job.Value.GetProperty("status").GetString()}, not Draft";
+        var job = await FindJobAsync(owner, slug);
+        return job is null ? $"no job '{slug}'"
+            : job.Value.GetProperty("status").GetString() == status ? null
+            : $"'{slug}' is {job.Value.GetProperty("status").GetString()}, not {status}";
     }
 
-    private static async Task<string?> AutomationsUnmetAsync(ApiSession owner)
+    private static async Task<string?> AutomationsUnmetAsync(ApiSession owner, string slug)
     {
-        var job = await FindJobAsync(owner, SeniorDotnetSlug);
+        var job = await FindJobAsync(owner, slug);
         if (job is null)
         {
-            return $"no job '{SeniorDotnetSlug}'";
+            return $"no job '{slug}'";
         }
 
         var detail = await GetAsync(owner, $"/v1/jobs/{job.Value.GetProperty("id").GetGuid()}");
         var present = detail.GetProperty("workflow").GetProperty("automations").EnumerateArray()
             .Select(a => a.GetProperty("id").GetString()).ToList();
         var missing = CandidateEmailAutomations.Except(present).ToList();
-        return missing.Count == 0 ? null : $"the workflow of '{SeniorDotnetSlug}' lacks automations {string.Join(", ", missing)}";
+        return missing.Count == 0 ? null : $"the workflow of '{slug}' lacks automations {string.Join(", ", missing)}";
     }
 
+    // Every synthetic applicant once; the .NET job also has the demo candidates who applied to it.
     private static async Task<string?> SyntheticApplicantsUnmetAsync(ApiSession owner)
     {
-        var expected = SyntheticApplicants.All.Select(a => a.FullName).Order().ToList();
-        var names = (await ApplicantsAsync(owner, SeniorDotnetSlug)).Select(a => a.GetProperty("candidateName").GetString()!).Order().ToList();
-        return names.SequenceEqual(expected)
+        var names = (await ApplicantsAsync(owner, SeniorDotnetSlug)).Select(a => a.GetProperty("candidateName").GetString()!).ToList();
+        var missing = SyntheticApplicants.All.Where(a => names.Count(n => n == a.FullName) != 1).Select(a => a.FullName).ToList();
+        return missing.Count == 0
             ? null
-            : $"applicants on '{SeniorDotnetSlug}' are [{string.Join("; ", names)}], expected [{string.Join("; ", expected)}]";
+            : $"applicants on '{SeniorDotnetSlug}' are [{string.Join("; ", names)}]; not there exactly once: [{string.Join("; ", missing)}]";
     }
 
     private static async Task<string?> DemoCandidatesUnmetAsync(ApiSession owner)
@@ -228,6 +353,14 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         return null;
     }
 
+    private static async Task<List<string?>> BoardsOfAsync(ApiSession owner, string slug)
+    {
+        var job = (await FindJobAsync(owner, slug))!.Value;
+        return [.. (await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).GetProperty("postings").EnumerateArray()
+            .Select(p => p.GetProperty("boardId").GetString())
+            .Order()];
+    }
+
     private static async Task<JsonElement> GetAsync(ApiSession session, string path)
     {
         using var response = await session.Client.GetAsync(path, Ct);
@@ -246,7 +379,8 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             ? [.. (await GetAsync(session, $"/v1/jobs/{job.GetProperty("id").GetGuid()}/applications")).EnumerateArray()]
             : [];
 
-    // The demo runs after the API starts and finishes in the background, so poll until `unmet` has nothing to report.
+    // Polls until `unmet` has nothing to report: what the API adds is there once it is healthy, but the restart test
+    // asks while a start may be under way.
     private static async Task EventuallyAsync(Func<Task<string?>> unmet)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);

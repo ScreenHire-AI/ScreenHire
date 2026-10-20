@@ -90,7 +90,8 @@ brackets.
 ### Known gaps
 
 - `answers.*` and `application.source` facts are not wired into automation conditions yet (#11).
-- Demo seeding under `pnpm dev` delays the first live updates by a few seconds (integrity-engine.md §10.9).
+- With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
+  startup (integrity-engine.md §10.9). In the browser pane, `/preview` waits for an integrity chip before it checks anything live.
 
 ## Decision log
 

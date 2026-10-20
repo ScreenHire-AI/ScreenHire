@@ -16,6 +16,10 @@ pnpm install   # once, at the repo root
 pnpm dev       # runs the Aspire AppHost: Postgres (pgvector), Azurite, Mailpit, Dev SSO, API, worker and frontends
 ```
 
+In Claude Code, `/preview` runs it through the Aspire CLI (`dotnet tool restore` once, then `dotnet aspire start`),
+waits until the demo data is in and reports the URLs and logins; `/preview fresh` gives a clean demo and
+`/preview stop` stops it ([docs/operations/local-demo.md](docs/operations/local-demo.md)).
+
 | Service | URL |
 |---|---|
 | Recruiter dashboard | http://localhost:4323 |
@@ -26,10 +30,10 @@ pnpm dev       # runs the Aspire AppHost: Postgres (pgvector), Azurite, Mailpit,
 | Dev SSO (local sign-in provider) | http://localhost:5090 |
 | Aspire dashboard | https://localhost:17113 (the console prints the link with its login token) |
 
-Sign in to the dashboard with **Dev SSO**: "Avery Quinn" owns the seeded Brightwater Studio, with open jobs, a draft
-to publish, candidates across the pipeline and synthetic applicants at every integrity level. Any other email address
-starts a new account. Nothing needs a real account or key: email, sign-in providers, the LLM check, job boards and IP
-data all have local stand-ins.
+Sign in to the dashboard with **Dev SSO**: "Avery Quinn" owns the seeded Brightwater Studio, with open jobs on their
+boards, a draft to publish, a closed job, candidates in every pipeline stage and synthetic applicants at every
+integrity level. Any other email address starts a new account. Nothing needs a real account or key: email, sign-in
+providers, the LLM check, job boards and IP data all have local stand-ins.
 
 The demo script, logins, what is faked and how to reset the data: [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
 What is built and what the owner still has to do before real use: [MVP status](docs/README.md#mvp-status).

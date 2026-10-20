@@ -26,7 +26,8 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 
 ## Commands
 
-- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs), then
+- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs) and
+  `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
@@ -34,11 +35,17 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   with **Dev SSO** (the local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email
   lands in **Mailpit**. No real provider accounts or secrets are needed. `pnpm dev` also seeds the demo data
   (`DevelopmentDemo`); the five-minute demo is [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
-- **Parallel worktrees:** several Kangentic tasks may run at once. Before `pnpm dev`, check/reserve ports with the
-  Kangentic dev-port tools (`kangentic_check_dev_ports` / `kangentic_reserve_dev_ports`) and pass them as
-  `ScreenHire__Ports__Api|Marketing|Careers|Dashboard|Mailpit|DevSso`, or run with `ScreenHire__PinPorts=false` for random ports
-  (URLs are shown in the Aspire dashboard). Data volumes are already per-worktree; integration tests use no volumes and
-  random ports.
+- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview stop`). It runs the stack
+  through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
+  dashboard in the task's browser pane; `/run` uses it too. Agents never `dotnet run` the AppHost. After a change to the
+  API or worker, `dotnet aspire resource api rebuild` (or `worker`) rebuilds and restarts just that service.
+- **Parallel worktrees:** several Kangentic tasks may run at once. In a worktree `/preview` starts with
+  `dotnet aspire start --isolated`, which gives every port, the Aspire dashboard's included, a random free number, so
+  stacks never collide and nothing needs reserving. Data volumes are already per-worktree; integration tests use no
+  volumes and random ports.
+- **Aspire MCP server:** `.mcp.json` runs `dotnet tool run aspire agent mcp`, which gives agents the running stack's
+  resources, console and structured logs, traces and resource commands. Never run `aspire agent init`: it installs
+  hooks and MCP settings into the machine-wide Claude Code and Copilot configuration.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
@@ -55,9 +62,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
   `ScreenHire:Integrity:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
-  `anthropic-api-key` secret) goes to the worker. `ScreenHire:PersistData` (default `true`) keeps Postgres and Azurite
-  data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
-  frontends only) seeds the local demo's data on Brightwater. The header of `apps/apphost/AppHost.cs`
+  `anthropic-api-key` secret) goes to the worker. `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
+  frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
 - **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
   marketing site's Lighthouse budgets and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
@@ -163,5 +170,5 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 ## Claude Code tooling
 
 Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-realtime-event`, `/add-dashboard-page`, `/add-careers-page`,
-`/add-marketing-page`, `/commit`, `/merge-back`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
+`/add-marketing-page`, `/commit`, `/merge-back`, `/preview`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
 [`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).

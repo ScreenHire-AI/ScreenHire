@@ -83,7 +83,7 @@ and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google
 
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
-demo data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
+Brightwater. With the demo on (`DevelopmentDemoFixture`, `pnpm dev`), `/health` also waits for the demo's data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
 
 ### Test data: isolate by organization
 
@@ -99,6 +99,9 @@ There is no reset between tests and no Respawn. Instead:
   settings through `ExtraArguments`, and use it as the class's `IClassFixture`. `DevelopmentDemoTests` does this with
   `--ScreenHire:Demo=true`: it checks the data `pnpm dev` seeds on Brightwater, and that a second start of the API adds
   none, on a stack the other tests never see. Each such fixture boots another stack, about 25 s, so keep them rare.
+  A stack whose startup is heavy goes in a collection with `DisableParallelization = true`, as the demo's
+  `DevelopmentDemoRun` does: run beside the parallel tests, the demo's burst held the shared stack's worker past their
+  deadlines.
 - `TestData` is the one place tests write to the database directly. It writes as the application role
   (`screenhire_app`, which neither owns the tables nor bypasses RLS) with the organization as tenant, so row-level
   security checks test data too. `fixture.CreateDbContextAsync(tenant, ...)` gives a context on the same role.
@@ -129,9 +132,10 @@ Messages cross processes, so these tests wait on Wolverine's tables in Postgres,
   (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and
   drops the schema afterwards. Use it to make a handler fail or a transaction roll back without touching the running
   worker.
-- A test that stops or restarts the worker joins the `WorkerLifecycle` collection
-  (`[Collection(nameof(WorkerLifecycle))]`). xUnit runs that collection on its own after the parallel tests, so no
-  other test waits on a stopped worker.
+- A test that stops or restarts the worker joins the `WorkerLifecycle` collection (`[Collection<WorkerLifecycle>]`).
+  xUnit runs that collection on its own after the parallel tests, so no other test waits on a stopped worker. Refer
+  to a collection by its type, never `[Collection(nameof(...))]`: a `[CollectionDefinition]` without a name is matched
+  by type, and a string quietly makes a separate collection that runs in parallel.
 
 What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
 
