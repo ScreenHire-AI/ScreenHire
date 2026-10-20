@@ -14,7 +14,8 @@ internal static class JobEndpoints
     public static IEndpointRouteBuilder MapJobEndpoints(this IEndpointRouteBuilder app)
     {
         // Authentication and tenant resolution are added by the auth and multi-tenancy work items.
-        // Until then this group serves the seeded demo organization only and must not be deployed.
+        // Until then this group must not be deployed: ListJobs serves the seeded demo organization only, and
+        // PublishJob changes any organization's job by id.
         var group = app.MapGroup("/v1/jobs").WithTags("Jobs");
 
         group.MapGet("/", ListJobs).WithName("ListJobs");
