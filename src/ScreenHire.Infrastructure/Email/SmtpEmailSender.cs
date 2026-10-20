@@ -16,9 +16,9 @@ public sealed class SmtpEmailOptions
 }
 
 /// <summary>
-/// SMTP through MailKit (MIT). TLS on connect for port 465, otherwise STARTTLS whenever the server offers it, so a relay
-/// that supports TLS never gets the magic link in plain text. Locally it delivers to Mailpit, which offers neither TLS
-/// nor authentication; a production relay would add credentials here.
+/// SMTP through MailKit (MIT). TLS on connect for port 465, otherwise STARTTLS when the relay offers it. That is
+/// opportunistic: an on-path attacker can strip the offer, so a production relay should require TLS and add
+/// credentials here. Locally it delivers to Mailpit, which offers neither TLS nor authentication.
 /// </summary>
 public sealed class SmtpEmailSender(IOptions<SmtpEmailOptions> options) : IEmailSender
 {
