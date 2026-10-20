@@ -136,8 +136,8 @@ otherwise run.
 | `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a WebSocket from another origin gets 403; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
 | `JobCloseTests` (integration) | `POST /v1/jobs/{id}/close` closes once and raises `JobClosed` once; 404 for another organization; antiforgery and sign-in |
 | `RealtimeContractTests`, `RealtimeGroupsTests` (unit) | the contract file; group names and topic routing |
-| `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling, schema parsing, invalidation, the runes store |
-| `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload |
+| `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling (against the real SignalR stack too), schema parsing, invalidation, the runes store |
+| `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |
 
 `CheckLiveUpdates` exists so that a test, or an operator, can prove the worker-to-browser path without a feature that
 happens to raise an event from the worker.
