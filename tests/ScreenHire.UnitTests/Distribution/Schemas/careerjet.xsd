@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Careerjet's XML feed, written from the format and sample Careerjet publishes for feeds built from scratch:
+  https://www.careerjet.co.uk/docs/feeds/xml (accessed 2026-10-20). Careerjet marks no field required; the ones every
+  sample job carries are required here. Values beyond the samples (contract_type, working_hours) are not restricted.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="jobs">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="job" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="id" type="nonEmpty" />
+              <xs:element name="title" type="nonEmpty" />
+              <xs:element name="url" type="xs:anyURI" />
+              <xs:element name="location">
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="city" type="xs:string" minOccurs="0" />
+                    <xs:element name="region" type="xs:string" minOccurs="0" />
+                    <xs:element name="country" type="xs:string" minOccurs="0" />
+                  </xs:all>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="company" type="nonEmpty" />
+              <xs:element name="company_url" type="xs:anyURI" minOccurs="0" />
+              <xs:element name="description" type="nonEmpty" />
+              <xs:element name="contract_type" type="xs:string" minOccurs="0" />
+              <xs:element name="working_hours" type="xs:string" minOccurs="0" />
+              <xs:element name="salary" type="xs:string" minOccurs="0" />
+              <xs:element name="application_email" type="xs:string" minOccurs="0" />
+              <xs:element name="apply_url" type="xs:anyURI" minOccurs="0" />
+              <xs:element name="careerjet-apply-data" type="xs:string" minOccurs="0" />
+            </xs:all>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="nonEmpty">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

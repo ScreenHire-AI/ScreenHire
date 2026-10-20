@@ -56,6 +56,9 @@ internal static class FeedXml
     public static XElement? Data(string name, string? value) =>
         string.IsNullOrEmpty(value) ? null : new XElement(name, new XCData(Clean(value)));
 
+    /// <summary>A CDATA element a board requires even when there is no value, such as Talent.com's city for a remote job.</summary>
+    public static XElement Required(string name, string? value) => new(name, new XCData(Clean(value ?? "")));
+
     /// <summary>An element with plain text (numbers, codes, dates), or null when there is no value.</summary>
     public static XElement? Plain(string name, string? value) =>
         string.IsNullOrEmpty(value) ? null : new XElement(name, Clean(value));
