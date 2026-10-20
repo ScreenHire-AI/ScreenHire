@@ -23,7 +23,8 @@ says what happened (event, past tense: `JobPublished`) or what to do (command, i
 - If it is about one organization's data, implement `ITenantMessage` (`OrganizationId`): the worker makes that
   organization the tenant before the handler runs, and without it the handler sees no tenant rows
   (docs/architecture/messaging.md, Tenant events). If that organization's clients may see it, implement
-  `ITenantEvent` instead, which extends it; the real-time fan-out picks it up.
+  `ITenantEvent` instead, which extends it: the API pushes it to the organization's open dashboards, and
+  `/add-realtime-event` adds its Zod schema and what it refreshes.
 - If two envelopes could carry the same intent (a client retry, a schedule that fires twice, a fan-out per board),
   add an idempotency key built from stable ids, such as `$"{applicationId}:{automationId}:{eventId}"`. Never build it
   from the clock or a new `Guid`.

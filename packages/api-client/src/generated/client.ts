@@ -597,3 +597,48 @@ export const publishJob = async (jobId: string, options?: Parameters<typeof apiF
 
   }
 );}
+
+
+
+export type closeJobResponse200 = {
+  data: JobSummary
+  status: 200
+}
+
+export type closeJobResponse401 = {
+  data: void
+  status: 401
+}
+
+export type closeJobResponse404 = {
+  data: void
+  status: 404
+}
+
+export type closeJobResponseSuccess = (closeJobResponse200) & {
+  headers: Headers;
+};
+export type closeJobResponseError = (closeJobResponse401 | closeJobResponse404) & {
+  headers: Headers;
+};
+
+export type closeJobResponse = (closeJobResponseSuccess | closeJobResponseError)
+
+export const getCloseJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/close`
+}
+
+export const closeJob = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<closeJobResponse> => {
+
+  return apiFetch<closeJobResponse>(getCloseJobUrl(jobId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}

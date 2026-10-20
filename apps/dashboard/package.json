@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@screenhire/api-client": "workspace:*",
+    "@screenhire/realtime": "workspace:*",
     "@screenhire/ui": "workspace:*"
   },
   "devDependencies": {

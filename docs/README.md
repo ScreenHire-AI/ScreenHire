@@ -34,6 +34,8 @@ configuration everywhere (ADR-0003).
 - [Integrity Engine](architecture/integrity-engine.md) — signals, two assessments, collection timeline, Signal Network
 - [Workflow Engine](architecture/workflow-engine.md) — templates, stages, automations, guardrails, execution model
 - [Job Distribution Engine](architecture/job-distribution.md) — adapters, posting state machine, honest teardown
+- [Real-time updates](architecture/realtime.md) - SignalR hub, tenant-scoped fan-out of `ITenantEvent` through a
+  Wolverine queue, the `packages/realtime` client, the C#/Zod contract test and the scale-out path
 - [Messaging](architecture/messaging.md) - Wolverine on Postgres: outbox, worker queue, idempotency, retries and
   dead letters, cron, telemetry
 - [Sign-in and tenant isolation](architecture/sign-in-and-tenancy.md) - providers, email links, domains,

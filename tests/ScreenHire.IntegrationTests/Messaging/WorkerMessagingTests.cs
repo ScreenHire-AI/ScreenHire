@@ -38,7 +38,9 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
         await WolverineStore.WaitUntilAsync(
             async () => await store.CountHandledAsync(jobId, cancellationToken) == 1, "the worker to handle JobPublished", cancellationToken);
         (await store.CountIncomingAsync(jobId, cancellationToken)).Should().Be(1, "the event is delivered to the worker exactly once");
-        (await store.CountOutgoingAsync(jobId, cancellationToken)).Should().Be(0, "the outbox is flushed");
+        // The API's outbox sends to the worker queue and the real-time queue separately; both rows go once sent.
+        await WolverineStore.WaitUntilAsync(
+            async () => await CountApiOutboxAsync(jobId, cancellationToken) == 0, "the API's outbox to be flushed", cancellationToken);
         (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken)).Should().Be(0, "the worker took the event off the queue");
         (await store.GetDeadLettersAsync(jobId, cancellationToken)).Should().BeEmpty("the handler found the job as its tenant");
     }
@@ -55,11 +57,13 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
         (await PublishAsync(session, job.Id, cancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
         await WolverineStore.WaitUntilAsync(
             async () => await store.CountHandledAsync(jobId, cancellationToken) == 1, "the worker to handle JobPublished", cancellationToken);
+        await WolverineStore.WaitUntilAsync(
+            async () => await CountApiOutboxAsync(jobId, cancellationToken) == 0, "the API's outbox to be flushed", cancellationToken);
 
         (await PublishAsync(session, job.Id, cancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
 
         // The second call commits nothing, so there is no outbox row, queue row or delivery to wait for.
-        (await store.CountOutgoingAsync(jobId, cancellationToken)).Should().Be(0);
+        (await CountApiOutboxAsync(jobId, cancellationToken)).Should().Be(0);
         (await store.CountQueuedAsync(WorkerQueue, jobId, cancellationToken)).Should().Be(0);
         (await store.CountIncomingAsync(jobId, cancellationToken)).Should().Be(1);
     }
@@ -119,7 +123,7 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound, "another tenant's job looks exactly like a missing one");
         (await LoadJobAsync(theirs, cancellationToken)).Status.Should().Be(JobStatus.Draft);
-        (await store.CountOutgoingAsync(theirs.Id.ToString(), cancellationToken)).Should().Be(0);
+        (await CountApiOutboxAsync(theirs.Id.ToString(), cancellationToken)).Should().Be(0);
         (await store.CountQueuedAsync(WorkerQueue, theirs.Id.ToString(), cancellationToken)).Should().Be(0);
     }
 
@@ -163,9 +167,13 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await LoadJobAsync(closed, cancellationToken)).Status.Should().Be(JobStatus.Closed);
-        (await store.CountOutgoingAsync(closed.Id.ToString(), cancellationToken)).Should().Be(0);
+        (await CountApiOutboxAsync(closed.Id.ToString(), cancellationToken)).Should().Be(0);
         (await store.CountQueuedAsync(WorkerQueue, closed.Id.ToString(), cancellationToken)).Should().Be(0);
     }
+
+    // The API keeps its outbox in its own schema (docs/architecture/realtime.md).
+    private async Task<long> CountApiOutboxAsync(string bodyContains, CancellationToken cancellationToken) =>
+        await (await WolverineStore.ForAppHostApiAsync(fixture, cancellationToken)).CountOutgoingAsync(bodyContains, cancellationToken);
 
     private static Task<HttpResponseMessage> PublishAsync(ApiSession session, Guid jobId, CancellationToken cancellationToken) =>
         session.PostAsync($"/v1/jobs/{jobId}/publish", new { }, cancellationToken);

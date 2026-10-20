@@ -1,4 +1,5 @@
 using Npgsql;
+using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.IntegrationTests.Messaging;
 
@@ -12,8 +13,13 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(200);
 
+    /// <summary>The worker's store and the shared queues (schema <c>wolverine</c>).</summary>
     public static async Task<WolverineStore> ForAppHostAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
         new(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
+
+    /// <summary>The API's own store (schema <c>wolverine_api</c>): its outbox and the real-time queue's inbox.</summary>
+    public static async Task<WolverineStore> ForAppHostApiAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
+        new(await fixture.GetOwnerConnectionStringAsync(cancellationToken), DatabaseRegistration.ApiMessagingSchema);
 
     public Task<long> CountOutgoingAsync(string bodyContains, CancellationToken cancellationToken) =>
         CountAsync("wolverine_outgoing_envelopes", bodyContains, cancellationToken);

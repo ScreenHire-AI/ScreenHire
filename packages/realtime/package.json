@@ -1,0 +1,28 @@
+{
+  "name": "@screenhire/realtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Live updates for the dashboard: a SignalR client for the API's /v1/hubs/events hub with reconnect and re-subscribe, Zod schemas for every tenant event, a runes connection-state store and cache invalidation by event type.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^10.0.11",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "svelte": "^5.57.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

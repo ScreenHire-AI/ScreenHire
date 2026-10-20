@@ -11,8 +11,23 @@ public interface ITenantMessage
 }
 
 /// <summary>
-/// An integration event that belongs to one organization and that its signed-in users may see. The real-time work
-/// fans every <see cref="ITenantEvent"/> out to that organization's clients, so a feature only defines the event.
-/// Carry ids and the facts a client needs to refresh, never personal data (names, emails, answers).
+/// An integration event that belongs to one organization and that its signed-in users may see. The API pushes every
+/// <see cref="ITenantEvent"/> to that organization's connected clients (docs/architecture/realtime.md), so a feature
+/// only defines the event. Carry ids and the facts a client needs to refresh, never personal data (names, emails,
+/// answers): the payload goes to every signed-in member's browser.
 /// </summary>
 public interface ITenantEvent : ITenantMessage;
+
+/// <summary>
+/// A tenant event that only screens showing one record need, such as progress on one application. The API pushes it
+/// to the clients that subscribed to <see cref="Topic"/> and <see cref="TopicId"/> (validated against their
+/// organization when they subscribe), instead of to the whole organization.
+/// </summary>
+public interface ITopicEvent : ITenantEvent
+{
+    /// <summary>The kind of record, such as <c>job</c>: a topic the hub accepts subscriptions for.</summary>
+    string Topic { get; }
+
+    /// <summary>The record's id.</summary>
+    Guid TopicId { get; }
+}
