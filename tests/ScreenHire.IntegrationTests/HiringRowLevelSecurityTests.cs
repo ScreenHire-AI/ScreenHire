@@ -43,6 +43,56 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_publish_that_loaded_the_job_before_it_was_closed_cannot_reopen_it()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var job = TestData.NewJob(organization, "closed-meanwhile");
+        await using (var db = await ContextAsync(organization.Id))
+        {
+            db.Jobs.Add(job);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var publisher = await ContextAsync(organization.Id);
+        var stale = await publisher.Jobs.SingleAsync(j => j.Id == job.Id, Ct);
+        await using (var closer = await ContextAsync(organization.Id))
+        {
+            (await closer.Jobs.SingleAsync(j => j.Id == job.Id, Ct)).Close(Now).Should().BeTrue();
+            await closer.SaveChangesAsync(Ct);
+        }
+
+        publisher.JobVersions.Add(stale.Publish(Now)!);
+        var publish = () => publisher.SaveChangesAsync(Ct);
+
+        await publish.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        await using var check = await ContextAsync(organization.Id);
+        (await check.Jobs.SingleAsync(j => j.Id == job.Id, Ct)).Status.Should().Be(JobStatus.Closed);
+        (await check.JobVersions.CountAsync(v => v.JobId == job.Id, Ct)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_second_publish_of_one_draft_matches_no_row_and_changes_nothing()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var template = await CreateTemplateAsync(organization.Id, "Published twice");
+        await using var second = await ContextAsync(organization.Id);
+        var stale = await second.HiringTemplates.Include(t => t.Versions).SingleAsync(t => t.Id == template.Id, Ct);
+        await using (var first = await ContextAsync(organization.Id))
+        {
+            var fresh = await first.HiringTemplates.Include(t => t.Versions).SingleAsync(t => t.Id == template.Id, Ct);
+            fresh.Publish(fresh.Versions[0], Now, null);
+            await first.SaveChangesAsync(Ct);
+        }
+
+        stale.Publish(stale.Versions[0], Now.AddMinutes(1), null);
+        var publish = () => second.SaveChangesAsync(Ct);
+
+        await publish.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        await using var check = await ContextAsync(organization.Id);
+        (await check.HiringTemplateVersions.SingleAsync(v => v.TemplateId == template.Id, Ct)).PublishedAt.Should().Be(Now);
+    }
+
+    [Fact]
     public async Task Application_events_can_be_added_and_read_but_never_changed_or_deleted()
     {
         var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);

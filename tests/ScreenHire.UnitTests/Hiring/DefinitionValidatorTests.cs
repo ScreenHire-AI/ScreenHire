@@ -309,6 +309,63 @@ public sealed class DefinitionValidatorTests
         Paths(workflow).Should().Equal("automations[2].actions[0]");
     }
 
+    // A tag a signal sets is read through application.tags by substring (Contains) or by list (In). Either way the reader
+    // is signal-driven, so it may not reject or move to a rejected stage.
+    [Theory]
+    [InlineData(ConditionOperator.Contains, ActionType.Reject)]
+    [InlineData(ConditionOperator.Contains, ActionType.MoveToStage)]
+    [InlineData(ConditionOperator.In, ActionType.Reject)]
+    [InlineData(ConditionOperator.In, ActionType.MoveToStage)]
+    public void A_signal_tag_read_by_contains_or_in_cannot_drive_a_rejection(ConditionOperator op, ActionType action)
+    {
+        var readsTag = op == ConditionOperator.Contains
+            ? new AutomationCondition("application.tags", op, "integrity")
+            : new AutomationCondition("application.tags", op, Values: ["referral", "integrity-review"]);
+        var reject = action == ActionType.Reject
+            ? new AutomationAction(ActionType.Reject, Reason: "Not a fit")
+            : new AutomationAction(ActionType.MoveToStage, StageId: "rejected");
+        var workflow = Workflow(automations:
+        [
+            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationAction(ActionType.AddTag, Tag: "Integrity-Review"), "tagger", new AutomationTrigger(TriggerType.IntegrityAssessed)),
+            Automation(Conditions(readsTag), reject, "decliner", allowAutoReject: true),
+        ]);
+
+        AssertRefusedAsSignalDriven(workflow, "automations[1].actions[0]");
+    }
+
+    // A stage a signal routes into is signal-driven for every trigger that fires from it, not only StageEntered.
+    [Theory]
+    [InlineData(TriggerType.StageExited, null)]
+    [InlineData(TriggerType.TimeElapsed, 48)]
+    public void A_stage_a_signal_routes_into_cannot_trigger_a_rejection(TriggerType trigger, int? afterHours)
+    {
+        var workflow = Workflow(
+            stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("verify", "Verification", StageKind.Verification)],
+            automations:
+            [
+                Automation(Conditions(new AutomationCondition("verification.result", ConditionOperator.EqualTo, "failed")),
+                    new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.VerificationCompleted)),
+                Automation(null, new AutomationAction(ActionType.Reject, Reason: "Stalled in verification"), "decliner",
+                    new AutomationTrigger(trigger, "verify", afterHours), allowAutoReject: true),
+            ]);
+
+        AssertRefusedAsSignalDriven(workflow, "automations[1].actions[0]");
+    }
+
+    [Fact]
+    public void A_signal_cannot_move_an_application_straight_to_a_withdrawn_stage()
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationAction(ActionType.MoveToStage, StageId: "withdrawn"), "a", new AutomationTrigger(TriggerType.IntegrityAssessed),
+                allowAutoReject: true),
+        ]);
+
+        AssertRefusedAsSignalDriven(workflow, "automations[0].actions[0]");
+    }
+
     [Theory]
     [InlineData(StageKind.Custom)]
     [InlineData(StageKind.Offer)]
@@ -416,6 +473,16 @@ public sealed class DefinitionValidatorTests
             Automation(Conditions(new AutomationCondition("answers.work_authorization", ConditionOperator.EqualTo, "no")),
                 new AutomationAction(ActionType.Reject, Reason: "This role needs the right to work here."), allowAutoReject: allowAutoReject),
         ]);
+
+    // Exactly one error, at the action, and it is the integrity guardrail (ADR-0004), not the knockout-only rejection rule.
+    private static void AssertRefusedAsSignalDriven(HiringWorkflow workflow, string actionPath)
+    {
+        var errors = DefinitionValidator.Validate(workflow);
+
+        errors.Should().ContainSingle(e => e.Path == actionPath).Which.Message
+            .Should().Contain("integrity or verification signal").And.Contain("Integrity signals never drive rejection (ADR-0004)");
+        errors.Should().HaveCount(1);
+    }
 
     private static IEnumerable<string> Paths(HiringWorkflow workflow) => DefinitionValidator.Validate(workflow).Select(e => e.Path);
 

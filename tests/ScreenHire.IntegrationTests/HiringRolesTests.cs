@@ -38,6 +38,9 @@ public sealed class HiringRolesTests(AppHostFixture fixture)
             await viewer.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" }),
             await viewer.PostAsync("/v1/templates", new JsonObject { ["name"] = "Mine" }),
             await viewer.PostAsync($"/v1/templates/{templateId}/versions"),
+            await viewer.PutAsync($"/v1/templates/{templateId}", new JsonObject { ["name"] = "Renamed" }),
+            await viewer.PutAsync($"/v1/templates/{templateId}/versions/1", new JsonObject { ["definition"] = Samples.Definition() }),
+            await viewer.PostAsync($"/v1/templates/{templateId}/versions/1/publish"),
         ];
 
         writes.Select(w => w.Status).Should().AllBeEquivalentTo(HttpStatusCode.Forbidden);
