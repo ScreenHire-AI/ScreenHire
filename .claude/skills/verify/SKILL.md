@@ -39,7 +39,8 @@ Full gate: `pnpm verify`. It runs, in order and stopping at the first failure:
 6. `dotnet test --solution ScreenHire.slnx`: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire, frontends
    off) and `ScreenHire.E2E` (Playwright and axe against the step 4 builds), run in parallel.
 
-The full gate takes about two minutes on the owner's machine; most of it is booting the two AppHosts.
+The full gate takes under a minute on the owner's machine (47–54 s in October 2026); most of it is booting the two
+AppHosts. Much longer means something is waiting on a timeout: read the output.
 
 Quick: `pnpm verify:dotnet`, then `pnpm verify:contract`, then `pnpm check`, then `pnpm -r --if-present test`.
 

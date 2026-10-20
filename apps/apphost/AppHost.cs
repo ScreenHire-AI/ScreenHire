@@ -15,7 +15,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 var settings = builder.Configuration.GetSection("ScreenHire");
 var persistData = !bool.TryParse(settings["PersistData"], out var persist) || persist;
 var pinPorts = !bool.TryParse(settings["PinPorts"], out var pin) || pin;
-var frontends = Enum.TryParse<FrontendMode>(settings["Frontends"], ignoreCase: true, out var mode) ? mode : FrontendMode.Dev;
+var frontends = settings["Frontends"] is not { } frontendsSetting
+    ? FrontendMode.Dev
+    : Enum.TryParse<FrontendMode>(frontendsSetting, ignoreCase: true, out var mode) && Enum.IsDefined(mode)
+        ? mode
+        : throw new InvalidOperationException($"ScreenHire:Frontends must be Dev, Built or None, not '{frontendsSetting}'.");
 int? PortFor(string name, int fallback) =>
     !pinPorts ? null : int.TryParse(settings[$"Ports:{name}"], out var port) ? port : fallback;
 
