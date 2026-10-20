@@ -133,6 +133,21 @@ public sealed class DocumentExtractionTests
     }
 
     [Fact]
+    public void White_text_in_a_shaded_table_cell_is_visible()
+    {
+        // The sidebar of many resume templates: a dark table cell with white text in it.
+        var cell = new TableCell(
+            new TableCellProperties(new Shading { Fill = "1F4E5A", Val = ShadingPatternValues.Clear }),
+            new Paragraph(Run("Skills", props => props.Color = new Color { Val = "FFFFFF" })));
+        var docx = Word(new Body(new Table(new TableRow(cell))));
+
+        var document = DocumentExtraction.Extract(docx, ".docx", Ct);
+
+        document.Text.Should().Be("Skills");
+        document.HiddenText.Should().BeEmpty();
+    }
+
+    [Fact]
     public void A_damaged_file_is_unreadable_and_an_image_is_unsupported()
     {
         DocumentExtraction.Extract("%PDF-1.7 not really a pdf"u8.ToArray(), ".pdf", Ct).Status.Should().Be(DocumentExtractionStatus.Unreadable);
@@ -167,13 +182,16 @@ public sealed class DocumentExtractionTests
         return new Run(properties, new Text(text) { Space = SpaceProcessingModeValues.Preserve });
     }
 
-    private static byte[] Word(IReadOnlyList<Run> runs, string? application = null, DateTime? created = null)
+    private static byte[] Word(IReadOnlyList<Run> runs, string? application = null, DateTime? created = null) =>
+        Word(new Body(new Paragraph(runs.Cast<OpenXmlElement>())), application, created);
+
+    private static byte[] Word(Body body, string? application = null, DateTime? created = null)
     {
         using var stream = new MemoryStream();
         using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
         {
             var main = document.AddMainDocumentPart();
-            main.Document = new Document(new Body(new Paragraph(runs.Cast<OpenXmlElement>())));
+            main.Document = new Document(body);
             if (application is not null)
             {
                 var extended = document.AddExtendedFilePropertiesPart();

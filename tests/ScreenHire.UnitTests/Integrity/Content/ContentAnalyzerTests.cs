@@ -217,6 +217,17 @@ public sealed class ContentAnalyzerTests
     public void Ordinary_tools_are_not_generators(string producer) =>
         ContentPatterns.FindGenerator([producer]).Should().BeNull();
 
+    [Fact]
+    public void The_answers_sent_to_a_model_leave_out_yes_no_answers()
+    {
+        var harness = new IntegrityHarness();
+
+        var source = ApplicationText.AnswersSource(harness.Job, SyntheticApplicants.GenuineHuman.Answers);
+
+        source.Should().Be("How many years have you worked as a software engineer? 6 to 9\nWhat is your notice period? One month");
+        source.Should().NotContain("right to work", "a yes/no answer states no fact the check compares");
+    }
+
     // An application with one resume file and nothing read yet.
     private static Task<IntegrityContext> ContextWithFileAsync(IntegrityHarness harness)
     {

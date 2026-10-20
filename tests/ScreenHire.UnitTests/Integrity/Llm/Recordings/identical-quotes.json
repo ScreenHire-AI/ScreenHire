@@ -1,0 +1,48 @@
+{
+  "description": "The comparison pairs two claims whose quotes are the same text. Identical spans cannot contradict each other, so no contradiction is reported.",
+  "sources": {
+    "Resume": "Dana Whitfield\nData engineer at Harbour Lane Analytics.",
+    "Answers": "Who is your current employer? Harbour Lane Analytics"
+  },
+  "responses": [
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_031",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [ { "type": "text", "text": "{\"claims\":[{\"topic\":\"employer\",\"quote\":\"Harbour Lane Analytics\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 460, "output_tokens": 22 }
+      }
+    },
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_032",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [ { "type": "text", "text": "{\"claims\":[{\"topic\":\"employer\",\"quote\":\"harbour lane analytics\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 455, "output_tokens": 22 }
+      }
+    },
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_033",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [ { "type": "text", "text": "{\"contradictions\":[{\"topic\":\"employer\",\"leftClaimId\":\"R1\",\"rightClaimId\":\"A1\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 520, "output_tokens": 24 }
+      }
+    }
+  ]
+}

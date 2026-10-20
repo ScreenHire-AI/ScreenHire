@@ -181,7 +181,7 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Row_level_security_hides_and_refuses_another_organizations_fingerprints_and_settings()
+    public async Task Row_level_security_hides_and_refuses_another_organizations_content_records_and_settings()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         using var other = await fixture.SignedInWithOrganizationAsync();
@@ -193,9 +193,15 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
 
         // Raw SQL as the application role, past the EF query filter: only the policies stand in the way.
         const string fingerprints = "SELECT count(*) FROM answer_fingerprints WHERE application_id = @id";
+        const string documents = "SELECT count(*) FROM application_documents WHERE application_id = @id";
+        const string checks = "SELECT count(*) FROM consistency_checks WHERE application_id = @id";
         const string settings = "SELECT count(*) FROM integrity_settings WHERE organization_id = @id";
         (await ScalarAsync(tenant.OrganizationId, fingerprints, applicationId)).Should().Be(1);
         (await ScalarAsync(other.OrganizationId, fingerprints, applicationId)).Should().Be(0);
+        (await ScalarAsync(tenant.OrganizationId, documents, applicationId)).Should().BePositive("the resume was read");
+        (await ScalarAsync(other.OrganizationId, documents, applicationId)).Should().Be(0);
+        (await ScalarAsync(tenant.OrganizationId, checks, applicationId)).Should().Be(1);
+        (await ScalarAsync(other.OrganizationId, checks, applicationId)).Should().Be(0);
         (await ScalarAsync(tenant.OrganizationId, settings, tenant.OrganizationId)).Should().Be(1);
         (await ScalarAsync(other.OrganizationId, settings, tenant.OrganizationId)).Should().Be(0);
 

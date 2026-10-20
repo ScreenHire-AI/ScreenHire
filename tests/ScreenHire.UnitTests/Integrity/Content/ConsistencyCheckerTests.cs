@@ -96,6 +96,16 @@ public sealed class ConsistencyCheckerTests
         outcome.Contradictions.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task A_pair_of_identical_quotes_is_not_a_contradiction()
+    {
+        var (outcome, requests) = await ReplayAsync("identical-quotes");
+
+        requests.Should().HaveCount(3);
+        outcome.Status.Should().Be(ConsistencyCheckStatus.Completed);
+        outcome.Contradictions.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData("refusal", "The model declined to answer.")]
     [InlineData("bad-request", "The model could not be reached.")]
@@ -172,6 +182,7 @@ public sealed class ConsistencyCheckerTests
     [InlineData("employer-contradiction")]
     [InlineData("fabricated-quote")]
     [InlineData("unknown-claim-ids")]
+    [InlineData("identical-quotes")]
     public async Task Every_llm_derived_signal_cites_a_span_found_in_each_of_its_sources(string recording)
     {
         var sources = Recording(recording).Sources;
