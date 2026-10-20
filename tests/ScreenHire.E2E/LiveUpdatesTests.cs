@@ -29,6 +29,16 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
         // The second session: the same person in another browser, watching the same list.
         await using var otherContext = await Fixture.Browser.NewContextAsync();
         var other = await otherContext.NewPageAsync();
+        // Frames on the hub's WebSocket itself. SignalR would fall back to server-sent events if the upgrade were
+        // refused (the API admits only the dashboard's Origin), and the list would still update.
+        var hubFrames = 0;
+        other.WebSocket += (_, socket) =>
+        {
+            if (socket.Url.Contains("/v1/hubs/events", StringComparison.Ordinal))
+            {
+                socket.FrameReceived += (_, _) => Interlocked.Increment(ref hubFrames);
+            }
+        };
         await SignInWithDevSsoAsync(other, email);
         await Expect(other).ToHaveURLAsync(DashboardUrl("/"));
         await Expect(StatusOf(other, title)).ToHaveTextAsync("Draft");
@@ -45,6 +55,7 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Expect(StatusOf(other, title)).ToHaveTextAsync("Closed");
         (await other.EvaluateAsync<bool>($"() => {NoReloadMarker} === true")).Should().BeTrue("the list updated in place, without a reload");
+        Volatile.Read(ref hubFrames).Should().BePositive("the hub's WebSocket from the dashboard's origin was accepted");
         await ExpectNoAccessibilityViolationsAsync();
     }
 

@@ -27,6 +27,23 @@ public sealed class RealtimeHubTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_WebSocket_from_another_origin_is_refused_and_one_from_the_app_origin_connects()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var (session, _, _) = await SignedInWithDraftsAsync(cancellationToken);
+        using var _ = session;
+
+        // A same-site page, such as a careers page under the dashboard's apex, would send the Lax session cookie too.
+        var fromElsewhere = () => EventsConnection.ConnectAsync(session, "http://careers.example.com", cancellationToken);
+        (await fromElsewhere.Should().ThrowAsync<Exception>()).Which.ToString().Should().Contain("403");
+
+        // Without the dashboard, the API is the app origin (AppHost, "ScreenHire:Frontends" None).
+        await using var fromTheApp = await EventsConnection.ConnectAsync(
+            session, session.BaseAddress.GetLeftPart(UriPartial.Authority), cancellationToken);
+        fromTheApp.Hub.State.Should().Be(HubConnectionState.Connected);
+    }
+
+    [Fact]
     public async Task A_user_without_an_organization_is_disconnected()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

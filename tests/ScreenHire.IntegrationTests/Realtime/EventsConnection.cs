@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ScreenHire.IntegrationTests.Realtime;
@@ -16,10 +17,20 @@ internal sealed class EventsConnection : IAsyncDisposable
     private readonly ConcurrentQueue<ReceivedEvent> received = new();
     private readonly TaskCompletionSource<Exception?> closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private EventsConnection(ApiSession session)
+    private EventsConnection(ApiSession session, string? origin)
     {
         Hub = new HubConnectionBuilder()
-            .WithUrl(new Uri(session.BaseAddress, HubPath), options => options.Cookies = session.Cookies)
+            .WithUrl(new Uri(session.BaseAddress, HubPath), options =>
+            {
+                options.Cookies = session.Cookies;
+                if (origin is not null)
+                {
+                    // A browser page's WebSocket: the Origin header, and no fallback to another transport.
+                    options.Headers["Origin"] = origin;
+                    options.Transports = HttpTransportType.WebSockets;
+                    options.SkipNegotiation = true;
+                }
+            })
             .Build();
         Hub.On<JsonElement>("ReceiveEvent", e => received.Enqueue(new ReceivedEvent(e.GetProperty("type").GetString()!, e.GetProperty("data"))));
         Hub.Closed += error =>
@@ -37,9 +48,16 @@ internal sealed class EventsConnection : IAsyncDisposable
     public Task<Exception?> Closed => closed.Task;
 
     /// <summary>Connects with <paramref name="session"/>'s cookie. Throws what SignalR throws, such as a 401.</summary>
-    public static async Task<EventsConnection> ConnectAsync(ApiSession session, CancellationToken cancellationToken)
+    public static Task<EventsConnection> ConnectAsync(ApiSession session, CancellationToken cancellationToken) =>
+        ConnectAsync(session, origin: null, cancellationToken);
+
+    /// <summary>
+    /// Connects with <paramref name="session"/>'s cookie straight over a WebSocket that says it comes from
+    /// <paramref name="origin"/>, as a browser page's does.
+    /// </summary>
+    public static async Task<EventsConnection> ConnectAsync(ApiSession session, string? origin, CancellationToken cancellationToken)
     {
-        var connection = new EventsConnection(session);
+        var connection = new EventsConnection(session, origin);
         try
         {
             await connection.Hub.StartAsync(cancellationToken);

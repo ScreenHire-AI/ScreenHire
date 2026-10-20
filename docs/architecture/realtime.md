@@ -67,6 +67,11 @@ The migration `GrantAppRoleApiMessagingAccess` creates `wolverine_api` and grant
 - **Authentication** is the dashboard's session cookie (`sh.session`), like every API route. The fallback policy
   answers an anonymous negotiate or WebSocket request with 401. `CloseOnAuthenticationExpiration` closes a connection
   when its cookie expires.
+- **Origin.** CORS does not cover a WebSocket upgrade, and the `Lax` session cookie goes with a request from any
+  same-site page, such as a careers page under the dashboard's apex. `WebSocketOptions.AllowedOrigins` (set in
+  `AddScreenHireRealtime`) therefore admits only the dashboard's origin (`ScreenHire:Domains:AppHost`), and the
+  `UseWebSockets` that `MapHub` runs answers any other `Origin` with 403. A request with no `Origin` is not a
+  browser's and gets through to the cookie check.
 - **Tenant.** Each hub call runs in its own DI scope, which `TenantResolutionMiddleware` never sees. Each call
   therefore resolves the user's organization itself (`Memberships.ResolveTenantAsync`). On connect the connection
   joins `org:{organizationId}`. A signed-in user without an organization is disconnected.
@@ -83,9 +88,11 @@ from an organization stops their events when they reconnect. A connection keeps 
 ## Client: `packages/realtime`
 
 - `RealtimeClient` wraps `@microsoft/signalr`. It retries with backoff (1 s doubling to 30 s, 20% jitter, never giving
-  up) through SignalR's automatic reconnect, plus its own retry when the first start or a reconnect fails. It stops on
-  a 401: the session is gone, and the next navigation sends the person to sign in. It re-sends every `subscribe` after
-  each reconnect and calls `onResumed` handlers so the app refetches.
+  up) through SignalR's automatic reconnect, plus its own retry when the first start or a reconnect fails. A
+  connection the server closes within 10 s of opening keeps the backoff growing. It stops on a 401: the session is
+  gone, and the next navigation sends the person to sign in. SignalR's negotiate error drops the status code, so the
+  connection uses a `DefaultHttpClient` subclass that reports every 401 to the client. It re-sends every `subscribe`
+  after each reconnect and calls `onResumed` handlers so the app refetches.
 - `createConnectionState(client)` is a runes store (`$state`) with the connection status, for the shell's indicator.
 - `invalidateOnEvents(client, map, invalidate)` invalidates cache keys by event type, and every mapped key after a
   reconnect. The dashboard maps `JobPublished` and `JobClosed` to `api:jobs`, which the jobs list's `load` declares
@@ -126,7 +133,7 @@ otherwise run.
 
 | Test | Proves |
 |---|---|
-| `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
+| `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a WebSocket from another origin gets 403; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
 | `JobCloseTests` (integration) | `POST /v1/jobs/{id}/close` closes once and raises `JobClosed` once; 404 for another organization; antiforgery and sign-in |
 | `RealtimeContractTests`, `RealtimeGroupsTests` (unit) | the contract file; group names and topic routing |
 | `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling, schema parsing, invalidation, the runes store |
