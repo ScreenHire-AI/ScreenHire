@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
@@ -11,7 +14,7 @@ namespace ScreenHire.Application.Integrity;
 /// person cannot see, and the producer and creation time a resume tool would write. The same inputs always give the
 /// same bytes, so identical resumes share a file hash as real copies do.
 /// </summary>
-public static class SyntheticDocuments
+public static partial class SyntheticDocuments
 {
     /// <summary>A one-page PDF. <paramref name="hiddenText"/> is drawn in white on the white page, near the bottom.</summary>
     /// <remarks><c>created</c>: the creation time the file claims, written in PDF date form.</remarks>
@@ -41,14 +44,34 @@ public static class SyntheticDocuments
             page.ResetColor();
         }
 
-        return builder.Build();
+        return WithStableId(builder.Build());
+    }
+
+    /// <summary>
+    /// The writer puts two random GUIDs in the trailer's <c>/ID</c>. They are replaced by a hash of the rest of the file,
+    /// the same length, so every offset in the file stays where it was and equal content gives equal bytes.
+    /// </summary>
+    private static byte[] WithStableId(byte[] pdf)
+    {
+        var text = Encoding.Latin1.GetString(pdf);
+        var match = TrailerId().Match(text);
+        if (!match.Success)
+        {
+            return pdf;
+        }
+
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.Latin1.GetBytes(text.Remove(match.Index, match.Length))))[..32];
+        return Encoding.Latin1.GetBytes(text[..match.Index] + $"/ID [ <{hash}><{hash}>]" + text[(match.Index + match.Length)..]);
     }
 
     /// <summary>PDF's date form, <c>D:YYYYMMDDHHmmSSZ</c>, in UTC.</summary>
     public static string PdfDate(DateTimeOffset at) =>
         "D:" + at.ToUniversalTime().ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "Z";
 
-    // Splits on blank-line paragraphs and sentence ends, then wraps at the width.
+    [GeneratedRegex(@"/ID \[ <[0-9A-F]{32}><[0-9A-F]{32}>\]")]
+    private static partial Regex TrailerId();
+
+    // Splits into lines at line breaks, then wraps each at the width.
     private static IEnumerable<string> Lines(string text, int width)
     {
         foreach (var paragraph in text.Split('\n'))

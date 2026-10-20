@@ -50,7 +50,7 @@ public sealed class ConsistencyAnalyzer(IContentRecords records) : IIntegrityAna
             SignalConfidence.Medium,
             [
                 SignalEvidence.Comparison(
-                    Topic(contradiction.Topic),
+                    Capitalize(Topic(contradiction.Topic)),
                     new ComparedText(Capitalize(left), contradiction.Left.Quote),
                     new ComparedText(Capitalize(right), contradiction.Right.Quote)),
                 SignalEvidence.Fact("Checked by", $"Language model ({provenance.ConsistencyModel}), prompt {provenance.PromptVersion}"),

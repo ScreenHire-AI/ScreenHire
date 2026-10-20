@@ -96,7 +96,7 @@ public static class SignalCatalogue
 
         new(PromptInjection, SignalCategory.Document, IntegrityAssessmentKind.AiAssistance, SignalWeight.High,
             "Hidden instructions in the resume",
-            "The resume contains text aimed at automated screening tools rather than people: {detail}."),
+            "The {document} contains text aimed at automated screening tools rather than people: {detail}."),
         new(NearDuplicateAnswer, SignalCategory.Content, IntegrityAssessmentKind.AiAssistance, SignalWeight.Medium,
             "Answer nearly identical to another applicant's",
             "The answer to {question} is nearly identical to an answer another applicant gave."),

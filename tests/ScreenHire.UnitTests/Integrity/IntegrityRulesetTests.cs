@@ -316,6 +316,7 @@ public sealed class IntegrityRulesetTests
             ObservedAt = Now,
             AccessibilitySensitive = definition.AccessibilitySensitive,
             ContextOnly = definition.ContextOnly,
+            Informational = definition.Informational,
             Explanation = definition.ExplanationTemplate,
         };
     }

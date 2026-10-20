@@ -104,7 +104,7 @@ public sealed class DocumentAnalyzer(IContentRecords records) : IIntegrityAnalyz
         var evidence = new List<SignalEvidence>();
         foreach (var span in addressed.Concat(document.HiddenText.Except(addressed)).Take(MaxQuotedSpans))
         {
-            evidence.Add(SignalEvidence.Quote($"Hidden text ({Reason(span.Reason)})", span.Text, $"{Capitalize(what)}, page {span.Page.ToString(CultureInfo.InvariantCulture)}"));
+            evidence.Add(SignalEvidence.Quote(Capitalize(Reason(span.Reason)), span.Text, $"{Capitalize(what)}, page {span.Page.ToString(CultureInfo.InvariantCulture)}"));
         }
 
         if (visibleInstruction.Success)
@@ -124,9 +124,10 @@ public sealed class DocumentAnalyzer(IContentRecords records) : IIntegrityAnalyz
             evidence,
             new Dictionary<string, string>
             {
+                ["document"] = what,
                 ["detail"] = instructions
-                    ? $"the {what} contains instructions addressed to an AI or screening tool"
-                    : $"the {what} contains text people cannot see ({string.Join(", ", document.HiddenText.Select(s => Reason(s.Reason)).Distinct())})",
+                    ? "instructions addressed to an AI or screening tool"
+                    : $"text people cannot see ({string.Join(", ", document.HiddenText.Select(s => Reason(s.Reason)).Distinct())})",
             },
             instructions ? null : [new CounterEvidence("Some templates and export tools leave invisible text behind. Read the quoted text before drawing a conclusion.")],
             Weight: instructions ? SignalWeight.High : SignalWeight.Medium);
@@ -134,7 +135,7 @@ public sealed class DocumentAnalyzer(IContentRecords records) : IIntegrityAnalyz
 
     private static string Reason(HiddenTextReason reason) => reason switch
     {
-        HiddenTextReason.WhiteText => "white text",
+        HiddenTextReason.WhiteText => "white text on a white page",
         HiddenTextReason.TinyText => "text too small to read",
         HiddenTextReason.OffPage => "text placed off the page",
         _ => "text marked invisible",
