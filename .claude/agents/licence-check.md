@@ -36,8 +36,9 @@ From the diff range in your prompt:
 ## 3. Judge
 
 - **Approved:** MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, PostgreSQL, Zlib, 0BSD, Unlicense.
-- **Banned by name** (CLAUDE.md, ADR-0008): MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende,
-  ImageSharp, Finbuckle, iText, QuestPDF, Polly or Verify referenced directly. Any of these is a blocker.
+- **Banned by name** (ADR-0008, and the backend rules in CLAUDE.md): MediatR, AutoMapper, MassTransit 9,
+  FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText, QuestPDF, Polly or Verify referenced directly. Any of
+  these is a blocker.
 - **Needs an ADR amendment:** copyleft (GPL, AGPL, LGPL, MPL, EPL), source-available, "commercial", dual licences
   with a revenue threshold, or no licence. A test-only dependency under MPL-2.0 is acceptable if ADR-0008 records it
   as an exception. Report the amendment needed; do not approve it yourself.

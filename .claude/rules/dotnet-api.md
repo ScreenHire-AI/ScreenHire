@@ -21,9 +21,8 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
   mapping lives in `src/ScreenHire.Infrastructure/Persistence/Configurations`, one `IEntityTypeConfiguration` per
   entity.
 - Package versions live only in `Directory.Packages.props` (central package management); project files reference
-  packages without a version. Every new package passes the `licence-check` agent against ADR-0008. Never add
-  MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText, or Polly or Verify
-  directly.
+  packages without a version. Every new package passes the `licence-check` agent against ADR-0008 (CLAUDE.md keeps
+  the list of banned packages).
 
 ## API
 

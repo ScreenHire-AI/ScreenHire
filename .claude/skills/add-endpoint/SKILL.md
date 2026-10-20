@@ -102,7 +102,8 @@ pnpm verify:contract
 ```
 
 `generate:api` builds the API (which rewrites `openapi.json`) and runs Orval into `packages/api-client/src/generated`.
-Never edit the generated files by hand. Read the `openapi.json` diff: it should show your new path and schemas and
+Never edit the generated files by hand. Every build of the API rewrites `openapi.json`, including test runs, so run
+this step last, after any experiment such as unmapping a route to see a test fail, and stage what it produces. Read the `openapi.json` diff: it should show your new path and schemas and
 nothing else. `verify:contract` regenerates again and fails if anything differs from what is staged.
 
 Also add a request to `apps/api/ScreenHire.Api.http` so the route can be tried from the editor.

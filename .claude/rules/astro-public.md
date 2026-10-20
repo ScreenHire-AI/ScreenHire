@@ -20,8 +20,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   renders `Seo.astro` (canonical URL, Open Graph, Twitter card, Organization and WebSite JSON-LD). Careers pages pass
   `title` and `description` to `CareersLayout` and add their JSON-LD through its `head` slot. A job page carries a
   schema.org `JobPosting` (`docs/architecture/job-distribution.md`).
-- **Domains are configuration.** Marketing uses `Astro.site` (from `SITE_URL`); careers reads `API_URL` and, for
-  tenant hosts, the `ScreenHire:Domains:*` settings. Never write a `screenhire.*` host into a page (ADR-0003).
+- **Domains are configuration.** Marketing uses `Astro.site` (from `SITE_URL`); careers reads `API_URL`, and tenant
+  hosts come from environment configuration when they are needed. Never write a `screenhire.*` host into a page
+  (ADR-0003).
 - **Tokens only.** Marketing uses the Warm Grid tokens (`bg-background`, `text-primary`); careers uses the candidate
   tokens (`bg-candidate-background`, `bg-candidate-cta`). No hex values.
 - **Notice before collection.** Browsing a careers or marketing page collects server and security logs only. No

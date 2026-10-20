@@ -60,11 +60,19 @@ convention; the rule holds the detail.
 | [`docs-stay-in-sync`](../../.claude/rules/docs-stay-in-sync.md) | sources that docs enumerate | update the doc that lists an item when the item changes |
 | [`skill-authoring`](../../.claude/rules/skill-authoring.md) | `.claude/skills`, `.claude/agents`, `.claude/rules` | grounded commands, no questions, read-only reviewers, no forked mutating skills |
 
-## Tiers that may not exist yet
+## Commands that were not run
 
-The test steps in the skills and in `test-builder` name four tiers: `tests/ScreenHire.UnitTests`, Vitest `test`
-scripts, `tests/ScreenHire.IntegrationTests` and `tests/ScreenHire.E2E`. Each step says what to do when its tier is
-missing on a branch: cover the behaviour at a tier that exists and say so in the summary.
+Every command in these files was run once when they were written (October 2026), except these:
+
+| Command | Named in | Why not |
+|---|---|---|
+| `dotnet test --project tests/ScreenHire.UnitTests ...` | `test-builder` | the project is not on `main` yet |
+| `dotnet test --project tests/ScreenHire.E2E ...` | `test-builder`, the three page skills | the project is not on `main` yet |
+| `pnpm --filter <package> test` | `test-builder`, `add-dashboard-page`, `add-careers-page` | no package has a Vitest `test` script yet |
+| `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
+
+The test steps say what to do when a tier is missing on a branch: cover the behaviour at a tier that exists and say
+so in the summary. When the unit, Vitest and end-to-end tiers land, run one command from each and update this table.
 
 ## Adding to this
 
