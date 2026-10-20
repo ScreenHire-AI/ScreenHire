@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { checkUpload, forwardedFor, requestUpload } from '../../lib/apply-server';
+import { organizationOf } from '../../lib/host';
 
 // The upload island's two calls: `start` gets a link to send a file straight to storage, `verify` has the API check the
 // file once it is there. A plain JSON endpoint rather than an Astro Action so the island ships a bare fetch instead of
@@ -34,10 +35,11 @@ export const POST: APIRoute = async ({ params, request: http, clientAddress }) =
   }
 
   const body = parsed.data;
+  const organization = organizationOf(http, params);
   const forwarded = forwardedFor(clientAddress);
   const result =
     body.step === 'start'
-      ? await requestUpload(params.organization!, body.jobId, body.questionId, { fileName: body.fileName, sizeBytes: body.sizeBytes }, forwarded)
-      : await checkUpload(params.organization!, body.jobId, body.questionId, body.uploadId, forwarded);
+      ? await requestUpload(organization, body.jobId, body.questionId, { fileName: body.fileName, sizeBytes: body.sizeBytes }, forwarded)
+      : await checkUpload(organization, body.jobId, body.questionId, body.uploadId, forwarded);
   return Response.json(result, { status: 'error' in result ? 400 : 200, headers: { 'Cache-Control': 'no-store' } });
 };

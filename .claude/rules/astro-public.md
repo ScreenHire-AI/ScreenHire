@@ -48,7 +48,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   base URL), and only on the server. An unknown organization returns `new Response(null, { status: 404 })`; an unknown
   job is a 404 and a closed one a 410 (the API says which), both rendered with `JobUnavailable.astro`.
 - **Links go through the tenant base.** On a tenant host (`{tenant}.{CareersDomain}`) pages have no `/{organization}`
-  prefix; build every link from `basePath(Astro.request, organization)` (`src/lib/host.ts`).
+  prefix; build every link from `basePath(Astro.request, organization)` (`src/lib/host.ts`). An API route (`.ts`
+  endpoint) reads its organization with `organizationOf(request, params)`, because its `params` are stale after the
+  tenant-host rewrite.
 - **Accessibility:** WCAG 2.2 AA. One `h1`, headings in order, `aria-label` or `aria-labelledby` on sections that
   need a name, visible focus, and real links and buttons.
 

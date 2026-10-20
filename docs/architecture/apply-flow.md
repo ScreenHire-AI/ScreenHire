@@ -105,10 +105,13 @@ Turnstile's host when configured), and a header from `src/middleware.ts` for `fr
 
 `ScreenHire:Domains:CareersHostPattern` (read by the API and, as `ScreenHire__Domains__*` environment variables, by
 the careers server) decides where an organization's pages live. `{tenant}.{CareersDomain}` puts each on its own host:
-the middleware reads the organization from the host and rewrites `/jobs/x` to `/{tenant}/jobs/x`, and pages build links
-without the prefix (`basePath(Astro.request, organization)`, from the request's Host header: request locals do not survive the
-rewrite). Path-based URLs always work too. Locally the AppHost sets `CareersDomain` to the
-careers endpoint, so `http://brightwater.localhost:<port>/` serves Brightwater's board.
+the middleware reads the organization from the request's Host header and renders `/jobs/x` as `/{tenant}/jobs/x`, and
+pages build links without the prefix (`basePath(Astro.request, organization)`). Astro's own `Astro.url` cannot be used
+for this: Astro builds it from the Host header only for hosts in `security.allowedDomains`, a build-time list, and
+uses `localhost` otherwise. Endpoints (`/uploads`, the brand stylesheet) take the organization from the host as well
+(`organizationOf`): Astro hands an endpoint the parameters of the route the path matched before the rewrite. On a
+tenant host, a path that already starts with `/{tenant}` (a path-style link) gets a 301 to the same path without it. On the careers domain itself, the organization is in the path. Locally the AppHost sets
+`CareersDomain` to the careers endpoint, so `http://brightwater.localhost:<port>/` serves Brightwater's board.
 
 ## 7. Owner actions before production
 
@@ -118,5 +121,9 @@ careers endpoint, so `http://brightwater.localhost:<port>/` serves Brightwater's
 - Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
 - Behind a CDN or load balancer, set Astro's `security.allowedDomains` to the careers hosts when building
   `apps/careers`. Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those
-  hosts; without it every candidate shares the proxy's address.
+  hosts; without it every candidate shares the proxy's address. Until then Astro also sees its own origin as
+  `localhost`, so a browser that sends `Origin` without `Sec-Fetch-Site` (older Safari) gets 403 from Astro's form
+  origin check on every step.
+- Keep server and CDN access logs for no more than 30 days: the privacy page promises it, and nothing in the
+  application enforces it.
 - Optionally configure Turnstile keys, and a malware scanner behind `IMalwareScanner`.

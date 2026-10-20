@@ -21,6 +21,20 @@ export function tenantFromHost(host: string, pattern: string | undefined, career
 export const isFrameworkPath = (path: string): boolean => /^\/(_astro|_actions|_server-islands)\//.test(path) || path === '/favicon.ico';
 
 /**
+ * What a request on `tenant`'s own host maps to: the path to render (`/jobs/x` renders `/{tenant}/jobs/x`), or, for a
+ * path that already names the tenant (`/{tenant}/jobs/x`, a path-style link followed on a tenant host), the canonical
+ * path without it.
+ */
+export function tenantRoute(path: string, tenant: string): { render: string } | { canonical: string } {
+  const prefix = `/${tenant}`;
+  if (path === prefix || path.startsWith(`${prefix}/`)) {
+    return { canonical: path.slice(prefix.length) || '/' };
+  }
+
+  return { render: `${prefix}${path === '/' ? '' : path}` };
+}
+
+/**
  * The path prefix of an organization's pages: empty on its own host, `/{organization}` otherwise. Every link a careers
  * page renders starts with it.
  */

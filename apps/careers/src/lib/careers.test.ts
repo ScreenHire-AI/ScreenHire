@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { brandStylesheet } from './brand';
 import { acceptedLabel, describeSize, fileProblem, parseUploadRef } from './files';
-import { isFrameworkPath, tenantBase, tenantFromHost } from './tenancy';
+import { isFrameworkPath, tenantBase, tenantFromHost, tenantRoute } from './tenancy';
 
 describe('tenantFromHost', () => {
   const pattern = '{tenant}.{CareersDomain}';
@@ -22,6 +22,14 @@ describe('tenantFromHost', () => {
     expect(tenantFromHost('brightwater.localhost:4322', '{CareersDomain}/{tenant}', 'localhost:4322')).toBeNull();
     expect(tenantFromHost('brightwater.localhost:4322', undefined, 'localhost:4322')).toBeNull();
     expect(tenantFromHost('brightwater.localhost:4322', pattern, undefined)).toBeNull();
+  });
+
+  it("renders a tenant host's paths under the organization, and sends prefixed paths to the canonical one", () => {
+    expect(tenantRoute('/', 'brightwater')).toEqual({ render: '/brightwater' });
+    expect(tenantRoute('/jobs/designer', 'brightwater')).toEqual({ render: '/brightwater/jobs/designer' });
+    expect(tenantRoute('/brightwater/jobs/designer', 'brightwater')).toEqual({ canonical: '/jobs/designer' });
+    expect(tenantRoute('/brightwater', 'brightwater')).toEqual({ canonical: '/' });
+    expect(tenantRoute('/brightwaterish', 'brightwater')).toEqual({ render: '/brightwater/brightwaterish' });
   });
 
   it('never rewrites what Astro serves itself, and prefixes links only without a tenant host', () => {

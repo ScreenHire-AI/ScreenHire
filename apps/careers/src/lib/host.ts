@@ -15,7 +15,12 @@ export const hostTenant = (request: Request): string | null =>
   tenantFromHost(request.headers.get('host') ?? '', hostPattern, careersDomain);
 
 /**
- * The prefix for an organization's links: empty on its own host, `/{organization}` otherwise. The request's headers
- * survive the middleware's rewrite (request locals do not).
+ * The organization an endpoint serves. On a tenant host, the host says; `params` would be stale there, because Astro
+ * hands an endpoint the parameters of the route the path matched before the middleware's rewrite (`/uploads` first
+ * matches `[organization]` with "uploads"). Pages get the rewritten route's parameters.
  */
+export const organizationOf = (request: Request, params: Record<string, string | undefined>): string =>
+  hostTenant(request) ?? params.organization ?? '';
+
+/** The prefix for an organization's links: empty on its own host, `/{organization}` otherwise. */
 export const basePath = (request: Request, organization: string): string => tenantBase(hostTenant(request), organization);

@@ -177,11 +177,34 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Open roles at Brightwater Studio");
         (await Page.GetByRole(AriaRole.Link, new() { Name = "Senior .NET Engineer" }).GetAttributeAsync("href"))
             .Should().Be("/jobs/senior-dotnet-engineer");
+        // The brand stylesheet is served on the tenant host too: the header mark takes Brightwater's teal.
+        var mark = Page.GetByRole(AriaRole.Banner).Locator("span[aria-hidden='true']").First;
+        (await mark.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor")).Should().Be("rgb(31, 78, 90)");
+    }
+
+    [Fact]
+    public async Task Candidate_applies_on_the_organizations_own_host()
+    {
+        var (organization, _) = await OrganizationWithEngineeringJobAsync();
+        var careers = Fixture.GetEndpoint("careers");
+        var origin = $"{careers.Scheme}://{organization.Slug}.localhost:{careers.Port}";
+
+        // A path-style link followed on the tenant host lands on the canonical URL, without the organization in it.
+        await Page.GotoAsync($"{origin}/{organization.Slug}/jobs/engineer");
+        await Expect(Page).ToHaveURLAsync($"{origin}/jobs/engineer");
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync($"{origin}/jobs/engineer/apply");
+        await Page.Locator("astro-island:not([ssr])").WaitForAsync();
+
+        // Every step, the upload endpoint and the final redirect go through the tenant-host rewrite.
+        await ApplyAsync(organization, "noa.reyes@example.com", javaScript: true, appliedUrl: $"{origin}/jobs/engineer/applied");
+
+        await AssertApplicationAsync(organization, "noa.reyes@example.com");
     }
 
     // The whole journey from the first step: details and the notice, questions, review, confirmation. Accessibility is
     // checked on every step.
-    private async Task ApplyAsync(Organization organization, string email, bool javaScript)
+    private async Task ApplyAsync(Organization organization, string email, bool javaScript, string? appliedUrl = null)
     {
         // The notice comes before anything is asked for.
         var notice = Page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" });
@@ -225,7 +248,8 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByLabel("If you used AI tools, how?").FillAsync("To check my grammar.");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Send application" }).ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Uri(Fixture.GetEndpoint("careers"), $"/{organization.Slug}/jobs/engineer/applied").ToString());
+        await Expect(Page).ToHaveURLAsync(
+            appliedUrl ?? new Uri(Fixture.GetEndpoint("careers"), $"/{organization.Slug}/jobs/engineer/applied").ToString());
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
         await ExpectNoAccessibilityViolationsAsync();
     }

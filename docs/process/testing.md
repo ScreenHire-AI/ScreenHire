@@ -136,9 +136,13 @@ its queue with `MessagingHost.StartPublisherToAppHostQueuesAsync`. What each tes
 healthy, and launches one headless Chromium for the assembly. Test classes derive from `BrowserTest`, which gives:
 
 - `Page`, in a **new browser context per test** (no shared cookies or storage);
-- `GoToAsync("careers", "/brightwater")`, which resolves the URL from Aspire and expects a 2xx;
+- `GoToAsync("careers", "/brightwater")`, which resolves the URL from Aspire and expects a 2xx, and `OpenAsync`, which
+  returns the response whatever its status (a 404 or 410 page);
+- `WithoutJavaScriptAsync()`, which swaps `Page` for one in a context with JavaScript off, for journeys that must work
+  on plain HTML (the careers apply flow);
 - `ExpectNoAccessibilityViolationsAsync()`, which runs axe for WCAG 2.2 A/AA and lists every violation with its
-  selector. Fix violations; do not exclude rules. If one must be excluded, scope it to one selector with a reason;
+  selector. Fix violations; do not exclude rules. If one must be excluded, scope it to one selector with a reason. With
+  JavaScript off, axe cannot run in the page, so it checks the same HTML served again to a page that runs scripts;
 - **a full-page screenshot when a test fails**, at
   `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/screenshots/<test>.png` (the path is printed in the test output).
 
