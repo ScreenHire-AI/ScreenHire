@@ -1,0 +1,48 @@
+{
+  "description": "The comparison names claim ids that do not exist and a pair from one source. Neither becomes a contradiction.",
+  "sources": {
+    "Resume": "Dana Whitfield\nSenior data engineer at Harbour Lane Analytics since 2019.",
+    "Answers": "Who is your current employer? Harbour Lane Analytics"
+  },
+  "responses": [
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_021",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [ { "type": "text", "text": "{\"claims\":[{\"topic\":\"employer\",\"quote\":\"Senior data engineer at Harbour Lane Analytics since 2019.\"},{\"topic\":\"job_title\",\"quote\":\"Senior data engineer\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 470, "output_tokens": 44 }
+      }
+    },
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_022",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [ { "type": "text", "text": "{\"claims\":[{\"topic\":\"employer\",\"quote\":\"Who is your current employer? Harbour Lane Analytics\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 455, "output_tokens": 30 }
+      }
+    },
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_023",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-opus-5-5",
+        "content": [ { "type": "text", "text": "{\"contradictions\":[{\"topic\":\"employer\",\"leftClaimId\":\"R7\",\"rightClaimId\":\"A1\"},{\"topic\":\"job_title\",\"leftClaimId\":\"R1\",\"rightClaimId\":\"R2\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 600, "output_tokens": 40 }
+      }
+    }
+  ]
+}

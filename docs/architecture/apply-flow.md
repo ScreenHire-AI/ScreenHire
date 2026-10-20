@@ -60,7 +60,7 @@ server passes them on with the session token and the module's last snapshot. The
 organization and never stores it as sent, and keeps it only on the job's device-check basis: where that is `Consent`
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
-the privacy page say all of this (`NOTICE_VERSION` `2026-10-20.3`).
+the privacy page say all of this (`NOTICE_VERSION` `2026-10-20.4`).
 
 ## 3. Uploads
 

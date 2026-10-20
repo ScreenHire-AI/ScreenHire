@@ -1,6 +1,6 @@
 # Integrity Engine — Applicant Authenticity & AI-Assistance Signals
 
-> Status: **v1 application stage built (2026-10-20)**; §10 describes the implementation. Design draft v0.1
+> Status: **v1 application stage built (2026-10-20)**, content forensics included (§10.10); §10 describes the implementation. Design draft v0.1
 > (2026-10-18), grounded in `docs/research/legal.md` and `docs/research/competitors.md`.
 > This is ScreenHire's core differentiator: an integrity layer from first click to first day that recruiters and
 > candidates can both understand.
@@ -194,9 +194,10 @@ reports.
 ## 10. Implementation (v1, application stage)
 
 What is built, as of 2026-10-20. Code: `src/ScreenHire.Domain/Integrity` (signal model, catalogue, ruleset),
-`src/ScreenHire.Application/Integrity` (analyzers, pipeline, retention, synthetic applicants),
-`src/ScreenHire.Infrastructure/Integrity` (local data sources), `apps/api/Endpoints/IntegrityEndpoints.cs` (API),
-`packages/telemetry` and `apps/api/Endpoints/PublicTelemetryEndpoints.cs` (form telemetry).
+`src/ScreenHire.Application/Integrity` (analyzers, pipeline, retention, synthetic applicants; content forensics in
+`Content/`), `src/ScreenHire.Infrastructure/Integrity` (local data sources; document extraction in `Documents/`, the
+model access in `Llm/`), `apps/api/Endpoints/IntegrityEndpoints.cs` (API), `packages/telemetry` and
+`apps/api/Endpoints/PublicTelemetryEndpoints.cs` (form telemetry).
 
 ### 10.1 Signals and evidence
 
@@ -234,8 +235,10 @@ separate message so the pipeline retries and fails apart from the workflow engin
    and its signals. A unique index on the run is the idempotency key;
 2. derives both assessments with the ruleset. An assessment row is written only when its inputs changed: its
    `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index;
-3. when either changed, appends an `IntegrityAssessed` timeline entry with both level names, and publishes the
-   `IntegrityAssessed` tenant event and `RunAutomations(IntegrityAssessed)` for the workflow engine.
+3. when a level changed (or on the first assessment), appends an `IntegrityAssessed` timeline entry with both level
+   names, and publishes the `IntegrityAssessed` tenant event and `RunAutomations(IntegrityAssessed)` for the workflow
+   engine. New evidence at the same levels is stored as a new assessment row and not announced: content forensics
+   reassess as each stage lands, and an automation that assigns a reviewer must run once, not once per stage.
 
 A later analyzer (content forensics) registers as another `IIntegrityAnalyzer`, or publishes
 `AnalyzeApplicationIntegrity` again when its own asynchronous work lands. Bumping an analyzer's version re-runs it.
@@ -247,6 +250,13 @@ A later analyzer (content forensics) registers as another `IIntegrityAnalyzer`, 
 | `automation` | `AUTO_HONEYPOT`, `AUTO_WEBDRIVER`, `AUTO_SUBMIT_VELOCITY`, `AUTO_TURNSTILE_FAIL` (context only) | honeypot, bot check, markers, form start time | |
 | `duplicates` | `ID_DUPLICATE_IN_ORG` | other candidates' email (plus tag ignored), phone, device hash, resume hash, same organization only | |
 | `behavioural` | `BEH_PASTE_DOMINANT`, `BEH_FOCUS_SWITCHING` | the form telemetry bound to the application (`DatabaseTelemetrySource`, rules in `TelemetryRules`) | no telemetry: JavaScript off, the assistive-technology switch on, or nothing measured |
+| `documents` | `CNT_RESUME_GENERATOR`, `CNT_PROMPT_INJECTION` | the extracted documents (§10.10) | no files; waits until every file is read |
+| `answers` | `CNT_NEAR_DUPLICATE_ANSWER`, `CNT_TEMPLATED_ANSWER` (informational) | free-text answers, other candidates' answer fingerprints | no free-text answer of 20 words or more |
+| `consistency` | `CNT_INCONSISTENCY` | the consistency check (§10.10) | waits until the check has an outcome; one that could not run leaves a note |
+
+An analyzer can answer "not ready" (`AnalyzerResult.NotReady`): its input is still being prepared. The pipeline records
+no run for it, so it runs again when the stage that prepares its input publishes `AnalyzeApplicationIntegrity`. The
+content analyzers use it; the others never do.
 
 Applications assessed before the telemetry module have a `behavioural` version 1 run that saw nothing; version 2
 reads telemetry. There is no typing-rhythm field and no `BEH_CADENCE_ANOMALY` rule: timing between keys is keystroke
@@ -315,11 +325,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.3`)
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.4`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -355,12 +365,18 @@ made with.
 | `integrity_signals` | signals with their evidence (JSONB) | insert, read |
 | `integrity_assessments` | each assessment, newest per kind is current | insert, read |
 | `integrity_review_actions` | the reviewers' audit log | insert, read |
+| `application_documents` | what each uploaded file says: visible text, metadata, hidden text (§10.10) | insert, read |
+| `answer_fingerprints` | a SimHash per free-text answer, for near-duplicate lookups | insert, read |
+| `consistency_checks` | the consistency check per application and prompt version, with its contradictions and token use | insert, read, update |
+| `integrity_settings` | the organization's switch for the consistency check and its monthly token budget | insert, read, update |
 | `signal_network_entries` | the Signal Network (§6), cross-tenant | none |
 
 All but the last carry `organization_id` with the usual `tenant_isolation` policy. Only careers-site submissions get
 an observation; a recruiter's own address is never recorded for a candidate. The device fingerprint is stored as an
 HMAC with a per-organization salt (`ScreenHire:Integrity:DeviceHashKey`, generated by the AppHost locally), so it never
-matches across employers. Evidence keeps the network operator and country, never the address.
+matches across employers. Evidence keeps the network operator and country, never the address. Extracted documents and
+answer fingerprints cannot be deleted by the application role on their own: they go when their application or file is
+deleted (the foreign keys cascade), so a future erasure job deletes the parent row.
 
 `PurgeExpiredIntegrityData` runs daily at 03:17 UTC and fans out one `PurgeOrganizationIntegrityData` per organization
 (the worker sees no tenant rows without a tenant). It deletes observations past `expires_at`
@@ -381,6 +397,10 @@ employer's record period.
 | `Identity:ExtraDisposableDomains` | more disposable domains, on top of the embedded CC0-1.0 list (`Integrity/Data/README.md`, with its licence beside it) | Development: `tempinbox.example.net` |
 | `SignalNetwork:Enabled` | the Signal Network flag | off; a host refuses to start with it on |
 | `DeviceCheck:Default`, `DeviceCheck:Countries:{CC}` | the device-check basis (`Off`, `Notice`, `Consent`) for a job in no listed country, and per ISO country code | `Notice`; the API's `appsettings.json` lists the EU and EEA countries as `Consent` |
+| `Llm:Provider` | the consistency check's model: `None`, `Fake` (Development only; a host refuses to start with it elsewhere) or `Anthropic` | `None`; the worker's Development settings use `Fake` |
+| `Llm:ExtractionModel`, `Llm:ConsistencyModel` | model ids for the two steps of the check (§10.10) | `claude-haiku-5-5`, `claude-opus-5-5` (worker `appsettings.json`) |
+| `Llm:Anthropic:ApiKey` | Anthropic's API key, from the AppHost's secret parameter `anthropic-api-key` | unset: the provider is hidden and checks are unavailable |
+| `Llm:DefaultMonthlyTokenBudget`, `Llm:Timeout`, `Llm:MaxOutputTokens` | the budget for an organization with none of its own, and per-call limits | 2,000,000 tokens, 120 s, 8,000 tokens |
 
 The worker refuses to start when `Network:Ip2AsnFile` or `Network:TorExitListFile` names a file that does not
 exist, because the files are read on the first lookup and a wrong path would fail every analysis. A commercial
@@ -397,6 +417,11 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../integrity/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
 | `POST .../integrity/notes` | a note on the application's integrity or one assessment |
 | `POST .../integrity/request-verification` | always 409 until phase 2 |
+| `GET /v1/organization/integrity-settings` | whether the consistency check is on, its monthly token budget, and the tokens used this month |
+| `PUT /v1/organization/integrity-settings` | turn the check on or off and set the budget (organization admins) |
+
+The integrity view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
+each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance.
 
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
 A unique index (`ix_integrity_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers
@@ -427,13 +452,16 @@ farm, all fictional. They are used three ways:
   the dev frontends), so the local demo shows every level. Skipped for applicants already there. The test stacks do
   not run it.
 
-Each applicant but the farm also has the telemetry its browser would have sent (`SyntheticTelemetry`). The demo binds
-it to the application, and the golden files run it through `TelemetryRules`.
+Their resumes are real PDFs (`SyntheticDocuments`, byte for byte the same for the same text, so the farm still shares a
+file). Each applicant but the farm also has the telemetry its browser would have sent (`SyntheticTelemetry`). The demo
+binds it to the application, and the golden files run it through `TelemetryRules`.
 
-Expected results: genuine and honest AI-assisted `NoConcerns` (the VPN is context, with counter-evidence); the bot and
-every farm member `VerificationRecommended`; AI assistance `NotIndicated` for all, because no content analyzer exists
-yet. The honest AI-assisted candidate went back and forth to their assistant, so the analyzer stores
-`BEH_FOCUS_SWITCHING`, but their AI assistance assessment does not show it: telemetry is never shown alone.
+Expected results: genuine and honest AI-assisted `NoConcerns` (the VPN is context, with counter-evidence); the
+bot and every farm member `VerificationRecommended`, the farm also with `CNT_INCONSISTENCY` (its resume claims fifteen
+years, its answer says 6 to 9). AI assistance is `NotIndicated` for all: the bot's hidden instruction and the resume
+builders are document signals with no second category behind them. The honest AI-assisted candidate went back and
+forth to their assistant, so `BEH_FOCUS_SWITCHING` is stored and, because a document signal is now on the same
+assessment, shown next to it as context; it is never a reason on its own.
 
 ### 10.9 Known gaps
 
@@ -457,6 +485,113 @@ yet. The honest AI-assisted candidate went back and forth to their assistant, so
 - Session tokens need the API's Data Protection keys to be kept and shared across instances in production (an owner
   action); locally the default key ring is enough.
 - The apply page's JavaScript budget rose from about 20 KB to about 22 KB brotli for the module.
+
+- Content forensics read only `.pdf` and `.docx` files. Word 97 (`.doc`), `.rtf` and images are recorded as unsupported,
+  with no OCR.
+- Duplicate answers have the same blind spot as other duplicates, and one more: two applications analyzed at the same
+  moment may miss each other, because each keeps its fingerprints only when its pipeline commits.
+- Turning the consistency check on does not reach back: applications already checked, skipped or switched off keep that
+  outcome.
+- The dashboard has no integrity panel and no questionnaire editor yet. The API carries everything a panel needs
+  (§10.6), and a job asks for a LinkedIn export only through a template whose questionnaire has a `linkedin_export`
+  file question, written through the templates API.
+- PdfPig has no limit on how far a crafted PDF may expand, and the 20-second deadline abandons a slow parse without
+  stopping its thread. Word files are capped per part. A real malware scanner (task 15's `IMalwareScanner` hook) should
+  come first in production; extraction trusts its result.
+
+### 10.10 Content forensics
+
+Four stages, each idempotent on its own:
+
+1. **Reading files.** The malware scan (`ScanApplicationFile`) cascades `ExtractApplicationDocument` per file. The
+   worker reads the blob (read only, `BlobApplicantFileStore`) and `DocumentExtraction` turns it into an
+   `application_documents` row: the visible text in reading order, the producer, creator and creation time the file
+   claims (never the author's name), and hidden text with its page and reason. PDFs go through PdfPig, Word 2007+
+   through DocumentFormat.OpenXml. A letter is hidden when it is drawn invisibly, sits off the page, is under 2 points,
+   or is white with nothing darker drawn behind it, so a template's white text on a dark sidebar stays visible. In a
+   Word file, shading on the run, the paragraph, its table cell or its table counts as something behind it. A file
+   the scan flagged is skipped; a damaged or encrypted one is unreadable; a broken XMP block loses only the XMP
+   metadata; a file that takes over 20 seconds to parse is unreadable. None of these throws. At most two files are
+   parsed at once per worker, and a parse abandoned at its deadline keeps its slot until it really ends, because the
+   parsers cannot be stopped mid-page. Each file read sends the consistency check and the pipeline again.
+2. **Documents** (`documents` analyzer). `CNT_RESUME_GENERATOR` when the producer or creator names a resume builder
+   (Kickresume, Zety, Rezi and others) or an automatic PDF tool (wkhtmltopdf, headless Chrome, ReportLab and others).
+   It is `Low`, carries the minutes between creation and submission when under 15, and says builders are common.
+   `CNT_PROMPT_INJECTION` when a file hides 20 or more characters or addresses a model or screening tool
+   (`ContentPatterns.Instructions`, matched in hidden and visible text). Instructions are `High`; hidden text alone is
+   `Medium` with counter-evidence. Each signal quotes up to three hidden passages.
+3. **Answers** (`answers` analyzer). Only short- and long-text answers of 20 words or more count: they are the
+   candidate's own words. Each becomes a set of three-word sequences and a 64-bit SimHash, kept in
+   `answer_fingerprints`. Another candidate's fingerprint from the last 180 days within 20 bits is a candidate match;
+   a match needs at least 60% of the combined sequences shared (Jaccard). One word changed in twenty changes about
+   three sequences in twenty, so light edits match, while two people's own words share almost none.
+   `TextSimilarityTests` holds the thresholds. The signal shows both answers side by side and names the other
+   applicant only by job and date. One candidate's applications never match each other, and no organization sees
+   another's. pgvector was not needed: the sequence overlap is exact, explainable and needs no embedding model.
+   `CNT_TEMPLATED_ANSWER` quotes a placeholder in square brackets or a chatbot's reply wording. It is informational:
+   shown, never counted.
+4. **Consistency** (`CheckApplicationConsistency`, then the `consistency` analyzer). The sources are the resume, the
+   answers as the candidate saw them (option labels; text, choice and number answers only, so never links or yes/no
+   answers such as right to work) and an uploaded LinkedIn export: a file question with
+   the id `linkedin_export`, which a job opts into. ScreenHire never fetches a profile (CLAUDE.md non-negotiable 5).
+   Only visible text is sent. The handler checks, in order: the organization's switch (`integrity_settings`, off until
+   an admin turns it on), at least two sources with text, a configured model, and the monthly token budget. Then it
+   claims a `consistency_checks` row (unique per application and prompt version) and asks the model with no database
+   transaction open. A claim is taken over once it is older than the longest a check can take: four calls, each with
+   the SDK's two retries, all timing out, plus a minute. A redelivered message for a finished check sends the pipeline again,
+   because this handler has no outbox and the first reassessment may have been lost.
+
+   The check has two steps behind `IChatClient` (Microsoft.Extensions.AI). The extraction model lists each source's
+   claims about employers, job titles, employment dates, years of experience, education and certifications, quoting
+   each. Every quote is matched against the text that was sent, ignoring whitespace and quote style; one that is not
+   there is dropped. The consistency model then names pairs of claim ids that contradict each other. Only pairs of
+   checked claims from two different sources with different quotes are kept, so every contradiction cites a verbatim
+   span from each source, whatever the model wrote. The explanation a recruiter reads comes from a fixed topic, never from the model's prose.
+   Both prompts (`ConsistencyPrompts`, version `consistency-2026-10-20.1`) treat the sources as untrusted data inside
+   markers with a random nonce, strip marker sequences from the text, and never ask whether anything was written by AI.
+   Answers are constrained to a JSON schema (`output_config.format`).
+
+   Each `CNT_INCONSISTENCY` signal stores its `llm` provenance: the prompt version and the model ids the provider
+   reported. `IntegrityPipeline.ToSignals` refuses an LLM-derived signal without a text comparison citing both
+   sources, and a contract test runs every recorded response and synthetic applicant through it.
+
+**Model access.** `LlmAccess` builds the client from `ScreenHire:Integrity:Llm` (§10.5). `Anthropic` uses Anthropic's
+official C# SDK (`AnthropicClient.AsIChatClient`) and only with an API key and both model ids; without them the
+provider is hidden and every check is `Unavailable`, with the reason as the run's note. `Fake`
+(`FakeConsistencyChatClient`) answers both prompts deterministically: a sentence that states a number of years is a
+claim, and two claims contradict when their ranges are two or more years apart. It reports its own model id, and a host
+refuses to start with it outside Development. Model ids live in configuration only. A refusal, a cut-off or unreadable
+answer, or any error from the provider makes the check `Unavailable`: a missing signal, never a failed application. No
+source text is logged. Under Anthropic's commercial terms, API inputs and outputs are not used for training. The careers
+privacy notice (version `2026-10-20.3`) tells candidates their files and answers may go to an AI provider, which is not
+allowed to train on them.
+
+**Budget.** Counted in tokens, not money: the input and output tokens of the organization's checks started this calendar
+month (UTC), counted by `ConsistencyBudget` for both the handler and the settings endpoint. At or over the budget,
+the check is `OverBudget` and says so. The default comes from configuration, and an admin can set the organization's
+own. It is a soft limit: tokens are recorded when a check finishes, so checks that start together all pass the test and
+the last can overshoot by a few checks' worth.
+
+**Known gaps.**
+- Parsing runs in the worker process. A crafted PDF that expands to gigabytes can still exhaust its memory; the slot
+  limit only stops parses piling up. A Word part is capped at 5 million characters unzipped, but its document tree is
+  still built in memory. The real fix is parsing in a separate process with memory and time caps.
+- PDF white-text detection asks whether something is drawn behind a letter, not how much contrast there is, so white
+  text on a pale full-page fill is not reported. Word text boxes and style-level colours are not read for hiding.
+- A transient provider error (a 429 or 5xx after the retry) records the check as `Unavailable` for good; it is not
+  tried again later.
+- Two applications with the same answer that are assessed at the same moment do not see each other's fingerprints,
+  which are saved with each pipeline run. A later application sees both.
+- An application submitted under a notice older than `2026-10-20.3` whose check is still pending when an admin turns
+  the check on is sent to the model. Only applications in flight at that moment can be affected; finished ones keep
+  their `Disabled` outcome.
+
+**Tests.** `DocumentExtractionTests` builds fixture PDFs and Word files with white, tiny, off-page and hidden text and
+generator metadata. `ConsistencyCheckerTests` replays hand-written Messages API responses
+(`tests/ScreenHire.UnitTests/Integrity/Llm/Recordings`) through the real SDK client. It checks the request (configured
+models, a schema, no sampling parameters) and that invented quotes and unknown claim ids are dropped. The golden files
+cover the synthetic applicants, and `ContentForensicsTests` (Aspire) covers blob reading, the LinkedIn export, the budget
+and the organization boundary.
 
 ## Open questions
 

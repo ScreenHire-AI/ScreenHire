@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using ScreenHire.Application.Integrity.Content;
 using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Integrity.Llm;
 
 namespace ScreenHire.Application.Integrity;
 
@@ -24,12 +26,23 @@ public static class IntegrityRegistration
         services.TryAddScoped<ITelemetrySource, DatabaseTelemetrySource>();
         services.TryAddScoped<IApplicantDirectory, DatabaseApplicantDirectory>();
 
+        // Content forensics (integrity-engine.md §10.10): the worker registers blob storage for the files first; the
+        // model provider comes from ScreenHire:Integrity:Llm, and the fake model refuses to start outside Development.
+        services.TryAddSingleton<IApplicantFileStore, NoApplicantFileStore>();
+        services.TryAddScoped<IContentRecords, DatabaseContentRecords>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<IntegrityOptions>, FakeModelGate>());
+        services.TryAddSingleton(provider => LlmAccess.Create(provider.GetRequiredService<IOptions<IntegrityOptions>>().Value.Llm));
+        services.TryAddSingleton<ConsistencyChecker>();
+
         // The order analyzers run in. Each is keyed by its own name and version, so adding one never re-runs the others.
         services.AddScoped<IIntegrityAnalyzer, NetworkAnalyzer>();
         services.AddScoped<IIntegrityAnalyzer, IdentityAnalyzer>();
         services.AddScoped<IIntegrityAnalyzer, AutomationAnalyzer>();
         services.AddScoped<IIntegrityAnalyzer, DuplicateAnalyzer>();
         services.AddScoped<IIntegrityAnalyzer, BehaviouralAnalyzer>();
+        services.AddScoped<IIntegrityAnalyzer, DocumentAnalyzer>();
+        services.AddScoped<IIntegrityAnalyzer, AnswerAnalyzer>();
+        services.AddScoped<IIntegrityAnalyzer, ConsistencyAnalyzer>();
         return services;
     }
 

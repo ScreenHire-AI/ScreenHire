@@ -21,7 +21,9 @@ namespace ScreenHire.Application.Integrity;
 /// </para>
 /// <para>
 /// Analyzers that later tasks add (content forensics) plug in as more <see cref="IIntegrityAnalyzer"/> registrations, or
-/// publish <see cref="AnalyzeApplicationIntegrity"/> again when their own asynchronous work finishes.
+/// publish <see cref="AnalyzeApplicationIntegrity"/> again when their own asynchronous work finishes. An analyzer whose
+/// input is not ready yet records no run. A reassessment is announced (timeline, live update, workflow trigger) only
+/// when a level changes.
 /// </para>
 /// </remarks>
 public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IIntegrityAnalyzer> analyzers, TimeProvider time)
@@ -52,6 +54,11 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             }
 
             var result = await analyzer.AnalyzeAsync(context, cancellationToken);
+            if (!result.Ready)
+            {
+                continue; // its input is still being prepared; the stage preparing it publishes this message again
+            }
+
             var runId = Guid.CreateVersion7();
             var written = ToSignals(result.Signals, application, runId, analyzer, now);
             db.IntegrityAnalyzerRuns.Add(new IntegrityAnalyzerRun
@@ -77,6 +84,10 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
     /// accommodation, accessibility-sensitive signals are not stored at all (CLAUDE.md non-negotiable 4); the ruleset
     /// drops any that were stored before.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// An LLM-derived signal does not cite a span from each of two sources (integrity-engine.md §5: evidence, not
+    /// verdicts). A model's say-so is never stored as a signal.
+    /// </exception>
     public static List<IntegritySignal> ToSignals(
         IReadOnlyList<ObservedSignal> observed, JobApplication application, Guid runId, IIntegrityAnalyzer analyzer, DateTimeOffset now)
     {
@@ -90,6 +101,12 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             if (definition.AccessibilitySensitive && application.AccommodationRequested)
             {
                 continue;
+            }
+
+            if (signal.Llm is not null && !CitesBothSources(signal))
+            {
+                throw new InvalidOperationException(
+                    $"Analyzer {analyzer.Name} reported an LLM-derived {signal.Code} without a quoted span from each source.");
             }
 
             signals.Add(new IntegritySignal
@@ -107,6 +124,8 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
                 ObservedAt = now,
                 AccessibilitySensitive = definition.AccessibilitySensitive,
                 ContextOnly = definition.ContextOnly,
+                Informational = definition.Informational,
+                Llm = signal.Llm,
                 Explanation = definition.Explain(signal.Values),
                 Evidence = signal.Evidence,
                 CounterEvidence = signal.CounterEvidence ?? [],
@@ -114,6 +133,19 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
         }
 
         return signals;
+    }
+
+    /// <summary>
+    /// Whether an LLM-derived signal cites its evidence: at least one text comparison with a quoted span on both sides,
+    /// each labelled with its source.
+    /// </summary>
+    public static bool CitesBothSources(ObservedSignal signal)
+    {
+        ArgumentNullException.ThrowIfNull(signal);
+        return signal.Evidence.Any(e => e.Kind == EvidenceKind.TextComparison
+            && e.Left is { } left && !string.IsNullOrWhiteSpace(left.Text) && !string.IsNullOrWhiteSpace(left.Label)
+            && e.Right is { } right && !string.IsNullOrWhiteSpace(right.Text) && !string.IsNullOrWhiteSpace(right.Label)
+            && !string.Equals(left.Label, right.Label, StringComparison.Ordinal));
     }
 
     private async Task<OutgoingMessages> AssessAsync(
@@ -132,7 +164,23 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             return [];
         }
 
+        // The levels until now: the newest assessment of each kind. Read before the new rows are added.
+        var previous = (await db.IntegrityAssessments.AsNoTracking()
+                .Where(a => a.ApplicationId == application.Id)
+                .Select(a => new { a.Kind, a.Level, a.AssessedAt, a.Id })
+                .ToListAsync(cancellationToken))
+            .GroupBy(a => a.Kind)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.AssessedAt).ThenByDescending(a => a.Id).First().Level);
         db.IntegrityAssessments.AddRange(changed.Select(r => r.ToAssessment(application.OrganizationId, application.Id, inputs, now)));
+
+        // Content forensics reassess an application as each of their stages lands. New evidence at the same levels is
+        // stored (the panel shows it) but not announced: the timeline, the live update and the workflow engine's
+        // IntegrityAssessed trigger fire for a first assessment and for a change of level, so an automation that assigns
+        // a reviewer runs once, not once per stage.
+        if (results.All(r => previous.TryGetValue(r.Kind, out var level) && level == r.Level))
+        {
+            return [];
+        }
 
         var authenticity = results.Single(r => r.Kind == IntegrityAssessmentKind.Authenticity).Level;
         var aiAssistance = results.Single(r => r.Kind == IntegrityAssessmentKind.AiAssistance).Level;

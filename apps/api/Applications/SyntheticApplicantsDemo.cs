@@ -28,7 +28,7 @@ internal sealed partial class SyntheticApplicantsDemo(
     public const string JobSlug = "senior-dotnet-engineer";
 
     /// <summary>The careers notice version the synthetic applicants "saw" (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-20.3";
+    public const string PrivacyNoticeVersion = "2026-10-20.4";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

@@ -8,7 +8,7 @@ import { parseUploadRef, type UploadRef } from './files';
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-20.3';
+export const NOTICE_VERSION = '2026-10-20.4';
 
 /** The form asks for a resume first, on the details step (the API's ApplicationForm.ResumeQuestionId). */
 export const RESUME_QUESTION_ID = 'resume';

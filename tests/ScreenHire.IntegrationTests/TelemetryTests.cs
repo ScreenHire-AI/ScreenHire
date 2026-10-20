@@ -344,7 +344,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         var body = new JsonObject
         {
             ["candidate"] = new JsonObject { ["fullName"] = "Casey Morgan", ["email"] = email },
-            ["privacyNoticeVersion"] = "2026-10-20.3",
+            ["privacyNoticeVersion"] = "2026-10-20.4",
             ["answers"] = new JsonArray(
                 new JsonObject { ["questionId"] = "resume", ["value"] = uploadId.ToString() },
                 new JsonObject { ["questionId"] = "work_authorization", ["value"] = "yes" },

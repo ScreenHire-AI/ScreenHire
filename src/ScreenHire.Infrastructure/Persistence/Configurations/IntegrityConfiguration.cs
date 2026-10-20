@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
 
@@ -36,6 +37,7 @@ internal sealed class IntegritySignalConfiguration : IEntityTypeConfiguration<In
         builder.Property(s => s.Explanation).HasMaxLength(1000);
         builder.Property(s => s.Evidence).HasJsonColumn();
         builder.Property(s => s.CounterEvidence).HasJsonColumn();
+        builder.Property(s => s.Llm).HasJsonColumn();
 
         builder.HasOne<JobApplication>().WithMany()
             .HasForeignKey(s => new { s.OrganizationId, s.ApplicationId })
@@ -143,6 +145,83 @@ internal sealed class TelemetrySnapshotConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(s => new { s.OrganizationId, s.SessionId, s.PageViewId }).IsUnique();
         builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId });
         builder.HasIndex(s => new { s.OrganizationId, s.ExpiresAt });
+    }
+}
+
+internal sealed class ApplicationDocumentConfiguration : IEntityTypeConfiguration<ApplicationDocument>
+{
+    public void Configure(EntityTypeBuilder<ApplicationDocument> builder)
+    {
+        builder.Property(d => d.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.Property(d => d.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(d => d.Text).HasMaxLength(ApplicationDocument.MaxTextLength);
+        builder.Property(d => d.Metadata).HasJsonColumn();
+        builder.Property(d => d.HiddenText).HasJsonColumn();
+        builder.Property(d => d.Note).HasMaxLength(500);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(d => new { d.OrganizationId, d.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<ApplicationFile>().WithMany()
+            .HasForeignKey(d => new { d.OrganizationId, d.FileId })
+            .HasPrincipalKey(f => new { f.OrganizationId, f.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // Each extractor version reads a file once, however often the message arrives.
+        builder.HasIndex(d => new { d.OrganizationId, d.FileId, d.ExtractorVersion }).IsUnique();
+        builder.HasIndex(d => new { d.OrganizationId, d.ApplicationId });
+    }
+}
+
+internal sealed class AnswerFingerprintConfiguration : IEntityTypeConfiguration<AnswerFingerprint>
+{
+    public void Configure(EntityTypeBuilder<AnswerFingerprint> builder)
+    {
+        builder.Property(f => f.QuestionId).HasMaxLength(40);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(f => new { f.OrganizationId, f.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(f => new { f.OrganizationId, f.ApplicationId, f.QuestionId }).IsUnique();
+        // Near-duplicate lookups read an organization's recent fingerprints, newest first.
+        builder.HasIndex(f => new { f.OrganizationId, f.CreatedAt });
+    }
+}
+
+internal sealed class ConsistencyCheckConfiguration : IEntityTypeConfiguration<ConsistencyCheck>
+{
+    public void Configure(EntityTypeBuilder<ConsistencyCheck> builder)
+    {
+        builder.Property(c => c.PromptVersion).HasMaxLength(40);
+        builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.Note).HasMaxLength(500);
+        builder.Property(c => c.ExtractionModel).HasMaxLength(100);
+        builder.Property(c => c.ConsistencyModel).HasMaxLength(100);
+        builder.Property(c => c.Contradictions).HasJsonColumn();
+        // A claim is taken over only if nobody else took it first (ConsistencyCheck.Reclaim).
+        builder.Property(c => c.StartedAt).IsConcurrencyToken();
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(c => new { c.OrganizationId, c.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // The claim: one check per application and prompt version, so a redelivered message never calls the model twice.
+        builder.HasIndex(c => new { c.OrganizationId, c.ApplicationId, c.PromptVersion }).IsUnique();
+        // The monthly budget sums an organization's checks by start time.
+        builder.HasIndex(c => new { c.OrganizationId, c.StartedAt });
+    }
+}
+
+internal sealed class IntegritySettingsConfiguration : IEntityTypeConfiguration<IntegritySettings>
+{
+    public void Configure(EntityTypeBuilder<IntegritySettings> builder)
+    {
+        builder.ToTable("integrity_settings");
+        builder.HasKey(s => s.OrganizationId);
+        builder.HasOne<Organization>().WithOne()
+            .HasForeignKey<IntegritySettings>(s => s.OrganizationId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

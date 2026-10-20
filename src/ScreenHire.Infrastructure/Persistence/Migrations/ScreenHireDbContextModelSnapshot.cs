@@ -217,6 +217,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_application_files");
 
+                    b.HasAlternateKey("OrganizationId", "Id")
+                        .HasName("ak_application_files_organization_id_id");
+
                     b.HasIndex("OrganizationId", "Sha256")
                         .HasDatabaseName("ix_application_files_organization_id_sha256");
 
@@ -965,6 +968,210 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("hiring_template_versions", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.AnswerFingerprint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("candidate_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("QuestionId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("question_id");
+
+                    b.Property<long>("SimHash")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sim_hash");
+
+                    b.Property<int>("WordCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("word_count");
+
+                    b.HasKey("Id")
+                        .HasName("pk_answer_fingerprints");
+
+                    b.HasIndex("OrganizationId", "CreatedAt")
+                        .HasDatabaseName("ix_answer_fingerprints_organization_id_created_at");
+
+                    b.HasIndex("OrganizationId", "ApplicationId", "QuestionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_answer_fingerprints_organization_id_application_id_question");
+
+                    b.ToTable("answer_fingerprints", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.ApplicationDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset>("ExtractedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("extracted_at");
+
+                    b.Property<int>("ExtractorVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("extractor_version");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<string>("HiddenText")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("hidden_text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("page_count");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(60000)
+                        .HasColumnType("character varying(60000)")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_application_documents");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_application_documents_organization_id_application_id");
+
+                    b.HasIndex("OrganizationId", "FileId", "ExtractorVersion")
+                        .IsUnique()
+                        .HasDatabaseName("ix_application_documents_organization_id_file_id_extractor_ver");
+
+                    b.ToTable("application_documents", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.ConsistencyCheck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("ConsistencyModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("consistency_model");
+
+                    b.Property<string>("Contradictions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("contradictions");
+
+                    b.Property<string>("ExtractionModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("extraction_model");
+
+                    b.Property<long>("InputTokens")
+                        .HasColumnType("bigint")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<long>("OutputTokens")
+                        .HasColumnType("bigint")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("prompt_version");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consistency_checks");
+
+                    b.HasIndex("OrganizationId", "StartedAt")
+                        .HasDatabaseName("ix_consistency_checks_organization_id_started_at");
+
+                    b.HasIndex("OrganizationId", "ApplicationId", "PromptVersion")
+                        .IsUnique()
+                        .HasDatabaseName("ix_consistency_checks_organization_id_application_id_prompt_ve");
+
+                    b.ToTable("consistency_checks", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Integrity.IntegrityAnalyzerRun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1182,6 +1389,30 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("integrity_review_actions", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.IntegritySettings", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<bool>("LlmConsistencyCheckEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("llm_consistency_check_enabled");
+
+                    b.Property<long?>("MonthlyTokenBudget")
+                        .HasColumnType("bigint")
+                        .HasColumnName("monthly_token_budget");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("OrganizationId")
+                        .HasName("pk_integrity_settings");
+
+                    b.ToTable("integrity_settings", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Integrity.IntegritySignal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1244,6 +1475,14 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("explanation");
+
+                    b.Property<bool>("Informational")
+                        .HasColumnType("boolean")
+                        .HasColumnName("informational");
+
+                    b.Property<string>("Llm")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("llm");
 
                     b.Property<DateTimeOffset>("ObservedAt")
                         .HasColumnType("timestamp with time zone")
@@ -2074,6 +2313,47 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_hiring_template_versions_hiring_templates_template_id");
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.AnswerFingerprint", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_answer_fingerprints_applications_organization_id_applicatio");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.ApplicationDocument", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_documents_applications_organization_id_applicat");
+
+                    b.HasOne("ScreenHire.Domain.Applications.ApplicationFile", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "FileId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_documents_application_files_organization_id_fil");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.ConsistencyCheck", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_consistency_checks_applications_organization_id_application");
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Integrity.IntegrityAnalyzerRun", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
@@ -2112,6 +2392,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_integrity_review_actions_integrity_assessments_organization");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Integrity.IntegritySettings", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithOne()
+                        .HasForeignKey("ScreenHire.Domain.Integrity.IntegritySettings", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_integrity_settings_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Integrity.IntegritySignal", b =>

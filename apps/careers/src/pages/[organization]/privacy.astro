@@ -61,6 +61,10 @@ const employer = response.data;
         <li>signs of automation software that your browser reports about itself;</li>
         <li>whether you switched on the assistive technology option;</li>
         <li>your answer about AI tools, and anything you tell us about how you used them;</li>
+        <li>
+          what our checks read from your files and answers: the text, any hidden text, the tool that made each file, a
+          fingerprint of each written answer, and the result of any comparison;
+        </li>
         <li>which version of this notice you were shown.</li>
       </ul>
       <p class="mt-2">
@@ -91,6 +95,18 @@ const employer = response.data;
         left the page and came back to one answer many times. They never raise a concern on their own, because dictation,
         screen readers and autofill look the same. We never record what you type, which keys you press or the time between
         them, and we never see what you copied or where you went when you left the page.
+      </p>
+      <p class="mt-2">
+        We read the files you upload and your written answers. In a file, we look for text people cannot see, such as
+        white or very small text, and for what the file says about the tool that made it. We check whether a written
+        answer is nearly identical to another applicant's answer to {employer.name} from the last 180 days.
+      </p>
+      <p class="mt-2">
+        If {employer.name} has turned it on, an AI model from our provider compares the facts in your resume, your answers
+        and any LinkedIn profile export you upload, such as job titles, dates and qualifications, and shows where they
+        differ by quoting both. It is never asked whether you used AI to write them. Our provider is not allowed to use
+        your information to train its models. A person decides what any difference means, and there is often an ordinary
+        explanation.
       </p>
       <ul class="mt-2">
         <li>Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.</li>

@@ -59,20 +59,33 @@ public sealed record IntegrityContext(
 }
 
 /// <summary>What an analyzer reported. <see cref="Note"/> says why it saw nothing, when that is because it could not look.</summary>
-public sealed record AnalyzerResult(IReadOnlyList<ObservedSignal> Signals, string? Note = null)
+/// <remarks>
+/// <c>ready</c> false means the analyzer's input is still being prepared (a file being read, a model being asked): the
+/// pipeline records no run, so the analyzer runs again when the stage that prepares its input publishes
+/// <c>AnalyzeApplicationIntegrity</c>.
+/// </remarks>
+public sealed record AnalyzerResult(IReadOnlyList<ObservedSignal> Signals, string? Note = null, bool Ready = true)
 {
     public static AnalyzerResult Nothing(string? note = null) => new([], note);
+
+    /// <summary>Not yet: run again later, and record nothing now.</summary>
+    public static AnalyzerResult NotReady(string reason) => new([], reason, Ready: false);
 }
 
 /// <summary>
 /// One signal as an analyzer observed it. The catalogue (<see cref="SignalCatalogue"/>) supplies its category,
 /// assessment, default weight and explanation template; <see cref="Values"/> fill the template's placeholders.
 /// </summary>
-/// <remarks><c>weight</c> overrides the catalogue's weight, for a code whose strength depends on what matched.</remarks>
+/// <remarks>
+/// <c>weight</c> overrides the catalogue's weight, for a code whose strength depends on what matched. <c>llm</c> marks a
+/// signal a language model helped derive; such a signal must cite a span from each of two sources as a text comparison,
+/// or the pipeline refuses it (<see cref="IntegrityPipeline.ToSignals"/>).
+/// </remarks>
 public sealed record ObservedSignal(
     string Code,
     SignalConfidence Confidence,
     IReadOnlyList<SignalEvidence> Evidence,
     IReadOnlyDictionary<string, string>? Values = null,
     IReadOnlyList<CounterEvidence>? CounterEvidence = null,
-    SignalWeight? Weight = null);
+    SignalWeight? Weight = null,
+    LlmProvenance? Llm = null);

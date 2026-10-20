@@ -85,6 +85,14 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<TelemetrySnapshot> TelemetrySnapshots => Set<TelemetrySnapshot>();
 
+    public DbSet<ApplicationDocument> ApplicationDocuments => Set<ApplicationDocument>();
+
+    public DbSet<AnswerFingerprint> AnswerFingerprints => Set<AnswerFingerprint>();
+
+    public DbSet<ConsistencyCheck> ConsistencyChecks => Set<ConsistencyCheck>();
+
+    public DbSet<IntegritySettings> IntegritySettings => Set<IntegritySettings>();
+
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
     /// and nothing uses it while the network's feature flag is off.

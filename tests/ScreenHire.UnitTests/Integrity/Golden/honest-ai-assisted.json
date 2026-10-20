@@ -1,6 +1,6 @@
 {
   "applicant": "honest-ai-assisted",
-  "rulesetVersion": "2026-10-20.3",
+  "rulesetVersion": "2026-10-20.4",
   "authenticity": {
     "level": "NoConcerns",
     "reasonCodes": [],
@@ -15,6 +15,7 @@
         "confidence": "Medium",
         "countsTowardLevel": false,
         "contextOnly": true,
+        "informational": false,
         "accessibilitySensitive": false,
         "source": "network@1",
         "explanation": "The application came through a VPN service. Many people use these for privacy, so this is context only and never a reason on its own.",
@@ -52,11 +53,67 @@
     "level": "NotIndicated",
     "reasonCodes": [],
     "appliedRules": [
-      "telemetry-only-alongside-another-category"
+      "telemetry-never-alone"
     ],
-    "summary": "No signs that the content was generated or templated. The candidate said they used AI tools, which this job allows when disclosed.",
+    "summary": "2 observations from form behaviour and document checks, with nothing from a second, independent kind of check to back them up. Shown for context only. The candidate said they used AI tools, which this job allows when disclosed.",
     "nextStep": "No action needed.",
     "policyContext": "Disclosed",
-    "signals": []
+    "signals": [
+      {
+        "code": "BEH_FOCUS_SWITCHING",
+        "category": "Behavioural",
+        "weight": "Low",
+        "confidence": "Low",
+        "countsTowardLevel": false,
+        "contextOnly": false,
+        "informational": false,
+        "accessibilitySensitive": true,
+        "source": "behavioural@2",
+        "explanation": "The candidate switched away from the form often while answering \"What is your notice period?\".",
+        "evidence": [
+          {
+            "kind": "Metric",
+            "label": "Times the candidate left the page",
+            "amount": 7,
+            "unit": "times",
+            "reference": 5,
+            "referenceLabel": "Shown from"
+          },
+          {
+            "kind": "Metric",
+            "label": "Times the answer field was returned to",
+            "amount": 6,
+            "unit": "times",
+            "reference": 5,
+            "referenceLabel": "Shown from"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "CNT_RESUME_GENERATOR",
+        "category": "Document",
+        "weight": "Low",
+        "confidence": "Low",
+        "countsTowardLevel": false,
+        "contextOnly": false,
+        "informational": false,
+        "accessibilitySensitive": false,
+        "source": "documents@1",
+        "explanation": "The resume file's details show it was made with Kickresume, a resume builder.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Tool named in the resume file",
+            "value": "Kickresume"
+          }
+        ],
+        "counterEvidence": [
+          {
+            "explanation": "Resume builders and export tools are widely used by genuine applicants, and the file's details are easy to change."
+          }
+        ]
+      }
+    ]
   }
 }
