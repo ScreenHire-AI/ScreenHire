@@ -1,6 +1,6 @@
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
-import viteConfig from './vite.config';
+import viteConfig from './vite.config.ts';
 
 // Dates render in the local timezone; pin it so date assertions hold on any machine.
 process.env.TZ = 'UTC';

@@ -28,7 +28,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
             await Expect(cells.Nth(0)).ToHaveTextAsync(title);
             await Expect(cells.Nth(1)).ToHaveTextAsync(location);
             await Expect(cells.Nth(2)).ToHaveTextAsync(status);
-            // Published date ("20 Oct") for open jobs; a dash for the draft, which was never published.
+            // Published date ("20 Oct", "5 Sept") for open jobs; a dash for the draft, which was never published.
             await Expect(cells.Nth(3)).ToHaveTextAsync(status == "Draft" ? new Regex("^—$") : PublishedDate());
         }
 
@@ -36,6 +36,8 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await ExpectNoAccessibilityViolationsAsync();
     }
 
-    [GeneratedRegex(@"^\d{1,2} \w{3}$")]
+    // en-GB short months are three letters except September ("5 Sept"). Playwright runs the pattern as a JavaScript
+    // regex without the `u` flag, so use a plain class: `\p{L}` would match a literal "p".
+    [GeneratedRegex(@"^\d{1,2} [A-Za-z]{3,4}$")]
     private static partial Regex PublishedDate();
 }

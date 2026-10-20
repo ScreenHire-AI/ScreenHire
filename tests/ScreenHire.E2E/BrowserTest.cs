@@ -29,12 +29,17 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     {
         if (context is not null)
         {
-            if (TestContext.Current.TestState?.Result == TestResult.Failed)
+            try
             {
-                await SaveScreenshotAsync();
+                if (TestContext.Current.TestState?.Result == TestResult.Failed)
+                {
+                    await SaveScreenshotAsync();
+                }
             }
-
-            await context.DisposeAsync();
+            finally
+            {
+                await context.DisposeAsync();
+            }
         }
 
         GC.SuppressFinalize(this);
@@ -73,18 +78,24 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 
     private async Task SaveScreenshotAsync()
     {
+        if (Page is null)
+        {
+            return; // the test failed before its page opened
+        }
+
         var testName = TestContext.Current.Test?.TestDisplayName ?? "unknown";
         var fileName = string.Concat(testName.Select(c => char.IsAsciiLetterOrDigit(c) ? c : '_'));
         var path = Path.Combine(AppContext.BaseDirectory, "TestResults", "screenshots", $"{fileName}.png");
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         try
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await Page.ScreenshotAsync(new() { Path = path, FullPage = true });
             TestContext.Current.TestOutputHelper?.WriteLine($"Screenshot of the failure: {path}");
         }
-        catch (PlaywrightException exception)
+        catch (Exception exception) when (exception is PlaywrightException or IOException or UnauthorizedAccessException)
         {
-            // A crashed page cannot be captured; the test's own failure is the useful error, so do not mask it.
+            // A crashed page or an unwritable folder cannot be captured; the test's own failure is the useful error, so
+            // do not mask it.
             TestContext.Current.TestOutputHelper?.WriteLine($"Could not capture a screenshot: {exception.Message}");
         }
     }

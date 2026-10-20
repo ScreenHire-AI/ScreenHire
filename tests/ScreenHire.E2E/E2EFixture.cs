@@ -44,8 +44,15 @@ public sealed class E2EFixture : AppHostFixture
 
     public override async ValueTask DisposeAsync()
     {
-        await DisposeBrowserAsync();
-        await base.DisposeAsync();
+        try
+        {
+            await DisposeBrowserAsync();
+        }
+        finally
+        {
+            // Stop the AppHost and its containers even if the browser fails to close.
+            await base.DisposeAsync();
+        }
     }
 
     // Idempotent: runs after a failed start and again if xUnit then disposes the fixture.

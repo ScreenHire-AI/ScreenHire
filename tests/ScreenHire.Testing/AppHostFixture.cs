@@ -1,4 +1,5 @@
 using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Infrastructure.Persistence;
@@ -38,14 +39,31 @@ public class AppHostFixture : IAsyncLifetime
         try
         {
             await app.StartAsync(startup.Token);
-            await Task.WhenAll(RequiredResources.Select(resource =>
-                app.ResourceNotifications.WaitForResourceHealthyAsync(resource, startup.Token)));
+            await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
         }
         catch
         {
             // A failed start must not leave containers and processes behind, whether or not xUnit disposes us.
             await DisposeAppAsync();
             throw;
+        }
+    }
+
+    // A resource that fails to start (a missing build, a pnpm error) fails the run at once instead of after the timeout,
+    // and a timeout names the resource that never became healthy.
+    private static async Task WaitUntilHealthyAsync(DistributedApplication app, string resource, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(
+                resource, WaitBehavior.StopOnResourceUnavailable, cancellationToken);
+        }
+        catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"The AppHost resource '{resource}' was not healthy within {StartupTimeout.TotalMinutes:0} minutes. " +
+                "Check its logs in the test output.",
+                exception);
         }
     }
 

@@ -45,7 +45,10 @@ var blobs = storage.AddBlobs("blobs");
 var api = builder.AddProject<Projects.ScreenHire_Api>("api")
     .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Api", 5080))
     .WithReference(database).WaitFor(database)
-    .WithReference(blobs).WaitFor(blobs);
+    .WithReference(blobs).WaitFor(blobs)
+    // Kestrel only listens after the Development migrate-and-seed, so a healthy API has its schema and demo data.
+    // Everything that waits for it (worker, frontends, test fixtures) starts after that, not when the process starts.
+    .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(database)
