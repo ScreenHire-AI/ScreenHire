@@ -22,7 +22,7 @@ public sealed class DeadLetterTests(AppHostFixture fixture)
         var cancellationToken = TestContext.Current.CancellationToken;
         var marker = Guid.NewGuid();
         var markerText = marker.ToString();
-        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), RetryDelays = RetryDelays, ScheduledRetryDelays = [] };
+        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), AutoProvision = true, RetryDelays = RetryDelays, ScheduledRetryDelays = [] };
 
         var spanEvents = new ConcurrentQueue<string>();
         using var activities = ListenToWolverineSpans(spanEvents);
@@ -72,7 +72,7 @@ public sealed class DeadLetterTests(AppHostFixture fixture)
         var marker = Guid.NewGuid();
         var retryDelay = TimeSpan.FromMilliseconds(100);
         var scheduledDelay = TimeSpan.FromSeconds(1);
-        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), RetryDelays = [retryDelay], ScheduledRetryDelays = [scheduledDelay] };
+        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), AutoProvision = true, RetryDelays = [retryDelay], ScheduledRetryDelays = [scheduledDelay] };
 
         await using var worker = await MessagingHost.StartHandlerAsync(fixture, settings, [typeof(AlwaysFailsHandler)], cancellationToken);
         await worker.Services.GetRequiredService<IMessageBus>().SendAsync(new AlwaysFails(marker));

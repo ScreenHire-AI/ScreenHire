@@ -1,3 +1,5 @@
+using ScreenHire.Infrastructure.Persistence;
+
 namespace ScreenHire.Application.Messaging;
 
 /// <summary>
@@ -7,7 +9,14 @@ namespace ScreenHire.Application.Messaging;
 public sealed class MessagingSettings
 {
     /// <summary>Postgres schema for Wolverine's inbox, outbox, dead letters, node records and queue tables.</summary>
-    public string Schema { get; init; } = "wolverine";
+    public string Schema { get; init; } = DatabaseRegistration.MessagingSchema;
+
+    /// <summary>
+    /// Whether this host creates and updates Wolverine's tables when it starts. Only for a connection that may create
+    /// them: the API and worker connect as <c>screenhire_app</c>, which may not, so for them the tables come from
+    /// <see cref="ScreenHireMessaging.ProvisionStorageAsync"/>, run as the owner. Tests' private-schema hosts set it.
+    /// </summary>
+    public bool AutoProvision { get; init; }
 
     /// <summary>The Postgres-backed queue the API publishes to and the worker listens on.</summary>
     public string WorkerQueue { get; init; } = "worker";

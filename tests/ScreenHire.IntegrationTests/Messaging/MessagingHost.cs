@@ -35,7 +35,7 @@ internal sealed class MessagingHost : IAsyncDisposable
 
     /// <summary>Starts a publisher configured like the API (<see cref="ScreenHireMessaging.ConfigurePublisher"/>).</summary>
     public static Task<MessagingHost> StartPublisherAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
-        StartAsync(fixture, new MessagingSettings { Schema = NewSchema() }, ScreenHireMessaging.ConfigurePublisher, cancellationToken);
+        StartAsync(fixture, new MessagingSettings { Schema = NewSchema(), AutoProvision = true }, ScreenHireMessaging.ConfigurePublisher, cancellationToken);
 
     /// <summary>
     /// Starts a handler configured like the worker (<see cref="ScreenHireMessaging.ConfigureHandler"/>), in solo mode so

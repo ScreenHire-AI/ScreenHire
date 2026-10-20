@@ -1,10 +1,13 @@
 using System.Reflection;
+using JasperFx;
 using JasperFx.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
@@ -18,10 +21,15 @@ namespace ScreenHire.Application.Messaging;
 /// Postgres directly: leader election and the inbox need a real session, so never route this through a
 /// transaction-mode PgBouncer.
 /// </summary>
+/// <remarks>
+/// Both hosts connect as <c>screenhire_app</c>, the role row-level security binds, and may read and write Wolverine's
+/// tables but not create them. <see cref="ProvisionStorageAsync"/> creates them as the owner: the API calls it at
+/// startup in Development, after the migrations; elsewhere the deploy step does.
+/// </remarks>
 public static class ScreenHireMessaging
 {
-    /// <summary>Aspire's name for the application database; the connection string arrives as <c>ConnectionStrings:screenhire</c>.</summary>
-    public const string ConnectionName = "screenhire";
+    /// <summary>The connection the hosts use for messaging: the application role, the same one as their DbContext.</summary>
+    public const string ConnectionName = DatabaseRegistration.AppConnectionName;
 
     /// <summary>
     /// The API's side: publishes through the EF Core transactional outbox (<c>IDbContextOutbox&lt;ScreenHireDbContext&gt;</c>)
@@ -47,7 +55,6 @@ public static class ScreenHireMessaging
         }
 
         builder.UseWolverine(opts => ConfigurePublisher(opts, builder.GetMessagingConnectionString(), new MessagingSettings()));
-        builder.Services.AddResourceSetupOnStartup();
         return builder;
     }
 
@@ -63,8 +70,27 @@ public static class ScreenHireMessaging
             ConfigureHandler(opts, builder.GetMessagingConnectionString(), new MessagingSettings());
             ScheduleRecurringMessages(opts);
         });
-        builder.Services.AddResourceSetupOnStartup();
         return builder;
+    }
+
+    /// <summary>
+    /// Creates or updates every Wolverine table both hosts use (envelopes, dead letters, nodes, deduplication, the worker
+    /// queue), in <see cref="MessagingSettings.Schema"/>, as the role in <paramref name="ownerConnectionString"/>. Run it
+    /// after the EF migrations, which create the schema and grant <c>screenhire_app</c> access to what this creates, and
+    /// again after a Wolverine upgrade.
+    /// </summary>
+    public static async Task ProvisionStorageAsync(string ownerConnectionString, CancellationToken cancellationToken = default)
+    {
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
+        // The worker's configuration is a superset of the API's: the same store, plus the queue it listens on and the
+        // recurring schedules, whose tracking table only exists when a schedule is registered.
+        builder.UseWolverine(opts =>
+        {
+            ConfigureHandler(opts, ownerConnectionString, new MessagingSettings { AutoProvision = true });
+            ScheduleRecurringMessages(opts);
+        });
+        using var host = builder.Build();
+        await host.SetupResources(cancellationToken);
     }
 
     /// <summary>The publisher configuration behind <see cref="AddScreenHireMessagePublishing"/>.</summary>
@@ -97,6 +123,14 @@ public static class ScreenHireMessaging
         // survive a restart. Every handler that takes the DbContext runs in one EF Core transaction with its outbox.
         opts.Policies.UseDurableLocalQueues();
         opts.Policies.AutoApplyTransactions();
+
+        // A message about one organization's data runs as that organization: the tenant filter and row-level security
+        // then scope the handler's queries, exactly as they scope a signed-in request.
+        opts.Policies.AddMiddleware(typeof(TenantMessageMiddleware), chain => chain.MessageType.IsAssignableTo(typeof(ITenantMessage)));
+        // Wolverine's generated handler code would otherwise construct TenantContext itself with `new`, while the DbContext
+        // gets the scope's own instance from the container, and the middleware would set a tenant nobody reads.
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<TenantContext>();
+        opts.CodeGeneration.AlwaysUseServiceLocationFor<ITenantContext>();
 
         // Storage for [Deduplicated] handlers (logical idempotency keys, see CLAUDE.md "Messaging").
         opts.Durability.MessageDeduplicationMode = MessageDeduplicationMode.CompareByHash;
@@ -142,8 +176,14 @@ public static class ScreenHireMessaging
 
     private static void UsePostgres(WolverineOptions opts, string connectionString, MessagingSettings settings)
     {
-        opts.UsePostgresqlPersistenceAndTransport(connectionString, settings.Schema, transportSchema: settings.Schema)
-            .AutoProvision();
+        var postgres = opts.UsePostgresqlPersistenceAndTransport(connectionString, settings.Schema, transportSchema: settings.Schema);
+        if (settings.AutoProvision)
+        {
+            postgres.AutoProvision();
+        }
+
+        // Never patch the schema at startup unless asked: screenhire_app may not create tables (ProvisionStorageAsync).
+        opts.AutoBuildMessageStorageOnStartup = settings.AutoProvision ? AutoCreate.CreateOrUpdate : AutoCreate.None;
         opts.UseEntityFrameworkCoreTransactions();
         opts.Policies.UseDurableOutboxOnAllSendingEndpoints();
     }

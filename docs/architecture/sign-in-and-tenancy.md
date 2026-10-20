@@ -119,7 +119,7 @@ Who the tenant is:
 | Signed in | `TenantResolutionMiddleware`: the user's first membership, read on every request |
 | Public careers endpoint | The organization whose slug is in the route |
 | Onboarding | The new organization, from just before it is saved |
-| Worker | None yet; messages will carry the organization id |
+| Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn |
 
 ### Adding a tenant-owned table
 
@@ -132,8 +132,10 @@ checklist.
 
 Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs the API in production must:
 
+- run the EF migrations and then `ScreenHireMessaging.ProvisionStorageAsync` as the owner, in that order, on every
+  release (docs/architecture/messaging.md, "Roles and provisioning"). The API does both at startup in Development;
 - give `screenhire_app` a login and password, which the migration creates as `NOLOGIN` (the Development seed does it
-  locally);
+  locally), and give the API and the worker only that role's connection string, `ConnectionStrings:screenhire-app`;
 - persist the ASP.NET Core Data Protection key ring and protect it at rest. The session, external-sign-in and
   antiforgery cookies are encrypted with it, so a key ring that lives only in a container signs everyone out on every
   restart, and a second replica cannot read the first one's cookies. Locally the default key ring in the user profile

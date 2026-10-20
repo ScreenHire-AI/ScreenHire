@@ -47,11 +47,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference().AllowAnonymous();
 
+    // As the owner, before Kestrel listens: the schema, the app role's login, Wolverine's tables, then the demo data.
+    // The worker waits for a healthy API, so it starts with all of it in place. Outside Development the deploy step runs
+    // the same two steps (docs/architecture/sign-in-and-tenancy.md, "Deploy prerequisites").
+    var ownerConnectionString = builder.Configuration.GetConnectionString(DatabaseRegistration.OwnerConnectionName)
+        ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.OwnerConnectionName} is not set.");
     await DevelopmentDataSeeder.MigrateAndSeedAsync(
-        builder.Configuration.GetConnectionString(DatabaseRegistration.OwnerConnectionName)
-            ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.OwnerConnectionName} is not set."),
-        builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!,
-        TimeProvider.System);
+        ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, TimeProvider.System);
+    await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
 }
 
 await app.RunAsync();
