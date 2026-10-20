@@ -91,6 +91,28 @@ public sealed class DistributionPlannerTests
     }
 
     [Fact]
+    public async Task Republishing_leaves_a_board_that_was_unconfigured_or_is_no_longer_allowed_as_it_is()
+    {
+        var planner = Planner(out _, partnerBoard: true);
+        organization.IndeedEligible = true;
+        var postings = (await planner.PublishAsync(organization, Content(1), [], null, CancellationToken.None)).Added.ToList();
+        postings.Select(p => p.BoardId).Should().Contain(["push", "partner"]);
+
+        // The push board's configuration is removed, and the organization loses partner clearance.
+        var withoutPush = new DistributionPlanner(
+            new BoardRegistry([new CareersPageAdapter(), new CareerjetFeedAdapter(time), new TalentFeedAdapter(time), new FakePushBoard("partner", partnerGated: true)]),
+            time);
+        organization.IndeedEligible = false;
+
+        var changes = await withoutPush.PublishAsync(organization, Content(2), postings, null, CancellationToken.None);
+
+        postings.Single(p => p.BoardId == "careerjet").JobVersion.Should().Be(2);
+        postings.Single(p => p.BoardId == "push").Should().BeEquivalentTo(new { JobVersion = 1, State = PostingState.Queued }, "nothing can reach it");
+        postings.Single(p => p.BoardId == "partner").JobVersion.Should().Be(1, "the organization may no longer post there");
+        changes.Messages.OfType<SyncJobPosting>().Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Teardown_closes_only_what_is_confirmed_and_asks_push_boards_to_remove_the_rest()
     {
         var planner = Planner(out _);

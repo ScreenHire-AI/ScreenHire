@@ -78,7 +78,10 @@ public sealed class JobPosting : ITenantOwned
 
     public DateTimeOffset? ClosedAt { get; private set; }
 
-    /// <summary>Is on the board, or on its way there: what feeds and the public job-board API list.</summary>
+    /// <summary>
+    /// Is on the board, or on its way there: what feeds and the public job-board API list. <c>PostingContents.ActiveOnBoardAsync</c>
+    /// spells out the same states in SQL; change both together.
+    /// </summary>
     public bool IsActive => State is PostingState.Queued or PostingState.Submitted or PostingState.Live;
 
     /// <summary>
@@ -191,7 +194,10 @@ public sealed class JobPosting : ITenantOwned
         return true;
     }
 
-    /// <summary>The board could not be reached after every retry. Reconciliation resends from here.</summary>
+    /// <summary>
+    /// The board could not be reached after every retry. Reconciliation does not resend from here; publishing the job again
+    /// queues it once more.
+    /// </summary>
     public bool Fail(string error, DateTimeOffset now)
     {
         if (State is not (PostingState.Queued or PostingState.Error))

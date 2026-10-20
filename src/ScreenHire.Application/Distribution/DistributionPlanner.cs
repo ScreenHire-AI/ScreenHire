@@ -15,7 +15,7 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
 {
     /// <summary>
     /// Sends <paramref name="content"/>'s version to boards. <paramref name="boardIds"/> null means: every board this
-    /// organization may use the first time, then the boards the job is already on. Boards with validation issues wait in
+    /// organization may use the first time, then the boards the job is already on that it may still use. Boards with validation issues wait in
     /// Draft with the issues. <paramref name="postings"/> are the job's postings, tracked.
     /// </summary>
     public async Task<DistributionChanges> PublishAsync(
@@ -29,11 +29,17 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(postings);
 
+        // The API refuses a named board the organization cannot use. A board the job is already on that has since been
+        // unconfigured, or that the organization may no longer use, is left as it is rather than failing the publish.
+        var available = boards.AvailableTo(organization).Select(a => a.BoardId).ToList();
         var targets = boardIds is not null
             ? [.. boardIds.Distinct(StringComparer.Ordinal)]
             : postings.Count == 0
-                ? boards.AvailableTo(organization).Select(a => a.BoardId).ToList()
-                : postings.Where(p => p.State is not (PostingState.Closed or PostingState.Closing)).Select(p => p.BoardId).ToList();
+                ? available
+                : postings
+                    .Where(p => p.State is not (PostingState.Closed or PostingState.Closing) && available.Contains(p.BoardId, StringComparer.Ordinal))
+                    .Select(p => p.BoardId)
+                    .ToList();
 
         var now = time.GetUtcNow();
         var added = new List<JobPosting>();

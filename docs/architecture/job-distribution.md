@@ -214,10 +214,14 @@ read it. Ids are our UUIDs, and `content` is sanitized HTML, which Greenhouse es
   (an in-process fake that accepts everything; the tests use it) or `Google` (`ServiceAccountKeyJson`, through
   `Google.Apis.Auth`, POST `urlNotifications:publish`). Publish and close queue an `IndexingNotification`, and a newer
   one for the same posting supersedes one still waiting, so an update queued before a close is never sent. Every
-  minute `DispatchIndexingNotifications` walks the organizations and spends what is left of the day's quota
-  (`DailyQuota`, default 200, counted per UTC day in `indexing_quota_days` for the whole deployment), deletes first
-  and then oldest (`IndexingPlan`). It hands each notification to `SendIndexingNotification`, which runs as its
-  organization. An accepted `URL_UPDATED` moves the posting to Submitted. An accepted `URL_DELETED` leaves it Closing.
+  minute `DispatchIndexingNotifications` walks the organizations and hands out as many waiting notifications as the
+  day's quota has left (`DailyQuota`, default 200, counted per UTC day in `indexing_quota_days` for the whole
+  deployment), deletes first and then oldest (`IndexingPlan`). `SendIndexingNotification` runs as the notification's
+  organization and spends a call only inside its own transaction, with a conditional update that never goes past the
+  quota. A call Google refuses rolls back with the transaction, so an outage does not use up the day, and a
+  notification handed out twice is sent once. An accepted `URL_UPDATED` moves the posting to Submitted. An accepted
+  `URL_DELETED` leaves it Closing. The UTC day is an assumption: if Google's quota day turns out to start at another
+  hour, a call near the boundary is refused, rolled back and sent on a later dispatch.
 
 ### Sandbox board
 

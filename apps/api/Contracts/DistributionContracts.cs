@@ -146,7 +146,7 @@ internal static class DistributionMappings
                 string.Join(", ", new[] { l.City, l.Region, l.Country }.Where(p => !string.IsNullOrWhiteSpace(p)))))],
             job.EmploymentType, job.WorkplaceType,
             job.Salary is { } salary
-                ? [new JobBoardPayRange(Cents(salary.Min), Cents(salary.Max), salary.Currency, salary.Period)]
+                ? [new JobBoardPayRange(MinorUnits(salary.Min, salary.Currency), MinorUnits(salary.Max, salary.Currency), salary.Currency, salary.Period)]
                 : [],
             job.ValidThrough,
             withContent ? job.Description : null);
@@ -154,5 +154,17 @@ internal static class DistributionMappings
 
     private static int? Seconds(TimeSpan? value) => value is { } span ? (int)span.TotalSeconds : null;
 
-    private static long? Cents(decimal? amount) => amount is { } value ? (long)decimal.Round(value * 100) : null;
+    // Greenhouse's "cents" are the currency's minor units: 100 for most, 1 for yen, 1000 for dinars. ISO 4217's exceptions to
+    // two decimals, which change only when a currency is created or retired.
+    private static readonly HashSet<string> NoMinorUnit = new(
+        ["BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG", "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF"],
+        StringComparer.OrdinalIgnoreCase);
+
+    private static readonly HashSet<string> ThreeMinorDigits = new(
+        ["BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND"], StringComparer.OrdinalIgnoreCase);
+
+    internal static long? MinorUnits(decimal? amount, string currency) =>
+        amount is { } value
+            ? (long)decimal.Round(value * (NoMinorUnit.Contains(currency) ? 1 : ThreeMinorDigits.Contains(currency) ? 1000 : 100))
+            : null;
 }

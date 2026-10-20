@@ -72,4 +72,12 @@ public sealed class JobMappingsTests
         job.Publish(Published);
         return job;
     }
+
+    [Theory]
+    [InlineData("GBP", 60_000.50, 6_000_050)]
+    [InlineData("JPY", 6_000_000, 6_000_000)]
+    [InlineData("jpy", 6_000_000, 6_000_000)]
+    [InlineData("KWD", 18_000.125, 18_000_125)]
+    public void Job_board_pay_ranges_are_in_the_currencys_minor_units(string currency, double amount, long expected) =>
+        DistributionMappings.MinorUnits((decimal)amount, currency).Should().Be(expected);
 }

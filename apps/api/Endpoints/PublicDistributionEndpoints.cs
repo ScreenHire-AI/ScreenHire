@@ -117,8 +117,8 @@ internal static class PublicDistributionEndpoints
             return TypedResults.NotFound();
         }
 
-        var job = (await PostingContents.ActiveOnBoardAsync(db, Boards.JobBoardApi, organization.Name, organization.Slug, cancellationToken))
-            .FirstOrDefault(j => j.JobId == jobId);
+        var job = (await PostingContents.ActiveOnBoardAsync(db, Boards.JobBoardApi, organization.Name, organization.Slug, cancellationToken, jobId))
+            .SingleOrDefault();
         if (job is null)
         {
             return TypedResults.NotFound();

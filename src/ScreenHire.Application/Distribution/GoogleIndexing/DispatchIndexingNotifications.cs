@@ -25,10 +25,11 @@ public static class IndexingPlan
 }
 
 /// <summary>
-/// The worker's cron, every minute: spends what is left of today's Indexing API quota on the waiting notifications of
-/// every organization, deletes first. It reserves the calls in <c>indexing_quota_days</c> and hands each notification
-/// to <see cref="SendIndexingNotification"/>, which runs as the notification's organization. It is not about one
-/// organization, so like <c>ReportOpenJobs</c> it reads each organization in turn and never goes around row-level
+/// The worker's cron, every minute: hands as many waiting notifications as today's Indexing API quota has left, from
+/// every organization and deletes first, to <see cref="SendIndexingNotification"/>, which runs as the notification's
+/// organization and spends the call only when Google accepts it. A notification still waiting a minute later (its send
+/// failed, or has not run yet) is handed out again, which costs nothing: only an accepted call counts. It is not about
+/// one organization, so like <c>ReportOpenJobs</c> it reads each organization in turn and never goes around row-level
 /// security.
 /// </summary>
 public sealed record DispatchIndexingNotifications;
@@ -66,16 +67,13 @@ public static partial class DispatchIndexingNotificationsHandler
             return [];
         }
 
-        // The day's row is locked for the rest of the transaction, so two dispatchers never spend the same calls.
-        var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
-        await db.Database.ExecuteSqlAsync(
-            $"INSERT INTO indexing_quota_days (day, used) VALUES ({today}, 0) ON CONFLICT (day) DO NOTHING", cancellationToken);
-        var quota = await db.IndexingQuotaDays.FromSql($"SELECT * FROM indexing_quota_days WHERE day = {today} FOR UPDATE")
-            .SingleAsync(cancellationToken);
+        // Only a read: each send spends its own call (IndexingQuota.TrySpendAsync), so the quota is never overspent.
+        var today = IndexingQuota.Today(time);
+        var used = await db.IndexingQuotaDays.AsNoTracking().Where(d => d.Day == today).Select(d => (int?)d.Used)
+            .SingleOrDefaultAsync(cancellationToken) ?? 0;
 
-        var chosen = IndexingPlan.Choose(pending, options.Value.GoogleIndexing.DailyQuota - quota.Used);
-        quota.Used += chosen.Count;
-        LogDispatched(logger, chosen.Count, pending.Count, quota.Used);
+        var chosen = IndexingPlan.Choose(pending, options.Value.GoogleIndexing.DailyQuota - used);
+        LogDispatched(logger, chosen.Count, pending.Count, used);
         return [.. chosen.Select(n => new SendIndexingNotification(n.OrganizationId, n.Id))];
     }
 
@@ -92,21 +90,40 @@ public static class SendIndexingNotificationHandler
         SendIndexingNotification message,
         ScreenHireDbContext db,
         IIndexingClient client,
+        IOptions<DistributionOptions> options,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
-        var notification = await db.IndexingNotifications.SingleOrDefaultAsync(n => n.Id == message.NotificationId, cancellationToken);
-        if (notification is not { IsPending: true })
+        var postingId = await db.IndexingNotifications.AsNoTracking()
+            .Where(n => n.Id == message.NotificationId)
+            .Select(n => (Guid?)n.PostingId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (postingId is null)
+        {
+            return [];
+        }
+
+        // The posting's row lock comes before the notification's first tracked read, so a second send of the same
+        // notification (handed out again a minute later) waits for this one and then reads it as sent.
+        var posting = await PostingLocks.LockAsync(db, postingId.Value, cancellationToken);
+        var notification = await db.IndexingNotifications.SingleAsync(n => n.Id == message.NotificationId, cancellationToken);
+        if (!notification.IsPending)
         {
             // Sent already, or replaced by a newer notification for the same posting.
             return [];
         }
 
+        if (!await IndexingQuota.TrySpendAsync(db, IndexingQuota.Today(time), options.Value.GoogleIndexing.DailyQuota, cancellationToken))
+        {
+            // Today's quota is spent; it stays queued for tomorrow's first dispatch.
+            return [];
+        }
+
+        // If Google refuses, the exception rolls the transaction back, quota call included, and the retry policy takes over.
         await client.NotifyAsync(notification.Url, notification.Type, cancellationToken);
         var now = time.GetUtcNow();
         notification.SentAt = now;
 
-        var posting = await db.JobPostings.SingleAsync(p => p.Id == notification.PostingId, cancellationToken);
         var before = (posting.State, posting.JobVersion);
         if (notification.Type == IndexingNotificationType.Updated)
         {
@@ -118,5 +135,28 @@ public static class SendIndexingNotificationHandler
         }
 
         return before == (posting.State, posting.JobVersion) ? [] : [new JobPostingsChanged(posting.OrganizationId, posting.JobId, posting.UpdatedAt)];
+    }
+}
+
+/// <summary>
+/// The Indexing API's daily quota, one counter per UTC day in <c>indexing_quota_days</c> for the whole deployment
+/// (job-distribution.md section 3).
+/// </summary>
+internal static class IndexingQuota
+{
+    public static DateOnly Today(TimeProvider time) => DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+
+    /// <summary>
+    /// Spends one call of <paramref name="day"/>'s quota inside the handler's transaction, or returns false when none is
+    /// left. The update holds the day's row lock until the transaction ends, so sends never overspend, and a send that
+    /// fails rolls its call back.
+    /// </summary>
+    public static async Task<bool> TrySpendAsync(ScreenHireDbContext db, DateOnly day, int dailyQuota, CancellationToken cancellationToken)
+    {
+        await db.Database.ExecuteSqlAsync(
+            $"INSERT INTO indexing_quota_days (day, used) VALUES ({day}, 0) ON CONFLICT (day) DO NOTHING", cancellationToken);
+        var spent = await db.Database.ExecuteSqlAsync(
+            $"UPDATE indexing_quota_days SET used = used + 1 WHERE day = {day} AND used < {dailyQuota}", cancellationToken);
+        return spent == 1;
     }
 }

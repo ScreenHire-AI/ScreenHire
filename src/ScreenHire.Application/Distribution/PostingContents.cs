@@ -27,16 +27,19 @@ public static class PostingContents
     }
 
     /// <summary>
-    /// The content of every active posting on <paramref name="boardId"/>, for a feed or the public job-board API, newest
-    /// first. One query.
+    /// The content of every active posting on <paramref name="boardId"/>, or only <paramref name="jobId"/>'s, for a feed or
+    /// the public job-board API, newest first. One query.
     /// </summary>
     public static async Task<List<PostingContent>> ActiveOnBoardAsync(
-        ScreenHireDbContext db, string boardId, string organizationName, string organizationSlug, CancellationToken cancellationToken)
+        ScreenHireDbContext db, string boardId, string organizationName, string organizationSlug, CancellationToken cancellationToken,
+        Guid? jobId = null)
     {
         ArgumentNullException.ThrowIfNull(db);
         var rows = await (
                 from posting in db.JobPostings.AsNoTracking()
+                // JobPosting.IsActive in SQL; change both together.
                 where posting.BoardId == boardId
+                      && (jobId == null || posting.JobId == jobId)
                       && (posting.State == PostingState.Queued || posting.State == PostingState.Submitted || posting.State == PostingState.Live)
                 join version in db.JobVersions.AsNoTracking()
                     on new { posting.JobId, Version = posting.JobVersion } equals new { version.JobId, version.Version }

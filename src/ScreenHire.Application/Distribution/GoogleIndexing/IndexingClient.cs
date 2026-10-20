@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
+using System.Text;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -47,11 +48,15 @@ public sealed class GoogleIndexingClient(HttpClient http, IOptions<DistributionO
 
     private static readonly Uri PublishUri = new("https://indexing.googleapis.com/v3/urlNotifications:publish");
 
+    // Loaded as a service account key only: the untyped GoogleCredential.FromJson would honour any credential type the
+    // JSON names.
     private readonly Lazy<ITokenAccess> credential = new(() =>
-        GoogleCredential.FromJson(
-                options.Value.GoogleIndexing.ServiceAccountKeyJson
-                ?? throw new InvalidOperationException("ScreenHire:Distribution:GoogleIndexing:ServiceAccountKeyJson is not set."))
-            .CreateScoped(Scope));
+    {
+        var json = options.Value.GoogleIndexing.ServiceAccountKeyJson
+            ?? throw new InvalidOperationException("ScreenHire:Distribution:GoogleIndexing:ServiceAccountKeyJson is not set.");
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        return GoogleCredential.FromServiceAccountCredential(ServiceAccountCredential.FromServiceAccountData(stream)).CreateScoped(Scope);
+    });
 
     public async Task NotifyAsync(string url, IndexingNotificationType type, CancellationToken cancellationToken)
     {
