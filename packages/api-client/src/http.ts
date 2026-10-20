@@ -63,6 +63,12 @@ export class ApiError extends Error {
 }
 
 /**
+ * The error type Orval gives the TanStack Query hooks: what {@link apiQueryFetch} throws. Orval passes each operation's
+ * error body type as `TBody`; the body is on {@link ApiError.body}.
+ */
+export type ErrorType<TBody> = ApiError & { readonly body: TBody | unknown };
+
+/**
  * Orval mutator for the TanStack Query client (`./svelte-query`). The same request as {@link apiFetch}, but a status
  * outside 2xx throws {@link ApiError}: TanStack Query treats only a thrown error as a failed query, and the generated
  * query functions are typed with success responses only (`forceSuccessResponse` in orval.config.ts).
