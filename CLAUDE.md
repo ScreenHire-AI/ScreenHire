@@ -54,6 +54,10 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   `Built` (production previews, used by the end-to-end tests) or `None` (used by the integration tests).
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
+  `ScreenHire:Integrity:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
+  `anthropic-api-key` secret) goes to the worker. `ScreenHire:PersistData` (default `true`) keeps Postgres and Azurite
+  data in per-worktree volumes; `false` starts with none, as the tests do. The header of `apps/apphost/AppHost.cs`
+  describes every setting.
 - **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
   marketing site's Lighthouse budgets and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
   steps `verify:dotnet`, `verify:contract`, `verify:lighthouse` and `verify:test` run alone too). It is the only CI for

@@ -117,7 +117,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var genuinePanel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
         await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" })).ToContainTextAsync("Authenticity: No concerns", Assessed);
         await Expect(genuinePanel).ToContainTextAsync("Suggested next step: No action needed.");
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Move to stage") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {genuine.FullName}", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Timeline" })).ToContainTextAsync("Moved from Applied to Screening by you");
 
@@ -229,14 +229,11 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("REVIEW");
     }
 
-    // Focusing a row makes it the selected candidate in the side panel, whose link opens the application. The panel's
-    // link, not the row's: live updates re-render the table's rows while the worker is still assessing.
+    // A person's click on the name, the first one on the page included: the side panel keeps its place, so the row
+    // does not move under the pointer while the click is in progress.
     private async Task OpenApplicationAsync(ILocator table, string candidate)
     {
-        await table.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }).FocusAsync();
-        var selected = Page.GetByRole(AriaRole.Complementary, new() { Name = "Selected candidate" });
-        await Expect(selected).ToContainTextAsync(candidate);
-        await selected.GetByRole(AriaRole.Link, new() { Name = "Open application" }).ClickAsync();
+        await table.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(candidate);
     }
 

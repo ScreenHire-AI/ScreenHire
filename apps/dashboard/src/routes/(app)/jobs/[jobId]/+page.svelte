@@ -246,8 +246,16 @@
         </p>
       </section>
 
-      {#if view === 'table' && active}
-        {@render panel(active)}
+      <!-- The panel keeps its place before a row is chosen: appearing on the first click's mousedown narrowed the table
+           under the pointer, so the mouseup missed the candidate's link and the click never opened it. -->
+      {#if view === 'table' && all.length > 0}
+        {#if active}
+          {@render panel(active)}
+        {:else}
+          <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-xl border border-border bg-card">
+            <p class="px-4 py-3.5 text-[13px] text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
+          </aside>
+        {/if}
       {/if}
     </div>
   {/if}
