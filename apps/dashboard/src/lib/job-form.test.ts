@@ -35,12 +35,18 @@ describe('where the work happens', () => {
 
   it('sends countries for a remote job and the edited location first for any other', () => {
     expect(whereBody(where({ countries: 'gb ie' }))).toEqual({ workplaceType: 'Remote', applicantLocationRequirements: ['GB', 'IE'], locations: null });
+    const leeds = { city: 'Leeds', region: 'West Yorkshire', country: 'GB' };
     const york = { city: 'York', region: null, country: 'GB' };
-    expect(whereBody(where({ workplaceType: 'Onsite', city: ' Leeds ', country: 'gb' }), [york])).toEqual({
+    expect(whereBody(where({ workplaceType: 'Onsite', city: ' Leeds ', country: 'gb' }), [leeds, york])).toEqual({
       workplaceType: 'Onsite',
       applicantLocationRequirements: null,
-      locations: [{ city: 'Leeds', region: null, country: 'GB' }, york],
+      locations: [leeds, york],
     });
+    // Another city is another place: the old region does not follow it.
+    expect(whereBody(where({ workplaceType: 'Onsite', city: 'Hull', country: 'GB' }), [leeds, york]).locations).toEqual([
+      { city: 'Hull', region: null, country: 'GB' },
+      york,
+    ]);
   });
 
   it("reads a job's fields back into the form", () => {
@@ -82,6 +88,12 @@ describe('closing date', () => {
     expect(closingInstant('')).toBeNull();
     expect(closingDate('2026-11-30T23:59:59+00:00')).toBe('2026-11-30');
     expect(closingDate(null)).toBe('');
+  });
+
+  it("keeps the job's own instant while its date is unchanged", () => {
+    expect(closingInstant('2026-11-30', '2026-11-30T12:00:00+00:00')).toBe('2026-11-30T12:00:00+00:00');
+    expect(closingInstant('2026-12-01', '2026-11-30T12:00:00+00:00')).toBe('2026-12-01T23:59:59Z');
+    expect(closingInstant('', '2026-11-30T12:00:00+00:00')).toBeNull();
   });
 });
 

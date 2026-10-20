@@ -23,10 +23,12 @@
     descriptionBody,
     descriptionText,
     periodOptions,
+    periodValues,
     salaryBody,
     whereBody,
     whereFields,
     workplaceOptions,
+    workplaceValues,
   } from '#lib/job-form.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -46,14 +48,14 @@
       title: z.string().trim().min(1, 'Give the job a title.').max(200, 'Keep the title to 200 characters or fewer.'),
       department: z.string().max(100, 'Keep the department to 100 characters or fewer.'),
       employmentType: z.enum(employmentTypes),
-      workplaceType: z.enum(['', 'Remote', 'Hybrid', 'Onsite']),
+      workplaceType: z.enum(workplaceValues),
       countries: z.string(),
       city: z.string().max(100, 'Keep the city to 100 characters or fewer.'),
       country: z.string(),
       salaryMin: z.string(),
       salaryMax: z.string(),
       currency: z.string(),
-      period: z.enum(['Year', 'Month', 'Week', 'Day', 'Hour']),
+      period: z.enum(periodValues),
       closingDate: z.string(),
       description: z.string(),
     })
@@ -99,10 +101,11 @@
             title: value.title.trim(),
             department: value.department.trim() || null,
             employmentType: value.employmentType,
-            ...whereBody(value, job.locations.slice(1)),
+            ...whereBody(value, job.locations),
+            // checkWhere has refused an empty choice already; this narrows the type, which an update requires.
             workplaceType: value.workplaceType || job.workplaceType,
             salary: salaryBody(value),
-            validThrough: closingInstant(value.closingDate),
+            validThrough: closingInstant(value.closingDate, job.validThrough),
             description: descriptionBody(value.description, original),
           },
         });
@@ -119,9 +122,10 @@
     },
   });
 
-  // Each opening starts from the job as it is now.
+  // Each opening starts from the job as it is then. Only `open` is tracked: the page hands over a new `job` whenever the
+  // query refetches (a live event, a board confirming the job), and that must not wipe what the person has typed.
   $effect(() => {
-    if (open) reset({ data: fieldsOf(job) });
+    if (open) untrack(() => reset({ data: fieldsOf(job) }));
   });
 
   const describedBy = (id: string, error: unknown, hint?: string) => [hint, error ? id : undefined].filter(Boolean).join(' ') || undefined;
@@ -221,7 +225,7 @@
       <Field.Field data-invalid={$errors.description ? true : undefined}>
         <Field.Label for="job-description">Description</Field.Label>
         <Textarea id="job-description" name="description" rows={10} bind:value={$form.description} aria-invalid={$errors.description ? 'true' : undefined} aria-describedby={describedBy('job-description-error', $errors.description, 'job-description-hint')} />
-        <Field.Description id="job-description-hint">A blank line starts a new paragraph. Left as it is, the description keeps its current formatting.</Field.Description>
+        <Field.Description id="job-description-hint">A blank line starts a new paragraph, and a line starting with "- " is a list item. Left as it is, the description keeps its formatting; once edited, headings become paragraphs.</Field.Description>
         <Field.Error id="job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
       </Field.Field>
 

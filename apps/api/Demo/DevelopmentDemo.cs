@@ -31,8 +31,10 @@ namespace ScreenHire.Api.Demo;
 /// integrity level.</item>
 /// <item>The people in <see cref="DemoCandidates"/> apply to the other open jobs and are moved to their stages.</item>
 /// </list>
-/// Every step is idempotent (a template, automation, job or candidate that exists is left alone), so later starts cost
-/// nothing, and a data volume from before a step existed gets that step.
+/// Each step first looks for what it adds (a template, automation, job or candidate that exists is left alone), so later
+/// starts add nothing, and a data volume from before a step existed gets that step. A step does not repair itself: a
+/// candidate whose move failed stays where they applied, and a demo email someone removed from the .NET job comes back on
+/// the next start.
 /// </summary>
 /// <remarks>
 /// A one-shot startup step, not a loop. It runs after startup rather than in <see cref="DevelopmentDataSeeder"/>
@@ -74,31 +76,49 @@ internal sealed partial class DevelopmentDemo(
             await started.Task.WaitAsync(stoppingToken);
         }
 
+        // Without Brightwater every step finds nothing to add to.
+        var template = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedJobEmailsAsync(stoppingToken), stoppingToken);
+        if (template is { } published)
+        {
+            await TryAsync(() => SeedDraftJobAsync(published, stoppingToken), stoppingToken);
+        }
+
+        var applicants = 0;
+        foreach (var applicant in SyntheticApplicants.All)
+        {
+            applicants += await TryAsync(() => ApplyAsync(SyntheticApplicantsJobSlug, applicant, stageId: null, stoppingToken), stoppingToken) ? 1 : 0;
+        }
+
+        var candidates = 0;
+        foreach (var candidate in DemoCandidates.All)
+        {
+            candidates += await TryAsync(() => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.StageId, stoppingToken), stoppingToken) ? 1 : 0;
+        }
+
+        LogSeeded(logger, applicants, candidates);
+    }
+
+    // Demo data is a convenience: a failed step is logged, never stops the API, and does not keep the next step from running.
+    private async Task<T?> TryAsync<T>(Func<Task<T>> step, CancellationToken stoppingToken)
+    {
         try
         {
-            var template = await SeedTemplateAsync(stoppingToken);
-            if (template is null)
-            {
-                return; // no Brightwater: nothing to add to
-            }
-
-            await SeedJobEmailsAsync(stoppingToken);
-            await SeedDraftJobAsync(template.Value, stoppingToken);
-            var applicants = 0;
-            foreach (var applicant in SyntheticApplicants.All)
-            {
-                applicants += await ApplyAsync(SyntheticApplicantsJobSlug, applicant, stageId: null, stoppingToken) ? 1 : 0;
-            }
-
-            var candidates = 0;
-            foreach (var candidate in DemoCandidates.All)
-            {
-                candidates += await ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.StageId, stoppingToken) ? 1 : 0;
-            }
-
-            LogSeeded(logger, applicants, candidates);
+            return await step();
         }
-        // Demo data is a convenience: a failure is logged and never stops the API.
+        catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+        {
+            LogFailed(logger, exception);
+            return default;
+        }
+    }
+
+    private async Task TryAsync(Func<Task> step, CancellationToken stoppingToken)
+    {
+        try
+        {
+            await step();
+        }
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {
             LogFailed(logger, exception);
@@ -140,9 +160,12 @@ internal sealed partial class DevelopmentDemo(
         var existing = await db.HiringTemplates.AsNoTracking().Include(t => t.Versions)
             .Where(t => t.OrganizationId == step.OrganizationId && t.Name == TemplateName)
             .SingleOrDefaultAsync(cancellationToken);
-        if (existing?.Versions.FirstOrDefault(v => v.Status == TemplateVersionStatus.Published) is { } published)
+        if (existing is not null)
         {
-            return (existing.Id, published.Id);
+            // Never a second template of the name: the demo's job uses the newest published version, or is skipped.
+            return existing.Versions.OrderByDescending(v => v.Version).FirstOrDefault(v => v.Status == TemplateVersionStatus.Published) is { } published
+                ? (existing.Id, published.Id)
+                : null;
         }
 
         var source = await db.HiringTemplateVersions.AsNoTracking()
@@ -308,6 +331,6 @@ internal sealed partial class DevelopmentDemo(
     [LoggerMessage(Level = LogLevel.Information, Message = "Development demo: {Applicants} synthetic applicants and {Candidates} demo candidates applied to Brightwater")]
     private static partial void LogSeeded(ILogger logger, int applicants, int candidates);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Development demo: the demo data could not be seeded")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Development demo: a step of the demo data could not be seeded")]
     private static partial void LogFailed(ILogger logger, Exception exception);
 }

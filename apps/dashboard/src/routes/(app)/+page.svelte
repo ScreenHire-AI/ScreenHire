@@ -26,7 +26,7 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem, paragraphs } from '#lib/forms.js';
-  import { checkWhere, whereBody, workplaceOptions } from '#lib/job-form.js';
+  import { checkWhere, whereBody, workplaceOptions, workplaceValues } from '#lib/job-form.js';
   import { formatShortDate } from '#lib/format.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -71,7 +71,7 @@
     .extend({
       title: z.string().trim().min(1, 'Give the job a title.'),
       templateVersionId: z.string(),
-      workplaceType: z.enum(['', 'Remote', 'Hybrid', 'Onsite']),
+      workplaceType: z.enum(workplaceValues),
       countries: z.string(),
       city: z.string().max(100, 'Keep the city to 100 characters or fewer.'),
       country: z.string(),

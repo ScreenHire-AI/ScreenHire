@@ -86,6 +86,45 @@ describe('job details sheet', () => {
     });
   });
 
+  it('keeps what the person typed when the job refetches while the sheet is open', async () => {
+    const onsaved = vi.fn();
+    vi.stubGlobal('fetch', vi.fn(apiStub({})));
+    const { rerender } = render(WithQueryClient, { props: { component: JobDetailsSheet, props: { job, open: true, onsaved } } });
+    const sheet = await screen.findByRole('dialog', { name: 'Edit job details' });
+    await fireEvent.input(within(sheet).getByLabelText('Title'), { target: { value: 'Payments Engineer' } });
+
+    // A live event or a board confirming the job hands the page a new object for the same job.
+    await rerender({ component: JobDetailsSheet, props: { job: { ...job, updatedAt: '2026-10-20T12:00:00Z' }, open: true, onsaved } });
+
+    expect(within(sheet).getByLabelText('Title')).toHaveValue('Payments Engineer');
+  });
+
+  it('keeps the location region and the closing instant it did not change', async () => {
+    const onsite = {
+      ...job,
+      workplaceType: 'Hybrid',
+      applicantLocationRequirements: [],
+      locations: [{ city: 'Leeds', region: 'West Yorkshire', country: 'GB' }],
+      validThrough: '2026-11-30T12:00:00+00:00',
+    } as unknown as JobDetail;
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(apiStub({ [`PUT /v1/jobs/${jobId}`]: (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(onsite)) })),
+    );
+    render(WithQueryClient, { props: { component: JobDetailsSheet, props: { job: onsite, open: true } } });
+    const sheet = await screen.findByRole('dialog', { name: 'Edit job details' });
+
+    await fireEvent.input(within(sheet).getByLabelText('Title'), { target: { value: 'Payments Engineer' } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save details' }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({
+      locations: [{ city: 'Leeds', region: 'West Yorkshire', country: 'GB' }],
+      validThrough: '2026-11-30T12:00:00+00:00',
+    });
+  });
+
   it('says what is missing before sending anything', async () => {
     const { fetchMock } = renderSheet();
     const sheet = await screen.findByRole('dialog', { name: 'Edit job details' });

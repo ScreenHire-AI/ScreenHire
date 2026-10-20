@@ -206,6 +206,12 @@ public sealed class IntegrityAdapterTests
 
         careers.Success.Should().BeTrue("apps/careers/src/lib/apply.ts exports NOTICE_VERSION");
         DevelopmentDemo.PrivacyNoticeVersion.Should().Be(careers.Groups[1].Value);
+
+        // The test helpers' copy, read as text: this project does not reference ScreenHire.Testing.
+        var helpers = File.ReadAllText(RepositoryFiles.PathTo("tests", "ScreenHire.Testing", "SyntheticApplications.cs"));
+        var tests = System.Text.RegularExpressions.Regex.Match(helpers, @"PrivacyNoticeVersion = ""([^""]+)""");
+        tests.Success.Should().BeTrue("tests/ScreenHire.Testing/SyntheticApplications.cs declares PrivacyNoticeVersion");
+        tests.Groups[1].Value.Should().Be(careers.Groups[1].Value);
     }
 
     [Fact]

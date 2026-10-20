@@ -68,6 +68,13 @@ describe('paragraphs', () => {
     expect(paragraphs('<script>alert("x")</script> & more')).toBe('<p>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; more</p>');
   });
 
+  it('makes one list of the "- " items in a row, with or without blank lines between them', () => {
+    expect(paragraphs('What you will do\n\n- Ship features.\n\n- Review <code>.\n\nApply by Friday.\n- not a list')).toBe(
+      '<p>What you will do</p><ul><li>Ship features.</li><li>Review &lt;code&gt;.</li></ul><p>Apply by Friday.<br>- not a list</p>',
+    );
+    expect(paragraphs('- One\n- Two')).toBe('<ul><li>One</li><li>Two</li></ul>');
+  });
+
   it('is empty for blank text', () => {
     expect(paragraphs(' \n\n ')).toBe('');
   });
