@@ -4,6 +4,7 @@ description: 'The UK rules on solely automated decisions that took effect on 5 F
 name: UK GDPR 22A-D
 jurisdiction: United Kingdom
 status: 'In force since 5 February 2026.'
+published: '2026-10-20'
 lastReviewed: '2026-10-20'
 order: 2
 keyDates:

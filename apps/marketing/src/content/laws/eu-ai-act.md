@@ -4,6 +4,7 @@ description: 'How the EU AI Act treats AI in recruitment: the emotion-recognitio
 name: EU AI Act
 jurisdiction: European Union
 status: 'Bans in force since 2 February 2025. High-risk duties for recruitment apply from 2 December 2027.'
+published: '2026-10-18'
 lastReviewed: '2026-10-18'
 order: 1
 keyDates:

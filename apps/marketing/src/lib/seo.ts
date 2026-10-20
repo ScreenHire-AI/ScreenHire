@@ -135,6 +135,14 @@ export function softwareApplication(description: string, site: URL, offers: Pric
   };
 }
 
+/**
+ * Serializes a JSON-LD graph for an inline `<script>`. JSON.stringify leaves `<` alone, so a `</script>` in any
+ * frontmatter string would end the element early; `<` is the same character to a JSON parser.
+ */
+export function jsonLdScript(graph: JsonLd): string {
+  return JSON.stringify(graph).replace(/</g, '\\u003c');
+}
+
 /** Formats an ISO date (`YYYY-MM-DD`) for display. Calendar dates have no time zone, so format them in UTC. */
 export function formatDate(isoDate: string): string {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(

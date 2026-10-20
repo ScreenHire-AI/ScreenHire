@@ -22,10 +22,10 @@ const { law } = Astro.props;
 const { Content } = await render(law);
 const site = Astro.site ?? new URL(Astro.url.origin);
 const path = `${pages.laws.path}${law.id}/`;
-const { title, description, faqs, lastReviewed } = law.data;
+const { title, description, faqs, published, lastReviewed } = law.data;
 
 const jsonLd = [
-  article({ type: 'Article', headline: title, description, path, datePublished: lastReviewed, dateModified: lastReviewed }, site),
+  article({ type: 'Article', headline: title, description, path, datePublished: published, dateModified: lastReviewed }, site),
   ...(faqs.length > 0 ? [faqPage(faqs)] : []),
 ];
 ---

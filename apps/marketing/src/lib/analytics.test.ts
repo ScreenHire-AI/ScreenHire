@@ -13,7 +13,7 @@ describe('analyticsScript', () => {
     expect(analyticsScript({ provider: 'plausible', siteHost })).toBeNull();
   });
 
-  it.each(['https://analytics.example.net/script.js', '//analytics.example.net/script.js', 'stats/script.js'])(
+  it.each(['https://analytics.example.net/script.js', '//analytics.example.net/script.js', '/\\analytics.example.net/script.js', 'stats/script.js'])(
     'refuses %s, which is not a first-party site-relative path',
     (scriptPath) => {
       expect(analyticsScript({ provider: 'plausible', scriptPath, siteHost })).toBeNull();

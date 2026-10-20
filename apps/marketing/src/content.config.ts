@@ -20,6 +20,8 @@ const laws = defineCollection({
     jurisdiction: z.string(),
     /** One line on where things stand, e.g. "In force since 1 January 2026". */
     status: z.string(),
+    /** The date this entry first went up; a re-review changes lastReviewed, never this. */
+    published: isoDate,
     /** The date this entry was last checked against its sources. */
     lastReviewed: isoDate,
     keyDates: z.array(z.object({ date: z.string(), event: z.string() })).default([]),

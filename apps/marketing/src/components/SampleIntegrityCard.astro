@@ -2,7 +2,8 @@
 // The hero illustration: what a recruiter sees on a flagged application. Fictional applicant, real reason codes from
 // docs/architecture/integrity-engine.md. Status is mark + colour + label (design system §2.2).
 const evidence = [
-  { code: 'NET_DATACENTER_IP', text: 'Applied from a hosting-provider network in Frankfurt. Says they live in Leeds, UK.' },
+  { code: 'NET_DATACENTER_IP', text: 'Applied from a hosting-provider network, not a home or mobile connection.' },
+  { code: 'NET_GEO_CLAIM_MISMATCH', text: 'Says they live in Leeds, UK. The network is in Germany.' },
   { code: 'ID_EMAIL_DISPOSABLE', text: 'Uses an address from a disposable email service.' },
   { code: 'CNT_NEAR_DUPLICATE_ANSWER', text: 'Answer 2 is near-identical to 4 other applications for this job.' },
 ];
@@ -36,7 +37,8 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
       </li>
     </ul>
     <p class="border-t border-border-subtle bg-muted px-4 py-2.5 text-[13px] text-secondary-foreground">
-      Suggested next step: a short video call before the portfolio review.
+      Network, identity and answer signals point the same way, and one detail points against them.
+      <span class="mt-1 block font-semibold text-foreground">Suggested next step: a short video call before the portfolio review.</span>
     </p>
   </div>
   <div class="ml-0 flex flex-wrap items-center overflow-hidden rounded-xl border border-border bg-card text-[13.5px] sm:ml-10">

@@ -4,6 +4,7 @@ description: 'Three Illinois laws that matter for hiring software: HB 3773 on AI
 name: Illinois
 jurisdiction: Illinois, United States
 status: 'HB 3773 in force since 1 January 2026. The AI Video Interview Act and BIPA also apply.'
+published: '2026-10-18'
 lastReviewed: '2026-10-18'
 order: 4
 keyDates:

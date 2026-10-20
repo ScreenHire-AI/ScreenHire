@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { article, breadcrumbList, faqPage, formatDate, ogImageKey, ogImagePath, siteGraph, softwareApplication } from './seo';
+import { article, breadcrumbList, faqPage, formatDate, jsonLdScript, ogImageKey, ogImagePath, siteGraph, softwareApplication } from './seo';
 
 const site = new URL('https://marketing.example.com/');
 
@@ -83,5 +83,14 @@ describe('softwareApplication', () => {
 describe('formatDate', () => {
   it('formats a calendar date without shifting it by the time zone', () => {
     expect(formatDate('2027-01-01')).toBe('1 January 2027');
+  });
+});
+
+describe('jsonLdScript', () => {
+  it('cannot close its script element early and still parses to the same graph', () => {
+    const graph = { '@type': 'Article', headline: 'Why </script><script>alert(1)</script> matters' };
+    const script = jsonLdScript(graph);
+    expect(script).not.toContain('<');
+    expect(JSON.parse(script)).toEqual(graph);
   });
 });

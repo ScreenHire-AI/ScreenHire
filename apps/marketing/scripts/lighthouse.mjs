@@ -128,7 +128,7 @@ try {
     if (js > BUDGETS.scriptBytes) failures.push(`${path}: ${js} bytes of JavaScript (budget ${BUDGETS.scriptBytes})`);
   }
 } finally {
-  await chrome?.kill();
+  chrome?.kill();
   await server.stop();
 }
 

@@ -4,6 +4,7 @@ description: "Colorado's replacement AI law takes effect on 1 January 2027: noti
 name: Colorado
 jurisdiction: Colorado, United States
 status: 'Signed 14 May 2026. Duties apply from 1 January 2027.'
+published: '2026-10-20'
 lastReviewed: '2026-10-20'
 order: 5
 keyDates:

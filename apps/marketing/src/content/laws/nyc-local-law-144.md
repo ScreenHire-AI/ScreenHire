@@ -4,6 +4,7 @@ description: 'New York City requires a yearly bias audit, a public summary and a
 name: NYC LL144
 jurisdiction: New York City, United States
 status: 'Enforced since 5 July 2023.'
+published: '2026-10-20'
 lastReviewed: '2026-10-20'
 order: 3
 keyDates:

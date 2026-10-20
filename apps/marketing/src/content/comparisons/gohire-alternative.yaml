@@ -54,6 +54,6 @@ sources:
     url: 'https://help.gohire.io/en/articles/8009831'
 faqs:
   - question: 'Does GoHire have applicant fraud detection?'
-    answer: 'GoHire documents no fraud or AI-applicant checks on its pricing or help pages as of 18 October 2026.'
+    answer: 'The GoHire pricing and help pages listed under Sources document no fraud or AI-applicant checks as of 18 October 2026.'
   - question: 'Is ScreenHire priced per user like some ATSs?'
     answer: 'No. Like GoHire, every ScreenHire plan includes unlimited users.'

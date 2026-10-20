@@ -26,7 +26,7 @@ export function pageScriptBytes(html, readScript) {
 
     const src = attributePattern('src').exec(attributes)?.[1];
     const bytes = src === undefined ? Buffer.from(body) : readScript(src);
-    // A third-party script (the opt-in analytics) cannot be measured offline; Lighthouse measures it.
+    // A script the build did not produce (the opt-in analytics) cannot be measured offline; Lighthouse measures it.
     if (bytes !== null) {
       total += brotliCompressSync(bytes).length;
     }
@@ -35,10 +35,14 @@ export function pageScriptBytes(html, readScript) {
   return total;
 }
 
-/** Same-site URLs a page refers to: links, sources and its Open Graph image (made relative to the site root). */
+/**
+ * Same-site URLs a page refers to: links, sources and its Open Graph image (made relative to the site root). The opt-in
+ * analytics script (marked `data-analytics` by Analytics.astro) is served by its own instance, not the build.
+ */
 export function internalReferences(html, siteOrigin) {
   const references = new Set();
-  for (const [, url] of html.matchAll(/\b(?:href|src)\s*=\s*"([^"#?]*)[^"]*"/gi)) {
+  const checked = html.replace(/<script\b[^>]*\bdata-analytics\b[^>]*>/gi, '');
+  for (const [, url] of checked.matchAll(/\b(?:href|src)\s*=\s*"([^"#?]*)[^"]*"/gi)) {
     if (url.startsWith('/') && !url.startsWith('//')) {
       references.add(url);
     }

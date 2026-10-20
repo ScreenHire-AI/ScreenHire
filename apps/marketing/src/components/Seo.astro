@@ -1,7 +1,7 @@
 ---
 // Technical-SEO baseline for every marketing page (ADR-0003): canonical URL, hreflang, Open Graph and Twitter card with
 // the page's build-time image, and one JSON-LD @graph.
-import { HREFLANGS, OG_IMAGE_SIZE, absoluteUrl, ogImagePath, siteGraph, type JsonLd } from '../lib/seo';
+import { HREFLANGS, OG_IMAGE_SIZE, absoluteUrl, jsonLdScript, ogImagePath, siteGraph, type JsonLd } from '../lib/seo';
 
 interface Props {
   title: string;
@@ -57,4 +57,4 @@ const graph = { '@context': 'https://schema.org', '@graph': [...siteGraph(site),
 }
 <meta name="twitter:card" content="summary_large_image" />
 
-<script type="application/ld+json" is:inline set:html={JSON.stringify(graph)} />
+<script type="application/ld+json" is:inline set:html={jsonLdScript(graph)} />

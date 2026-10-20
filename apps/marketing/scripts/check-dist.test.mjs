@@ -31,6 +31,13 @@ describe('internalReferences', () => {
   });
 });
 
+describe('internalReferences and analytics', () => {
+  it('skips the opt-in analytics script, which its own instance serves outside the build', () => {
+    const html = page('<script defer src="/stats/script.js" data-analytics data-domain="x"></script>', '<a href="/pricing/">p</a>');
+    expect(internalReferences(html, origin)).toEqual(['/pricing/']);
+  });
+});
+
 describe('fileForPath', () => {
   it('maps a directory path to its index.html', () => {
     expect(fileForPath('/dist', '/pricing/')).toBe(join('/dist', 'pricing', 'index.html'));

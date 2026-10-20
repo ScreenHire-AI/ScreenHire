@@ -13,4 +13,5 @@ const script = analyticsScript({
 });
 ---
 
-{script && <script is:inline defer src={script.src} {...script.attributes} />}
+{/* data-analytics tells scripts/check-dist.mjs that the analytics instance, not the build, serves this file. */}
+{script && <script is:inline defer src={script.src} data-analytics {...script.attributes} />}

@@ -20,8 +20,9 @@ export interface AnalyticsScript {
 /** The script tag to render, or null when analytics is off or not configured to be first-party. */
 export function analyticsScript(config: AnalyticsConfig): AnalyticsScript | null {
   const { provider, scriptPath, siteId, siteHost } = config;
-  // A site-relative path ("/stats/script.js"), never a URL or a protocol-relative "//host/..." path.
-  if (provider === 'off' || !scriptPath || !/^\/(?!\/)/.test(scriptPath)) {
+  // A site-relative path ("/stats/script.js"), never a URL or a protocol-relative "//host/..." path
+  // (browsers read "/\host/..." the same way).
+  if (provider === 'off' || !scriptPath || !/^\/(?![\/\\])/.test(scriptPath)) {
     return null;
   }
 
