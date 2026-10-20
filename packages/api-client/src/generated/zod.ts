@@ -282,7 +282,7 @@ export const SubmitPublicApplicationBody = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are in IReadOnlyList&lt;string&gt;? ApplicationAnswer.Values.')).nullish(),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(submitPublicApplicationBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(submitPublicApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish(),
@@ -1772,7 +1772,7 @@ export const CreateApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are in IReadOnlyList&lt;string&gt;? ApplicationAnswer.Values.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -1819,7 +1819,7 @@ export const GetApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are in IReadOnlyList&lt;string&gt;? ApplicationAnswer.Values.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -1871,7 +1871,7 @@ export const MoveApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are in IReadOnlyList&lt;string&gt;? ApplicationAnswer.Values.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),

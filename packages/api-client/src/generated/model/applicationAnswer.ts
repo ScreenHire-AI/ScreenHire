@@ -8,7 +8,7 @@
 /**
  * One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):
  * `yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the
- * others, and an upload id for a file question. Multiple choice answers are in IReadOnlyList&lt;string&gt;? ApplicationAnswer.Values.
+ * others, and an upload id for a file question. Multiple choice answers are option ids in `values`.
  */
 export interface ApplicationAnswer {
   questionId: string;
