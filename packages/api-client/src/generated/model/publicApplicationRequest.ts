@@ -7,6 +7,7 @@
 import type { AiUseDeclaration } from './aiUseDeclaration.ts';
 import type { ApplicationAnswer } from './applicationAnswer.ts';
 import type { CandidateInput } from './candidateInput.ts';
+import type { TelemetrySnapshotInput } from './telemetrySnapshotInput.ts';
 
 /**
  * A candidate's application from the careers page. The candidate is matched by email within the organization and
@@ -32,4 +33,8 @@ export interface PublicApplicationRequest {
   automationMarkers?: string[] | null;
   /** @nullable */
   deviceFingerprint?: string | null;
+  deviceCheckConsent?: boolean;
+  /** @nullable */
+  telemetrySessionToken?: string | null;
+  telemetry?: null | TelemetrySnapshotInput;
 }

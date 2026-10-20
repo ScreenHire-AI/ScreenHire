@@ -1,6 +1,6 @@
 ---
-// "How we keep this fair": what ScreenHire checks and what it never does, shown before a candidate enters anything
-// (CLAUDE.md non-negotiable 4). It describes what this build collects; change it with NOTICE_VERSION and the privacy
+// "How we keep this fair": what ScreenHire checks and what it never does, shown above the form's first field, before the
+// telemetry module records anything (CLAUDE.md non-negotiable 4). It describes what this build collects; change it with NOTICE_VERSION and the privacy
 // page. Neutral tokens on purpose: employer branding never restyles the privacy notice (design-system §7).
 interface Props {
   base: string;
@@ -25,12 +25,14 @@ const { base, withSwitch = false, switchChecked = false } = Astro.props;
         <ul class="flex flex-col gap-1">
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>What you send: your details, answers and files</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Signs that a bot filled in the form</li>
-          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Your network address and browser, kept for 30 days</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Counts of how you fill in this form, such as pastes and time per field</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Your network address, browser and device code, kept for 30 days</li>
         </ul>
       </div>
       <div class="flex flex-col gap-1">
         <h3 class="font-mono text-[11px] font-semibold tracking-wide text-candidate-muted-foreground">WE NEVER</h3>
         <ul class="flex flex-col gap-1">
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Record what you type or which keys you press</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>See your other tabs or apps</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Use your camera or microphone</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Set tracking cookies</li>

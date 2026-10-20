@@ -73,6 +73,16 @@ describe('parseState', () => {
     expect(parseState(JSON.stringify(state))).toEqual(state);
   });
 
+  it('keeps the telemetry session only when it looks like a token the API issued', () => {
+    expect(parseState(JSON.stringify({ telemetrySession: 'CfDJ8abc_-XYZ', deviceCheckConsent: true }))).toMatchObject({
+      telemetrySession: 'CfDJ8abc_-XYZ',
+      deviceCheckConsent: true,
+    });
+    expect(parseState(JSON.stringify({ telemetrySession: '<script>' })).telemetrySession).toBe('');
+    expect(parseState(JSON.stringify({ telemetrySession: 'a'.repeat(1025) })).telemetrySession).toBe('');
+    expect(parseState(JSON.stringify({ deviceCheckConsent: 'yes' })).deviceCheckConsent).toBe(false);
+  });
+
   it('keeps a start time only when it is an ISO instant', () => {
     expect(parseState(JSON.stringify({ startedAt: '2026-10-20T09:00:00.000Z' })).startedAt).toBe('2026-10-20T09:00:00.000Z');
     expect(parseState(JSON.stringify({ startedAt: 'yesterday' })).startedAt).toBe('');
@@ -92,6 +102,11 @@ describe('reading a step', () => {
     const state = readDetails(form([['fullName', '  Casey Morgan '], ['email', 'casey@example.com'], ['accommodationRequested', 'on']]), emptyState());
 
     expect(state).toMatchObject({ fullName: 'Casey Morgan', email: 'casey@example.com', phone: '', accommodationRequested: true });
+  });
+
+  it('reads the device-check tick', () => {
+    expect(readDetails(form([['deviceCheckConsent', 'on']]), emptyState()).deviceCheckConsent).toBe(true);
+    expect(readDetails(form([]), { ...emptyState(), deviceCheckConsent: true }).deviceCheckConsent).toBe(false);
   });
 
   it('reads answers, multiple choices and the upload the island left behind', () => {
@@ -191,6 +206,39 @@ describe('toRequest', () => {
       botCheckToken: null,
       userAgent: 'Mozilla/5.0 (Example)',
       formStartedAt: '2026-10-20T09:00:00.000Z',
+      // With the assistive-technology switch on, nothing from the telemetry module goes with it.
+      automationMarkers: [],
+      deviceFingerprint: null,
+      deviceCheckConsent: false,
+      telemetrySessionToken: null,
+      telemetry: null,
+    });
+  });
+
+  it("sends the telemetry session and what the module left in the form", () => {
+    const state = { ...emptyState('', 'CfDJ8token_-'), deviceCheckConsent: true };
+    const snapshot = {
+      sessionToken: 'CfDJ8token_-',
+      pageViewId: '0199e8a0-0000-7000-8000-00000000aaaa',
+      sequence: 2,
+      fields: [],
+      page: { visibilityChanges: 0, automationMarkers: [] },
+    };
+
+    const request = toRequest(state, [resume], {
+      honeypotFilled: false,
+      botCheckToken: null,
+      telemetry: snapshot,
+      deviceFingerprint: 'a'.repeat(64),
+      automationMarkers: ['webdriver'],
+    });
+
+    expect(request).toMatchObject({
+      telemetrySessionToken: 'CfDJ8token_-',
+      telemetry: snapshot,
+      deviceFingerprint: 'a'.repeat(64),
+      deviceCheckConsent: true,
+      automationMarkers: ['webdriver'],
     });
   });
 

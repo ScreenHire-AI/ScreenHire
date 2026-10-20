@@ -42,19 +42,31 @@ const employer = response.data;
     <section aria-labelledby="applying">
       <h2 id="applying">When you apply</h2>
       <p class="mt-2">
-        Nothing is collected until you send a step of the form or add a file. A file goes to storage as soon as you choose
-        it, and one that is never sent with an application is deleted after a day. With an application we keep:
+        Nothing is collected until you start on the form, below the notice that says what we check. A file goes to storage
+        as soon as you choose it, and one that is never sent with an application is deleted after a day. With an
+        application we keep:
       </p>
       <ul>
         <li>what you enter: your name, email, phone number, answers and the files you upload;</li>
         <li>the network (IP) address and browser you sent it from, and when you opened the form;</li>
+        <li>
+          counts of how you filled in the form, unless you switch on the assistive technology option: for each field, how
+          many characters you typed and how many you pasted, how often you pasted, how many times you came back to it, how
+          long you spent in it and whether your browser filled it in for you; and how many times you left the page;
+        </li>
+        <li>
+          a device code, where the job allows it (in some countries only if you tick the box for it): your browser's
+          settings, such as its language, screen size and time zone, turned into a one-way code;
+        </li>
+        <li>signs of automation software that your browser reports about itself;</li>
         <li>whether you switched on the assistive technology option;</li>
         <li>your answer about AI tools, and anything you tell us about how you used them;</li>
         <li>which version of this notice you were shown.</li>
       </ul>
       <p class="mt-2">
-        We delete the network address, browser and form timing within 30 days. What we keep from them is coarse: the
-        network's operator and country, never your address or a location more precise than a country.
+        We delete the network address, browser, form timing, the counts and the device code within 30 days, and the counts
+        from a form you never send within a day. What we keep from them is coarse: the network's operator and country,
+        never your address or a location more precise than a country.
       </p>
     </section>
 
@@ -70,8 +82,15 @@ const employer = response.data;
         We also look at how the application arrived. We check whether the network belongs to a hosting provider, a VPN or
         Tor, and whether its country matches your phone number's. We check whether your email domain is a throwaway service
         or cannot receive mail, and whether your phone number is valid. We note if the form was finished faster than a
-        person could. And we check whether the same email, phone number or file appears on other applications to
-        {employer.name}. Each check is one piece of evidence. None of them is a judgement on its own.
+        person could. And we check whether the same email, phone number, file or device code appears on other applications
+        to {employer.name}. The device code is made differently for every employer, so it never matches across them. Each
+        check is one piece of evidence. None of them is a judgement on its own.
+      </p>
+      <p class="mt-2">
+        The counts of how the form was filled in show, for example, that most of a long answer was pasted, or that you
+        left the page and came back to one answer many times. They never raise a concern on their own, because dictation,
+        screen readers and autofill look the same. We never record what you type, which keys you press or the time between
+        them, and we never see what you copied or where you went when you left the page.
       </p>
       <ul class="mt-2">
         <li>Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.</li>

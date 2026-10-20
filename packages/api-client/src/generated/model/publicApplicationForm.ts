@@ -8,11 +8,13 @@ import type { AiUsePolicy } from './aiUsePolicy.ts';
 import type { PublicJob } from './publicJob.ts';
 import type { PublicOrganization } from './publicOrganization.ts';
 import type { PublicQuestion } from './publicQuestion.ts';
+import type { PublicTelemetrySettings } from './publicTelemetrySettings.ts';
 import type { PublicUploadSettings } from './publicUploadSettings.ts';
 
 /**
  * Everything the careers apply page needs for one open job. The resume question comes first
  * (ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.
+ * `telemetry` is a new telemetry session for the form; the page keeps the first one it gets.
  */
 export interface PublicApplicationForm {
   organization: PublicOrganization;
@@ -22,4 +24,5 @@ export interface PublicApplicationForm {
   uploads: PublicUploadSettings;
   /** @nullable */
   turnstileSiteKey: string | null;
+  telemetry: PublicTelemetrySettings;
 }

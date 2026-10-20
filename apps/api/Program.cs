@@ -33,6 +33,10 @@ if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>(
 }
 
 builder.Services.AddProblemDetails();
+// A body the framework could not bind (malformed JSON, an unknown member where a contract refuses them, over a size
+// limit) is the caller's mistake: answer with its own status. Minimal APIs throw these in Development rather than answer.
+builder.Services.Configure<ExceptionHandlerOptions>(options => options.StatusCodeSelector = exception =>
+    exception is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError);
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
 builder.Services.AddHiringValidation();
 builder.AddJobDistribution();

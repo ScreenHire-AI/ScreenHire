@@ -1,7 +1,8 @@
 ---
 // The apply flow (docs/architecture/apply-flow.md): details, questions, review. Every step is a native form posted to
 // the `apply` action, which re-renders this page with the next step, so the whole flow works with JavaScript off. The
-// only island is the file upload, which sends files straight to storage when JavaScript runs.
+// only island is the file upload, which sends files straight to storage when JavaScript runs. The one other script is
+// the telemetry module (packages/telemetry), which the page starts only when the assistive-technology switch is off.
 import { actions } from 'astro:actions';
 import ErrorSummary from '../../../../components/ErrorSummary.astro';
 import JobUnavailable from '../../../../components/JobUnavailable.astro';
@@ -53,8 +54,13 @@ const questions = form?.questions ?? [];
 const steps = stepsFor(questions);
 const data = result?.data;
 const step = data && steps.includes(data.step) ? data.step : 'details';
-// A first visit starts the clock the integrity engine's submit-velocity check reads (after the notice, which this page shows).
-const state: ApplyState = data?.state ?? emptyState(new Date().toISOString());
+// A first visit starts the clock the integrity engine's submit-velocity check reads (after the notice, which this page
+// shows), and keeps the telemetry session the API issued with this first form.
+const telemetrySession = form?.telemetry.sessionToken ?? '';
+const posted = data?.state;
+const state: ApplyState = posted
+  ? { ...posted, telemetrySession: posted.telemetrySession || telemetrySession }
+  : emptyState(new Date().toISOString(), telemetrySession);
 const errors = data?.errors ?? {};
 const formError =
   data?.formError ??
@@ -82,6 +88,11 @@ const aiIntro = {
   AllowedWithDisclosure: 'AI help is fine for this role, as long as you tell us. We ask at the end.',
   NotAllowed: `${employer.name} asks you to write this application without AI tools. We ask about it at the end.`,
 }[policy];
+// Telemetry (integrity-engine.md §10.2): never with the assistive-technology switch on, and the device check only on the
+// footing the job's countries allow (`Consent` needs the candidate's tick).
+const telemetry = form && !state.accommodationRequested && state.telemetrySession ? form.telemetry : null;
+const deviceCheck = form?.telemetry.deviceCheck ?? 'Off';
+const deviceCheckAllowed = deviceCheck === 'Notice' || (deviceCheck === 'Consent' && state.deviceCheckConsent);
 const nextLabel = step === 'details' ? (steps.includes('questions') ? 'Continue to questions' : 'Continue to review') : 'Continue to review';
 const previous = steps[steps.indexOf(step) - 1];
 
@@ -133,6 +144,10 @@ const answerText = (questionId: string): string => {
         novalidate
         aria-labelledby="step-heading"
         class="mt-5 flex flex-col gap-4"
+        data-telemetry-token={telemetry ? state.telemetrySession : undefined}
+        data-telemetry-endpoint={telemetry ? `${base}/telemetry?job=${job.id}` : undefined}
+        data-telemetry-acknowledged={telemetry && step !== 'details' ? '' : undefined}
+        data-device-check={telemetry && step === 'review' && deviceCheckAllowed ? '' : undefined}
       >
         <input type="hidden" name="organization" value={employer.slug} />
         <input type="hidden" name="job" value={job.slug} />
@@ -148,6 +163,17 @@ const answerText = (questionId: string): string => {
         {step === 'details' && (
           <>
             <PrivacyNotice base={base} withSwitch switchChecked={state.accommodationRequested} />
+            {deviceCheck === 'Consent' && (
+              <label class="choice">
+                <input type="checkbox" name="deviceCheckConsent" checked={state.deviceCheckConsent} aria-describedby="device-check-hint" />
+                <span class="flex flex-col">
+                  <span class="text-sm font-semibold">Check this device for repeat applications (optional)</span>
+                  <span id="device-check-hint" class="text-[13px] text-candidate-muted-foreground">
+                    We turn your browser's settings into a one-way code, so a person can see when one device sends many applications. Deleted after 30 days.
+                  </span>
+                </span>
+              </label>
+            )}
             <p class="text-[13.5px] text-candidate-muted-foreground">{aiIntro}</p>
             <TextField name="fullName" label="Full name" value={state.fullName} error={errors.fullName} required autocomplete="name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
@@ -241,6 +267,15 @@ const answerText = (questionId: string): string => {
               multiline
             />
 
+            {/* Filled by the telemetry module on submit: its last snapshot, the device check and automation markers. */}
+            {telemetry && (
+              <>
+                <input type="hidden" name="telemetry" value="" />
+                <input type="hidden" name="deviceFingerprint" value="" />
+                <input type="hidden" name="automationMarkers" value="" />
+              </>
+            )}
+
             {/* Only bots reach this field (lib/apply-server.ts). Filling it is recorded, never used to refuse. */}
             <div class="trap" aria-hidden="true">
               <label for="leave-this-empty">Leave this field empty</label>
@@ -275,3 +310,19 @@ const answerText = (questionId: string): string => {
     </CareersLayout>
   )
 }
+
+<script>
+  // Starts the telemetry module when the server asked for it (data-telemetry-token): counts only, never what is typed.
+  import { startTelemetry } from '@screenhire/telemetry';
+
+  const form = document.querySelector<HTMLFormElement>('form[data-telemetry-token]');
+  const { telemetryToken, telemetryEndpoint } = form?.dataset ?? {};
+  if (form && telemetryToken && telemetryEndpoint) {
+    startTelemetry(form, {
+      endpoint: telemetryEndpoint,
+      sessionToken: telemetryToken,
+      acknowledged: 'telemetryAcknowledged' in form.dataset,
+      deviceCheck: 'deviceCheck' in form.dataset,
+    });
+  }
+</script>
