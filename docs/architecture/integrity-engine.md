@@ -447,9 +447,12 @@ Four stages, each idempotent on its own:
    `application_documents` row: the visible text in reading order, the producer, creator and creation time the file
    claims (never the author's name), and hidden text with its page and reason. PDFs go through PdfPig, Word 2007+
    through DocumentFormat.OpenXml. A letter is hidden when it is drawn invisibly, sits off the page, is under 2 points,
-   or is white with nothing darker drawn behind it, so a template's white text on a dark sidebar stays visible. A file
-   the scan flagged is skipped; a damaged or encrypted one is unreadable; parsing stops after 20 seconds. None of these
-   throws. Each file read sends the consistency check and the pipeline again.
+   or is white with nothing darker drawn behind it, so a template's white text on a dark sidebar stays visible. In a
+   Word file, shading on the run, the paragraph, its table cell or its table counts as something behind it. A file
+   the scan flagged is skipped; a damaged or encrypted one is unreadable; a broken XMP block loses only the XMP
+   metadata; a file that takes over 20 seconds to parse is unreadable. None of these throws. At most two files are
+   parsed at once per worker, and a parse abandoned at its deadline keeps its slot until it really ends, because the
+   parsers cannot be stopped mid-page. Each file read sends the consistency check and the pipeline again.
 2. **Documents** (`documents` analyzer). `CNT_RESUME_GENERATOR` when the producer or creator names a resume builder
    (Kickresume, Zety, Rezi and others) or an automatic PDF tool (wkhtmltopdf, headless Chrome, ReportLab and others).
    It is `Low`, carries the minutes between creation and submission when under 15, and says builders are common.
@@ -467,19 +470,22 @@ Four stages, each idempotent on its own:
    `CNT_TEMPLATED_ANSWER` quotes a placeholder in square brackets or a chatbot's reply wording. It is informational:
    shown, never counted.
 4. **Consistency** (`CheckApplicationConsistency`, then the `consistency` analyzer). The sources are the resume, the
-   answers as the candidate saw them (option labels, never links) and an uploaded LinkedIn export: a file question with
+   answers as the candidate saw them (option labels; text, choice and number answers only, so never links or yes/no
+   answers such as right to work) and an uploaded LinkedIn export: a file question with
    the id `linkedin_export`, which a job opts into. ScreenHire never fetches a profile (CLAUDE.md non-negotiable 5).
    Only visible text is sent. The handler checks, in order: the organization's switch (`integrity_settings`, off until
    an admin turns it on), at least two sources with text, a configured model, and the monthly token budget. Then it
    claims a `consistency_checks` row (unique per application and prompt version) and asks the model with no database
-   transaction open. A claim older than four call timeouts is taken over.
+   transaction open. A claim is taken over once it is older than the longest a check can take: four calls, each with
+   one SDK retry, all timing out, plus a minute. A redelivered message for a finished check sends the pipeline again,
+   because this handler has no outbox and the first reassessment may have been lost.
 
    The check has two steps behind `IChatClient` (Microsoft.Extensions.AI). The extraction model lists each source's
    claims about employers, job titles, employment dates, years of experience, education and certifications, quoting
    each. Every quote is matched against the text that was sent, ignoring whitespace and quote style; one that is not
    there is dropped. The consistency model then names pairs of claim ids that contradict each other. Only pairs of
-   checked claims from two different sources are kept, so every contradiction cites a verbatim span from each source,
-   whatever the model wrote. The explanation a recruiter reads comes from a fixed topic, never from the model's prose.
+   checked claims from two different sources with different quotes are kept, so every contradiction cites a verbatim
+   span from each source, whatever the model wrote. The explanation a recruiter reads comes from a fixed topic, never from the model's prose.
    Both prompts (`ConsistencyPrompts`, version `consistency-2026-10-20.1`) treat the sources as untrusted data inside
    markers with a random nonce, strip marker sequences from the text, and never ask whether anything was written by AI.
    Answers are constrained to a JSON schema (`output_config.format`).
@@ -500,8 +506,23 @@ privacy notice (version `2026-10-20.3`) tells candidates their files and answers
 allowed to train on them.
 
 **Budget.** Counted in tokens, not money: the input and output tokens of the organization's checks started this calendar
-month (UTC). At or over the budget, the check is `OverBudget` and says so. The default comes from configuration, and an
-admin can set the organization's own.
+month (UTC), counted by `ConsistencyBudget` for both the handler and the settings endpoint. At or over the budget,
+the check is `OverBudget` and says so. The default comes from configuration, and an admin can set the organization's
+own. It is a soft limit: tokens are recorded when a check finishes, so checks that start together all pass the test and
+the last can overshoot by a few checks' worth.
+
+**Known gaps.**
+- Parsing runs in the worker process. A crafted PDF that expands to gigabytes can still exhaust its memory; the slot
+  limit only stops parses piling up. The real fix is parsing in a separate process with memory and time caps.
+- PDF white-text detection asks whether something is drawn behind a letter, not how much contrast there is, so white
+  text on a pale full-page fill is not reported. Word text boxes and style-level colours are not read for hiding.
+- A transient provider error (a 429 or 5xx after the retry) records the check as `Unavailable` for good; it is not
+  tried again later.
+- Two applications with the same answer that are assessed at the same moment do not see each other's fingerprints,
+  which are saved with each pipeline run. A later application sees both.
+- An application submitted under a notice older than `2026-10-20.3` whose check is still pending when an admin turns
+  the check on is sent to the model. Only applications in flight at that moment can be affected; finished ones keep
+  their `Disabled` outcome.
 
 **Tests.** `DocumentExtractionTests` builds fixture PDFs and Word files with white, tiny, off-page and hidden text and
 generator metadata. `ConsistencyCheckerTests` replays hand-written Messages API responses
