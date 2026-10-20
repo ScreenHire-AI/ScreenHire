@@ -32,8 +32,9 @@ public sealed record AutomationFacts(
     /// happened, so an evaluation that runs late (the worker was down) or again (a replay) sees the same facts.
     /// <paramref name="timeline"/> is the application's events in order; the snapshot reads those up to
     /// <paramref name="triggerEventId"/> when the timeline holds it, otherwise those at or before
-    /// <paramref name="occurredAt"/> (a timer, a manual run). A <see cref="TriggerType.StageExited"/> trigger measures
-    /// time in the stage that was left.
+    /// <paramref name="occurredAt"/> (a manual run). A <see cref="TriggerType.TimeElapsed"/> timer is keyed on its stage
+    /// entry but fires later, so it reads everything at or before its due time (<paramref name="occurredAt"/>): a tag added
+    /// while it waited counts. A <see cref="TriggerType.StageExited"/> trigger measures time in the stage that was left.
     /// </summary>
     public static AutomationFacts FromTimeline(
         IReadOnlyList<ApplicationEvent> timeline, Guid triggerEventId, TriggerType trigger, DateTimeOffset occurredAt)
@@ -49,7 +50,9 @@ public sealed record AutomationFacts(
             }
         }
 
-        var seen = triggerIndex >= 0 ? timeline.Take(triggerIndex + 1).ToList() : [.. timeline.Where(e => e.OccurredAt <= occurredAt)];
+        var seen = triggerIndex >= 0 && trigger != TriggerType.TimeElapsed
+            ? timeline.Take(triggerIndex + 1).ToList()
+            : [.. timeline.Where(e => e.OccurredAt <= occurredAt)];
         var entries = seen.Where(e => e.Type is ApplicationEventType.Submitted or ApplicationEventType.StageChanged).ToList();
         if (trigger == TriggerType.StageExited && triggerIndex >= 0 && entries.Count > 0 && entries[^1].Id == triggerEventId)
         {

@@ -340,22 +340,24 @@ public static partial class DefinitionValidator
     /// <summary>
     /// The automations an integrity or verification signal can drive, directly or at one remove. Directly: a signal
     /// trigger or a signal fact. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
-    /// trigger on a stage one moves applications into. Otherwise a signal could tag or route an application and a second
-    /// automation could act on the tag or the stage, laundering the signal past guardrail 1. Repeated until nothing new
-    /// is found, so chains of any length count.
+    /// trigger on a stage one moves applications into, or any StageExited trigger once one moves applications at all
+    /// (the stage a move leaves is wherever the application is when the action runs, which no definition can know).
+    /// Otherwise a signal could tag or route an application and a second automation could act on the tag or the stage,
+    /// laundering the signal past guardrail 1. Repeated until nothing new is found, so chains of any length count.
     /// </summary>
     private static HashSet<int> SignalDrivenAutomations(IReadOnlyList<Automation> automations)
     {
         var driven = new HashSet<int>();
         var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var stages = new HashSet<string>(StringComparer.Ordinal);
+        var movesOut = false;
         bool found;
         do
         {
             found = false;
             for (var i = 0; i < automations.Count; i++)
             {
-                if (driven.Contains(i) || automations[i] is not { } automation || !IsSignalDriven(automation, tags, stages))
+                if (driven.Contains(i) || automations[i] is not { } automation || !IsSignalDriven(automation, tags, stages, movesOut))
                 {
                     continue;
                 }
@@ -371,6 +373,7 @@ public static partial class DefinitionValidator
                     else if (action.Type == ActionType.MoveToStage && action.StageId is not null)
                     {
                         stages.Add(action.StageId);
+                        movesOut = true;
                     }
                 }
             }
@@ -380,10 +383,11 @@ public static partial class DefinitionValidator
         return driven;
     }
 
-    private static bool IsSignalDriven(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages)
+    private static bool IsSignalDriven(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages, bool signalMovesOut)
     {
         if (automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
-            || (automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId)))
+            || (automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId))
+            || (automation.Trigger?.Type == TriggerType.StageExited && signalMovesOut))
         {
             return true;
         }
@@ -652,6 +656,16 @@ public static partial class DefinitionValidator
             }
 
             var actionPath = $"{path}.actions[{i}]";
+            if (action is { Type: ActionType.SendEmail, EmailTemplate: EmailTemplateIds.StageChange }
+                && automation.Trigger is { Type: TriggerType.StageEntered, StageId: { } enteredId }
+                && stages.GetValueOrDefault(enteredId)?.Kind is StageKind.Rejected or StageKind.Withdrawn)
+            {
+                // The worker skips it anyway (the email says "the next step"); refusing it here says why at save.
+                errors.Add(new(Join(actionPath, "emailTemplate"),
+                    "The stage-change email tells the candidate they moved to the next step, so it is not sent on entering a rejected or withdrawn stage."));
+                continue;
+            }
+
             var target = action.StageId is null ? null : stages.GetValueOrDefault(action.StageId);
             if (signalDriven && (!SignalSafeActions.Contains(action.Type)
                 || (action.Type == ActionType.MoveToStage && target is not null && !SignalSafeStages.Contains(target.Kind))))

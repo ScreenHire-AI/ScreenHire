@@ -113,9 +113,16 @@ public static partial class ExecuteAutomationActionHandler
             return Skipped("Email is not set up, so nothing was sent.");
         }
 
+        // The stage-change email names the stage the application is in when it sends, which may not be the one the
+        // trigger saw. "Moved to the next step: Rejected" would be a rejection email that no Reject action guarded.
+        var stage = context.Job.Workflow.FindStage(context.Application.CurrentStageId);
+        if (templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn)
+        {
+            return Skipped("The application has ended, so the stage-change email was not sent.");
+        }
+
         var candidate = await context.Db.Candidates.AsNoTracking().SingleAsync(c => c.Id == context.Application.CandidateId, cancellationToken);
         var organization = await context.Db.Organizations.AsNoTracking().SingleAsync(o => o.Id == context.Run.OrganizationId, cancellationToken);
-        var stage = context.Job.Workflow.FindStage(context.Application.CurrentStageId);
         await context.Email.SendAsync(
             templateId,
             candidate.Email,
@@ -213,13 +220,16 @@ public static partial class ExecuteAutomationActionHandler
         ActionContext context, AutomationAction action, CancellationToken cancellationToken)
     {
         // The run was recorded when the workflow validated; re-check now, because the workflow or the rules may have
-        // changed while the action waited. Anything short of a valid, opted-in knockout goes to a person.
+        // changed while the action waited. Anything short of a valid, opted-in knockout from the same workflow version
+        // (the conditions that matched are that version's) goes to a person.
         var automation = context.Job.Workflow.Automations.FirstOrDefault(a => a.Id == context.Run.AutomationId);
+        var sameVersion = context.Run.WorkflowVersion == context.Job.WorkflowVersion;
         var stillValid = DefinitionValidator.Validate(context.Job.Workflow).Count == 0;
-        if (automation is not { AllowAutoReject: true } || !stillValid || !context.Email.IsConfigured)
+        if (automation is not { AllowAutoReject: true } || !sameVersion || !stillValid || !context.Email.IsConfigured)
         {
             return AddTask(context, ApplicationTaskKind.RejectionReview, action.Reason!, null,
                 automation is not { AllowAutoReject: true } ? "Queued for a person to decide: the automation is no longer opted in to rejecting."
+                : !sameVersion ? "Queued for a person to decide: the job's workflow changed after the conditions were checked."
                 : !stillValid ? "Queued for a person to decide: the job's workflow no longer passes validation."
                 : "Queued for a person to decide: email is not set up, so the candidate could not be told why.");
         }

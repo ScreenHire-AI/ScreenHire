@@ -30,28 +30,38 @@ public sealed class WebhookOptions
 {
     public const string Section = "ScreenHire:Webhooks";
 
-    /// <summary>
-    /// Lets webhooks reach loopback and private addresses. Off by default, because a recruiter-supplied URL must never
-    /// reach the hosts' own network (server-side request forgery). Only for local development against a local receiver.
-    /// </summary>
-    public bool AllowPrivateNetworks { get; set; }
-
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// The HMAC-SHA256 key every delivery is signed with. The AppHost generates one locally; production sets its own
-    /// secret. Without one, CallWebhook actions fail with an issue rather than send something unverifiable.
+    /// The platform key each organization's signing key is derived from (<see cref="WebhookSignature.OrganizationKey"/>).
+    /// It never leaves the worker. The AppHost generates one locally; production sets its own secret. Without one,
+    /// CallWebhook actions fail with an issue rather than send something unverifiable.
     /// </summary>
     public string? SigningKey { get; set; }
 }
 
 /// <summary>
 /// How a receiver checks a webhook: <c>ScreenHire-Signature: t={unix seconds},v1={hex}</c>, where the hex is
-/// HMAC-SHA256 of <c>{t}.{raw body}</c> under the shared key. Including the time lets a receiver refuse old replays.
+/// HMAC-SHA256 of <c>{t}.{raw body}</c> under its organization's key. Including the time lets a receiver refuse old
+/// replays.
 /// </summary>
 public static class WebhookSignature
 {
     public const string Header = "ScreenHire-Signature";
+
+    /// <summary>
+    /// The key one organization's deliveries are signed with, and the one its receivers are given: hex HMAC-SHA256 of
+    /// <c>webhook-signing:{organizationId}</c> under the platform key. A receiver holding one organization's key cannot
+    /// sign a delivery that another organization's receiver would accept, and the platform key stays in the worker.
+    /// </summary>
+    public static string OrganizationKey(string platformKey, Guid organizationId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(platformKey);
+        var mac = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(platformKey),
+            Encoding.UTF8.GetBytes($"webhook-signing:{organizationId.ToString("D", System.Globalization.CultureInfo.InvariantCulture)}"));
+        return Convert.ToHexStringLower(mac);
+    }
 
     public static string Create(string key, DateTimeOffset sentAt, string body)
     {
@@ -91,7 +101,8 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
         var body = JsonSerializer.Serialize(payload, Json);
         using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
         request.Headers.Add("Idempotency-Key", idempotencyKey);
-        request.Headers.Add(WebhookSignature.Header, WebhookSignature.Create(key, payload.SentAt, body));
+        request.Headers.Add(WebhookSignature.Header,
+            WebhookSignature.Create(WebhookSignature.OrganizationKey(key, payload.OrganizationId), payload.SentAt, body));
 
         using var response = await client.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -100,19 +111,20 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
 
     public void Dispose() => client.Dispose();
 
-    /// <summary>The client's handler: refuses to connect to a non-public address unless the options allow it.</summary>
+    /// <summary>The client's handler: refuses to connect to a non-public address.</summary>
     private static SocketsHttpHandler CreateHandler(IOptions<WebhookOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var allowPrivate = options.Value.AllowPrivateNetworks;
         return new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(5), // picks up DNS changes
             AllowAutoRedirect = false, // a redirect could point anywhere; the receiver gets one try at its own URL
+            // Through a proxy, ConnectCallback would see the proxy's address and the proxy would resolve the target.
+            UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
             {
                 var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken);
-                var address = addresses.FirstOrDefault(a => allowPrivate || WebhookAddresses.IsPublic(a))
+                var address = addresses.FirstOrDefault(WebhookAddresses.IsPublic)
                     ?? throw new HttpRequestException($"Webhook host {context.DnsEndPoint.Host} does not resolve to a public address.");
                 var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
                 try
@@ -140,6 +152,11 @@ public static class WebhookAddresses
         {
             address = address.MapToIPv4();
         }
+        else if (address.AddressFamily == AddressFamily.InterNetworkV6 && EmbeddedIPv4(address.GetAddressBytes()) is { } embedded)
+        {
+            // NAT64 and 6to4 carry an IPv4 address that a gateway on the path can reach: judge that one.
+            address = embedded;
+        }
 
         if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)
             || address.Equals(IPAddress.Broadcast) || address.Equals(IPAddress.None))
@@ -164,10 +181,24 @@ public static class WebhookAddresses
         if (address.AddressFamily == AddressFamily.InterNetworkV6)
         {
             var b = address.GetAddressBytes();
-            return !(address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6Multicast
-                || (b[0] & 0xfe) == 0xfc); // unique local fc00::/7
+            return !(address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6Multicast || address.IsIPv6Teredo
+                || (b[0] & 0xfe) == 0xfc // unique local fc00::/7
+                || (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b) // any other NAT64 prefix, such as local-use 64:ff9b:1::/48
+                || (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0d && b[3] == 0xb8)); // documentation 2001:db8::/32
         }
 
         return false;
+    }
+
+    // The IPv4 address inside a well-known NAT64 address (64:ff9b::/96, last four bytes) or a 6to4 address (2002::/16,
+    // bytes two to five); null for any other IPv6 address.
+    private static IPAddress? EmbeddedIPv4(byte[] b)
+    {
+        if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b && b.AsSpan(4, 8).IndexOfAnyExcept((byte)0) < 0)
+        {
+            return new IPAddress(b.AsSpan(12, 4));
+        }
+
+        return b[0] == 0x20 && b[1] == 0x02 ? new IPAddress(b.AsSpan(2, 4)) : null;
     }
 }
