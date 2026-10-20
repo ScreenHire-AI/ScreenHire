@@ -10,6 +10,8 @@ const intro = `# ScreenHire
 > AI-generated or copy-paste job applications, and explains every flag in plain language with a suggested next step.
 > Integrity signals never reject a candidate; a person decides.
 
+ScreenHire is in development. This file and the site describe the product as designed, not as generally available.
+
 ## What ScreenHire does
 
 - Applicant tracking with per-job hiring workflows built from reusable, versioned templates.
