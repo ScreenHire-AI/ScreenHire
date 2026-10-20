@@ -1982,6 +1982,233 @@
         }
       }
     },
+    "/v1/applications/{applicationId}/integrity": {
+      "get": {
+        "tags": [
+          "Integrity"
+        ],
+        "operationId": "GetApplicationIntegrity",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/dismiss": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "operationId": "DismissIntegrityAssessment",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assessmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissIntegrityAssessmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/integrity/notes": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "operationId": "AddIntegrityNote",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddIntegrityNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/integrity/request-verification": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "operationId": "RequestIdentityVerification",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/boards": {
       "get": {
         "tags": [
@@ -2595,6 +2822,114 @@
           "Reject"
         ]
       },
+      "AddIntegrityNoteRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "assessmentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Adds a note to the integrity audit log, about one assessment (`assessmentId`) or the application as a whole."
+      },
+      "AiAssistanceAssessmentView": {
+        "required": [
+          "id",
+          "level",
+          "reasonCodes",
+          "summary",
+          "nextStep",
+          "signals",
+          "rulesetVersion",
+          "assessedAt",
+          "dismissal",
+          "policy",
+          "declaration",
+          "policyContext"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "level": {
+            "$ref": "#/components/schemas/AiAssistanceLevel"
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "nextStep": {
+            "type": "string"
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegritySignalView"
+            }
+          },
+          "rulesetVersion": {
+            "type": "string"
+          },
+          "assessedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dismissal": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IntegrityDismissal"
+              }
+            ]
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AiUsePolicy"
+          },
+          "declaration": {
+            "$ref": "#/components/schemas/AiUseDeclaration"
+          },
+          "policyContext": {
+            "$ref": "#/components/schemas/AiPolicyContext"
+          }
+        },
+        "description": "How much of the content appears generated or templated? Informational, and relative to the job's AI policy."
+      },
+      "AiAssistanceLevel": {
+        "enum": [
+          "NotIndicated",
+          "SomeIndicators",
+          "StrongIndicators"
+        ],
+        "description": "AI assistance levels, lowest first. Informational and relative to the job's AI policy."
+      },
+      "AiPolicyContext": {
+        "enum": [
+          "AllowedByPolicy",
+          "Disclosed",
+          "NotDisclosed",
+          "DeclaredUseNotAllowed",
+          "NotAllowed"
+        ],
+        "description": "Where the candidate's AI use stands against the job's policy, from the policy and the declaration only."
+      },
       "AiUseDeclaration": {
         "enum": [
           "NotProvided",
@@ -2767,7 +3102,8 @@
         "enum": [
           "Submitted",
           "StageChanged",
-          "TagAdded"
+          "TagAdded",
+          "IntegrityAssessed"
         ]
       },
       "ApplicationFileSummary": {
@@ -2813,6 +3149,56 @@
           }
         },
         "description": "A file the candidate uploaded. `scanStatus` is the malware scan's result; `NotScanned` means no scanner is configured."
+      },
+      "ApplicationIntegrity": {
+        "required": [
+          "applicationId",
+          "status",
+          "authenticity",
+          "aiAssistance",
+          "reviewLog",
+          "requestVerification"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IntegrityStatus"
+          },
+          "authenticity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthenticityAssessmentView"
+              }
+            ]
+          },
+          "aiAssistance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiAssistanceAssessmentView"
+              }
+            ]
+          },
+          "reviewLog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrityReviewEntry"
+            }
+          },
+          "requestVerification": {
+            "$ref": "#/components/schemas/IntegrityActionAvailability"
+          }
+        },
+        "description": "An application's integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\r\n`reviewLog`."
       },
       "ApplicationSource": {
         "enum": [
@@ -2878,6 +3264,16 @@
           "stageEnteredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "integrity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IntegritySummary"
+              }
+            ]
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
@@ -3009,6 +3405,73 @@
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
+      },
+      "AuthenticityAssessmentView": {
+        "required": [
+          "id",
+          "level",
+          "reasonCodes",
+          "summary",
+          "nextStep",
+          "signals",
+          "rulesetVersion",
+          "assessedAt",
+          "dismissal"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "level": {
+            "$ref": "#/components/schemas/AuthenticityLevel"
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "nextStep": {
+            "type": "string"
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegritySignalView"
+            }
+          },
+          "rulesetVersion": {
+            "type": "string"
+          },
+          "assessedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dismissal": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IntegrityDismissal"
+              }
+            ]
+          }
+        },
+        "description": "Is this a real, unique, present person who is who they say they are?"
+      },
+      "AuthenticityLevel": {
+        "enum": [
+          "NoConcerns",
+          "ReviewSuggested",
+          "VerificationRecommended"
+        ],
+        "description": "Authenticity levels, lowest first (integrity-engine.md §2)."
       },
       "Automation": {
         "required": [
@@ -3626,6 +4089,22 @@
         },
         "description": "A candidate: one person per email address within the organization."
       },
+      "ComparedText": {
+        "required": [
+          "label",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "description": "One side of a text comparison."
+      },
       "ConditionMatch": {
         "enum": [
           "All",
@@ -3643,6 +4122,28 @@
           "LessThanOrEqual",
           "Exists"
         ]
+      },
+      "CounterEvidence": {
+        "required": [
+          "explanation"
+        ],
+        "type": "object",
+        "properties": {
+          "explanation": {
+            "type": "string"
+          },
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SignalEvidence"
+              }
+            ]
+          }
+        },
+        "description": "Something that argues against a signal, in plain language, with optional evidence of its own."
       },
       "CreateApplicationRequest": {
         "required": [
@@ -3885,6 +4386,33 @@
         },
         "description": "A problem with a definition, at a JSON path such as `workflow.stages[1].id`."
       },
+      "DismissIntegrityAssessmentRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/DismissReason"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Sets an assessment aside. A reason is required; `Other` also needs a note."
+      },
+      "DismissReason": {
+        "enum": [
+          "VerifiedOutsideScreenHire",
+          "ExplainedByCandidate",
+          "FalsePositive",
+          "Other"
+        ],
+        "description": "Why a reviewer dismissed an assessment."
+      },
       "EmploymentType": {
         "enum": [
           "FullTime",
@@ -3901,6 +4429,16 @@
           "Skipped",
           "Blocked"
         ]
+      },
+      "EvidenceKind": {
+        "enum": [
+          "Fact",
+          "Quote",
+          "TextComparison",
+          "Metric",
+          "List"
+        ],
+        "description": "How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal."
       },
       "HiringTemplateDefinition": {
         "required": [
@@ -4208,6 +4746,73 @@
           }
         }
       },
+      "IntegrityActionAvailability": {
+        "required": [
+          "available",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Whether an action is offered, and why not when it is not."
+      },
+      "IntegrityAssessmentKind": {
+        "enum": [
+          "Authenticity",
+          "AiAssistance",
+          null
+        ]
+      },
+      "IntegrityDismissal": {
+        "required": [
+          "actionId",
+          "reason",
+          "note",
+          "actorUserId",
+          "actorName",
+          "dismissedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/DismissReason"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dismissedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
+      },
       "IntegrityPolicy": {
         "required": [
           "aiUse"
@@ -4219,6 +4824,204 @@
           }
         },
         "description": "The template's integrity settings (ADR-0004). Only the AI-use policy exists so far."
+      },
+      "IntegrityReviewActionType": {
+        "enum": [
+          "Dismissed",
+          "NoteAdded"
+        ]
+      },
+      "IntegrityReviewEntry": {
+        "required": [
+          "id",
+          "type",
+          "assessmentKind",
+          "assessmentId",
+          "dismissReason",
+          "note",
+          "actorUserId",
+          "actorName",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/IntegrityReviewActionType"
+          },
+          "assessmentKind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IntegrityAssessmentKind"
+              }
+            ]
+          },
+          "assessmentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "dismissReason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DismissReason"
+              }
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One entry of the integrity audit log, oldest first."
+      },
+      "IntegritySignalView": {
+        "required": [
+          "id",
+          "code",
+          "title",
+          "category",
+          "weight",
+          "confidence",
+          "countsTowardLevel",
+          "contextOnly",
+          "accessibilitySensitive",
+          "explanation",
+          "evidence",
+          "counterEvidence",
+          "source",
+          "sourceVersion",
+          "observedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SignalCategory"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/SignalWeight"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/SignalConfidence"
+          },
+          "countsTowardLevel": {
+            "type": "boolean"
+          },
+          "contextOnly": {
+            "type": "boolean"
+          },
+          "accessibilitySensitive": {
+            "type": "boolean"
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignalEvidence"
+            }
+          },
+          "counterEvidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CounterEvidence"
+            }
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers."
+      },
+      "IntegrityStatus": {
+        "enum": [
+          "Pending",
+          "Assessed"
+        ]
+      },
+      "IntegritySummary": {
+        "required": [
+          "authenticity",
+          "authenticityReasons",
+          "authenticityDismissed",
+          "aiAssistance",
+          "aiAssistanceReasons",
+          "aiAssistanceDismissed"
+        ],
+        "type": "object",
+        "properties": {
+          "authenticity": {
+            "$ref": "#/components/schemas/AuthenticityLevel"
+          },
+          "authenticityReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authenticityDismissed": {
+            "type": "boolean"
+          },
+          "aiAssistance": {
+            "$ref": "#/components/schemas/AiAssistanceLevel"
+          },
+          "aiAssistanceReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aiAssistanceDismissed": {
+            "type": "boolean"
+          }
+        },
+        "description": "The integrity chips for an application in a list: each current level and its reason codes (shown as \"3 reasons\"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed."
       },
       "JobBoardDepartment": {
         "required": [
@@ -5369,6 +6172,34 @@
               "null",
               "string"
             ]
+          },
+          "userAgent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "formStartedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "automationMarkers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "deviceFingerprint": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
@@ -5919,6 +6750,122 @@
         },
         "description": "One listing on the local sandbox board, as the board itself would show it."
       },
+      "SignalCategory": {
+        "enum": [
+          "Network",
+          "Identity",
+          "Automation",
+          "Behavioural",
+          "Document",
+          "Content"
+        ],
+        "description": "Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself."
+      },
+      "SignalConfidence": {
+        "enum": [
+          "Low",
+          "Medium",
+          "High"
+        ],
+        "description": "How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic)."
+      },
+      "SignalEvidence": {
+        "required": [
+          "kind",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceKind"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "left": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ComparedText"
+              }
+            ]
+          },
+          "right": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ComparedText"
+              }
+            ]
+          },
+          "amount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reference": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "referenceLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score."
+      },
+      "SignalWeight": {
+        "enum": [
+          "Low",
+          "Medium",
+          "High"
+        ],
+        "description": "How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004)."
+      },
       "SignInMethods": {
         "required": [
           "providers",
@@ -6414,6 +7361,9 @@
     },
     {
       "name": "Candidates"
+    },
+    {
+      "name": "Integrity"
     },
     {
       "name": "Distribution"
