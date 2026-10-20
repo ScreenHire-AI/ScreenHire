@@ -99,6 +99,19 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
         await CheckAsync(page);
     }
 
+    /// <summary>
+    /// Saves a full-page screenshot of <paramref name="page"/> (or <see cref="Page"/>) as
+    /// <c>TestResults/screenshots/{name}.png</c> next to the test assembly, for comparing the UI with its design.
+    /// </summary>
+    protected static async Task<string> SaveScreenshotAsync(IPage page, string name)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "TestResults", "screenshots", $"{name}.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await page.ScreenshotAsync(new() { Path = path, FullPage = true });
+        TestContext.Current.TestOutputHelper?.WriteLine($"Screenshot: {path}");
+        return path;
+    }
+
     private static async Task CheckAsync(IPage page)
     {
         var result = await page.RunAxe(new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });

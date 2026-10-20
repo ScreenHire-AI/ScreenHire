@@ -1859,6 +1859,8 @@ export const ListJobApplicationsResponseItem = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "jobTitle": zod.string(),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
   "integrity": zod.union([zod.null(),zod.object({
   "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
   "authenticityReasons": zod.array(zod.string()),
@@ -1931,6 +1933,32 @@ export const CreateApplicationResponse = zod.object({
   "uploadedAt": zod.iso.datetime({"offset":true})
 }).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+
+
+export const ListApplicationsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "jobId": zod.uuid(),
+  "candidateId": zod.uuid(),
+  "candidateName": zod.string(),
+  "stage": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "jobTitle": zod.string(),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "integrity": zod.union([zod.null(),zod.object({
+  "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
+  "authenticityReasons": zod.array(zod.string()),
+  "authenticityDismissed": zod.boolean(),
+  "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
+  "aiAssistanceReasons": zod.array(zod.string()),
+  "aiAssistanceDismissed": zod.boolean()
+}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional()
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
+export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
 
 export const GetApplicationParams = zod.object({
@@ -2052,6 +2080,14 @@ export const GetApplicationTimelineResponseItem = zod.object({
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
 
+export const DownloadApplicationFileParams = zod.object({
+  "applicationId": zod.uuid(),
+  "fileId": zod.uuid()
+})
+
+export const DownloadApplicationFileResponse = zod.void()
+
+
 export const ListCandidatesResponseItem = zod.object({
   "id": zod.uuid(),
   "fullName": zod.string(),
@@ -2084,6 +2120,8 @@ export const GetCandidateResponse = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "jobTitle": zod.string(),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
   "integrity": zod.union([zod.null(),zod.object({
   "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
   "authenticityReasons": zod.array(zod.string()),

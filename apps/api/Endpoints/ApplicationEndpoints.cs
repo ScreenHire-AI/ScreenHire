@@ -32,6 +32,7 @@ internal static class ApplicationEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
 
         var applications = app.MapGroup("/v1/applications").WithTags("Applications").RequireAuthorization();
+        applications.MapGet("/", ListApplications).WithName("ListApplications").Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication")
             .RequireAntiforgeryToken()
@@ -39,6 +40,9 @@ internal static class ApplicationEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline")
+            .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
         var candidates = app.MapGroup("/v1/candidates").WithTags("Candidates").RequireAuthorization();
@@ -64,6 +68,18 @@ internal static class ApplicationEndpoints
             .ToListAsync(cancellationToken);
         var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id))).ToList());
+    }
+
+    // Every application in the organization, newest first: the dashboard's candidates table across jobs.
+    private static async Task<List<ApplicationSummary>> ListApplications(ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var rows = await db.Applications.AsNoTracking()
+            .OrderByDescending(a => a.SubmittedAt)
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
+            .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new { x.Application, x.Job, Candidate = c })
+            .ToListAsync(cancellationToken);
+        var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
+        return [.. rows.Select(r => r.Application.ToSummary(r.Job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id)))];
     }
 
     // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
@@ -185,6 +201,28 @@ internal static class ApplicationEndpoints
             .ThenBy(e => e.Id)
             .ToListAsync(cancellationToken);
         return TypedResults.Ok(events.Select(e => e.ToTimelineEntry()).ToList());
+    }
+
+    // Sends a reviewer to a short-lived read link for one of the application's files, such as the resume. A file the
+    // scanner found malware in is never offered, and neither is one still waiting for its scan.
+    private static async Task<Results<RedirectHttpResult, NotFound, ProblemHttpResult>> DownloadApplicationFile(
+        Guid applicationId, Guid fileId, ScreenHireDbContext db, ApplicantUploads uploads, CancellationToken cancellationToken)
+    {
+        var file = await db.ApplicationFiles.AsNoTracking()
+            .SingleOrDefaultAsync(f => f.Id == fileId && f.ApplicationId == applicationId, cancellationToken);
+        if (file is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return file.ScanStatus switch
+        {
+            MalwareScanStatus.Infected => TypedResults.Problem(
+                "The malware scan found a threat in this file, so it is not available.", statusCode: StatusCodes.Status409Conflict),
+            MalwareScanStatus.Pending => TypedResults.Problem(
+                "This file is still being scanned for malware. Try again in a minute.", statusCode: StatusCodes.Status409Conflict),
+            _ => TypedResults.Redirect((await uploads.IssueReadLinkAsync(file.BlobName, file.FileName, cancellationToken)).ToString()),
+        };
     }
 
     private static async Task<List<CandidateSummary>> ListCandidates(ScreenHireDbContext db, CancellationToken cancellationToken)
