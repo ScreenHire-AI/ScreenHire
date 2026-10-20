@@ -89,7 +89,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Submission_binds_the_session_and_behavioural_signals_alone_are_context()
+    public async Task Submission_binds_the_session_and_behavioural_signals_alone_are_not_shown()
     {
         var (organization, jobs) = await OrganizationWithJobsAsync(("engineer", ["GB"]));
         var job = jobs[0];
@@ -124,9 +124,9 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         paste.Explanation.Should().Contain("What is your notice period?");
         var ai = assessments.Single(a => a.Kind == IntegrityAssessmentKind.AiAssistance);
         ai.Level.Should().Be(nameof(AiAssistanceLevel.NotIndicated));
-        ai.AppliedRules.Should().Contain(IntegrityRuleset.TelemetryNeverAlone);
+        ai.AppliedRules.Should().Contain(IntegrityRuleset.TelemetryOnlyAlongsideAnotherCategory);
         ai.ReasonCodes.Should().BeEmpty("telemetry alone is never a reason");
-        ai.SignalIds.Should().Contain(paste.Id, "it is shown, as context");
+        ai.SignalIds.Should().NotContain(paste.Id, "telemetry alone is not shown on the assessment; the signal is kept for when another category joins it");
 
         // A beacon that arrives after the application was sent changes nothing.
         (await PostAsync(client, organization, job, Snapshot(token, Guid.CreateVersion7(), 1, fieldId: "fullName", pasted: 500)))

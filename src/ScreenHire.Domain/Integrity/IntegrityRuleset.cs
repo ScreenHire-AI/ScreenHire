@@ -15,6 +15,9 @@ namespace ScreenHire.Domain.Integrity;
 /// <list type="number">
 /// <item><c>accommodation-suppression</c>: with an accommodation, accessibility-sensitive signals are dropped. The
 /// accommodation itself is never a signal and never appears in the output.</item>
+/// <item><c>telemetry-only-alongside-another-category</c>: behavioural (telemetry) signals are shown only next to a
+/// signal of another category on the same assessment; alone they are dropped (docs/research/legal.md: never flag on
+/// telemetry alone).</item>
 /// <item>A category <em>corroborates</em> when its signals' weights add up to at least
 /// <see cref="CorroboratingWeight"/> (Low 1, Medium 2, High 3). Context-only signals add their weight only next to a
 /// signal of the same category that is not context-only.</item>
@@ -30,13 +33,14 @@ namespace ScreenHire.Domain.Integrity;
 public static class IntegrityRuleset
 {
     /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes.</summary>
-    public const string Version = "2026-10-20.2";
+    public const string Version = "2026-10-20.3";
 
     public const int CorroboratingWeight = 2;
 
     public const int TopLevelWeight = 6;
 
     public const string AccommodationSuppression = "accommodation-suppression";
+    public const string TelemetryOnlyAlongsideAnotherCategory = "telemetry-only-alongside-another-category";
     public const string TelemetryNeverAlone = "telemetry-never-alone";
     public const string TwoIndependentCategories = "two-independent-categories";
     public const string TopLevelNeedsTwoNonTelemetryCategories = "top-level-needs-two-non-telemetry-categories";
@@ -66,6 +70,13 @@ public static class IntegrityRuleset
         {
             signals = [.. ofKind.Where(s => !s.AccessibilitySensitive)];
             rules.Add(AccommodationSuppression);
+        }
+
+        // Dictation, screen readers and autofill look like pasting and switching away, so telemetry is never shown alone.
+        if (signals.Count > 0 && signals.All(s => s.Category == SignalCategory.Behavioural))
+        {
+            signals = [];
+            rules.Add(TelemetryOnlyAlongsideAnotherCategory);
         }
 
         var corroborating = signals
@@ -172,9 +183,7 @@ public static class IntegrityRuleset
                     ? kind == IntegrityAssessmentKind.Authenticity
                         ? "Nothing unusual in the checks that ran."
                         : "No signs that the content was generated or templated."
-                    : shown.All(s => s.Category == SignalCategory.Behavioural)
-                        ? $"{Observations(shown.Count)} about how the form was filled in. These never raise a level on their own, so they are shown for context only."
-                        : shown.All(s => s.ContextOnly)
+                    : shown.All(s => s.ContextOnly)
                             ? $"Shown for context only: {Titles(shown)}. This is never a reason on its own."
                             : $"{Observations(shown.Count)} from {Categories(shown)} checks, with nothing from a second, independent kind of check to back {(shown.Count == 1 ? "it" : "them")} up. Shown for context only.";
             return context is { } policy ? $"{text} {PolicySentence(policy, declaration)}" : text;

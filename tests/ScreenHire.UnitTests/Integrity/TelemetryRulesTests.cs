@@ -98,11 +98,12 @@ public sealed class TelemetryRulesTests
     }
 
     /// <summary>
-    /// Every mix of behavioural signals with one signal from each other AI-assistance category, at every weight: a
-    /// behavioural code is a reason only when a category other than telemetry corroborates.
+    /// Every mix of behavioural signals with one signal from each other AI-assistance category, at every weight:
+    /// behavioural signals appear on the assessment only next to another category, and are reasons only when a category
+    /// other than telemetry corroborates.
     /// </summary>
     [Fact]
-    public void Behavioural_signals_are_reasons_only_alongside_another_category()
+    public void Behavioural_signals_appear_only_alongside_another_category()
     {
         string[] behavioural = [SignalCatalogue.PasteDominant, SignalCatalogue.FocusSwitching];
         string[] others = [SignalCatalogue.NearDuplicateAnswer, SignalCatalogue.ResumeGenerator, SignalCatalogue.PromptInjection];
@@ -134,7 +135,16 @@ public sealed class TelemetryRulesTests
                             ai.Level.Should().NotBe(nameof(AiAssistanceLevel.StrongIndicators), "telemetry is never the second category for the top level");
                         }
 
-                        ai.SignalIds.Should().Contain(beh.Select(s => s.Id), "behavioural signals are always shown, as context at least");
+                        if (otherSignals.Length == 0)
+                        {
+                            ai.SignalIds.Should().BeEmpty("telemetry alone is never shown");
+                            ai.AppliedRules.Should().Contain(IntegrityRuleset.TelemetryOnlyAlongsideAnotherCategory);
+                        }
+                        else
+                        {
+                            ai.SignalIds.Should().Contain(beh.Select(s => s.Id), "next to another category they are shown, as context at least");
+                        }
+
                         checkedCases++;
                     }
                 }

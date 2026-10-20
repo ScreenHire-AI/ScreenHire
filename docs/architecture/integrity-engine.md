@@ -279,13 +279,17 @@ between keys, so key values and content cannot leave the browser.
 - **Binding.** The last step's snapshot also travels in the form post (`telemetry`), so it is stored before analysis
   starts. Submission names the session (`telemetrySessionToken`) and, in the application's own transaction, binds the
   session's snapshots to the application before `ApplicationSubmitted` is published. With the switch on, it deletes
-  them instead. A bad token or snapshot never refuses an application.
+  them instead. A bad token, or a snapshot that fails the ingest checks, never refuses an application; it is dropped.
+  The snapshot's shape is part of the request contract, so an unknown member in it is a 400, which the careers server's
+  strict parsing never sends.
 - **Rules** (`TelemetryRules`, free-text answers only, autofilled fields left out). `BEH_PASTE_DOMINANT`: an answer of
   at least 40 entered characters of which 80% or more were pasted; the evidence is the pasted and entered character
   counts and the number of pastes. `BEH_FOCUS_SWITCHING`: the page hidden at least 5 times and one answer returned to
-  at least 5 times. Both feed AI assistance, are accessibility-sensitive and never raise a level on their own
-  (`telemetry-never-alone`). Next to a corroborating category other than telemetry they are reasons, and they are
-  never the second category for the top level.
+  at least 5 times. Both feed AI assistance and are accessibility-sensitive. Alone they are not shown on the
+  assessment at all (`telemetry-only-alongside-another-category`); next to another category they are context, and
+  reasons only when a category other than telemetry corroborates (`telemetry-never-alone`). They are never the second
+  category for the top level. Until a content analyzer exists, AI assistance has no other category, so in practice
+  behavioural signals are stored but not yet shown.
 - **Device check.** On the last step the module also fills `deviceFingerprint`, a SHA-256 of coarse browser traits
   (user agent, languages, screen, time zone, hardware concurrency; no canvas, audio or font probing), and
   `automationMarkers`. The API keyed-hashes the fingerprint per organization, as before. It keeps the fingerprint only
@@ -309,7 +313,7 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.2`)
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.3`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
@@ -319,6 +323,7 @@ For each assessment, in order:
 | Rule id | Rule |
 |---|---|
 | `accommodation-suppression` | With an accommodation, accessibility-sensitive signals are dropped. |
+| `telemetry-only-alongside-another-category` | Behavioural signals are shown only next to a signal of another category on the same assessment. Alone, they are dropped from the assessment: never a level, a reason or a line the recruiter reads. |
 | `telemetry-never-alone` | If no category other than `Behavioural` corroborates, the level is the lowest. |
 | `two-independent-categories` | If fewer than two categories corroborate, the level is the lowest. |
 | `top-level-needs-two-non-telemetry-categories` | The highest level needs two corroborating categories besides telemetry and a combined weight of at least 6; otherwise the middle level. |
@@ -425,8 +430,8 @@ it to the application, and the golden files run it through `TelemetryRules`.
 
 Expected results: genuine and honest AI-assisted `NoConcerns` (the VPN is context, with counter-evidence); the bot and
 every farm member `VerificationRecommended`; AI assistance `NotIndicated` for all, because no content analyzer exists
-yet. The honest AI-assisted candidate went back and forth to their assistant, so `BEH_FOCUS_SWITCHING` shows on their
-AI assistance assessment as context only.
+yet. The honest AI-assisted candidate went back and forth to their assistant, so the analyzer stores
+`BEH_FOCUS_SWITCHING`, but their AI assistance assessment does not show it: telemetry is never shown alone.
 
 ### 10.9 Known gaps
 

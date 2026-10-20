@@ -1,6 +1,6 @@
 {
   "applicant": "application-farm-1",
-  "rulesetVersion": "2026-10-20.2",
+  "rulesetVersion": "2026-10-20.3",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [
