@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Automations;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Domain.Automations;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
+using Wolverine;
 
 namespace ScreenHire.Application.Applications;
 
@@ -14,20 +18,32 @@ public sealed record ApplicationMoved(
     : ITenantEvent;
 
 /// <summary>
-/// Runs in the worker once per <see cref="ApplicationMoved"/>. Stage triggers hang off this event; today it reads the
-/// application back as its organization and logs the move.
+/// Runs in the worker once per <see cref="ApplicationMoved"/>: the workflow engine's <c>StageExited</c> trigger for the
+/// stage left and <c>StageEntered</c> for the stage entered, which also starts that stage's TimeElapsed timers. A move an
+/// automation made links its timeline entry to that run, so the engine can follow the chain (depth limit, cycles).
 /// </summary>
 public static partial class ApplicationMovedHandler
 {
-    public static async Task Handle(
-        ApplicationMoved message, ScreenHireDbContext db, ILogger<ApplicationMoved> logger, CancellationToken cancellationToken)
+    public static async Task<OutgoingMessages> Handle(
+        ApplicationMoved message, ScreenHireDbContext db, TimeProvider time, ILogger<ApplicationMoved> logger, CancellationToken cancellationToken)
     {
-        if (!await db.Applications.AsNoTracking().AnyAsync(a => a.Id == message.ApplicationId, cancellationToken))
-        {
-            throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
-        }
+        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken)
+            ?? throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
 
         LogMoved(logger, message.ApplicationId, message.FromStageId, message.ToStageId);
+        var causedByRunId = await db.ApplicationEvents.AsNoTracking()
+            .Where(e => e.Id == message.EventId)
+            .Select(e => e.Data)
+            .SingleOrDefaultAsync(cancellationToken);
+        AutomationTriggerEvent Trigger(TriggerType type, string stageId) =>
+            new(message.OrganizationId, message.ApplicationId, message.JobId, type, stageId, message.EventId, message.MovedAt, causedByRunId?.AutomationRunId);
+
+        return await AutomationEngine.EvaluateAsync(
+            db, time, application,
+            [Trigger(TriggerType.StageExited, message.FromStageId), Trigger(TriggerType.StageEntered, message.ToStageId)],
+            enteredStageId: message.ToStageId,
+            onlyAutomationId: null,
+            cancellationToken);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Application {ApplicationId} moved from {FromStageId} to {ToStageId}")]

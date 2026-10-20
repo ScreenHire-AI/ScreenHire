@@ -13,6 +13,9 @@ public sealed partial class Mailpit(Uri baseAddress)
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
+    // Automation emails go through the outbox, the worker queue and up to two handlers before they are sent.
+    private static readonly TimeSpan MessageTimeout = TimeSpan.FromSeconds(60);
+
     // One client for every instance: the fixture hands out a new Mailpit per access, and the wait polls every 100 ms.
     private static readonly HttpClient Client = new();
 
@@ -34,6 +37,34 @@ public sealed partial class Mailpit(Uri baseAddress)
     /// <summary>The link the newest sign-in email carries: the dashboard's verify page with the token in the fragment.</summary>
     public async Task<Uri> WaitForSignInLinkAsync(string address, CancellationToken cancellationToken) =>
         (await WaitForSignInLinksAsync(address, 1, cancellationToken))[0];
+
+    /// <summary>Every email to <paramref name="address"/>, newest first: subject and plain-text body.</summary>
+    public async Task<IReadOnlyList<MailpitMessage>> MessagesAsync(string address, CancellationToken cancellationToken) =>
+        await MessagesToAsync(address, cancellationToken);
+
+    /// <summary>Waits until at least <paramref name="count"/> emails have reached <paramref name="address"/>, then returns them all.</summary>
+    public async Task<IReadOnlyList<MailpitMessage>> WaitForMessagesAsync(string address, int count, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(MessageTimeout);
+        while (true)
+        {
+            var messages = await MessagesToAsync(address, cancellationToken);
+            if (messages.Count >= count)
+            {
+                return messages;
+            }
+
+            try
+            {
+                await Task.Delay(PollInterval, deadline.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"Mailpit received {messages.Count} of {count} emails for the test address within {MessageTimeout.TotalSeconds:0} s.");
+            }
+        }
+    }
 
     private async Task<IReadOnlyList<Uri>> WaitForSignInLinksAsync(string address, int count, CancellationToken cancellationToken)
     {
@@ -59,27 +90,28 @@ public sealed partial class Mailpit(Uri baseAddress)
     }
 
     private async Task<IReadOnlyList<Uri>> SignInLinksAsync(string address, CancellationToken cancellationToken) =>
-        [.. (await MessageTextsAsync(address, cancellationToken))
-            .Select(text => SignInLink().Match(text))
+        [.. (await MessagesToAsync(address, cancellationToken))
+            .Select(message => SignInLink().Match(message.Text))
             .Where(match => match.Success)
             .Select(match => new Uri(match.Value))];
 
-    // The one place that searches Mailpit and fetches message bodies: the plain-text body of every message to the
-    // address, newest first.
-    private async Task<IReadOnlyList<string>> MessageTextsAsync(string address, CancellationToken cancellationToken)
+    // The one place that searches Mailpit and fetches message bodies: the subject and plain-text body of every message
+    // to the address, newest first.
+    private async Task<IReadOnlyList<MailpitMessage>> MessagesToAsync(string address, CancellationToken cancellationToken)
     {
         var search = await Client.GetFromJsonAsync<JsonElement>(
             new Uri(baseAddress, $"/api/v1/search?query={Uri.EscapeDataString($"to:\"{address}\"")}"), cancellationToken);
 
-        var texts = new List<string>();
+        var messages = new List<MailpitMessage>();
         foreach (var summary in search.GetProperty("messages").EnumerateArray())
         {
             var message = await Client.GetFromJsonAsync<JsonElement>(
                 new Uri(baseAddress, $"/api/v1/message/{summary.GetProperty("ID").GetString()}"), cancellationToken);
-            texts.Add(message.GetProperty("Text").GetString() ?? "");
+            messages.Add(new MailpitMessage(
+                message.GetProperty("Subject").GetString() ?? "", message.GetProperty("Text").GetString() ?? "", message.GetProperty("HTML").GetString() ?? ""));
         }
 
-        return texts;
+        return messages;
     }
 
     private static string TokenOf(Uri link) => SignInToken().Match(link.Fragment).Groups["token"].Value;
@@ -90,3 +122,6 @@ public sealed partial class Mailpit(Uri baseAddress)
     [GeneratedRegex(@"https?://\S+#token=[A-Za-z0-9_-]+")]
     private static partial Regex SignInLink();
 }
+
+/// <summary>One email as Mailpit stored it.</summary>
+public sealed record MailpitMessage(string Subject, string Text, string Html);

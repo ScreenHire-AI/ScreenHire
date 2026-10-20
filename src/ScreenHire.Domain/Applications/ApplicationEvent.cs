@@ -28,10 +28,16 @@ public enum ApplicationEventType
 {
     Submitted,
     StageChanged,
+    TagAdded,
 }
 
 /// <summary>
 /// An event's details. One flat record for every event type, with what does not apply left null, so the timeline API
 /// and the JSONB column stay one simple shape. Add members as optional.
 /// </summary>
-public sealed record ApplicationEventData(string? FromStageId = null, string? ToStageId = null, string? Note = null);
+/// <remarks>
+/// <c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did. The engine
+/// follows it to find which automations led to a move (depth limit and cycle detection).
+/// </remarks>
+public sealed record ApplicationEventData(
+    string? FromStageId = null, string? ToStageId = null, string? Note = null, string? Tag = null, Guid? AutomationRunId = null);

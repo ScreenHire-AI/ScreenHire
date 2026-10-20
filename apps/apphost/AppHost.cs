@@ -54,7 +54,7 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator =>
 });
 var blobs = storage.AddBlobs("blobs");
 
-// Mailpit catches every email the stack sends (sign-in links); its web UI and HTTP API show them. Random ports, like
+// Mailpit catches every email the stack sends (sign-in links, automation emails); its web UI and HTTP API show them. Random ports, like
 // the other containers, so worktrees never collide; the Aspire dashboard shows the URL.
 var mailpit = builder.AddMailPit("mailpit")
     // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
@@ -98,6 +98,8 @@ if (builder.Environment.IsDevelopment())
 
 builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
+    // Automations send transactional email (application received, stage change) from the worker.
+    .WithReference(mailpit)
     .WaitFor(api); // the API applies migrations and sets the app role's password in Development
 
 if (frontends != FrontendMode.None)

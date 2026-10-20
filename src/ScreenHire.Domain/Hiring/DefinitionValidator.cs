@@ -14,22 +14,30 @@ public sealed record DefinitionError(string Path, string Message);
 /// </summary>
 public static partial class DefinitionValidator
 {
-    /// <summary>Facts a condition may test besides <c>answers.{questionId}</c>.</summary>
-    public static IReadOnlySet<string> KnownFacts { get; } = new HashSet<string>(StringComparer.Ordinal)
+    /// <summary>Facts a condition may test besides <c>answers.{questionId}</c>; their types are in <see cref="FactSchema"/>.</summary>
+    public static IReadOnlySet<string> KnownFacts { get; } =
+        new HashSet<string>(FactSchema.ApplicationFacts.Select(f => f.Name), StringComparer.Ordinal);
+
+    // Timing facts stay (application.hoursInStage, TimeElapsed); the workflow engine skips them for an application with
+    // an accommodation (workflow-engine.md §2, guardrail 4). FactSchema says why accommodation is not a fact.
+    private const string AnswersPrefix = FactSchema.AnswersPrefix;
+
+    // Kinds the definition model names but the engine does not run yet. Refused at save, so no definition carries one
+    // the engine would silently ignore. Verification is phase 2 (CLAUDE.md non-negotiable 3); the others need features
+    // that do not exist yet (questionnaire sending, scheduling, candidate replies).
+    private static readonly Dictionary<ActionType, string> UnavailableActions = new()
     {
-        "integrity.authenticity",
-        "integrity.aiAssistance",
-        "verification.result",
-        "application.tags",
-        "application.source",
-        "application.hoursInStage",
+        [ActionType.RequestVerification] = "Verification requests arrive in phase 2 and cannot be used yet.",
+        [ActionType.SendQuestionnaire] = "Sending a questionnaire is not available yet.",
+        [ActionType.ScheduleInterview] = "Interview scheduling is not available yet.",
     };
 
-    // Accommodation status and the AI-use declaration are deliberately absent: a condition on them would hold a request
-    // for accommodation or an honest disclosure against a candidate (CLAUDE.md non-negotiable 4). Timing facts stay
-    // (application.hoursInStage, TimeElapsed); the workflow engine skips them for an application with an accommodation
-    // (workflow-engine.md §2, guardrail 4).
-    private const string AnswersPrefix = "answers.";
+    private static readonly Dictionary<TriggerType, string> UnavailableTriggers = new()
+    {
+        [TriggerType.VerificationCompleted] = "Verification arrives in phase 2; this trigger cannot be used yet.",
+        [TriggerType.CandidateReplied] = "Candidate replies are not tracked yet; this trigger cannot be used yet.",
+        [TriggerType.InterviewScheduled] = "Interview scheduling is not available yet; this trigger cannot be used yet.",
+    };
 
     // What an automation that uses an integrity or verification signal may do: route and step up, never reject
     // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages.
@@ -380,7 +388,7 @@ public static partial class DefinitionValidator
         }
 
         return automation.Conditions?.Rules?.Any(rule => rule is not null
-            && (IsSignalFact(rule.Fact) || (rule.Fact == "application.tags" && ReadsTaintedTag(rule, taintedTags)))) == true;
+            && (FactSchema.IsSignal(rule.Fact) || (rule.Fact == FactSchema.Tags && ReadsTaintedTag(rule, taintedTags)))) == true;
     }
 
     // Conservative: any test that could match a tainted tag counts.
@@ -403,6 +411,11 @@ public static partial class DefinitionValidator
         {
             errors.Add(new(Join(path, "type"), "Unknown trigger."));
             return;
+        }
+
+        if (UnavailableTriggers.TryGetValue(trigger.Type, out var unavailable))
+        {
+            errors.Add(new(Join(path, "type"), unavailable));
         }
 
         var needsStage = trigger.Type is TriggerType.StageEntered or TriggerType.StageExited or TriggerType.TimeElapsed;
@@ -456,11 +469,21 @@ public static partial class DefinitionValidator
                 continue;
             }
 
-            if (!IsKnownFact(rule.Fact, questions))
+            var fact = FactSchema.Find(rule.Fact, questions);
+            if (fact is null)
             {
                 errors.Add(new(Join(rulePath, "fact"), rule.Fact?.StartsWith(AnswersPrefix, StringComparison.Ordinal) == true
                     ? $"No question has the id '{rule.Fact[AnswersPrefix.Length..]}'."
                     : $"Unknown fact '{rule.Fact}'."));
+            }
+            else if (Enum.IsDefined(rule.Operator) && !FactSchema.OperatorsFor(fact.Type).Contains(rule.Operator))
+            {
+                errors.Add(new(Join(rulePath, "operator"),
+                    $"{rule.Operator} does not apply to {fact.Name}, a {Describe(fact.Type)} fact. Use {string.Join(", ", FactSchema.OperatorsFor(fact.Type).Order())}."));
+            }
+            else
+            {
+                ValidateOperands(rule, fact, rulePath, questions, errors);
             }
 
             switch (rule.Operator)
@@ -517,6 +540,11 @@ public static partial class DefinitionValidator
                 continue;
             }
 
+            if (UnavailableActions.TryGetValue(action.Type, out var unavailable))
+            {
+                errors.Add(new(Join(actionPath, "type"), unavailable));
+            }
+
             ValidateActionFields(action, actionPath, stages, errors);
         }
     }
@@ -571,7 +599,11 @@ public static partial class DefinitionValidator
             ValidateStageReference(action.StageId, Join(path, "stageId"), stages, errors);
         }
 
-        ValidateText(action.EmailTemplate, Join(path, "emailTemplate"), 100, required: false, errors);
+        if (action.EmailTemplate is not null && !EmailTemplateIds.All.Contains(action.EmailTemplate))
+        {
+            errors.Add(new(Join(path, "emailTemplate"), $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}."));
+        }
+
         ValidateText(action.Tag, Join(path, "tag"), 50, required: false, errors);
         ValidateText(action.Reason, Join(path, "reason"), 500, required: false, errors);
         ValidateText(action.Note, Join(path, "note"), 1000, required: false, errors);
@@ -683,12 +715,39 @@ public static partial class DefinitionValidator
         ValidateText(defaults.Description, Join(path, "description"), 50_000, required: false, errors);
     }
 
-    private static bool IsKnownFact(string? fact, Dictionary<string, Question> questions) =>
-        fact is not null && (KnownFacts.Contains(fact)
-            || (fact.StartsWith(AnswersPrefix, StringComparison.Ordinal) && questions.ContainsKey(fact[AnswersPrefix.Length..])));
+    // The operands a typed fact can hold: yes or no for a yes/no answer, option ids for a choice answer, a number for a
+    // number fact. Anything else could never match, which is a silent bug in a saved rule.
+    private static void ValidateOperands(
+        AutomationCondition rule, FactDefinition fact, string path, Dictionary<string, Question> questions, List<DefinitionError> errors)
+    {
+        var operands = rule.Operator == ConditionOperator.In ? rule.Values ?? [] : rule.Value is null ? [] : [rule.Value];
+        var operandPath = Join(path, rule.Operator == ConditionOperator.In ? "values" : "value");
+        switch (fact.Type)
+        {
+            case FactType.YesNo when operands.Any(o => o is not ("yes" or "no")):
+                errors.Add(new(operandPath, "A yes/no answer is \"yes\" or \"no\"."));
+                break;
+            case FactType.Number when operands.Any(o => !FactSchema.TryParseNumber(o, out _)):
+                errors.Add(new(operandPath, $"{fact.Name} is a number; compare it with a number such as 48."));
+                break;
+            case FactType.Choice or FactType.MultiChoice:
+                var options = questions[fact.Name[AnswersPrefix.Length..]].Options?.Where(o => o is not null).Select(o => o.Id).ToHashSet(StringComparer.Ordinal) ?? [];
+                if (operands.FirstOrDefault(o => o is not null && !options.Contains(o)) is { } unknown)
+                {
+                    errors.Add(new(operandPath, $"The question has no option with the id '{unknown}'; compare option ids, not labels."));
+                }
 
-    private static bool IsSignalFact(string? fact) =>
-        fact is not null && (fact.StartsWith("integrity.", StringComparison.Ordinal) || fact.StartsWith("verification.", StringComparison.Ordinal));
+                break;
+        }
+    }
+
+    private static string Describe(FactType type) => type switch
+    {
+        FactType.TextList => "list",
+        FactType.MultiChoice => "multiple-choice",
+        FactType.YesNo => "yes/no",
+        _ => type.ToString().ToLowerInvariant(),
+    };
 
     // answers.{id} EqualTo the knockout's disqualifying answer ("yes" or "no"), not negated: anything else could reject
     // an eligible candidate.

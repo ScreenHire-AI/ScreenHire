@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Automations;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -178,6 +179,7 @@ public static class ScreenHireMessaging
         ArgumentNullException.ThrowIfNull(settings);
 
         opts.Discovery.IncludeAssembly(typeof(ScreenHireMessaging).Assembly);
+        opts.Services.AddScreenHireAutomations();
 
         UsePostgres(opts, connectionString, settings);
         opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox();
@@ -212,22 +214,25 @@ public static class ScreenHireMessaging
         ArgumentNullException.ThrowIfNull(opts);
         ArgumentNullException.ThrowIfNull(settings);
 
+        // The last step of every branch also turns a dead-lettered automation action into an automation issue
+        // (AutomationFailures); for any other message it does nothing.
         var policy = opts.Policies.OnAnyException();
         if (settings.RetryDelays.Length > 0 && settings.ScheduledRetryDelays.Length > 0)
         {
-            policy.RetryWithCooldown(settings.RetryDelays).Then.ScheduleRetry(settings.ScheduledRetryDelays).Then.MoveToErrorQueue();
+            policy.RetryWithCooldown(settings.RetryDelays).Then.ScheduleRetry(settings.ScheduledRetryDelays).Then.MoveToErrorQueue()
+                .And(AutomationFailures.ReportAsync, AutomationFailures.Description);
         }
         else if (settings.RetryDelays.Length > 0)
         {
-            policy.RetryWithCooldown(settings.RetryDelays).Then.MoveToErrorQueue();
+            policy.RetryWithCooldown(settings.RetryDelays).Then.MoveToErrorQueue().And(AutomationFailures.ReportAsync, AutomationFailures.Description);
         }
         else if (settings.ScheduledRetryDelays.Length > 0)
         {
-            policy.ScheduleRetry(settings.ScheduledRetryDelays).Then.MoveToErrorQueue();
+            policy.ScheduleRetry(settings.ScheduledRetryDelays).Then.MoveToErrorQueue().And(AutomationFailures.ReportAsync, AutomationFailures.Description);
         }
         else
         {
-            policy.MoveToErrorQueue();
+            policy.MoveToErrorQueue().And(AutomationFailures.ReportAsync, AutomationFailures.Description);
         }
     }
 
