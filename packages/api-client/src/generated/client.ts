@@ -5,12 +5,46 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  ApiMeta,
   JobSummary,
   PublicJob,
   PublicJobBoard
 } from './model';
 
 import { apiFetch } from '../http.ts';
+export type getMetaResponse200 = {
+  data: ApiMeta
+  status: 200
+}
+
+export type getMetaResponseSuccess = (getMetaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getMetaResponse = (getMetaResponseSuccess)
+
+export const getGetMetaUrl = () => {
+
+
+
+
+  return `/v1/meta`
+}
+
+export const getMeta = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getMetaResponse> => {
+
+  return apiFetch<getMetaResponse>(getGetMetaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type listPublicJobsResponse200 = {
   data: PublicJobBoard
   status: 200

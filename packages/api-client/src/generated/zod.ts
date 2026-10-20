@@ -6,6 +6,13 @@
  */
 import * as zod from 'zod';
 
+export const GetMetaResponse = zod.object({
+  "name": zod.string(),
+  "version": zod.string(),
+  "environment": zod.string()
+}).describe('What is serving this API: the product name, the build version and the hosting environment.')
+
+
 export const ListPublicJobsParams = zod.object({
   "organizationSlug": zod.string()
 })

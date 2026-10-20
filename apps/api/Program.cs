@@ -24,6 +24,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 app.MapOpenApi();
+app.MapMetaEndpoints();
 app.MapPublicJobEndpoints();
 app.MapJobEndpoints();
 
