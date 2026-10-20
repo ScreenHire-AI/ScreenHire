@@ -58,7 +58,12 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
 ## Background work and integrations
 
 - Background and asynchronous work is Wolverine with the Postgres outbox, so a message commits in the same
-  transaction as the data. No `BackgroundService` polling loops for product work.
+  transaction as the data. No `BackgroundService` polling loops for product work. Contracts and handlers live in
+  `src/ScreenHire.Application`; the API publishes through `IDbContextOutbox<ScreenHireDbContext>` and never handles;
+  the worker handles. Procedure: `/add-message`. Design and idempotency: `docs/architecture/messaging.md`.
+- Handlers are idempotent: a state check, unique index or upsert for the effect, plus `[Deduplicated]` on an
+  idempotency key when one intent can arrive in two envelopes. Never swallow an exception in a handler; the retry
+  policy and the dead-letter table depend on it.
 - Every external integration (email, OIDC, LLMs, job boards, IP intelligence) sits behind an interface with a local
   adapter: a container in the AppHost or an in-process fake. A provider with no configuration is hidden, never an
   error, and no test needs a key or the internet.

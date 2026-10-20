@@ -10,12 +10,13 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 |---|---|
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
 | `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`); emits `packages/api-client/openapi.json` at build |
-| `apps/worker` | .NET background worker (Wolverine messaging lands here) |
+| `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
 | `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |
 | `packages/api-client` | Orval-generated TS client + Zod schemas (do not edit `src/generated`) |
+| `src/ScreenHire.Application` | Message contracts (`ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
@@ -111,19 +112,27 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
 ## Backend rules
 
 Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Procedures: `/add-endpoint`,
-`/add-migration`.
+`/add-migration`, `/add-message`.
 
 - .NET 10, central package management (`Directory.Packages.props`). **Licence policy (ADR-0008):** MIT/Apache/BSD
   preferred; do not add MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText,
   or Polly/Verify directly. Check the licence of every new package.
 - Minimal APIs with `TypedResults`, one `Map*Endpoints` extension per area under `apps/api/Endpoints`, DTO records in
   `apps/api/Contracts`. Enums serialize as strings; numbers are strict (clean OpenAPI → clean TS).
-- Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops).
+- Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops); see
+  [`docs/architecture/messaging.md`](docs/architecture/messaging.md) and `/add-message`. The API only publishes, through
+  `IDbContextOutbox<ScreenHireDbContext>` and one `SaveChangesAndFlushMessagesAsync`; the worker runs every handler.
+  Client-visible events implement `ITenantEvent`.
+- Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
+  twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
+  `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,
+  unique index or upsert).
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
-  settings need it.
+  settings need it. The DbContext is registered without EF's retrying execution strategy (`DisableRetry`), which
+  refuses the outbox's transaction.
 
 ## Claude Code tooling
 
-Skills (`/add-endpoint`, `/add-migration`, `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`,
-`/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
+Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-dashboard-page`, `/add-careers-page`,
+`/add-marketing-page`, `/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
 [`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).

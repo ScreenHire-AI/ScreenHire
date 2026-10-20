@@ -7,6 +7,7 @@
 import type {
   ApiMeta,
   JobSummary,
+  ProblemDetails,
   PublicJob,
   PublicJobBoard
 } from './model';
@@ -153,6 +154,51 @@ export const listJobs = async ( options?: Parameters<typeof apiFetch>[1]): Promi
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type publishJobResponse200 = {
+  data: JobSummary
+  status: 200
+}
+
+export type publishJobResponse404 = {
+  data: void
+  status: 404
+}
+
+export type publishJobResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type publishJobResponseSuccess = (publishJobResponse200) & {
+  headers: Headers;
+};
+export type publishJobResponseError = (publishJobResponse404 | publishJobResponse409) & {
+  headers: Headers;
+};
+
+export type publishJobResponse = (publishJobResponseSuccess | publishJobResponseError)
+
+export const getPublishJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/publish`
+}
+
+export const publishJob = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<publishJobResponse> => {
+
+  return apiFetch<publishJobResponse>(getPublishJobUrl(jobId),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

@@ -1,13 +1,23 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Endpoints;
+using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<ScreenHireDbContext>("screenhire", configureDbContextOptions: options => options.UseScreenHireConventions());
+// No EF retrying execution strategy: it refuses the explicit transaction that Wolverine's outbox and handler
+// middleware open. Failed messages are retried by Wolverine's error policy instead (ScreenHireMessaging).
+builder.AddNpgsqlDbContext<ScreenHireDbContext>(
+    ScreenHireMessaging.ConnectionName,
+    settings => settings.DisableRetry = true,
+    options => options.UseScreenHireConventions());
 builder.AddAzureBlobServiceClient("blobs");
+
+// Wolverine publishing only: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with
+// the data and the worker handles it (docs/architecture/messaging.md).
+builder.AddScreenHireMessagePublishing();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();

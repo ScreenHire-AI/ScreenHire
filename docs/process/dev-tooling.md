@@ -11,6 +11,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | Skill | Use it when | What it does |
 |---|---|---|
 | [`add-endpoint`](../../.claude/skills/add-endpoint/SKILL.md) | adding or changing an API route or a request/response shape | DTO records in `Contracts/`, a `Map*Endpoints` area with `TypedResults`, authorization and validation, an Aspire integration test, `pnpm generate:api` |
+| [`add-message`](../../.claude/skills/add-message/SKILL.md) | adding background work, a domain event or a scheduled job | contract in `ScreenHire.Application`, worker handler, publishing through the EF Core outbox, idempotency keys, `ITenantEvent`, scheduled or cron delivery, an Aspire integration test |
 | [`add-migration`](../../.claude/skills/add-migration/SKILL.md) | an entity or EF configuration changes | naming, generating and reviewing the SQL, the tenant-table checklist (`OrganizationId`, query filter, RLS, grants), the never-edit-merged and merge-conflict rules |
 | [`add-dashboard-page`](../../.claude/skills/add-dashboard-page/SKILL.md) | adding a recruiter-dashboard screen | SvelteKit 3 route with runes, `#lib` imports, `$app/state`, shadcn-svelte, the generated client, loading/empty/error states, Vitest and Playwright tests |
 | [`add-careers-page`](../../.claude/skills/add-careers-page/SKILL.md) | adding a candidate-facing page | Astro SSR route, `CareersLayout`, server-side API data, 404/410, `JobPosting` JSON-LD, no client JS, notice before collection |
@@ -66,13 +67,11 @@ Every command in these files was run once when they were written (October 2026),
 
 | Command | Named in | Why not |
 |---|---|---|
-| `dotnet test --project tests/ScreenHire.UnitTests ...` | `test-builder` | the project is not on `main` yet |
-| `dotnet test --project tests/ScreenHire.E2E ...` | `test-builder`, the three page skills | the project is not on `main` yet |
-| `pnpm --filter <package> test` | `test-builder`, `add-dashboard-page`, `add-careers-page` | no package has a Vitest `test` script yet |
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
 
-The test steps say what to do when a tier is missing on a branch: cover the behaviour at a tier that exists and say
-so in the summary. When the unit, Vitest and end-to-end tiers land, run one command from each and update this table.
+The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
+`pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run
+once on 2026-10-20, after the test harness landed.
 
 ## Adding to this
 
