@@ -17,23 +17,41 @@ const job = jobResponse.data;
 const board = boardResponse.data;
 const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
 
-// schema.org JobPosting for Google for Jobs (docs/architecture/job-distribution.md).
+// schema.org JobPosting for Google for Jobs (docs/architecture/job-distribution.md), from the structured fields. The
+// description is HTML, as Google expects; the API sanitized it on the way in.
+const address = (location: (typeof job.locations)[number]) => ({
+  '@type': 'PostalAddress',
+  ...(location.city && { addressLocality: location.city }),
+  ...(location.region && { addressRegion: location.region }),
+  ...(location.country && { addressCountry: location.country }),
+});
+const places = job.locations.map((location) => ({ '@type': 'Place', address: address(location) }));
 const jobPosting = {
   '@context': 'https://schema.org',
   '@type': 'JobPosting',
   title: job.title,
-  description: `<p>${job.title} at ${board.organizationName}.</p>`,
+  description: job.description || `<p>${job.title} at ${board.organizationName}.</p>`,
   datePosted: job.publishedAt,
+  ...(job.validThrough && { validThrough: job.validThrough }),
   employmentType: job.employmentType.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
   hiringOrganization: { '@type': 'Organization', name: board.organizationName },
+  ...(job.department && { occupationalCategory: job.department }),
   ...(job.workplaceType === 'Remote'
-    ? { jobLocationType: 'TELECOMMUTE', applicantLocationRequirements: { '@type': 'Country', name: job.location } }
-    : { jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: job.location } } }),
+    ? {
+        jobLocationType: 'TELECOMMUTE',
+        applicantLocationRequirements: job.applicantLocationRequirements.map((country) => ({ '@type': 'Country', name: country })),
+      }
+    : { jobLocation: places.length === 1 ? places[0] : places }),
   ...(job.salaryMin != null && {
     baseSalary: {
       '@type': 'MonetaryAmount',
       currency: job.salaryCurrency,
-      value: { '@type': 'QuantitativeValue', minValue: job.salaryMin, maxValue: job.salaryMax, unitText: 'YEAR' },
+      value: {
+        '@type': 'QuantitativeValue',
+        minValue: job.salaryMin,
+        maxValue: job.salaryMax,
+        unitText: (job.salaryPeriod ?? 'Year').toUpperCase(),
+      },
     },
   }),
 };
@@ -54,6 +72,16 @@ const jobPosting = {
     <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
     {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
   </div>
+
+  {
+    job.description && (
+      <section
+        aria-label="About the role"
+        class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+        set:html={job.description}
+      />
+    )
+  }
 
   <section aria-label="How we protect applicants" class="mt-6 rounded-2xl border border-candidate-border bg-candidate-surface p-5">
     <h2 class="text-base font-bold">How we keep this fair</h2>

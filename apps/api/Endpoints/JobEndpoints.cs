@@ -28,20 +28,23 @@ internal static class JobEndpoints
         group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateJob).WithName("CreateJob")
             .RequireAntiforgeryToken()
-            .RequireOrganization()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").Produces(StatusCodes.Status401Unauthorized);

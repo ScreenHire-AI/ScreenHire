@@ -26,7 +26,7 @@ internal static class ApplicationEndpoints
         jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").Produces(StatusCodes.Status401Unauthorized);
         jobs.MapPost("/", CreateApplication).WithName("CreateApplication")
             .RequireAntiforgeryToken()
-            .RequireOrganization()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
@@ -34,6 +34,7 @@ internal static class ApplicationEndpoints
         applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline")

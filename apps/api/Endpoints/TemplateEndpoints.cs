@@ -29,25 +29,29 @@ internal static class TemplateEndpoints
         group.MapGet("/", ListTemplates).WithName("ListHiringTemplates").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateTemplate).WithName("CreateHiringTemplate")
             .RequireAntiforgeryToken()
-            .RequireOrganization()
+            .RequireHiringRole()
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId:guid}", GetTemplate).WithName("GetHiringTemplate").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{templateId:guid}", UpdateTemplate).WithName("UpdateHiringTemplate")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{templateId:guid}/versions", CreateVersion).WithName("CreateHiringTemplateVersion")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId:guid}/versions/{version:int}", GetVersion).WithName("GetHiringTemplateVersion")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{templateId:guid}/versions/{version:int}", UpdateVersion).WithName("UpdateHiringTemplateVersion")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{templateId:guid}/versions/{version:int}/publish", PublishVersion).WithName("PublishHiringTemplateVersion")
             .RequireAntiforgeryToken()
+            .RequireHiringRole()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 

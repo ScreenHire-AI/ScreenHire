@@ -90,9 +90,11 @@ Owner membership in one transaction, under a per-user advisory lock, so a double
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain.
 
-Roles are recorded and returned by `GET /v1/auth/me`, but no endpoint checks them yet: any member can do
-everything the API offers, including publishing a job. Today that is only Owners, because onboarding is the one way
-to join an organization. Role policies have to land before any flow lets someone join with another role.
+Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
+applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
+write, Viewers only read, and anyone else gets 403. The role is read per request. Today every member is an Owner,
+because onboarding is the one way to join an organization; a flow that lets someone join with another role must
+check that its own routes use the same filter.
 
 ## Tenant isolation
 

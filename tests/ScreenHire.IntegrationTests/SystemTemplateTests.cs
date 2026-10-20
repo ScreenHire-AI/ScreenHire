@@ -50,6 +50,7 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         job.Text("template.templateId").Should().Be(templateId.ToString());
         published.Text("status").Should().Be("Open");
         published.At("validThrough").ValueKind.Should().Be(JsonValueKind.String, "both templates set a posting duration");
+        published.At("hasUnpublishedChanges").GetBoolean().Should().BeFalse("the job still equals the version just frozen");
         var application = await recruiter.CreateApplicationAsync(job.Id(), "casey.morgan@example.com");
         application.Text("stage.kind").Should().Be("Applied");
     }

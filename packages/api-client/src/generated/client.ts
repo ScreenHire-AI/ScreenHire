@@ -654,6 +654,11 @@ export type updateJobResponse401 = {
   status: 401
 }
 
+export type updateJobResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type updateJobResponse404 = {
   data: void
   status: 404
@@ -667,7 +672,7 @@ export type updateJobResponse409 = {
 export type updateJobResponseSuccess = (updateJobResponse200) & {
   headers: Headers;
 };
-export type updateJobResponseError = (updateJobResponse400 | updateJobResponse401 | updateJobResponse404 | updateJobResponse409) & {
+export type updateJobResponseError = (updateJobResponse400 | updateJobResponse401 | updateJobResponse403 | updateJobResponse404 | updateJobResponse409) & {
   headers: Headers;
 };
 
@@ -724,6 +729,11 @@ export type publishJobResponse401 = {
   status: 401
 }
 
+export type publishJobResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type publishJobResponse404 = {
   data: void
   status: 404
@@ -737,7 +747,7 @@ export type publishJobResponse409 = {
 export type publishJobResponseSuccess = (publishJobResponse200) & {
   headers: Headers;
 };
-export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse404 | publishJobResponse409) & {
+export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409) & {
   headers: Headers;
 };
 
@@ -774,6 +784,11 @@ export type closeJobResponse401 = {
   status: 401
 }
 
+export type closeJobResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type closeJobResponse404 = {
   data: void
   status: 404
@@ -782,7 +797,7 @@ export type closeJobResponse404 = {
 export type closeJobResponseSuccess = (closeJobResponse200) & {
   headers: Headers;
 };
-export type closeJobResponseError = (closeJobResponse401 | closeJobResponse404) & {
+export type closeJobResponseError = (closeJobResponse401 | closeJobResponse403 | closeJobResponse404) & {
   headers: Headers;
 };
 
@@ -1110,6 +1125,11 @@ export type updateHiringTemplateResponse401 = {
   status: 401
 }
 
+export type updateHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type updateHiringTemplateResponse404 = {
   data: void
   status: 404
@@ -1123,7 +1143,7 @@ export type updateHiringTemplateResponse409 = {
 export type updateHiringTemplateResponseSuccess = (updateHiringTemplateResponse200) & {
   headers: Headers;
 };
-export type updateHiringTemplateResponseError = (updateHiringTemplateResponse400 | updateHiringTemplateResponse401 | updateHiringTemplateResponse404 | updateHiringTemplateResponse409) & {
+export type updateHiringTemplateResponseError = (updateHiringTemplateResponse400 | updateHiringTemplateResponse401 | updateHiringTemplateResponse403 | updateHiringTemplateResponse404 | updateHiringTemplateResponse409) & {
   headers: Headers;
 };
 
@@ -1180,6 +1200,11 @@ export type createHiringTemplateVersionResponse401 = {
   status: 401
 }
 
+export type createHiringTemplateVersionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type createHiringTemplateVersionResponse404 = {
   data: void
   status: 404
@@ -1193,7 +1218,7 @@ export type createHiringTemplateVersionResponse409 = {
 export type createHiringTemplateVersionResponseSuccess = (createHiringTemplateVersionResponse201) & {
   headers: Headers;
 };
-export type createHiringTemplateVersionResponseError = (createHiringTemplateVersionResponse400 | createHiringTemplateVersionResponse401 | createHiringTemplateVersionResponse404 | createHiringTemplateVersionResponse409) & {
+export type createHiringTemplateVersionResponseError = (createHiringTemplateVersionResponse400 | createHiringTemplateVersionResponse401 | createHiringTemplateVersionResponse403 | createHiringTemplateVersionResponse404 | createHiringTemplateVersionResponse409) & {
   headers: Headers;
 };
 
@@ -1297,6 +1322,11 @@ export type updateHiringTemplateVersionResponse401 = {
   status: 401
 }
 
+export type updateHiringTemplateVersionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type updateHiringTemplateVersionResponse404 = {
   data: void
   status: 404
@@ -1310,7 +1340,7 @@ export type updateHiringTemplateVersionResponse409 = {
 export type updateHiringTemplateVersionResponseSuccess = (updateHiringTemplateVersionResponse200) & {
   headers: Headers;
 };
-export type updateHiringTemplateVersionResponseError = (updateHiringTemplateVersionResponse400 | updateHiringTemplateVersionResponse401 | updateHiringTemplateVersionResponse404 | updateHiringTemplateVersionResponse409) & {
+export type updateHiringTemplateVersionResponseError = (updateHiringTemplateVersionResponse400 | updateHiringTemplateVersionResponse401 | updateHiringTemplateVersionResponse403 | updateHiringTemplateVersionResponse404 | updateHiringTemplateVersionResponse409) & {
   headers: Headers;
 };
 
@@ -1369,6 +1399,11 @@ export type publishHiringTemplateVersionResponse401 = {
   status: 401
 }
 
+export type publishHiringTemplateVersionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type publishHiringTemplateVersionResponse404 = {
   data: void
   status: 404
@@ -1382,7 +1417,7 @@ export type publishHiringTemplateVersionResponse409 = {
 export type publishHiringTemplateVersionResponseSuccess = (publishHiringTemplateVersionResponse200) & {
   headers: Headers;
 };
-export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse400 | publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409) & {
+export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse400 | publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse403 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409) & {
   headers: Headers;
 };
 
@@ -1591,6 +1626,11 @@ export type moveApplicationResponse401 = {
   status: 401
 }
 
+export type moveApplicationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type moveApplicationResponse404 = {
   data: void
   status: 404
@@ -1604,7 +1644,7 @@ export type moveApplicationResponse409 = {
 export type moveApplicationResponseSuccess = (moveApplicationResponse200) & {
   headers: Headers;
 };
-export type moveApplicationResponseError = (moveApplicationResponse400 | moveApplicationResponse401 | moveApplicationResponse404 | moveApplicationResponse409) & {
+export type moveApplicationResponseError = (moveApplicationResponse400 | moveApplicationResponse401 | moveApplicationResponse403 | moveApplicationResponse404 | moveApplicationResponse409) & {
   headers: Headers;
 };
 

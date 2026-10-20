@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Auth;
-using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
@@ -19,7 +18,7 @@ builder.AddScreenHireAuthentication();
 // the data and the worker handles it (docs/architecture/messaging.md).
 builder.AddScreenHireMessagePublishing();
 
-builder.Services.AddSingleton<TimeProvider>(new DatabasePrecisionTimeProvider());
+builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
 builder.Services.AddHiringValidation();
@@ -60,7 +59,7 @@ if (app.Environment.IsDevelopment())
     var ownerConnectionString = builder.Configuration.GetConnectionString(DatabaseRegistration.OwnerConnectionName)
         ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.OwnerConnectionName} is not set.");
     await DevelopmentDataSeeder.MigrateAndSeedAsync(
-        ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, TimeProvider.System);
+        ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, DatabasePrecisionTimeProvider.Instance);
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
 }
 
