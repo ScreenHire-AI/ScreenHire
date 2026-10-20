@@ -66,8 +66,10 @@ public sealed class IpIntelligence : IIpIntelligence
         var network = options.Value.Network;
         ranges = [.. network.Ranges.Where(r => IPNetwork.TryParse(r.Cidr, out _)).Select(r => (IPNetwork.Parse(r.Cidr), r))];
         hostingAsns = [.. KnownHostingAsns, .. network.HostingAsns];
-        ip2Asn = new(() => string.IsNullOrWhiteSpace(network.Ip2AsnFile) ? null : Ip2AsnTable.Load(network.Ip2AsnFile));
-        torExits = new(() => string.IsNullOrWhiteSpace(network.TorExitListFile) ? null : LoadTorExits(network.TorExitListFile));
+        // PublicationOnly: a read that fails is tried again on the next lookup instead of being cached. The worker checks
+        // the files exist at startup (NetworkSourceFiles in ScreenHire.Application).
+        ip2Asn = new(() => string.IsNullOrWhiteSpace(network.Ip2AsnFile) ? null : Ip2AsnTable.Load(network.Ip2AsnFile), LazyThreadSafetyMode.PublicationOnly);
+        torExits = new(() => string.IsNullOrWhiteSpace(network.TorExitListFile) ? null : LoadTorExits(network.TorExitListFile), LazyThreadSafetyMode.PublicationOnly);
         IsConfigured = ranges.Count > 0 || !string.IsNullOrWhiteSpace(network.Ip2AsnFile) || !string.IsNullOrWhiteSpace(network.TorExitListFile);
     }
 

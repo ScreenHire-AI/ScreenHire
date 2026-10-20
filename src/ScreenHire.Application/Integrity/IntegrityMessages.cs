@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Infrastructure.Integrity;
@@ -90,21 +89,4 @@ public static partial class PurgeOrganizationIntegrityDataHandler
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Organization {OrganizationId}: purged {Observations} submission observations and {Sessions} telemetry sessions")]
     private static partial void LogPurged(ILogger logger, Guid organizationId, int observations, int sessions);
-}
-
-/// <summary>
-/// Refuses to start a host with the Signal Network switched on (ADR-0005). Enabling it needs legal review, a DPIA, a
-/// controller notice, grants for the application role and the audited query path, none of which exist yet, so the
-/// flag being on is a configuration mistake, not a feature.
-/// </summary>
-public sealed class SignalNetworkGate : IValidateOptions<IntegrityOptions>
-{
-    public ValidateOptionsResult Validate(string? name, IntegrityOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        return options.SignalNetwork.Enabled
-            ? ValidateOptionsResult.Fail(
-                "ScreenHire:Integrity:SignalNetwork:Enabled is on, but the Signal Network stays off until legal review and DPIA sign-off (ADR-0005).")
-            : ValidateOptionsResult.Success;
-    }
 }

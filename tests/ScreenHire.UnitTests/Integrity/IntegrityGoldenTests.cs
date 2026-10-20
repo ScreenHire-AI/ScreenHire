@@ -81,7 +81,7 @@ public sealed class IntegrityGoldenTests
         var duplicate = last!.Signals.Single(s => s.Code == SignalCatalogue.DuplicateInOrganization);
         duplicate.Weight.Should().Be(SignalWeight.High, "a shared device and file are strong");
         duplicate.Explanation.Should().Be(
-            "This application shares an email address, a phone number, a device and an identical resume file with 2 other applications to your organization under different names or email addresses.");
+            "This application and 2 other applications to your organization came from different candidates but share an email address, a phone number, a device and an identical resume file.");
         duplicate.Evidence.Select(e => e.Value).Should().AllBe("2 other applications");
     }
 
@@ -128,16 +128,6 @@ public sealed class IntegrityGoldenTests
         }),
     };
 
-    private static string GoldenPath(string key)
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "ScreenHire.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory is null
-            ? throw new InvalidOperationException($"No ScreenHire.slnx above {AppContext.BaseDirectory}.")
-            : Path.Combine(directory.FullName, "tests", "ScreenHire.UnitTests", "Integrity", "Golden", $"{key}.json");
-    }
+    private static string GoldenPath(string key) =>
+        RepositoryFiles.PathTo("tests", "ScreenHire.UnitTests", "Integrity", "Golden", $"{key}.json");
 }

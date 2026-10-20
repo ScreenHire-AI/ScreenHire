@@ -85,8 +85,14 @@ public sealed class IdentityCheckOptions
 
 public sealed class RetentionOptions
 {
-    /// <summary>Days to keep raw network data (IP address, browser, device hash). The privacy page promises at most 30.</summary>
-    public int RawNetworkDays { get; set; } = 30;
+    /// <summary>The longest raw network data may be kept: the careers privacy notice promises deletion within 30 days.</summary>
+    public const int MaxRawNetworkDays = 30;
+
+    /// <summary>
+    /// Days to keep raw network data (IP address, browser, device hash), 1 to <see cref="MaxRawNetworkDays"/>. A host
+    /// refuses to start with a longer period, because the notice candidates saw would then be false.
+    /// </summary>
+    public int RawNetworkDays { get; set; } = MaxRawNetworkDays;
 }
 
 /// <summary>The cross-employer Signal Network (ADR-0005). Off until legal review and DPIA sign-off.</summary>

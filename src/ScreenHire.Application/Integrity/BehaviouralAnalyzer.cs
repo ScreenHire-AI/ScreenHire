@@ -45,8 +45,9 @@ public sealed record TelemetrySessionAggregates(
 /// <remarks>
 /// <c>pasteCount</c>, <c>pastedCharacters</c>, <c>typedCharacters</c>: Counts, not content. <c>focusCount</c> and
 /// <c>blurCount</c>: Times the field gained and lost focus. <c>activeMilliseconds</c>: Total time focused.
-/// <c>autofilled</c>: The browser or a password manager filled it. <c>rhythm</c>: Summary statistics of typing intervals,
-/// never the intervals themselves.
+/// <c>autofilled</c>: The browser or a password manager filled it. There is deliberately no typing-rhythm field: timing
+/// between keys is keystroke dynamics, a behavioural biometric, and v1 has no biometrics (CLAUDE.md non-negotiable 3).
+/// The telemetry task adds one only if its own legal review allows it.
 /// </remarks>
 public sealed record FieldTelemetry(
     string FieldId,
@@ -56,15 +57,7 @@ public sealed record FieldTelemetry(
     int FocusCount,
     int BlurCount,
     int ActiveMilliseconds,
-    bool Autofilled,
-    TypingRhythm? Rhythm = null);
-
-/// <summary>
-/// Typing rhythm as session-level summary statistics: how many intervals were sampled, their median and spread. Close
-/// to keystroke dynamics, so the telemetry task decides under its own review whether to collect it at all; it is never
-/// stored per person or compared across applicants (integrity-engine.md §4).
-/// </summary>
-public sealed record TypingRhythm(int Samples, int MedianIntervalMilliseconds, int InterquartileRangeMilliseconds);
+    bool Autofilled);
 
 /// <summary>Page-level aggregates: how often the page was hidden (tab switches) and automation markers such as <c>webdriver</c>.</summary>
 public sealed record PageTelemetry(int VisibilityChanges, IReadOnlyList<string> AutomationMarkers);
@@ -73,6 +66,12 @@ public sealed record PageTelemetry(int VisibilityChanges, IReadOnlyList<string> 
 /// Where telemetry aggregates come from, and the rules that turn them into <c>BEH_*</c> signals. The telemetry module
 /// registers its own; until then <see cref="NoTelemetrySource"/> has none.
 /// </summary>
+/// <remarks>
+/// The pipeline runs each analyzer version once per application, and today every application's <c>behavioural</c>
+/// version 1 run records "no telemetry". A source that lands later must bump <see cref="BehaviouralAnalyzer.Version"/>,
+/// and it must have the aggregates stored before it publishes <see cref="AnalyzeApplicationIntegrity"/>, or its run
+/// records nothing and is never repeated.
+/// </remarks>
 public interface ITelemetrySource
 {
     /// <summary>The application's telemetry aggregates, or null when there are none.</summary>

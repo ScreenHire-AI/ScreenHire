@@ -1,7 +1,6 @@
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Api.Configuration;
@@ -20,8 +19,7 @@ internal static class ApplySetup
         services.AddOptions<TurnstileOptions>().BindConfiguration(TurnstileOptions.Section).ValidateDataAnnotations().ValidateOnStart();
 
         // The integrity engine's settings the submission needs: the device-hash key and the raw data's retention.
-        services.AddOptions<IntegrityOptions>().BindConfiguration(IntegrityOptions.Section).ValidateOnStart();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<IntegrityOptions>, SignalNetworkGate>());
+        services.AddIntegrityOptions();
 
         services.AddSingleton<ApplicantUploads>();
         services.AddHttpClient<TurnstileVerifier>();

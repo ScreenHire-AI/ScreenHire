@@ -138,7 +138,7 @@ internal sealed record SubmissionSession(
                 : null,
             AutomationMarkers = markers,
             ObservedAt = now,
-            ExpiresAt = now + TimeSpan.FromDays(Math.Max(1, options.Retention.RawNetworkDays)),
+            ExpiresAt = now + TimeSpan.FromDays(options.Retention.RawNetworkDays), // 1 to 30, checked at startup (RetentionLimit)
         };
     }
 }

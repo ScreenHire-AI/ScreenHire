@@ -44,7 +44,7 @@
         "contextOnly": false,
         "accessibilitySensitive": false,
         "source": "duplicates@1",
-        "explanation": "This application shares an email address, a phone number, a device and an identical resume file with 2 other applications to your organization under different names or email addresses.",
+        "explanation": "This application and 2 other applications to your organization came from different candidates but share an email address, a phone number, a device and an identical resume file.",
         "evidence": [
           {
             "kind": "Fact",

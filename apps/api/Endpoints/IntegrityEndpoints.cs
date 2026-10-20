@@ -97,7 +97,16 @@ internal static class IntegrityEndpoints
         }
 
         db.IntegrityReviewActions.Add(IntegrityReviewAction.Dismiss(assessment, request.Reason, request.Note, tenant.UserId!.Value, time.GetUtcNow()));
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        // Another reviewer's dismissal committed between the check above and this insert.
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return Conflict("Already dismissed", "Someone already dismissed this assessment.");
+        }
+
         return TypedResults.Ok(await IntegrityReads.LoadAsync(db, applicationId, cancellationToken));
     }
 

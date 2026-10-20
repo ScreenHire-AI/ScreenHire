@@ -96,6 +96,10 @@ internal sealed class IntegrityReviewActionConfiguration : IEntityTypeConfigurat
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(a => new { a.OrganizationId, a.ApplicationId, a.OccurredAt });
+        builder.HasIndex(a => new { a.OrganizationId, a.AssessmentId });
+        // One dismissal per assessment, even when two reviewers press the button at once.
+        builder.HasIndex(a => new { a.OrganizationId, a.AssessmentId }, "ix_integrity_review_actions_one_dismissal")
+            .IsUnique().HasFilter("type = 'Dismissed'").HasDatabaseName("ix_integrity_review_actions_one_dismissal");
     }
 }
 

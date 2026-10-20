@@ -67,7 +67,7 @@ public static class SignalCatalogue
             "The phone number is in a range for internet (VoIP) numbers in {region}. Many people use them legitimately; they are also easy to create in bulk."),
         new(DuplicateInOrganization, SignalCategory.Identity, IntegrityAssessmentKind.Authenticity, SignalWeight.Medium,
             "Shares details with other applicants",
-            "This application shares {shared} with {others} to your organization under different names or email addresses."),
+            "This application and {others} to your organization came from different candidates but share {shared}."),
 
         new(Webdriver, SignalCategory.Automation, IntegrityAssessmentKind.Authenticity, SignalWeight.High,
             "Browser automation detected",

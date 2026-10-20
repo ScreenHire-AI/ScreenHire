@@ -1174,6 +1174,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "ApplicationId", "OccurredAt")
                         .HasDatabaseName("ix_integrity_review_actions_organization_id_application_id_occ");
 
+                    b.HasIndex(new[] { "OrganizationId", "AssessmentId" }, "ix_integrity_review_actions_one_dismissal")
+                        .IsUnique()
+                        .HasDatabaseName("ix_integrity_review_actions_one_dismissal")
+                        .HasFilter("type = 'Dismissed'");
+
                     b.ToTable("integrity_review_actions", (string)null);
                 });
 
