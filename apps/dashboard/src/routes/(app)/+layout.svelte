@@ -1,10 +1,17 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { page } from '$app/state';
+  import LiveIndicator from '#lib/components/live-indicator.svelte';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import { startLiveUpdates } from '#lib/realtime.js';
   import { signOutAndRedirect } from '#lib/session.js';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
+
+  // One hub connection for the signed-in shell; leaving it (signing out) closes the connection.
+  const live = startLiveUpdates();
+  onDestroy(() => void live.stop());
 
   const navigation = [
     { label: 'Jobs', href: '/', shortcut: 'G J' },
@@ -54,8 +61,9 @@
       {/each}
     </ul>
 
-    {#if user}
-      <div class="mt-auto">
+    <div class="mt-auto flex flex-col gap-2">
+      <LiveIndicator status={live.connection.status} />
+      {#if user}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             class="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left hover:bg-secondary"
@@ -79,8 +87,8 @@
             <DropdownMenu.Item onSelect={signOutAndRedirect}>Sign out</DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
-      </div>
-    {/if}
+      {/if}
+    </div>
   </nav>
 
   <div class="min-w-0 flex-[999_1_560px]">

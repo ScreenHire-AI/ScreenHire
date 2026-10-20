@@ -1,8 +1,11 @@
 import type { CurrentUser, JobSummary } from '@screenhire/api-client';
-import { render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
 import { load } from './+page.js';
+
+const navigation = vi.hoisted(() => ({ invalidate: vi.fn(async () => {}) }));
+vi.mock('$app/navigation', () => navigation);
 
 const jobs: JobSummary[] = [
   {
@@ -42,8 +45,8 @@ describe('jobs page', () => {
 
     const [, ...rows] = screen.getAllByRole('row');
     expect(rows.map(cellTexts)).toEqual([
-      ['Customer Success Lead', 'Manchester, UK', 'Draft', '—'],
-      ['Senior .NET Engineer', 'Remote — UK & EU', 'Open', '18 Oct'],
+      ['Customer Success Lead', 'Manchester, UK', 'Draft', '—', 'Publish'],
+      ['Senior .NET Engineer', 'Remote — UK & EU', 'Open', '18 Oct', 'Close'],
     ]);
   });
 
@@ -58,10 +61,50 @@ describe('jobs page', () => {
 
     expect(screen.getByRole('cell')).toHaveTextContent('No jobs yet.');
   });
+
+  it('offers no action on a closed job', () => {
+    const closed: JobSummary = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-000000000003', status: 'Closed' };
+    render(Page, { props: { params: {}, data: { user, jobs: [closed] } } });
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+});
+
+describe('jobs page actions', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    navigation.invalidate.mockClear();
+  });
+
+  it.each([
+    ['Publish Customer Success Lead', '/v1/jobs/01a157d4-0000-7000-8000-000000000001/publish'],
+    ['Close Senior .NET Engineer', '/v1/jobs/01a157d4-0000-7000-8000-000000000002/close'],
+  ])('%s posts to the API and refetches the list', async (button, url) => {
+    const fetchMock = vi.fn<typeof fetch>(async () => Response.json(jobs[0]));
+    vi.stubGlobal('fetch', fetchMock);
+    render(Page, { props: { params: {}, data: { user, jobs } } });
+
+    await fireEvent.click(screen.getByRole('button', { name: button }));
+
+    expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' }));
+    await waitFor(() => expect(navigation.invalidate).toHaveBeenCalledWith('api:jobs'));
+  });
+
+  it('says so when the API refuses', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(null, { status: 409 })));
+    render(Page, { props: { params: {}, data: { user, jobs } } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Publish Customer Success Lead' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Could not publish Customer Success Lead (HTTP 409).'),
+    );
+  });
 });
 
 describe('jobs page load', () => {
-  const event = {} as Parameters<typeof load>[0];
+  const depends = vi.fn();
+  const event = { depends } as unknown as Parameters<typeof load>[0];
 
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -73,6 +116,14 @@ describe('jobs page load', () => {
 
     await expect(load(event)).resolves.toEqual({ jobs });
     expect(fetchMock).toHaveBeenCalledWith('/v1/jobs', expect.objectContaining({ method: 'GET' }));
+  });
+
+  it('depends on the jobs key that live job events invalidate', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => Response.json(jobs)));
+
+    await load(event);
+
+    expect(depends).toHaveBeenCalledWith('api:jobs');
   });
 
   it('fails with the HTTP status when the API does not answer 200', async () => {

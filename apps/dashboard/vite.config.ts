@@ -8,7 +8,8 @@ import { defineConfig } from 'vite';
 const apiUrl = process.env.API_URL ?? 'http://localhost:5080';
 const port = Number(process.env.PORT ?? 4323);
 // xfwd: the API rate-limits sign-in per client address, which it reads from X-Forwarded-For.
-const proxy = { '/v1': { target: apiUrl, changeOrigin: true, xfwd: true } };
+// ws: the real-time hub (/v1/hubs/events) upgrades to a WebSocket through the same proxy.
+const proxy = { '/v1': { target: apiUrl, changeOrigin: true, xfwd: true, ws: true } };
 
 export default defineConfig({
   plugins: [
