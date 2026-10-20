@@ -77,6 +77,7 @@ const entry = (overrides: Partial<ApplicationTimelineEntry>): ApplicationTimelin
 
 const timeline: ApplicationTimelineEntry[] = [
   entry({ type: 'Submitted', toStageId: 'applied' }),
+  entry({ type: 'IntegrityAssessed', occurredAt: '2026-10-20T09:01:00Z' }),
   entry({ type: 'StageChanged', occurredAt: '2026-10-20T10:00:00Z', actorUserId: teammate, fromStageId: 'applied', toStageId: 'screening', note: 'Strong portfolio.' }),
   entry({ type: 'TagAdded', occurredAt: '2026-10-20T10:05:00Z', tag: 'fast-track', automationRunId: '01a157d4-0000-7000-8000-000000000306' }),
   entry({ type: 'StageChanged', occurredAt: '2026-10-20T11:00:00Z', actorUserId: user.id, fromStageId: 'screening', toStageId: 'interview' }),
@@ -138,6 +139,7 @@ describe('application page', () => {
       'Moved from Screening to Interview by you',
       'Tagged "fast-track" by an automation',
       'Moved from Applied to Screening by a teammate',
+      'Integrity checks ran',
       'Applied on the careers page, into Applied',
     ]);
     expect(within(region).getByText('"Strong portfolio."')).toBeInTheDocument();

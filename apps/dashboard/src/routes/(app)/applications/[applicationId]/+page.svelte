@@ -46,6 +46,9 @@
         return `Moved from ${stageName(entry.fromStageId)} to ${stageName(entry.toStageId)}`;
       case 'TagAdded':
         return `Tagged "${entry.tag}"`;
+      case 'IntegrityAssessed':
+        // Levels and evidence are the integrity panel's to show; the timeline records only that the checks ran.
+        return 'Integrity checks ran';
     }
   }
 
