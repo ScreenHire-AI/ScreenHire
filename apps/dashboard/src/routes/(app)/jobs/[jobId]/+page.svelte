@@ -12,7 +12,7 @@
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { age, employmentLabel, formatSalary, formatShortDate, initials, sourceLabel } from '#lib/format.js';
+  import { age, ago, employmentLabel, formatSalary, formatShortDate, initials, sourceLabel } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -52,7 +52,7 @@
     const parts = [detail.location, employmentLabel(detail.employmentType)];
     if (detail.salary) parts.push(formatSalary(detail.salary));
     if (applications.isSuccess) parts.push(`${all.length} ${all.length === 1 ? 'applicant' : 'applicants'}`);
-    if (detail.status === 'Open' && detail.publishedAt) parts.push(`Opened ${age(detail.publishedAt, Date.now())} ago`);
+    if (detail.status === 'Open' && detail.publishedAt) parts.push(`Opened ${ago(detail.publishedAt, Date.now())}`);
     else if (detail.status === 'Closed' && detail.closedAt) parts.push(`Closed ${formatShortDate(detail.closedAt)}`);
     else parts.push(detail.status);
     return parts.filter(Boolean);
@@ -207,8 +207,8 @@
         {:else}
           <PipelineBoard applications={all} {stages} {moves} />
           <p class="border-t border-border-subtle bg-muted px-3 py-2 font-mono text-[11px] text-muted-foreground">
-            <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move a card · <kbd>Space</kbd> pick up · <kbd>Enter</kbd> open{#if preferences.shortcutsEnabled}
-              · <kbd>V</kbd> table view{/if}
+            <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move a card · <kbd>Space</kbd> pick up · <kbd>Enter</kbd> open
+            {#if preferences.shortcutsEnabled}· <kbd>V</kbd> table view{/if}
           </p>
         {/if}
         <p role="status" class={['px-3 py-1.5 text-[12.5px] empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
@@ -232,7 +232,7 @@
       <div class="flex min-w-0 flex-col">
         <h2 class="font-display text-[19px] font-bold">{application.candidateName}</h2>
         <span class="text-[12.5px] text-muted-foreground">
-          Applied {age(application.submittedAt, Date.now())} ago via {sourceLabel(application.source)}
+          Applied {ago(application.submittedAt, Date.now())} via {sourceLabel(application.source)}
         </span>
       </div>
     </div>

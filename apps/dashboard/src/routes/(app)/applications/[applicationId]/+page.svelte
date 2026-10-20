@@ -41,7 +41,7 @@
   function describeEvent(entry: ApplicationTimelineEntry): string {
     switch (entry.type) {
       case 'Submitted':
-        return `Applied, into ${stageName(entry.toStageId)}`;
+        return entry.actorUserId ? `Added to ${stageName(entry.toStageId)}` : `Applied on the careers page, into ${stageName(entry.toStageId)}`;
       case 'StageChanged':
         return `Moved from ${stageName(entry.fromStageId)} to ${stageName(entry.toStageId)}`;
       case 'TagAdded':
@@ -53,7 +53,7 @@
     if (entry.automationRunId) return 'by an automation';
     if (entry.actorUserId === page.data.user?.id) return 'by you';
     if (entry.actorUserId) return 'by a teammate';
-    return entry.type === 'Submitted' ? 'by the candidate' : '';
+    return '';
   }
 
   const fileStatus: Record<string, string> = {
@@ -102,7 +102,7 @@
           <ul aria-label="Application details" class="flex flex-wrap gap-x-3.5 gap-y-1 font-mono text-[11.5px] text-muted-foreground">
             <li><a href={`mailto:${detail.candidate.email}`}>{detail.candidate.email}</a></li>
             {#if detail.candidate.phone}<li>{detail.candidate.phone}</li>{/if}
-            <li class="uppercase">{detail.stage.name}</li>
+            <li class="uppercase">{detail.stage.name} stage</li>
             <li class="uppercase">Applied {formatDateTime(detail.submittedAt)} via {sourceLabel(detail.source)}</li>
           </ul>
         </div>

@@ -24,12 +24,13 @@
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger
-    {disabled}
-    aria-label={`Move ${candidateName} to another stage`}
-    class={cn(buttonVariants({ variant: 'outline', size: compact ? 'xs' : 'sm' }))}
-  >
-    {compact ? 'Move' : 'Move to stage…'}
+  <!-- Named by its visible words plus who it moves, so speech input can say what it sees (WCAG 2.5.3). -->
+  <DropdownMenu.Trigger {disabled} class={cn(buttonVariants({ variant: 'outline', size: compact ? 'xs' : 'sm' }))}>
+    {#if compact}
+      Move <span class="sr-only">{candidateName} to another stage</span>
+    {:else}
+      Move to stage<span class="sr-only">, {candidateName}</span>
+    {/if}
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="w-52">
     <DropdownMenu.Label class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Move to</DropdownMenu.Label>

@@ -24,14 +24,23 @@ new route is the `/add-dashboard-page` skill.
 
 ## Data
 
-- Call the API only through the generated functions in `@screenhire/api-client` (`listJobs()`). They return
-  `{ data, status, headers }` and never throw on non-2xx, so check `status` and turn failures into
-  `error(status, message)` from `@sveltejs/kit`.
+- Pages read and change data with TanStack Query (`@tanstack/svelte-query` v6), through the hooks Orval generates in
+  `@screenhire/api-client/svelte-query`: `createListJobs()`, `createGetJob(() => params.jobId)`,
+  `createMoveApplication(...)`. Their query functions throw `ApiError` on a status outside 2xx, so `query.isError` and
+  `query.error.status` are the error state; `describeError` in `#lib/query.ts` words it. `query.data` is the response
+  (`query.data.data` is the body). Never hand-write a `fetch` or a query key.
+- The `(app)` shell owns the one `QueryClient` (`#lib/query.ts`) and clears it on sign-out. Component tests render a
+  page inside `src/test-support/with-query-client.svelte` and stub `fetch`.
+- The root `+layout.ts` load (the auth guard) is the one SvelteKit `load` that calls the API, with the plain fetch
+  client from `@screenhire/api-client`, which returns `{ data, status, headers }` and never throws.
 - The Vite dev server proxies `/v1` to the API (WebSockets included, for the real-time hub), so the client uses
   relative URLs and stays same-origin for cookie auth. Never hard-code an API host.
-- Live updates: the `(app)` shell holds the one hub connection (`#lib/realtime.ts`). A page whose data an event
-  changes declares `depends('api:<name>')` in its `load`, and `invalidations` in `#lib/realtime.ts` maps the event
-  to that key. Never open a second connection in a page. Procedure: `/add-realtime-event`.
+- Live updates: the `(app)` shell holds the one hub connection (`#lib/realtime.ts`). `invalidations` maps each event
+  to the API paths whose queries it makes stale (`/v1/jobs`), and `invalidatePath` invalidates every query under a
+  path, because the generated query keys are the path's segments (`['v1', 'jobs', jobId]`). Never open a second
+  connection in a page. Procedure: `/add-realtime-event`.
+- Moving an application goes through `createMoves()` (`#lib/moves.svelte.ts`), which every move control shares: the
+  menu, the board's keyboard path and drag-and-drop.
 
 ## UI
 
@@ -49,6 +58,13 @@ new route is the `/add-dashboard-page` skill.
 - Accessibility is WCAG 2.2 AA: a visible focus ring on every interactive element, labels on every input, landmark
   and heading structure, and a non-drag alternative for every drag-and-drop interaction (a menu or buttons that move
   the item).
+- Keyboard: Ctrl K / ⌘K opens the command palette. Single-key shortcuts (the G chords, J / K, X, V) respect
+  `preferences.shortcutsEnabled` (WCAG 2.1.4: the person can turn them off), skip text fields, menus and dialogs
+  (`isTypingTarget` in `#lib/shortcuts.ts`), and work only while their table or board has focus, except the G chords.
+  Every shortcut has a visible control and a visible hint.
+- The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
+  `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`.
+  Saved views are the list in `#lib/saved-views.ts`.
 
 ## Checks
 

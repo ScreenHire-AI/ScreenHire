@@ -24,7 +24,8 @@
 			{...restProps}
 		>
 			{#snippet child({ props })}
-				<InputGroup.Input {...props} bind:value bind:ref />
+				<!-- bits-ui gives the input role="combobox" without aria-expanded, which that role requires; the list is always shown. -->
+				<InputGroup.Input {...props} aria-expanded="true" bind:value bind:ref />
 			{/snippet}
 		</CommandPrimitive.Input>
 		<InputGroup.Addon>

@@ -19,8 +19,13 @@
 </script>
 
 <Command.Dialog bind:open title="Command palette" description="Jump to a job or candidate, or run an action.">
-  <Command.Input placeholder="Search jobs, candidates and actions…" aria-label="Search jobs, candidates and actions" />
-  <Command.List>
+  <!-- aria-controls: the combobox role requires it, and bits-ui does not set it. -->
+  <Command.Input
+    placeholder="Search jobs, candidates and actions…"
+    aria-label="Search jobs, candidates and actions"
+    aria-controls="command-palette-results"
+  />
+  <Command.List id="command-palette-results">
     <Command.Empty>Nothing matches.</Command.Empty>
     <Command.Group heading="Go to">
       {#each sections as section (section.href)}

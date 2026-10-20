@@ -14,6 +14,12 @@ export function age(iso: string, now: number): string {
   return `${Math.floor(elapsed / (7 * day))}w`;
 }
 
+/** An age in a sentence: `just now`, `3h ago`. */
+export function ago(iso: string, now: number): string {
+  const compact = age(iso, now);
+  return compact === 'now' ? 'just now' : `${compact} ago`;
+}
+
 /** Compact time until an instant: `~20s`, `~5m`, `~4h`, `~1d`. */
 export function eta(iso: string, now: number): string {
   const remaining = Date.parse(iso) - now;
@@ -41,7 +47,7 @@ export const employmentLabel = (type: EmploymentType) => employmentLabels[type];
 
 const periodSuffix: Record<string, string> = { Hour: '/hr', Day: '/day', Week: '/wk', Month: '/mo', Year: '' };
 
-/** A salary range as the job header shows it: `£70K–£85K`, `from £30K`, `up to £14/hr`. */
+/** A salary range as the job header shows it: `£70K-£85K`, `from £30K`, `up to £14/hr`. */
 export function formatSalary(salary: JobSalary): string {
   const money = new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -51,7 +57,7 @@ export function formatSalary(salary: JobSalary): string {
   });
   const suffix = periodSuffix[salary.period ?? 'Year'] ?? '';
   const { min, max } = salary;
-  if (min !== null && max !== null) return `${money.format(min)}–${money.format(max)}${suffix}`;
+  if (min !== null && max !== null) return `${money.format(min)}-${money.format(max)}${suffix}`;
   if (min !== null) return `from ${money.format(min)}${suffix}`;
   if (max !== null) return `up to ${money.format(max)}${suffix}`;
   return '';
