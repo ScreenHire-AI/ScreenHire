@@ -7,6 +7,7 @@ import { JS_BUDGET_BYTES, checkDist, fileForPath, internalReferences, pageScript
 const origin = 'https://marketing.example.com';
 const page = (head, body = '') => `<!doctype html><html><head>${head}</head><body>${body}</body></html>`;
 const jsonLd = '<script type="application/ld+json">{"@context":"https://schema.org"}</script>';
+const fontPreload = '<link rel="preload" href="/_astro/fonts/a.woff2" as="font" type="font/woff2" crossorigin>';
 
 describe('pageScriptBytes', () => {
   it('does not count JSON-LD as JavaScript', () => {
@@ -50,19 +51,28 @@ describe('checkDist', () => {
   }
 
   it('passes a site with JSON-LD only and working links', () => {
-    build({ 'index.html': page(jsonLd, '<a href="/pricing/">Pricing</a>'), 'pricing/index.html': page(jsonLd) });
+    build({
+      'index.html': page(jsonLd + fontPreload, '<a href="/pricing/">Pricing</a>'),
+      'pricing/index.html': page(jsonLd + fontPreload),
+      '_astro/fonts/a.woff2': 'font',
+    });
     expect(checkDist(dist, origin)).toEqual({ pages: 2, failures: [] });
   });
 
   it('reports a broken internal link', () => {
-    build({ 'index.html': page(jsonLd, '<a href="/missing/">Missing</a>') });
+    build({ 'index.html': page(jsonLd + fontPreload, '<a href="/missing/">Missing</a>'), '_astro/fonts/a.woff2': 'font' });
     expect(checkDist(dist, origin).failures).toEqual(['/index.html: links to /missing/, which the build did not produce']);
+  });
+
+  it('reports a page that preloads no font', () => {
+    build({ 'index.html': page(jsonLd) });
+    expect(checkDist(dist, origin).failures).toEqual(['/index.html: preloads no font (check the fonts in astro.config.mjs)']);
   });
 
   it('reports a page over the JavaScript budget', () => {
     // Random bytes do not compress, so the brotli size stays above the budget.
     const script = Buffer.from(Array.from({ length: JS_BUDGET_BYTES * 2 }, () => Math.floor(Math.random() * 256))).toString('base64');
-    build({ 'index.html': page(`<script>${script}</script>`) });
+    build({ 'index.html': page(`<script>${script}</script>${fontPreload}`), '_astro/fonts/a.woff2': 'font' });
     expect(checkDist(dist, origin).failures).toEqual([expect.stringMatching(/^\/index\.html: \d+ bytes of brotli JavaScript/)]);
   });
 });

@@ -1,5 +1,5 @@
 ---
-import { Font } from 'astro:assets';
+import { Font, fontData } from 'astro:assets';
 import { PUBLIC_APP_URL } from 'astro:env/server';
 import Analytics from '../components/Analytics.astro';
 import Seo from '../components/Seo.astro';
@@ -22,6 +22,8 @@ const site = Astro.site ?? new URL(Astro.url.origin);
 const graph = breadcrumbs ? [breadcrumbList(breadcrumbs, site), ...jsonLd] : jsonLd;
 const current = Astro.url.pathname;
 const isCurrent = (path: string) => current === path || (path !== '/' && current.startsWith(path));
+// Preload only the latin body font (the first variant in astro.config.mjs); latin-ext downloads when a page needs it.
+const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
 const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined;
 ---
 
@@ -30,7 +32,8 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <Font cssVariable="--font-hanken" preload />
+    <Font cssVariable="--font-hanken" />
+    {bodyFont && <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin />}
     <Font cssVariable="--font-bricolage" />
     <Font cssVariable="--font-jetbrains" />
     <Seo title={title} description={description} jsonLd={graph} ogType={ogType} noindex={noindex} />
