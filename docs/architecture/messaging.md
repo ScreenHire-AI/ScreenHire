@@ -9,36 +9,39 @@ skill is the procedure for adding a message.
 ## Topology
 
 ```
-API (publishes only)                         Postgres (screenhire database)            Worker (handles)
-  endpoint: change entity                      schema "wolverine"
-  + outbox.PublishAsync(event)       ───▶      wolverine_outgoing_envelopes  (outbox)
-  + SaveChangesAndFlushMessagesAsync           wolverine_queue_worker        (queue)  ───▶  listener, durable inbox
-      one transaction                          wolverine_incoming_envelopes  (inbox)        handler in an EF transaction
+API (publishes; handles tenant events only)  Postgres (screenhire database)            Worker (handles)
+  endpoint: change entity                      schema "wolverine_api" (the API's store)
+  + outbox.PublishAsync(event)       ───▶      wolverine_outgoing_envelopes  (API outbox)
+  + SaveChangesAndFlushMessagesAsync           schema "wolverine" (the worker's store and the queues)
+      one transaction                          wolverine_queue_worker        (queue)  ───▶  listener, durable inbox
+                                               wolverine_queue_realtime      (queue)  ───▶  API: SignalR fan-out
+                                               wolverine_incoming_envelopes  (inbox)        handler in an EF transaction
                                                wolverine_dead_letters                       retries, then dead letter
                                                wolverine_nodes, ...                         durability agent, cron
 ```
 
 | | API | Worker |
 |---|---|---|
-| Call in `Program.cs` | `builder.AddScreenHireMessagePublishing()` | `builder.AddScreenHireMessageHandling()` |
-| Handlers | none (conventional discovery off) | every handler in `ScreenHire.Application` |
-| Routing | every message goes to the Postgres queue `worker` | listens on `worker`; messages between its own handlers use durable local queues |
-| Durability mode | `ServerlessWithOutbox`: outbox only, no node record, no leader election, no agents | `Balanced`: leader election, durability agent, recurring schedules |
+| Call in `Program.cs` | `builder.AddScreenHireApiMessaging(TenantEventPusher.For)` | `builder.AddScreenHireMessageHandling()` |
+| Handlers | one SignalR pusher per `ITenantEvent` type, nothing else (conventional discovery off) | every handler in `ScreenHire.Application` |
+| Routing | every message to the Postgres queue `worker`; every `ITenantEvent` to `realtime` as well | listens on `worker`; `ITenantEvent`s go to `realtime` and `worker`; other messages between its own handlers use durable local queues |
+| Storage schema | `wolverine_api`: its own outbox, the `realtime` inbox, its own node records | `wolverine` |
+| Durability mode | `Balanced`, in its own cluster: leader election and a durability agent for its own outbox | `Balanced`: leader election, durability agent, recurring schedules |
 
-The API never handles a message. That is deliberate: a message published while the worker is down waits in the queue
-table and runs when the worker comes back. If the API dies between committing and sending, the envelope stays in
-`wolverine_outgoing_envelopes` owned by "any node" (owner 0). Wolverine documents that its durability agents recover
-those rows in every mode except the serverless ones (`DurabilityMode.ServerlessWithOutbox` and
-`RunDurabilityPassAsync` in the 6.51 API docs), so the worker sends it. No test covers that crash window: it needs a
-process killed between two statements.
+The API never runs background work. That is deliberate: a message published while the worker is down waits in the
+queue table and runs when the worker comes back. The one thing the API handles is a tenant event on the `realtime`
+queue, which it pushes to connected dashboards ([real-time updates](realtime.md)). Receiving needs listeners, which
+`ServerlessWithOutbox`, the API's mode before that, does not run for a Postgres queue. So the API runs `Balanced` in
+its own storage schema, as a separate Wolverine cluster. realtime.md says why one shared cluster failed.
 
-The API cannot receive messages either: `ServerlessWithOutbox` runs no listeners and no local queues. Anything that
-must react inside the API process, such as pushing `ITenantEvent`s to connected clients, needs either a different
-durability mode for the API (`Balanced`, which brings back leader election and agents there) or a hop through the
-worker. Decide that in the task that needs it and update this page.
+If the API dies between committing and sending, the envelope stays in the API's outbox
+(`wolverine_api.wolverine_outgoing_envelopes`), and the API's own durability agent sends it once an API node is back.
+No test covers that crash window: it needs a process killed between two statements.
 
-Both hosts keep every Wolverine table, including the queue tables, in the `wolverine` schema of the application
-database (`DatabaseRegistration.MessagingSchema`). They are not part of the EF Core model.
+The worker keeps its Wolverine tables and both queue tables in the `wolverine` schema of the application database
+(`DatabaseRegistration.MessagingSchema`). The API keeps its own tables in `wolverine_api`
+(`DatabaseRegistration.ApiMessagingSchema`) and shares the queue tables (`MessagingSettings.TransportSchema`). None of
+them are part of the EF Core model.
 
 ## Roles and provisioning
 
@@ -49,11 +52,12 @@ Wolverine's rows but not create tables, so the hosts never patch the schema at s
 
 The owner provisions instead, in two steps that always run in this order:
 
-1. The EF migrations. `GrantAppRoleMessagingAccess` creates the `wolverine` schema and grants `screenhire_app`
-   `USAGE`, `SELECT`, `INSERT`, `UPDATE` and `DELETE`, with default privileges for tables the owner creates later.
-2. `ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString)`, which builds a throwaway Wolverine host with
-   the worker's configuration and its schedules and runs JasperFx resource setup. Run it again after every Wolverine
-   upgrade.
+1. The EF migrations. `GrantAppRoleMessagingAccess` creates the `wolverine` schema and
+   `GrantAppRoleApiMessagingAccess` the `wolverine_api` schema. Each grants `screenhire_app` `USAGE`, `SELECT`,
+   `INSERT`, `UPDATE` and `DELETE`, with default privileges for tables the owner creates later.
+2. `ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString)`, which builds two throwaway Wolverine hosts and
+   runs JasperFx resource setup on each: one with the worker's configuration and schedules (the worker's store and
+   both queues), one with the API's (the API's store). Run it again after every Wolverine upgrade.
 
 In Development the API runs both at startup, before it listens; the worker waits for a healthy API. In production the
 deploy step runs both (`docs/architecture/sign-in-and-tenancy.md`, "Deploy prerequisites"), and neither host holds the
@@ -73,7 +77,7 @@ owner's credentials. Tests' private-schema hosts (`MessagingHost`) connect as th
 - **Schema ownership.** The owner creates and migrates Wolverine's tables (see Roles and provisioning). A host that
   fails at startup with `relation "wolverine.…" does not exist` after a Wolverine upgrade is missing step 2.
 - **OpenAPI at build time.** The API build runs `Program` under `GetDocument.Insider`, which starts the host without
-  the AppHost. Publishing setup detects it and registers Wolverine in `MediatorOnly` mode with no database, so the
+  the AppHost. The API's messaging setup detects it and registers Wolverine in `MediatorOnly` mode with no database, so the
   build never connects anywhere.
 
 ## Publishing from an endpoint
@@ -98,8 +102,9 @@ the `DbContext` already run in one transaction with their outbox (`AutoApplyTran
 ## Tenant events
 
 `ITenantEvent` marks an integration event that belongs to one organization (`OrganizationId`) and that its signed-in
-users may see. The real-time work fans every `ITenantEvent` out to that organization's clients, so a feature task
-only defines the event. Events carry ids and the facts a client needs to refresh, never personal data.
+users may see. The API pushes every `ITenantEvent` to that organization's connected clients
+([real-time updates](realtime.md)), so a feature task only defines the event and its Zod schema
+(`/add-realtime-event`). Events carry ids and the facts a client needs to refresh, never personal data.
 
 A worker handler connects as `screenhire_app` too, so it sees no tenant rows until it has a tenant. Every message that
 touches one organization's data implements `ITenantMessage` (`OrganizationId`); `ITenantEvent` extends it.
@@ -175,9 +180,10 @@ counter in process; no test reads them back from the dashboard.
 | Test | Proves |
 |---|---|
 | `WorkerMessagingTests` | through the running API and worker: an event commits with its job and is handled once; no second event for a no-op; a message published while the worker is stopped is handled after it restarts. Runs in the non-parallel `WorkerLifecycle` collection because it stops the worker. |
-| `OutboxTests` | with the API's setup in a private schema: a change and its message commit together, and a failed `SaveChanges` sends nothing |
+| `OutboxTests` | with the API's publishing setup in a private schema: a change and its message commit together, and a failed `SaveChanges` sends nothing |
 | `DeadLetterTests` | with the worker's setup in a private schema and short delays: retries with backoff, then the dead-letter table, the error log, the trace event and the counter; and the production shape, where a scheduled retry follows the in-process retries |
 | `RecurringMessageTests` | `ReportOpenJobs` is registered every five minutes, tracked durably, and its handler runs when triggered |
 
-`MessagingHost` starts those private-schema hosts. `WolverineStore` reads Wolverine's tables and finds a test's own
+Real-time delivery has its own tests (realtime.md). `MessagingHost` starts those private-schema hosts, and a publisher
+whose storage is private but whose queues are the running stack's, to put a message on the real worker queue. `WolverineStore` reads Wolverine's tables and finds a test's own
 messages by a value in their body.

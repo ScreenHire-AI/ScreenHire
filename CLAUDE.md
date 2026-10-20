@@ -9,13 +9,14 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 | Path | What |
 |---|---|
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
-| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`); emits `packages/api-client/openapi.json` at build |
+| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`) and the SignalR hub (`Realtime/*`, `/v1/hubs/events`); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
 | `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |
 | `packages/api-client` | Orval-generated TS client + Zod schemas (do not edit `src/generated`) |
+| `packages/realtime` | SignalR client for live updates: reconnect and re-subscribe, a runes connection-state store, Zod schemas per tenant event (checked against `contract/events.json`), cache invalidation by event type |
 | `src/ScreenHire.Application` | Message contracts (`ITenantMessage`, `ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
@@ -114,7 +115,7 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
 ## Backend rules
 
 Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Procedures: `/add-endpoint`,
-`/add-migration`, `/add-message`.
+`/add-migration`, `/add-message`, `/add-realtime-event`.
 
 - .NET 10, central package management (`Directory.Packages.props`). **Licence policy (ADR-0008):** MIT/Apache/BSD
   preferred; do not add MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText,
@@ -122,10 +123,13 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 - Minimal APIs with `TypedResults`, one `Map*Endpoints` extension per area under `apps/api/Endpoints`, DTO records in
   `apps/api/Contracts`. Enums serialize as strings; numbers are strict (clean OpenAPI → clean TS).
 - Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops); see
-  [`docs/architecture/messaging.md`](docs/architecture/messaging.md) and `/add-message`. The API only publishes, through
+  [`docs/architecture/messaging.md`](docs/architecture/messaging.md) and `/add-message`. The API publishes, through
   `IDbContextOutbox<ScreenHireDbContext>` and one `SaveChangesAndFlushMessagesAsync`; the worker runs every handler.
+  The API's one exception is pushing tenant events to dashboards over SignalR, in its own Wolverine schema
+  (`wolverine_api`, [`docs/architecture/realtime.md`](docs/architecture/realtime.md)).
   A message about one organization's data implements `ITenantMessage`, or its handler sees no tenant rows under RLS;
-  client-visible events implement `ITenantEvent`, which extends it.
+  client-visible events implement `ITenantEvent`, which extends it. Every `ITenantEvent` reaches its organization's open
+  dashboards with no hub code; add its Zod schema and invalidation with `/add-realtime-event`.
 - Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
   twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
   `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,
@@ -141,6 +145,6 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 
 ## Claude Code tooling
 
-Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-dashboard-page`, `/add-careers-page`,
+Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-realtime-event`, `/add-dashboard-page`, `/add-careers-page`,
 `/add-marketing-page`, `/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
 [`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).

@@ -33,9 +33,30 @@ internal sealed class MessagingHost : IAsyncDisposable
 
     public IServiceProvider Services => host.Services;
 
-    /// <summary>Starts a publisher configured like the API (<see cref="ScreenHireMessaging.ConfigurePublisher"/>).</summary>
+    /// <summary>
+    /// Starts a publisher configured like the API (<see cref="ScreenHireMessaging.ConfigurePublisher"/>), in solo mode
+    /// so it is ready at once.
+    /// </summary>
     public static Task<MessagingHost> StartPublisherAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
-        StartAsync(fixture, new MessagingSettings { Schema = NewSchema(), AutoProvision = true }, ScreenHireMessaging.ConfigurePublisher, cancellationToken);
+        StartAsync(fixture, new MessagingSettings { Schema = NewSchema(), AutoProvision = true }, ConfigureSoloPublisher, cancellationToken);
+
+    /// <summary>
+    /// Starts a publisher like <see cref="StartPublisherAsync"/> whose storage is private but whose queues are the running
+    /// stack's: what it publishes reaches the real worker and API. For a message the test must put on the worker queue
+    /// itself, such as <c>CheckLiveUpdates</c>.
+    /// </summary>
+    public static Task<MessagingHost> StartPublisherToAppHostQueuesAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
+        StartAsync(
+            fixture,
+            new MessagingSettings { Schema = NewSchema(), TransportSchema = DatabaseRegistration.MessagingSchema, AutoProvision = true },
+            ConfigureSoloPublisher,
+            cancellationToken);
+
+    private static void ConfigureSoloPublisher(WolverineOptions opts, string connectionString, MessagingSettings settings)
+    {
+        ScreenHireMessaging.ConfigurePublisher(opts, connectionString, settings);
+        opts.Durability.Mode = DurabilityMode.Solo;
+    }
 
     /// <summary>
     /// Starts a handler configured like the worker (<see cref="ScreenHireMessaging.ConfigureHandler"/>), in solo mode so
