@@ -30,7 +30,17 @@ if (persistData)
     postgres.WithDataVolume();
 }
 
+// The table owner's connection: the API uses it only to migrate and seed in Development.
 var database = postgres.AddDatabase("screenhire");
+
+// The API and worker connect as screenhire_app, a role the tenancy migration creates without table ownership or
+// BYPASSRLS, so Postgres row-level security applies to everything they do. The API's Development seed sets this
+// password on every start, so a fresh value per run is fine and nothing is persisted.
+var appRolePassword = builder.AddParameter(
+    "screenhire-app-password", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+var appDatabase = builder.AddConnectionString("screenhire-app", ReferenceExpression.Create(
+    $"Host={postgres.Resource.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={postgres.Resource.PrimaryEndpoint.Property(EndpointProperty.Port)};" +
+    $"Database={database.Resource.DatabaseName};Username=screenhire_app;Password={appRolePassword}"));
 
 // Azurite locally; Azure Blob Storage in production (ADR-0007).
 var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator =>
@@ -45,14 +55,15 @@ var blobs = storage.AddBlobs("blobs");
 var api = builder.AddProject<Projects.ScreenHire_Api>("api")
     .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Api", 5080))
     .WithReference(database).WaitFor(database)
+    .WithReference(appDatabase)
     .WithReference(blobs).WaitFor(blobs)
     // Kestrel only listens after the Development migrate-and-seed, so a healthy API has its schema and demo data.
     // Everything that waits for it (worker, frontends, test fixtures) starts after that, not when the process starts.
     .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.ScreenHire_Worker>("worker")
-    .WithReference(database)
-    .WaitFor(api); // the API applies migrations in Development
+    .WithReference(appDatabase)
+    .WaitFor(api); // the API applies migrations and sets the app role's password in Development
 
 if (frontends != FrontendMode.None)
 {

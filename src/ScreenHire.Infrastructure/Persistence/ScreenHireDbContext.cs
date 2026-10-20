@@ -1,21 +1,79 @@
+using System.Linq.Expressions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Identity;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.Infrastructure.Persistence;
 
 /// <summary>
-/// Primary EF Core context. Tenant isolation (named query filters + Postgres row-level security,
-/// ADR-0008) is added by the multi-tenancy work item; until then queries must filter by organization explicitly.
+/// Primary EF Core context, including the ASP.NET Core Identity user store. Tenant isolation has two layers
+/// (ADR-0008): the named query filter <see cref="TenantFilter"/> on every <see cref="ITenantOwned"/> entity, and
+/// Postgres row-level security, whose session settings <see cref="TenantSessionInterceptor"/> sets from
+/// <see cref="Tenant"/>.
 /// </summary>
-public sealed class ScreenHireDbContext(DbContextOptions<ScreenHireDbContext> options) : DbContext(options)
+public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, Guid>
 {
+    /// <summary>The name of the query filter that scopes tenant-owned rows to <see cref="ITenantContext.OrganizationId"/>.</summary>
+    public const string TenantFilter = "Tenant";
+
+    public ScreenHireDbContext(DbContextOptions<ScreenHireDbContext> options, ITenantContext tenant)
+        : base(options)
+    {
+        Tenant = tenant;
+        // Even a one-row SaveChanges runs in a transaction, so TenantSessionInterceptor can set the row-level security
+        // settings as a separate command ahead of the batch.
+        Database.AutoTransactionBehavior = AutoTransactionBehavior.Always;
+    }
+
+    public ITenantContext Tenant { get; }
+
     public DbSet<Organization> Organizations => Set<Organization>();
+
+    public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
 
     public DbSet<Job> Jobs => Set<Job>();
 
-    // No OnConfiguring: Aspire registers this context with pooling, which forbids it.
-    // Shared options live in UseScreenHireConventions().
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ScreenHireDbContext).Assembly);
+    public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
+
+    // Read by the query filters. EF evaluates context members per query, so each query sees the current tenant.
+    private Guid? CurrentOrganizationId => Tenant.OrganizationId;
+
+    private Guid? CurrentUserId => Tenant.UserId;
+
+    // No OnConfiguring: shared options live in UseScreenHireConventions().
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<ApplicationUser>().ToTable("users");
+        builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
+        builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
+        builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
+
+        builder.ApplyConfigurationsFromAssembly(typeof(ScreenHireDbContext).Assembly);
+
+        foreach (var entityType in builder.Model.GetEntityTypes().Where(e => typeof(ITenantOwned).IsAssignableFrom(e.ClrType)))
+        {
+            builder.Entity(entityType.ClrType).HasQueryFilter(TenantFilter, OwnOrganizationOnly(entityType.ClrType));
+        }
+
+        // Mirrors the organization_members row-level security policy: a user also sees their own memberships in other
+        // organizations, which is how the API finds a user's organization before it sets the tenant.
+        builder.Entity<OrganizationMember>()
+            .HasQueryFilter(TenantFilter, m => m.OrganizationId == CurrentOrganizationId || m.UserId == CurrentUserId);
+    }
+
+    // entity => entity.OrganizationId == this.CurrentOrganizationId
+    private LambdaExpression OwnOrganizationOnly(Type entityType)
+    {
+        var entity = Expression.Parameter(entityType, "entity");
+        var organizationId = Expression.Convert(
+            Expression.Property(entity, nameof(ITenantOwned.OrganizationId)), typeof(Guid?));
+        var current = Expression.Property(Expression.Constant(this), nameof(CurrentOrganizationId));
+        return Expression.Lambda(Expression.Equal(organizationId, current), entity);
+    }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.Infrastructure.Persistence;
 
@@ -16,6 +17,6 @@ internal sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<S
             .UseScreenHireConventions()
             .Options;
 
-        return new ScreenHireDbContext(options);
+        return new ScreenHireDbContext(options, new TenantContext());
     }
 }

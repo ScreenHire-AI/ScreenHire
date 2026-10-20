@@ -6,7 +6,7 @@ using ScreenHire.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<ScreenHireDbContext>("screenhire", configureDbContextOptions: options => options.UseScreenHireConventions());
+builder.AddScreenHireDatabase();
 builder.AddAzureBlobServiceClient("blobs");
 
 builder.Services.AddSingleton(TimeProvider.System);
@@ -32,9 +32,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference();
 
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ScreenHireDbContext>();
-    await DevelopmentDataSeeder.MigrateAndSeedAsync(db, TimeProvider.System);
+    await DevelopmentDataSeeder.MigrateAndSeedAsync(
+        builder.Configuration.GetConnectionString(DatabaseRegistration.OwnerConnectionName)
+            ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.OwnerConnectionName} is not set."),
+        builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!,
+        TimeProvider.System);
 }
 
 await app.RunAsync();
