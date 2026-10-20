@@ -5,6 +5,26 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v1/meta": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "operationId": "GetMeta",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiMeta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/jobs": {
       "get": {
         "tags": [
@@ -105,6 +125,26 @@
   },
   "components": {
     "schemas": {
+      "ApiMeta": {
+        "required": [
+          "name",
+          "version",
+          "environment"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          }
+        },
+        "description": "What is serving this API: the product name, the build version and the hosting environment."
+      },
       "EmploymentType": {
         "enum": [
           "FullTime",
@@ -264,6 +304,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Meta"
+    },
     {
       "name": "Public careers"
     },
