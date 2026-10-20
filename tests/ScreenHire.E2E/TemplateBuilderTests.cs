@@ -100,8 +100,6 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // The graph takes its colours from the tokens in the dark theme too.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to dark theme" }).ClickAsync();
         await Expect(Page.Locator(".svelte-flow")).ToHaveClassAsync(new Regex(@"\bdark\b"));
-        // Colours fade between themes; axe must see where they end, not a frame of the fade.
-        await Page.EvaluateAsync("() => Promise.all(document.getAnimations().map((animation) => animation.finished))");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
