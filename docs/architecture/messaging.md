@@ -28,6 +28,11 @@ API (publishes; handles tenant events only)  Postgres (screenhire database)     
 | Storage schema | `wolverine_api`: its own outbox, the `realtime` inbox, its own node records | `wolverine` |
 | Durability mode | `Balanced`, in its own cluster: leader election and a durability agent for its own outbox | `Balanced`: leader election, durability agent, recurring schedules |
 
+Wolverine's Postgres transport polls queue tables; it does not use `LISTEN/NOTIFY`. An idle listener waits
+`ScheduledJobPollingTime` (5 s) between polls by default, and every hop of a chain of events waits one poll, so both
+listeners poll faster: the worker every `MessagingSettings.WorkerPollingInterval` and the API's `realtime` listener
+every `RealtimePollingInterval` (250 ms each). That is four small queries a second per listener while idle.
+
 The API never runs background work. That is deliberate: a message published while the worker is down waits in the
 queue table and runs when the worker comes back. The one thing the API handles is a tenant event on the `realtime`
 queue, which it pushes to connected dashboards ([real-time updates](realtime.md)). Receiving needs listeners, which

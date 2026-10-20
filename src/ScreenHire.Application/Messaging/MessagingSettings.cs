@@ -57,6 +57,13 @@ public sealed class MessagingSettings
     public TimeSpan RealtimePollingInterval { get; init; } = TimeSpan.FromMilliseconds(250);
 
     /// <summary>
+    /// How often the worker polls <see cref="WorkerQueue"/> while it is idle. Every hop of a chain of events (an
+    /// automation that moves an application raises the next <c>ApplicationMoved</c>) waits one poll, so the 5 s default
+    /// would cost seconds per step.
+    /// </summary>
+    public TimeSpan WorkerPollingInterval { get; init; } = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>
     /// In-process retries after a handler throws. The listener holds the message while it waits, so keep these short.
     /// </summary>
     public TimeSpan[] RetryDelays { get; init; } = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30)];

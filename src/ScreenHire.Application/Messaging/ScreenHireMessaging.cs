@@ -186,7 +186,9 @@ public static class ScreenHireMessaging
         opts.Services.AddScreenHireAutomations();
 
         UsePostgres(opts, connectionString, settings);
-        opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox();
+        // Polled, like the real-time queue: a chain of events (an automation moving an application, which raises the next
+        // ApplicationMoved) waits one idle poll per hop, so the default 5 s adds up.
+        opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox().PollingInterval(settings.WorkerPollingInterval);
         RouteTenantEvents(opts, settings);
 
         // Messages a handler publishes to another handler in the worker go through durable local queues, so they
