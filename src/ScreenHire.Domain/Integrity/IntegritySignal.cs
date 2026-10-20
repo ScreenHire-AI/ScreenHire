@@ -47,6 +47,19 @@ public sealed class IntegritySignal : ITenantOwned
     /// <summary>Context only: it adds weight to its category but never makes a category count on its own (a VPN, say).</summary>
     public bool ContextOnly { get; init; }
 
+    /// <summary>
+    /// Informational: shown to the reviewer and never counted, not even next to other signals of its category
+    /// (<c>CNT_TEMPLATED_ANSWER</c>).
+    /// </summary>
+    public bool Informational { get; init; }
+
+    /// <summary>
+    /// For a signal a language model helped derive (<c>CNT_INCONSISTENCY</c>): the prompt version and the models that
+    /// actually answered. Null for every other signal. Such a signal always cites its spans from both sources
+    /// (<see cref="LlmProvenance"/>).
+    /// </summary>
+    public LlmProvenance? Llm { get; init; }
+
     /// <summary>The catalogue's explanation template with this observation's values filled in.</summary>
     public required string Explanation { get; init; }
 
@@ -162,3 +175,9 @@ public sealed record ComparedText(string Label, string Text);
 
 /// <summary>Something that argues against a signal, in plain language, with optional evidence of its own.</summary>
 public sealed record CounterEvidence(string Explanation, SignalEvidence? Evidence = null);
+
+/// <summary>
+/// Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the
+/// ones the provider reported serving, not the configured names.
+/// </summary>
+public sealed record LlmProvenance(string PromptVersion, string ExtractionModel, string ConsistencyModel);

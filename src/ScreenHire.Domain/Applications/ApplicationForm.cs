@@ -30,6 +30,13 @@ public static class ApplicationForm
 {
     public const string ResumeQuestionId = "resume";
 
+    /// <summary>
+    /// A file question with this id asks for the candidate's own LinkedIn profile export (PDF), which the consistency
+    /// check compares with the resume and answers. A job opts in by adding the question; ScreenHire never fetches a
+    /// profile itself (CLAUDE.md non-negotiable 5).
+    /// </summary>
+    public const string LinkedInExportQuestionId = "linkedin_export";
+
     public const int ShortTextMaxLength = 300;
 
     public const int LongTextMaxLength = 5000;

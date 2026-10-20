@@ -14,6 +14,10 @@
 //                               turns on the local sandbox board, a fake that must never reach real tenants;
 //                               GoogleIndexing:Mode is Off unless set (Local is the fake); in Google mode the key comes
 //                               from the secret parameter google-indexing-service-account-key, never from these keys.
+//   Integrity:Llm:*             the consistency check's model (ScreenHire.Infrastructure LlmOptions), forwarded to the
+//                               worker. The worker's Development settings use the deterministic fake model; Provider
+//                               None turns the check into "unavailable"; in Anthropic mode the key comes from the secret
+//                               parameter anthropic-api-key, never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -118,6 +122,8 @@ var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithEnvironment("ScreenHire__Webhooks__SigningKey", webhookSigningKey)
     // Automations send transactional email (application received, stage change) from the worker.
     .WithReference(mailpit)
+    // Content forensics read candidates' uploads (read only).
+    .WithReference(blobs).WaitFor(blobs)
     .WaitFor(api); // the API applies migrations and sets the app role's password in Development
 
 foreach (var (key, value) in settings.GetSection("Distribution").AsEnumerable(makePathsRelative: true))
@@ -139,6 +145,24 @@ if (string.Equals(settings["Distribution:GoogleIndexing:Mode"], "Google", String
     var googleKey = builder.AddParameter("google-indexing-service-account-key", secret: true);
     api.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
     worker.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
+}
+
+foreach (var (key, value) in settings.GetSection("Integrity:Llm").AsEnumerable(makePathsRelative: true))
+{
+    // The API key is a secret: it goes through the parameter below, never as plain configuration.
+    if (value is not null && !key.StartsWith("Anthropic", StringComparison.OrdinalIgnoreCase))
+    {
+        worker.WithEnvironment($"ScreenHire__Integrity__Llm__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// Anthropic's API key for the consistency check (integrity-engine.md §10.10), only in Anthropic mode: a secret parameter,
+// set with `dotnet user-secrets set Parameters:anthropic-api-key "<key>"` in apps/apphost or by the deployment's secret
+// store. In the default modes there is no parameter, so nothing asks for a key.
+if (string.Equals(settings["Integrity:Llm:Provider"], "Anthropic", StringComparison.OrdinalIgnoreCase))
+{
+    var anthropicKey = builder.AddParameter("anthropic-api-key", secret: true);
+    worker.WithEnvironment("ScreenHire__Integrity__Llm__Anthropic__ApiKey", anthropicKey);
 }
 
 // The integrity demo: synthetic applicants apply to Brightwater once the API starts (SyntheticApplicantsDemo). Only for

@@ -1,0 +1,35 @@
+{
+  "description": "The model invents a resume claim that is not in the resume. The claim is dropped, so only one source has claims and no comparison is asked for.",
+  "sources": {
+    "Resume": "Dana Whitfield\nSenior data engineer at Harbour Lane Analytics since 2019.",
+    "Answers": "Who is your current employer? Lakeside Data Ltd"
+  },
+  "responses": [
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_011",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [ { "type": "text", "text": "{\"claims\":[{\"topic\":\"employer\",\"quote\":\"Lead engineer at a global search company since 2010.\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 470, "output_tokens": 25 }
+      }
+    },
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_012",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [ { "type": "text", "text": "{\"claims\":[{\"topic\":\"employer\",\"quote\":\"Who is your current employer? Lakeside Data Ltd\"}]}" } ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 455, "output_tokens": 30 }
+      }
+    }
+  ]
+}

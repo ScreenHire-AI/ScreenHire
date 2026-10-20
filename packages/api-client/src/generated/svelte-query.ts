@@ -60,6 +60,7 @@ import type {
   MoveApplicationRequest,
   OnboardingRequest,
   OrganizationBranding,
+  OrganizationIntegritySettings,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -74,6 +75,7 @@ import type {
   UpdateBrandingRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
+  UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UploadRequest,
   UploadTicket,
@@ -5583,6 +5585,203 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUpdateOrganizationBrandingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getOrganizationIntegritySettingsResponse200 = {
+  data: OrganizationIntegritySettings
+  status: 200
+}
+
+export type getOrganizationIntegritySettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationIntegritySettingsResponseSuccess = (getOrganizationIntegritySettingsResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationIntegritySettingsResponseError = (getOrganizationIntegritySettingsResponse401) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationIntegritySettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/integrity-settings`
+}
+
+export const getOrganizationIntegritySettings = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationIntegritySettingsResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationIntegritySettingsResponseSuccess>(getGetOrganizationIntegritySettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationIntegritySettingsQueryKey = () => {
+    return [
+    'v1','organization','integrity-settings'
+    ] as const;
+    }
+
+
+export const getGetOrganizationIntegritySettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationIntegritySettings>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationIntegritySettings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationIntegritySettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationIntegritySettings>>> = ({ signal }) => getOrganizationIntegritySettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationIntegritySettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationIntegritySettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationIntegritySettings>>>
+export type GetOrganizationIntegritySettingsQueryError = ErrorType<void>
+
+
+
+export function createGetOrganizationIntegritySettings<TData = Awaited<ReturnType<typeof getOrganizationIntegritySettings>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationIntegritySettings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationIntegritySettingsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateOrganizationIntegritySettingsResponse200 = {
+  data: OrganizationIntegritySettings
+  status: 200
+}
+
+export type updateOrganizationIntegritySettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationIntegritySettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationIntegritySettingsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationIntegritySettingsResponseSuccess = (updateOrganizationIntegritySettingsResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationIntegritySettingsResponseError = (updateOrganizationIntegritySettingsResponse400 | updateOrganizationIntegritySettingsResponse401 | updateOrganizationIntegritySettingsResponse403) & {
+  headers: Headers;
+};
+
+export const getUpdateOrganizationIntegritySettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/integrity-settings`
+}
+
+export const updateOrganizationIntegritySettings = async (updateIntegritySettingsRequest: UpdateIntegritySettingsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateOrganizationIntegritySettingsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateOrganizationIntegritySettingsResponseSuccess>(getUpdateOrganizationIntegritySettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateIntegritySettingsRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateOrganizationIntegritySettingsMutationKey = () => ['updateOrganizationIntegritySettings'] as const;
+
+export const getUpdateOrganizationIntegritySettingsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateOrganizationIntegritySettings>>, TError,UpdateOrganizationIntegritySettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateOrganizationIntegritySettings>>, TError,UpdateOrganizationIntegritySettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationIntegritySettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationIntegritySettings>>, UpdateOrganizationIntegritySettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOrganizationIntegritySettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationIntegritySettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationIntegritySettings>>>
+    export type UpdateOrganizationIntegritySettingsMutationBody = UpdateIntegritySettingsRequest
+    export type UpdateOrganizationIntegritySettingsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateOrganizationIntegritySettingsMutationVariables = {data: UpdateIntegritySettingsRequest}
+
+    export const createUpdateOrganizationIntegritySettings = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateOrganizationIntegritySettings>>, TError,UpdateOrganizationIntegritySettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationIntegritySettings>>,
+        TError,
+        UpdateOrganizationIntegritySettingsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateOrganizationIntegritySettingsMutationOptions(options?.()) }), queryClient);
     }
 
 export type validateWorkflowResponse200 = {
