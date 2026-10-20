@@ -54,4 +54,14 @@ public sealed class DomainOptions
 
     /// <summary>An absolute URL on the dashboard origin for a local path such as <c>/sign-in</c>.</summary>
     public Uri AppUrl(string localPath) => new(GetAppOrigin(), localPath);
+
+    /// <summary>
+    /// A tenant's careers board, such as <c>https://acme.careers.example.com</c>, from <see cref="CareersHostPattern"/>.
+    /// Feeds, the public job-board API and Google's Indexing API all link here.
+    /// </summary>
+    public string CareersBoardUrl(string organizationSlug) =>
+        $"{Scheme}://{CareersHostPattern.Replace("{CareersDomain}", CareersDomain, StringComparison.Ordinal).Replace("{tenant}", organizationSlug, StringComparison.Ordinal)}";
+
+    /// <summary>A job's page on its tenant's careers board: the URL boards link to and Google indexes.</summary>
+    public string CareersJobUrl(string organizationSlug, string jobSlug) => $"{CareersBoardUrl(organizationSlug)}/jobs/{jobSlug}";
 }

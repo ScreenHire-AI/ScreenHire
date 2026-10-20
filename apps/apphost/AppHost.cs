@@ -9,7 +9,11 @@
 //   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
+//   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
+//                               the same boards (ScreenHire.Application DistributionOptions). appsettings.json turns
+//                               on the local sandbox board; GoogleIndexing:Mode is Off unless set (Local is the fake).
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -96,9 +100,19 @@ if (builder.Environment.IsDevelopment())
         .WaitFor(devSso);
 }
 
-builder.AddProject<Projects.ScreenHire_Worker>("worker")
+var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
     .WaitFor(api); // the API applies migrations and sets the app role's password in Development
+
+foreach (var (key, value) in settings.GetSection("Distribution").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        var name = $"ScreenHire__Distribution__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
 
 if (frontends != FrontendMode.None)
 {
@@ -107,7 +121,7 @@ if (frontends != FrontendMode.None)
 
     // Health checks make WaitFor and the test fixtures wait until each server actually answers, not just until the
     // process starts. Careers' "/" redirects to the demo board, which also proves the API round trip.
-    builder.AddJavaScriptApp("careers", "../careers", script)
+    var careers = builder.AddJavaScriptApp("careers", "../careers", script)
         .WithPnpm(install: false)
         .WithHttpEndpoint(port: PortFor("Careers", 4322), env: "PORT")
         .WithEnvironment("API_URL", apiUrl)
@@ -125,6 +139,9 @@ if (frontends != FrontendMode.None)
         .WithEnvironment("API_URL", apiUrl)
         .WithHttpHealthCheck("/")
         .WaitFor(api);
+
+    // Feeds, the job-board API and Google notifications link to job pages on the careers app's real endpoint.
+    api.WithEnvironment("ScreenHire__Domains__CareersDomain", careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
 
     // Sign-in cookies, OIDC redirect URIs and emailed links point at the dashboard, which reaches the API through its
     // /v1 proxy. Its real endpoint, because ports are random in tests.

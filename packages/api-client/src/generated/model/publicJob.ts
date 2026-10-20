@@ -35,4 +35,6 @@ export interface PublicJob {
   salaryPeriod: null | SalaryPeriod;
   /** @nullable */
   validThrough: string | null;
+  /** @nullable */
+  updatedAt: string | null;
 }

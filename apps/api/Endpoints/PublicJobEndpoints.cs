@@ -20,7 +20,7 @@ internal static class PublicJobEndpoints
         var group = app.MapGroup("/v1/public/organizations/{organizationSlug}").WithTags("Public careers").AllowAnonymous();
 
         group.MapGet("/jobs", ListOpenJobs).WithName("ListPublicJobs");
-        group.MapGet("/jobs/{jobSlug}", GetOpenJob).WithName("GetPublicJob");
+        group.MapGet("/jobs/{jobSlug}", GetOpenJob).WithName("GetPublicJob").Produces<PublicJob>(StatusCodes.Status410Gone);
 
         return app;
     }
@@ -42,8 +42,10 @@ internal static class PublicJobEndpoints
         return TypedResults.Ok(new PublicJobBoard(organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob())]));
     }
 
-    // Closed or unknown jobs return 404 here; careers pages turn a closed job into 410 Gone (teardown, ADR-0003).
-    private static async Task<Results<Ok<PublicJob>, NotFound>> GetOpenJob(
+    // An open job is 200. A closed job that was once published is 410 Gone with its last content and validThrough set to
+    // when it closed, so the careers page can serve 410 with expired JobPosting JSON-LD (teardown, job-distribution.md).
+    // A draft, a job closed before it was ever published, or an unknown slug is 404: nothing public ever existed.
+    private static async Task<Results<Ok<PublicJob>, JsonHttpResult<PublicJob>, NotFound>> GetOpenJob(
         string organizationSlug, string jobSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
     {
         if (await FindOrganizationAsync(organizationSlug, db, tenant, cancellationToken) is null)
@@ -52,22 +54,17 @@ internal static class PublicJobEndpoints
         }
 
         var job = await db.Jobs.AsNoTracking()
-            .SingleOrDefaultAsync(j => j.Slug == jobSlug && j.Status == JobStatus.Open, cancellationToken);
+            .SingleOrDefaultAsync(j => j.Slug == jobSlug && j.Status != JobStatus.Draft && j.PublishedAt != null, cancellationToken);
 
-        return job is null ? TypedResults.NotFound() : TypedResults.Ok(job.ToPublicJob());
-    }
-
-    private static async Task<Organization?> FindOrganizationAsync(
-        string slug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
-    {
-        var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Slug == slug, cancellationToken);
-        if (organization is not null)
+        return job switch
         {
-            // Replaces a signed-in caller's own organization for this request, which is safe only because every route
-            // in this group reads, and reads only what a careers page shows. Never add a write here.
-            tenant.SetOrganization(organization.Id);
-        }
-
-        return organization;
+            null => TypedResults.NotFound(),
+            { Status: JobStatus.Closed } => TypedResults.Json(job.ToPublicJob(), statusCode: StatusCodes.Status410Gone),
+            _ => TypedResults.Ok(job.ToPublicJob()),
+        };
     }
+
+    private static Task<Organization?> FindOrganizationAsync(
+        string slug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken) =>
+        PublicOrganizations.FindAsync(slug, db, tenant, cancellationToken);
 }

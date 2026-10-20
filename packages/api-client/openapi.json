@@ -5,6 +5,42 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v1/public/sandbox-board/{organizationSlug}/listings": {
+      "get": {
+        "tags": [
+          "Public distribution"
+        ],
+        "operationId": "ListSandboxListings",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SandboxBoardListing"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v1/meta": {
       "get": {
         "tags": [
@@ -306,6 +342,16 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicJob"
+                }
+              }
+            }
           }
         }
       }
@@ -526,6 +572,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PublishJobRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1560,6 +1622,253 @@
         }
       }
     },
+    "/v1/boards": {
+      "get": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "ListBoards",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BoardSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{jobId}/postings": {
+      "get": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "ListJobPostings",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobPostingStatus"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{jobId}/postings/{boardId}/close": {
+      "post": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "CloseJobPosting",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "boardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPostingStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/public/boards/{organizationSlug}": {
+      "get": {
+        "tags": [
+          "Public job board"
+        ],
+        "operationId": "GetJobBoard",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobBoardInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v1/public/boards/{organizationSlug}/jobs": {
+      "get": {
+        "tags": [
+          "Public job board"
+        ],
+        "operationId": "ListJobBoardJobs",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "content",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobBoardJobList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v1/public/boards/{organizationSlug}/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "Public job board"
+        ],
+        "operationId": "GetJobBoardJob",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobBoardJob"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -2016,6 +2325,76 @@
             "format": "int32"
           }
         }
+      },
+      "BoardMode": {
+        "enum": [
+          "Hosted",
+          "Pull",
+          "PullFromAts",
+          "Notify",
+          "Push",
+          null
+        ]
+      },
+      "BoardSummary": {
+        "required": [
+          "id",
+          "name",
+          "mode",
+          "canClose",
+          "canUnpublishPerBoard",
+          "confirmsLive",
+          "confirmsRemoval",
+          "publishEtaSeconds",
+          "removalEtaSeconds",
+          "dailyQuota"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/BoardMode"
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "canUnpublishPerBoard": {
+            "type": "boolean"
+          },
+          "confirmsLive": {
+            "type": "boolean"
+          },
+          "confirmsRemoval": {
+            "type": "boolean"
+          },
+          "publishEtaSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "removalEtaSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "dailyQuota": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1)."
       },
       "CandidateDetail": {
         "required": [
@@ -2681,6 +3060,209 @@
         },
         "description": "The template's integrity settings (ADR-0004). Only the AI-use policy exists so far."
       },
+      "JobBoardDepartment": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "JobBoardInfo": {
+        "required": [
+          "name",
+          "content",
+          "absolute_url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "absolute_url": {
+            "type": "string"
+          }
+        },
+        "description": "A tenant's board in the public job-board API (Greenhouse-style: `GET /v1/boards/{token}`)."
+      },
+      "JobBoardJob": {
+        "required": [
+          "id",
+          "title",
+          "updated_at",
+          "first_published",
+          "location",
+          "absolute_url",
+          "company_name",
+          "departments",
+          "offices",
+          "employment_type",
+          "workplace_type",
+          "pay_input_ranges",
+          "valid_through",
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "first_published": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "location": {
+            "$ref": "#/components/schemas/JobBoardLocation"
+          },
+          "absolute_url": {
+            "type": "string"
+          },
+          "company_name": {
+            "type": "string"
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobBoardDepartment"
+            }
+          },
+          "offices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobBoardOffice"
+            }
+          },
+          "employment_type": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "workplace_type": {
+            "$ref": "#/components/schemas/WorkplaceType"
+          },
+          "pay_input_ranges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobBoardPayRange"
+            }
+          },
+          "valid_through": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "content": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A job in the public job-board API, in Greenhouse's snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse's integers."
+      },
+      "JobBoardJobList": {
+        "required": [
+          "jobs",
+          "meta"
+        ],
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobBoardJob"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/JobBoardMeta"
+          }
+        },
+        "description": "Every job on a tenant's public job board (Greenhouse-style `jobs` and `meta.total`)."
+      },
+      "JobBoardLocation": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "JobBoardMeta": {
+        "required": [
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "JobBoardOffice": {
+        "required": [
+          "name",
+          "location"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          }
+        }
+      },
+      "JobBoardPayRange": {
+        "required": [
+          "min_cents",
+          "max_cents",
+          "currency_type",
+          "period"
+        ],
+        "type": "object",
+        "properties": {
+          "min_cents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "max_cents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "currency_type": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/SalaryPeriod"
+          }
+        },
+        "description": "Greenhouse's pay transparency range, in minor units of `currency_type`."
+      },
       "JobDetail": {
         "required": [
           "id",
@@ -2704,7 +3286,8 @@
           "createdAt",
           "updatedAt",
           "publishedAt",
-          "closedAt"
+          "closedAt",
+          "postings"
         ],
         "type": "object",
         "properties": {
@@ -2816,6 +3399,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "postings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostingStatus"
+            }
           }
         },
         "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."
@@ -2848,6 +3437,118 @@
           }
         },
         "description": "A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it."
+      },
+      "JobPostingStatus": {
+        "required": [
+          "id",
+          "boardId",
+          "boardName",
+          "mode",
+          "state",
+          "jobVersion",
+          "confirmsLive",
+          "confirmsRemoval",
+          "canUnpublish",
+          "expectedBy",
+          "issues",
+          "lastError",
+          "updatedAt",
+          "submittedAt",
+          "liveAt",
+          "closingAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "boardId": {
+            "type": "string"
+          },
+          "boardName": {
+            "type": "string"
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BoardMode"
+              }
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/PostingState"
+          },
+          "jobVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "confirmsLive": {
+            "type": "boolean"
+          },
+          "confirmsRemoval": {
+            "type": "boolean"
+          },
+          "canUnpublish": {
+            "type": "boolean"
+          },
+          "expectedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "liveAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "closingAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One job on one board: where it stands and what is still uncertain."
       },
       "JobSalary": {
         "required": [
@@ -3300,6 +4001,18 @@
         },
         "description": "Values a new job starts with when it is created from the template. Every member is optional."
       },
+      "PostingState": {
+        "enum": [
+          "Draft",
+          "Queued",
+          "Submitted",
+          "Live",
+          "Rejected",
+          "Closing",
+          "Closed",
+          "Error"
+        ]
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -3353,7 +4066,8 @@
           "locations",
           "applicantLocationRequirements",
           "salaryPeriod",
-          "validThrough"
+          "validThrough",
+          "updatedAt"
         ],
         "type": "object",
         "properties": {
@@ -3440,6 +4154,13 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "A job as shown on a public careers page."
@@ -3466,6 +4187,21 @@
           }
         },
         "description": "The public careers listing for one organization."
+      },
+      "PublishJobRequest": {
+        "type": "object",
+        "properties": {
+          "boards": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again."
       },
       "Question": {
         "required": [
@@ -3641,6 +4377,42 @@
           }
         },
         "description": "A pay range. Currency and period may come from the template's posting defaults on create."
+      },
+      "SandboxBoardListing": {
+        "required": [
+          "id",
+          "jobId",
+          "jobVersion",
+          "title",
+          "url",
+          "acceptedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One listing on the local sandbox board, as the board itself would show it."
       },
       "SignInMethods": {
         "required": [
@@ -3890,6 +4662,9 @@
   },
   "tags": [
     {
+      "name": "Public distribution"
+    },
+    {
       "name": "Meta"
     },
     {
@@ -3909,6 +4684,12 @@
     },
     {
       "name": "Candidates"
+    },
+    {
+      "name": "Distribution"
+    },
+    {
+      "name": "Public job board"
     },
     {
       "name": "Schemas"

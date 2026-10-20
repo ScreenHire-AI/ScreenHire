@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261020104006_AddJobDistribution")]
+    [Migration("20261020105024_AddJobDistribution")]
     partial class AddJobDistribution
     {
         /// <inheritdoc />
@@ -412,6 +412,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
 
                     b.Property<string>("State")
                         .IsRequired()

@@ -1,6 +1,7 @@
 ---
 import CareersLayout from '../../../layouts/CareersLayout.astro';
-import { escapeHtml, formatSalary, getPublicJob, jsonLdScript, label, listPublicJobs } from '../../../lib/api';
+import { formatSalary, getPublicJob, jsonLdScript, label, listPublicJobs } from '../../../lib/api';
+import { buildJobPosting } from '../../../lib/job-posting';
 
 const { organization, job: jobSlug } = Astro.params;
 const [jobResponse, boardResponse] = await Promise.all([
@@ -8,53 +9,24 @@ const [jobResponse, boardResponse] = await Promise.all([
   listPublicJobs(organization!),
 ]);
 
-// Closed jobs become 410 Gone once the API exposes closed status (teardown work item); unknown jobs are 404.
-if (jobResponse.status !== 200 || boardResponse.status !== 200) {
+// A closed job is 410 Gone (teardown, docs/architecture/job-distribution.md); a draft or an unknown job is 404.
+if ((jobResponse.status !== 200 && jobResponse.status !== 410) || boardResponse.status !== 200) {
   return new Response(null, { status: 404 });
+}
+
+const closed = jobResponse.status === 410;
+if (closed) {
+  Astro.response.status = 410;
 }
 
 const job = jobResponse.data;
 const board = boardResponse.data;
 const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+const boardUrl = `${Astro.url.origin}/${board.organizationSlug}`;
+const url = `${boardUrl}/jobs/${job.slug}`;
 
-// schema.org JobPosting for Google for Jobs (docs/architecture/job-distribution.md), from the structured fields. The
-// description is HTML, as Google expects; the API sanitized it on the way in.
-const address = (location: (typeof job.locations)[number]) => ({
-  '@type': 'PostalAddress',
-  ...(location.city && { addressLocality: location.city }),
-  ...(location.region && { addressRegion: location.region }),
-  ...(location.country && { addressCountry: location.country }),
-});
-const places = job.locations.map((location) => ({ '@type': 'Place', address: address(location) }));
-const jobPosting = {
-  '@context': 'https://schema.org',
-  '@type': 'JobPosting',
-  title: job.title,
-  description: job.description || `<p>${escapeHtml(job.title)} at ${escapeHtml(board.organizationName)}.</p>`,
-  datePosted: job.publishedAt,
-  ...(job.validThrough && { validThrough: job.validThrough }),
-  employmentType: job.employmentType.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
-  hiringOrganization: { '@type': 'Organization', name: board.organizationName },
-  ...(job.department && { occupationalCategory: job.department }),
-  ...(job.workplaceType === 'Remote'
-    ? {
-        jobLocationType: 'TELECOMMUTE',
-        applicantLocationRequirements: job.applicantLocationRequirements.map((country) => ({ '@type': 'Country', name: country })),
-      }
-    : { jobLocation: places.length === 1 ? places[0] : places }),
-  ...(job.salaryMin != null && {
-    baseSalary: {
-      '@type': 'MonetaryAmount',
-      currency: job.salaryCurrency,
-      value: {
-        '@type': 'QuantitativeValue',
-        minValue: job.salaryMin,
-        maxValue: job.salaryMax,
-        unitText: (job.salaryPeriod ?? 'Year').toUpperCase(),
-      },
-    },
-  }),
-};
+// For a closed job the API's validThrough is when it closed, so this JSON-LD tells Google the posting has expired.
+const jobPosting = buildJobPosting(job, { organizationName: board.organizationName, boardUrl, url });
 ---
 
 <CareersLayout
@@ -63,7 +35,16 @@ const jobPosting = {
   organizationName={board.organizationName}
   organizationSlug={board.organizationSlug}
 >
+  <link slot="head" rel="canonical" href={url} />
   <script slot="head" type="application/ld+json" is:inline set:html={jsonLdScript(jobPosting)} />
+
+  {
+    closed && (
+      <p role="status" class="mb-6 rounded-2xl border border-candidate-border bg-candidate-surface p-5 text-[15px] font-semibold">
+        This role is closed and no longer taking applications.
+      </p>
+    )
+  }
 
   <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
   <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
@@ -91,10 +72,14 @@ const jobPosting = {
     </p>
   </section>
 
-  <a
-    href="#apply"
-    class="mt-6 inline-flex h-13 w-full items-center justify-center rounded-[14px] bg-candidate-cta text-base font-bold text-candidate-cta-foreground no-underline sm:w-auto sm:px-8"
-  >
-    Apply for this role
-  </a>
+  {
+    !closed && (
+      <a
+        href="#apply"
+        class="mt-6 inline-flex h-13 w-full items-center justify-center rounded-[14px] bg-candidate-cta text-base font-bold text-candidate-cta-foreground no-underline sm:w-auto sm:px-8"
+      >
+        Apply for this role
+      </a>
+    )
+  }
 </CareersLayout>

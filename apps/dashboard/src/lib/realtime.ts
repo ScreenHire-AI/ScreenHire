@@ -13,7 +13,8 @@ export const jobsDependency = 'api:jobs';
 /**
  * Which `load` dependencies each tenant event makes stale. Add a line when a page shows what an event changes.
  * HiringTemplateVersionPublished is here because the jobs list shows "template update available". The application
- * events have no page yet; the pipeline view maps them when it lands.
+ * events and JobPostingChanged (one job on one board) have no page yet; the pipeline and distribution views map them
+ * when they land.
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsDependency],

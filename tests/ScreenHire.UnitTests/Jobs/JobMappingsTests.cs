@@ -17,7 +17,17 @@ public sealed class JobMappingsTests
         publicJob.Should().BeEquivalentTo(new PublicJob(
             job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
             EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Engineering",
-            [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null));
+            [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null, Published));
+    }
+
+    [Fact]
+    public void A_closed_job_expires_at_the_moment_it_closed()
+    {
+        var job = OpenJob();
+        var closedAt = Published.AddDays(3);
+        job.Close(closedAt);
+
+        job.ToPublicJob().ValidThrough.Should().Be(closedAt, "the careers page's 410 carries a past validThrough for Google");
     }
 
     [Fact]
@@ -38,10 +48,10 @@ public sealed class JobMappingsTests
         var job = OpenJob();
         var published = job.Snapshot();
 
-        job.ToDetail(published, null, null).HasUnpublishedChanges.Should().BeFalse();
+        job.ToDetail(published, null, null, []).HasUnpublishedChanges.Should().BeFalse();
         job.Revise(published with { Title = "Svelte Engineer" }, Published.AddDays(1));
-        job.ToDetail(published, null, null).HasUnpublishedChanges.Should().BeTrue();
-        job.ToDetail(published, null, null).Template.Should().BeNull("the job has no source template");
+        job.ToDetail(published, null, null, []).HasUnpublishedChanges.Should().BeTrue();
+        job.ToDetail(published, null, null, []).Template.Should().BeNull("the job has no source template");
     }
 
     private static Job OpenJob()

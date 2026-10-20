@@ -80,6 +80,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     expected_by = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     next_check_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     attempts = table.Column<int>(type: "integer", nullable: false),
+                    sequence = table.Column<int>(type: "integer", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     submitted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),

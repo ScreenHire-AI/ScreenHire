@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -69,9 +72,10 @@ internal static class JobEndpoints
         return [.. rows.Select(r => r.Job.ToSummary(r.LatestTemplateVersion))];
     }
 
-    private static async Task<Results<Ok<JobDetail>, NotFound>> GetJob(Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    private static async Task<Results<Ok<JobDetail>, NotFound>> GetJob(
+        Guid jobId, ScreenHireDbContext db, BoardRegistry boards, CancellationToken cancellationToken)
     {
-        var detail = await LoadDetailAsync(db, jobId, cancellationToken);
+        var detail = await LoadDetailAsync(db, boards, jobId, cancellationToken);
         return detail is null ? TypedResults.NotFound() : TypedResults.Ok(detail);
     }
 
@@ -82,6 +86,7 @@ internal static class JobEndpoints
         ScreenHireDbContext db,
         ITenantContext tenant,
         JobContentValidator validator,
+        BoardRegistry boards,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -146,7 +151,7 @@ internal static class JobEndpoints
             return TypedResults.Problem("Another job took this slug at the same moment; try again.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        return TypedResults.Created($"/v1/jobs/{job.Id}", (await LoadDetailAsync(db, job.Id, cancellationToken))!);
+        return TypedResults.Created($"/v1/jobs/{job.Id}", (await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
     }
 
     // Replaces the posting content. Editing an open job does not republish it: the change is live on the careers page,
@@ -156,6 +161,7 @@ internal static class JobEndpoints
         UpdateJobRequest request,
         ScreenHireDbContext db,
         JobContentValidator validator,
+        BoardRegistry boards,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -219,18 +225,24 @@ internal static class JobEndpoints
             return TypedResults.Problem("Another job took this slug at the same moment; try again.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        return TypedResults.Ok((await LoadDetailAsync(db, job.Id, cancellationToken))!);
+        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
     }
 
-    // Opens the job, or republishes changed content, as a new JobVersion. The version, the job change and JobPublished
-    // commit in one transaction (the EF Core outbox), and the worker handles the event. Publishing an open job whose
-    // content equals its newest version commits nothing and raises no event. A publish that races another publish, an
-    // edit or a close gets 409 (the job's row version, or the version number's unique index), so a closed job stays
-    // closed.
+    // Opens the job, or republishes changed content, as a new JobVersion, and posts that version to boards in the same
+    // transaction (one-click publish, docs/architecture/job-distribution.md): the version, the job change, the postings,
+    // JobPublished and each push board's command commit together through the EF Core outbox, and the response shows
+    // every board's state and estimate. Publishing an open job whose content equals its newest version freezes nothing
+    // and raises no JobPublished; it still posts to boards named in the request, or to every board if the job is on
+    // none. A publish that races another publish, an edit or a close gets 409 (the job's row version, or a unique
+    // index), so a closed job stays closed.
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
         Guid jobId,
+        PublishJobRequest? request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         JobPublishValidator validator,
+        DistributionPlanner planner,
+        BoardRegistry boards,
+        IOptions<DomainOptions> domains,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -244,6 +256,17 @@ internal static class JobEndpoints
         if (job.Status == JobStatus.Closed)
         {
             return TypedResults.Problem("A closed job cannot be republished; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == job.OrganizationId, cancellationToken);
+        if (request?.Boards is { } requested)
+        {
+            var available = boards.AvailableTo(organization).Select(a => a.BoardId).ToHashSet(StringComparer.Ordinal);
+            if (requested.FirstOrDefault(b => !available.Contains(b)) is { } unknown)
+            {
+                return TypedResults.ValidationProblem(
+                    ValidationExtensions.Problem("boards", $"'{unknown}' is not a board this organization can post to."));
+            }
         }
 
         var now = time.GetUtcNow();
@@ -274,10 +297,28 @@ internal static class JobEndpoints
             .Where(v => v.JobId == job.Id)
             .OrderByDescending(v => v.Version)
             .FirstOrDefaultAsync(cancellationToken);
-        if (job.Publish(now, latest) is { } version)
+        var version = job.Publish(now, latest);
+        if (version is not null)
         {
             db.JobVersions.Add(version);
             await outbox.PublishAsync(new JobPublished(job.OrganizationId, job.Id, version.PublishedAt, version.Version, version.Id));
+        }
+
+        // Publish returns no version only for an open job whose newest version matches, so one of the two exists.
+        var current = version ?? latest!;
+        var postings = await db.JobPostings.Where(p => p.JobId == job.Id).ToListAsync(cancellationToken);
+        var content = new PostingContent(
+            job.Id, current.Version, current.Snapshot, job.PublishedAt!.Value, current.PublishedAt,
+            domains.Value.CareersJobUrl(organization.Slug, job.Slug), organization.Name, organization.Slug);
+        var changes = await planner.PublishAsync(organization, content, postings, request?.Boards, cancellationToken);
+        db.JobPostings.AddRange(changes.Added);
+        foreach (var message in changes.Messages)
+        {
+            await outbox.PublishAsync(message);
+        }
+
+        if (db.ChangeTracker.HasChanges())
+        {
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -288,12 +329,20 @@ internal static class JobEndpoints
             }
         }
 
-        return TypedResults.Ok((await LoadDetailAsync(db, job.Id, cancellationToken))!);
+        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
     }
 
-    // Closing a closed job commits nothing and raises no second event.
+    // Closes the job and tears it down everywhere in the same transaction (one-click teardown): the careers page serves
+    // 410 Gone at once, feeds and the job-board API drop it at once, Google's URL_DELETED is queued, and each push board
+    // is asked to remove it. Each posting reports its own state and estimate; only what is confirmed is Closed. Closing a
+    // closed job commits nothing and raises no second event.
     private static async Task<Results<Ok<JobDetail>, NotFound, ProblemHttpResult>> CloseJob(
-        Guid jobId, IDbContextOutbox<ScreenHireDbContext> outbox, TimeProvider time, CancellationToken cancellationToken)
+        Guid jobId,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        DistributionPlanner planner,
+        BoardRegistry boards,
+        TimeProvider time,
+        CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
         var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
@@ -305,6 +354,16 @@ internal static class JobEndpoints
         if (job.Close(time.GetUtcNow()))
         {
             await outbox.PublishAsync(new JobClosed(job.OrganizationId, job.Id, job.ClosedAt!.Value));
+        }
+
+        var changes = await TearDownAsync(db, planner, job.Id, boardId: null, cancellationToken);
+        foreach (var message in changes.Messages)
+        {
+            await outbox.PublishAsync(message);
+        }
+
+        if (db.ChangeTracker.HasChanges())
+        {
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -315,7 +374,26 @@ internal static class JobEndpoints
             }
         }
 
-        return TypedResults.Ok((await LoadDetailAsync(db, job.Id, cancellationToken))!);
+        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+    }
+
+    /// <summary>
+    /// Takes the job down from one board, or from every board, through the planner; the caller publishes the messages
+    /// and saves. Adapters that need content get the newest version's.
+    /// </summary>
+    internal static async Task<DistributionChanges> TearDownAsync(
+        ScreenHireDbContext db, DistributionPlanner planner, Guid jobId, string? boardId, CancellationToken cancellationToken)
+    {
+        var postings = await db.JobPostings
+            .Where(p => p.JobId == jobId && (boardId == null || p.BoardId == boardId))
+            .ToListAsync(cancellationToken);
+        if (postings.Count == 0)
+        {
+            return new DistributionChanges([], []);
+        }
+
+        var content = await PostingContents.LoadAsync(db, postings.MaxBy(p => p.JobVersion)!, cancellationToken);
+        return await planner.CloseAsync(content, postings, boardId, cancellationToken);
     }
 
     private static async Task<Results<Ok<List<JobVersionSummary>>, NotFound>> ListJobVersions(
@@ -366,8 +444,11 @@ internal static class JobEndpoints
             WorkflowDiff.Compare(job.Workflow, latest.Definition.Workflow)));
     }
 
-    /// <summary>The job with its newest version's content and its source template's name and newest version, in one query.</summary>
-    internal static async Task<JobDetail?> LoadDetailAsync(ScreenHireDbContext db, Guid jobId, CancellationToken cancellationToken)
+    /// <summary>
+    /// The job with its newest version's content, its source template's name and newest version, and its postings, in
+    /// one query.
+    /// </summary>
+    internal static async Task<JobDetail?> LoadDetailAsync(ScreenHireDbContext db, BoardRegistry boards, Guid jobId, CancellationToken cancellationToken)
     {
         var row = await db.Jobs.AsNoTracking()
             .Where(j => j.Id == jobId)
@@ -376,10 +457,11 @@ internal static class JobEndpoints
                 Job = j,
                 Latest = db.JobVersions.Where(v => v.JobId == j.Id).OrderByDescending(v => v.Version).Select(v => v.Snapshot).FirstOrDefault(),
                 Template = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => new { t.Name, t.LatestPublishedVersion }).FirstOrDefault(),
+                Postings = db.JobPostings.Where(p => p.JobId == j.Id).ToList(),
             })
             .SingleOrDefaultAsync(cancellationToken);
 
-        return row?.Job.ToDetail(row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion);
+        return row?.Job.ToDetail(row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards));
     }
 
     private static async Task<string> FreeSlugAsync(ScreenHireDbContext db, string slug, CancellationToken cancellationToken)
