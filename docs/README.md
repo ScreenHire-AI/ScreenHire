@@ -44,6 +44,8 @@ configuration everywhere (ADR-0003).
 
 - [Board pipeline](process/board-pipeline.md) — Kangentic columns, outcome lines, notifications and how to unblock a
   task; where the gate, conflict rules and process guard live
+- [Testing](process/testing.md) — which tier for what, running one test, the shared Aspire fixture, data isolation,
+  end-to-end setup and the flake policy
 - [Claude Code tooling](process/dev-tooling.md) - the skills, agents and rules in `.claude/`, and when to use each
 
 ## Research (snapshot 2026-10-18)

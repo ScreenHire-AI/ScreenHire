@@ -19,11 +19,13 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
-| `tests/` | xUnit v3 + AwesomeAssertions; Aspire integration tests |
+| `tests/` | xUnit v3 + AwesomeAssertions: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire), `ScreenHire.E2E` (Playwright), `ScreenHire.Testing` (shared AppHost fixture). Vitest lives next to the frontend code. See [`docs/process/testing.md`](docs/process/testing.md) |
 
 ## Commands
 
-- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs).
+- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs), then
+  `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
+  `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
   dashboard :4323; the Aspire dashboard URL is printed on start.
 - **Parallel worktrees:** several Kangentic tasks may run at once. Before `pnpm dev`, check/reserve ports with the
@@ -36,11 +38,17 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
   name after checking their Aspire labels.
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
-  `--fail-on-warnings`, astro check, tsc), `dotnet test --solution ScreenHire.slnx` (Microsoft Testing Platform via
-  `global.json`; the integration tests boot the AppHost, so Docker must be running).
+  `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
+  ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
+  end-to-end; the last two boot the AppHost, so Docker must be running, and the end-to-end tests serve the
+  `pnpm -r build` output).
+- **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
+  own organization; the seeded `brightwater` is read-only) and the flake policy are in
+  [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
+  `Built` (production previews, used by the end-to-end tests) or `None` (used by the integration tests).
 - **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and every
-  test suite (steps `verify:dotnet`, `verify:contract`, `verify:test` run alone too). It is the only CI for now; see
-  the `/verify` skill.
+  test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract` and
+  `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 

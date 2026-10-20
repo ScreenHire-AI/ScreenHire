@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Deque.AxeCore.Playwright" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScreenHire.Testing\ScreenHire.Testing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.Playwright" />
+    <Using Include="Microsoft.Playwright.Assertions" Static="true" />
+    <Using Include="ScreenHire.Testing" />
+    <Using Include="AwesomeAssertions" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

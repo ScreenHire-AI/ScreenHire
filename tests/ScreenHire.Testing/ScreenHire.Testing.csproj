@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared test infrastructure: the Aspire AppHost fixture and test-data helpers. A library, not a test project. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\apps\apphost\ScreenHire.AppHost.csproj" />
+    <ProjectReference Include="..\..\src\ScreenHire.Infrastructure\ScreenHire.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

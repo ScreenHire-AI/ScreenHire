@@ -6,6 +6,8 @@ import { defineConfig } from 'vite';
 // SvelteKit 3: project config lives here (svelte.config.js is no longer supported).
 // Aspire sets PORT and API_URL in development; the /v1 proxy keeps the API same-origin for cookie auth.
 const apiUrl = process.env.API_URL ?? 'http://localhost:5080';
+const port = Number(process.env.PORT ?? 4323);
+const proxy = { '/v1': { target: apiUrl, changeOrigin: true } };
 
 export default defineConfig({
   plugins: [
@@ -15,9 +17,7 @@ export default defineConfig({
       compilerOptions: { runes: true },
     }),
   ],
-  server: {
-    port: Number(process.env.PORT ?? 4323),
-    strictPort: true,
-    proxy: { '/v1': { target: apiUrl, changeOrigin: true } },
-  },
+  server: { port, strictPort: true, proxy },
+  // `vite preview` serves the production build (AppHost Frontends=Built, used by the end-to-end tests).
+  preview: { port, strictPort: true, proxy },
 });

@@ -16,6 +16,7 @@
     "dev": "dotnet run --project apps/apphost",
     "build": "dotnet build ScreenHire.slnx && pnpm -r build",
     "check": "pnpm -r check",
+    "e2e:install": "node scripts/install-browsers.mjs",
     "generate:api": "dotnet build apps/api && pnpm --filter @screenhire/api-client generate",
     "verify": "pnpm verify:dotnet && pnpm verify:contract && pnpm check && pnpm -r build && pnpm -r --if-present test && pnpm verify:test",
     "verify:dotnet": "dotnet build ScreenHire.slnx -warnaserror",
