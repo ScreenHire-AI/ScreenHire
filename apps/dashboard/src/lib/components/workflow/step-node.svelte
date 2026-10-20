@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
   import type { StepNode } from '#lib/workflow-graph.js';
+  import ProblemMark from './problem-mark.svelte';
 
   // One node of the workflow graph. Automation nodes carry an Edit button, the graph's keyboard and pointer path to the
   // automation's form; the nodes themselves are not focusable or draggable.
@@ -22,7 +23,9 @@
   <span class="font-mono text-[10px] tracking-[0.06em] text-muted-foreground uppercase">{kindLabel[data.kind]}{data.disabled ? ' · off' : ''}</span>
   <span class="leading-snug font-semibold">{data.title}</span>
   {#if data.detail}<span class="line-clamp-2 text-muted-foreground">{data.detail}</span>{/if}
-  {#if data.invalid}<span class="font-semibold text-destructive">Needs a fix</span>{/if}
+  {#if data.invalid}
+    <span class="inline-flex items-center gap-1.5 font-semibold text-destructive"><ProblemMark />Needs a fix</span>
+  {/if}
   {#if data.kind === 'trigger' && data.automation !== null && edit}
     <button
       type="button"

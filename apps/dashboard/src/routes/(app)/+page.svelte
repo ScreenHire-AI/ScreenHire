@@ -1,17 +1,30 @@
 <script lang="ts">
-  import type { JobStatus, JobSummary } from '@screenhire/api-client';
-  import { createCloseJob, createCreateJob, createListHiringTemplates, createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
+  import type { HttpValidationProblemDetails, JobStatus, JobSummary } from '@screenhire/api-client';
+  import {
+    ApiError,
+    createCloseJob,
+    createCreateJob,
+    createListHiringTemplates,
+    createListJobs,
+    createPublishJob,
+  } from '@screenhire/api-client/svelte-query';
+  import { CreateJobBody } from '@screenhire/api-client/zod';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { defaults, superForm } from 'sveltekit-superforms';
+  import { zod4 } from 'sveltekit-superforms/adapters';
+  import { z } from 'zod';
   import { goto } from '$app/navigation';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import { labelClass, selectClass } from '#lib/components/workflow/controls.js';
+  import { selectClass } from '#lib/components/workflow/controls.js';
+  import { applyValidationProblem } from '#lib/forms.js';
   import { formatShortDate } from '#lib/format.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -48,25 +61,46 @@
   let creating = $state(false);
   const templates = createListHiringTemplates(() => ({ query: { enabled: creating } }));
   const usable = $derived((templates.data?.data ?? []).filter((template) => template.latestPublishedVersionId));
-  let newTitle = $state('');
-  let templateVersionId = $state('');
-  let createFailure = $state('');
 
-  async function createJob(event: SubmitEvent) {
-    event.preventDefault();
-    createFailure = '';
-    if (!newTitle.trim()) {
-      createFailure = 'Give the job a title.';
-      return;
-    }
-    try {
-      const response = await create.mutateAsync({ data: { title: newTitle.trim(), templateVersionId: templateVersionId || null } });
-      creating = false;
-      await goto(`/jobs/${response.data.id}`);
-    } catch (error) {
-      createFailure = describeError(error, 'Could not create the job');
-    }
-  }
+  // The select's "none" is an empty string, which the body's uuid would refuse; it becomes null on the way out.
+  const newJobSchema = CreateJobBody.pick({ title: true }).extend({
+    title: z.string().trim().min(1, 'Give the job a title.'),
+    templateVersionId: z.string(),
+  });
+  const {
+    form: newJob,
+    errors: newJobErrors,
+    enhance: newJobEnhance,
+    submitting: newJobSubmitting,
+    reset: resetNewJob,
+  } = superForm(defaults({ title: '', templateVersionId: '' }, zod4(newJobSchema)), {
+    SPA: true,
+    validators: zod4(newJobSchema),
+    resetForm: false,
+    applyAction: false,
+    invalidateAll: false,
+    async onUpdate({ form }) {
+      if (!form.valid) return;
+      try {
+        const response = await create.mutateAsync({
+          data: { title: form.data.title.trim(), templateVersionId: form.data.templateVersionId || null },
+        });
+        creating = false;
+        await goto(`/jobs/${response.data.id}`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 400) {
+          applyValidationProblem(form, error.body as HttpValidationProblemDetails);
+        } else {
+          form.valid = false;
+          form.errors._errors = [describeError(error, 'Could not create the job')];
+        }
+      }
+    },
+  });
+
+  $effect(() => {
+    if (creating) resetNewJob({ data: { title: '', templateVersionId: '' } });
+  });
 
   async function act(job: JobSummary, action: NonNullable<(typeof actions)[JobStatus]>) {
     busyJobId = job.id;
@@ -168,24 +202,43 @@
       <Dialog.Title>New job</Dialog.Title>
       <Dialog.Description>The job starts as a draft with its own copy of the template's workflow, which you can tailor.</Dialog.Description>
     </Dialog.Header>
-    <form class="flex flex-col gap-3" onsubmit={createJob}>
-      <label class={labelClass}>
-        Title
-        <Input bind:value={newTitle} maxlength={200} required />
-      </label>
-      <label class={labelClass}>
-        Hiring template
-        <select class={selectClass} bind:value={templateVersionId}>
+    <form method="POST" use:newJobEnhance novalidate class="flex flex-col gap-4">
+      <Field.Field data-invalid={$newJobErrors.title ? true : undefined}>
+        <Field.Label for="new-job-title">Title</Field.Label>
+        <Input
+          id="new-job-title"
+          name="title"
+          maxlength={200}
+          required
+          bind:value={$newJob.title}
+          aria-invalid={$newJobErrors.title ? 'true' : undefined}
+          aria-describedby={$newJobErrors.title ? 'new-job-title-error' : undefined}
+        />
+        <Field.Error id="new-job-title-error" errors={$newJobErrors.title?.map((message) => ({ message }))} />
+      </Field.Field>
+      <Field.Field data-invalid={$newJobErrors.templateVersionId ? true : undefined}>
+        <Field.Label for="new-job-template">Hiring template</Field.Label>
+        <select
+          id="new-job-template"
+          name="templateVersionId"
+          class={selectClass}
+          bind:value={$newJob.templateVersionId}
+          aria-invalid={$newJobErrors.templateVersionId ? 'true' : undefined}
+          aria-describedby={$newJobErrors.templateVersionId ? 'new-job-template-error' : undefined}
+        >
           <option value="">None: a basic pipeline</option>
           {#each usable as template (template.id)}
             <option value={template.latestPublishedVersionId}>{template.name} (v{template.latestPublishedVersion})</option>
           {/each}
         </select>
-      </label>
-      <p role="status" class="text-[13px] font-semibold text-destructive empty:hidden">{createFailure}</p>
+        <Field.Error id="new-job-template-error" errors={$newJobErrors.templateVersionId?.map((message) => ({ message }))} />
+      </Field.Field>
+      {#if $newJobErrors._errors}
+        <p role="alert" class="text-sm text-destructive">{$newJobErrors._errors[0]}</p>
+      {/if}
       <Dialog.Footer>
-        <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={create.isPending}>Create job</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
+        <Button type="submit" disabled={$newJobSubmitting}>Create job</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

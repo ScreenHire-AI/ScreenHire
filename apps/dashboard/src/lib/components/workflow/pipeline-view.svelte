@@ -8,6 +8,7 @@
   import { errorsAt, errorsUnder, laneOf, moveItem, newStage, removeAt, stageKindLabels, stageKinds, summarize } from '#lib/workflow.js';
   import { kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
+  import ProblemMark from './problem-mark.svelte';
 
   // The default builder view (workflow-engine.md §4): the stages in order, each with the automations that fire on it,
   // and a lane for the automations that belong to no one stage. Stages reorder with buttons, not dragging (WCAG 2.5.7).
@@ -52,7 +53,9 @@
         <span class="font-mono text-[11px] text-muted-foreground tabular-nums">{automations.length}</span>
       </Button>
       {#if problems > 0}
-        <span class="text-[12.5px] font-semibold text-destructive">{problems} {problems === 1 ? 'problem' : 'problems'} to fix</span>
+        <span class="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive">
+          <ProblemMark />{problems} {problems === 1 ? 'problem' : 'problems'} to fix
+        </span>
       {/if}
     </div>
   </div>

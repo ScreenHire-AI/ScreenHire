@@ -1,16 +1,23 @@
 <script lang="ts">
-  import { createCreateHiringTemplate, createListHiringTemplates } from '@screenhire/api-client/svelte-query';
+  import type { HttpValidationProblemDetails } from '@screenhire/api-client';
+  import { ApiError, createCreateHiringTemplate, createListHiringTemplates } from '@screenhire/api-client/svelte-query';
+  import { CreateHiringTemplateBody } from '@screenhire/api-client/zod';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { defaults, superForm } from 'sveltekit-superforms';
+  import { zod4 } from 'sveltekit-superforms/adapters';
+  import { z } from 'zod';
   import { goto } from '$app/navigation';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import { labelClass, selectClass } from '#lib/components/workflow/controls.js';
+  import { selectClass } from '#lib/components/workflow/controls.js';
+  import { applyValidationProblem } from '#lib/forms.js';
   import { formatShortDate } from '#lib/format.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { templatesPath } from '#lib/realtime.js';
@@ -26,25 +33,40 @@
   const copyable = $derived(list.filter((template) => template.latestPublishedVersionId));
 
   let creating = $state(false);
-  let name = $state('');
-  let copyFrom = $state('');
-  let failure = $state('');
 
-  async function submit(event: SubmitEvent) {
-    event.preventDefault();
-    failure = '';
-    if (!name.trim()) {
-      failure = 'Give the template a name.';
-      return;
-    }
-    try {
-      const response = await create.mutateAsync({ data: { name: name.trim(), copyFromVersionId: copyFrom || null } });
-      creating = false;
-      await goto(`/templates/${response.data.id}`);
-    } catch (error) {
-      failure = describeError(error, 'Could not create the template');
-    }
-  }
+  // The select's "a basic pipeline" is an empty string, which the body's uuid would refuse; it becomes null on the way out.
+  const schema = CreateHiringTemplateBody.pick({ name: true }).extend({
+    name: z.string().trim().min(1, 'Give the template a name.'),
+    copyFromVersionId: z.string(),
+  });
+  const { form, errors, enhance, submitting, reset } = superForm(defaults({ name: '', copyFromVersionId: '' }, zod4(schema)), {
+    SPA: true,
+    validators: zod4(schema),
+    resetForm: false,
+    applyAction: false,
+    invalidateAll: false,
+    async onUpdate({ form }) {
+      if (!form.valid) return;
+      try {
+        const response = await create.mutateAsync({
+          data: { name: form.data.name.trim(), copyFromVersionId: form.data.copyFromVersionId || null },
+        });
+        creating = false;
+        await goto(`/templates/${response.data.id}`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 400) {
+          applyValidationProblem(form, error.body as HttpValidationProblemDetails);
+        } else {
+          form.valid = false;
+          form.errors._errors = [describeError(error, 'Could not create the template')];
+        }
+      }
+    },
+  });
+
+  $effect(() => {
+    if (creating) reset({ data: { name: '', copyFromVersionId: '' } });
+  });
 </script>
 
 <svelte:head>
@@ -117,24 +139,43 @@
       <Dialog.Title>New template</Dialog.Title>
       <Dialog.Description>Version 1 starts as a draft. Publish it when it is ready for jobs to use.</Dialog.Description>
     </Dialog.Header>
-    <form class="flex flex-col gap-3" onsubmit={submit}>
-      <label class={labelClass}>
-        Name
-        <Input bind:value={name} maxlength={120} required />
-      </label>
-      <label class={labelClass}>
-        Start from
-        <select class={selectClass} bind:value={copyFrom}>
+    <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
+      <Field.Field data-invalid={$errors.name ? true : undefined}>
+        <Field.Label for="new-template-name">Name</Field.Label>
+        <Input
+          id="new-template-name"
+          name="name"
+          maxlength={120}
+          required
+          bind:value={$form.name}
+          aria-invalid={$errors.name ? 'true' : undefined}
+          aria-describedby={$errors.name ? 'new-template-name-error' : undefined}
+        />
+        <Field.Error id="new-template-name-error" errors={$errors.name?.map((message) => ({ message }))} />
+      </Field.Field>
+      <Field.Field data-invalid={$errors.copyFromVersionId ? true : undefined}>
+        <Field.Label for="new-template-source">Start from</Field.Label>
+        <select
+          id="new-template-source"
+          name="copyFromVersionId"
+          class={selectClass}
+          bind:value={$form.copyFromVersionId}
+          aria-invalid={$errors.copyFromVersionId ? 'true' : undefined}
+          aria-describedby={$errors.copyFromVersionId ? 'new-template-source-error' : undefined}
+        >
           <option value="">A basic pipeline</option>
           {#each copyable as template (template.id)}
             <option value={template.latestPublishedVersionId}>{template.name} (v{template.latestPublishedVersion})</option>
           {/each}
         </select>
-      </label>
-      <p role="status" class="text-[13px] font-semibold text-destructive empty:hidden">{failure}</p>
+        <Field.Error id="new-template-source-error" errors={$errors.copyFromVersionId?.map((message) => ({ message }))} />
+      </Field.Field>
+      {#if $errors._errors}
+        <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+      {/if}
       <Dialog.Footer>
-        <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={create.isPending}>Create template</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
+        <Button type="submit" disabled={$submitting}>Create template</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

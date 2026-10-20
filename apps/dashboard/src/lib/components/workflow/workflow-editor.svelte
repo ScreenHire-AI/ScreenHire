@@ -6,6 +6,7 @@
   import { describePath, laneOf, newAutomation, removeAt } from '#lib/workflow.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
+  import ProblemMark from './problem-mark.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
   import SimulatePanel from './simulate-panel.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
@@ -57,6 +58,7 @@
     {#if errors.length > 0}
       <div class="rounded-xl border border-destructive/40 bg-card px-3.5 py-2.5">
         <p class="font-semibold text-destructive">
+          <ProblemMark />
           {errors.length}
           {errors.length === 1 ? 'problem' : 'problems'} to fix before this can be saved{checking ? ' (checking your latest change)' : ''}
         </p>
