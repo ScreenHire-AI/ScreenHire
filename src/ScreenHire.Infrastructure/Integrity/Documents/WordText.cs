@@ -8,7 +8,8 @@ namespace ScreenHire.Infrastructure.Integrity.Documents;
 
 /// <summary>
 /// Word 2007+ text, metadata and hidden text through DocumentFormat.OpenXml. A run is hidden when it is marked hidden
-/// (<c>w:vanish</c>), is under 2 points, or is white with no shading behind it.
+/// (<c>w:vanish</c>), is under 2 points, or is white with no shading behind it: run, paragraph, table cell or table
+/// shading all count, because resume templates put white text in shaded sidebar cells.
 /// </summary>
 internal static class WordText
 {
@@ -32,7 +33,7 @@ internal static class WordText
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var line = new StringBuilder();
-                var shadedParagraph = IsShaded(paragraph.ParagraphProperties?.Shading);
+                var shadedBehind = ShadedBehind(paragraph);
                 HiddenTextSpan? open = null;
                 foreach (var run in paragraph.Descendants<Run>())
                 {
@@ -42,7 +43,7 @@ internal static class WordText
                         continue;
                     }
 
-                    if (Hidden(run.RunProperties, shadedParagraph) is { } reason)
+                    if (Hidden(run.RunProperties, shadedBehind) is { } reason)
                     {
                         open = open is not null && open.Reason == reason
                             ? open with { Text = open.Text + text }
@@ -77,7 +78,13 @@ internal static class WordText
         return null;
     }
 
-    private static HiddenTextReason? Hidden(RunProperties? properties, bool shadedParagraph)
+    // Whether anything around the paragraph is shaded: the paragraph itself, or a table cell or table it sits in.
+    private static bool ShadedBehind(Paragraph paragraph) =>
+        IsShaded(paragraph.ParagraphProperties?.Shading)
+        || paragraph.Ancestors<TableCell>().Any(cell => IsShaded(cell.TableCellProperties?.Shading))
+        || paragraph.Ancestors<Table>().Any(table => IsShaded(table.GetFirstChild<TableProperties>()?.Shading));
+
+    private static HiddenTextReason? Hidden(RunProperties? properties, bool shadedBehind)
     {
         if (properties is null)
         {
@@ -96,7 +103,7 @@ internal static class WordText
 
         var colour = properties.Color?.Val?.Value;
         var white = colour is not null && (colour.Equals("FFFFFF", StringComparison.OrdinalIgnoreCase) || colour.Equals("white", StringComparison.OrdinalIgnoreCase));
-        return white && !shadedParagraph && !IsShaded(properties.Shading) && properties.Highlight is null
+        return white && !shadedBehind && !IsShaded(properties.Shading) && properties.Highlight is null
             ? HiddenTextReason.WhiteText
             : null;
     }

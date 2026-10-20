@@ -5,6 +5,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Integrity.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -88,10 +89,7 @@ internal static class OrganizationEndpoints
     private static async Task<OrganizationIntegritySettings> ToIntegritySettingsAsync(
         ScreenHireDbContext db, IntegritySettings? settings, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
-        var used = await db.ConsistencyChecks.AsNoTracking()
-            .Where(c => c.StartedAt >= monthStart)
-            .SumAsync(c => c.InputTokens + c.OutputTokens, cancellationToken);
+        var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);
         return new OrganizationIntegritySettings(settings?.LlmConsistencyCheckEnabled ?? false, settings?.MonthlyTokenBudget, used);
     }
 

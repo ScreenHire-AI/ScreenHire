@@ -20,6 +20,12 @@ public sealed class LlmAccess
         UnavailableReason = unavailableReason;
     }
 
+    /// <summary>
+    /// Retries the SDK makes after a failed call, set explicitly so the longest a check can take is known (see
+    /// <see cref="ConsistencyChecker.MaxCalls"/>) and a claim is never taken over while it is still working.
+    /// </summary>
+    public const int MaxRetries = 1;
+
     /// <summary>The client, or null when no model is configured.</summary>
     public IChatClient? Client { get; }
 
@@ -45,8 +51,8 @@ public sealed class LlmAccess
                 && !string.IsNullOrWhiteSpace(options.ExtractionModel) && !string.IsNullOrWhiteSpace(options.ConsistencyModel):
                 // The configured key, set explicitly, takes precedence over anything the SDK could find in the environment.
                 var anthropic = http is null
-                    ? new AnthropicClient { ApiKey = options.Anthropic.ApiKey, Timeout = options.Timeout }
-                    : new AnthropicClient { ApiKey = options.Anthropic.ApiKey, Timeout = options.Timeout, HttpClient = http };
+                    ? new AnthropicClient { ApiKey = options.Anthropic.ApiKey, Timeout = options.Timeout, MaxRetries = MaxRetries }
+                    : new AnthropicClient { ApiKey = options.Anthropic.ApiKey, Timeout = options.Timeout, MaxRetries = MaxRetries, HttpClient = http };
 
                 return new LlmAccess(
                     anthropic.AsIChatClient(defaultModelId: null, defaultMaxOutputTokens: options.MaxOutputTokens),

@@ -1,7 +1,5 @@
 using System.Text.Json;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.Api.Contracts;
@@ -30,10 +28,6 @@ internal static class ValidationExtensions
 
     /// <summary>One problem for one field.</summary>
     public static Dictionary<string, string[]> Problem(string key, string message) => new() { [key] = [message] };
-
-    /// <summary>A unique index refused the write: a concurrent request got there first.</summary>
-    public static bool IsUniqueViolation(this DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     internal static string CamelCasePath(string path) =>
         string.Join('.', path.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));

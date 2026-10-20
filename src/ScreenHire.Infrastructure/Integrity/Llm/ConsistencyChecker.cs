@@ -24,6 +24,9 @@ public sealed partial class ConsistencyChecker(LlmAccess llm, ILogger<Consistenc
 
     public const int MaxQuoteLength = 300;
 
+    /// <summary>The most model calls one check makes: one extraction per source (three at most), then one comparison.</summary>
+    public const int MaxCalls = 4;
+
     private const int MaxClaimsPerSource = 60;
 
     public async Task<ConsistencyCheckOutcome> CheckAsync(IReadOnlyList<ConsistencySourceText> sources, CancellationToken cancellationToken)
@@ -118,9 +121,10 @@ public sealed partial class ConsistencyChecker(LlmAccess llm, ILogger<Consistenc
             {
                 if (pair.LeftClaimId is null || pair.RightClaimId is null
                     || !byId.TryGetValue(pair.LeftClaimId, out var left) || !byId.TryGetValue(pair.RightClaimId, out var right)
-                    || left.Source == right.Source)
+                    || left.Source == right.Source
+                    || string.Equals(left.Quote, right.Quote, StringComparison.OrdinalIgnoreCase))
                 {
-                    continue; // only pairs of checked claims from two different sources
+                    continue; // only pairs of checked claims from two different sources that say different things
                 }
 
                 if (left.Source > right.Source)

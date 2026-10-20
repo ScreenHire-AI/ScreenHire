@@ -7,8 +7,8 @@ using ScreenHire.Domain.Jobs;
 namespace ScreenHire.Application.Integrity.Content;
 
 /// <summary>
-/// The text of an application as content forensics read it: free-text answers for duplicate checks, all readable answers
-/// as one source for the consistency check, and which kind of document each file is.
+/// The text of an application as content forensics read it: free-text answers for duplicate checks, the answers that can
+/// state a fact about work history as one source for the consistency check, and which kind of document each file is.
 /// </summary>
 public static class ApplicationText
 {
@@ -27,8 +27,10 @@ public static class ApplicationText
     }
 
     /// <summary>
-    /// Every readable answer as one text, a line per question: the question, then the answer as the candidate saw it
-    /// (option labels, not option ids). Files and links are left out: a link is never followed.
+    /// The answers the consistency check compares, as one text, a line per question: the question, then the answer as the
+    /// candidate saw it (option labels, not option ids). Text, choice and number answers can state an employer, a title,
+    /// dates, years of experience or a qualification. Yes/no answers cannot, and are often about right to work or
+    /// availability, so they are not sent to a model. Files and links are left out too: a link is never followed.
     /// </summary>
     public static string AnswersSource(Job job, IReadOnlyList<ApplicationAnswer> answers)
     {
@@ -81,7 +83,7 @@ public static class ApplicationText
         var options = question.Options?.ToDictionary(o => o.Id, o => o.Label, StringComparer.Ordinal) ?? [];
         return question.Type switch
         {
-            QuestionType.File or QuestionType.Url => null,
+            QuestionType.File or QuestionType.Url or QuestionType.YesNo => null,
             QuestionType.SingleChoice => answer.Value is { } id ? options.GetValueOrDefault(id, id) : null,
             QuestionType.MultiChoice => answer.Values is { Count: > 0 } ids ? string.Join(", ", ids.Select(id => options.GetValueOrDefault(id, id))) : null,
             _ => answer.Value?.Trim(),

@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Npgsql;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Integrity;
@@ -23,8 +22,8 @@ public sealed record ExtractApplicationDocument(Guid OrganizationId, Guid Applic
 
 /// <summary>
 /// Run the LLM consistency check for one application once its files are read (integrity-engine.md §10.10). Sent after
-/// submission and after each file is read; it does nothing until every file has a document, and nothing once the check
-/// has an outcome.
+/// submission and after each file is read; it does nothing until every file has a document, and once the check has an
+/// outcome it only asks for the reassessment again.
 /// </summary>
 public sealed record CheckApplicationConsistency(Guid OrganizationId, Guid ApplicationId) : ITenantMessage;
 
@@ -136,7 +135,9 @@ public static partial class CheckApplicationConsistencyHandler
             .SingleOrDefaultAsync(c => c.ApplicationId == message.ApplicationId && c.PromptVersion == ConsistencyPrompts.Version, cancellationToken);
         if (check is { Status: not ConsistencyCheckStatus.Running })
         {
-            return [];
+            // Finished already. A redelivery after the outcome was saved may be the only copy of the reassessment that
+            // follows it (this handler has no outbox), so ask for it again; the pipeline is idempotent.
+            return [new AnalyzeApplicationIntegrity(message.OrganizationId, message.ApplicationId)];
         }
 
         if (check is not null && now - check.StartedAt < staleAfter)
@@ -180,7 +181,7 @@ public static partial class CheckApplicationConsistencyHandler
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException exception) when (exception is DbUpdateConcurrencyException || IsUniqueViolation(exception))
+        catch (DbUpdateException exception) when (exception is DbUpdateConcurrencyException || exception.IsUniqueViolation())
         {
             return []; // another delivery claimed it first, and will finish it
         }
@@ -196,11 +197,14 @@ public static partial class CheckApplicationConsistencyHandler
         return [new AnalyzeApplicationIntegrity(message.OrganizationId, message.ApplicationId)];
     }
 
-    /// <summary>How old a claim must be before another delivery takes it over: well past the longest a call can take.</summary>
+    /// <summary>
+    /// How old a claim must be before another delivery takes it over: past the longest a check can take, every call and
+    /// every retry timing out, plus a minute.
+    /// </summary>
     public static TimeSpan StaleAfter(LlmOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return options.Timeout * 4 + TimeSpan.FromMinutes(1);
+        return options.Timeout * (ConsistencyChecker.MaxCalls * (LlmAccess.MaxRetries + 1)) + TimeSpan.FromMinutes(1);
     }
 
     /// <summary>The sources to compare: the answers, the resume and an uploaded LinkedIn export, visible text only.</summary>
@@ -246,10 +250,7 @@ public static partial class CheckApplicationConsistencyHandler
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Unavailable, llm.UnavailableReason);
         }
 
-        var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
-        var used = await db.ConsistencyChecks.AsNoTracking()
-            .Where(c => c.StartedAt >= monthStart)
-            .SumAsync(c => c.InputTokens + c.OutputTokens, cancellationToken);
+        var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);
         var budget = settings.MonthlyTokenBudget ?? options.DefaultMonthlyTokenBudget;
         return used >= budget
             ? new ConsistencyCheckOutcome(ConsistencyCheckStatus.OverBudget, "The organization's monthly budget for the consistency check is used up.")
@@ -261,9 +262,6 @@ public static partial class CheckApplicationConsistencyHandler
             .OrderBy(d => d.ExtractedAt)
             .Select(d => d.Text)
             .FirstOrDefault();
-
-    private static bool IsUniqueViolation(DbUpdateException exception) =>
-        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Consistency check for application {ApplicationId}: {Status}, {Contradictions} contradictions")]
     private static partial void LogChecked(ILogger logger, Guid applicationId, ConsistencyCheckStatus status, int contradictions);

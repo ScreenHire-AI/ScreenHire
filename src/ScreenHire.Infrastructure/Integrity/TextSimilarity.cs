@@ -111,10 +111,6 @@ public static class TextSimilarity
         return combined > 0 && shared >= MinJaccard * combined;
     }
 
-    /// <summary>The overlap as a percentage, rounded down, for evidence text.</summary>
-    public static int Percent(int shared, int combined) =>
-        combined == 0 ? 0 : (int)(100L * shared / combined);
-
     // FNV-1a over UTF-8, then SplitMix64's finaliser so every bit is well mixed for the SimHash vote. Stable across
     // processes and versions, unlike string.GetHashCode: fingerprints are stored.
     private static ulong Hash(string text)

@@ -154,13 +154,23 @@ internal static class PdfText
         var information = document.Information;
         string? creatorTool = null;
         DateTimeOffset? xmpCreated = null;
-        if (document.TryGetXmpMetadata(out var xmp))
+        try
         {
-            var xml = xmp.GetXDocument();
-            creatorTool = Element(xml, "CreatorTool");
-            xmpCreated = DateTimeOffset.TryParse(Element(xml, "CreateDate"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed)
-                ? parsed.ToUniversalTime()
-                : null;
+            if (document.TryGetXmpMetadata(out var xmp))
+            {
+                var xml = xmp.GetXDocument();
+                creatorTool = Element(xml, "CreatorTool");
+                xmpCreated = DateTimeOffset.TryParse(Element(xml, "CreateDate"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed)
+                    ? parsed.ToUniversalTime()
+                    : null;
+            }
+        }
+#pragma warning disable CA1031 // A broken XMP block loses only what it would add; the text is already read and the Info dictionary still answers.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            creatorTool = null;
+            xmpCreated = null;
         }
 
         return new DocumentMetadata(

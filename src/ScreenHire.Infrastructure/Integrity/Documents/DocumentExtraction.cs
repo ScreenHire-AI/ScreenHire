@@ -29,9 +29,17 @@ public static class DocumentExtraction
     /// <summary>How long one file may take to parse.</summary>
     public static readonly TimeSpan Deadline = TimeSpan.FromSeconds(20);
 
+    /// <summary>Files parsed at once in one process, counting parses abandoned at their deadline that are still running.</summary>
+    public const int MaxConcurrentParses = 2;
+
+    // The parsers cannot be stopped mid-page, so an abandoned parse keeps its slot until it really ends. A run of
+    // hostile files then queues behind the slots instead of piling up parses on the thread pool.
+    private static readonly SemaphoreSlim Parsers = new(MaxConcurrentParses, MaxConcurrentParses);
+
     /// <summary>
     /// Extracts <paramref name="content"/>, a file named <paramref name="fileName"/>, within <see cref="Deadline"/>. A
-    /// parser that is still working when the deadline passes is abandoned and the file recorded as unreadable.
+    /// parser that is still working when the deadline passes is abandoned and the file recorded as unreadable. The
+    /// deadline starts once one of <see cref="MaxConcurrentParses"/> slots is free, so waiting for one never counts.
     /// </summary>
     public static async Task<ExtractedDocument> ExtractAsync(byte[] content, string fileName, CancellationToken cancellationToken)
     {
@@ -42,12 +50,24 @@ public static class DocumentExtraction
             return ExtractedDocument.NotRead(DocumentExtractionStatus.Unsupported, $"No text is read from {DescribeType(extension)} files.");
         }
 
+        await Parsers.WaitAsync(cancellationToken);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(Deadline);
+        // The parsers are synchronous; the task gives the deadline something to wait on, and frees the slot when it ends.
+        var token = deadline.Token;
+        var parse = Task.Run(() => Extract(content, extension, token), CancellationToken.None);
+        _ = parse.ContinueWith(
+            ended =>
+            {
+                _ = ended.Exception; // an abandoned parse's cancellation is observed here, not reported as unobserved
+                Parsers.Release();
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
         try
         {
-            // The parsers are synchronous; the task gives the deadline something to wait on.
-            return await Task.Run(() => Extract(content, extension, deadline.Token), deadline.Token).WaitAsync(deadline.Token);
+            return await parse.WaitAsync(token);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
