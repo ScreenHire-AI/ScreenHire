@@ -71,7 +71,11 @@ as the person who will run it against production data:
 - column types are what you meant (`timestamp with time zone`, `character varying(n)`, `numeric(12,2)`, `uuid`);
 - a new `NOT NULL` column on an existing table has a default or a backfill, or the table is new;
 - no `DROP COLUMN` or `DROP TABLE` of data that is still needed; a rename shows as `RENAME`, not drop and add;
-- indexes on large tables are worth their write cost.
+- indexes on large tables are worth their write cost;
+- a data `UPDATE` (a backfill) on a table with forced row-level security matches no rows when the migration's owner
+  is not a superuser, because no tenant is set. Wrap it in `ALTER TABLE ... NO FORCE ROW LEVEL SECURITY` and `FORCE`
+  again, and abort with `RAISE EXCEPTION` if the backfill missed rows before anything is dropped
+  (`AddHiringModel`'s `BackfillJobs` is the pattern).
 
 Edit the generated `Up` and `Down` only to add what EF cannot express (RLS, a backfill, `CREATE EXTENSION`). Keep
 `Down` working.

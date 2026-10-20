@@ -18,6 +18,10 @@ be an unambiguous instant. A local or zone-less time shifts by the server's offs
   dependencies, so their methods take the time as a parameter (`Job.Publish(DateTimeOffset now)`), and unit tests
   pass a fixed value. `Job.CreatedAt` defaults to `DateTimeOffset.UtcNow` as a creation stamp; new code sets such
   stamps from `TimeProvider` instead, so tests can control them.
+- Postgres keeps times to the microsecond, .NET to 100 ns. The API registers `DatabasePrecisionTimeProvider`, so
+  "now" already has the database's precision. A time from anywhere else (a request body) that is compared after a
+  database round trip, such as a field inside a frozen snapshot, is cut first with `ToDatabasePrecision()`
+  (`src/ScreenHire.Domain/Jobs/Instants.cs`), as `Job.ValidThrough` does. Otherwise the copy never equals the row.
 - Never use `DateTime` with `DateTimeKind.Local` or `Unspecified` for stored data, and never `timestamp without
   time zone` columns.
 - Dates without a time (a start date, a date of birth if one is ever needed) are `DateOnly`, stored as `date`.

@@ -32,6 +32,9 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
   name.
 - DTOs are `public sealed record` types in `apps/api/Contracts/<Area>Contracts.cs`. Never return domain entities.
   Mapping is a hand-written extension method next to the DTO, or Mapperly once mappings grow (ADR-0008).
+  The exception is domain value records that are themselves the published contract: the hiring definition records
+  in `src/ScreenHire.Domain/Hiring/HiringWorkflow.cs` (the API serves their JSON Schema) and the job value records
+  `JobLocation`, `JobSalary` and `JobSnapshot`. DTOs embed those as they are; entities never appear in a DTO.
 - Enums serialize as strings and `JsonNumberHandling.Strict` is on. Avoid polymorphic DTOs and `object` members:
   they produce OpenAPI that Orval cannot type.
 - Errors are problem details: `TypedResults.ValidationProblem` for bad input (validated with FluentValidation,
