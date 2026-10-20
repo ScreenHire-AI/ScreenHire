@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Integrity.Content;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Infrastructure.Persistence;
+using Wolverine;
 
 namespace ScreenHire.Application.Applications;
 
@@ -28,10 +30,13 @@ public sealed class NoMalwareScanner : IMalwareScanner
         Task.FromResult(MalwareScanStatus.NotScanned);
 }
 
-/// <summary>Runs in the worker: scans the file and records the result on it. A file is scanned once.</summary>
+/// <summary>
+/// Runs in the worker: scans the file and records the result on it, then has it read for content forensics
+/// (<see cref="ExtractApplicationDocument"/>), which skips a file the scan flagged. A file is scanned once.
+/// </summary>
 public static partial class ScanApplicationFileHandler
 {
-    public static async Task Handle(
+    public static async Task<OutgoingMessages> Handle(
         ScanApplicationFile message,
         ScreenHireDbContext db,
         IMalwareScanner scanner,
@@ -43,12 +48,13 @@ public static partial class ScanApplicationFileHandler
             ?? throw new InvalidOperationException($"File {message.FileId} is not visible to organization {message.OrganizationId}.");
         if (file.ScanStatus != MalwareScanStatus.Pending)
         {
-            return; // a redelivered message for a file already scanned
+            return []; // a redelivered message for a file already scanned, whose reading was sent with the scan
         }
 
         var status = await scanner.ScanAsync(file.BlobName, cancellationToken);
         file.RecordScan(status, time.GetUtcNow());
         LogScanned(logger, file.Id, message.ApplicationId, status);
+        return [new ExtractApplicationDocument(message.OrganizationId, message.ApplicationId, file.Id)];
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "File {FileId} of application {ApplicationId} scanned: {Status}")]

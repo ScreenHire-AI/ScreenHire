@@ -1,16 +1,17 @@
 {
   "applicant": "application-farm-3",
-  "rulesetVersion": "2026-10-20.2",
+  "rulesetVersion": "2026-10-20.3",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [
       "AUTO_SUBMIT_VELOCITY",
+      "CNT_INCONSISTENCY",
       "ID_DUPLICATE_IN_ORG",
       "NET_DATACENTER_IP",
       "NET_GEO_CLAIM_MISMATCH"
     ],
     "appliedRules": [],
-    "summary": "4 observations from network, identity and automation checks back each other up: completed faster than a person could; shares details with other applicants; sent from a hosting provider's network; network location differs from the location the candidate gave.",
+    "summary": "5 observations from network, identity, automation and content checks back each other up: completed faster than a person could; details contradict each other; shares details with other applicants; sent from a hosting provider's network; network location differs from the location the candidate gave.",
     "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
     "signals": [
       {
@@ -20,6 +21,7 @@
         "confidence": "Medium",
         "countsTowardLevel": true,
         "contextOnly": false,
+        "informational": false,
         "accessibilitySensitive": true,
         "source": "automation@1",
         "explanation": "The form was completed in 20 seconds, faster than reading and answering it plausibly takes (at least 32 seconds).",
@@ -36,12 +38,50 @@
         "counterEvidence": []
       },
       {
+        "code": "CNT_INCONSISTENCY",
+        "category": "Content",
+        "weight": "Medium",
+        "confidence": "Medium",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "informational": false,
+        "accessibilitySensitive": false,
+        "source": "consistency@1",
+        "explanation": "The resume and the application answers give different years of experience. There is often an ordinary explanation, such as a role left off one of them, so ask the candidate before drawing a conclusion.",
+        "evidence": [
+          {
+            "kind": "TextComparison",
+            "label": "Years of experience",
+            "left": {
+              "label": "Resume",
+              "text": "Fifteen years across all major stacks."
+            },
+            "right": {
+              "label": "Application answers",
+              "text": "How many years have you worked as a software engineer? 6 to 9"
+            }
+          },
+          {
+            "kind": "Fact",
+            "label": "Checked by",
+            "value": "Language model (screenhire-fake-consistency-1), prompt consistency-2026-10-20.1"
+          }
+        ],
+        "counterEvidence": [],
+        "llm": {
+          "promptVersion": "consistency-2026-10-20.1",
+          "extractionModel": "screenhire-fake-consistency-1",
+          "consistencyModel": "screenhire-fake-consistency-1"
+        }
+      },
+      {
         "code": "ID_DUPLICATE_IN_ORG",
         "category": "Identity",
         "weight": "High",
         "confidence": "High",
         "countsTowardLevel": true,
         "contextOnly": false,
+        "informational": false,
         "accessibilitySensitive": false,
         "source": "duplicates@1",
         "explanation": "This application and 2 other applications to your organization came from different candidates but share an email address, a phone number, a device and an identical resume file.",
@@ -76,6 +116,7 @@
         "confidence": "High",
         "countsTowardLevel": true,
         "contextOnly": false,
+        "informational": false,
         "accessibilitySensitive": false,
         "source": "network@1",
         "explanation": "The application came from Example Cloud Hosting (AS64497), a hosting or cloud provider. People usually apply from a home, mobile or office connection.",
@@ -110,6 +151,7 @@
         "confidence": "Medium",
         "countsTowardLevel": true,
         "contextOnly": false,
+        "informational": false,
         "accessibilitySensitive": false,
         "source": "network@1",
         "explanation": "The candidate's details point to the United Kingdom, but the application came from a network in the United States.",
@@ -138,9 +180,42 @@
     "level": "NotIndicated",
     "reasonCodes": [],
     "appliedRules": [],
-    "summary": "No signs that the content was generated or templated. This job allows AI help when disclosed. Declared AI use: not answered.",
+    "summary": "One observation from document checks, with nothing from a second, independent kind of check to back it up. Shown for context only. This job allows AI help when disclosed. Declared AI use: not answered.",
     "nextStep": "No action needed.",
     "policyContext": "NotDisclosed",
-    "signals": []
+    "signals": [
+      {
+        "code": "CNT_RESUME_GENERATOR",
+        "category": "Document",
+        "weight": "Low",
+        "confidence": "Medium",
+        "countsTowardLevel": false,
+        "contextOnly": false,
+        "informational": false,
+        "accessibilitySensitive": false,
+        "source": "documents@1",
+        "explanation": "The resume file's details show it was made with Zety, a resume builder.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Tool named in the resume file",
+            "value": "Zety"
+          },
+          {
+            "kind": "Metric",
+            "label": "Time from the file being created to the application being sent",
+            "amount": 8,
+            "unit": "minutes",
+            "reference": 15,
+            "referenceLabel": "noted when under"
+          }
+        ],
+        "counterEvidence": [
+          {
+            "explanation": "Resume builders and export tools are widely used by genuine applicants, and the file's details are easy to change."
+          }
+        ]
+      }
+    ]
   }
 }

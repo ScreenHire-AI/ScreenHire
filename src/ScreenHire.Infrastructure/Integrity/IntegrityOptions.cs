@@ -17,6 +17,8 @@ public sealed class IntegrityOptions
 
     public SignalNetworkOptions SignalNetwork { get; set; } = new();
 
+    public LlmOptions Llm { get; set; } = new();
+
     /// <summary>
     /// The key the API hashes device fingerprints with, per organization, before storing them
     /// (<see cref="KeyedHashing.DeviceHash"/>); at least 32 characters. Unset: device fingerprints are not stored, and
@@ -106,4 +108,53 @@ public sealed class SignalNetworkOptions
 
     /// <summary>Names the key, so rotation can tell old hashes from new ones.</summary>
     public string KeyId { get; set; } = "k1";
+}
+
+/// <summary>
+/// The language model behind the consistency check (<c>CNT_INCONSISTENCY</c>, integrity-engine.md §10.10). Model ids
+/// come from here, never from code (.claude/rules/cli-features-over-custom-layers.md): a smaller model extracts claims
+/// from each source, a larger one compares them.
+/// </summary>
+public sealed class LlmOptions
+{
+    /// <summary>Which model provider answers. <see cref="LlmProvider.None"/> marks every check unavailable.</summary>
+    public LlmProvider Provider { get; set; } = LlmProvider.None;
+
+    /// <summary>The model that lists the claims in each source. Required for <see cref="LlmProvider.Anthropic"/>.</summary>
+    public string? ExtractionModel { get; set; }
+
+    /// <summary>The model that compares the claims. Required for <see cref="LlmProvider.Anthropic"/>.</summary>
+    public string? ConsistencyModel { get; set; }
+
+    /// <summary>The most tokens one response may use.</summary>
+    public int MaxOutputTokens { get; set; } = 8000;
+
+    /// <summary>How long one call may take before the check is recorded as unavailable.</summary>
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(120);
+
+    /// <summary>Tokens per organization per calendar month (UTC) when the organization sets no budget of its own.</summary>
+    public long DefaultMonthlyTokenBudget { get; set; } = 2_000_000;
+
+    public AnthropicOptions Anthropic { get; set; } = new();
+}
+
+public enum LlmProvider
+{
+    /// <summary>No model: the check is recorded as unavailable, never as failed.</summary>
+    None,
+
+    /// <summary>A deterministic local stand-in (<c>FakeConsistencyChatClient</c>). Development and tests only.</summary>
+    Fake,
+
+    /// <summary>Anthropic's API, through its official SDK. Used only when <see cref="AnthropicOptions.ApiKey"/> is set.</summary>
+    Anthropic,
+}
+
+/// <summary>
+/// Anthropic's API. The key comes from a secret store (the AppHost's secret parameter), never from committed settings.
+/// API inputs and outputs are not used for training under Anthropic's commercial terms.
+/// </summary>
+public sealed class AnthropicOptions
+{
+    public string? ApiKey { get; set; }
 }

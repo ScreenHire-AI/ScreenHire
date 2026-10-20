@@ -120,11 +120,13 @@ public sealed class IntegrityGoldenTests
             confidence = s.Confidence,
             countsTowardLevel = assessment.CountedSignalIds.Contains(s.Id),
             contextOnly = s.ContextOnly,
+            informational = s.Informational,
             accessibilitySensitive = s.AccessibilitySensitive,
             source = $"{s.Source}@{s.SourceVersion}",
             explanation = s.Explanation,
             evidence = s.Evidence,
             counterEvidence = s.CounterEvidence,
+            llm = s.Llm,
         }),
     };
 

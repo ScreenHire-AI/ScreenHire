@@ -96,7 +96,7 @@ public static class SignalCatalogue
 
         new(PromptInjection, SignalCategory.Document, IntegrityAssessmentKind.AiAssistance, SignalWeight.High,
             "Hidden instructions in the resume",
-            "The resume contains text aimed at automated screening tools rather than people: {detail}."),
+            "The {document} contains text aimed at automated screening tools rather than people: {detail}."),
         new(NearDuplicateAnswer, SignalCategory.Content, IntegrityAssessmentKind.AiAssistance, SignalWeight.Medium,
             "Answer nearly identical to another applicant's",
             "The answer to {question} is nearly identical to an answer another applicant gave."),
@@ -105,10 +105,12 @@ public static class SignalCatalogue
             "The resume file's details show it was made with {tool}."),
         new(Inconsistency, SignalCategory.Content, IntegrityAssessmentKind.Authenticity, SignalWeight.Medium,
             "Details contradict each other",
-            "{detail}"),
+            "The {left} and the {right} give different {topic}. There is often an ordinary explanation, such as a role left off one of them, so ask the candidate before drawing a conclusion."),
         new(TemplatedAnswer, SignalCategory.Content, IntegrityAssessmentKind.AiAssistance, SignalWeight.Low,
-            "Answer follows a generic template",
-            "The answer to {question} follows a generic pattern common in generated text."),
+            "Answer contains template text",
+            "The answer to {question} contains {pattern}, text usually left over from a writing tool or template. This is for information only and never counts toward a level.",
+            ContextOnly: true,
+            Informational: true),
     ];
 
     /// <summary>Every definition by code.</summary>
@@ -123,6 +125,9 @@ public static class SignalCatalogue
 /// What a signal code means. <see cref="ExplanationTemplate"/> has <c>{name}</c> placeholders that an observation fills
 /// in (<see cref="Explain"/>).
 /// </summary>
+/// <remarks>
+/// <c>informational</c>: never counted by the ruleset, not even as context next to other signals of its category.
+/// </remarks>
 public sealed record SignalDefinition(
     string Code,
     SignalCategory Category,
@@ -131,7 +136,8 @@ public sealed record SignalDefinition(
     string Title,
     string ExplanationTemplate,
     bool AccessibilitySensitive = false,
-    bool ContextOnly = false)
+    bool ContextOnly = false,
+    bool Informational = false)
 {
     /// <summary>The explanation with <paramref name="values"/> in its placeholders. A placeholder with no value stays visible.</summary>
     public string Explain(IReadOnlyDictionary<string, string>? values)
