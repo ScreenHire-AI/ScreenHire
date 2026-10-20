@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.IntegrationTests;
@@ -68,6 +69,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
         using var scene = await Scene.CreateAsync(fixture);
         var (a, b) = (scene.A, scene.B);
         var timelineBefore = await b.GetAsync($"/v1/applications/{scene.BApplicationId}/timeline");
+        var bFileId = await fixture.AddApplicationFileAsync(b.OrganizationId, scene.BApplicationId, MalwareScanStatus.Clean);
 
         var responses = new Dictionary<string, ApiResult>
         {
@@ -75,7 +77,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
             ["timeline"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/timeline"),
             ["move"] = await a.PostAsync($"/v1/applications/{scene.BApplicationId}/move", new JsonObject { ["toStageId"] = "screening" }),
             ["candidate"] = await a.GetAsync($"/v1/candidates/{scene.BCandidateId}"),
-            ["file"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/files/{Guid.NewGuid()}"),
+            ["file"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/files/{bFileId}"),
         };
 
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");

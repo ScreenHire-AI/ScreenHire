@@ -2,7 +2,6 @@ using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
-using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Messaging;
 
 namespace ScreenHire.IntegrationTests;
@@ -60,7 +59,7 @@ public sealed class ApplicationFilesTests(AppHostFixture fixture)
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Scanned"));
         var application = await recruiter.CreateApplicationAsync(job.Id(), "casey.morgan@example.com");
-        var fileId = await AddFileAsync(recruiter.OrganizationId, application.Id(), status);
+        var fileId = await fixture.AddApplicationFileAsync(recruiter.OrganizationId, application.Id(), status);
 
         var result = await recruiter.GetAsync($"/v1/applications/{application.Id()}/files/{fileId}");
 
@@ -74,39 +73,10 @@ public sealed class ApplicationFilesTests(AppHostFixture fixture)
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Two applicants"));
         var owner = await recruiter.CreateApplicationAsync(job.Id(), "casey.morgan@example.com");
         var other = await recruiter.CreateApplicationAsync(job.Id(), "jordan.lee@example.com", "Jordan Lee");
-        var fileId = await AddFileAsync(recruiter.OrganizationId, owner.Id(), MalwareScanStatus.Clean);
+        var fileId = await fixture.AddApplicationFileAsync(recruiter.OrganizationId, owner.Id(), MalwareScanStatus.Clean);
 
         (await recruiter.GetAsync($"/v1/applications/{other.Id()}/files/{fileId}")).Expect(HttpStatusCode.NotFound);
         (await recruiter.GetAsync($"/v1/applications/{owner.Id()}/files/{Guid.NewGuid()}")).Expect(HttpStatusCode.NotFound);
-    }
-
-    // A file row with the given scan result. Its blob is never read: the endpoint refuses or redirects on the row alone.
-    private async Task<Guid> AddFileAsync(Guid organizationId, Guid applicationId, MalwareScanStatus status)
-    {
-        var tenant = new TenantContext();
-        tenant.SetOrganization(organizationId);
-        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
-        var file = new ApplicationFile
-        {
-            OrganizationId = organizationId,
-            ApplicationId = applicationId,
-            QuestionId = "resume",
-            UploadId = Guid.NewGuid(),
-            BlobName = $"{organizationId}/unused/resume/{Guid.NewGuid()}/cv.pdf",
-            FileName = "cv.pdf",
-            ContentType = "application/pdf",
-            SizeBytes = 10,
-            Sha256 = new string('0', 64),
-            UploadedAt = DateTimeOffset.UtcNow,
-        };
-        if (status != MalwareScanStatus.Pending)
-        {
-            file.RecordScan(status, DateTimeOffset.UtcNow);
-        }
-
-        db.ApplicationFiles.Add(file);
-        await db.SaveChangesAsync(Ct);
-        return file.Id;
     }
 
     // A job on the "Software engineer" system template, which asks for a resume and wants AI use disclosed.

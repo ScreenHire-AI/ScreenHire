@@ -125,7 +125,8 @@
           <h2 id="resume-heading" class="mb-2 text-sm font-bold">Resume</h2>
           {#if resume}
             {#if resume.scanStatus === 'Clean' || resume.scanStatus === 'NotScanned'}
-              <a href={getDownloadApplicationFileUrl(detail.id, resume.id)} class="font-semibold">Download {resume.fileName}</a>
+              <!-- A full navigation, not the client router: the API redirects to a short-lived link that downloads the file. -->
+              <a href={getDownloadApplicationFileUrl(detail.id, resume.id)} data-sveltekit-reload class="font-semibold">Download {resume.fileName}</a>
               <span class="font-mono text-[11px] text-muted-foreground">{Math.ceil(resume.sizeBytes / 1024)} KB</span>
             {:else}
               <p class="text-muted-foreground">{resume.fileName}: {fileStatus[resume.scanStatus]}.</p>
@@ -148,7 +149,7 @@
                   <dt class="font-semibold">{question?.label ?? answer.questionId}</dt>
                   <dd class="whitespace-pre-line text-secondary-foreground">
                     {#if file && (file.scanStatus === 'Clean' || file.scanStatus === 'NotScanned')}
-                      <a href={getDownloadApplicationFileUrl(detail.id, file.id)}>Download {file.fileName}</a>
+                      <a href={getDownloadApplicationFileUrl(detail.id, file.id)} data-sveltekit-reload>Download {file.fileName}</a>
                     {:else if file}
                       {file.fileName}: {fileStatus[file.scanStatus]}.
                     {:else}
