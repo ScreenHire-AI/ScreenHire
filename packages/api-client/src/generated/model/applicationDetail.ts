@@ -9,7 +9,8 @@ import type { ApplicationStage } from './applicationStage.ts';
 import type { CandidateSummary } from './candidateSummary.ts';
 
 /**
- * One application: the candidate, the job, where it is in the job's workflow, and the candidate's declarations.
+ * One application: the candidate, the job, where it is in the job's workflow, its tags, and the candidate's
+ * declarations.
  */
 export interface ApplicationDetail {
   id: string;
@@ -24,4 +25,5 @@ export interface ApplicationDetail {
   aiUseDetails: string | null;
   submittedAt: string;
   stageEnteredAt: string;
+  tags: string[];
 }

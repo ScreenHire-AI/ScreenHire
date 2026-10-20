@@ -54,6 +54,8 @@ app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
+app.MapWorkflowEndpoints();
+app.MapAutomationEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 

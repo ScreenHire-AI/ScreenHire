@@ -164,8 +164,12 @@ Each failure is logged at Error with the exception, the move to the dead-letter 
 queue", the message's trace records `wolverine.envelope.retried` and `wolverine.error.queued`, and the
 `wolverine-dead-letter-queue` counter goes up. The Aspire dashboard shows all three. A message in the dead-letter
 table stays until someone replays or deletes it, with its full body. That is one more reason no message, tenant
-event or not, carries personal data; the workflow engine will surface its own dead letters as an
-"automation issues" inbox (workflow-engine.md section 3).
+event or not, carries personal data.
+
+The last step of every branch also calls `AutomationFailures.ReportAsync`. For a dead-lettered
+`ExecuteAutomationAction` it publishes `AutomationActionFailed`, whose handler marks the action and its run failed, so
+the workflow engine's "automation issues" list shows it (workflow-engine.md section 8). For any other message it does
+nothing.
 
 ## Scheduled and recurring messages
 
@@ -196,6 +200,9 @@ counter in process; no test reads them back from the dashboard.
 | `OutboxTests` | with the API's publishing setup in a private schema: a change and its message commit together, and a failed `SaveChanges` sends nothing |
 | `DeadLetterTests` | with the worker's setup in a private schema and short delays: retries with backoff, then the dead-letter table, the error log, the trace event and the counter; and the production shape, where a scheduled retry follows the in-process retries |
 | `RecurringMessageTests` | `ReportOpenJobs` is registered every five minutes, tracked durably, and its handler runs when triggered |
+| `Automations/AutomationEmailTests` | the workflow engine through the running stack: entering a stage sends the configured email (read back from Mailpit), and replaying the same `ApplicationMoved` sends nothing twice |
+| `Automations/TimeElapsedTests` | entering a stage schedules a durable timer; the timer runs its automation when it fires, and a timer from a stage entry the application has left does nothing |
+| `Automations/WorkflowEngineTests` | validate and simulate; a manual run's tag and rejection-review task; two automations moving an application back and forth stopped as a loop; and, in a private schema with no retries, a dead-lettered action reaching the automation issues list |
 
 Real-time delivery has its own tests (realtime.md). `MessagingHost` starts those private-schema hosts, and a publisher
 whose storage is private but whose queues are the running stack's, to put a message on the real worker queue. `WolverineStore` reads Wolverine's tables and finds a test's own

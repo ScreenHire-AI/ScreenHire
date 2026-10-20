@@ -11,4 +11,5 @@ export type ApplicationEventType = typeof ApplicationEventType[keyof typeof Appl
 export const ApplicationEventType = {
   Submitted: 'Submitted',
   StageChanged: 'StageChanged',
+  TagAdded: 'TagAdded',
 } as const;

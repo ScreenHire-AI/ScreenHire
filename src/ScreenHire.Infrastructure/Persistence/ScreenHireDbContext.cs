@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
@@ -62,6 +63,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     /// <summary>The local sandbox board's own listings (see <see cref="SandboxListing"/>).</summary>
     public DbSet<SandboxListing> SandboxListings => Set<SandboxListing>();
+
+    public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
+
+    public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();
+
+    public DbSet<ApplicationTask> ApplicationTasks => Set<ApplicationTask>();
 
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 

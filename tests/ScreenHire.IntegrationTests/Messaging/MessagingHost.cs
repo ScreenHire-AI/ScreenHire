@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using JasperFx.Resources;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -60,11 +61,11 @@ internal sealed class MessagingHost : IAsyncDisposable
 
     /// <summary>
     /// Starts a handler configured like the worker (<see cref="ScreenHireMessaging.ConfigureHandler"/>), in solo mode so
-    /// its agents start at once, plus any extra handler types the test brings.
+    /// its agents start at once, plus any extra handler types the test brings and any configuration the handlers read.
     /// </summary>
     public static Task<MessagingHost> StartHandlerAsync(
         AppHostFixture fixture, MessagingSettings settings, IEnumerable<Type> handlerTypes, CancellationToken cancellationToken,
-        bool withRecurringSchedules = false) =>
+        bool withRecurringSchedules = false, IReadOnlyDictionary<string, string?>? configuration = null) =>
         StartAsync(fixture, settings, (opts, connectionString, s) =>
         {
             ScreenHireMessaging.ConfigureHandler(opts, connectionString, s);
@@ -78,17 +79,22 @@ internal sealed class MessagingHost : IAsyncDisposable
             {
                 opts.Discovery.IncludeType(handlerType);
             }
-        }, cancellationToken);
+        }, cancellationToken, configuration);
 
     public static string NewSchema() => $"wolverine_test_{Guid.NewGuid():N}";
 
     private static async Task<MessagingHost> StartAsync(
-        AppHostFixture fixture, MessagingSettings settings, Action<WolverineOptions, string, MessagingSettings> configure, CancellationToken cancellationToken)
+        AppHostFixture fixture,
+        MessagingSettings settings,
+        Action<WolverineOptions, string, MessagingSettings> configure,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string?>? configuration = null)
     {
         var connectionString = await fixture.GetOwnerConnectionStringAsync(cancellationToken);
         var logs = new CapturedLogs();
 
         var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(configuration ?? new Dictionary<string, string?>());
         builder.Logging.ClearProviders().AddProvider(logs);
         // As the owner, which creates the private schema. Row-level security is not what these hosts test;
         // WorkerMessagingTests covers the real API and worker, which connect as screenhire_app.

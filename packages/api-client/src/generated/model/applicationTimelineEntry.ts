@@ -21,4 +21,8 @@ export interface ApplicationTimelineEntry {
   toStageId: string | null;
   /** @nullable */
   note: string | null;
+  /** @nullable */
+  tag: string | null;
+  /** @nullable */
+  automationRunId: string | null;
 }

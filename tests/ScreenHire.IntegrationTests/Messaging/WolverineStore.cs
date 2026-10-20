@@ -36,6 +36,10 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     public Task<long> CountHandledAsync(string bodyContains, CancellationToken cancellationToken, string? messageType = null) =>
         CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, "status = 'Handled'", messageType);
 
+    /// <summary>Messages waiting for their scheduled time, such as a workflow engine timer.</summary>
+    public Task<long> CountScheduledAsync(string bodyContains, CancellationToken cancellationToken) =>
+        CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, "status = 'Scheduled'");
+
     /// <summary>Handled messages of one type. Only meaningful in a private schema, where every message is the test's own.</summary>
     public async Task<long> CountHandledOfTypeAsync(string messageTypeContains, CancellationToken cancellationToken)
     {

@@ -6,19 +6,17 @@
  */
 import * as zod from 'zod';
 
-export const ListSandboxListingsParams = zod.object({
-  "organizationSlug": zod.string()
-})
-
-export const ListSandboxListingsResponseItem = zod.object({
-  "id": zod.uuid(),
+export const ListAutomationIssuesResponseItem = zod.object({
+  "runId": zod.uuid(),
+  "applicationId": zod.uuid(),
   "jobId": zod.uuid(),
-  "jobVersion": zod.int(),
-  "title": zod.string(),
-  "url": zod.string(),
-  "acceptedAt": zod.iso.datetime({"offset":true})
-}).describe('One listing on the local sandbox board, as the board itself would show it.')
-export const ListSandboxListingsResponse = zod.array(ListSandboxListingsResponseItem)
+  "automationId": zod.string(),
+  "automationName": zod.string(),
+  "status": zod.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
+  "detail": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\r\nfailed (an action failed after its retries). Newest first; the run has the full record.')
+export const ListAutomationIssuesResponse = zod.array(ListAutomationIssuesResponseItem)
 
 
 export const GetMetaResponse = zod.object({
@@ -123,12 +121,9 @@ export const ListPublicJobsResponse = zod.object({
 }).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "url": zod.string()
-}).describe('A job as shown on a public careers page.')),
-  "url": zod.string()
-}).describe('The public careers listing for one organization. `url` is the board\'s careers page.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A job as shown on a public careers page.'))
+}).describe('The public careers listing for one organization.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -156,9 +151,7 @@ export const GetPublicJobResponse = zod.object({
 }).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "url": zod.string()
+  "validThrough": zod.iso.datetime({"offset":true}).nullable()
 }).describe('A job as shown on a public careers page.')
 
 
@@ -307,26 +300,7 @@ export const CreateJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "postings": zod.array(zod.object({
-  "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -440,26 +414,7 @@ export const GetJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "postings": zod.array(zod.object({
-  "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -595,36 +550,13 @@ export const UpdateJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "postings": zod.array(zod.object({
-  "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
 export const PublishJobParams = zod.object({
   "jobId": zod.uuid()
 })
-
-export const PublishJobBody = zod.union([zod.null(),zod.object({
-  "boards": zod.array(zod.string()).nullish()
-}).describe('Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again.')])
 
 export const publishJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
@@ -732,26 +664,7 @@ export const PublishJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "postings": zod.array(zod.object({
-  "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -865,26 +778,7 @@ export const CloseJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "postings": zod.array(zod.object({
-  "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1728,8 +1622,9 @@ export const CreateApplicationResponse = zod.object({
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "submittedAt": zod.iso.datetime({"offset":true}),
-  "stageEnteredAt": zod.iso.datetime({"offset":true})
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, and the candidate\'s declarations.')
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "tags": zod.array(zod.string())
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, and the candidate\'s\r\ndeclarations.')
 
 
 export const GetApplicationParams = zod.object({
@@ -1757,8 +1652,9 @@ export const GetApplicationResponse = zod.object({
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "submittedAt": zod.iso.datetime({"offset":true}),
-  "stageEnteredAt": zod.iso.datetime({"offset":true})
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, and the candidate\'s declarations.')
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "tags": zod.array(zod.string())
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, and the candidate\'s\r\ndeclarations.')
 
 
 export const MoveApplicationParams = zod.object({
@@ -1791,8 +1687,9 @@ export const MoveApplicationResponse = zod.object({
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "submittedAt": zod.iso.datetime({"offset":true}),
-  "stageEnteredAt": zod.iso.datetime({"offset":true})
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, and the candidate\'s declarations.')
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "tags": zod.array(zod.string())
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, and the candidate\'s\r\ndeclarations.')
 
 
 export const GetApplicationTimelineParams = zod.object({
@@ -1801,12 +1698,14 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
   "toStageId": zod.string().nullable(),
-  "note": zod.string().nullable()
+  "note": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "automationRunId": zod.uuid().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -1847,162 +1746,295 @@ export const GetCandidateResponse = zod.object({
 }).describe('A candidate and every application they made to the organization.')
 
 
-export const ListBoardsResponseItem = zod.object({
+export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
+export const validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const validateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
+export const validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+
+export const ValidateWorkflowBody = zod.object({
+  "workflow": zod.object({
+  "stages": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "mode": zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)]),
-  "canClose": zod.boolean(),
-  "canUnpublishPerBoard": zod.boolean(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "publishEtaSeconds": zod.int().nullable(),
-  "removalEtaSeconds": zod.int().nullable(),
-  "dailyQuota": zod.int().nullable()
-}).describe('A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1).')
-export const ListBoardsResponse = zod.array(ListBoardsResponseItem)
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "slaDays": zod.int().nullish()
+}).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
+  "questionnaire": zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The screening questions a candidate answers when applying.'),
+  "integrityPolicy": zod.object({
+  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The template\'s integrity settings (ADR-0004). Only the AI-use policy exists so far.'),
+  "automations": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish()
+}),
+  "conditions": zod.union([zod.null(),zod.object({
+  "match": zod.enum(['All', 'Any']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "negate": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+  "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
+  "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.')
+}).describe('A workflow to check, as the builder holds it before saving.')
+
+export const ValidateWorkflowResponse = zod.object({
+  "valid": zod.boolean(),
+  "errors": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
 
 
-export const ListJobPostingsParams = zod.object({
-  "jobId": zod.uuid()
+export const simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
+export const simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
+export const simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const simulateWorkflowBodyAccommodationRequestedDefault = false;
+
+export const SimulateWorkflowBody = zod.object({
+  "workflow": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "slaDays": zod.int().nullish()
+}).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
+  "questionnaire": zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The screening questions a candidate answers when applying.'),
+  "integrityPolicy": zod.object({
+  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The template\'s integrity settings (ADR-0004). Only the AI-use policy exists so far.'),
+  "automations": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish()
+}),
+  "conditions": zod.union([zod.null(),zod.object({
+  "match": zod.enum(['All', 'Any']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "negate": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+  "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
+  "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish()
+}),
+  "facts": zod.union([zod.null(),zod.object({
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "values": zod.array(zod.string())
+}).describe('A candidate\'s answer to one question. A multiple-choice answer has one value per chosen option.')),
+  "tags": zod.array(zod.string()),
+  "source": zod.string().nullish(),
+  "hoursInStage": zod.int().nullish(),
+  "integrityAuthenticity": zod.string().nullish(),
+  "integrityAiAssistance": zod.string().nullish(),
+  "verificationResult": zod.string().nullish()
+}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.')]).optional(),
+  "accommodationRequested": zod.boolean().default(simulateWorkflowBodyAccommodationRequestedDefault),
+  "chain": zod.array(zod.string()).nullish()
+}).describe('"Test this workflow" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application\'s snapshot; leave members out\r\nfor facts it does not have.')
+
+export const SimulateWorkflowResponse = zod.object({
+  "automations": zod.array(zod.object({
+  "automationId": zod.string(),
+  "name": zod.string(),
+  "outcome": zod.enum(['Matched', 'NotMatched', 'Skipped', 'Blocked']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "held": zod.boolean()
+}).describe('One rule\'s result, so an audit or a simulation shows which conditions held.')),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+  "reason": zod.string().nullable()
+}).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
 })
 
-export const ListJobPostingsResponseItem = zod.object({
+
+export const ListAutomationRunsParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const ListAutomationRunsResponseItem = zod.object({
   "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.')
-export const ListJobPostingsResponse = zod.array(ListJobPostingsResponseItem)
-
-
-export const CloseJobPostingParams = zod.object({
+  "applicationId": zod.uuid(),
   "jobId": zod.uuid(),
-  "boardId": zod.string()
+  "automationId": zod.string(),
+  "automationName": zod.string(),
+  "workflowVersion": zod.int(),
+  "trigger": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "triggerStageId": zod.string().nullable(),
+  "eventId": zod.uuid(),
+  "eventOccurredAt": zod.iso.datetime({"offset":true}),
+  "chain": zod.array(zod.string()),
+  "actorUserId": zod.uuid().nullable(),
+  "facts": zod.object({
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "values": zod.array(zod.string())
+}).describe('A candidate\'s answer to one question. A multiple-choice answer has one value per chosen option.')),
+  "tags": zod.array(zod.string()),
+  "source": zod.string().nullish(),
+  "hoursInStage": zod.int().nullish(),
+  "integrityAuthenticity": zod.string().nullish(),
+  "integrityAiAssistance": zod.string().nullish(),
+  "verificationResult": zod.string().nullish()
+}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.'),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "held": zod.boolean()
+}).describe('One rule\'s result, so an audit or a simulation shows which conditions held.')),
+  "status": zod.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
+  "detail": zod.string().nullable(),
+  "actions": zod.array(zod.object({
+  "index": zod.int(),
+  "action": zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.'),
+  "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
+  "detail": zod.string().nullable(),
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+})),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did.')
+export const ListAutomationRunsResponse = zod.array(ListAutomationRunsResponseItem)
+
+
+export const ListApplicationTasksParams = zod.object({
+  "applicationId": zod.uuid()
 })
 
-export const CloseJobPostingResponse = zod.object({
+export const ListApplicationTasksResponseItem = zod.object({
   "id": zod.uuid(),
-  "boardId": zod.string(),
-  "boardName": zod.string(),
-  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
-  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
-  "jobVersion": zod.int(),
-  "confirmsLive": zod.boolean(),
-  "confirmsRemoval": zod.boolean(),
-  "canUnpublish": zod.boolean(),
-  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
-  "issues": zod.array(zod.string()),
-  "lastError": zod.string().nullable(),
-  "updatedAt": zod.iso.datetime({"offset":true}),
-  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('One job on one board: where it stands and what is still uncertain.')
+  "applicationId": zod.uuid(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
 
-export const GetJobBoardParams = zod.object({
-  "organizationSlug": zod.string()
+export const RunManualAutomationParams = zod.object({
+  "applicationId": zod.uuid(),
+  "automationId": zod.string()
 })
 
-export const GetJobBoardResponse = zod.object({
-  "name": zod.string(),
-  "content": zod.string(),
-  "absolute_url": zod.string()
-}).describe('A tenant\'s board in the public job-board API (Greenhouse-style: `GET /v1/boards/{token}`).')
-
-
-export const ListJobBoardJobsParams = zod.object({
-  "organizationSlug": zod.string()
+export const RunManualAutomationHeader = zod.object({
+  "Idempotency-Key": zod.string().optional()
 })
 
-export const listJobBoardJobsQueryContentDefault = false;
-
-export const ListJobBoardJobsQueryParams = zod.object({
-  "content": zod.boolean().default(listJobBoardJobsQueryContentDefault)
-})
-
-export const ListJobBoardJobsResponse = zod.object({
-  "jobs": zod.array(zod.object({
-  "id": zod.uuid(),
-  "title": zod.string(),
-  "updated_at": zod.iso.datetime({"offset":true}),
-  "first_published": zod.iso.datetime({"offset":true}),
-  "location": zod.object({
-  "name": zod.string()
-}),
-  "absolute_url": zod.string(),
-  "company_name": zod.string(),
-  "departments": zod.array(zod.object({
-  "name": zod.string()
-})),
-  "offices": zod.array(zod.object({
-  "name": zod.string(),
-  "location": zod.string()
-})),
-  "employment_type": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
-  "workplace_type": zod.enum(['Onsite', 'Hybrid', 'Remote']),
-  "pay_input_ranges": zod.array(zod.object({
-  "min_cents": zod.int().nullable(),
-  "max_cents": zod.int().nullable(),
-  "currency_type": zod.string(),
-  "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
-}).describe('Greenhouse\'s pay transparency range, in minor units of `currency_type`.')),
-  "valid_through": zod.iso.datetime({"offset":true}).nullable(),
-  "content": zod.string().nullable()
-}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')),
-  "meta": zod.object({
-  "total": zod.int()
-})
-}).describe('Every job on a tenant\'s public job board (Greenhouse-style `jobs` and `meta.total`).')
-
-
-export const GetJobBoardJobParams = zod.object({
-  "organizationSlug": zod.string(),
-  "jobId": zod.uuid()
-})
-
-export const GetJobBoardJobResponse = zod.object({
-  "id": zod.uuid(),
-  "title": zod.string(),
-  "updated_at": zod.iso.datetime({"offset":true}),
-  "first_published": zod.iso.datetime({"offset":true}),
-  "location": zod.object({
-  "name": zod.string()
-}),
-  "absolute_url": zod.string(),
-  "company_name": zod.string(),
-  "departments": zod.array(zod.object({
-  "name": zod.string()
-})),
-  "offices": zod.array(zod.object({
-  "name": zod.string(),
-  "location": zod.string()
-})),
-  "employment_type": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
-  "workplace_type": zod.enum(['Onsite', 'Hybrid', 'Remote']),
-  "pay_input_ranges": zod.array(zod.object({
-  "min_cents": zod.int().nullable(),
-  "max_cents": zod.int().nullable(),
-  "currency_type": zod.string(),
-  "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
-}).describe('Greenhouse\'s pay transparency range, in minor units of `currency_type`.')),
-  "valid_through": zod.iso.datetime({"offset":true}).nullable(),
-  "content": zod.string().nullable()
-}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')
+export const RunManualAutomationResponse = zod.object({
+  "applicationId": zod.uuid(),
+  "automationId": zod.string(),
+  "eventId": zod.uuid()
+}).describe('A manual automation was queued. `eventId` keys its run: find it in the application\'s automation runs.')
 
 
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()

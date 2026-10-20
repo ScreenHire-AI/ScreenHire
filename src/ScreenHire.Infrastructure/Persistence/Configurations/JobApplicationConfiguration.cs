@@ -13,6 +13,8 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Property(a => a.CurrentStageId).HasMaxLength(40);
         builder.Property(a => a.AiUseDeclaration).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.AiUseDetails).HasMaxLength(2000);
+        // Existing rows get an empty list; new rows always send their own.
+        builder.Property(a => a.Tags).HasColumnType("text[]").HasDefaultValueSql("'{}'::text[]");
 
         // Optimistic concurrency on Postgres' xmin system column (no real column): two people moving one application at
         // once get one success and one conflict, never a lost update.

@@ -5,22 +5,12 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/v1/public/sandbox-board/{organizationSlug}/listings": {
+    "/v1/automation-issues": {
       "get": {
         "tags": [
-          "Public distribution"
+          "Automations"
         ],
-        "operationId": "ListSandboxListings",
-        "parameters": [
-          {
-            "name": "organizationSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "ListAutomationIssues",
         "responses": {
           "200": {
             "description": "OK",
@@ -29,14 +19,14 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SandboxBoardListing"
+                    "$ref": "#/components/schemas/AutomationIssue"
                   }
                 }
               }
             }
           },
-          "404": {
-            "description": "Not Found"
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -342,16 +332,6 @@
           },
           "404": {
             "description": "Not Found"
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicJob"
-                }
-              }
-            }
           }
         }
       }
@@ -572,22 +552,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/components/schemas/PublishJobRequest"
-                  }
-                ]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1622,22 +1586,29 @@
         }
       }
     },
-    "/v1/boards": {
-      "get": {
+    "/v1/workflows/validate": {
+      "post": {
         "tags": [
-          "Distribution"
+          "Workflows"
         ],
-        "operationId": "ListBoards",
+        "operationId": "ValidateWorkflow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/BoardSummary"
-                  }
+                  "$ref": "#/components/schemas/WorkflowValidationResult"
                 }
               }
             }
@@ -1648,15 +1619,58 @@
         }
       }
     },
-    "/v1/jobs/{jobId}/postings": {
+    "/v1/workflows/simulate": {
+      "post": {
+        "tags": [
+          "Workflows"
+        ],
+        "operationId": "SimulateWorkflow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateWorkflowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSimulationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/automation-runs": {
       "get": {
         "tags": [
-          "Distribution"
+          "Automations"
         ],
-        "operationId": "ListJobPostings",
+        "operationId": "ListAutomationRuns",
         "parameters": [
           {
-            "name": "jobId",
+            "name": "applicationId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1673,7 +1687,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/JobPostingStatus"
+                    "$ref": "#/components/schemas/AutomationRunEntry"
                   }
                 }
               }
@@ -1688,15 +1702,55 @@
         }
       }
     },
-    "/v1/jobs/{jobId}/postings/{boardId}/close": {
-      "post": {
+    "/v1/applications/{applicationId}/tasks": {
+      "get": {
         "tags": [
-          "Distribution"
+          "Automations"
         ],
-        "operationId": "CloseJobPosting",
+        "operationId": "ListApplicationTasks",
         "parameters": [
           {
-            "name": "jobId",
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationTaskEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/automations/{automationId}/run": {
+      "post": {
+        "tags": [
+          "Automations"
+        ],
+        "operationId": "RunManualAutomation",
+        "parameters": [
+          {
+            "name": "applicationId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1705,27 +1759,44 @@
             }
           },
           {
-            "name": "boardId",
+            "name": "automationId",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
             "schema": {
               "type": "string"
             }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobPostingStatus"
+                  "$ref": "#/components/schemas/ManualAutomationQueued"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -1737,134 +1808,8 @@
               }
             }
           },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/v1/public/boards/{organizationSlug}": {
-      "get": {
-        "tags": [
-          "Public job board"
-        ],
-        "operationId": "GetJobBoard",
-        "parameters": [
-          {
-            "name": "organizationSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobBoardInfo"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/v1/public/boards/{organizationSlug}/jobs": {
-      "get": {
-        "tags": [
-          "Public job board"
-        ],
-        "operationId": "ListJobBoardJobs",
-        "parameters": [
-          {
-            "name": "organizationSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "content",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobBoardJobList"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/v1/public/boards/{organizationSlug}/jobs/{jobId}": {
-      "get": {
-        "tags": [
-          "Public job board"
-        ],
-        "operationId": "GetJobBoardJob",
-        "parameters": [
-          {
-            "name": "organizationSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "jobId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobBoardJob"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
           }
         }
       }
@@ -1943,6 +1888,25 @@
         ],
         "description": "What the employer allows candidates to do with AI tools while applying."
       },
+      "AnswerFact": {
+        "required": [
+          "questionId",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A candidate's answer to one question. A multiple-choice answer has one value per chosen option."
+      },
       "ApiMeta": {
         "required": [
           "name",
@@ -1975,7 +1939,8 @@
           "aiUseDeclaration",
           "aiUseDetails",
           "submittedAt",
-          "stageEnteredAt"
+          "stageEnteredAt",
+          "tags"
         ],
         "type": "object",
         "properties": {
@@ -2019,14 +1984,21 @@
           "stageEnteredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "One application: the candidate, the job, where it is in the job's workflow, and the candidate's declarations."
+        "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, and the candidate's\r\ndeclarations."
       },
       "ApplicationEventType": {
         "enum": [
           "Submitted",
-          "StageChanged"
+          "StageChanged",
+          "TagAdded"
         ]
       },
       "ApplicationStage": {
@@ -2090,6 +2062,68 @@
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
       },
+      "ApplicationTaskEntry": {
+        "required": [
+          "id",
+          "applicationId",
+          "kind",
+          "note",
+          "assigneeUserId",
+          "automationRunId",
+          "createdAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApplicationTaskKind"
+          },
+          "note": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Something a person should do about an application: a review, a to-do, or a rejection to decide on."
+      },
+      "ApplicationTaskKind": {
+        "enum": [
+          "Review",
+          "Task",
+          "RejectionReview"
+        ]
+      },
       "ApplicationTimelineEntry": {
         "required": [
           "id",
@@ -2098,7 +2132,9 @@
           "actorUserId",
           "fromStageId",
           "toStageId",
-          "note"
+          "note",
+          "tag",
+          "automationRunId"
         ],
         "type": "object",
         "properties": {
@@ -2137,6 +2173,19 @@
               "null",
               "string"
             ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -2248,6 +2297,49 @@
         },
         "description": "One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else."
       },
+      "AutomationActionEntry": {
+        "required": [
+          "index",
+          "action",
+          "status",
+          "detail",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "$ref": "#/components/schemas/AutomationAction"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationActionStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AutomationActionStatus": {
+        "enum": [
+          "Pending",
+          "Completed",
+          "Skipped",
+          "Failed"
+        ]
+      },
       "AutomationCondition": {
         "required": [
           "fact",
@@ -2302,6 +2394,230 @@
         },
         "description": "Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a \"not\". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too."
       },
+      "AutomationFacts": {
+        "required": [
+          "answers",
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnswerFact"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoursInStage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "integrityAuthenticity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "integrityAiAssistance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verificationResult": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What an automation's conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails."
+      },
+      "AutomationIssue": {
+        "required": [
+          "runId",
+          "applicationId",
+          "jobId",
+          "automationId",
+          "automationName",
+          "status",
+          "detail",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "automationName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationRunStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\r\nfailed (an action failed after its retries). Newest first; the run has the full record."
+      },
+      "AutomationRunEntry": {
+        "required": [
+          "id",
+          "applicationId",
+          "jobId",
+          "automationId",
+          "automationName",
+          "workflowVersion",
+          "trigger",
+          "triggerStageId",
+          "eventId",
+          "eventOccurredAt",
+          "chain",
+          "actorUserId",
+          "facts",
+          "rules",
+          "status",
+          "detail",
+          "actions",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "automationName": {
+            "type": "string"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "triggerStageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventOccurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "chain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/AutomationFacts"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleResult"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationRunStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationActionEntry"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did."
+      },
+      "AutomationRunStatus": {
+        "enum": [
+          "NotMatched",
+          "Skipped",
+          "Blocked",
+          "Running",
+          "Completed",
+          "Failed"
+        ]
+      },
       "AutomationTrigger": {
         "required": [
           "type"
@@ -2325,76 +2641,6 @@
             "format": "int32"
           }
         }
-      },
-      "BoardMode": {
-        "enum": [
-          "Hosted",
-          "Pull",
-          "PullFromAts",
-          "Notify",
-          "Push",
-          null
-        ]
-      },
-      "BoardSummary": {
-        "required": [
-          "id",
-          "name",
-          "mode",
-          "canClose",
-          "canUnpublishPerBoard",
-          "confirmsLive",
-          "confirmsRemoval",
-          "publishEtaSeconds",
-          "removalEtaSeconds",
-          "dailyQuota"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "mode": {
-            "$ref": "#/components/schemas/BoardMode"
-          },
-          "canClose": {
-            "type": "boolean"
-          },
-          "canUnpublishPerBoard": {
-            "type": "boolean"
-          },
-          "confirmsLive": {
-            "type": "boolean"
-          },
-          "confirmsRemoval": {
-            "type": "boolean"
-          },
-          "publishEtaSeconds": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "removalEtaSeconds": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "dailyQuota": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          }
-        },
-        "description": "A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1)."
       },
       "CandidateDetail": {
         "required": [
@@ -2733,6 +2979,22 @@
         },
         "description": "The signed-in user, and the organization they work in (null until onboarding)."
       },
+      "DefinitionError": {
+        "required": [
+          "path",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "description": "A problem with a definition, at a JSON path such as `workflow.stages[1].id`."
+      },
       "EmploymentType": {
         "enum": [
           "FullTime",
@@ -2740,6 +3002,14 @@
           "Contract",
           "Temporary",
           "Internship"
+        ]
+      },
+      "EvaluationOutcome": {
+        "enum": [
+          "Matched",
+          "NotMatched",
+          "Skipped",
+          "Blocked"
         ]
       },
       "HiringTemplateDefinition": {
@@ -3060,209 +3330,6 @@
         },
         "description": "The template's integrity settings (ADR-0004). Only the AI-use policy exists so far."
       },
-      "JobBoardDepartment": {
-        "required": [
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "JobBoardInfo": {
-        "required": [
-          "name",
-          "content",
-          "absolute_url"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          },
-          "absolute_url": {
-            "type": "string"
-          }
-        },
-        "description": "A tenant's board in the public job-board API (Greenhouse-style: `GET /v1/boards/{token}`)."
-      },
-      "JobBoardJob": {
-        "required": [
-          "id",
-          "title",
-          "updated_at",
-          "first_published",
-          "location",
-          "absolute_url",
-          "company_name",
-          "departments",
-          "offices",
-          "employment_type",
-          "workplace_type",
-          "pay_input_ranges",
-          "valid_through",
-          "content"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "first_published": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "location": {
-            "$ref": "#/components/schemas/JobBoardLocation"
-          },
-          "absolute_url": {
-            "type": "string"
-          },
-          "company_name": {
-            "type": "string"
-          },
-          "departments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JobBoardDepartment"
-            }
-          },
-          "offices": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JobBoardOffice"
-            }
-          },
-          "employment_type": {
-            "$ref": "#/components/schemas/EmploymentType"
-          },
-          "workplace_type": {
-            "$ref": "#/components/schemas/WorkplaceType"
-          },
-          "pay_input_ranges": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JobBoardPayRange"
-            }
-          },
-          "valid_through": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "content": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "A job in the public job-board API, in Greenhouse's snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse's integers."
-      },
-      "JobBoardJobList": {
-        "required": [
-          "jobs",
-          "meta"
-        ],
-        "type": "object",
-        "properties": {
-          "jobs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JobBoardJob"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/JobBoardMeta"
-          }
-        },
-        "description": "Every job on a tenant's public job board (Greenhouse-style `jobs` and `meta.total`)."
-      },
-      "JobBoardLocation": {
-        "required": [
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "JobBoardMeta": {
-        "required": [
-          "total"
-        ],
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "JobBoardOffice": {
-        "required": [
-          "name",
-          "location"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string"
-          }
-        }
-      },
-      "JobBoardPayRange": {
-        "required": [
-          "min_cents",
-          "max_cents",
-          "currency_type",
-          "period"
-        ],
-        "type": "object",
-        "properties": {
-          "min_cents": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
-          "max_cents": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
-          "currency_type": {
-            "type": "string"
-          },
-          "period": {
-            "$ref": "#/components/schemas/SalaryPeriod"
-          }
-        },
-        "description": "Greenhouse's pay transparency range, in minor units of `currency_type`."
-      },
       "JobDetail": {
         "required": [
           "id",
@@ -3286,8 +3353,7 @@
           "createdAt",
           "updatedAt",
           "publishedAt",
-          "closedAt",
-          "postings"
+          "closedAt"
         ],
         "type": "object",
         "properties": {
@@ -3399,12 +3465,6 @@
               "string"
             ],
             "format": "date-time"
-          },
-          "postings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JobPostingStatus"
-            }
           }
         },
         "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."
@@ -3437,118 +3497,6 @@
           }
         },
         "description": "A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it."
-      },
-      "JobPostingStatus": {
-        "required": [
-          "id",
-          "boardId",
-          "boardName",
-          "mode",
-          "state",
-          "jobVersion",
-          "confirmsLive",
-          "confirmsRemoval",
-          "canUnpublish",
-          "expectedBy",
-          "issues",
-          "lastError",
-          "updatedAt",
-          "submittedAt",
-          "liveAt",
-          "closingAt",
-          "closedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "boardId": {
-            "type": "string"
-          },
-          "boardName": {
-            "type": "string"
-          },
-          "mode": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/BoardMode"
-              }
-            ]
-          },
-          "state": {
-            "$ref": "#/components/schemas/PostingState"
-          },
-          "jobVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "confirmsLive": {
-            "type": "boolean"
-          },
-          "confirmsRemoval": {
-            "type": "boolean"
-          },
-          "canUnpublish": {
-            "type": "boolean"
-          },
-          "expectedBy": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "issues": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "lastError": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "submittedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "liveAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "closingAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "closedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
-        },
-        "description": "One job on one board: where it stands and what is still uncertain."
       },
       "JobSalary": {
         "required": [
@@ -3898,6 +3846,28 @@
         },
         "description": "Redeems the token from an emailed sign-in link."
       },
+      "ManualAutomationQueued": {
+        "required": [
+          "applicationId",
+          "automationId",
+          "eventId"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "A manual automation was queued. `eventId` keys its run: find it in the application's automation runs."
+      },
       "MoveApplicationRequest": {
         "required": [
           "toStageId"
@@ -4001,18 +3971,6 @@
         },
         "description": "Values a new job starts with when it is created from the template. Every member is optional."
       },
-      "PostingState": {
-        "enum": [
-          "Draft",
-          "Queued",
-          "Submitted",
-          "Live",
-          "Rejected",
-          "Closing",
-          "Closed",
-          "Error"
-        ]
-      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -4066,9 +4024,7 @@
           "locations",
           "applicantLocationRequirements",
           "salaryPeriod",
-          "validThrough",
-          "updatedAt",
-          "url"
+          "validThrough"
         ],
         "type": "object",
         "properties": {
@@ -4155,16 +4111,6 @@
               "string"
             ],
             "format": "date-time"
-          },
-          "updatedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "url": {
-            "type": "string"
           }
         },
         "description": "A job as shown on a public careers page."
@@ -4173,8 +4119,7 @@
         "required": [
           "organizationName",
           "organizationSlug",
-          "jobs",
-          "url"
+          "jobs"
         ],
         "type": "object",
         "properties": {
@@ -4189,27 +4134,9 @@
             "items": {
               "$ref": "#/components/schemas/PublicJob"
             }
-          },
-          "url": {
-            "type": "string"
           }
         },
-        "description": "The public careers listing for one organization. `url` is the board's careers page."
-      },
-      "PublishJobRequest": {
-        "type": "object",
-        "properties": {
-          "boards": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "description": "Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again."
+        "description": "The public careers listing for one organization."
       },
       "Question": {
         "required": [
@@ -4336,6 +4263,26 @@
           "File"
         ]
       },
+      "RuleResult": {
+        "required": [
+          "fact",
+          "operator",
+          "held"
+        ],
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "string"
+          },
+          "operator": {
+            "$ref": "#/components/schemas/ConditionOperator"
+          },
+          "held": {
+            "type": "boolean"
+          }
+        },
+        "description": "One rule's result, so an audit or a simulation shows which conditions held."
+      },
       "SalaryPeriod": {
         "enum": [
           "Hour",
@@ -4386,42 +4333,6 @@
         },
         "description": "A pay range. Currency and period may come from the template's posting defaults on create."
       },
-      "SandboxBoardListing": {
-        "required": [
-          "id",
-          "jobId",
-          "jobVersion",
-          "title",
-          "url",
-          "acceptedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "jobId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "jobVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "title": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "acceptedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "One listing on the local sandbox board, as the board itself would show it."
-      },
       "SignInMethods": {
         "required": [
           "providers",
@@ -4456,6 +4367,86 @@
           }
         },
         "description": "An identity provider button on the sign-in page."
+      },
+      "SimulatedAutomation": {
+        "required": [
+          "automationId",
+          "name",
+          "outcome",
+          "rules",
+          "actions",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "automationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/EvaluationOutcome"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleResult"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationAction"
+            }
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What one automation would do. Only automations the trigger fires are listed, in definition order."
+      },
+      "SimulateWorkflowRequest": {
+        "required": [
+          "workflow",
+          "trigger"
+        ],
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/HiringWorkflow"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/AutomationTrigger"
+          },
+          "facts": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutomationFacts"
+              }
+            ]
+          },
+          "accommodationRequested": {
+            "type": "boolean",
+            "default": false
+          },
+          "chain": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\r\nfor facts it does not have."
       },
       "StageKind": {
         "enum": [
@@ -4595,6 +4586,18 @@
         },
         "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
       },
+      "ValidateWorkflowRequest": {
+        "required": [
+          "workflow"
+        ],
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/HiringWorkflow"
+          }
+        },
+        "description": "A workflow to check, as the builder holds it before saving."
+      },
       "WorkflowChange": {
         "required": [
           "path",
@@ -4632,6 +4635,20 @@
           "Changed"
         ]
       },
+      "WorkflowSimulationResult": {
+        "required": [
+          "automations"
+        ],
+        "type": "object",
+        "properties": {
+          "automations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimulatedAutomation"
+            }
+          }
+        }
+      },
       "WorkflowStage": {
         "required": [
           "id",
@@ -4659,6 +4676,25 @@
         },
         "description": "One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal."
       },
+      "WorkflowValidationResult": {
+        "required": [
+          "valid",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefinitionError"
+            }
+          }
+        },
+        "description": "The validator's verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at."
+      },
       "WorkplaceType": {
         "enum": [
           "Onsite",
@@ -4670,7 +4706,7 @@
   },
   "tags": [
     {
-      "name": "Public distribution"
+      "name": "Automations"
     },
     {
       "name": "Meta"
@@ -4694,10 +4730,7 @@
       "name": "Candidates"
     },
     {
-      "name": "Distribution"
-    },
-    {
-      "name": "Public job board"
+      "name": "Workflows"
     },
     {
       "name": "Schemas"

@@ -227,11 +227,12 @@ public sealed class DefinitionValidatorTests
         [
             Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Looks automated"), "a",
                 new AutomationTrigger(TriggerType.IntegrityAssessed)),
-            Automation(null, new AutomationAction(ActionType.SendEmail, EmailTemplate: "sorry"), "b",
+            Automation(null, new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "b",
                 new AutomationTrigger(TriggerType.VerificationCompleted)),
         ]);
 
-        Paths(workflow).Should().BeEquivalentTo("automations[0].actions[0]", "automations[1].actions[0]");
+        // VerificationCompleted is refused until phase 2, but it still counts as a signal: both errors show.
+        Paths(workflow).Should().BeEquivalentTo("automations[0].actions[0]", "automations[1].trigger.type", "automations[1].actions[0]");
     }
 
     [Fact]
@@ -247,7 +248,7 @@ public sealed class DefinitionValidatorTests
     }
 
     [Fact]
-    public void Integrity_signals_may_tag_assign_request_verification_or_move_to_a_review_stage()
+    public void Integrity_signals_may_tag_assign_or_move_to_a_review_stage()
     {
         var workflow = Workflow(automations:
         [
@@ -255,7 +256,6 @@ public sealed class DefinitionValidatorTests
             [
                 new AutomationAction(ActionType.AddTag, Tag: "integrity-review"),
                 new AutomationAction(ActionType.AssignReviewer),
-                new AutomationAction(ActionType.RequestVerification),
                 new AutomationAction(ActionType.MoveToStage, StageId: "screening"),
             ], trigger: new AutomationTrigger(TriggerType.IntegrityAssessed)),
         ]);
@@ -285,9 +285,9 @@ public sealed class DefinitionValidatorTests
             Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
                 new AutomationAction(ActionType.AddTag, Tag: "Integrity-Review"), "tagger", new AutomationTrigger(TriggerType.IntegrityAssessed)),
             Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "integrity-review")),
-                new AutomationAction(ActionType.SendEmail, EmailTemplate: "decline"), "mailer"),
+                new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "mailer"),
             Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral")),
-                new AutomationAction(ActionType.SendEmail, EmailTemplate: "thanks"), "unrelated"),
+                new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "unrelated"),
         ]);
 
         Paths(workflow).Should().Equal("automations[1].actions[0]");
@@ -299,7 +299,7 @@ public sealed class DefinitionValidatorTests
         var workflow = Workflow(automations:
         [
             Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "screening"), "route",
-                new AutomationTrigger(TriggerType.VerificationCompleted)),
+                new AutomationTrigger(TriggerType.IntegrityAssessed)),
             Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "interview"), "hop",
                 new AutomationTrigger(TriggerType.StageEntered, "screening")),
             Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Stalled"), "queue",
@@ -307,6 +307,41 @@ public sealed class DefinitionValidatorTests
         ]);
 
         Paths(workflow).Should().Equal("automations[2].actions[0]");
+    }
+
+    // A signal-driven move also fires StageExited on the stage it leaves, which can be any stage the application is in
+    // when the action runs. So once a signal moves applications, every StageExited automation counts as signal-driven.
+    [Fact]
+    public void A_signal_cannot_be_laundered_through_the_stage_it_moves_an_application_out_of()
+    {
+        var workflow = Workflow(
+            stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("verify", "Verification", StageKind.Verification),
+                new WorkflowStage("parked", "Not progressing", StageKind.Custom)],
+            automations:
+            [
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route",
+                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park",
+                    new AutomationTrigger(TriggerType.StageExited, "screening")),
+            ]);
+
+        AssertRefusedAsSignalDriven(workflow, "automations[1].actions[0]");
+    }
+
+    [Fact]
+    public void A_stage_exit_automation_is_ordinary_when_no_signal_moves_applications()
+    {
+        var workflow = Workflow(
+            stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("parked", "Not progressing", StageKind.Custom)],
+            automations:
+            [
+                Automation(null, new AutomationAction(ActionType.AddTag, Tag: "integrity-review"), "tag",
+                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park",
+                    new AutomationTrigger(TriggerType.StageExited, "screening")),
+            ]);
+
+        Paths(workflow).Should().BeEmpty();
     }
 
     // A tag a signal sets is read through application.tags by substring (Contains) or by list (In). Either way the reader
@@ -345,7 +380,7 @@ public sealed class DefinitionValidatorTests
             automations:
             [
                 Automation(Conditions(new AutomationCondition("verification.result", ConditionOperator.EqualTo, "failed")),
-                    new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.VerificationCompleted)),
+                    new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.IntegrityAssessed)),
                 Automation(null, new AutomationAction(ActionType.Reject, Reason: "Stalled in verification"), "decliner",
                     new AutomationTrigger(trigger, "verify", afterHours), allowAutoReject: true),
             ]);
@@ -510,7 +545,7 @@ public sealed class DefinitionValidatorTests
     {
         ActionType.Reject => new(type, Reason: "Not a fit"),
         ActionType.QueueForRejectionReview => new(type, Reason: "Check this"),
-        ActionType.SendEmail => new(type, EmailTemplate: "follow-up"),
+        ActionType.SendEmail => new(type, EmailTemplate: "stage-change"),
         ActionType.NotifyTeam => new(type, Note: "Look at this"),
         ActionType.CallWebhook => new(type, Url: "https://example.com/hook"),
         _ => new(type),
