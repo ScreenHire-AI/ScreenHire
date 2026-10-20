@@ -247,6 +247,12 @@ A later analyzer (content forensics) registers as another `IIntegrityAnalyzer`, 
 | `duplicates` | `ID_DUPLICATE_IN_ORG` | other candidates' email (plus tag ignored), phone, device hash, resume hash, same organization only | |
 | `behavioural` | `BEH_*` | `ITelemetrySource` (none registered yet) | always, until the telemetry module lands |
 
+Every application assessed before the telemetry module lands already has a `behavioural` version 1 run that saw
+nothing, and the pipeline never repeats a run. The telemetry module therefore bumps the analyzer's version and stores
+the aggregates before it publishes `AnalyzeApplicationIntegrity`. The input contract has no typing-rhythm field:
+timing between keys is keystroke dynamics, a behavioural biometric, and v1 has none (CLAUDE.md non-negotiable 3).
+`BEH_CADENCE_ANOMALY` above waits for that task's own legal review.
+
 Rules of thumb in the analyzers:
 
 - **Claimed location** is the country of the candidate's phone number: the form asks for no location, and the phone
@@ -311,8 +317,8 @@ matches across employers. Evidence keeps the network operator and country, never
 
 `PurgeExpiredIntegrityData` runs daily at 03:17 UTC and fans out one `PurgeOrganizationIntegrityData` per organization
 (the worker sees no tenant rows without a tenant). It deletes observations past `expires_at`
-(`ScreenHire:Integrity:Retention:RawNetworkDays`, 30, as the privacy page promises) and asks `ITelemetrySource` to
-purge expired telemetry. Signals, assessments and the audit log stay for the employer's record period.
+(`ScreenHire:Integrity:Retention:RawNetworkDays`, 30, as the privacy page promises; the API and the worker refuse
+to start with more than 30) and asks `ITelemetrySource` to purge expired telemetry. Signals, assessments and the audit log stay for the employer's record period.
 
 ### 10.5 Sources (local or operator-supplied; none needs an account)
 
@@ -326,7 +332,9 @@ purge expired telemetry. Signals, assessments and the audit log stay for the emp
 | `Identity:ExtraDisposableDomains` | more disposable domains, on top of the embedded CC0-1.0 list (`Integrity/Data/README.md`, with its licence beside it) | Development: `tempinbox.example.net` |
 | `SignalNetwork:Enabled` | the Signal Network flag | off; a host refuses to start with it on |
 
-A commercial source such as MaxMind GeoIP2 needs an owner account; none is wired in. Adding one is another
+The worker refuses to start when `Network:Ip2AsnFile` or `Network:TorExitListFile` names a file that does not
+exist, because the files are read on the first lookup and a wrong path would fail every analysis. A commercial
+source such as MaxMind GeoIP2 needs an owner account; none is wired in. Adding one is another
 `IIpIntelligence` behind configuration.
 
 ### 10.6 API
@@ -341,6 +349,8 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../integrity/request-verification` | always 409 until phase 2 |
 
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
+A unique index (`ix_integrity_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers
+dismiss at once; the second gets the same 409 as a later attempt.
 `ApplicationSummary.integrity` carries the chips for lists: both levels, their reason codes and whether each was
 dismissed. The `IntegrityAssessed` tenant event carries ids, the two level names and the ruleset version, never
 evidence.
