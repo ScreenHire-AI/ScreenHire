@@ -21,7 +21,7 @@ public static class IntegrityRegistration
         services.TryAddSingleton<IIpIntelligence, IpIntelligence>();
         services.TryAddSingleton<IMailDomainChecker, DnsMailDomainChecker>();
         services.TryAddSingleton<DisposableEmailDomains>();
-        services.TryAddSingleton<ITelemetrySource, NoTelemetrySource>();
+        services.TryAddScoped<ITelemetrySource, DatabaseTelemetrySource>();
         services.TryAddScoped<IApplicantDirectory, DatabaseApplicantDirectory>();
 
         // The order analyzers run in. Each is keyed by its own name and version, so adding one never re-runs the others.

@@ -5,6 +5,84 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/telemetry": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "SendPublicTelemetry",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetrySnapshotInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/public/sandbox-board/{organizationSlug}/listings": {
       "get": {
         "tags": [
@@ -4386,6 +4464,14 @@
         },
         "description": "A problem with a definition, at a JSON path such as `workflow.stages[1].id`."
       },
+      "DeviceCheckBasis": {
+        "enum": [
+          "Off",
+          "Notice",
+          "Consent"
+        ],
+        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\r\nfingerprint\"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code."
+      },
       "DismissIntegrityAssessmentRequest": {
         "required": [
           "reason"
@@ -4439,6 +4525,53 @@
           "List"
         ],
         "description": "How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal."
+      },
+      "FieldTelemetryInput": {
+        "required": [
+          "fieldId",
+          "pasteCount",
+          "pastedCharacters",
+          "typedCharacters",
+          "focusCount",
+          "blurCount",
+          "activeMilliseconds",
+          "autofilled"
+        ],
+        "type": "object",
+        "properties": {
+          "fieldId": {
+            "type": "string"
+          },
+          "pasteCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pastedCharacters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "typedCharacters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "focusCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blurCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeMilliseconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "autofilled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Counts for one form field. `fieldId` is a question id or one of the form's own fields (`fullName`, ...)."
       },
       "HiringTemplateDefinition": {
         "required": [
@@ -5963,6 +6096,27 @@
           "Viewer"
         ]
       },
+      "PageTelemetryInput": {
+        "required": [
+          "visibilityChanges",
+          "automationMarkers"
+        ],
+        "type": "object",
+        "properties": {
+          "visibilityChanges": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "automationMarkers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...)."
+      },
       "PostingDefaults": {
         "type": "object",
         "properties": {
@@ -6079,7 +6233,8 @@
           "questions",
           "aiUsePolicy",
           "uploads",
-          "turnstileSiteKey"
+          "turnstileSiteKey",
+          "telemetry"
         ],
         "type": "object",
         "properties": {
@@ -6106,9 +6261,12 @@
               "null",
               "string"
             ]
+          },
+          "telemetry": {
+            "$ref": "#/components/schemas/PublicTelemetrySettings"
           }
         },
-        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured."
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets."
       },
       "PublicApplicationReceipt": {
         "required": [
@@ -6199,6 +6357,26 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "deviceCheckConsent": {
+            "type": "boolean",
+            "default": false
+          },
+          "telemetrySessionToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telemetry": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TelemetrySnapshotInput"
+              }
             ]
           }
         },
@@ -6486,6 +6664,22 @@
           }
         },
         "description": "One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it."
+      },
+      "PublicTelemetrySettings": {
+        "required": [
+          "sessionToken",
+          "deviceCheck"
+        ],
+        "type": "object",
+        "properties": {
+          "sessionToken": {
+            "type": "string"
+          },
+          "deviceCheck": {
+            "$ref": "#/components/schemas/DeviceCheckBasis"
+          }
+        },
+        "description": "What the careers page's telemetry module may do on this form (integrity-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate's tick)."
       },
       "PublicUploadSettings": {
         "required": [
@@ -6995,6 +7189,40 @@
           "Custom"
         ]
       },
+      "TelemetrySnapshotInput": {
+        "required": [
+          "sessionToken",
+          "pageViewId",
+          "sequence",
+          "fields",
+          "page"
+        ],
+        "type": "object",
+        "properties": {
+          "sessionToken": {
+            "type": "string"
+          },
+          "pageViewId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldTelemetryInput"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageTelemetryInput"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One cumulative snapshot of one page view's form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit."
+      },
       "TemplateVersionStatus": {
         "enum": [
           "Draft",
@@ -7336,6 +7564,9 @@
   },
   "tags": [
     {
+      "name": "Public careers"
+    },
+    {
       "name": "Public distribution"
     },
     {
@@ -7346,9 +7577,6 @@
     },
     {
       "name": "Auth"
-    },
-    {
-      "name": "Public careers"
     },
     {
       "name": "Jobs"

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Integrity;
@@ -25,9 +26,13 @@ internal sealed class IntegrityHarness
 
     public IntegrityHarness()
     {
-        // Brightwater's demo job: remote, hiring in the UK and Ireland, AI help allowed with disclosure.
+        // Brightwater's demo job: remote, hiring in the UK and Ireland, the "Software engineer" questions, AI help allowed
+        // with disclosure.
         Job = new Job { OrganizationId = organizationId, Title = "Senior .NET Engineer", Slug = "senior-dotnet-engineer", WorkplaceType = WorkplaceType.Remote };
         Job.ApplicantLocationRequirements = ["GB", "IE"];
+        var template = HiringTemplate.Create(organizationId, "Software engineer", null, SoftwareEngineer, Start, null);
+        template.Publish(template.Versions[0], Start, null);
+        Job.UseTemplate(template.Versions[0]);
         Options = Microsoft.Extensions.Options.Options.Create(DevelopmentOptions());
     }
 
@@ -53,13 +58,30 @@ internal sealed class IntegrityHarness
         Identity = new IdentityCheckOptions { ExtraDisposableDomains = ["tempinbox.example.net"] },
     };
 
-    public IReadOnlyList<IIntegrityAnalyzer> Analyzers() =>
+    /// <summary>The questions of the "Software engineer" system template, which the synthetic applicants answer.</summary>
+    public static HiringTemplateDefinition SoftwareEngineer { get; } = new(
+        HiringWorkflow.Default with
+        {
+            Questionnaire = new Questionnaire(
+            [
+                new Question("resume", QuestionType.File, "Your CV or resume", Required: true, AcceptedFileTypes: [".pdf", ".docx"]),
+                new Question("work_authorization", QuestionType.YesNo, "Do you have the right to work in the country this job is in?", Required: true),
+                new Question("experience", QuestionType.SingleChoice, "How many years have you worked as a software engineer?", Required: true,
+                    Options: [new("less_than_3", "Less than 3"), new("three_to_five", "3 to 5"), new("six_to_nine", "6 to 9"), new("ten_plus", "10 or more")]),
+                new Question("work_sample", QuestionType.Url, "A link to code or a project you are proud of"),
+                new Question("notice_period", QuestionType.ShortText, "What is your notice period?", MaxLength: 100),
+            ]),
+        },
+        PostingDefaults.None);
+
+    /// <summary>The analyzers, with <paramref name="telemetry"/> as what the careers page's module sent.</summary>
+    public IReadOnlyList<IIntegrityAnalyzer> Analyzers(SyntheticTelemetry? telemetry = null) =>
     [
         new NetworkAnalyzer(new IpIntelligence(Options)),
         new IdentityAnalyzer(new DisposableEmailDomains(Options), Mail),
         new AutomationAnalyzer(),
         new DuplicateAnalyzer(new InMemoryDirectory(earlier)),
-        new BehaviouralAnalyzer(new NoTelemetrySource()),
+        new BehaviouralAnalyzer(new InMemoryTelemetrySource(telemetry, clock)),
     ];
 
     /// <summary>Submits <paramref name="applicant"/> a minute after the previous one and runs the pipeline over it.</summary>
@@ -104,7 +126,7 @@ internal sealed class IntegrityHarness
 
         var context = new IntegrityContext(application, candidate, Job, observation, [file], clock);
         var signals = new List<IntegritySignal>();
-        foreach (var analyzer in Analyzers())
+        foreach (var analyzer in Analyzers(applicant.Telemetry))
         {
             var result = await analyzer.AnalyzeAsync(context, TestContext.Current.CancellationToken);
             signals.AddRange(IntegrityPipeline.ToSignals(result.Signals, application, Guid.CreateVersion7(), analyzer, clock));
@@ -116,6 +138,18 @@ internal sealed class IntegrityHarness
     }
 
     private sealed record Submitted(JobApplication Application, Candidate Candidate, SubmissionObservation Observation, ApplicationFile File);
+
+    /// <summary>The database source's rules over telemetry held in memory.</summary>
+    private sealed class InMemoryTelemetrySource(SyntheticTelemetry? telemetry, DateTimeOffset now) : ITelemetrySource
+    {
+        public Task<TelemetrySessionAggregates?> GetAsync(Guid applicationId, CancellationToken cancellationToken) =>
+            Task.FromResult(telemetry is null ? null : new TelemetrySessionAggregates(applicationId, telemetry.Fields, telemetry.Page, now));
+
+        public IReadOnlyList<ObservedSignal> Evaluate(TelemetrySessionAggregates session, IntegrityContext context) =>
+            TelemetryRules.Evaluate(session, context);
+
+        public Task<int> PurgeExpiredAsync(DateTimeOffset cutoff, CancellationToken cancellationToken) => Task.FromResult(0);
+    }
 
     /// <summary>The database directory's rules over the applicants submitted so far.</summary>
     private sealed class InMemoryDirectory(List<Submitted> submitted) : IApplicantDirectory

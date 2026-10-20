@@ -15,8 +15,9 @@ namespace ScreenHire.Api.Applications;
 /// Creates an application, for a recruiter adding one by hand and for a candidate applying on the careers page. The
 /// candidate is found by email within the job's organization, or created. The application starts in the job's first
 /// stage; its Submitted timeline event, its files, the careers form's raw network and session data
-/// (<see cref="SubmissionObservation"/>), <see cref="ApplicationSubmitted"/> and one <see cref="ScanApplicationFile"/> per
-/// file commit together through the outbox.
+/// (<see cref="SubmissionObservation"/>), its form telemetry (<see cref="TelemetrySessions.BindToApplicationAsync"/>),
+/// <see cref="ApplicationSubmitted"/> and one <see cref="ScanApplicationFile"/> per file commit together through the
+/// outbox.
 /// </summary>
 internal static class ApplicationSubmission
 {
@@ -36,7 +37,8 @@ internal static class ApplicationSubmission
         Guid? actorUserId,
         CancellationToken cancellationToken,
         SubmissionSession? session = null,
-        IntegrityOptions? integrity = null)
+        IntegrityOptions? integrity = null,
+        TelemetryBinding? telemetry = null)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
@@ -59,6 +61,13 @@ internal static class ApplicationSubmission
         if (session is not null && application.Source == ApplicationSource.CareersSite)
         {
             db.SubmissionObservations.Add(session.ToObservation(application, integrity ?? new IntegrityOptions(), now));
+        }
+
+        // Before the outbox flush publishes ApplicationSubmitted: the behavioural analyzer runs once and must find them.
+        if (telemetry is not null && application.Source == ApplicationSource.CareersSite)
+        {
+            await TelemetrySessions.BindToApplicationAsync(
+                db, application.Id, job, telemetry, application.AccommodationRequested, now, integrity ?? new IntegrityOptions(), cancellationToken);
         }
 
         await outbox.PublishAsync(new ApplicationSubmitted(

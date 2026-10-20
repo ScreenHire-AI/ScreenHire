@@ -12,6 +12,12 @@ public sealed class ApplyOptions
     /// <summary>The rate limiter policy on the public apply routes, partitioned by the candidate's address.</summary>
     public const string RateLimitPolicy = "apply";
 
+    /// <summary>
+    /// The rate limiter policy on telemetry ingest, apart from <see cref="RateLimitPolicy"/> so a page's beacons never use
+    /// up the allowance its own submission needs.
+    /// </summary>
+    public const string TelemetryRateLimitPolicy = "telemetry";
+
     /// <summary>The blob container candidate uploads go to.</summary>
     [Required, RegularExpression("^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$")]
     public string Container { get; set; } = "applicant-uploads";
@@ -27,6 +33,10 @@ public sealed class ApplyOptions
     /// <summary>Requests to the apply write routes one candidate address may make per minute.</summary>
     [Range(1, 100_000)]
     public int PermitsPerMinute { get; set; } = 60;
+
+    /// <summary>Telemetry snapshots one candidate address may send per minute. A page sends one each time it is hidden.</summary>
+    [Range(1, 100_000)]
+    public int TelemetryPermitsPerMinute { get; set; } = 120;
 }
 
 /// <summary>

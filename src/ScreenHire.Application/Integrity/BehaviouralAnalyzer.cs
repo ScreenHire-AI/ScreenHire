@@ -1,9 +1,12 @@
+using ScreenHire.Domain.Integrity;
+
 namespace ScreenHire.Application.Integrity;
 
 /// <summary>
-/// Behavioural signals from form telemetry (integrity-engine.md §4, <c>BEH_*</c>). Registered with no data source: the
-/// telemetry module supplies <see cref="ITelemetrySource"/> and the rules. Every signal it reports is accessibility
-/// sensitive and never raises a level on its own (<c>telemetry-never-alone</c> in the ruleset).
+/// Behavioural signals from form telemetry (integrity-engine.md §4, <c>BEH_*</c>): the aggregates come from
+/// <see cref="ITelemetrySource"/> (<see cref="DatabaseTelemetrySource"/>, fed by the careers page's telemetry module) and
+/// its rules (<see cref="TelemetryRules"/>). Every signal it reports is accessibility sensitive and never raises a level
+/// on its own (<c>telemetry-never-alone</c> in the ruleset).
 /// </summary>
 /// <remarks>
 /// An application with an accommodation has no telemetry at all (the careers page never starts it), and the analyzer
@@ -15,7 +18,11 @@ public sealed class BehaviouralAnalyzer(ITelemetrySource telemetry) : IIntegrity
 
     public string Name => "behavioural";
 
-    public int Version => 1;
+    /// <summary>
+    /// Version 1 ran before any telemetry existed and saw none for every application. Version 2 reads the telemetry
+    /// module's aggregates, which submission binds to the application before the pipeline starts.
+    /// </summary>
+    public int Version => 2;
 
     public async Task<AnalyzerResult> AnalyzeAsync(IntegrityContext context, CancellationToken cancellationToken)
     {
@@ -41,36 +48,14 @@ public sealed class BehaviouralAnalyzer(ITelemetrySource telemetry) : IIntegrity
 public sealed record TelemetrySessionAggregates(
     Guid ApplicationId, IReadOnlyList<FieldTelemetry> Fields, PageTelemetry Page, DateTimeOffset CollectedAt);
 
-/// <summary>Aggregates for one form field.</summary>
-/// <remarks>
-/// <c>pasteCount</c>, <c>pastedCharacters</c>, <c>typedCharacters</c>: Counts, not content. <c>focusCount</c> and
-/// <c>blurCount</c>: Times the field gained and lost focus. <c>activeMilliseconds</c>: Total time focused.
-/// <c>autofilled</c>: The browser or a password manager filled it. There is deliberately no typing-rhythm field: timing
-/// between keys is keystroke dynamics, a behavioural biometric, and v1 has no biometrics (CLAUDE.md non-negotiable 3).
-/// The telemetry task adds one only if its own legal review allows it.
-/// </remarks>
-public sealed record FieldTelemetry(
-    string FieldId,
-    int PasteCount,
-    int PastedCharacters,
-    int TypedCharacters,
-    int FocusCount,
-    int BlurCount,
-    int ActiveMilliseconds,
-    bool Autofilled);
-
-/// <summary>Page-level aggregates: how often the page was hidden (tab switches) and automation markers such as <c>webdriver</c>.</summary>
-public sealed record PageTelemetry(int VisibilityChanges, IReadOnlyList<string> AutomationMarkers);
-
 /// <summary>
-/// Where telemetry aggregates come from, and the rules that turn them into <c>BEH_*</c> signals. The telemetry module
-/// registers its own; until then <see cref="NoTelemetrySource"/> has none.
+/// Where telemetry aggregates come from, and the rules that turn them into <c>BEH_*</c> signals. The worker uses
+/// <see cref="DatabaseTelemetrySource"/>; <see cref="NoTelemetrySource"/> has none, for tests and hosts without a database.
 /// </summary>
 /// <remarks>
-/// The pipeline runs each analyzer version once per application, and today every application's <c>behavioural</c>
-/// version 1 run records "no telemetry". A source that lands later must bump <see cref="BehaviouralAnalyzer.Version"/>,
-/// and it must have the aggregates stored before it publishes <see cref="AnalyzeApplicationIntegrity"/>, or its run
-/// records nothing and is never repeated.
+/// The pipeline runs each analyzer version once per application, so the aggregates must be stored before it publishes
+/// <see cref="AnalyzeApplicationIntegrity"/>, or the run records nothing and is never repeated. Submission binds the
+/// session's telemetry in the same transaction as the application for that reason.
 /// </remarks>
 public interface ITelemetrySource
 {
@@ -84,7 +69,7 @@ public interface ITelemetrySource
     Task<int> PurgeExpiredAsync(DateTimeOffset cutoff, CancellationToken cancellationToken);
 }
 
-/// <summary>The local adapter until the telemetry module lands: no telemetry, nothing to purge.</summary>
+/// <summary>No telemetry and nothing to purge.</summary>
 public sealed class NoTelemetrySource : ITelemetrySource
 {
     public Task<TelemetrySessionAggregates?> GetAsync(Guid applicationId, CancellationToken cancellationToken) =>

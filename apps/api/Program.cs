@@ -59,6 +59,7 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
+app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();

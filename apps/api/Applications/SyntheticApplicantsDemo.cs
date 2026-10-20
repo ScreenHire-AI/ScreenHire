@@ -100,7 +100,8 @@ internal sealed partial class SyntheticApplicantsDemo(
                 new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),
                 intake, [upload], now, actorUserId: null, cancellationToken,
                 new SubmissionSession(applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint, now - applicant.TimeToComplete, applicant.AutomationMarkers),
-                services.GetRequiredService<IOptions<IntegrityOptions>>().Value);
+                services.GetRequiredService<IOptions<IntegrityOptions>>().Value,
+                Telemetry(applicant));
             if (created is not null)
             {
                 count++;
@@ -109,6 +110,19 @@ internal sealed partial class SyntheticApplicantsDemo(
 
         return count;
     }
+
+    // What the applicant's browser would have sent, as the last page's snapshot of a session of its own.
+    private static TelemetryBinding? Telemetry(SyntheticApplicant applicant) => applicant.Telemetry is not { } telemetry
+        ? null
+        : new TelemetryBinding(
+            Guid.CreateVersion7(),
+            new Contracts.TelemetrySnapshotInput(
+                SessionToken: "",
+                PageViewId: Guid.CreateVersion7(),
+                Sequence: 1,
+                [.. telemetry.Fields.Select(f => new Contracts.FieldTelemetryInput(
+                    f.FieldId, f.PasteCount, f.PastedCharacters, f.TypedCharacters, f.FocusCount, f.BlurCount, f.ActiveMilliseconds, f.Autofilled))],
+                new Contracts.PageTelemetryInput(telemetry.Page.VisibilityChanges, telemetry.Page.AutomationMarkers)));
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Development demo: {Count} synthetic applicants applied to Brightwater")]
     private static partial void LogSeeded(ILogger logger, int count);

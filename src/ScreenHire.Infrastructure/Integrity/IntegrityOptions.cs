@@ -17,6 +17,8 @@ public sealed class IntegrityOptions
 
     public SignalNetworkOptions SignalNetwork { get; set; } = new();
 
+    public DeviceCheckOptions DeviceCheck { get; set; } = new();
+
     /// <summary>
     /// The key the API hashes device fingerprints with, per organization, before storing them
     /// (<see cref="KeyedHashing.DeviceHash"/>); at least 32 characters. Unset: device fingerprints are not stored, and
@@ -106,4 +108,55 @@ public sealed class SignalNetworkOptions
 
     /// <summary>Names the key, so rotation can tell old hashes from new ones.</summary>
     public string KeyId { get; set; } = "k1";
+}
+
+/// <summary>
+/// On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser
+/// fingerprint"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly
+/// necessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per
+/// country rather than code.
+/// </summary>
+public enum DeviceCheckBasis
+{
+    /// <summary>No device fingerprint at all.</summary>
+    Off,
+
+    /// <summary>After the notice, with no separate opt-in: legitimate interest, or "strictly necessary" for fraud prevention.</summary>
+    Notice,
+
+    /// <summary>Only when the candidate ticks the device-check box on the form.</summary>
+    Consent,
+}
+
+/// <summary>The device-check basis per country, decided by where the job is (its locations and the countries it hires from).</summary>
+public sealed class DeviceCheckOptions
+{
+    /// <summary>The basis for a job in no configured country, or in none at all (remote, anywhere).</summary>
+    public DeviceCheckBasis Default { get; set; } = DeviceCheckBasis.Notice;
+
+    /// <summary>
+    /// The basis per ISO 3166-1 alpha-2 country code. A job in several countries takes the most protective of them:
+    /// <see cref="DeviceCheckBasis.Off"/>, then <see cref="DeviceCheckBasis.Consent"/>, then
+    /// <see cref="DeviceCheckBasis.Notice"/>. The API's appsettings.json lists the EU and EEA countries as
+    /// <see cref="DeviceCheckBasis.Consent"/>.
+    /// </summary>
+    public Dictionary<string, DeviceCheckBasis> Countries { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The basis for a job in <paramref name="countries"/>.</summary>
+    public DeviceCheckBasis BasisFor(IEnumerable<string?> countries)
+    {
+        ArgumentNullException.ThrowIfNull(countries);
+        var bases = countries
+            .Where(c => c is { Length: 2 })
+            .Select(c => Countries.TryGetValue(c!, out var basis) ? basis : Default)
+            .ToList();
+        if (bases.Count == 0)
+        {
+            return Default;
+        }
+
+        return bases.Contains(DeviceCheckBasis.Off) ? DeviceCheckBasis.Off
+            : bases.Contains(DeviceCheckBasis.Consent) ? DeviceCheckBasis.Consent
+            : DeviceCheckBasis.Notice;
+    }
 }

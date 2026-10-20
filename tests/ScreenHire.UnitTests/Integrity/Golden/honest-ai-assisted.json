@@ -51,10 +51,43 @@
   "aiAssistance": {
     "level": "NotIndicated",
     "reasonCodes": [],
-    "appliedRules": [],
-    "summary": "No signs that the content was generated or templated. The candidate said they used AI tools, which this job allows when disclosed.",
+    "appliedRules": [
+      "telemetry-never-alone"
+    ],
+    "summary": "One observation about how the form was filled in. These never raise a level on their own, so they are shown for context only. The candidate said they used AI tools, which this job allows when disclosed.",
     "nextStep": "No action needed.",
     "policyContext": "Disclosed",
-    "signals": []
+    "signals": [
+      {
+        "code": "BEH_FOCUS_SWITCHING",
+        "category": "Behavioural",
+        "weight": "Low",
+        "confidence": "Low",
+        "countsTowardLevel": false,
+        "contextOnly": false,
+        "accessibilitySensitive": true,
+        "source": "behavioural@2",
+        "explanation": "The candidate switched away from the form often while answering \"What is your notice period?\".",
+        "evidence": [
+          {
+            "kind": "Metric",
+            "label": "Times the candidate left the page",
+            "amount": 7,
+            "unit": "times",
+            "reference": 5,
+            "referenceLabel": "Shown from"
+          },
+          {
+            "kind": "Metric",
+            "label": "Times the answer field was returned to",
+            "amount": 6,
+            "unit": "times",
+            "reference": 5,
+            "referenceLabel": "Shown from"
+          }
+        ],
+        "counterEvidence": []
+      }
+    ]
   }
 }

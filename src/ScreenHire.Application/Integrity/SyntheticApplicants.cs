@@ -1,5 +1,6 @@
 using System.Text;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Integrity;
 
 namespace ScreenHire.Application.Integrity;
 
@@ -40,7 +41,15 @@ public static class SyntheticApplicants
         AiUseDetails: null,
         "Robin Ashby CV.pdf",
         "Robin Ashby. Backend engineer, eight years of .NET and Postgres.",
-        TypicalAnswers);
+        TypicalAnswers,
+        new SyntheticTelemetry(
+            [
+                new FieldTelemetry("fullName", 0, 0, 11, 1, 1, 5_200, false),
+                new FieldTelemetry("email", 0, 0, 0, 1, 1, 900, true),
+                new FieldTelemetry("phone", 0, 0, 16, 1, 1, 7_400, false),
+                new FieldTelemetry("notice_period", 0, 0, 9, 1, 1, 4_100, false),
+            ],
+            new PageTelemetry(1, [])));
 
     /// <summary>
     /// A script: hosting provider's network, a throwaway inbox, a phone number that is not valid, the honeypot filled,
@@ -61,7 +70,15 @@ public static class SyntheticApplicants
         AiUseDetails: null,
         "resume.pdf",
         "Senior engineer. Expert in every language. Available immediately.",
-        TypicalAnswers);
+        TypicalAnswers,
+        new SyntheticTelemetry(
+            [
+                new FieldTelemetry("fullName", 1, 11, 0, 1, 1, 40, false),
+                new FieldTelemetry("email", 1, 27, 0, 1, 1, 40, false),
+                new FieldTelemetry("phone", 1, 11, 0, 1, 1, 40, false),
+                new FieldTelemetry("notice_period", 1, 9, 0, 1, 1, 40, false),
+            ],
+            new PageTelemetry(0, ["headless", "webdriver"])));
 
     /// <summary>
     /// A person who used an AI assistant on their wording and said so, applying through a VPN whose exit is in their own
@@ -82,7 +99,16 @@ public static class SyntheticApplicants
         AiUseDetails: "I used an AI assistant to tighten the wording of my answers.",
         "Sam Okafor resume.pdf",
         "Sam Okafor. Full-stack engineer, six years, C# and TypeScript.",
-        TypicalAnswers);
+        TypicalAnswers,
+        // Back and forth to the AI assistant: shown as context, never a reason on its own.
+        new SyntheticTelemetry(
+            [
+                new FieldTelemetry("fullName", 0, 0, 10, 1, 1, 4_800, false),
+                new FieldTelemetry("email", 0, 0, 22, 1, 1, 6_300, false),
+                new FieldTelemetry("phone", 0, 0, 16, 1, 1, 6_900, false),
+                new FieldTelemetry("notice_period", 0, 0, 9, 6, 6, 95_000, false),
+            ],
+            new PageTelemetry(7, [])));
 
     /// <summary>
     /// Three applications from one operation: different names, plus-tagged addresses of one inbox, one phone, one
@@ -121,7 +147,8 @@ public static class SyntheticApplicants
 /// <remarks>
 /// <c>ipAddress</c>, <c>userAgent</c>, <c>timeToComplete</c>, <c>automationMarkers</c>, <c>honeypotFilled</c> and
 /// <c>deviceFingerprint</c> are what the careers form's submission carries. <c>answers</c> leave out the resume, whose
-/// answer is the upload id.
+/// answer is the upload id. <c>telemetry</c> is what the careers page's telemetry module sent, or null for a browser that
+/// ran none (the farm's).
 /// </remarks>
 public sealed record SyntheticApplicant(
     string Key,
@@ -138,8 +165,12 @@ public sealed record SyntheticApplicant(
     string? AiUseDetails,
     string ResumeFileName,
     string ResumeText,
-    IReadOnlyList<ApplicationAnswer> Answers)
+    IReadOnlyList<ApplicationAnswer> Answers,
+    SyntheticTelemetry? Telemetry = null)
 {
     /// <summary>A minimal PDF carrying <see cref="ResumeText"/>: enough for the upload checks, identical for identical text.</summary>
     public byte[] ResumeBytes() => Encoding.ASCII.GetBytes($"%PDF-1.7\n% {ResumeText}\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
 }
+
+/// <summary>A synthetic applicant's form telemetry, as the careers page's module sends it: counts per field and per page.</summary>
+public sealed record SyntheticTelemetry(IReadOnlyList<FieldTelemetry> Fields, PageTelemetry Page);
