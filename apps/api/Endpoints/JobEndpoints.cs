@@ -26,6 +26,9 @@ internal static class JobEndpoints
             .RequireAntiforgeryToken()
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
+            .RequireAntiforgeryToken()
+            .Produces(StatusCodes.Status401Unauthorized);
 
         return app;
     }
@@ -70,6 +73,27 @@ internal static class JobEndpoints
         job.Publish(time.GetUtcNow());
         await outbox.PublishAsync(new JobPublished(job.OrganizationId, job.Id, job.PublishedAt!.Value));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+
+        return TypedResults.Ok(job.ToSummary());
+    }
+
+    // Closes a draft or open job and raises JobClosed with it. Closing a closed job changes nothing and raises nothing,
+    // like publishing an open one.
+    private static async Task<Results<Ok<JobSummary>, NotFound>> CloseJob(
+        Guid jobId, IDbContextOutbox<ScreenHireDbContext> outbox, TimeProvider time, CancellationToken cancellationToken)
+    {
+        var job = await outbox.DbContext.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (job.Status != JobStatus.Closed)
+        {
+            job.Close(time.GetUtcNow());
+            await outbox.PublishAsync(new JobClosed(job.OrganizationId, job.Id, job.ClosedAt!.Value));
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
 
         return TypedResults.Ok(job.ToSummary());
     }

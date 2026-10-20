@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Endpoints;
+using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -12,9 +13,11 @@ builder.AddScreenHireDatabase();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
 
-// Wolverine publishing only: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with
-// the data and the worker handles it (docs/architecture/messaging.md).
-builder.AddScreenHireMessagePublishing();
+// Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
+// worker handles it (docs/architecture/messaging.md). The API handles only tenant events from the real-time queue,
+// which it pushes to connected dashboards over SignalR (docs/architecture/realtime.md).
+builder.AddScreenHireApiMessaging(TenantEventPusher.For);
+builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
@@ -42,6 +45,7 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapJobEndpoints();
+app.MapRealtimeEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
