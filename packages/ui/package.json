@@ -3,15 +3,34 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Warm Grid design tokens, Tailwind 4 theme and self-hosted fonts shared by every ScreenHire frontend (ADR-0009).",
+  "description": "Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts and the candidate question components shared by every ScreenHire frontend (ADR-0006, ADR-0009).",
   "exports": {
     "./tokens.css": "./src/tokens.css",
     "./theme.css": "./src/theme.css",
-    "./fonts.css": "./src/fonts.css"
+    "./fonts.css": "./src/fonts.css",
+    "./questions.css": "./src/questions.css",
+    "./questions": {
+      "types": "./src/questions/index.ts",
+      "svelte": "./src/questions/index.ts",
+      "default": "./src/questions/index.ts"
+    },
+    "./questions/model": "./src/questions/model.ts",
+    "./questions/files": "./src/questions/files.ts",
+    "./questions/FileField.svelte": {
+      "types": "./src/questions/FileField.svelte",
+      "svelte": "./src/questions/FileField.svelte",
+      "default": "./src/questions/FileField.svelte"
+    }
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.2"
   }
 }
