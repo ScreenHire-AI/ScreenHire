@@ -65,7 +65,6 @@
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             class="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left hover:bg-secondary"
-            aria-label="Account: {user.displayName}"
           >
             <span
               aria-hidden="true"
