@@ -90,7 +90,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Not posted to this board.");
         await ExpectNoAccessibilityViolationsAsync();
 
-        await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards$") }).ClickAsync();
+        await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
 
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
@@ -147,6 +147,14 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-application-light");
 
+        await Page.Keyboard.PressAsync("g");
+        await Page.Keyboard.PressAsync("j");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
+
+        // From inside the candidate table, whose own J moves the cursor, G J still goes to the jobs.
+        await Page.Keyboard.PressAsync("g");
+        await Page.Keyboard.PressAsync("c");
+        await table.GetByRole(AriaRole.Link, new() { Name = "Riley Chen" }).FocusAsync();
         await Page.Keyboard.PressAsync("g");
         await Page.Keyboard.PressAsync("j");
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
