@@ -29,6 +29,8 @@ describe('parseRealtimeEvent', () => {
       organizationId: '0199f0c4-0000-7000-8000-000000000001',
       jobId: '0199f0c4-0000-7000-8000-000000000002',
       publishedAt: '2026-10-20T09:00:00+00:00',
+      version: 1,
+      jobVersionId: '0199f0c4-0000-7000-8000-000000000003',
     },
   };
 
@@ -51,5 +53,41 @@ describe('parseRealtimeEvent', () => {
 
   it('throws on something that is not an event at all', () => {
     expect(() => parseRealtimeEvent('JobPublished')).toThrow();
+  });
+});
+
+describe('hiring events', () => {
+  const ids = {
+    organizationId: '0199f0c4-0000-7000-8000-000000000001',
+    applicationId: '0199f0c4-0000-7000-8000-000000000002',
+    jobId: '0199f0c4-0000-7000-8000-000000000003',
+    eventId: '0199f0c4-0000-7000-8000-000000000004',
+  };
+
+  it('parses an application move with its stage ids', () => {
+    const event = parseRealtimeEvent({
+      type: 'ApplicationMoved',
+      data: { ...ids, fromStageId: 'applied', toStageId: 'screening', movedAt: '2026-10-20T09:00:00+00:00' },
+    });
+
+    expect(event?.type).toBe('ApplicationMoved');
+    if (event?.type === 'ApplicationMoved') {
+      expect(event.data.toStageId).toBe('screening');
+    }
+  });
+
+  it('accepts a JobPublished that has no job version id, as one queued before the version existed carries', () => {
+    const event = parseRealtimeEvent({
+      type: 'JobPublished',
+      data: { organizationId: ids.organizationId, jobId: ids.jobId, publishedAt: '2026-10-20T09:00:00+00:00', version: 1, jobVersionId: null },
+    });
+
+    expect(event?.type).toBe('JobPublished');
+  });
+
+  it('rejects an application event with a missing stage', () => {
+    expect(() =>
+      parseRealtimeEvent({ type: 'ApplicationSubmitted', data: { ...ids, submittedAt: '2026-10-20T09:00:00+00:00' } }),
+    ).toThrow();
   });
 });

@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
@@ -19,9 +21,10 @@ builder.AddScreenHireAuthentication();
 builder.AddScreenHireApiMessaging(TenantEventPusher.For);
 builder.AddScreenHireRealtime();
 
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
+builder.Services.AddHiringValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -45,6 +48,9 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapJobEndpoints();
+app.MapTemplateEndpoints();
+app.MapApplicationEndpoints();
+app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 
 if (app.Environment.IsDevelopment())
@@ -57,7 +63,7 @@ if (app.Environment.IsDevelopment())
     var ownerConnectionString = builder.Configuration.GetConnectionString(DatabaseRegistration.OwnerConnectionName)
         ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.OwnerConnectionName} is not set.");
     await DevelopmentDataSeeder.MigrateAndSeedAsync(
-        ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, TimeProvider.System);
+        ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, DatabasePrecisionTimeProvider.Instance);
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
 }
 

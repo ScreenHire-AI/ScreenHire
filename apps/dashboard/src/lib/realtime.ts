@@ -10,10 +10,15 @@ import {
 /** The SvelteKit dependency the jobs list's `load` declares; live job events invalidate it. */
 export const jobsDependency = 'api:jobs';
 
-/** Which `load` dependencies each tenant event makes stale. Add a line when a page shows what an event changes. */
+/**
+ * Which `load` dependencies each tenant event makes stale. Add a line when a page shows what an event changes.
+ * HiringTemplateVersionPublished is here because the jobs list shows "template update available". The application
+ * events have no page yet; the pipeline view maps them when it lands.
+ */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsDependency],
   JobClosed: [jobsDependency],
+  HiringTemplateVersionPublished: [jobsDependency],
 };
 
 export interface LiveUpdates {

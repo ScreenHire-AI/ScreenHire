@@ -90,6 +90,8 @@ const jobPublished = {
     organizationId: '0199f0c4-0000-7000-8000-000000000001',
     jobId: '0199f0c4-0000-7000-8000-000000000002',
     publishedAt: '2026-10-20T09:00:00+00:00',
+    version: 1,
+    jobVersionId: '0199f0c4-0000-7000-8000-000000000003',
   },
 };
 

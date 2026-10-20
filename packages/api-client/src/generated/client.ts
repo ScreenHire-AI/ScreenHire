@@ -6,17 +6,37 @@
  */
 import type {
   ApiMeta,
+  ApplicationDetail,
+  ApplicationSummary,
+  ApplicationTimelineEntry,
+  CandidateDetail,
+  CandidateSummary,
   ChallengeProviderParams,
+  CreateApplicationRequest,
+  CreateHiringTemplateRequest,
+  CreateHiringTemplateVersionRequest,
+  CreateJobRequest,
   CurrentUser,
+  HiringTemplateDetail,
+  HiringTemplateSummary,
+  HiringTemplateVersionDetail,
   HttpValidationProblemDetails,
+  JobDetail,
   JobSummary,
+  JobTemplateDiff,
+  JobVersionDetail,
+  JobVersionSummary,
   MagicLinkRequest,
   MagicLinkVerification,
+  MoveApplicationRequest,
   OnboardingRequest,
   ProblemDetails,
   PublicJob,
   PublicJobBoard,
-  SignInMethods
+  SignInMethods,
+  UpdateHiringTemplateRequest,
+  UpdateHiringTemplateVersionRequest,
+  UpdateJobRequest
 } from './model';
 
 import { apiFetch } from '../http.ts';
@@ -505,8 +525,77 @@ export const listJobs = async ( options?: Parameters<typeof apiFetch>[1]): Promi
 
 
 
+export type createJobResponse201 = {
+  data: JobDetail
+  status: 201
+}
+
+export type createJobResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createJobResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createJobResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createJobResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createJobResponseSuccess = (createJobResponse201) & {
+  headers: Headers;
+};
+export type createJobResponseError = (createJobResponse400 | createJobResponse401 | createJobResponse403 | createJobResponse409) & {
+  headers: Headers;
+};
+
+export type createJobResponse = (createJobResponseSuccess | createJobResponseError)
+
+export const getCreateJobUrl = () => {
+
+
+
+
+  return `/v1/jobs`
+}
+
+export const createJob = async (createJobRequest: CreateJobRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createJobResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createJobResponse>(getCreateJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createJobRequest)
+  }
+);}
+
+
+
 export type getJobResponse200 = {
-  data: JobSummary
+  data: JobDetail
   status: 200
 }
 
@@ -550,14 +639,99 @@ export const getJob = async (jobId: string, options?: Parameters<typeof apiFetch
 
 
 
-export type publishJobResponse200 = {
-  data: JobSummary
+export type updateJobResponse200 = {
+  data: JobDetail
   status: 200
+}
+
+export type updateJobResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateJobResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateJobResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateJobResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateJobResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type updateJobResponseSuccess = (updateJobResponse200) & {
+  headers: Headers;
+};
+export type updateJobResponseError = (updateJobResponse400 | updateJobResponse401 | updateJobResponse403 | updateJobResponse404 | updateJobResponse409) & {
+  headers: Headers;
+};
+
+export type updateJobResponse = (updateJobResponseSuccess | updateJobResponseError)
+
+export const getUpdateJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}`
+}
+
+export const updateJob = async (jobId: string,
+    updateJobRequest: UpdateJobRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateJobResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateJobResponse>(getUpdateJobUrl(jobId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateJobRequest)
+  }
+);}
+
+
+
+export type publishJobResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type publishJobResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
 }
 
 export type publishJobResponse401 = {
   data: void
   status: 401
+}
+
+export type publishJobResponse403 = {
+  data: ProblemDetails
+  status: 403
 }
 
 export type publishJobResponse404 = {
@@ -573,7 +747,7 @@ export type publishJobResponse409 = {
 export type publishJobResponseSuccess = (publishJobResponse200) & {
   headers: Headers;
 };
-export type publishJobResponseError = (publishJobResponse401 | publishJobResponse404 | publishJobResponse409) & {
+export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409) & {
   headers: Headers;
 };
 
@@ -601,7 +775,7 @@ export const publishJob = async (jobId: string, options?: Parameters<typeof apiF
 
 
 export type closeJobResponse200 = {
-  data: JobSummary
+  data: JobDetail
   status: 200
 }
 
@@ -610,15 +784,25 @@ export type closeJobResponse401 = {
   status: 401
 }
 
+export type closeJobResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type closeJobResponse404 = {
   data: void
   status: 404
 }
 
+export type closeJobResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type closeJobResponseSuccess = (closeJobResponse200) & {
   headers: Headers;
 };
-export type closeJobResponseError = (closeJobResponse401 | closeJobResponse404) & {
+export type closeJobResponseError = (closeJobResponse401 | closeJobResponse403 | closeJobResponse404 | closeJobResponse409) & {
   headers: Headers;
 };
 
@@ -638,6 +822,1097 @@ export const closeJob = async (jobId: string, options?: Parameters<typeof apiFet
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listJobVersionsResponse200 = {
+  data: JobVersionSummary[]
+  status: 200
+}
+
+export type listJobVersionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listJobVersionsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listJobVersionsResponseSuccess = (listJobVersionsResponse200) & {
+  headers: Headers;
+};
+export type listJobVersionsResponseError = (listJobVersionsResponse401 | listJobVersionsResponse404) & {
+  headers: Headers;
+};
+
+export type listJobVersionsResponse = (listJobVersionsResponseSuccess | listJobVersionsResponseError)
+
+export const getListJobVersionsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/versions`
+}
+
+export const listJobVersions = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listJobVersionsResponse> => {
+
+  return apiFetch<listJobVersionsResponse>(getListJobVersionsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getJobVersionResponse200 = {
+  data: JobVersionDetail
+  status: 200
+}
+
+export type getJobVersionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobVersionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobVersionResponseSuccess = (getJobVersionResponse200) & {
+  headers: Headers;
+};
+export type getJobVersionResponseError = (getJobVersionResponse401 | getJobVersionResponse404) & {
+  headers: Headers;
+};
+
+export type getJobVersionResponse = (getJobVersionResponseSuccess | getJobVersionResponseError)
+
+export const getGetJobVersionUrl = (jobId: string,
+    version: number,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/versions/${version}`
+}
+
+export const getJobVersion = async (jobId: string,
+    version: number, options?: Parameters<typeof apiFetch>[1]): Promise<getJobVersionResponse> => {
+
+  return apiFetch<getJobVersionResponse>(getGetJobVersionUrl(jobId,version),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getJobTemplateDiffResponse200 = {
+  data: JobTemplateDiff
+  status: 200
+}
+
+export type getJobTemplateDiffResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobTemplateDiffResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobTemplateDiffResponseSuccess = (getJobTemplateDiffResponse200) & {
+  headers: Headers;
+};
+export type getJobTemplateDiffResponseError = (getJobTemplateDiffResponse401 | getJobTemplateDiffResponse404) & {
+  headers: Headers;
+};
+
+export type getJobTemplateDiffResponse = (getJobTemplateDiffResponseSuccess | getJobTemplateDiffResponseError)
+
+export const getGetJobTemplateDiffUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/workflow/template-diff`
+}
+
+export const getJobTemplateDiff = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobTemplateDiffResponse> => {
+
+  return apiFetch<getJobTemplateDiffResponse>(getGetJobTemplateDiffUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listHiringTemplatesResponse200 = {
+  data: HiringTemplateSummary[]
+  status: 200
+}
+
+export type listHiringTemplatesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listHiringTemplatesResponseSuccess = (listHiringTemplatesResponse200) & {
+  headers: Headers;
+};
+export type listHiringTemplatesResponseError = (listHiringTemplatesResponse401) & {
+  headers: Headers;
+};
+
+export type listHiringTemplatesResponse = (listHiringTemplatesResponseSuccess | listHiringTemplatesResponseError)
+
+export const getListHiringTemplatesUrl = () => {
+
+
+
+
+  return `/v1/templates`
+}
+
+export const listHiringTemplates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listHiringTemplatesResponse> => {
+
+  return apiFetch<listHiringTemplatesResponse>(getListHiringTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createHiringTemplateResponse201 = {
+  data: HiringTemplateDetail
+  status: 201
+}
+
+export type createHiringTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createHiringTemplateResponseSuccess = (createHiringTemplateResponse201) & {
+  headers: Headers;
+};
+export type createHiringTemplateResponseError = (createHiringTemplateResponse400 | createHiringTemplateResponse401 | createHiringTemplateResponse403) & {
+  headers: Headers;
+};
+
+export type createHiringTemplateResponse = (createHiringTemplateResponseSuccess | createHiringTemplateResponseError)
+
+export const getCreateHiringTemplateUrl = () => {
+
+
+
+
+  return `/v1/templates`
+}
+
+export const createHiringTemplate = async (createHiringTemplateRequest: CreateHiringTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createHiringTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createHiringTemplateResponse>(getCreateHiringTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createHiringTemplateRequest)
+  }
+);}
+
+
+
+export type getHiringTemplateResponse200 = {
+  data: HiringTemplateDetail
+  status: 200
+}
+
+export type getHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHiringTemplateResponseSuccess = (getHiringTemplateResponse200) & {
+  headers: Headers;
+};
+export type getHiringTemplateResponseError = (getHiringTemplateResponse401 | getHiringTemplateResponse404) & {
+  headers: Headers;
+};
+
+export type getHiringTemplateResponse = (getHiringTemplateResponseSuccess | getHiringTemplateResponseError)
+
+export const getGetHiringTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}`
+}
+
+export const getHiringTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateResponse> => {
+
+  return apiFetch<getHiringTemplateResponse>(getGetHiringTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateHiringTemplateResponse200 = {
+  data: HiringTemplateDetail
+  status: 200
+}
+
+export type updateHiringTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateHiringTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateHiringTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type updateHiringTemplateResponseSuccess = (updateHiringTemplateResponse200) & {
+  headers: Headers;
+};
+export type updateHiringTemplateResponseError = (updateHiringTemplateResponse400 | updateHiringTemplateResponse401 | updateHiringTemplateResponse403 | updateHiringTemplateResponse404 | updateHiringTemplateResponse409) & {
+  headers: Headers;
+};
+
+export type updateHiringTemplateResponse = (updateHiringTemplateResponseSuccess | updateHiringTemplateResponseError)
+
+export const getUpdateHiringTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}`
+}
+
+export const updateHiringTemplate = async (templateId: string,
+    updateHiringTemplateRequest: UpdateHiringTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateHiringTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateHiringTemplateResponse>(getUpdateHiringTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateHiringTemplateRequest)
+  }
+);}
+
+
+
+export type createHiringTemplateVersionResponse201 = {
+  data: HiringTemplateVersionDetail
+  status: 201
+}
+
+export type createHiringTemplateVersionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createHiringTemplateVersionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createHiringTemplateVersionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createHiringTemplateVersionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createHiringTemplateVersionResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createHiringTemplateVersionResponseSuccess = (createHiringTemplateVersionResponse201) & {
+  headers: Headers;
+};
+export type createHiringTemplateVersionResponseError = (createHiringTemplateVersionResponse400 | createHiringTemplateVersionResponse401 | createHiringTemplateVersionResponse403 | createHiringTemplateVersionResponse404 | createHiringTemplateVersionResponse409) & {
+  headers: Headers;
+};
+
+export type createHiringTemplateVersionResponse = (createHiringTemplateVersionResponseSuccess | createHiringTemplateVersionResponseError)
+
+export const getCreateHiringTemplateVersionUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/versions`
+}
+
+export const createHiringTemplateVersion = async (templateId: string,
+    createHiringTemplateVersionRequest: CreateHiringTemplateVersionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createHiringTemplateVersionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createHiringTemplateVersionResponse>(getCreateHiringTemplateVersionUrl(templateId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createHiringTemplateVersionRequest)
+  }
+);}
+
+
+
+export type getHiringTemplateVersionResponse200 = {
+  data: HiringTemplateVersionDetail
+  status: 200
+}
+
+export type getHiringTemplateVersionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringTemplateVersionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHiringTemplateVersionResponseSuccess = (getHiringTemplateVersionResponse200) & {
+  headers: Headers;
+};
+export type getHiringTemplateVersionResponseError = (getHiringTemplateVersionResponse401 | getHiringTemplateVersionResponse404) & {
+  headers: Headers;
+};
+
+export type getHiringTemplateVersionResponse = (getHiringTemplateVersionResponseSuccess | getHiringTemplateVersionResponseError)
+
+export const getGetHiringTemplateVersionUrl = (templateId: string,
+    version: number,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/versions/${version}`
+}
+
+export const getHiringTemplateVersion = async (templateId: string,
+    version: number, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateVersionResponse> => {
+
+  return apiFetch<getHiringTemplateVersionResponse>(getGetHiringTemplateVersionUrl(templateId,version),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateHiringTemplateVersionResponse200 = {
+  data: HiringTemplateVersionDetail
+  status: 200
+}
+
+export type updateHiringTemplateVersionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateHiringTemplateVersionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateHiringTemplateVersionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateHiringTemplateVersionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateHiringTemplateVersionResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type updateHiringTemplateVersionResponseSuccess = (updateHiringTemplateVersionResponse200) & {
+  headers: Headers;
+};
+export type updateHiringTemplateVersionResponseError = (updateHiringTemplateVersionResponse400 | updateHiringTemplateVersionResponse401 | updateHiringTemplateVersionResponse403 | updateHiringTemplateVersionResponse404 | updateHiringTemplateVersionResponse409) & {
+  headers: Headers;
+};
+
+export type updateHiringTemplateVersionResponse = (updateHiringTemplateVersionResponseSuccess | updateHiringTemplateVersionResponseError)
+
+export const getUpdateHiringTemplateVersionUrl = (templateId: string,
+    version: number,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/versions/${version}`
+}
+
+export const updateHiringTemplateVersion = async (templateId: string,
+    version: number,
+    updateHiringTemplateVersionRequest: UpdateHiringTemplateVersionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateHiringTemplateVersionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateHiringTemplateVersionResponse>(getUpdateHiringTemplateVersionUrl(templateId,version),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateHiringTemplateVersionRequest)
+  }
+);}
+
+
+
+export type publishHiringTemplateVersionResponse200 = {
+  data: HiringTemplateVersionDetail
+  status: 200
+}
+
+export type publishHiringTemplateVersionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type publishHiringTemplateVersionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type publishHiringTemplateVersionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type publishHiringTemplateVersionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type publishHiringTemplateVersionResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type publishHiringTemplateVersionResponseSuccess = (publishHiringTemplateVersionResponse200) & {
+  headers: Headers;
+};
+export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse400 | publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse403 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409) & {
+  headers: Headers;
+};
+
+export type publishHiringTemplateVersionResponse = (publishHiringTemplateVersionResponseSuccess | publishHiringTemplateVersionResponseError)
+
+export const getPublishHiringTemplateVersionUrl = (templateId: string,
+    version: number,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/versions/${version}/publish`
+}
+
+export const publishHiringTemplateVersion = async (templateId: string,
+    version: number, options?: Parameters<typeof apiFetch>[1]): Promise<publishHiringTemplateVersionResponse> => {
+
+  return apiFetch<publishHiringTemplateVersionResponse>(getPublishHiringTemplateVersionUrl(templateId,version),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listJobApplicationsResponse200 = {
+  data: ApplicationSummary[]
+  status: 200
+}
+
+export type listJobApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listJobApplicationsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listJobApplicationsResponseSuccess = (listJobApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listJobApplicationsResponseError = (listJobApplicationsResponse401 | listJobApplicationsResponse404) & {
+  headers: Headers;
+};
+
+export type listJobApplicationsResponse = (listJobApplicationsResponseSuccess | listJobApplicationsResponseError)
+
+export const getListJobApplicationsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/applications`
+}
+
+export const listJobApplications = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listJobApplicationsResponse> => {
+
+  return apiFetch<listJobApplicationsResponse>(getListJobApplicationsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createApplicationResponse201 = {
+  data: ApplicationDetail
+  status: 201
+}
+
+export type createApplicationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createApplicationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createApplicationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createApplicationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createApplicationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createApplicationResponseSuccess = (createApplicationResponse201) & {
+  headers: Headers;
+};
+export type createApplicationResponseError = (createApplicationResponse400 | createApplicationResponse401 | createApplicationResponse403 | createApplicationResponse404 | createApplicationResponse409) & {
+  headers: Headers;
+};
+
+export type createApplicationResponse = (createApplicationResponseSuccess | createApplicationResponseError)
+
+export const getCreateApplicationUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/applications`
+}
+
+export const createApplication = async (jobId: string,
+    createApplicationRequest: CreateApplicationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createApplicationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createApplicationResponse>(getCreateApplicationUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createApplicationRequest)
+  }
+);}
+
+
+
+export type getApplicationResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type getApplicationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationResponseSuccess = (getApplicationResponse200) & {
+  headers: Headers;
+};
+export type getApplicationResponseError = (getApplicationResponse401 | getApplicationResponse404) & {
+  headers: Headers;
+};
+
+export type getApplicationResponse = (getApplicationResponseSuccess | getApplicationResponseError)
+
+export const getGetApplicationUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}`
+}
+
+export const getApplication = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationResponse> => {
+
+  return apiFetch<getApplicationResponse>(getGetApplicationUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type moveApplicationResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type moveApplicationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type moveApplicationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type moveApplicationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type moveApplicationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type moveApplicationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type moveApplicationResponseSuccess = (moveApplicationResponse200) & {
+  headers: Headers;
+};
+export type moveApplicationResponseError = (moveApplicationResponse400 | moveApplicationResponse401 | moveApplicationResponse403 | moveApplicationResponse404 | moveApplicationResponse409) & {
+  headers: Headers;
+};
+
+export type moveApplicationResponse = (moveApplicationResponseSuccess | moveApplicationResponseError)
+
+export const getMoveApplicationUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/move`
+}
+
+export const moveApplication = async (applicationId: string,
+    moveApplicationRequest: MoveApplicationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<moveApplicationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<moveApplicationResponse>(getMoveApplicationUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(moveApplicationRequest)
+  }
+);}
+
+
+
+export type getApplicationTimelineResponse200 = {
+  data: ApplicationTimelineEntry[]
+  status: 200
+}
+
+export type getApplicationTimelineResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationTimelineResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationTimelineResponseSuccess = (getApplicationTimelineResponse200) & {
+  headers: Headers;
+};
+export type getApplicationTimelineResponseError = (getApplicationTimelineResponse401 | getApplicationTimelineResponse404) & {
+  headers: Headers;
+};
+
+export type getApplicationTimelineResponse = (getApplicationTimelineResponseSuccess | getApplicationTimelineResponseError)
+
+export const getGetApplicationTimelineUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/timeline`
+}
+
+export const getApplicationTimeline = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationTimelineResponse> => {
+
+  return apiFetch<getApplicationTimelineResponse>(getGetApplicationTimelineUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listCandidatesResponse200 = {
+  data: CandidateSummary[]
+  status: 200
+}
+
+export type listCandidatesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listCandidatesResponseSuccess = (listCandidatesResponse200) & {
+  headers: Headers;
+};
+export type listCandidatesResponseError = (listCandidatesResponse401) & {
+  headers: Headers;
+};
+
+export type listCandidatesResponse = (listCandidatesResponseSuccess | listCandidatesResponseError)
+
+export const getListCandidatesUrl = () => {
+
+
+
+
+  return `/v1/candidates`
+}
+
+export const listCandidates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listCandidatesResponse> => {
+
+  return apiFetch<listCandidatesResponse>(getListCandidatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getCandidateResponse200 = {
+  data: CandidateDetail
+  status: 200
+}
+
+export type getCandidateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getCandidateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getCandidateResponseSuccess = (getCandidateResponse200) & {
+  headers: Headers;
+};
+export type getCandidateResponseError = (getCandidateResponse401 | getCandidateResponse404) & {
+  headers: Headers;
+};
+
+export type getCandidateResponse = (getCandidateResponseSuccess | getCandidateResponseError)
+
+export const getGetCandidateUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}`
+}
+
+export const getCandidate = async (candidateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getCandidateResponse> => {
+
+  return apiFetch<getCandidateResponse>(getGetCandidateUrl(candidateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getHiringTemplateDefinitionSchemaResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getHiringTemplateDefinitionSchemaResponseSuccess = (getHiringTemplateDefinitionSchemaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getHiringTemplateDefinitionSchemaResponse = (getHiringTemplateDefinitionSchemaResponseSuccess)
+
+export const getGetHiringTemplateDefinitionSchemaUrl = () => {
+
+
+
+
+  return `/v1/schemas/hiring-template-definition.json`
+}
+
+export const getHiringTemplateDefinitionSchema = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateDefinitionSchemaResponse> => {
+
+  return apiFetch<getHiringTemplateDefinitionSchemaResponse>(getGetHiringTemplateDefinitionSchemaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getHiringWorkflowSchemaResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getHiringWorkflowSchemaResponseSuccess = (getHiringWorkflowSchemaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getHiringWorkflowSchemaResponse = (getHiringWorkflowSchemaResponseSuccess)
+
+export const getGetHiringWorkflowSchemaUrl = () => {
+
+
+
+
+  return `/v1/schemas/hiring-workflow.json`
+}
+
+export const getHiringWorkflowSchema = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getHiringWorkflowSchemaResponse> => {
+
+  return apiFetch<getHiringWorkflowSchemaResponse>(getGetHiringWorkflowSchemaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getQuestionnaireSchemaResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getQuestionnaireSchemaResponseSuccess = (getQuestionnaireSchemaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getQuestionnaireSchemaResponse = (getQuestionnaireSchemaResponseSuccess)
+
+export const getGetQuestionnaireSchemaUrl = () => {
+
+
+
+
+  return `/v1/schemas/questionnaire.json`
+}
+
+export const getQuestionnaireSchema = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getQuestionnaireSchemaResponse> => {
+
+  return apiFetch<getQuestionnaireSchemaResponse>(getGetQuestionnaireSchemaUrl(),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

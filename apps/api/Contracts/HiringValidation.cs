@@ -1,0 +1,19 @@
+using FluentValidation;
+
+namespace ScreenHire.Api.Contracts;
+
+internal static class HiringValidation
+{
+    /// <summary>The validators of the jobs, templates and applications areas. Stateless, so singletons.</summary>
+    public static IServiceCollection AddHiringValidation(this IServiceCollection services)
+    {
+        // Two validators of JobSnapshot, so these two are registered by their own types.
+        services.AddSingleton<JobContentValidator>();
+        services.AddSingleton<JobPublishValidator>();
+        services.AddSingleton<IValidator<CreateHiringTemplateRequest>, CreateHiringTemplateRequestValidator>();
+        services.AddSingleton<IValidator<UpdateHiringTemplateRequest>, TemplateNameValidator>();
+        services.AddSingleton<IValidator<CreateApplicationRequest>, CreateApplicationRequestValidator>();
+        services.AddSingleton<IValidator<MoveApplicationRequest>, MoveApplicationRequestValidator>();
+        return services;
+    }
+}

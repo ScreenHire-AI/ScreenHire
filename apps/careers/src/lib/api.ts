@@ -4,4 +4,4 @@ import { configureApiClient } from '@screenhire/api-client';
 configureApiClient({ baseUrl: process.env.API_URL ?? 'http://localhost:5080' });
 
 export * from '@screenhire/api-client';
-export { formatSalary, label } from './format';
+export { escapeHtml, formatSalary, jsonLdScript, label } from './format';

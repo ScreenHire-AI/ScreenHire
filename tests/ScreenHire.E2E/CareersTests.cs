@@ -54,7 +54,7 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
         posting.GetProperty("@context").GetString().Should().Be("https://schema.org");
         posting.GetProperty("@type").GetString().Should().Be("JobPosting");
         posting.GetProperty("title").GetString().Should().Be(title);
-        posting.GetProperty("description").GetString().Should().NotBeNullOrWhiteSpace();
+        posting.GetProperty("description").GetString().Should().StartWith("<p>Join Brightwater Studio");
         DateTimeOffset.TryParse(posting.GetProperty("datePosted").GetString(), out _).Should().BeTrue("datePosted must be an ISO 8601 date");
         posting.GetProperty("employmentType").GetString().Should().Be("FULL_TIME");
         posting.GetProperty("hiringOrganization").GetProperty("name").GetString().Should().Be("Brightwater Studio");
@@ -62,17 +62,23 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
         if (remote)
         {
             posting.GetProperty("jobLocationType").GetString().Should().Be("TELECOMMUTE");
-            posting.GetProperty("applicantLocationRequirements").GetProperty("name").GetString().Should().NotBeNullOrWhiteSpace();
+            var countries = posting.GetProperty("applicantLocationRequirements").EnumerateArray().ToList();
+            countries.Select(c => c.GetProperty("@type").GetString()).Should().AllBe("Country");
+            countries.Select(c => c.GetProperty("name").GetString()).Should().Equal("GB", "IE");
         }
         else
         {
-            posting.GetProperty("jobLocation").GetProperty("address").GetProperty("addressLocality").GetString().Should().NotBeNullOrWhiteSpace();
+            var address = posting.GetProperty("jobLocation").GetProperty("address");
+            address.GetProperty("addressLocality").GetString().Should().Be("London");
+            address.GetProperty("addressCountry").GetString().Should().Be("GB");
         }
 
         var salary = posting.GetProperty("baseSalary");
         salary.GetProperty("currency").GetString().Should().Be("GBP");
         var range = salary.GetProperty("value");
         range.GetProperty("minValue").GetDecimal().Should().BeLessThanOrEqualTo(range.GetProperty("maxValue").GetDecimal());
+        range.GetProperty("unitText").GetString().Should().Be("YEAR");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "About the role" })).ToContainTextAsync("Join Brightwater Studio");
         await ExpectNoAccessibilityViolationsAsync();
     }
 }

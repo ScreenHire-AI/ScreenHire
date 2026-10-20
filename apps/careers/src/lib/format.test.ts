@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatSalary, label } from './format';
+import { escapeHtml, formatSalary, jsonLdScript, label } from './format';
 
 describe('label', () => {
   it.each([
@@ -43,5 +43,20 @@ describe('formatSalary', () => {
   it('returns null when there is no salary', () => {
     expect(formatSalary(null, null, 'GBP')).toBeNull();
     expect(formatSalary()).toBeNull();
+  });
+});
+
+describe('jsonLdScript', () => {
+  it('cannot be closed early by a value, and parses back to the same data', () => {
+    const data = { title: 'x</script><img src=x onerror=alert(1)>' };
+    const script = jsonLdScript(data);
+    expect(script).not.toContain('<');
+    expect(JSON.parse(script)).toEqual(data);
+  });
+});
+
+describe('escapeHtml', () => {
+  it('escapes the characters that would start markup or end an attribute', () => {
+    expect(escapeHtml('Tom & Jerry <b>"Ltd"</b>')).toBe('Tom &amp; Jerry &lt;b&gt;&quot;Ltd&quot;&lt;/b&gt;');
   });
 });

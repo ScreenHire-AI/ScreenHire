@@ -334,6 +334,67 @@
             "description": "Unauthorized"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "CreateJob",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
       }
     },
     "/v1/jobs/{jobId}": {
@@ -359,13 +420,88 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobSummary"
+                  "$ref": "#/components/schemas/JobDetail"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "UpdateJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -396,13 +532,33 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobSummary"
+                  "$ref": "#/components/schemas/JobDetail"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "409": {
             "description": "Conflict",
@@ -443,7 +599,67 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobSummary"
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{jobId}/versions": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "ListJobVersions",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobVersionSummary"
+                  }
                 }
               }
             }
@@ -456,10 +672,968 @@
           }
         }
       }
+    },
+    "/v1/jobs/{jobId}/versions/{version}": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "GetJobVersion",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{jobId}/workflow/template-diff": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "GetJobTemplateDiff",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobTemplateDiff"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/templates": {
+      "get": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "ListHiringTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HiringTemplateSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "CreateHiringTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHiringTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/templates/{templateId}": {
+      "get": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "GetHiringTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "UpdateHiringTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHiringTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/templates/{templateId}/versions": {
+      "post": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "CreateHiringTemplateVersion",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHiringTemplateVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/templates/{templateId}/versions/{version}": {
+      "get": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "GetHiringTemplateVersion",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "UpdateHiringTemplateVersion",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHiringTemplateVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/templates/{templateId}/versions/{version}/publish": {
+      "post": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "PublishHiringTemplateVersion",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{jobId}/applications": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ListJobApplications",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationSummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "CreateApplication",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "GetApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/move": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "MoveApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveApplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/applications/{applicationId}/timeline": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "GetApplicationTimeline",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationTimelineEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/candidates": {
+      "get": {
+        "tags": [
+          "Candidates"
+        ],
+        "operationId": "ListCandidates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/candidates/{candidateId}": {
+      "get": {
+        "tags": [
+          "Candidates"
+        ],
+        "operationId": "GetCandidate",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/schemas/hiring-template-definition.json": {
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "operationId": "GetHiringTemplateDefinitionSchema",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/schemas/hiring-workflow.json": {
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "operationId": "GetHiringWorkflowSchema",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/schemas/questionnaire.json": {
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "operationId": "GetQuestionnaireSchema",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ActionType": {
+        "enum": [
+          "SendEmail",
+          "SendQuestionnaire",
+          "RequestVerification",
+          "MoveToStage",
+          "AddTag",
+          "AssignReviewer",
+          "NotifyTeam",
+          "ScheduleInterview",
+          "CreateTask",
+          "CallWebhook",
+          "QueueForRejectionReview",
+          "Reject"
+        ]
+      },
+      "AiUseDeclaration": {
+        "enum": [
+          "NotProvided",
+          "DidNotUse",
+          "Used"
+        ],
+        "description": "The candidate's answer to \"did you use AI tools to apply?\"."
+      },
+      "AiUsePolicy": {
+        "enum": [
+          "Allowed",
+          "AllowedWithDisclosure",
+          "NotAllowed"
+        ],
+        "description": "What the employer allows candidates to do with AI tools while applying."
+      },
       "ApiMeta": {
         "required": [
           "name",
@@ -479,6 +1653,649 @@
           }
         },
         "description": "What is serving this API: the product name, the build version and the hosting environment."
+      },
+      "ApplicationDetail": {
+        "required": [
+          "id",
+          "jobId",
+          "jobTitle",
+          "candidate",
+          "stage",
+          "workflowVersion",
+          "accommodationRequested",
+          "aiUseDeclaration",
+          "aiUseDetails",
+          "submittedAt",
+          "stageEnteredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateSummary"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accommodationRequested": {
+            "type": "boolean"
+          },
+          "aiUseDeclaration": {
+            "$ref": "#/components/schemas/AiUseDeclaration"
+          },
+          "aiUseDetails": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stageEnteredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One application: the candidate, the job, where it is in the job's workflow, and the candidate's declarations."
+      },
+      "ApplicationEventType": {
+        "enum": [
+          "Submitted",
+          "StageChanged"
+        ]
+      },
+      "ApplicationStage": {
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          }
+        },
+        "description": "A stage of the job's workflow, as an application sees it."
+      },
+      "ApplicationSummary": {
+        "required": [
+          "id",
+          "jobId",
+          "candidateId",
+          "candidateName",
+          "stage",
+          "submittedAt",
+          "stageEnteredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stageEnteredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
+      },
+      "ApplicationTimelineEntry": {
+        "required": [
+          "id",
+          "type",
+          "occurredAt",
+          "actorUserId",
+          "fromStageId",
+          "toStageId",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ApplicationEventType"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "fromStageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toStageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
+      },
+      "Automation": {
+        "required": [
+          "id",
+          "name",
+          "trigger",
+          "conditions",
+          "actions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/AutomationTrigger"
+          },
+          "conditions": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutomationConditions"
+              }
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationAction"
+            }
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "allowAutoReject": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004)."
+      },
+      "AutomationAction": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ActionType"
+          },
+          "stageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailTemplate": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "verificationProvider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else."
+      },
+      "AutomationCondition": {
+        "required": [
+          "fact",
+          "operator"
+        ],
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "string"
+          },
+          "operator": {
+            "$ref": "#/components/schemas/ConditionOperator"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "values": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "negate": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`."
+      },
+      "AutomationConditions": {
+        "required": [
+          "match",
+          "rules"
+        ],
+        "type": "object",
+        "properties": {
+          "match": {
+            "$ref": "#/components/schemas/ConditionMatch"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationCondition"
+            }
+          }
+        },
+        "description": "Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a \"not\". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too."
+      },
+      "AutomationTrigger": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "stageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "afterHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CandidateDetail": {
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "createdAt",
+          "applications"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationSummary"
+            }
+          }
+        },
+        "description": "A candidate and every application they made to the organization."
+      },
+      "CandidateInput": {
+        "required": [
+          "fullName",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CandidateSummary": {
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A candidate: one person per email address within the organization."
+      },
+      "ConditionMatch": {
+        "enum": [
+          "All",
+          "Any"
+        ]
+      },
+      "ConditionOperator": {
+        "enum": [
+          "EqualTo",
+          "In",
+          "Contains",
+          "GreaterThan",
+          "GreaterThanOrEqual",
+          "LessThan",
+          "LessThanOrEqual",
+          "Exists"
+        ]
+      },
+      "CreateApplicationRequest": {
+        "required": [
+          "candidate"
+        ],
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateInput"
+          },
+          "accommodationRequested": {
+            "type": "boolean",
+            "default": false
+          },
+          "aiUseDeclaration": {
+            "$ref": "#/components/schemas/AiUseDeclaration"
+          },
+          "aiUseDetails": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site's."
+      },
+      "CreateHiringTemplateRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "definition": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HiringTemplateDefinition"
+              }
+            ]
+          },
+          "copyFromVersionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A new organization template, whose version 1 is a draft. Give a `definition`, or `copyFromVersionId` to\r\nstart from an existing version (a system template's, to customise it), or neither for a basic pipeline."
+      },
+      "CreateHiringTemplateVersionRequest": {
+        "type": "object",
+        "properties": {
+          "definition": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HiringTemplateDefinition"
+              }
+            ]
+          }
+        },
+        "description": "Starts the next version as a draft: the given definition, or a copy of the newest version's."
+      },
+      "CreateJobRequest": {
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "templateVersionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "employmentType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EmploymentType"
+              }
+            ]
+          },
+          "workplaceType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WorkplaceType"
+              }
+            ]
+          },
+          "locations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/JobLocation"
+            }
+          },
+          "applicantLocationRequirements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "salary": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SalaryRequest"
+              }
+            ]
+          },
+          "validThrough": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title."
       },
       "CurrentOrganization": {
         "required": [
@@ -546,6 +2363,267 @@
           "Internship"
         ]
       },
+      "HiringTemplateDefinition": {
+        "required": [
+          "workflow",
+          "postingDefaults"
+        ],
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/HiringWorkflow"
+          },
+          "postingDefaults": {
+            "$ref": "#/components/schemas/PostingDefaults"
+          }
+        },
+        "description": "A hiring template version's full definition: the workflow a job copies, plus defaults for the job's posting.",
+        "externalDocs": {
+          "description": "JSON Schema: Hiring template definition",
+          "url": "/v1/schemas/hiring-template-definition.json"
+        }
+      },
+      "HiringTemplateDetail": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "isSystem",
+          "latestPublishedVersion",
+          "createdAt",
+          "updatedAt",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "latestPublishedVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringTemplateVersionSummary"
+            }
+          }
+        },
+        "description": "A hiring template with its versions, oldest first."
+      },
+      "HiringTemplateSummary": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "isSystem",
+          "latestPublishedVersion",
+          "latestPublishedVersionId",
+          "draftVersion",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "latestPublishedVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "latestPublishedVersionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "draftVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A hiring template in a list. System templates ship with the product and are read-only."
+      },
+      "HiringTemplateVersionDetail": {
+        "required": [
+          "id",
+          "templateId",
+          "version",
+          "status",
+          "definition",
+          "createdAt",
+          "publishedAt",
+          "publishedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TemplateVersionStatus"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/HiringTemplateDefinition"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "publishedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "One version of a hiring template with its full definition. The definition's JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`."
+      },
+      "HiringTemplateVersionSummary": {
+        "required": [
+          "id",
+          "version",
+          "status",
+          "createdAt",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TemplateVersionStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "HiringWorkflow": {
+        "required": [
+          "stages",
+          "questionnaire",
+          "integrityPolicy",
+          "automations"
+        ],
+        "type": "object",
+        "properties": {
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStage"
+            }
+          },
+          "questionnaire": {
+            "$ref": "#/components/schemas/Questionnaire"
+          },
+          "integrityPolicy": {
+            "$ref": "#/components/schemas/IntegrityPolicy"
+          },
+          "automations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Automation"
+            }
+          }
+        },
+        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.",
+        "externalDocs": {
+          "description": "JSON Schema: Hiring workflow",
+          "url": "/v1/schemas/hiring-workflow.json"
+        }
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -591,6 +2669,286 @@
           }
         }
       },
+      "IntegrityPolicy": {
+        "required": [
+          "aiUse"
+        ],
+        "type": "object",
+        "properties": {
+          "aiUse": {
+            "$ref": "#/components/schemas/AiUsePolicy"
+          }
+        },
+        "description": "The template's integrity settings (ADR-0004). Only the AI-use policy exists so far."
+      },
+      "JobDetail": {
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "status",
+          "description",
+          "department",
+          "employmentType",
+          "workplaceType",
+          "locations",
+          "applicantLocationRequirements",
+          "location",
+          "salary",
+          "validThrough",
+          "workflow",
+          "workflowVersion",
+          "template",
+          "publishedVersion",
+          "hasUnpublishedChanges",
+          "createdAt",
+          "updatedAt",
+          "publishedAt",
+          "closedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "description": {
+            "type": "string"
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "employmentType": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "workplaceType": {
+            "$ref": "#/components/schemas/WorkplaceType"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobLocation"
+            }
+          },
+          "applicantLocationRequirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "location": {
+            "type": "string"
+          },
+          "salary": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobSalary"
+              }
+            ]
+          },
+          "validThrough": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/HiringWorkflow"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "template": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobTemplateSource"
+              }
+            ]
+          },
+          "publishedVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasUnpublishedChanges": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."
+      },
+      "JobLocation": {
+        "required": [
+          "city",
+          "region",
+          "country"
+        ],
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "region": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it."
+      },
+      "JobSalary": {
+        "required": [
+          "min",
+          "max",
+          "currency",
+          "period"
+        ],
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/SalaryPeriod"
+          }
+        },
+        "description": "A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217."
+      },
+      "JobSnapshot": {
+        "required": [
+          "title",
+          "slug",
+          "description",
+          "department",
+          "employmentType",
+          "workplaceType",
+          "locations",
+          "applicantLocationRequirements",
+          "salary",
+          "validThrough"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "employmentType": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "workplaceType": {
+            "$ref": "#/components/schemas/WorkplaceType"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobLocation"
+            }
+          },
+          "applicantLocationRequirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "salary": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobSalary"
+              }
+            ]
+          },
+          "validThrough": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\r\nJobVersion freezes one. Equality compares the content, list members included."
+      },
       "JobStatus": {
         "enum": [
           "Draft",
@@ -607,7 +2965,10 @@
           "workplaceType",
           "status",
           "createdAt",
-          "publishedAt"
+          "publishedAt",
+          "employmentType",
+          "department",
+          "templateUpdateAvailable"
         ],
         "type": "object",
         "properties": {
@@ -640,9 +3001,177 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "employmentType": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "templateUpdateAvailable": {
+            "type": "boolean"
           }
         },
-        "description": "A job as shown in the recruiter dashboard."
+        "description": "A job as shown in the recruiter dashboard's list."
+      },
+      "JobTemplateDiff": {
+        "required": [
+          "templateId",
+          "sourceVersionId",
+          "sourceVersion",
+          "latestVersionId",
+          "latestVersion",
+          "updateAvailable",
+          "changes"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "latestVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowChange"
+            }
+          }
+        },
+        "description": "How the job's workflow differs from the newest published version of the template it came from. Empty\r\n`changes` with `updateAvailable` false: the job is up to date."
+      },
+      "JobTemplateSource": {
+        "required": [
+          "templateId",
+          "templateName",
+          "versionId",
+          "version",
+          "latestPublishedVersion",
+          "updateAvailable"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateName": {
+            "type": "string"
+          },
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestPublishedVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "updateAvailable": {
+            "type": "boolean"
+          }
+        },
+        "description": "The template version a job's workflow was copied from, and whether a newer one is published."
+      },
+      "JobVersionDetail": {
+        "required": [
+          "id",
+          "jobId",
+          "version",
+          "publishedAt",
+          "snapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/JobSnapshot"
+          }
+        },
+        "description": "One published version of a job: the frozen content boards were sent."
+      },
+      "JobVersionSummary": {
+        "required": [
+          "id",
+          "version",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One published version of a job, without its content."
+      },
+      "Knockout": {
+        "required": [
+          "disqualifyingAnswer"
+        ],
+        "type": "object",
+        "properties": {
+          "disqualifyingAnswer": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2)."
       },
       "MagicLinkRequest": {
         "required": [
@@ -668,6 +3197,24 @@
         },
         "description": "Redeems the token from an emailed sign-in link."
       },
+      "MoveApplicationRequest": {
+        "required": [
+          "toStageId"
+        ],
+        "type": "object",
+        "properties": {
+          "toStageId": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Moves an application to another stage of its job's workflow. Only people move applications here."
+      },
       "OnboardingRequest": {
         "required": [
           "organizationName",
@@ -691,6 +3238,67 @@
           "Recruiter",
           "Viewer"
         ]
+      },
+      "PostingDefaults": {
+        "type": "object",
+        "properties": {
+          "employmentType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EmploymentType"
+              }
+            ]
+          },
+          "workplaceType": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WorkplaceType"
+              }
+            ]
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "salaryCurrency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "salaryPeriod": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SalaryPeriod"
+              }
+            ]
+          },
+          "validForDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Values a new job starts with when it is created from the template. Every member is optional."
       },
       "ProblemDetails": {
         "type": "object",
@@ -739,7 +3347,13 @@
           "salaryMin",
           "salaryMax",
           "salaryCurrency",
-          "publishedAt"
+          "publishedAt",
+          "description",
+          "department",
+          "locations",
+          "applicantLocationRequirements",
+          "salaryPeriod",
+          "validThrough"
         ],
         "type": "object",
         "properties": {
@@ -788,6 +3402,44 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobLocation"
+            }
+          },
+          "applicantLocationRequirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "salaryPeriod": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SalaryPeriod"
+              }
+            ]
+          },
+          "validThrough": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "A job as shown on a public careers page."
@@ -814,6 +3466,181 @@
           }
         },
         "description": "The public careers listing for one organization."
+      },
+      "Question": {
+        "required": [
+          "id",
+          "type",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/QuestionType"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "helpText": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            }
+          },
+          "knockout": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Knockout"
+              }
+            ]
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "maxLength": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "acceptedFileTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File."
+      },
+      "Questionnaire": {
+        "required": [
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          }
+        },
+        "description": "The screening questions a candidate answers when applying.",
+        "externalDocs": {
+          "description": "JSON Schema: Questionnaire",
+          "url": "/v1/schemas/questionnaire.json"
+        }
+      },
+      "QuestionOption": {
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "QuestionType": {
+        "enum": [
+          "ShortText",
+          "LongText",
+          "SingleChoice",
+          "MultiChoice",
+          "YesNo",
+          "Number",
+          "Url",
+          "File"
+        ]
+      },
+      "SalaryPeriod": {
+        "enum": [
+          "Hour",
+          "Day",
+          "Week",
+          "Month",
+          "Year",
+          null
+        ]
+      },
+      "SalaryRequest": {
+        "required": [
+          "min",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "period": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SalaryPeriod"
+              }
+            ]
+          }
+        },
+        "description": "A pay range. Currency and period may come from the template's posting defaults on create."
       },
       "SignInMethods": {
         "required": [
@@ -850,6 +3677,208 @@
         },
         "description": "An identity provider button on the sign-in page."
       },
+      "StageKind": {
+        "enum": [
+          "Applied",
+          "Screening",
+          "Assessment",
+          "Verification",
+          "Interview",
+          "Offer",
+          "Hired",
+          "Rejected",
+          "Withdrawn",
+          "Custom"
+        ]
+      },
+      "TemplateVersionStatus": {
+        "enum": [
+          "Draft",
+          "Published"
+        ]
+      },
+      "TriggerType": {
+        "enum": [
+          "ApplicationSubmitted",
+          "StageEntered",
+          "StageExited",
+          "QuestionnaireCompleted",
+          "IntegrityAssessed",
+          "VerificationCompleted",
+          "ReviewerDecision",
+          "TimeElapsed",
+          "CandidateReplied",
+          "InterviewScheduled",
+          "Manual"
+        ]
+      },
+      "UpdateHiringTemplateRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Renames a template."
+      },
+      "UpdateHiringTemplateVersionRequest": {
+        "required": [
+          "definition"
+        ],
+        "type": "object",
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/HiringTemplateDefinition"
+          }
+        },
+        "description": "Replaces a draft version's definition."
+      },
+      "UpdateJobRequest": {
+        "required": [
+          "title",
+          "employmentType",
+          "workplaceType"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "employmentType": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "workplaceType": {
+            "$ref": "#/components/schemas/WorkplaceType"
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/JobLocation"
+            }
+          },
+          "applicantLocationRequirements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "salary": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SalaryRequest"
+              }
+            ]
+          },
+          "validThrough": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
+      },
+      "WorkflowChange": {
+        "required": [
+          "path",
+          "kind",
+          "before",
+          "after"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WorkflowChangeKind"
+          },
+          "before": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "after": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One difference between two workflows. `before` and `after` are values, or JSON for objects and lists."
+      },
+      "WorkflowChangeKind": {
+        "enum": [
+          "Added",
+          "Removed",
+          "Changed"
+        ]
+      },
+      "WorkflowStage": {
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          },
+          "slaDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal."
+      },
       "WorkplaceType": {
         "enum": [
           "Onsite",
@@ -871,6 +3900,18 @@
     },
     {
       "name": "Jobs"
+    },
+    {
+      "name": "Hiring templates"
+    },
+    {
+      "name": "Applications"
+    },
+    {
+      "name": "Candidates"
+    },
+    {
+      "name": "Schemas"
     }
   ]
 }

@@ -85,13 +85,19 @@ owner's credentials. Tests' private-schema hosts (`MessagingHost`) connect as th
 Take `IDbContextOutbox<ScreenHireDbContext>`, change entities through `outbox.DbContext`, publish, then save once:
 
 ```csharp
-job.Publish(time.GetUtcNow());
-await outbox.PublishAsync(new JobPublished(job.OrganizationId, job.Id, job.PublishedAt!.Value));
-await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+if (job.Publish(time.GetUtcNow(), latest) is { } version)
+{
+    db.JobVersions.Add(version);
+    await outbox.PublishAsync(new JobPublished(job.OrganizationId, job.Id, version.PublishedAt, version.Version, version.Id));
+    await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+}
 ```
 
-Publish only on a real state change. `POST /v1/jobs/{jobId}/publish` raises `JobPublished` when a draft goes live,
-and publishing an open job again commits nothing and raises nothing. That state check is not race-proof: `Job` has
+Publish only on a real state change. `POST /v1/jobs/{jobId}/publish` raises `JobPublished` when a draft goes live or
+when changed content is republished as a new job version, and publishing unchanged content commits nothing and raises
+nothing. The same rule holds for `JobClosed`, `ApplicationSubmitted`, `ApplicationMoved` and
+`HiringTemplateVersionPublished`: closing a closed job, moving an application to its current stage or publishing a
+published template version raises nothing. That state check is not race-proof: `Job` has
 no concurrency token, so two simultaneous requests for one draft both commit and raise two events. Today's handler
 only logs. The board-posting handler from job-distribution.md must hold on its own idempotency key and effect check
 (see Idempotency).

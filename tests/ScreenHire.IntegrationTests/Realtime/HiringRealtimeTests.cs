@@ -1,0 +1,71 @@
+using System.Text.Json.Nodes;
+
+namespace ScreenHire.IntegrationTests.Realtime;
+
+/// <summary>
+/// The hiring events through the hub: publishing a job, adding an application, moving it and publishing a template
+/// version each reach the open dashboards of their own organization, carrying ids and the facts a client needs to
+/// refresh, and never reach another organization's.
+/// </summary>
+public sealed class HiringRealtimeTests(AppHostFixture fixture)
+{
+    [Fact]
+    public async Task Hiring_events_reach_their_own_organization_with_their_facts_and_never_another_organization()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        await using var ourClient = await EventsConnection.ConnectAsync(ours.Session, cancellationToken);
+        await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, cancellationToken);
+
+        var job = await ours.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        await ours.PublishJobAsync(job.Id());
+        var published = await ourClient.WaitForAsync("JobPublished", "jobId", job.Id(), cancellationToken);
+        published.GetProperty("organizationId").GetGuid().Should().Be(ours.OrganizationId);
+        published.GetProperty("version").GetInt32().Should().Be(1);
+        var versions = (await ours.GetAsync($"/v1/jobs/{job.Id()}/versions")).Expect(HttpStatusCode.OK);
+        published.GetProperty("jobVersionId").GetGuid().Should().Be(versions.Id("0.id"), "the event names the version it published");
+
+        var application = await ours.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
+        var submitted = await ourClient.WaitForAsync("ApplicationSubmitted", "applicationId", application.Id(), cancellationToken);
+        submitted.GetProperty("stageId").GetString().Should().Be("applied");
+
+        (await ours.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" }))
+            .Expect(HttpStatusCode.OK);
+        var moved = await ourClient.WaitForAsync("ApplicationMoved", "applicationId", application.Id(), cancellationToken);
+        moved.GetProperty("fromStageId").GetString().Should().Be("applied");
+        moved.GetProperty("toStageId").GetString().Should().Be("screening");
+
+        var (templateId, versionId) = await ours.CreatePublishedTemplateAsync("Platform roles");
+        var templatePublished = await ourClient.WaitForAsync("HiringTemplateVersionPublished", "versionId", versionId, cancellationToken);
+        templatePublished.GetProperty("templateId").GetGuid().Should().Be(templateId);
+        templatePublished.GetProperty("version").GetInt32().Should().Be(1);
+
+        // Our last event has arrived, so an event of ours sent to them would have too.
+        theirClient.ReceivedAnythingAbout(job.Id()).Should().BeFalse("another organization's job events never reach us");
+        theirClient.ReceivedAnythingAbout(application.Id()).Should().BeFalse();
+        theirClient.ReceivedAnythingAbout(versionId).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Republishing_changed_content_pushes_a_second_JobPublished_and_an_unchanged_publish_pushes_nothing()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        await using var client = await EventsConnection.ConnectAsync(recruiter.Session, cancellationToken);
+        var body = Samples.RemoteJob("Data Engineer");
+        var job = await recruiter.CreateJobAsync(body);
+        await recruiter.PublishJobAsync(job.Id());
+        await client.WaitForAsync("JobPublished", "jobId", job.Id(), cancellationToken);
+
+        await recruiter.PublishJobAsync(job.Id());
+        body["title"] = "Staff Data Engineer";
+        (await recruiter.PutAsync($"/v1/jobs/{job.Id()}", body)).Expect(HttpStatusCode.OK);
+        await recruiter.PublishJobAsync(job.Id());
+        await recruiter.CloseJobAsync(job.Id());
+        await client.WaitForAsync("JobClosed", "jobId", job.Id(), cancellationToken);
+
+        client.Received.Count(e => e.Type == "JobPublished" && e.Data.GetProperty("jobId").GetGuid() == job.Id())
+            .Should().Be(2, "version 1, then version 2 for the changed title; the unchanged publish between them raised nothing");
+    }
+}

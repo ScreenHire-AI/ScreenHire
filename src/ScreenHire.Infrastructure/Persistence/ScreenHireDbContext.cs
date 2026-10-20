@@ -2,6 +2,9 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
@@ -37,6 +40,18 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<Job> Jobs => Set<Job>();
 
+    public DbSet<JobVersion> JobVersions => Set<JobVersion>();
+
+    public DbSet<HiringTemplate> HiringTemplates => Set<HiringTemplate>();
+
+    public DbSet<HiringTemplateVersion> HiringTemplateVersions => Set<HiringTemplateVersion>();
+
+    public DbSet<Candidate> Candidates => Set<Candidate>();
+
+    public DbSet<JobApplication> Applications => Set<JobApplication>();
+
+    public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
+
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     // Read by the query filters. EF evaluates context members per query, so each query sees the current tenant.
@@ -65,6 +80,13 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
         // organizations, which is how the API finds a user's organization before it sets the tenant.
         builder.Entity<OrganizationMember>()
             .HasQueryFilter(TenantFilter, m => m.OrganizationId == CurrentOrganizationId || m.UserId == CurrentUserId);
+
+        // Mirror the hiring templates' row-level security read policies: an organization sees its own templates and the
+        // system templates, which have no organization. Writes to system rows are refused by the policies.
+        builder.Entity<HiringTemplate>()
+            .HasQueryFilter(TenantFilter, t => t.OrganizationId == null || t.OrganizationId == CurrentOrganizationId);
+        builder.Entity<HiringTemplateVersion>()
+            .HasQueryFilter(TenantFilter, v => v.OrganizationId == null || v.OrganizationId == CurrentOrganizationId);
     }
 
     // entity => entity.OrganizationId == this.CurrentOrganizationId

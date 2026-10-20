@@ -9,8 +9,39 @@ const instant = z.iso.datetime({ offset: true });
  * every event, and `events.test.ts` parses each one here, so a C# change that is not mirrored fails a test.
  */
 export const realtimeEventSchemas = {
+  ApplicationMoved: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    fromStageId: z.string(),
+    toStageId: z.string(),
+    eventId: id,
+    movedAt: instant,
+  }),
+  ApplicationSubmitted: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    stageId: z.string(),
+    eventId: id,
+    submittedAt: instant,
+  }),
+  HiringTemplateVersionPublished: z.object({
+    organizationId: id,
+    templateId: id,
+    versionId: id,
+    version: z.number().int(),
+    publishedAt: instant,
+  }),
   JobClosed: z.object({ organizationId: id, jobId: id, closedAt: instant }),
-  JobPublished: z.object({ organizationId: id, jobId: id, publishedAt: instant }),
+  // version and jobVersionId came after the first JobPublished; an envelope queued before them carries version 1 and null.
+  JobPublished: z.object({
+    organizationId: id,
+    jobId: id,
+    publishedAt: instant,
+    version: z.number().int(),
+    jobVersionId: id.nullable(),
+  }),
   LiveUpdatesChecked: z.object({ organizationId: id, checkId: id }),
 } as const;
 

@@ -37,7 +37,8 @@ public sealed class RealtimeContractTests
     [Fact]
     public void The_known_events_are_tenant_events_with_unique_names()
     {
-        ScreenHireMessaging.TenantEventTypes.Keys.Should().Contain(["JobPublished", "JobClosed", "LiveUpdatesChecked"]);
+        ScreenHireMessaging.TenantEventTypes.Keys.Should().Contain(
+        ["JobPublished", "JobClosed", "ApplicationSubmitted", "ApplicationMoved", "HiringTemplateVersionPublished", "LiveUpdatesChecked"]);
         ScreenHireMessaging.TenantEventTypes.Should().AllSatisfy(entry => entry.Key.Should().Be(entry.Value.Name));
     }
 

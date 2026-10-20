@@ -90,9 +90,11 @@ Owner membership in one transaction, under a per-user advisory lock, so a double
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain.
 
-Roles are recorded and returned by `GET /v1/auth/me`, but no endpoint checks them yet: any member can do
-everything the API offers, including publishing a job. Today that is only Owners, because onboarding is the one way
-to join an organization. Role policies have to land before any flow lets someone join with another role.
+Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
+applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
+write, Viewers only read, and anyone else gets 403. The role is read per request. Today every member is an Owner,
+because onboarding is the one way to join an organization; a flow that lets someone join with another role must
+check that its own routes use the same filter.
 
 ## Tenant isolation
 
@@ -108,6 +110,19 @@ Two layers, so one mistake is not a breach.
    row, so its columns must stay safe to show publicly. An endpoint queries it by slug or by the caller's own
    organization id, never as a list: no policy stops a list of every tenant. The one list is a worker message that
    walks every organization in turn (`ReportOpenJobs`), reading ids only.
+
+   The hiring tables (migration `AddHiringModel`) follow the `jobs` pattern: `job_versions`, `candidates`,
+   `applications` and `application_events` each carry `organization_id` and a `tenant_isolation` policy. Child tables
+   reference their parent with a composite foreign key on `(organization_id, id)`, because foreign key checks bypass
+   row-level security: an application can only point at a job and a candidate of its own organization, whatever id a
+   request carries. `job_versions` and `application_events` are append-only: `screenhire_app` has no `UPDATE` or
+   `DELETE` on them.
+
+   System hiring templates are the one shared data: `hiring_templates` and `hiring_template_versions` rows with a NULL
+   `organization_id`. A `system_read` policy lets every tenant read them, the write policies require the caller's own
+   organization, so no tenant can change one, and the entities carry a hand-written query filter (own organization or
+   system) instead of `ITenantOwned`. Published template versions are immutable in the database too: the update and
+   delete policies match drafts only.
 
 `users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from

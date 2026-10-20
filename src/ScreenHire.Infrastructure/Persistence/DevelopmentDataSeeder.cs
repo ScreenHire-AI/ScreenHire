@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
@@ -74,20 +75,27 @@ public static class DevelopmentDataSeeder
         var organization = new Organization { Name = "Brightwater Studio", Slug = DemoOrganizationSlug, HomeRegion = "eu" };
         db.Organizations.Add(organization);
 
+        // Fictional data only (.claude/rules/no-personal-info.md). The .NET role uses the "Software engineer" system
+        // template, so the demo shows a job with a template source.
+        string[] ukAndIreland = ["GB", "IE"];
+        var engineer = NewJob(organization, "Senior .NET Engineer", "senior-dotnet-engineer", WorkplaceType.Remote, [], ukAndIreland, 75_000, 95_000);
+        var softwareEngineer = await db.HiringTemplateVersions.SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion1, cancellationToken);
+        engineer.UseTemplate(softwareEngineer);
+
         Job[] jobs =
         [
-            NewJob(organization, "Senior Product Designer", "senior-product-designer", "Remote — UK & EU", WorkplaceType.Remote, 70_000, 85_000, "GBP"),
-            NewJob(organization, "Senior .NET Engineer", "senior-dotnet-engineer", "Remote — UK & EU", WorkplaceType.Remote, 75_000, 95_000, "GBP"),
-            NewJob(organization, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, UK", WorkplaceType.Hybrid, 60_000, 75_000, "GBP"),
+            NewJob(organization, "Senior Product Designer", "senior-product-designer", WorkplaceType.Remote, [], ukAndIreland, 70_000, 85_000),
+            engineer,
+            NewJob(organization, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", WorkplaceType.Hybrid, [new("London", "England", "GB")], [], 60_000, 75_000),
         ];
 
         foreach (var job in jobs)
         {
-            job.Publish(now);
+            db.JobVersions.Add(job.Publish(now)!);
         }
 
         db.Jobs.AddRange(jobs);
-        db.Jobs.Add(NewJob(organization, "Customer Success Lead", "customer-success-lead", "Manchester, UK", WorkplaceType.Onsite, 45_000, 55_000, "GBP"));
+        db.Jobs.Add(NewJob(organization, "Customer Success Lead", "customer-success-lead", WorkplaceType.Onsite, [new("Manchester", "England", "GB")], [], 45_000, 55_000));
 
         await db.SaveChangesAsync(cancellationToken);
         return organization;
@@ -138,17 +146,21 @@ public static class DevelopmentDataSeeder
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private static Job NewJob(Organization organization, string title, string slug, string location, WorkplaceType workplace, decimal min, decimal max, string currency) =>
-        new()
+    private static Job NewJob(
+        Organization organization, string title, string slug, WorkplaceType workplace, JobLocation[] locations, string[] applicantLocations, decimal min, decimal max)
+    {
+        var job = new Job
         {
             OrganizationId = organization.Id,
             Title = title,
             Slug = slug,
-            Location = location,
+            Description = $"<p>Join Brightwater Studio as our {title}.</p>",
             WorkplaceType = workplace,
             EmploymentType = EmploymentType.FullTime,
-            SalaryMin = min,
-            SalaryMax = max,
-            SalaryCurrency = currency,
+            Locations = [.. locations],
+            ApplicantLocationRequirements = [.. applicantLocations],
         };
+        job.SetSalary(new JobSalary(min, max, "GBP", SalaryPeriod.Year));
+        return job;
+    }
 }

@@ -17,6 +17,9 @@ const jobs: JobSummary[] = [
     status: 'Draft',
     createdAt: '2026-10-19T09:00:00Z',
     publishedAt: null,
+    employmentType: 'FullTime',
+    department: null,
+    templateUpdateAvailable: false,
   },
   {
     id: '01a157d4-0000-7000-8000-000000000002',
@@ -27,6 +30,9 @@ const jobs: JobSummary[] = [
     status: 'Open',
     createdAt: '2026-10-18T09:00:00Z',
     publishedAt: '2026-10-18T12:00:00Z',
+    employmentType: 'FullTime',
+    department: 'Engineering',
+    templateUpdateAvailable: false,
   },
 ];
 

@@ -149,7 +149,7 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
             db.Jobs.Remove(jobs[2]);
             await db.SaveChangesAsync(cancellationToken);
 
-            (await db.Jobs.Where(j => j.Slug == "one").ExecuteUpdateAsync(s => s.SetProperty(j => j.Location, "Leeds, UK"), cancellationToken))
+            (await db.Jobs.Where(j => j.Slug == "one").ExecuteUpdateAsync(s => s.SetProperty(j => j.Department, "Operations"), cancellationToken))
                 .Should().Be(1);
             db.Jobs.Add(TestData.NewJob(organization, "four"));
             db.SaveChanges(); // the synchronous path too
@@ -157,11 +157,11 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
         }
 
         await using var check = await fixture.CreateDbContextAsync(tenant, cancellationToken);
-        (await check.Jobs.AsNoTracking().OrderBy(j => j.Slug).Select(j => new { j.Slug, j.Title, j.Location }).ToListAsync(cancellationToken))
+        (await check.Jobs.AsNoTracking().OrderBy(j => j.Slug).Select(j => new { j.Slug, j.Title, j.Department }).ToListAsync(cancellationToken))
             .Should().Equal(
-                new { Slug = "four", Title = "Job four", Location = "Remote" },
-                new { Slug = "one", Title = "One (renamed)", Location = "Leeds, UK" },
-                new { Slug = "three", Title = "Three (renamed)", Location = "Remote" });
+                new { Slug = "four", Title = "Job four", Department = (string?)null },
+                new { Slug = "one", Title = "One (renamed)", Department = (string?)"Operations" },
+                new { Slug = "three", Title = "Three (renamed)", Department = (string?)null });
     }
 
     [Fact]

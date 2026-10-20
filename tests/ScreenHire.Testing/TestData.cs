@@ -47,17 +47,19 @@ public static class TestData
     public static Job NewJob(Organization organization, string slug, string? title = null) => NewJob(organization.Id, slug, title);
 
     /// <inheritdoc cref="NewJob(Organization, string, string?)"/>
-    public static Job NewJob(Guid organizationId, string slug, string? title = null) =>
-        new()
+    public static Job NewJob(Guid organizationId, string slug, string? title = null)
+    {
+        var job = new Job
         {
             OrganizationId = organizationId,
             Title = title ?? $"Job {slug}",
             Slug = slug,
-            Location = "Remote",
+            Description = "<p>A test job.</p>",
             WorkplaceType = WorkplaceType.Remote,
             EmploymentType = EmploymentType.FullTime,
-            SalaryMin = 50_000,
-            SalaryMax = 60_000,
-            SalaryCurrency = "GBP",
+            ApplicantLocationRequirements = ["GB"],
         };
+        job.SetSalary(new JobSalary(50_000, 60_000, "GBP", SalaryPeriod.Year));
+        return job;
+    }
 }

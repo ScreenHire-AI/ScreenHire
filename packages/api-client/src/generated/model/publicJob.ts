@@ -5,6 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { EmploymentType } from './employmentType.ts';
+import type { JobLocation } from './jobLocation.ts';
+import type { SalaryPeriod } from './salaryPeriod.ts';
 import type { WorkplaceType } from './workplaceType.ts';
 
 /**
@@ -25,4 +27,12 @@ export interface PublicJob {
   salaryCurrency: string | null;
   /** @nullable */
   publishedAt: string | null;
+  description: string;
+  /** @nullable */
+  department: string | null;
+  locations: JobLocation[];
+  applicantLocationRequirements: string[];
+  salaryPeriod: null | SalaryPeriod;
+  /** @nullable */
+  validThrough: string | null;
 }
