@@ -43,12 +43,36 @@ public sealed class JobApplication : ITenantOwned
 
     public DateTimeOffset StageEnteredAt { get; private set; }
 
+    /// <summary>Where the application came from.</summary>
+    public ApplicationSource Source { get; init; }
+
+    /// <summary>The candidate's answers to the job's questions (<see cref="ApplicationForm"/>), empty ones left out.</summary>
+    public IReadOnlyList<ApplicationAnswer> Answers { get; init; } = [];
+
+    /// <summary>
+    /// The version of the privacy notice the candidate saw before anything was collected (CLAUDE.md non-negotiable 4),
+    /// or null for an application a recruiter added.
+    /// </summary>
+    public string? PrivacyNoticeVersion { get; init; }
+
+    /// <summary>
+    /// The careers form's hidden trap field had a value. An automation signal for the integrity engine
+    /// (<c>AUTO_HONEYPOT</c>), recorded and never used to refuse or reject the application.
+    /// </summary>
+    public bool HoneypotFilled { get; init; }
+
+    /// <summary>The bot challenge's outcome (<c>AUTO_TURNSTILE_FAIL</c>), a signal like <see cref="HoneypotFilled"/>.</summary>
+    public BotCheckResult BotCheck { get; init; }
+
     /// <summary>
     /// A new application in the job's first stage, plus the timeline's first event. Closed jobs take no applications.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="intake"/> says how the application arrived; leave it null for one a recruiter added by hand.
+    /// </remarks>
     public static (JobApplication Application, ApplicationEvent Submitted) Submit(
         Job job, Candidate candidate, bool accommodationRequested, AiUseDeclaration aiUseDeclaration, string? aiUseDetails,
-        DateTimeOffset now, Guid? actorUserId)
+        DateTimeOffset now, Guid? actorUserId, ApplicationIntake? intake = null)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(candidate);
@@ -62,6 +86,7 @@ public sealed class JobApplication : ITenantOwned
             throw new InvalidOperationException("The candidate belongs to another organization.");
         }
 
+        intake ??= ApplicationIntake.Recruiter;
         var firstStage = job.Workflow.Stages[0];
         var application = new JobApplication
         {
@@ -75,6 +100,11 @@ public sealed class JobApplication : ITenantOwned
             AiUseDetails = string.IsNullOrWhiteSpace(aiUseDetails) ? null : aiUseDetails.Trim(),
             SubmittedAt = now,
             StageEnteredAt = now,
+            Source = intake.Source,
+            Answers = ApplicationForm.Normalize(intake.Answers),
+            PrivacyNoticeVersion = intake.PrivacyNoticeVersion,
+            HoneypotFilled = intake.HoneypotFilled,
+            BotCheck = intake.BotCheck,
         };
 
         return (application, application.NewEvent(ApplicationEventType.Submitted, new ApplicationEventData(ToStageId: firstStage.Id), now, actorUserId));
@@ -121,4 +151,37 @@ public enum AiUseDeclaration
     NotProvided,
     DidNotUse,
     Used,
+}
+
+/// <summary>Where an application came from. Automation conditions read it as <c>application.source</c>.</summary>
+public enum ApplicationSource
+{
+    /// <summary>A recruiter added it for a candidate who applied another way.</summary>
+    Recruiter,
+
+    /// <summary>The candidate applied on the organization's careers page.</summary>
+    CareersSite,
+}
+
+/// <summary>The outcome of the careers form's bot challenge (Cloudflare Turnstile, when it is configured).</summary>
+public enum BotCheckResult
+{
+    /// <summary>No challenge ran: it is not configured, or the application did not come from the careers page.</summary>
+    NotChecked,
+    Passed,
+
+    /// <summary>The challenge failed or its token was missing, which also happens with JavaScript turned off.</summary>
+    Failed,
+}
+
+/// <summary>How an application arrived: its source, answers and the careers form's checks.</summary>
+public sealed record ApplicationIntake(
+    ApplicationSource Source,
+    IReadOnlyList<ApplicationAnswer> Answers,
+    string? PrivacyNoticeVersion = null,
+    bool HoneypotFilled = false,
+    BotCheckResult BotCheck = BotCheckResult.NotChecked)
+{
+    /// <summary>A recruiter added the application by hand: no answers and no careers-form checks.</summary>
+    public static ApplicationIntake Recruiter { get; } = new(ApplicationSource.Recruiter, []);
 }

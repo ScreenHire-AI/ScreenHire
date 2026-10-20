@@ -1,0 +1,276 @@
+---
+// The apply flow (docs/architecture/apply-flow.md): details, questions, review. Every step is a native form posted to
+// the `apply` action, which re-renders this page with the next step, so the whole flow works with JavaScript off. The
+// only island is the file upload, which sends files straight to storage when JavaScript runs.
+import { actions } from 'astro:actions';
+import ErrorSummary from '../../../../components/ErrorSummary.astro';
+import JobUnavailable from '../../../../components/JobUnavailable.astro';
+import PrivacyNotice from '../../../../components/PrivacyNotice.astro';
+import QuestionField from '../../../../components/QuestionField.astro';
+import StepIndicator from '../../../../components/StepIndicator.astro';
+import TextField from '../../../../components/TextField.astro';
+import CareersLayout from '../../../../layouts/CareersLayout.astro';
+import { formatSalary, getPublicApplicationForm, getPublicOrganization, label } from '../../../../lib/api';
+import {
+  emptyState,
+  fieldId,
+  MAX_AI_DETAILS,
+  MAX_EMAIL,
+  MAX_NAME,
+  MAX_PHONE,
+  questionsOn,
+  screeningQuestions,
+  stepsFor,
+  type ApplyState,
+} from '../../../../lib/apply';
+import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
+import { describeSize } from '../../../../lib/files';
+import { tenantBase } from '../../../../lib/tenancy';
+
+const { organization, job: jobSlug } = Astro.params;
+const base = tenantBase(Astro.locals.hostTenant, organization!);
+const result = Astro.getActionResult(actions.apply);
+if (result?.data?.outcome === 'submitted') {
+  return Astro.redirect(`${base}/jobs/${jobSlug}/applied`, 303);
+}
+
+// What the candidate types is theirs alone: never cached, never indexed.
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+const response = await getPublicApplicationForm(organization!, jobSlug!);
+const closed = response.status === 410 || result?.data?.outcome === 'closed';
+const form = response.status === 200 && !closed ? response.data : null;
+const employer = form?.organization ?? (await getPublicOrganization(organization!).then((r) => (r.status === 200 ? r.data : null)));
+if (!employer) {
+  return new Response(null, { status: 404 });
+}
+
+if (!form) {
+  Astro.response.status = closed ? 410 : 404;
+}
+
+const questions = form?.questions ?? [];
+const steps = stepsFor(questions);
+const data = result?.data;
+const step = data && steps.includes(data.step) ? data.step : 'details';
+const state: ApplyState = data?.state ?? emptyState();
+const errors = data?.errors ?? {};
+const formError =
+  data?.formError ??
+  (result?.error
+    ? result.error.code === 'CONTENT_TOO_LARGE' || result.error.status === 413
+      ? 'That was too much to send at once. Upload files of 10 MB or less.'
+      : 'Something went wrong on our side. Try again in a moment.'
+    : undefined);
+
+if (form) {
+  // The upload island sends files straight to storage; the API told us where that is.
+  const origin = /^https?:\/\/[a-z0-9.-]+(:\d{1,5})?$/i.test(form.uploads.origin) ? form.uploads.origin : '';
+  Astro.csp?.insertDirective(`connect-src 'self'${origin ? ` ${origin}` : ''}`);
+  if (form.turnstileSiteKey) {
+    Astro.csp?.insertScriptResource('https://challenges.cloudflare.com');
+    Astro.csp?.insertDirective('frame-src https://challenges.cloudflare.com');
+  }
+}
+
+const job = form?.job;
+const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) : null;
+const policy = form?.aiUsePolicy ?? 'Allowed';
+const aiIntro = {
+  Allowed: "Used AI to help write? That's fine for this role. You can tell us at the end.",
+  AllowedWithDisclosure: 'AI help is fine for this role, as long as you tell us. We ask at the end.',
+  NotAllowed: `${employer.name} asks you to write this application without AI tools. We ask about it at the end.`,
+}[policy];
+const nextLabel = step === 'details' ? (steps.includes('questions') ? 'Continue to questions' : 'Continue to review') : 'Continue to review';
+const previous = steps[steps.indexOf(step) - 1];
+
+const optionLabel = (questionId: string, value: string) =>
+  value === 'yes' || value === 'no'
+    ? value === 'yes'
+      ? 'Yes'
+      : 'No'
+    : (questions.find((q) => q.id === questionId)?.options?.find((o) => o.id === value)?.label ?? value);
+const answerText = (questionId: string): string => {
+  const question = questions.find((q) => q.id === questionId)!;
+  if (question.type === 'File') {
+    const file = state.files[questionId];
+    return file ? `${file.fileName} (${describeSize(file.sizeBytes)})` : 'Not added';
+  }
+
+  const answer = state.answers[questionId];
+  if (answer === undefined) return 'Not answered';
+  if (Array.isArray(answer)) return answer.map((value) => optionLabel(questionId, value)).join(', ');
+  return question.type === 'YesNo' || question.type === 'SingleChoice' ? optionLabel(questionId, answer) : answer;
+};
+---
+
+{!form && <JobUnavailable organization={employer} gone={closed} />}
+{
+  form && job && (
+    <CareersLayout
+      title={`Apply: ${job.title} | ${employer.name}`}
+      description={`Apply for ${job.title} at ${employer.name}.`}
+      organizationName={employer.name}
+      organizationSlug={employer.slug}
+      branding={employer.branding}
+      noindex
+    >
+      <div class="flex flex-col gap-2.5">
+        <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
+        <p class="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11.5px] text-candidate-chip-foreground">
+          <span>{job.location.toUpperCase()}</span>
+          <span>{label(job.employmentType).toUpperCase()}</span>
+          {salary && <span>{salary}</span>}
+        </p>
+        <StepIndicator steps={steps} current={step} />
+      </div>
+
+      <form
+        method="POST"
+        action={actions.apply}
+        enctype="multipart/form-data"
+        novalidate
+        aria-labelledby="step-heading"
+        class="mt-5 flex flex-col gap-4"
+      >
+        <input type="hidden" name="organization" value={employer.slug} />
+        <input type="hidden" name="job" value={job.slug} />
+        <input type="hidden" name="step" value={step} />
+        <input type="hidden" name="state" value={JSON.stringify(state)} />
+
+        <h2 id="step-heading" class="sr-only">
+          {step === 'details' ? 'Your details' : step === 'questions' ? 'Questions' : 'Review and send'}
+        </h2>
+
+        <ErrorSummary errors={errors} formError={formError} />
+
+        {step === 'details' && (
+          <>
+            <PrivacyNotice base={base} withSwitch switchChecked={state.accommodationRequested} />
+            <p class="text-[13.5px] text-candidate-muted-foreground">{aiIntro}</p>
+            <TextField name="fullName" label="Full name" value={state.fullName} error={errors.fullName} required autocomplete="name" maxlength={MAX_NAME} />
+            <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
+            <TextField name="phone" label="Phone" type="tel" inputmode="tel" value={state.phone} error={errors.phone} autocomplete="tel" maxlength={MAX_PHONE} />
+            {questionsOn('details', questions).map((question) => (
+              <QuestionField question={question} state={state} errors={errors} organization={employer.slug} jobId={job.id} maxBytes={form.uploads.maxBytes} />
+            ))}
+          </>
+        )}
+
+        {step === 'questions' &&
+          screeningQuestions(questions).map((question) => (
+            <QuestionField question={question} state={state} errors={errors} organization={employer.slug} jobId={job.id} maxBytes={form.uploads.maxBytes} />
+          ))}
+
+        {step === 'review' && (
+          <>
+            <section aria-labelledby="review-details" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
+              <div class="flex items-baseline justify-between gap-3">
+                <h3 id="review-details" class="text-base font-bold">Your details</h3>
+                <button type="submit" name="intent" value="go:details" class="min-h-11 cursor-pointer text-sm font-semibold underline underline-offset-2">
+                  Change<span class="sr-only"> your details</span>
+                </button>
+              </div>
+              <dl class="mt-1 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
+                <dt class="text-candidate-muted-foreground">Name</dt>
+                <dd>{state.fullName}</dd>
+                <dt class="text-candidate-muted-foreground">Email</dt>
+                <dd class="break-all">{state.email}</dd>
+                <dt class="text-candidate-muted-foreground">Phone</dt>
+                <dd>{state.phone || 'Not given'}</dd>
+                <dt class="text-candidate-muted-foreground">Assistive technology</dt>
+                <dd>{state.accommodationRequested ? 'Yes: typing and timing checks are off' : 'No'}</dd>
+                {questionsOn('details', questions).map((question) => (
+                  <>
+                    <dt class="text-candidate-muted-foreground">{question.label}</dt>
+                    <dd class="break-all">{answerText(question.id)}</dd>
+                  </>
+                ))}
+              </dl>
+            </section>
+
+            {steps.includes('questions') && (
+              <section aria-labelledby="review-answers" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
+                <div class="flex items-baseline justify-between gap-3">
+                  <h3 id="review-answers" class="text-base font-bold">Your answers</h3>
+                  <button type="submit" name="intent" value="go:questions" class="min-h-11 cursor-pointer text-sm font-semibold underline underline-offset-2">
+                    Change<span class="sr-only"> your answers</span>
+                  </button>
+                </div>
+                <dl class="mt-1 flex flex-col gap-2 text-sm">
+                  {screeningQuestions(questions).map((question) => (
+                    <div>
+                      <dt class="text-candidate-muted-foreground">{question.label}</dt>
+                      <dd class="break-words">{answerText(question.id)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            <fieldset id={fieldId('aiUseDeclaration')} tabindex="-1" aria-describedby="ai-hint" class="flex flex-col gap-2">
+              <legend class="mb-1.5 text-sm font-bold">
+                Did you use AI tools for this application?
+                {policy === 'Allowed' && <span class="font-medium text-candidate-muted-foreground"> (optional)</span>}
+              </legend>
+              <p id="ai-hint" class="-mt-1 text-[13px] text-candidate-muted-foreground">
+                {policy === 'NotAllowed'
+                  ? `${employer.name} asks for applications written without AI tools. Tell us honestly either way: a person reads every application.`
+                  : policy === 'AllowedWithDisclosure'
+                    ? `${employer.name} welcomes AI help for this role, as long as you say so.`
+                    : `${employer.name} welcomes AI help for this role. Telling us is up to you.`}
+              </p>
+              {errors.aiUseDeclaration && <p class="text-sm font-semibold text-destructive">{errors.aiUseDeclaration}</p>}
+              <label class="choice">
+                <input type="radio" name="aiUseDeclaration" value="DidNotUse" checked={state.aiUseDeclaration === 'DidNotUse'} aria-invalid={errors.aiUseDeclaration ? 'true' : undefined} />
+                <span>No, I did not use AI tools</span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="aiUseDeclaration" value="Used" checked={state.aiUseDeclaration === 'Used'} aria-invalid={errors.aiUseDeclaration ? 'true' : undefined} />
+                <span>Yes, I used AI tools</span>
+              </label>
+            </fieldset>
+            <TextField
+              name="aiUseDetails"
+              label="If you used AI tools, how?"
+              hint="For example: to check grammar, or to draft my cover letter. Only if you answered yes."
+              value={state.aiUseDetails}
+              error={errors.aiUseDetails}
+              maxlength={MAX_AI_DETAILS}
+              multiline
+            />
+
+            {/* Only bots reach this field (lib/apply-server.ts). Filling it is recorded, never used to refuse. */}
+            <div class="trap" aria-hidden="true">
+              <label for="leave-this-empty">Leave this field empty</label>
+              <input id="leave-this-empty" type="text" name={HONEYPOT_FIELD} tabindex="-1" autocomplete="off" value="" />
+            </div>
+
+            {form.turnstileSiteKey && (
+              <>
+                <div class="cf-turnstile" data-sitekey={form.turnstileSiteKey} />
+                <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+              </>
+            )}
+
+            <p class="text-[13.5px] text-candidate-muted-foreground">
+              A person at {employer.name} reads every application. Nothing in this form rejects you automatically.
+            </p>
+          </>
+        )}
+
+        <div class="mt-2 flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
+          {/* First in the document, so pressing Enter in a field moves forward rather than back. */}
+          <button type="submit" name="intent" value="next" class="button-primary">
+            {step === 'review' ? 'Send application' : nextLabel}
+          </button>
+          {previous && (
+            <button type="submit" name="intent" value={`go:${previous}`} class="button-secondary">
+              Back
+            </button>
+          )}
+        </div>
+      </form>
+    </CareersLayout>
+  )
+}

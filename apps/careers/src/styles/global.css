@@ -12,8 +12,57 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* The employer's brand-ui colour, contrast-checked at 3:1 on the server (design-system §7). */
   :focus-visible {
-    outline: 2px solid var(--candidate-cta);
+    outline: 2px solid var(--candidate-brand-ui);
     outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Inputs are 16px so phones do not zoom in, and at least 44px tall (design-system §4, §6). */
+  .field-input {
+    @apply min-h-12 w-full rounded-xl border border-candidate-input-border bg-candidate-surface px-3.5 text-[16px] text-candidate-foreground;
+  }
+
+  textarea.field-input {
+    @apply min-h-32 py-3 leading-relaxed;
+  }
+
+  .field-input[aria-invalid="true"] {
+    @apply border-2 border-destructive;
+  }
+
+  .file-input {
+    @apply w-full text-[15px] file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-[10px] file:border file:border-candidate-input-border file:bg-candidate-background file:px-4 file:font-bold file:text-candidate-foreground;
+  }
+
+  .choice {
+    @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-candidate-input-border bg-candidate-surface px-3.5 py-2;
+  }
+
+  .choice input {
+    @apply size-5 flex-none accent-candidate-cta;
+  }
+
+  .button-primary {
+    @apply inline-flex min-h-13 cursor-pointer items-center justify-center rounded-[14px] border-0 bg-candidate-cta px-8 text-base font-bold text-candidate-cta-foreground no-underline;
+  }
+
+  .button-secondary {
+    @apply inline-flex min-h-13 cursor-pointer items-center justify-center rounded-[14px] border border-candidate-input-border bg-candidate-surface px-6 text-base font-bold text-candidate-foreground no-underline;
+  }
+
+  .text-link {
+    @apply font-semibold text-candidate-brand-text underline underline-offset-2;
+  }
+
+  /* The honeypot: off screen, out of the tab order and hidden from assistive technology, so only bots fill it in. */
+  .trap {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
   }
 }

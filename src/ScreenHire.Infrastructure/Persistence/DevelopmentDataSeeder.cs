@@ -26,6 +26,9 @@ public static class DevelopmentDataSeeder
     public const string DemoOwnerEmail = "avery@brightwater.example.com";
     public const string DemoOwnerName = "Avery Quinn";
 
+    /// <summary>Brightwater's brand colour, a deep teal, so the demo careers pages show employer branding.</summary>
+    public const string DemoBrandColor = "#1f4e5a";
+
     /// <summary>
     /// Migrates as the table owner, lets the application role log in with the password from
     /// <paramref name="appConnectionString"/>, then seeds Brightwater and its Owner. Every step is idempotent, so it
@@ -47,7 +50,18 @@ public static class DevelopmentDataSeeder
         var now = time.GetUtcNow();
         var organization = await SeedOrganizationAsync(db, now, cancellationToken);
         tenant.SetOrganization(organization.Id);
+        await SeedBrandAsync(db, organization, cancellationToken);
         await SeedOwnerAsync(db, organization, now, cancellationToken);
+    }
+
+    // A step of its own, so a data volume seeded before brand colours existed gets one too.
+    private static async Task SeedBrandAsync(ScreenHireDbContext db, Organization organization, CancellationToken cancellationToken)
+    {
+        if (organization.BrandColor is null)
+        {
+            organization.SetBrandColor(DemoBrandColor);
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     // A raw connection, not EF: EF logs command text, and this command carries the password. ALTER ROLE is a utility

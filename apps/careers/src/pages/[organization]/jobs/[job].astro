@@ -1,100 +1,109 @@
 ---
+import JobUnavailable from '../../../components/JobUnavailable.astro';
+import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
-import { escapeHtml, formatSalary, getPublicJob, jsonLdScript, label, listPublicJobs } from '../../../lib/api';
+import { escapeHtml, formatSalary, getPublicJob, getPublicOrganization, jsonLdScript, label, type PublicJob } from '../../../lib/api';
+import { tenantBase } from '../../../lib/tenancy';
 
 const { organization, job: jobSlug } = Astro.params;
-const [jobResponse, boardResponse] = await Promise.all([
+const [jobResponse, organizationResponse] = await Promise.all([
   getPublicJob(organization!, jobSlug!),
-  listPublicJobs(organization!),
+  getPublicOrganization(organization!),
 ]);
 
-// Closed jobs become 410 Gone once the API exposes closed status (teardown work item); unknown jobs are 404.
-if (jobResponse.status !== 200 || boardResponse.status !== 200) {
+if (organizationResponse.status !== 200) {
   return new Response(null, { status: 404 });
 }
 
-const job = jobResponse.data;
-const board = boardResponse.data;
-const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+const employer = organizationResponse.data;
+const base = tenantBase(Astro.locals.hostTenant, employer.slug);
+
+// A job that closed is 410 Gone, so search engines drop it for good (ADR-0003); a draft or unknown job is 404.
+const job = jobResponse.status === 200 ? jobResponse.data : null;
+if (!job) {
+  Astro.response.status = jobResponse.status === 410 ? 410 : 404;
+}
 
 // schema.org JobPosting for Google for Jobs (docs/architecture/job-distribution.md), from the structured fields. The
 // description is HTML, as Google expects; the API sanitized it on the way in.
-const address = (location: (typeof job.locations)[number]) => ({
-  '@type': 'PostalAddress',
-  ...(location.city && { addressLocality: location.city }),
-  ...(location.region && { addressRegion: location.region }),
-  ...(location.country && { addressCountry: location.country }),
-});
-const places = job.locations.map((location) => ({ '@type': 'Place', address: address(location) }));
-const jobPosting = {
-  '@context': 'https://schema.org',
-  '@type': 'JobPosting',
-  title: job.title,
-  description: job.description || `<p>${escapeHtml(job.title)} at ${escapeHtml(board.organizationName)}.</p>`,
-  datePosted: job.publishedAt,
-  ...(job.validThrough && { validThrough: job.validThrough }),
-  employmentType: job.employmentType.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
-  hiringOrganization: { '@type': 'Organization', name: board.organizationName },
-  ...(job.department && { occupationalCategory: job.department }),
-  ...(job.workplaceType === 'Remote'
-    ? {
-        jobLocationType: 'TELECOMMUTE',
-        applicantLocationRequirements: job.applicantLocationRequirements.map((country) => ({ '@type': 'Country', name: country })),
-      }
-    : { jobLocation: places.length === 1 ? places[0] : places }),
-  ...(job.salaryMin != null && {
-    baseSalary: {
-      '@type': 'MonetaryAmount',
-      currency: job.salaryCurrency,
-      value: {
-        '@type': 'QuantitativeValue',
-        minValue: job.salaryMin,
-        maxValue: job.salaryMax,
-        unitText: (job.salaryPeriod ?? 'Year').toUpperCase(),
+function postingFor(job: PublicJob) {
+  const address = (location: PublicJob['locations'][number]) => ({
+    '@type': 'PostalAddress',
+    ...(location.city && { addressLocality: location.city }),
+    ...(location.region && { addressRegion: location.region }),
+    ...(location.country && { addressCountry: location.country }),
+  });
+  const places = job.locations.map((location) => ({ '@type': 'Place', address: address(location) }));
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: job.description || `<p>${escapeHtml(job.title)} at ${escapeHtml(employer.name)}.</p>`,
+    datePosted: job.publishedAt,
+    ...(job.validThrough && { validThrough: job.validThrough }),
+    employmentType: job.employmentType.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
+    hiringOrganization: { '@type': 'Organization', name: employer.name },
+    ...(job.department && { occupationalCategory: job.department }),
+    ...(job.workplaceType === 'Remote'
+      ? {
+          jobLocationType: 'TELECOMMUTE',
+          applicantLocationRequirements: job.applicantLocationRequirements.map((country) => ({ '@type': 'Country', name: country })),
+        }
+      : { jobLocation: places.length === 1 ? places[0] : places }),
+    ...(job.salaryMin != null && {
+      baseSalary: {
+        '@type': 'MonetaryAmount',
+        currency: job.salaryCurrency,
+        value: {
+          '@type': 'QuantitativeValue',
+          minValue: job.salaryMin,
+          maxValue: job.salaryMax,
+          unitText: (job.salaryPeriod ?? 'Year').toUpperCase(),
+        },
       },
-    },
-  }),
-};
+    }),
+  };
+}
+
+const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) : null;
+const posting = job ? jsonLdScript(postingFor(job)) : '';
 ---
 
-<CareersLayout
-  title={`${job.title} — ${board.organizationName}`}
-  description={`${job.title} at ${board.organizationName}. ${job.location}.`}
-  organizationName={board.organizationName}
-  organizationSlug={board.organizationSlug}
->
-  <script slot="head" type="application/ld+json" is:inline set:html={jsonLdScript(jobPosting)} />
+{!job && <JobUnavailable organization={employer} gone={jobResponse.status === 410} />}
+{
+  job && (
+    <CareersLayout
+      title={`${job.title} | ${employer.name}`}
+      description={`${job.title} at ${employer.name}. ${job.location}.`}
+      organizationName={employer.name}
+      organizationSlug={employer.slug}
+      branding={employer.branding}
+    >
+      <script slot="head" type="application/ld+json" is:inline set:html={posting} />
 
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
-  <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
-    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
-    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
-    <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
-    {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
-  </div>
+      <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
+      <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
+        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
+        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
+        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
+        {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
+      </div>
 
-  {
-    job.description && (
-      <section
-        aria-label="About the role"
-        class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
-        set:html={job.description}
-      />
-    )
-  }
+      {job.description && (
+        <section
+          aria-label="About the role"
+          class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+          set:html={job.description}
+        />
+      )}
 
-  <section aria-label="How we protect applicants" class="mt-6 rounded-2xl border border-candidate-border bg-candidate-surface p-5">
-    <h2 class="text-base font-bold">How we keep this fair</h2>
-    <p class="mt-1.5 text-sm text-candidate-muted-foreground">
-      We check applications for bots and impersonation. A person reads every one. You'll see exactly what we look at
-      before you start.
-    </p>
-  </section>
+      <div class="mt-6">
+        <PrivacyNotice base={base} />
+      </div>
 
-  <a
-    href="#apply"
-    class="mt-6 inline-flex h-13 w-full items-center justify-center rounded-[14px] bg-candidate-cta text-base font-bold text-candidate-cta-foreground no-underline sm:w-auto sm:px-8"
-  >
-    Apply for this role
-  </a>
-</CareersLayout>
+      <a href={`${base}/jobs/${job.slug}/apply`} class="button-primary mt-6 w-full sm:w-auto">
+        Apply for this role
+      </a>
+    </CareersLayout>
+  )
+}

@@ -4,8 +4,10 @@ using JasperFx;
 using JasperFx.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -178,6 +180,9 @@ public static class ScreenHireMessaging
         ArgumentNullException.ThrowIfNull(settings);
 
         opts.Discovery.IncludeAssembly(typeof(ScreenHireMessaging).Assembly);
+
+        // Integrations the handlers use, each with a local adapter until a real one is registered first (CLAUDE.md).
+        opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
 
         UsePostgres(opts, connectionString, settings);
         opts.ListenToPostgresqlQueue(settings.WorkerQueue).UseDurableInbox();

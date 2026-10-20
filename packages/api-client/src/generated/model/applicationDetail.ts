@@ -5,11 +5,15 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { AiUseDeclaration } from './aiUseDeclaration.ts';
+import type { ApplicationAnswer } from './applicationAnswer.ts';
+import type { ApplicationFileSummary } from './applicationFileSummary.ts';
+import type { ApplicationSource } from './applicationSource.ts';
 import type { ApplicationStage } from './applicationStage.ts';
 import type { CandidateSummary } from './candidateSummary.ts';
 
 /**
- * One application: the candidate, the job, where it is in the job's workflow, and the candidate's declarations.
+ * One application: the candidate, the job, where it is in the job's workflow, the candidate's declarations, answers
+ * and files.
  */
 export interface ApplicationDetail {
   id: string;
@@ -24,4 +28,7 @@ export interface ApplicationDetail {
   aiUseDetails: string | null;
   submittedAt: string;
   stageEnteredAt: string;
+  source: ApplicationSource;
+  answers: ApplicationAnswer[];
+  files: ApplicationFileSummary[];
 }

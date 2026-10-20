@@ -30,6 +30,41 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void A_careers_application_records_its_answers_notice_and_checks()
+    {
+        var (job, candidate) = JobAndCandidate();
+        var intake = new ApplicationIntake(
+            ApplicationSource.CareersSite,
+            [new("notice", " 2 weeks "), new("portfolio", "")],
+            PrivacyNoticeVersion: "2026-10-20",
+            HoneypotFilled: true,
+            BotCheck: BotCheckResult.Failed);
+
+        var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.DidNotUse, null, Monday, null, intake);
+
+        application.Source.Should().Be(ApplicationSource.CareersSite);
+        application.Answers.Should().BeEquivalentTo([new ApplicationAnswer("notice", "2 weeks")]);
+        application.PrivacyNoticeVersion.Should().Be("2026-10-20");
+        application.HoneypotFilled.Should().BeTrue();
+        application.BotCheck.Should().Be(BotCheckResult.Failed);
+        application.CurrentStageId.Should().Be("applied", "signals are recorded; they never move or reject an application");
+        submitted.ActorUserId.Should().BeNull("the candidate submitted it");
+    }
+
+    [Fact]
+    public void A_recruiter_added_application_has_no_answers_or_checks()
+    {
+        var (job, candidate) = JobAndCandidate();
+
+        var (application, _) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Monday, Recruiter);
+
+        application.Source.Should().Be(ApplicationSource.Recruiter);
+        application.Answers.Should().BeEmpty();
+        application.PrivacyNoticeVersion.Should().BeNull();
+        application.BotCheck.Should().Be(BotCheckResult.NotChecked);
+    }
+
+    [Fact]
     public void A_closed_job_takes_no_applications()
     {
         var (job, candidate) = JobAndCandidate();

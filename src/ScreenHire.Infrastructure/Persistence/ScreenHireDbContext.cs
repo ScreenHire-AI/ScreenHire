@@ -52,6 +52,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
 
+    public DbSet<ApplicationFile> ApplicationFiles => Set<ApplicationFile>();
+
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     // Read by the query filters. EF evaluates context members per query, so each query sees the current tenant.

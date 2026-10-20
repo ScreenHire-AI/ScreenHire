@@ -1,0 +1,64 @@
+---
+// "How we keep this fair": what ScreenHire checks and what it never does, shown before a candidate enters anything
+// (CLAUDE.md non-negotiable 4). It describes what this build collects; change it with NOTICE_VERSION and the privacy
+// page. Neutral tokens on purpose: employer branding never restyles the privacy notice (design-system §7).
+interface Props {
+  base: string;
+  /** Renders the assistive-technology switch, as a field of the surrounding form. */
+  withSwitch?: boolean;
+  switchChecked?: boolean;
+}
+
+const { base, withSwitch = false, switchChecked = false } = Astro.props;
+---
+
+<section aria-labelledby="fair-heading" class="overflow-hidden rounded-2xl border border-candidate-border bg-candidate-surface">
+  <div class="flex flex-col gap-2.5 px-4 py-3.5">
+    <h2 id="fair-heading" class="text-base font-bold">How we keep this fair</h2>
+    <p class="text-sm text-candidate-muted-foreground">
+      We check applications for bots and impersonation. A person reads every one, and nothing here rejects you
+      automatically.
+    </p>
+    <div class="grid gap-3 text-[13.5px] sm:grid-cols-2">
+      <div class="flex flex-col gap-1">
+        <h3 class="font-mono text-[11px] font-semibold tracking-wide text-candidate-muted-foreground">WE LOOK AT</h3>
+        <ul class="flex flex-col gap-1">
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>What you send: your details, answers and files</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Signs that a bot filled in the form</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Your network address, in our server logs</li>
+        </ul>
+      </div>
+      <div class="flex flex-col gap-1">
+        <h3 class="font-mono text-[11px] font-semibold tracking-wide text-candidate-muted-foreground">WE NEVER</h3>
+        <ul class="flex flex-col gap-1">
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>See your other tabs or apps</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Use your camera or microphone</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Set tracking cookies</li>
+        </ul>
+      </div>
+    </div>
+    <a href={`${base}/privacy`} class="text-sm font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
+  </div>
+  {
+    withSwitch && (
+      <div class="border-t border-candidate-border bg-candidate-background px-4 py-3">
+        <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+          <span class="flex flex-col">
+            <span class="text-sm font-semibold">I use dictation, a screen reader or other assistive technology</span>
+            <span id="assistive-hint" class="text-[13px] text-candidate-muted-foreground">
+              We switch off any checks on how you type or paste. This is never held against you.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            name="accommodationRequested"
+            checked={switchChecked}
+            aria-describedby="assistive-hint"
+            class="h-6 w-11 flex-none accent-candidate-foreground"
+          />
+        </label>
+      </div>
+    )
+  }
+</section>
