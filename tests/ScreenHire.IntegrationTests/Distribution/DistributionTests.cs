@@ -242,9 +242,15 @@ public sealed class DistributionTests(AppHostFixture fixture)
         await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
         var bus = sender.Services.GetRequiredService<IMessageBus>();
 
-        // The worker's cron sends the same message every minute; sending it here runs the dispatcher now.
+        // The worker's cron sends the same message every minute; sending it here runs the dispatcher now. Twice, so the
+        // notification is handed out twice, as when a send has not run before the next minute: it is sent once, and
+        // the second send finds it sent instead of failing.
+        await bus.PublishAsync(new DispatchIndexingNotifications());
         await bus.PublishAsync(new DispatchIndexingNotifications());
         var google = await WaitForPostingAsync(recruiter, jobId, "google", "Submitted");
+        (await NotificationsAsync(recruiter.OrganizationId)).Should().ContainSingle(n => n.Type == IndexingNotificationType.Updated && n.SentAt != null);
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        (await store.GetDeadLettersAsync(recruiter.OrganizationId.ToString(), Ct)).Should().BeEmpty();
 
         google.GetProperty("confirmsLive").GetBoolean().Should().BeFalse("Google accepted URL_UPDATED but reports nothing about indexing");
         (await recruiter.CloseJobAsync(jobId)).At("postings").EnumerateArray()

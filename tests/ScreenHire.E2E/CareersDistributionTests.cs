@@ -48,7 +48,7 @@ public sealed class CareersDistributionTests(E2EFixture fixture) : BrowserTest(f
 
         var gone = await Page.GotoAsync(page);
         gone!.Status.Should().Be(410);
-        await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("This role is closed and no longer taking applications.");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("This job has closed");
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" })).ToHaveCountAsync(0);
         using (var expired = await JsonLdAsync())
         {
