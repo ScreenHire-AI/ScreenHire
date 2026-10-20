@@ -20,13 +20,14 @@ source-to-doc table; this rule is the reminder that fires when you touch one of 
 
 When you add, rename or remove an enumerated item, update the doc that lists it in the same change:
 
-- a root script or a changed command: CLAUDE.md "Commands", and `.claude/skills/verify/SKILL.md` for gate scripts;
+- a root script or a changed command: CLAUDE.md "Commands";
 - a pinned AppHost port: CLAUDE.md "Commands"; an AppHost setting: the header comment in `apps/apphost/AppHost.cs`;
 - a project or top-level folder: the CLAUDE.md "Repo layout" table;
 - a skill, agent or rule: `docs/process/dev-tooling.md`;
 - a file under `docs/`: the index in `docs/README.md`.
 
-The mapping lives in `.claude/skills/sync-docs/SKILL.md`. Change it there, not here.
+The mapping lives in `.claude/skills/sync-docs/SKILL.md`. Change it there, not here. The `/verify` skill describes
+the gate's steps in prose, so a changed `verify*` script is a check for `/sync-docs`'s prose pass, not an anchor.
 
 ## Enforcement
 

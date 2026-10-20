@@ -17,7 +17,7 @@ Each row is a list in a doc that must match a source exactly.
 
 | Anchor | Source | Doc (canonical list) |
 |---|---|---|
-| Root scripts | every key of `scripts` in `package.json` | CLAUDE.md "Commands" (each script named); the `verify` and `verify:*` scripts also in `.claude/skills/verify/SKILL.md` |
+| Root scripts | every key of `scripts` in `package.json` | CLAUDE.md "Commands" (each script named) |
 | Pinned ports | every `PortFor("<Name>", <port>)` in `apps/apphost/AppHost.cs` | CLAUDE.md "Commands" (the `pnpm dev` ports line) |
 | AppHost settings | every `ScreenHire:*` key read in `AppHost.cs` | the header comment in `AppHost.cs` |
 | Projects | every folder directly under `apps/`, `packages/` and `src/` | CLAUDE.md "Repo layout" (one row each; `tests/` is one row for all test projects) |
