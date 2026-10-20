@@ -93,7 +93,7 @@ public static class DevelopmentDataSeeder
         // template, so the demo shows a job with a template source.
         string[] ukAndIreland = ["GB", "IE"];
         var engineer = NewJob(organization, "Senior .NET Engineer", "senior-dotnet-engineer", WorkplaceType.Remote, [], ukAndIreland, 75_000, 95_000);
-        var softwareEngineer = await db.HiringTemplateVersions.SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion1, cancellationToken);
+        var softwareEngineer = await db.HiringTemplateVersions.SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion2, cancellationToken);
         engineer.UseTemplate(softwareEngineer);
 
         Job[] jobs =

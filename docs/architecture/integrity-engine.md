@@ -373,13 +373,16 @@ analyzer exists yet.
 
 ### 10.9 Known gaps
 
-- The "Software engineer" system template's integrity automation tests `integrity.aiAssistance` for
-  `ReviewSuggested`, which is an authenticity level; that half of its condition never matches. Fixing it needs a new
-  system template version. Level names in conditions are not validated yet for the same reason: validation would
-  block every job copied from that template.
+- Version 1 of the "Software engineer" system template tests `integrity.aiAssistance` for `ReviewSuggested`, an
+  authenticity level, so that half of its integrity automation never matches. Version 2 (migration
+  `AddSoftwareEngineerTemplateVersion2`) corrects it: a reviewer is asked when either assessment is above its lowest
+  level. New jobs and the Brightwater seed use version 2; jobs copied from version 1 keep their copy and show "update
+  available". Level names in conditions are still not validated, because validation would block those version 1 jobs
+  until someone adopts version 2. Turning it on is a small change once no job uses version 1.
 - Duplicates do not revisit earlier applications (§10.2).
 - With the demo seeding on in the end-to-end stack, `LiveUpdatesTests` failed in 3 of 9 runs: a live `JobClosed` took
-  more than 5 seconds to reach the second browser. With it off, 4 of 4 runs passed. The trigger is the burst of
+  more than 5 seconds to reach the second browser. With it off, 10 of 10 runs passed. The demo itself finished well
+  before the test ran. The trigger is the burst of
   submissions the API makes just after startup; how it delays later real-time delivery is not isolated yet. The demo
   now runs only for `pnpm dev`. Worth a look before real traffic bursts matter.
 - Webdriver markers and the device fingerprint have an API contract (`automationMarkers`, `deviceFingerprint`) but no

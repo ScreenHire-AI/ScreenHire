@@ -45,7 +45,7 @@ public sealed class JobsApiTests(AppHostFixture fixture)
         var body = new JsonObject
         {
             ["title"] = "Backend Engineer",
-            ["templateVersionId"] = SystemTemplates.SoftwareEngineerVersion1,
+            ["templateVersionId"] = SystemTemplates.SoftwareEngineerVersion2,
             ["applicantLocationRequirements"] = new JsonArray("GB"),
         };
 
@@ -55,12 +55,12 @@ public sealed class JobsApiTests(AppHostFixture fixture)
         created.Text("workplaceType").Should().Be("Remote");
         created.Text("employmentType").Should().Be("FullTime");
         created.Text("description").Should().Contain("About the role");
-        created.Text("template.versionId").Should().Be(SystemTemplates.SoftwareEngineerVersion1.ToString());
+        created.Text("template.versionId").Should().Be(SystemTemplates.SoftwareEngineerVersion2.ToString());
         created.Text("template.templateId").Should().Be(SystemTemplates.SoftwareEngineer.ToString());
         created.Text("template.templateName").Should().Be("Software engineer");
-        created.At("template.version").GetInt32().Should().Be(1);
+        created.At("template.version").GetInt32().Should().Be(2);
         created.At("template.updateAvailable").GetBoolean().Should().BeFalse();
-        var templateVersion = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/versions/1");
+        var templateVersion = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/versions/2");
         created.At("workflow").GetRawText().Should().Be(templateVersion.At("definition.workflow").GetRawText(), "the job holds its own copy of the workflow");
         created.Text("workflow.stages.2.id").Should().Be("technical");
     }
