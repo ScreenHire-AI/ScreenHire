@@ -6,6 +6,21 @@
  */
 import * as zod from 'zod';
 
+export const ListSandboxListingsParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const ListSandboxListingsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "jobId": zod.uuid(),
+  "jobVersion": zod.int(),
+  "title": zod.string(),
+  "url": zod.string(),
+  "acceptedAt": zod.iso.datetime({"offset":true})
+}).describe('One listing on the local sandbox board, as the board itself would show it.')
+export const ListSandboxListingsResponse = zod.array(ListSandboxListingsResponseItem)
+
+
 export const ListAutomationIssuesResponseItem = zod.object({
   "runId": zod.uuid(),
   "applicationId": zod.uuid(),
@@ -121,9 +136,12 @@ export const ListPublicJobsResponse = zod.object({
 }).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable()
-}).describe('A job as shown on a public careers page.'))
-}).describe('The public careers listing for one organization.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "url": zod.string()
+}).describe('A job as shown on a public careers page.')),
+  "url": zod.string()
+}).describe('The public careers listing for one organization. `url` is the board\'s careers page.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -151,7 +169,9 @@ export const GetPublicJobResponse = zod.object({
 }).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable()
+  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "url": zod.string()
 }).describe('A job as shown on a public careers page.')
 
 
@@ -300,7 +320,26 @@ export const CreateJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -414,7 +453,26 @@ export const GetJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -550,13 +608,36 @@ export const UpdateJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
 export const PublishJobParams = zod.object({
   "jobId": zod.uuid()
 })
+
+export const PublishJobBody = zod.union([zod.null(),zod.object({
+  "boards": zod.array(zod.string()).nullish()
+}).describe('Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again.')])
 
 export const publishJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
@@ -664,7 +745,26 @@ export const PublishJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -778,7 +878,26 @@ export const CloseJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1744,6 +1863,164 @@ export const GetCandidateResponse = zod.object({
   "stageEnteredAt": zod.iso.datetime({"offset":true})
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.'))
 }).describe('A candidate and every application they made to the organization.')
+
+
+export const ListBoardsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "mode": zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)]),
+  "canClose": zod.boolean(),
+  "canUnpublishPerBoard": zod.boolean(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "publishEtaSeconds": zod.int().nullable(),
+  "removalEtaSeconds": zod.int().nullable(),
+  "dailyQuota": zod.int().nullable()
+}).describe('A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1).')
+export const ListBoardsResponse = zod.array(ListBoardsResponseItem)
+
+
+export const ListJobPostingsParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const ListJobPostingsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.')
+export const ListJobPostingsResponse = zod.array(ListJobPostingsResponseItem)
+
+
+export const CloseJobPostingParams = zod.object({
+  "jobId": zod.uuid(),
+  "boardId": zod.string()
+})
+
+export const CloseJobPostingResponse = zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One job on one board: where it stands and what is still uncertain.')
+
+
+export const GetJobBoardParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const GetJobBoardResponse = zod.object({
+  "name": zod.string(),
+  "content": zod.string(),
+  "absolute_url": zod.string()
+}).describe('A tenant\'s board in the public job-board API (Greenhouse-style: `GET /v1/boards/{token}`).')
+
+
+export const ListJobBoardJobsParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const listJobBoardJobsQueryContentDefault = false;
+
+export const ListJobBoardJobsQueryParams = zod.object({
+  "content": zod.boolean().default(listJobBoardJobsQueryContentDefault)
+})
+
+export const ListJobBoardJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "updated_at": zod.iso.datetime({"offset":true}),
+  "first_published": zod.iso.datetime({"offset":true}),
+  "location": zod.object({
+  "name": zod.string()
+}),
+  "absolute_url": zod.string(),
+  "company_name": zod.string(),
+  "departments": zod.array(zod.object({
+  "name": zod.string()
+})),
+  "offices": zod.array(zod.object({
+  "name": zod.string(),
+  "location": zod.string()
+})),
+  "employment_type": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
+  "workplace_type": zod.enum(['Onsite', 'Hybrid', 'Remote']),
+  "pay_input_ranges": zod.array(zod.object({
+  "min_cents": zod.int().nullable(),
+  "max_cents": zod.int().nullable(),
+  "currency_type": zod.string(),
+  "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
+}).describe('Greenhouse\'s pay transparency range, in minor units of `currency_type`.')),
+  "valid_through": zod.iso.datetime({"offset":true}).nullable(),
+  "content": zod.string().nullable()
+}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')),
+  "meta": zod.object({
+  "total": zod.int()
+})
+}).describe('Every job on a tenant\'s public job board (Greenhouse-style `jobs` and `meta.total`).')
+
+
+export const GetJobBoardJobParams = zod.object({
+  "organizationSlug": zod.string(),
+  "jobId": zod.uuid()
+})
+
+export const GetJobBoardJobResponse = zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "updated_at": zod.iso.datetime({"offset":true}),
+  "first_published": zod.iso.datetime({"offset":true}),
+  "location": zod.object({
+  "name": zod.string()
+}),
+  "absolute_url": zod.string(),
+  "company_name": zod.string(),
+  "departments": zod.array(zod.object({
+  "name": zod.string()
+})),
+  "offices": zod.array(zod.object({
+  "name": zod.string(),
+  "location": zod.string()
+})),
+  "employment_type": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
+  "workplace_type": zod.enum(['Onsite', 'Hybrid', 'Remote']),
+  "pay_input_ranges": zod.array(zod.object({
+  "min_cents": zod.int().nullable(),
+  "max_cents": zod.int().nullable(),
+  "currency_type": zod.string(),
+  "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
+}).describe('Greenhouse\'s pay transparency range, in minor units of `currency_type`.')),
+  "valid_through": zod.iso.datetime({"offset":true}).nullable(),
+  "content": zod.string().nullable()
+}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')
 
 
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
