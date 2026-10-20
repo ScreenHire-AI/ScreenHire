@@ -53,6 +53,30 @@ public sealed class AutomationEmailTests(AppHostFixture fixture)
             .Count().Should().Be(1, "each automation runs once per event");
     }
 
+    // The stage-change email names the stage the application is in when it sends. A person rejecting an application
+    // fires StageExited on the stage it leaves; an email there would read "moved to the next step: Rejected".
+    [Fact]
+    public async Task Leaving_a_stage_for_the_rejected_stage_sends_no_stage_change_email()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await AutomationSamples.JobWithAutomationsAsync(recruiter, "Exit email", new JsonObject
+        {
+            ["id"] = "email-on-exit",
+            ["name"] = "Email on leaving screening",
+            ["trigger"] = new JsonObject { ["type"] = "StageExited", ["stageId"] = "screening" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "SendEmail", ["emailTemplate"] = "stage-change" }),
+        });
+        var candidateEmail = ApiSession.NewEmail("candidate");
+        var application = await recruiter.CreateApplicationAsync(job, candidateEmail);
+
+        (await recruiter.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
+        (await recruiter.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "rejected" })).Expect(HttpStatusCode.OK);
+
+        var run = await AutomationSamples.WaitForRunAsync(recruiter, application.Id(), "email-on-exit", "Completed");
+        run.GetProperty("actions")[0].GetProperty("status").GetString().Should().Be("Skipped");
+        (await fixture.Mailpit.MessagesAsync(candidateEmail, Ct)).Should().BeEmpty("the email is sent before the action is recorded, so it would be here");
+    }
+
     [Fact]
     public async Task A_new_application_gets_the_application_received_email()
     {
