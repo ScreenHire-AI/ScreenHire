@@ -20,6 +20,7 @@ export const load: PageLoad = async ({ url }) => {
   return {
     methods: response.data,
     returnUrl: safeReturnUrl(url.searchParams.get(returnUrlParameter)),
-    errorMessage: reason ? (errorMessages[reason] ?? errorMessages.provider) : undefined,
+    // Own keys only: `?error=constructor` would otherwise find Object.prototype's members.
+    errorMessage: reason ? (Object.hasOwn(errorMessages, reason) ? errorMessages[reason] : errorMessages.provider) : undefined,
   };
 };

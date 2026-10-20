@@ -16,7 +16,7 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
 | `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |
 | `packages/api-client` | Orval-generated TS client + Zod schemas (do not edit `src/generated`) |
-| `src/ScreenHire.Application` | Message contracts (`ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
+| `src/ScreenHire.Application` | Message contracts (`ITenantMessage`, `ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
@@ -124,7 +124,8 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 - Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops); see
   [`docs/architecture/messaging.md`](docs/architecture/messaging.md) and `/add-message`. The API only publishes, through
   `IDbContextOutbox<ScreenHireDbContext>` and one `SaveChangesAndFlushMessagesAsync`; the worker runs every handler.
-  Client-visible events implement `ITenantEvent`.
+  A message about one organization's data implements `ITenantMessage`, or its handler sees no tenant rows under RLS;
+  client-visible events implement `ITenantEvent`, which extends it.
 - Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
   twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
   `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,

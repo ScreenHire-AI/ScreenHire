@@ -16,8 +16,9 @@ public sealed class SmtpEmailOptions
 }
 
 /// <summary>
-/// Plain SMTP through MailKit (MIT). Locally it delivers to Mailpit, which needs neither TLS nor credentials; a real
-/// relay would add both here.
+/// SMTP through MailKit (MIT). TLS on connect for port 465, otherwise STARTTLS whenever the server offers it, so a relay
+/// that supports TLS never gets the magic link in plain text. Locally it delivers to Mailpit, which offers neither TLS
+/// nor authentication; a production relay would add credentials here.
 /// </summary>
 public sealed class SmtpEmailSender(IOptions<SmtpEmailOptions> options) : IEmailSender
 {
@@ -31,7 +32,7 @@ public sealed class SmtpEmailSender(IOptions<SmtpEmailOptions> options) : IEmail
         mime.Body = new BodyBuilder { TextBody = message.TextBody, HtmlBody = message.HtmlBody }.ToMessageBody();
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(settings.Server.Host, settings.Server.Port, SecureSocketOptions.None, cancellationToken);
+        await client.ConnectAsync(settings.Server.Host, settings.Server.Port, SecureSocketOptions.Auto, cancellationToken);
         await client.SendAsync(mime, cancellationToken);
         await client.DisconnectAsync(quit: true, cancellationToken);
     }

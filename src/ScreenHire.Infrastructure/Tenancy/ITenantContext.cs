@@ -15,8 +15,10 @@ public interface ITenantContext
 }
 
 /// <summary>
-/// The scoped, settable <see cref="ITenantContext"/>. The API sets it from the signed-in user's membership, and the
-/// public careers endpoints from the organization slug in the route. Nothing else may change it.
+/// The scoped, settable <see cref="ITenantContext"/>. The API sets it from the signed-in user's membership, the
+/// public careers endpoints from the organization slug in the route, and the worker from a tenant message's
+/// organization (<c>TenantMessageMiddleware</c>). A system message that walks every organization sets each in turn.
+/// Nothing else may change it.
 /// </summary>
 public sealed class TenantContext : ITenantContext
 {

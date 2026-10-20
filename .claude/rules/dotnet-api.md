@@ -55,7 +55,9 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
   reads across organizations.
 - Times are `DateTimeOffset` from `TimeProvider` (`.claude/rules/utc-timestamps.md`).
 - Reads use `AsNoTracking()`. Pass the request's `CancellationToken` to every async EF call. Load what the response
-  needs in one query; never query inside a loop.
+  needs in one query; never query inside a loop. The exception is a system message that walks every organization
+  in turn (`ReportOpenJobs`): row-level security gives the worker no cross-tenant read, so it sets each tenant and
+  queries once per organization.
 - Connect to Postgres directly, never through transaction-mode PgBouncer: Wolverine leader election and
   transaction-local tenant settings need a real session.
 

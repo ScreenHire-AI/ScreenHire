@@ -55,7 +55,8 @@ own token providers are stateless and need an existing user, which is why this i
 
 Email goes through `IEmailSender` (`src/ScreenHire.Infrastructure/Email`). The only adapter is SMTP via MailKit,
 registered when `ConnectionStrings:mailpit` is set; without it the magic-link form is hidden. The production
-provider is a later decision. Sending happens inside the request until Wolverine lands.
+provider is a later decision. The magic-link request sends inside the request, after its commit, so the reply
+waits for SMTP; moving the send to a worker message is a later change.
 
 ### Abuse controls
 
@@ -89,6 +90,10 @@ Owner membership in one transaction, under a per-user advisory lock, so a double
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain.
 
+Roles are recorded and returned by `GET /v1/auth/me`, but no endpoint checks them yet: any member can do
+everything the API offers, including publishing a job. Today that is only Owners, because onboarding is the one way
+to join an organization. Role policies have to land before any flow lets someone join with another role.
+
 ## Tenant isolation
 
 Two layers, so one mistake is not a breach.
@@ -100,8 +105,13 @@ Two layers, so one mistake is not a breach.
    (migration `AddSignInAndTenantIsolation`). Policies compare `organization_id` with
    `NULLIF(current_setting('app.tenant_id', true), '')::uuid`. `organizations` is readable by anyone (careers pages
    resolve slugs) and insertable by anyone (onboarding), but only the organization itself may change or delete its
-   row, so its columns must stay safe to show publicly. Query it by slug or by the caller's own organization id,
-   never as a list: no policy stops a list of every tenant.
+   row, so its columns must stay safe to show publicly. An endpoint queries it by slug or by the caller's own
+   organization id, never as a list: no policy stops a list of every tenant. The one list is a worker message that
+   walks every organization in turn (`ReportOpenJobs`), reading ids only.
+
+`users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
+sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
+`OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.
 
 The API and worker connect as `screenhire_app`, a role the migration creates without table ownership or `BYPASSRLS`.
 Migrations run as the owner. In Development the API migrates with the owner's connection string and sets the role's
@@ -133,7 +143,10 @@ checklist.
 Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs the API in production must:
 
 - run the EF migrations and then `ScreenHireMessaging.ProvisionStorageAsync` as the owner, in that order, on every
-  release (docs/architecture/messaging.md, "Roles and provisioning"). The API does both at startup in Development;
+  release (docs/architecture/messaging.md, "Roles and provisioning"). The API does both at startup in Development.
+  Both steps must use the same owner role: the migrations' default privileges grant `screenhire_app` access only to
+  tables that role creates later. The migrator also needs `CREATEROLE`, or `screenhire_app` must exist beforehand
+  (the migration skips creating it when it does);
 - give `screenhire_app` a login and password, which the migration creates as `NOLOGIN` (the Development seed does it
   locally), and give the API and the worker only that role's connection string, `ConnectionStrings:screenhire-app`;
 - persist the ASP.NET Core Data Protection key ring and protect it at rest. The session, external-sign-in and

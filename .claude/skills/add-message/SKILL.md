@@ -1,5 +1,5 @@
 ---
-description: Add a Wolverine message or domain event with its worker handler - contract in src/ScreenHire.Application, publishing through the EF Core outbox in the same transaction as the change, idempotency (inbox, [Deduplicated] keys, idempotent effects), ITenantEvent for client-visible events, scheduled or recurring delivery, and an Aspire integration test. Use for any background work, domain event or job.
+description: Add a Wolverine message or domain event with its worker handler - contract in src/ScreenHire.Application, publishing through the EF Core outbox in the same transaction as the change, idempotency (inbox, [Deduplicated] keys, idempotent effects), ITenantMessage for messages about one organization's data and ITenantEvent for client-visible events, scheduled or recurring delivery, and an Aspire integration test. Use for any background work, domain event or job.
 argument-hint: [MessageName - what triggers it and what the handler does]
 ---
 

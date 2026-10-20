@@ -13,6 +13,9 @@ public sealed partial class Mailpit(Uri baseAddress)
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
+    // One client for every instance: the fixture hands out a new Mailpit per access, and the wait polls every 100 ms.
+    private static readonly HttpClient Client = new();
+
     /// <summary>The sign-in link tokens sent to <paramref name="address"/>, newest first.</summary>
     public async Task<IReadOnlyList<string>> SignInTokensAsync(string address, CancellationToken cancellationToken) =>
         [.. (await SignInLinksAsync(address, cancellationToken)).Select(TokenOf)];
@@ -65,15 +68,14 @@ public sealed partial class Mailpit(Uri baseAddress)
     // address, newest first.
     private async Task<IReadOnlyList<string>> MessageTextsAsync(string address, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient { BaseAddress = baseAddress };
-        var search = await client.GetFromJsonAsync<JsonElement>(
-            $"/api/v1/search?query={Uri.EscapeDataString($"to:\"{address}\"")}", cancellationToken);
+        var search = await Client.GetFromJsonAsync<JsonElement>(
+            new Uri(baseAddress, $"/api/v1/search?query={Uri.EscapeDataString($"to:\"{address}\"")}"), cancellationToken);
 
         var texts = new List<string>();
         foreach (var summary in search.GetProperty("messages").EnumerateArray())
         {
-            var message = await client.GetFromJsonAsync<JsonElement>(
-                $"/api/v1/message/{summary.GetProperty("ID").GetString()}", cancellationToken);
+            var message = await Client.GetFromJsonAsync<JsonElement>(
+                new Uri(baseAddress, $"/api/v1/message/{summary.GetProperty("ID").GetString()}"), cancellationToken);
             texts.Add(message.GetProperty("Text").GetString() ?? "");
         }
 
