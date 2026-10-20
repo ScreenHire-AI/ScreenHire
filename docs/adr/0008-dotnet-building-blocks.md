@@ -34,4 +34,4 @@ Packages outside the preferred licences, each limited to the scope stated. Anyth
 
 | Package | Licence | Scope | Why it is acceptable |
 |---|---|---|---|
-| `Deque.AxeCore.Commons` (axe-core), via `Deque.AxeCore.Playwright` (MIT) | MPL-2.0 | Test-only: `tests/ScreenHire.E2E` | File-level copyleft that applies only to changes to axe-core's own files, which we do not modify or ship; it never reaches a production artefact. Added 2026-10-20 with the test harness. |
+| `Deque.AxeCore.Commons` (axe-core), via `Deque.AxeCore.Playwright` (MIT) | MPL-2.0 | Test-only: `tests/ScreenHire.E2E` | The whole package is MPL-2.0 (Deque's .NET code and the bundled axe-core). Its copyleft is file-level: it applies only to modified versions of those files, which we neither modify nor ship; it never reaches a production artefact. Added 2026-10-20 with the test harness. |

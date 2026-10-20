@@ -77,7 +77,9 @@ The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 | `Built` | `preview` scripts over `pnpm -r build` output: what ships | `tests/ScreenHire.E2E` |
 | `None` | no JS apps; API, worker and infrastructure only | `tests/ScreenHire.IntegrationTests` |
 
-Every JS app has an HTTP health check, so the fixtures wait for servers that answer, never for a fixed delay.
+The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
+delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
+demo data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
 
 ### Test data: isolate by organization
 
@@ -90,7 +92,12 @@ There is no reset between tests and no Respawn. Instead:
 - **The seeded demo organization (`brightwater`) is read-only.** Assert on it (the end-to-end journeys do), never
   change it: other tests count its jobs.
 - `TestData` is the one place tests write to the database directly. When tenant isolation (row-level security) lands,
-  adapt it there rather than in each test.
+  adapt it there rather than in each test. Today it connects as Aspire's `postgres` superuser, which owns the tables
+  and so bypasses RLS. With RLS, `TestData` must write as the application's own role (not the owner, no
+  `BYPASSRLS`) with a transaction-local `set_config('app.tenant_id', …, true)`. Otherwise every test passes without
+  exercising RLS. Add an integration test that proves a cross-tenant read fails in the database itself.
+- **Authentication:** when sign-in lands, end-to-end tests sign in through the local mock OIDC server in the AppHost,
+  as a user does. Never add an auth bypass, test-only endpoint or anonymous policy to keep a test green.
 
 ### `E2EFixture` and `BrowserTest` (`tests/ScreenHire.E2E`)
 

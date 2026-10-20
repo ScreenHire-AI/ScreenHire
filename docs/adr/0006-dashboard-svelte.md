@@ -21,6 +21,11 @@ components, performance, dev loop), with Svelte winning the two stated prioritie
 ## Guardrails (because the owner can't yet review Svelte fluently)
 - `compilerOptions.runes: true` (legacy `export let` / `$:` fail to compile).
 - `svelte-check --fail-on-warnings` in CI; Vitest **browser-mode** component tests (catch runtime-only rune errors).
+  - *Deviation, 2026-10-20 (test harness):* component tests run on **jsdom** with @testing-library/svelte, as that
+    task's brief specified. They run the real Svelte 5 runtime, and the Playwright end-to-end tests render the
+    dashboard in Chromium, so runtime-only rune errors are still caught. Browser mode stays the target. Switch to it
+    when a component depends on real layout or browser APIs that jsdom lacks. It would bring npm Playwright's own
+    Chromium, separate from the one `pnpm e2e:install` provides.
 - Svelte MCP server + autofixer for AI-assisted development; SvelteKit 3 rules (`#lib`, no `$app/stores`, no
   `svelte.config.js`) written into `CLAUDE.md`.
 - Pin SvelteKit 3.1.x; candidate-facing questions use native controls.
