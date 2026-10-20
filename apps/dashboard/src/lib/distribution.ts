@@ -3,8 +3,11 @@ import { eta } from '#lib/format.js';
 
 /** A status mark's shape (design-system section 2.2): circle done, diamond waiting, square needs a person, ring none. */
 export type MarkShape = 'circle' | 'diamond' | 'square' | 'ring';
-/** Status tones, plus `primary` for marks that are not a status, such as the "New today" view. */
-export type MarkTone = 'clear' | 'review' | 'verify' | 'neutral' | 'primary';
+/**
+ * Status tones, plus `primary` for marks that are not a status, such as the "New today" view, and `ai` for AI
+ * assistance, which is information rather than a status (design-system section 2.2).
+ */
+export type MarkTone = 'clear' | 'review' | 'verify' | 'neutral' | 'primary' | 'ai';
 
 export interface PostingView {
   shape: MarkShape;

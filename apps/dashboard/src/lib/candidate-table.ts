@@ -1,11 +1,17 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
-import { createColumnHelper, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
+import { createColumnHelper, createSortedRowModel, rowSortingFeature, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
 
 /**
- * The candidate table's TanStack Table setup, shared with code that adds columns. The table is core-only: no sorting
- * or filtering features, because the page filters by stage and the API orders newest first.
+ * The candidate table's TanStack Table setup, shared with code that adds columns. It sorts (a column with an accessor
+ * and sorting left on gets a sort button in its header) but does not filter: pages filter the rows before the table
+ * sees them, by stage, saved view or integrity level, so counts and "select all" match what is shown. Without a sort,
+ * rows keep the API's order, newest first.
  */
-export const candidateTableFeatures = tableFeatures({});
+export const candidateTableFeatures = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { basic: sortFn_basic },
+});
 
 export type CandidateTableFeatures = typeof candidateTableFeatures;
 
@@ -14,10 +20,11 @@ export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSumma
 
 /**
  * Builds extra columns for the table's `extraColumns` slot, which sits between Stage and Source. The integrity columns
- * (authenticity level, AI assistance) go there:
+ * go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
+ * column that only draws something is a display column:
  *
  * ```ts
- * const integrity = candidateColumns.display({ id: 'authenticity', header: 'Authenticity', cell: ({ row }) => ... });
+ * const tags = candidateColumns.display({ id: 'tags', header: 'Tags', cell: ({ row }) => ... });
  * ```
  */
 export const candidateColumns = createColumnHelper<CandidateTableFeatures, ApplicationSummary>();

@@ -29,7 +29,7 @@ import {
   type FieldErrors,
   type Step,
 } from './apply';
-import { fileProblem, type UploadRef } from './files';
+import { fileProblem, type UploadRef } from '@screenhire/ui/questions/files';
 import { parseFingerprint, parseMarkers, parseSnapshot } from './telemetry';
 
 /** The honeypot: a field people never see or reach, so only a bot fills it in. Its name avoids anything autofill knows. */

@@ -1,0 +1,301 @@
+<script lang="ts">
+  import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
+  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
+  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import {
+    actionField,
+    actionFieldLabels,
+    actionLabels,
+    actionTypes,
+    emailTemplates,
+    errorsAt,
+    errorsUnder,
+    factsFor,
+    moveItem,
+    newAction,
+    newRule,
+    operatorLabels,
+    operatorsFor,
+    removeAt,
+    ruleOperand,
+    triggerLabels,
+    triggerNeedsStage,
+    triggerTypes,
+  } from '#lib/workflow.js';
+  import { checkboxClass, kickerClass, labelClass, selectClass } from './controls.js';
+  import FieldErrors from './field-errors.svelte';
+
+  // One automation: trigger, conditions, actions (workflow-engine.md §2). Every part shows the API validator's messages
+  // for its own path, so a guardrail refusal appears on the action it is about.
+  let {
+    automation = $bindable(),
+    index,
+    workflow,
+    errors,
+    onremove,
+  }: { automation: Automation; index: number; workflow: HiringWorkflow; errors: readonly DefinitionError[]; onremove: () => void } = $props();
+
+  const uid = $props.id();
+  const path = $derived(`automations[${index}]`);
+  const facts = $derived(factsFor(workflow));
+  const factOf = (fact: string) => facts.find((option) => option.fact === fact);
+  const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
+  const usesSignal = $derived(
+    automation.trigger.type === 'IntegrityAssessed' || (automation.conditions?.rules ?? []).some((rule) => factOf(rule.fact)?.signal),
+  );
+
+  function setTrigger(type: TriggerType) {
+    const stageId = triggerNeedsStage(type) ? (automation.trigger.stageId ?? workflow.stages[0]?.id ?? '') : undefined;
+    automation.trigger = { type, ...(stageId !== undefined && { stageId }), ...(type === 'TimeElapsed' && { afterHours: automation.trigger.afterHours ?? 48 }) };
+  }
+
+  function addRule() {
+    const rule = newRule(facts[0]!);
+    automation.conditions = automation.conditions
+      ? { ...automation.conditions, rules: [...automation.conditions.rules, rule] }
+      : { match: 'All', rules: [rule] };
+  }
+
+  function removeRule(ruleIndex: number) {
+    const rules = removeAt(automation.conditions?.rules ?? [], ruleIndex);
+    automation.conditions = rules.length > 0 ? { match: automation.conditions?.match ?? 'All', rules } : null;
+  }
+
+  function setFact(ruleIndex: number, fact: string) {
+    const option = factOf(fact);
+    if (option) automation.conditions!.rules[ruleIndex] = newRule(option);
+  }
+
+  function setOperator(ruleIndex: number, operator: ConditionOperator) {
+    const rule = automation.conditions!.rules[ruleIndex]!;
+    automation.conditions!.rules[ruleIndex] = { fact: rule.fact, operator, negate: rule.negate ?? false, ...ruleOperand(operator, factOf(rule.fact)) };
+  }
+
+  const describedBy = (...ids: (string | false)[]) => ids.filter(Boolean).join(' ') || undefined;
+</script>
+
+<article aria-labelledby={`${uid}-heading`} class="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5">
+  <div class="flex items-start justify-between gap-2">
+    <h3 id={`${uid}-heading`} class="font-bold">{automation.name || 'Untitled automation'}</h3>
+    <Button variant="ghost" size="sm" class="text-destructive" onclick={onremove}>
+      <Trash2Icon aria-hidden="true" />Remove <span class="sr-only">{automation.name}</span>
+    </Button>
+  </div>
+  <FieldErrors id={`${uid}-errors`} messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.actions`)]} />
+
+  <div class="grid gap-2.5 sm:grid-cols-[1fr_auto]">
+    <label class={labelClass}>
+      Name
+      <Input bind:value={automation.name} maxlength={120} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
+    </label>
+    <label class="flex items-center gap-2 self-end pb-1.5 text-[13px] font-semibold">
+      <input type="checkbox" class={checkboxClass} bind:checked={() => automation.enabled !== false, (on) => (automation.enabled = on)} />
+      On
+    </label>
+  </div>
+  <FieldErrors id={`${uid}-name-errors`} messages={errorsAt(errors, `${path}.name`)} />
+
+  <fieldset class="flex flex-col gap-2" aria-describedby={describedBy(errorsUnder(errors, `${path}.trigger`).length > 0 && `${uid}-trigger-errors`)}>
+    <legend class={kickerClass}>When</legend>
+    <div class="grid gap-2 sm:grid-cols-3">
+      <label class={labelClass}>
+        Trigger
+        <select class={selectClass} value={automation.trigger.type} onchange={(event) => setTrigger(event.currentTarget.value as TriggerType)}>
+          {#each triggerTypes as type (type)}<option value={type}>{triggerLabels[type]}</option>{/each}
+        </select>
+      </label>
+      {#if triggerNeedsStage(automation.trigger.type)}
+        <label class={labelClass}>
+          Stage
+          <select class={selectClass} bind:value={automation.trigger.stageId}>
+            {#each workflow.stages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+          </select>
+        </label>
+      {/if}
+      {#if automation.trigger.type === 'TimeElapsed'}
+        <label class={labelClass}>
+          After (hours)
+          <Input type="number" min={1} max={8760} bind:value={automation.trigger.afterHours} />
+        </label>
+      {/if}
+    </div>
+    <FieldErrors id={`${uid}-trigger-errors`} messages={errorsUnder(errors, `${path}.trigger`).map((error) => error.message)} />
+  </fieldset>
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class={kickerClass}>If</legend>
+    {#if automation.conditions}
+      <label class={[labelClass, 'max-w-60']}>
+        Match
+        <select class={selectClass} bind:value={automation.conditions.match}>
+          <option value="All">All of these hold</option>
+          <option value="Any">Any of these holds</option>
+        </select>
+      </label>
+      <ol class="flex flex-col gap-2">
+        {#each automation.conditions.rules as rule, ruleIndex (ruleIndex)}
+          {@const fact = factOf(rule.fact)}
+          {@const rulePath = `${path}.conditions.rules[${ruleIndex}]`}
+          {@const ruleErrors = errorsUnder(errors, rulePath).map((error) => error.message)}
+          <li class="flex flex-col gap-1.5 rounded-lg border border-border-subtle bg-muted/40 p-2.5">
+            <div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
+              <label class={labelClass}>
+                Fact <span class="sr-only">for condition {ruleIndex + 1}</span>
+                <select class={selectClass} value={rule.fact} onchange={(event) => setFact(ruleIndex, event.currentTarget.value)}>
+                  {#if !fact}<option value={rule.fact}>{rule.fact}</option>{/if}
+                  {#each facts as option (option.fact)}<option value={option.fact}>{option.label}</option>{/each}
+                </select>
+              </label>
+              <label class={labelClass}>
+                Test <span class="sr-only">for condition {ruleIndex + 1}</span>
+                <select class={selectClass} value={rule.operator} onchange={(event) => setOperator(ruleIndex, event.currentTarget.value as ConditionOperator)}>
+                  {#each fact ? operatorsFor(fact.type) : [rule.operator] as operator (operator)}<option value={operator}>{operatorLabels[operator]}</option>{/each}
+                </select>
+              </label>
+              {#if rule.operator === 'Exists'}
+                <span></span>
+              {:else if rule.operator === 'In'}
+                <label class={labelClass}>
+                  Values, separated by commas <span class="sr-only">for condition {ruleIndex + 1}</span>
+                  <Input
+                    value={(rule.values ?? []).join(', ')}
+                    onchange={(event) =>
+                      (rule.values = event.currentTarget.value
+                        .split(',')
+                        .map((value) => value.trim())
+                        .filter(Boolean))}
+                  />
+                </label>
+              {:else if fact?.values}
+                <label class={labelClass}>
+                  Value <span class="sr-only">for condition {ruleIndex + 1}</span>
+                  <select class={selectClass} bind:value={rule.value}>
+                    {#each fact.values as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+                  </select>
+                </label>
+              {:else}
+                <label class={labelClass}>
+                  Value <span class="sr-only">for condition {ruleIndex + 1}</span>
+                  <Input bind:value={rule.value} maxlength={200} />
+                </label>
+              {/if}
+              <label class="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold">
+                <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
+                Not
+              </label>
+              <Button variant="ghost" size="icon-sm" aria-label={`Remove condition ${ruleIndex + 1}`} onclick={() => removeRule(ruleIndex)}>
+                <Trash2Icon aria-hidden="true" />
+              </Button>
+            </div>
+            {#if fact?.signal}
+              <p class="text-[12px] text-muted-foreground">
+                An integrity signal can route a candidate for review: add a tag, assign a reviewer or move to a screening,
+                assessment, verification or interview stage. It never rejects anyone.
+              </p>
+            {/if}
+            <FieldErrors id={`${uid}-rule-${ruleIndex}-errors`} messages={ruleErrors} />
+          </li>
+        {/each}
+      </ol>
+    {:else}
+      <p class="text-[13px] text-muted-foreground">No conditions: it runs every time the trigger fires.</p>
+    {/if}
+    <FieldErrors
+      id={`${uid}-conditions-errors`}
+      messages={[...errorsAt(errors, `${path}.conditions`), ...errorsAt(errors, `${path}.conditions.match`), ...errorsAt(errors, `${path}.conditions.rules`)]}
+    />
+    <div><Button variant="outline" size="sm" onclick={addRule}>Add condition</Button></div>
+  </fieldset>
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class={kickerClass}>Then</legend>
+    <ol class="flex flex-col gap-2">
+      {#each automation.actions as action, actionIndex (actionIndex)}
+        {@const field = actionField[action.type]}
+        {@const actionPath = `${path}.actions[${actionIndex}]`}
+        {@const actionErrors = errorsUnder(errors, actionPath).map((error) => error.message)}
+        <li class="flex flex-col gap-1.5 rounded-lg border border-border-subtle bg-muted/40 p-2.5">
+          <div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
+            <label class={labelClass}>
+              Action {actionIndex + 1}
+              <select
+                class={selectClass}
+                value={action.type}
+                aria-invalid={actionErrors.length > 0 || undefined}
+                aria-describedby={describedBy(actionErrors.length > 0 && `${uid}-action-${actionIndex}-errors`)}
+                onchange={(event) => (automation.actions[actionIndex] = newAction(event.currentTarget.value as ActionType, workflow.stages))}
+              >
+                {#each actionTypes as type (type)}<option value={type}>{actionLabels[type]}</option>{/each}
+              </select>
+            </label>
+            {#if field === 'emailTemplate'}
+              <label class={labelClass}>
+                {actionFieldLabels[field]}
+                <select class={selectClass} bind:value={action.emailTemplate}>
+                  {#each emailTemplates as template (template.id)}<option value={template.id}>{template.label}</option>{/each}
+                </select>
+              </label>
+            {:else if field === 'stageId'}
+              <label class={labelClass}>
+                {actionFieldLabels[field]}
+                <select class={selectClass} bind:value={action.stageId}>
+                  {#each workflow.stages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+                </select>
+              </label>
+            {:else if field}
+              <label class={labelClass}>
+                {actionFieldLabels[field]}
+                <Input bind:value={() => action[field] ?? '', (value) => (action[field] = value)} maxlength={field === 'url' ? 2000 : 500} />
+              </label>
+            {:else}
+              <span></span>
+            {/if}
+            <div class="flex gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Move action ${actionIndex + 1} up`}
+                disabled={actionIndex === 0}
+                onclick={() => (automation.actions = moveItem(automation.actions, actionIndex, -1))}><ArrowUpIcon aria-hidden="true" /></Button
+              >
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Move action ${actionIndex + 1} down`}
+                disabled={actionIndex === automation.actions.length - 1}
+                onclick={() => (automation.actions = moveItem(automation.actions, actionIndex, 1))}><ArrowDownIcon aria-hidden="true" /></Button
+              >
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remove action ${actionIndex + 1}`}
+                onclick={() => (automation.actions = removeAt(automation.actions, actionIndex))}><Trash2Icon aria-hidden="true" /></Button
+              >
+            </div>
+          </div>
+          <FieldErrors id={`${uid}-action-${actionIndex}-errors`} messages={actionErrors} />
+        </li>
+      {/each}
+    </ol>
+    <div><Button variant="outline" size="sm" onclick={() => (automation.actions = [...automation.actions, newAction('AddTag')])}>Add action</Button></div>
+  </fieldset>
+
+  {#if rejects}
+    <div class="flex flex-col gap-1.5 rounded-lg border border-border bg-secondary/60 p-2.5">
+      <label class="flex items-center gap-2 text-[13px] font-semibold">
+        <input type="checkbox" class={checkboxClass} bind:checked={() => automation.allowAutoReject ?? false, (on) => (automation.allowAutoReject = on)} />
+        Reject without a person reviewing first
+      </label>
+      <p class="text-[12.5px] text-muted-foreground">
+        Only a knockout automation may reject: every condition must be a knockout question equal to its disqualifying answer.
+        The candidate is told the reason and that a person reviews the decision on request. Without this, use "Queue for
+        rejection review" so a person decides.
+        {#if usesSignal}Integrity signals never drive rejection.{/if}
+      </p>
+      <FieldErrors id={`${uid}-auto-reject-errors`} messages={errorsAt(errors, `${path}.allowAutoReject`)} />
+    </div>
+  {/if}
+</article>

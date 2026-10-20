@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
+  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
+  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import { createTable, FlexRender, renderSnippet } from '@tanstack/svelte-table';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { tick, type Snippet } from 'svelte';
@@ -49,7 +52,7 @@
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
     { id: 'candidate', header: 'Candidate', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
     ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
-    { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name },
+    { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false },
     ...extraColumns,
     { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     { id: 'applied', header: 'Applied', cell: ({ row }) => renderSnippet(appliedCell, row.original) },
@@ -211,15 +214,35 @@
         {#each table.getHeaderGroups() as group (group.id)}
           <tr>
             {#each group.headers as header (header.id)}
+              {@const sorted = header.column.getCanSort() ? header.column.getIsSorted() : false}
               <th
                 scope="col"
+                aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                 class={[
                   'border-b border-border-subtle px-3 py-2 font-mono text-[10.5px] font-medium tracking-[0.06em] whitespace-nowrap text-muted-foreground uppercase',
                   (header.id === 'select' || header.id === 'move') && 'w-10',
                   (header.id === 'applied' || header.id === 'move') && 'text-right',
                 ]}
               >
-                {#if !header.isPlaceholder}<FlexRender {header} />{/if}
+                {#if header.isPlaceholder}{:else if header.column.getCanSort()}
+                  <!-- Each press cycles the sort (the column says which way comes first), then back to the API's order. aria-sort on the header tells screen readers which way it is sorted. -->
+                  <button
+                    type="button"
+                    onclick={header.column.getToggleSortingHandler()}
+                    class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 uppercase hover:text-foreground"
+                  >
+                    <FlexRender {header} />
+                    {#if sorted === 'desc'}
+                      <ArrowDownIcon aria-hidden="true" class="size-3" />
+                    {:else if sorted === 'asc'}
+                      <ArrowUpIcon aria-hidden="true" class="size-3" />
+                    {:else}
+                      <ChevronsUpDownIcon aria-hidden="true" class="size-3 opacity-60" />
+                    {/if}
+                  </button>
+                {:else}
+                  <FlexRender {header} />
+                {/if}
               </th>
             {/each}
           </tr>

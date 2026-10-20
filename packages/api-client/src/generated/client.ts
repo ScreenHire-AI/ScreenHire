@@ -12,6 +12,7 @@ import type {
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
+  ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
   BoardSummary,
@@ -62,6 +63,7 @@ import type {
   UpdateHiringTemplateVersionRequest,
   UpdateIntegritySettingsRequest,
   UpdateJobRequest,
+  UpdateJobWorkflowRequest,
   UploadRequest,
   UploadTicket,
   UploadedFile,
@@ -1468,6 +1470,156 @@ export const getJobTemplateDiff = async (jobId: string, options?: Parameters<typ
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type updateJobWorkflowResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type updateJobWorkflowResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateJobWorkflowResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateJobWorkflowResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateJobWorkflowResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateJobWorkflowResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type updateJobWorkflowResponseSuccess = (updateJobWorkflowResponse200) & {
+  headers: Headers;
+};
+export type updateJobWorkflowResponseError = (updateJobWorkflowResponse400 | updateJobWorkflowResponse401 | updateJobWorkflowResponse403 | updateJobWorkflowResponse404 | updateJobWorkflowResponse409) & {
+  headers: Headers;
+};
+
+export type updateJobWorkflowResponse = (updateJobWorkflowResponseSuccess | updateJobWorkflowResponseError)
+
+export const getUpdateJobWorkflowUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/workflow`
+}
+
+export const updateJobWorkflow = async (jobId: string,
+    updateJobWorkflowRequest: UpdateJobWorkflowRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateJobWorkflowResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateJobWorkflowResponse>(getUpdateJobWorkflowUrl(jobId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateJobWorkflowRequest)
+  }
+);}
+
+
+
+export type applyJobTemplateUpdateResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type applyJobTemplateUpdateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type applyJobTemplateUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type applyJobTemplateUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type applyJobTemplateUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type applyJobTemplateUpdateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type applyJobTemplateUpdateResponseSuccess = (applyJobTemplateUpdateResponse200) & {
+  headers: Headers;
+};
+export type applyJobTemplateUpdateResponseError = (applyJobTemplateUpdateResponse400 | applyJobTemplateUpdateResponse401 | applyJobTemplateUpdateResponse403 | applyJobTemplateUpdateResponse404 | applyJobTemplateUpdateResponse409) & {
+  headers: Headers;
+};
+
+export type applyJobTemplateUpdateResponse = (applyJobTemplateUpdateResponseSuccess | applyJobTemplateUpdateResponseError)
+
+export const getApplyJobTemplateUpdateUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/workflow/apply-template-update`
+}
+
+export const applyJobTemplateUpdate = async (jobId: string,
+    applyTemplateUpdateRequest: ApplyTemplateUpdateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<applyJobTemplateUpdateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<applyJobTemplateUpdateResponse>(getApplyJobTemplateUpdateUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(applyTemplateUpdateRequest)
   }
 );}
 

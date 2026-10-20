@@ -54,6 +54,16 @@ internal static class JobEndpoints
         group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/workflow/template-diff", GetJobTemplateDiff).WithName("GetJobTemplateDiff")
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{jobId:guid}/workflow", UpdateJobWorkflow).WithName("UpdateJobWorkflow")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         return app;
     }
@@ -442,6 +452,142 @@ internal static class JobEndpoints
         return TypedResults.Ok(new JobTemplateDiff(
             templateId, sourceVersionId, sourceVersion, latest.Id, latest.Version, latest.Version > sourceVersion,
             WorkflowDiff.Compare(job.Workflow, latest.Definition.Workflow)));
+    }
+
+    // Tailors the job's own copy of its workflow (workflow-engine.md §1). Validated like a template, guardrails included,
+    // so a job can never hold a definition a template could not. It does not republish the job: the careers form reads
+    // the workflow live, and boards never see it.
+    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
+        Guid jobId,
+        UpdateJobWorkflowRequest request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        BoardRegistry boards,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (WorkflowConflict(job, request.ExpectedWorkflowVersion) is { } conflict)
+        {
+            return conflict;
+        }
+
+        if (DefinitionValidator.Validate(request.Workflow).ToProblems("workflow") is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        if (WorkflowDiff.Compare(job.Workflow, request.Workflow).Count == 0)
+        {
+            return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+        }
+
+        if (await OccupiedStagesProblemAsync(db, job, request.Workflow, cancellationToken) is { } occupied)
+        {
+            return occupied;
+        }
+
+        job.ReviseWorkflow(request.Workflow, time.GetUtcNow());
+        return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
+    }
+
+    // "Apply update": the job takes a published version of its source template, replacing its own edits as the diff
+    // showed. The version is validated again, because the rules may have tightened since it was published.
+    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyTemplateUpdate(
+        Guid jobId,
+        ApplyTemplateUpdateRequest request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        BoardRegistry boards,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (WorkflowConflict(job, request.ExpectedWorkflowVersion) is { } conflict)
+        {
+            return conflict;
+        }
+
+        var version = await db.HiringTemplateVersions.AsNoTracking()
+            .SingleOrDefaultAsync(v => v.Id == request.TemplateVersionId && v.Status == TemplateVersionStatus.Published, cancellationToken);
+        if (version is null || version.TemplateId != job.SourceTemplateId)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "templateVersionId", "No published version of this job's template has this id."));
+        }
+
+        if (DefinitionValidator.Validate(version.Definition.Workflow).ToProblems("workflow") is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        if (await OccupiedStagesProblemAsync(db, job, version.Definition.Workflow, cancellationToken) is { } occupied)
+        {
+            return occupied;
+        }
+
+        job.ApplyTemplateUpdate(version, time.GetUtcNow());
+        return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
+    }
+
+    private static ProblemHttpResult? WorkflowConflict(Job job, int expectedWorkflowVersion) =>
+        job.Status == JobStatus.Closed
+            ? TypedResults.Problem("A closed job cannot be changed; create a new job instead.", statusCode: StatusCodes.Status409Conflict)
+            : job.WorkflowVersion != expectedWorkflowVersion
+                ? TypedResults.Problem(
+                    $"Someone else saved this job's workflow (now version {job.WorkflowVersion}); reload it and make your change again.",
+                    statusCode: StatusCodes.Status409Conflict)
+                : null;
+
+    // An application must always be in a stage of its job's workflow, so a stage that holds any cannot be dropped. There
+    // is no stage mapping yet: the recruiter moves those candidates first.
+    private static async Task<ValidationProblem?> OccupiedStagesProblemAsync(
+        ScreenHireDbContext db, Job job, HiringWorkflow workflow, CancellationToken cancellationToken)
+    {
+        var kept = workflow.Stages.Select(s => s.Id).ToList();
+        var stranded = await db.Applications.AsNoTracking()
+            .Where(a => a.JobId == job.Id && !kept.Contains(a.CurrentStageId))
+            .GroupBy(a => a.CurrentStageId)
+            .Select(g => new { StageId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        if (stranded.Count == 0)
+        {
+            return null;
+        }
+
+        var messages = stranded
+            .OrderBy(s => s.StageId, StringComparer.Ordinal)
+            .Select(s => $"{job.Workflow.FindStage(s.StageId)?.Name ?? s.StageId} still has {s.Count} {(s.Count == 1 ? "candidate" : "candidates")}. " +
+                "Move them to another stage before removing it.")
+            .ToArray();
+        return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["workflow.stages"] = messages });
+    }
+
+    // The change and JobWorkflowChanged commit together, so open dashboards refetch the job's stages.
+    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> SaveWorkflowAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, BoardRegistry boards, Job job, CancellationToken cancellationToken)
+    {
+        await outbox.PublishAsync(new JobWorkflowChanged(job.OrganizationId, job.Id, job.WorkflowVersion, job.UpdatedAt!.Value));
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ChangedMeanwhile();
+        }
+
+        return TypedResults.Ok((await LoadDetailAsync(outbox.DbContext, boards, job.Id, cancellationToken))!);
     }
 
     /// <summary>

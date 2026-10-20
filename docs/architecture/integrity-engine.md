@@ -158,6 +158,20 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 - **Recruiter**: assessment chips on every candidate card (`Authenticity: Review suggested · 3 reasons`), a detail
   panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add note*.
   Every action is audit-logged. No "reject" button sits in the integrity panel.
+
+  Built in v1 (`apps/dashboard`): Authenticity and AI assist chip columns in every candidate table, sortable by level
+  and filterable from an "Integrity" menu; a job overview with a numeric legend (each entry filters the table) and an
+  `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
+  lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
+  page. The panel shows each assessment's summary, suggested next step, reasons (signals that count toward the level)
+  and context signals with their evidence drawn by kind (§10.1) and counter-evidence, the AI policy and the
+  candidate's declaration, any dismissal, and the review log. Its actions are *Dismiss with a reason* (per assessment
+  above the lowest level) and *Add note*; *Request verification* is shown disabled with the API's phase 2 reason. The
+  footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed` refetches the chips,
+  overview and panel live. AI chips use one colour and a ring mark, so they read as information; "Not indicated" is
+  neutral. While an integrity filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a
+  new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a filtered "select all" must not become
+  rejection driven by integrity signals. Moving one candidate stays a person's decision about that candidate.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
   page, and an **appeal / human-review request** flow (UK Art. 22C, CCPA ADMT, Colorado notices).
 
@@ -197,7 +211,8 @@ What is built, as of 2026-10-20. Code: `src/ScreenHire.Domain/Integrity` (signal
 `src/ScreenHire.Application/Integrity` (analyzers, pipeline, retention, synthetic applicants; content forensics in
 `Content/`), `src/ScreenHire.Infrastructure/Integrity` (local data sources; document extraction in `Documents/`, the
 model access in `Llm/`), `apps/api/Endpoints/IntegrityEndpoints.cs` (API), `packages/telemetry` and
-`apps/api/Endpoints/PublicTelemetryEndpoints.cs` (form telemetry).
+`apps/api/Endpoints/PublicTelemetryEndpoints.cs` (form telemetry),
+`apps/dashboard/src/lib/integrity.ts` and `apps/dashboard/src/lib/components/integrity-*.svelte` (dashboard, §7).
 
 ### 10.1 Signals and evidence
 
@@ -446,7 +461,11 @@ farm, all fictional. They are used three ways:
 - golden files in `tests/ScreenHire.UnitTests/Integrity/Golden`, run through the real analyzers and ruleset in memory.
   Rewrite them with `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"`
   and review the diff;
-- `IntegrityTests` (Aspire) submits them over HTTP and reads the assessments back through the API;
+- `IntegrityTests` (Aspire) submits them over HTTP and reads the assessments back through the API, and
+  `IntegrityPanelTests` (Playwright) submits them while a recruiter watches the job, then checks the chips, the panel
+  and a dismissal. Both submit through `SyntheticApplications.ApplyAsync` in `tests/ScreenHire.Testing`, which answers
+  only the resume question, so the plausible minimum time is 19 seconds and the farm members (20 seconds) carry no
+  `AUTO_SUBMIT_VELOCITY`, unlike their golden files;
 - with `pnpm dev` the API submits them to Brightwater's "Senior .NET Engineer" job once it has started
   (`SyntheticApplicantsDemo`, on when `ScreenHire:Demo:SyntheticApplicants` is true, which the AppHost sets only for
   the dev frontends), so the local demo shows every level. Skipped for applicants already there. The test stacks do

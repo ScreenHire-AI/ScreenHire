@@ -2,7 +2,8 @@
 // form definition, so they unit-test without a server. The API checks everything again on submission; these checks
 // give the candidate an answer at the step where they made the mistake.
 import type { AiUsePolicy, ApplicationAnswer, PublicApplicationRequest, PublicQuestion, TelemetrySnapshotInput } from '@screenhire/api-client';
-import { parseUploadRef, type UploadRef } from './files';
+import { parseUploadRef, type UploadRef } from '@screenhire/ui/questions/files';
+import { fieldId, fields, RESUME_QUESTION_ID } from '@screenhire/ui/questions/model';
 
 /**
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
@@ -10,8 +11,9 @@ import { parseUploadRef, type UploadRef } from './files';
  */
 export const NOTICE_VERSION = '2026-10-20.4';
 
-/** The form asks for a resume first, on the details step (the API's ApplicationForm.ResumeQuestionId). */
-export const RESUME_QUESTION_ID = 'resume';
+// Field names and ids come from the shared question components (packages/ui), which render the question fields; the
+// error summary's links depend on them matching. The form asks for the resume first, on the details step.
+export { fieldId, fields, RESUME_QUESTION_ID };
 
 export type Step = 'details' | 'questions' | 'review';
 
@@ -54,16 +56,6 @@ export const MAX_AI_DETAILS = 2000;
 /** The longest answer and the most choices the API takes (ApplicationForm.LongTextMaxLength, the request validator). */
 export const MAX_ANSWER = 5000;
 export const MAX_CHOICES = 50;
-
-/** Form field names. Question fields are prefixed so they can never clash with the fixed fields. */
-export const fields = {
-  answer: (questionId: string) => `q:${questionId}`,
-  file: (questionId: string) => `file:${questionId}`,
-  upload: (questionId: string) => `upload:${questionId}`,
-};
-
-/** The element id for a field name, for labels and the error summary's links. */
-export const fieldId = (name: string): string => `field-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
 export const emptyState = (startedAt = '', telemetrySession = ''): ApplyState => ({
   fullName: '',

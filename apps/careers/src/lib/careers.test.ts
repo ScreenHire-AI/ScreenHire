@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { brandStylesheet } from './brand';
-import { acceptedLabel, describeSize, fileProblem, parseUploadRef } from './files';
+import { acceptedLabel, describeSize, fileProblem, parseUploadRef } from '@screenhire/ui/questions/files';
 import { isFrameworkPath, tenantBase, tenantFromHost, tenantRoute } from './tenancy';
 
 describe('tenantFromHost', () => {

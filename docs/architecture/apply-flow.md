@@ -32,6 +32,13 @@ questions (resume first; knockouts and automations stay on the server), the AI-u
 challenge's site key. Every form asks for a resume: the questionnaire's own `resume` file question, or an optional one
 (`ApplicationForm.DefaultResumeQuestion`).
 
+The fields are the shared question components in `packages/ui/src/questions` (`TextField`, `ChoiceField`,
+`QuestionField`, `FileField`), the same Svelte components the dashboard's questionnaire builder previews, so the
+preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
+they ship no JavaScript; only file questions hydrate, as `FileField` islands. Their field names (`q:{id}`,
+`file:{id}`, `upload:{id}`) and element ids (`field-...`) come from `packages/ui/src/questions/model.ts`, which
+`src/lib/apply.ts` re-exports, so the error summary's links and the posted names cannot drift apart.
+
 ## 2. Notice before collection
 
 Browsing sets no cookies and runs no scripts beyond JSON-LD. The apply page shows the notice and the
@@ -75,8 +82,9 @@ through the API. The link writes its blob once and cannot replace it, so the fil
 3. `POST .../uploads/{uploadId}/verify`: the API finds the blob under the route's organization and job, checks its real
    size and that its first bytes match its extension, hashes it (SHA-256), and deletes it if it fails.
 
-With JavaScript, the `FileUpload` Svelte island does this from the browser through the careers `/uploads` endpoint
-(a bare `fetch`, which keeps the page under its ~20 KB JavaScript budget) and leaves only the upload id in the form.
+With JavaScript, the `FileField` Svelte island (`packages/ui/src/questions/FileField.svelte`) does this from the
+browser through the careers `/uploads` endpoint (a bare `fetch`, which keeps the page under its ~20 KB JavaScript
+budget) and leaves only the upload id in the form.
 Without JavaScript, the file posts with the step and the careers server does the same three calls. Either way the
 candidate hears about a wrong or oversized file at the step where they chose it. Submission checks every file again,
 stores an `ApplicationFile` per file and publishes one `ScanApplicationFile` message each; the worker's

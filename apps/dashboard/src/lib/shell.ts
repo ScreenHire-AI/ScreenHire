@@ -21,4 +21,5 @@ export const sections = [
     key: 'c',
     matches: (path: string) => path.startsWith('/candidates') || path.startsWith('/applications/'),
   },
+  { label: 'Templates', href: '/templates', key: 't', matches: (path: string) => path.startsWith('/templates') },
 ] as const;

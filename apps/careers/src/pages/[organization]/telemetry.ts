@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { sendPublicTelemetry } from '../../lib/api';
 import { forwardedFor } from '../../lib/apply-server';
-import { uuid } from '../../lib/files';
+import { uuid } from '@screenhire/ui/questions/files';
 import { organizationOf } from '../../lib/host';
 import { MAX_TELEMETRY_BYTES, parseSnapshot } from '../../lib/telemetry';
 

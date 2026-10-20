@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { checkUpload, forwardedFor, requestUpload } from '../../lib/apply-server';
-import { uuid } from '../../lib/files';
+import { uuid } from '@screenhire/ui/questions/files';
 import { organizationOf } from '../../lib/host';
 
 // The upload island's two calls: `start` gets a link to send a file straight to storage, `verify` has the API check the

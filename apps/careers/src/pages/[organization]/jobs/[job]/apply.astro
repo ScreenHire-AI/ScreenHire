@@ -1,15 +1,15 @@
 ---
 // The apply flow (docs/architecture/apply-flow.md): details, questions, review. Every step is a native form posted to
 // the `apply` action, which re-renders this page with the next step, so the whole flow works with JavaScript off. The
-// only island is the file upload, which sends files straight to storage when JavaScript runs. The one other script is
-// the telemetry module (packages/telemetry), which the page starts only when the assistive-technology switch is off.
+// only island is the file upload, which sends files straight to storage when JavaScript runs. Fields are the shared
+// question components (packages/ui), rendered here on the server only. The one other script is the telemetry module
+// (packages/telemetry), which the page starts only when the assistive-technology switch is off.
 import { actions } from 'astro:actions';
 import ErrorSummary from '../../../../components/ErrorSummary.astro';
 import JobUnavailable from '../../../../components/JobUnavailable.astro';
 import PrivacyNotice from '../../../../components/PrivacyNotice.astro';
 import QuestionField from '../../../../components/QuestionField.astro';
 import StepIndicator from '../../../../components/StepIndicator.astro';
-import TextField from '../../../../components/TextField.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { formatSalary, getPublicApplicationForm, getPublicOrganization, label } from '../../../../lib/api';
 import {
@@ -25,7 +25,7 @@ import {
   type ApplyState,
 } from '../../../../lib/apply';
 import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
-import { describeSize } from '../../../../lib/files';
+import { describeSize, TextField } from '@screenhire/ui/questions';
 import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;

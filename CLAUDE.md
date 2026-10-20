@@ -14,7 +14,7 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow ([`docs/architecture/apply-flow.md`](docs/architecture/apply-flow.md)) |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
-| `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |
+| `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts, and the candidate question components (`./questions`, `./questions.css`) shared by the careers apply page and the dashboard's questionnaire preview |
 | `packages/api-client` | Orval-generated TS fetch client, TanStack Query hooks (`./svelte-query`) and Zod schemas (do not edit `src/generated`) |
 | `packages/telemetry` | Framework-free form telemetry for the apply flow: per-field counts only (never key values, timings per key or content), automation markers, the device fingerprint, `sendBeacon` snapshots; under 5 KB brotli, checked by its `build` |
 | `packages/realtime` | SignalR client for live updates: reconnect and re-subscribe, a runes connection-state store, Zod schemas per tenant event (checked against `contract/events.json`), cache invalidation by event type |

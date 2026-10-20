@@ -1,0 +1,33 @@
+/*
+ * The candidate form controls the shared question components use (src/questions). Import after the theme, in every app
+ * that renders those components: the careers site and the dashboard's questionnaire preview. The @source line makes
+ * each app's Tailwind build scan the components, which live outside the app.
+ */
+@source "./questions";
+
+@layer components {
+  /* Inputs are 16px so phones do not zoom in, and at least 44px tall (design-system §4, §6). */
+  .field-input {
+    @apply min-h-12 w-full rounded-xl border border-candidate-input-border bg-candidate-surface px-3.5 text-[16px] text-candidate-foreground;
+  }
+
+  textarea.field-input {
+    @apply min-h-32 py-3 leading-relaxed;
+  }
+
+  .field-input[aria-invalid="true"] {
+    @apply border-2 border-destructive;
+  }
+
+  .file-input {
+    @apply w-full text-[15px] file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-[10px] file:border file:border-candidate-input-border file:bg-candidate-background file:px-4 file:font-bold file:text-candidate-foreground;
+  }
+
+  .choice {
+    @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-candidate-input-border bg-candidate-surface px-3.5 py-2;
+  }
+
+  .choice input {
+    @apply size-5 flex-none accent-candidate-cta;
+  }
+}

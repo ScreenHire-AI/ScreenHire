@@ -66,6 +66,8 @@ export const realtimeEventSchemas = {
     version: z.number().int(),
     jobVersionId: id.nullable(),
   }),
+  // A job's own workflow was edited or took a template update (workflow-engine.md §7): its stages may have changed.
+  JobWorkflowChanged: z.object({ organizationId: id, jobId: id, workflowVersion: z.number().int(), changedAt: instant }),
   LiveUpdatesChecked: z.object({ organizationId: id, checkId: id }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
 } as const;

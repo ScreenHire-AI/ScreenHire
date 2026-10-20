@@ -82,10 +82,30 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 - **Simulation**: "test this workflow" runs a sample application through the definition and shows which automations
   would fire — essential trust feature, cheap because evaluation is deterministic.
 
+What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`): one
+editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own copy, with four tabs.
+
+- **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
+  in a Sheet drawer. Automations whose trigger has no stage (an arriving application, the integrity checks, a manual
+  run) sit in a "Whole workflow" lane. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  and operators `FactSchema` allows.
+- **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): stages
+  along the top, one row per automation from trigger to conditions to actions, edges to the stages it fires on and
+  moves into. Nodes are not draggable or focusable; each automation node's Edit button opens its form.
+- **Questionnaire:** the question list beside a live preview rendered by the shared components in
+  `packages/ui/src/questions`, the ones the careers apply page renders. Marking a yes/no question as a knockout shows
+  what a knockout may be (an objective eligibility check, never AI use or an accommodation).
+- **Simulate:** a sample application's answers, tags, source, hours in stage and integrity levels through
+  `POST /v1/workflows/simulate`, unsaved changes included.
+
+Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
+its path names, so the guardrail refusal of an integrity-driven rejection appears on that action. A draft that does
+not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it.
+
 ## 5. API surface (public, same API the dashboard uses)
 
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
-- `POST /v1/jobs` (from template version), `PATCH /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
+- `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`
 - Webhooks: `application.submitted`, `application.stage_changed`, `integrity.assessed`, `automation.failed`, …
@@ -134,8 +154,17 @@ The data model and API from the jobs and templates task, and the engine that run
   (`copyFromVersionId`) to customise it.
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
-  template's newest published version, matching list elements by id. Applying an update (stage mapping) is not built
-  yet, and neither is editing a job's workflow, so `workflowVersion` stays 1.
+  template's newest published version, matching list elements by id.
+- **Tailoring a job:** `PUT /v1/jobs/{id}/workflow` replaces the job's copy with an edited one, and
+  `POST /v1/jobs/{id}/workflow/apply-template-update` replaces it with a published version of its source template
+  (which replaces the job's own edits too; the diff lists them). Both validate like a template save, refuse a closed
+  job (409), and take `expectedWorkflowVersion`, so a stale editor gets 409 rather than overwriting someone's change.
+  Each change adds one to the job's `workflowVersion` and raises `JobWorkflowChanged` through the outbox, so open
+  dashboards refetch the job; an editor with unsaved changes keeps them and says a newer version exists. Neither
+  republishes the job: the careers form reads the workflow live. There is no stage mapping yet. A change that drops a
+  stage still holding applications is refused (400 on `workflow.stages`, naming the stage) until someone moves those
+  candidates. The check reads the applications before the save and takes no lock, so an application that arrives in
+  or moves to that stage in between is not caught.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with
   `POST /v1/jobs/{jobId}/applications`; the careers apply flow is its own task.
@@ -226,6 +255,9 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - A manual run is keyed on the client's `Idempotency-Key` when it sends one (a version 8 UUID from SHA-256 of the
   application, the automation and the key), so a retried POST runs nothing twice. Without the header each request is
   its own run: one click, one intent.
+- A job's applications do not keep the workflow version they arrived under: the engine runs the job's current
+  workflow for all of them (section 3 says otherwise). An application keeps its `workflowVersion` as a record, and a
+  `Reject` whose run started before a workflow change falls back to a rejection review, as above.
 - Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
   either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
 

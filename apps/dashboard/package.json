@@ -32,6 +32,7 @@
     "@tanstack/svelte-virtual": "^3.13.47",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/svelte": "^5.4.2",
+    "@xyflow/svelte": "^1.7.0",
     "bits-ui": "^2.19.5",
     "clsx": "^2.1.1",
     "jsdom": "^30.1.3",

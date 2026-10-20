@@ -3,8 +3,10 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
+import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
 import { applications, now } from '../../test-support/fixtures.js';
+import { summary } from '../../test-support/integrity-fixtures.js';
 import ApplicationTable from './application-table.svelte';
 
 const headerTexts = () => screen.getAllByRole('columnheader').map((header) => header.textContent?.trim());
@@ -45,6 +47,35 @@ describe('candidate table', () => {
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'Source', 'Applied']);
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
+  });
+
+  it('shows the integrity chips and sorts by level, highest first, with pending rows last either way', async () => {
+    const rows = [
+      { ...applications[0]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
+      { ...applications[1]!, integrity: null },
+      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
+    ];
+    render(ApplicationTable, { props: { applications: rows, now, extraColumns: integrityColumns } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
+    const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
+
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'AI assist', 'Source', 'Applied']);
+    expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification recommended, 2 reasons')).toBeInTheDocument();
+    expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some indicators, 1 reason')).toBeInTheDocument();
+    expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();
+    expect(header()).not.toHaveAttribute('aria-sort');
+
+    await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
+    expect(header()).toHaveAttribute('aria-sort', 'descending');
+
+    await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    expect(names()).toEqual(['Casey Morgan', 'Sam Taylor', 'Jordan Lee']);
+    expect(header()).toHaveAttribute('aria-sort', 'ascending');
+
+    await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
+    expect(header()).not.toHaveAttribute('aria-sort');
   });
 
   it('moves the cursor with J and K, focusing and tinting the row', async () => {
