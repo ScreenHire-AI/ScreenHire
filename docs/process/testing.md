@@ -8,7 +8,7 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
 | .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails), pure API logic (mappings, validation, the workflow diff, sanitizing). The API grants it `InternalsVisibleTo`. | Nothing |
-| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `apps/careers` (`src/lib/format.ts`), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
+| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib/format.ts`), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
@@ -121,6 +121,14 @@ Messages cross processes, so these tests wait on Wolverine's tables in Postgres,
   other test waits on a stopped worker.
 
 What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
+
+### Real-time tests (`tests/ScreenHire.IntegrationTests/Realtime`)
+
+`EventsConnection` is the .NET SignalR client on the API's hub, signed in with an `ApiSession`'s cookie
+(`session.Cookies`). It records every event, `WaitForAsync` waits for one by type and id, and `ReceivedAnythingAbout`
+checks that another organization's connection got nothing. To make the real worker raise an event, put a message on
+its queue with `MessagingHost.StartPublisherToAppHostQueuesAsync`. What each test proves is in
+[`docs/architecture/realtime.md`](../architecture/realtime.md#tests).
 
 ### `E2EFixture` and `BrowserTest` (`tests/ScreenHire.E2E`)
 

@@ -29,6 +29,9 @@ public sealed class ApiSession : IDisposable
 
     public HttpClient Client { get; }
 
+    /// <summary>This session's cookies, for a client that is not an <see cref="HttpClient"/>, such as a SignalR connection.</summary>
+    public CookieContainer Cookies => cookies;
+
     /// <summary>Sends a JSON POST with the antiforgery header, fetching a token first if this session has none.</summary>
     public Task<HttpResponseMessage> PostAsync<T>(string path, T body, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Post, path, body, cancellationToken);

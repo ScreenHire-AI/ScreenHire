@@ -27,6 +27,13 @@ public static class DatabaseRegistration
     public const string MessagingSchema = "wolverine";
 
     /// <summary>
+    /// The Postgres schema for the API's own Wolverine storage: its outbox, the inbox of the real-time queue and its node
+    /// records. The API is a separate Wolverine cluster from the worker, so the two never assign agents to each other;
+    /// both use the queue tables in <see cref="MessagingSchema"/> (docs/architecture/realtime.md).
+    /// </summary>
+    public const string ApiMessagingSchema = "wolverine_api";
+
+    /// <summary>
     /// Registers <see cref="ScreenHireDbContext"/> on the application role with a scoped <see cref="TenantContext"/>,
     /// plus Aspire's health check and telemetry. The API and the worker both call this.
     /// </summary>

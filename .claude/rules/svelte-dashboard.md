@@ -27,8 +27,11 @@ new route is the `/add-dashboard-page` skill.
 - Call the API only through the generated functions in `@screenhire/api-client` (`listJobs()`). They return
   `{ data, status, headers }` and never throw on non-2xx, so check `status` and turn failures into
   `error(status, message)` from `@sveltejs/kit`.
-- The Vite dev server proxies `/v1` to the API, so the client uses relative URLs and stays same-origin for cookie
-  auth. Never hard-code an API host.
+- The Vite dev server proxies `/v1` to the API (WebSockets included, for the real-time hub), so the client uses
+  relative URLs and stays same-origin for cookie auth. Never hard-code an API host.
+- Live updates: the `(app)` shell holds the one hub connection (`#lib/realtime.ts`). A page whose data an event
+  changes declares `depends('api:<name>')` in its `load`, and `invalidations` in `#lib/realtime.ts` maps the event
+  to that key. Never open a second connection in a page. Procedure: `/add-realtime-event`.
 
 ## UI
 

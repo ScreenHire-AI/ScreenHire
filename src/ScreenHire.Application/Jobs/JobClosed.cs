@@ -5,7 +5,10 @@ using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Application.Jobs;
 
-/// <summary>A job closed: its careers page answers 410 Gone and job distribution tears its postings down.</summary>
+/// <summary>
+/// A job stopped taking applications. Published with the change, through the outbox. Job distribution will take its
+/// board postings down from here (docs/architecture/job-distribution.md); today the dashboard's jobs list refreshes on it.
+/// </summary>
 public sealed record JobClosed(Guid OrganizationId, Guid JobId, DateTimeOffset ClosedAt) : ITenantEvent;
 
 /// <summary>
