@@ -47,9 +47,13 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
   `Built` (production previews, used by the end-to-end tests) or `None` (used by the integration tests).
-- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and every
-  test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract` and
-  `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
+- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
+  marketing site's Lighthouse budgets and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
+  steps `verify:dotnet`, `verify:contract`, `verify:lighthouse` and `verify:test` run alone too). It is the only CI for
+  now; see the `/verify` skill.
+- Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
+  internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium.
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 

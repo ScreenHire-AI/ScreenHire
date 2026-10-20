@@ -8,7 +8,7 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
 | .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle), pure API logic (mappings, validation). The API grants it `InternalsVisibleTo`. | Nothing |
-| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `apps/careers` (`src/lib/format.ts`) | Frontend logic and component rendering with fixed data | Nothing |
+| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `apps/careers` (`src/lib/format.ts`), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
@@ -131,6 +131,24 @@ healthy, and launches one headless Chromium for the assembly. Test classes deriv
 Assert on what a person sees (headings, rows, cell text, links by accessible name) with Playwright's `Expect(...)`,
 which retries until its timeout. Status codes alone are not an end-to-end assertion.
 
+## Marketing site checks
+
+The marketing site's SEO and performance budgets (ADR-0003) are checked at three tiers:
+
+| Check | Where | Runs in |
+|---|---|---|
+| Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
+| At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse` |
+| Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
+
+`MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
+sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
+Playwright's Chromium, then an installed Chrome. Its simulated mobile numbers were identical to within 3 ms across
+two consecutive full runs (about 90 s each), which is why it is in the gate. Run a subset with
+`pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
+paths are rewritten into Windows paths.
+
 ## Flake policy
 
 A test that passes on a rerun with no change is a bug. Fix the cause: an unawaited task, a fixed delay, a shared
@@ -154,3 +172,6 @@ With messaging (2026-10-20, two consecutive passing runs): `pnpm verify` 79-83 s
 tests, of which integration is 19 tests in about 53 s. The longest is `RecurringMessageTests` (~33 s): Wolverine's recurring
 agent acts on a manual trigger on its next tick, and that interval is not configurable. It runs in parallel with the
 others, and the `WorkerLifecycle` collection runs alone after them.
+
+With the marketing site v1 on top of messaging (Lighthouse on 15 pages, 59 .NET tests, 73 Vitest tests), `pnpm verify`
+took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.

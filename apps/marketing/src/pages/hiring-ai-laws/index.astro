@@ -1,0 +1,62 @@
+---
+import { getCollection } from 'astro:content';
+import NotLegalAdvice from '../../components/NotLegalAdvice.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pages } from '../../lib/pages';
+import { absoluteUrl, formatDate } from '../../lib/seo';
+
+const { title, description, path, label } = pages.laws;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const laws = (await getCollection('laws')).sort((a, b) => a.data.order - b.data.order);
+
+const collectionPage = {
+  '@type': 'CollectionPage',
+  name: title,
+  description,
+  url: absoluteUrl(path, site),
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: laws.map((law, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: law.data.title,
+      url: absoluteUrl(`${path}${law.id}/`, site),
+    })),
+  },
+};
+---
+
+<BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]} jsonLd={[collectionPage]}>
+  <PageHeader
+    kicker="Hiring-AI law tracker"
+    title="The laws that govern AI in hiring."
+    lead="Plain-language summaries of the rules on automated tools in recruitment across the EU, the UK and the US, with key dates, sources and what is still unclear."
+  />
+
+  <div class="mx-auto max-w-6xl px-6">
+    <NotLegalAdvice />
+  </div>
+
+  <section aria-labelledby="laws-title" class="mx-auto max-w-6xl px-6 py-10">
+    <h2 id="laws-title" class="sr-only">Laws in the tracker</h2>
+    <ul class="grid gap-4 md:grid-cols-2">
+      {
+        laws.map((law) => (
+          <li class="flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
+            <span class="font-mono text-xs text-muted-foreground uppercase">{law.data.jurisdiction}</span>
+            <h3 class="font-display text-2xl leading-snug font-bold">
+              <a href={`${path}${law.id}/`} class="text-foreground no-underline hover:text-primary">
+                {law.data.title}
+              </a>
+            </h3>
+            <p class="text-secondary-foreground">{law.data.status}</p>
+            <p class="mt-auto font-mono text-xs text-muted-foreground">
+              LAST REVIEWED <time datetime={law.data.lastReviewed}>{formatDate(law.data.lastReviewed).toUpperCase()}</time>
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>

@@ -1,0 +1,79 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Faqs from '../../components/Faqs.astro';
+import NotLegalAdvice from '../../components/NotLegalAdvice.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import SourceList from '../../components/SourceList.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pages } from '../../lib/pages';
+import { article, faqPage, formatDate } from '../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const laws = await getCollection('laws');
+  return laws.map((law) => ({ params: { slug: law.id }, props: { law } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  law: CollectionEntry<'laws'>;
+}
+
+const { law } = Astro.props;
+const { Content } = await render(law);
+const site = Astro.site ?? new URL(Astro.url.origin);
+const path = `${pages.laws.path}${law.id}/`;
+const { title, description, faqs, published, lastReviewed } = law.data;
+
+const jsonLd = [
+  article({ type: 'Article', headline: title, description, path, datePublished: published, dateModified: lastReviewed }, site),
+  ...(faqs.length > 0 ? [faqPage(faqs)] : []),
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  ogType="article"
+  breadcrumbs={[
+    { name: pages.laws.label, path: pages.laws.path },
+    { name: law.data.name, path },
+  ]}
+  jsonLd={jsonLd}
+>
+  <PageHeader kicker={law.data.jurisdiction} title={title} lead={description}>
+    <p class="font-mono text-xs text-muted-foreground">
+      LAST REVIEWED <time datetime={lastReviewed}>{formatDate(lastReviewed).toUpperCase()}</time>
+    </p>
+  </PageHeader>
+
+  <div class="mx-auto grid max-w-6xl gap-10 px-6 pb-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <article class="prose">
+      <Content />
+    </article>
+    <aside aria-labelledby="dates-title" class="flex flex-col gap-4 self-start rounded-xl border border-border bg-card p-5">
+      <h2 id="dates-title" class="font-display text-xl font-bold">Key dates</h2>
+      <p class="text-sm font-semibold">{law.data.status}</p>
+      <ol class="flex flex-col gap-3">
+        {
+          law.data.keyDates.map((item) => (
+            <li class="flex flex-col gap-0.5 border-t border-border-subtle pt-3 text-sm">
+              <span class="font-mono text-xs text-muted-foreground uppercase">{item.date}</span>
+              <span class="text-secondary-foreground">{item.event}</span>
+            </li>
+          ))
+        }
+      </ol>
+    </aside>
+  </div>
+
+  <div class="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-6">
+    <NotLegalAdvice lastReviewed={lastReviewed} />
+    <SourceList sources={law.data.sources} />
+  </div>
+
+  {faqs.length > 0 && <Faqs faqs={faqs} />}
+
+  <nav aria-label="More from the tracker" class="mx-auto max-w-6xl px-6 pb-16">
+    <a href={pages.laws.path} class="font-semibold text-primary underline-offset-2 hover:underline">All laws in the tracker</a>
+  </nav>
+</BaseLayout>

@@ -1,0 +1,26 @@
+---
+// Visible questions and answers. Pages that render this also pass faqPage(faqs) as JSON-LD, so the structured data
+// always matches what a reader sees.
+import type { Faq } from '../lib/seo';
+
+interface Props {
+  faqs: Faq[];
+  title?: string;
+}
+
+const { faqs, title = 'Questions' } = Astro.props;
+---
+
+<section aria-labelledby="faq-title" class="mx-auto max-w-6xl px-6 py-12">
+  <h2 id="faq-title" class="font-display text-3xl font-bold tracking-tight">{title}</h2>
+  <dl class="mt-6 grid gap-x-10 gap-y-7 md:grid-cols-2">
+    {
+      faqs.map((faq) => (
+        <div class="flex flex-col gap-1.5">
+          <dt class="text-lg font-bold">{faq.question}</dt>
+          <dd class="text-secondary-foreground">{faq.answer}</dd>
+        </div>
+      ))
+    }
+  </dl>
+</section>

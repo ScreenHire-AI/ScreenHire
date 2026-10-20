@@ -1,0 +1,17 @@
+---
+// Cookieless, first-party analytics on marketing pages only, off by default. src/lib/analytics.ts decides whether
+// anything renders; careers and the dashboard never load analytics.
+import { PUBLIC_ANALYTICS, PUBLIC_ANALYTICS_SCRIPT_PATH, PUBLIC_ANALYTICS_SITE_ID } from 'astro:env/server';
+import { analyticsScript } from '../lib/analytics';
+
+const site = Astro.site ?? new URL(Astro.url.origin);
+const script = analyticsScript({
+  provider: PUBLIC_ANALYTICS,
+  scriptPath: PUBLIC_ANALYTICS_SCRIPT_PATH,
+  siteId: PUBLIC_ANALYTICS_SITE_ID,
+  siteHost: site.hostname,
+});
+---
+
+{/* data-analytics tells scripts/check-dist.mjs that the analytics instance, not the build, serves this file. */}
+{script && <script is:inline defer src={script.src} data-analytics {...script.attributes} />}

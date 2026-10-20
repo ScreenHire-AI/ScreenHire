@@ -1,63 +1,84 @@
 ---
+import { getCollection } from 'astro:content';
+import SampleIntegrityCard from '../components/SampleIntegrityCard.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { pages } from '../lib/pages';
+import { plans, pricedOffers, startingPrice } from '../lib/pricing';
+import { softwareApplication } from '../lib/seo';
 
-const title = 'ScreenHire — the hiring platform that knows who is really applying';
-const description =
-  'ScreenHire is an applicant tracking system for small teams that spots bots, impersonators and copy-paste applications — with plain-language evidence your team can read and a process candidates can trust.';
+const { title, description } = pages.home;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const laws = (await getCollection('laws')).sort((a, b) => a.data.order - b.data.order);
 
 const features = [
   {
     kicker: '01 · Integrity',
     title: 'Evidence, not verdicts',
-    body: "Every flag shows what was observed, why it matters and what counts in the candidate's favour — plus a suggested next step. Your team decides. Nothing is rejected automatically.",
+    body: "Every flag shows what was observed, why it matters and what counts in the candidate's favour. Your team decides. Integrity signals never reject anyone.",
   },
   {
     kicker: '02 · Distribution',
     title: 'Post everywhere. Remove everywhere.',
-    body: 'Publish to your careers page, Google for Jobs and job boards in one click — and take it all down in one click, with honest status for every board.',
+    body: 'Publish to your careers page, Google for Jobs and job boards in one click, and take it all down in one click, with honest status for every board.',
   },
   {
     kicker: '03 · Workflows',
     title: 'A workflow for every role',
-    body: 'Build hiring templates once — stages, screening questions, automations — then tailor them per job. Everything is available through our API.',
+    body: 'Build templates once, with stages, questions, automations and verification steps, then tailor them per job. Everything is available through our API.',
   },
 ];
 
-const laws = ['GDPR', 'UK GDPR', 'EU AI Act', 'NYC LL144', 'Illinois', 'Colorado', 'California ADMT'];
-
-const softwareApplication = {
-  '@type': 'SoftwareApplication',
-  name: 'ScreenHire',
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web',
-  description,
-};
+const steps = [
+  { title: 'Candidates apply in minutes', body: 'A fast, mobile-first page with a plain-language privacy note.' },
+  { title: 'Signals, gathered with notice', body: 'Network, identity, behaviour and content checks. Never emotion recognition, and no biometrics in this release.' },
+  { title: 'Your team decides', body: "Review evidence, ask for verification only when it's warranted, and keep a full audit trail." },
+];
 ---
 
-<BaseLayout title={title} description={description} jsonLd={[softwareApplication]}>
-  <section aria-labelledby="hero-title" class="mx-auto max-w-6xl px-6 pt-14 pb-16">
-    <p class="font-mono text-xs tracking-[0.1em] text-muted-foreground">APPLICANT INTEGRITY · APPLICANT TRACKING</p>
-    <h1 id="hero-title" class="mt-4 max-w-3xl font-display text-5xl leading-[0.98] font-extrabold tracking-[-0.035em] sm:text-7xl">
-      Know who's really applying.
-    </h1>
-    <p class="mt-5 max-w-xl text-xl leading-relaxed text-secondary-foreground">
-      ScreenHire is the hiring platform that spots bots, impersonators and copy-paste applications — with evidence your
-      team can read, and a process candidates can trust.
-    </p>
-    <div id="start" class="mt-7 flex flex-wrap gap-3">
-      <a href="#product" class="inline-flex h-13 items-center rounded-xl bg-primary px-6 text-[17px] font-bold text-primary-foreground no-underline">Start hiring free</a>
-      <a href="#integrity" class="inline-flex h-13 items-center rounded-xl border border-input bg-card px-6 text-[17px] font-bold text-foreground no-underline">See how detection works</a>
+<BaseLayout title={title} description={description} jsonLd={[softwareApplication(description, site, pricedOffers(plans))]}>
+  <section aria-labelledby="hero-title" class="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-6 pt-14 pb-16">
+    <div class="flex min-w-0 flex-1 basis-[480px] flex-col gap-5">
+      <p class="font-mono text-xs tracking-[0.1em] text-muted-foreground">APPLICANT INTEGRITY · APPLICANT TRACKING</p>
+      <h1 id="hero-title" class="font-display text-5xl leading-[0.98] font-extrabold tracking-[-0.035em] sm:text-[68px]">
+        Know who's really applying.
+      </h1>
+      <p class="max-w-xl text-xl leading-relaxed text-secondary-foreground">
+        ScreenHire is the hiring platform that spots bots, impersonators and copy-paste applications, with evidence your team
+        can read and a process candidates can trust.
+      </p>
+      <div class="mt-1 flex flex-wrap gap-3">
+        <a
+          href={pages.pricing.path}
+          class="inline-flex h-13 items-center rounded-xl bg-primary px-6 text-[17px] font-bold text-primary-foreground no-underline hover:bg-primary/90"
+          >Start hiring free</a
+        >
+        <a
+          href={pages.detection.path}
+          class="inline-flex h-13 items-center rounded-xl border border-input bg-card px-6 text-[17px] font-bold text-foreground no-underline hover:border-primary"
+          >See how detection works</a
+        >
+      </div>
+      <p class="flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-muted-foreground">
+        <span>NO CREDIT CARD</span><span>DESIGNED FOR GDPR &amp; THE EU AI ACT</span><span>EVIDENCE, NEVER AUTO-REJECTION ON INTEGRITY</span>
+      </p>
     </div>
-    <p class="mt-5 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-muted-foreground">
-      <span>NO CREDIT CARD</span><span>GDPR &amp; EU AI ACT READY</span><span>EVIDENCE, NEVER AUTO-REJECTION</span>
-    </p>
+    <SampleIntegrityCard />
   </section>
 
-  <section id="product" aria-labelledby="features-title" class="mx-auto max-w-6xl px-6 py-16">
+  <section aria-label="Our principle" class="bg-foreground text-background">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-6 gap-y-2 px-6 py-7">
+      <p class="flex-1 basis-[520px] font-display text-[30px] leading-tight font-bold tracking-[-0.015em]">
+        A person decides. Every flag arrives with its evidence, the counter-evidence and a suggested next step.
+      </p>
+      <a href={pages.detection.path} class="font-mono text-xs text-background underline-offset-4 hover:underline">HOW DETECTION WORKS</a>
+    </div>
+  </section>
+
+  <section aria-labelledby="features-title" class="mx-auto flex max-w-6xl flex-col gap-8 px-6 pt-18 pb-10">
     <h2 id="features-title" class="max-w-2xl font-display text-4xl leading-tight font-bold tracking-tight">
       Everything a small team needs to hire real people, fast.
     </h2>
-    <div class="mt-8 grid gap-4 md:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-3">
       {
         features.map((feature) => (
           <article class="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-6">
@@ -70,22 +91,67 @@ const softwareApplication = {
     </div>
   </section>
 
-  <section id="integrity" aria-labelledby="integrity-title" class="mx-auto max-w-6xl px-6 py-12">
-    <h2 id="integrity-title" class="font-display text-3xl font-bold tracking-tight">Fair to candidates. Clear for recruiters.</h2>
-    <p class="mt-3 max-w-2xl text-secondary-foreground">
-      Candidates see exactly what we look at before they start — and can switch off typing signals if they use assistive
-      technology. Recruiters get reasons and a suggested next step, not a black-box score.
-    </p>
+  <section aria-labelledby="how-title" class="mx-auto flex max-w-6xl flex-wrap gap-8 px-6 pt-8 pb-14">
+    <div class="flex flex-1 basis-[320px] flex-col gap-3">
+      <h2 id="how-title" class="font-display text-[34px] leading-tight font-bold tracking-tight">Fair to candidates. Clear for recruiters.</h2>
+      <p class="text-secondary-foreground">
+        Candidates see exactly what we look at before they start, and can switch off typing signals if they use assistive
+        technology. Recruiters get reasons, not scores.
+      </p>
+    </div>
+    <ol class="grid flex-2 basis-[560px] gap-4 sm:grid-cols-3">
+      {
+        steps.map((step, index) => (
+          <li class="flex flex-col gap-1.5 border-t-2 border-foreground pt-3">
+            <span class="font-mono text-xs text-muted-foreground">STEP 0{index + 1}</span>
+            <span class="text-lg font-bold">{step.title}</span>
+            <span class="text-[15px] text-secondary-foreground">{step.body}</span>
+          </li>
+        ))
+      }
+    </ol>
   </section>
 
-  <section id="compliance" aria-labelledby="law-title" class="mx-auto mb-16 max-w-6xl px-6">
+  <section aria-labelledby="law-title" class="mx-auto mb-16 max-w-6xl px-6">
     <div class="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-border bg-card p-7">
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-1 basis-[420px] flex-col gap-2.5">
         <h2 id="law-title" class="font-display text-3xl font-bold tracking-tight">Built for the laws you hire under</h2>
-        <ul class="flex flex-wrap gap-1.5" aria-label="Regulations covered">
-          {laws.map((law) => <li class="rounded-full bg-secondary px-2.5 py-1 font-mono text-xs uppercase">{law}</li>)}
+        <ul class="flex flex-wrap gap-1.5" aria-label="Laws in the tracker">
+          {
+            laws.map((law) => (
+              <li>
+                <a
+                  href={`${pages.laws.path}${law.id}/`}
+                  class="inline-block rounded-full bg-secondary px-2.5 py-1 font-mono text-xs text-secondary-foreground uppercase no-underline hover:text-primary"
+                >
+                  {law.data.name}
+                </a>
+              </li>
+            ))
+          }
         </ul>
       </div>
+      <a
+        href={pages.laws.path}
+        class="inline-flex h-12 items-center rounded-xl border border-input px-5 font-bold text-foreground no-underline hover:border-primary"
+        >Read the hiring-AI law tracker</a
+      >
+    </div>
+  </section>
+
+  <section aria-labelledby="price-title" class="border-y border-candidate-border bg-candidate-background">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-6 py-12">
+      <div class="flex flex-col gap-1.5">
+        <h2 id="price-title" class="font-display text-[34px] leading-tight font-bold tracking-tight text-candidate-foreground">
+          Simple pricing for small teams.
+        </h2>
+        <p class="text-lg text-candidate-muted-foreground">From {startingPrice(plans)} a month. Unlimited users.</p>
+      </div>
+      <a
+        href={pages.pricing.path}
+        class="inline-flex h-13 items-center rounded-xl bg-candidate-cta px-6 text-[17px] font-bold text-candidate-cta-foreground no-underline"
+        >See pricing</a
+      >
     </div>
   </section>
 </BaseLayout>

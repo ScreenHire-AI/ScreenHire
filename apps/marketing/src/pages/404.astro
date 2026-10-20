@@ -1,0 +1,31 @@
+---
+import PageHeader from '../components/PageHeader.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { mainNav, notFound } from '../lib/pages';
+---
+
+<BaseLayout title={notFound.title} description={notFound.description} noindex>
+  <PageHeader kicker="404 · Page not found" title="We couldn't find that page." lead={notFound.description} />
+  <section aria-labelledby="try-title" class="mx-auto max-w-6xl px-6 pb-16">
+    <h2 id="try-title" class="font-display text-2xl font-bold tracking-tight">Try one of these</h2>
+    <ul class="mt-4 flex flex-wrap gap-2">
+      <li>
+        <a href="/" class="inline-block rounded-full border border-input bg-card px-3 py-1.5 font-semibold text-foreground no-underline hover:border-primary"
+          >Home</a
+        >
+      </li>
+      {
+        mainNav.map((page) => (
+          <li>
+            <a
+              href={page.path}
+              class="inline-block rounded-full border border-input bg-card px-3 py-1.5 font-semibold text-foreground no-underline hover:border-primary"
+            >
+              {page.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>

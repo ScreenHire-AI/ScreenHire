@@ -1,0 +1,27 @@
+---
+// Shown on every law tracker page (brief: a clear "not legal advice" note).
+import { formatDate } from '../lib/seo';
+
+interface Props {
+  lastReviewed?: string;
+}
+
+const { lastReviewed } = Astro.props;
+---
+
+<aside aria-label="Not legal advice" class="flex flex-col gap-1 rounded-xl border border-input bg-secondary px-5 py-4 text-secondary-foreground">
+  <p class="flex items-center gap-2 font-bold">
+    Not legal advice
+  </p>
+  <p class="text-[15px]">
+    This is a plain-language summary to help you ask the right questions. It is not legal advice and may be out of date.
+    Check the sources and talk to a lawyer about your own situation.{
+      lastReviewed && (
+        <>
+          {' '}
+          Last reviewed <time datetime={lastReviewed}>{formatDate(lastReviewed)}</time>.
+        </>
+      )
+    }
+  </p>
+</aside>
