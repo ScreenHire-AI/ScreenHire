@@ -131,6 +131,21 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
     }
 
     /// <summary>
+    /// Local development only (the synthetic-applicant demo): stores <paramref name="content"/> as a new upload for
+    /// <paramref name="question"/> and checks it exactly as a candidate's upload is checked.
+    /// </summary>
+    public async Task<VerifiedUpload> StoreDevelopmentFileAsync(
+        Guid organizationId, Guid jobId, Question question, string fileName, byte[] content, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(question);
+        var uploadId = Guid.NewGuid();
+        var blob = Container.GetBlobClient(Prefix(organizationId, jobId, question.Id, uploadId) + (FileTypes.SafeFileName(fileName) ?? "file.pdf"));
+        await blob.UploadAsync(new BinaryData(content), cancellationToken);
+        var check = await CheckAsync(organizationId, jobId, question, uploadId, cancellationToken);
+        return check.Upload ?? throw new InvalidOperationException($"The demo file {fileName} failed the upload checks: {check.Problem}");
+    }
+
+    /// <summary>
     /// Local development and tests only: creates the container and lets browsers upload to the emulator from any origin
     /// (the upload link is the credential). A real storage account gets both from its deployment.
     /// </summary>

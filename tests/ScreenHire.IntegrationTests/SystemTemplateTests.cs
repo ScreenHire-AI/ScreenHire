@@ -8,19 +8,20 @@ namespace ScreenHire.IntegrationTests;
 /// <summary>The system templates the migration ships are valid under today's rules, and jobs can be made from them and published.</summary>
 public sealed class SystemTemplateTests(AppHostFixture fixture)
 {
-    public static TheoryData<Guid, Guid, string> Templates => new()
+    public static TheoryData<Guid, Guid, int, string> Templates => new()
     {
-        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion1, "Software engineer" },
-        { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, "Hourly role" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion1, 1, "Software engineer" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion2, 2, "Software engineer" },
+        { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, 1, "Hourly role" },
     };
 
     [Theory]
     [MemberData(nameof(Templates))]
-    public async Task A_system_template_version_deserializes_and_passes_the_definition_validator(Guid templateId, Guid versionId, string name)
+    public async Task A_system_template_version_deserializes_and_passes_the_definition_validator(Guid templateId, Guid versionId, int number, string name)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
 
-        var version = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/1")).Expect(HttpStatusCode.OK);
+        var version = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{number}")).Expect(HttpStatusCode.OK);
         var definition = JsonSerializer.Deserialize<HiringTemplateDefinition>(version.At("definition").GetRawText(), JsonColumns.SerializerOptions);
 
         version.Id().Should().Be(versionId);
@@ -33,7 +34,7 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
 
     [Theory]
     [MemberData(nameof(Templates))]
-    public async Task A_job_made_from_a_system_template_can_be_published_once_it_has_a_place(Guid templateId, Guid versionId, string name)
+    public async Task A_job_made_from_a_system_template_can_be_published_once_it_has_a_place(Guid templateId, Guid versionId, int number, string name)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var body = new JsonObject
@@ -48,6 +49,7 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         var published = await recruiter.PublishJobAsync(job.Id());
 
         job.Text("template.templateId").Should().Be(templateId.ToString());
+        job.At("template.version").GetInt32().Should().Be(number);
         published.Text("status").Should().Be("Open");
         published.At("validThrough").ValueKind.Should().Be(JsonValueKind.String, "both templates set a posting duration");
         published.At("hasUnpublishedChanges").GetBoolean().Should().BeFalse("the job still equals the version just frozen");

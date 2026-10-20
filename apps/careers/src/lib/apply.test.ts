@@ -73,6 +73,12 @@ describe('parseState', () => {
     expect(parseState(JSON.stringify(state))).toEqual(state);
   });
 
+  it('keeps a start time only when it is an ISO instant', () => {
+    expect(parseState(JSON.stringify({ startedAt: '2026-10-20T09:00:00.000Z' })).startedAt).toBe('2026-10-20T09:00:00.000Z');
+    expect(parseState(JSON.stringify({ startedAt: 'yesterday' })).startedAt).toBe('');
+    expect(parseState(JSON.stringify({ startedAt: 1760950800000 })).startedAt).toBe('');
+  });
+
   it('falls back to empty for anything malformed, and drops bad uploads', () => {
     expect(parseState('{not json')).toEqual(emptyState());
     expect(parseState(null)).toEqual(emptyState());
@@ -167,9 +173,10 @@ describe('toRequest', () => {
       files: { resume: upload },
       aiUseDeclaration: 'Used' as const,
       aiUseDetails: 'Grammar',
+      startedAt: '2026-10-20T09:00:00.000Z',
     };
 
-    expect(toRequest(state, questions, { honeypotFilled: true, botCheckToken: null })).toEqual({
+    expect(toRequest(state, questions, { honeypotFilled: true, botCheckToken: null, userAgent: 'Mozilla/5.0 (Example)' })).toEqual({
       candidate: { fullName: 'Casey Morgan', email: 'casey@example.com', phone: null },
       privacyNoticeVersion: NOTICE_VERSION,
       answers: [
@@ -182,7 +189,16 @@ describe('toRequest', () => {
       aiUseDetails: 'Grammar',
       honeypotFilled: true,
       botCheckToken: null,
+      userAgent: 'Mozilla/5.0 (Example)',
+      formStartedAt: '2026-10-20T09:00:00.000Z',
     });
+  });
+
+  it('sends no session context it does not have', () => {
+    const request = toRequest(emptyState(), [resume], { honeypotFilled: false, botCheckToken: null });
+
+    expect(request.userAgent).toBeNull();
+    expect(request.formStartedAt).toBeNull();
   });
 });
 

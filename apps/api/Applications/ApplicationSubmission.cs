@@ -3,7 +3,9 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine.EntityFrameworkCore;
 
@@ -12,8 +14,9 @@ namespace ScreenHire.Api.Applications;
 /// <summary>
 /// Creates an application, for a recruiter adding one by hand and for a candidate applying on the careers page. The
 /// candidate is found by email within the job's organization, or created. The application starts in the job's first
-/// stage; its Submitted timeline event, its files, <see cref="ApplicationSubmitted"/> and one
-/// <see cref="ScanApplicationFile"/> per file commit together through the outbox.
+/// stage; its Submitted timeline event, its files, the careers form's raw network and session data
+/// (<see cref="SubmissionObservation"/>), <see cref="ApplicationSubmitted"/> and one <see cref="ScanApplicationFile"/> per
+/// file commit together through the outbox.
 /// </summary>
 internal static class ApplicationSubmission
 {
@@ -31,7 +34,9 @@ internal static class ApplicationSubmission
         IReadOnlyList<VerifiedUpload> files,
         DateTimeOffset now,
         Guid? actorUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SubmissionSession? session = null,
+        IntegrityOptions? integrity = null)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
@@ -51,6 +56,11 @@ internal static class ApplicationSubmission
             now, actorUserId, intake);
         db.Applications.Add(application);
         db.ApplicationEvents.Add(submitted);
+        if (session is not null && application.Source == ApplicationSource.CareersSite)
+        {
+            db.SubmissionObservations.Add(session.ToObservation(application, integrity ?? new IntegrityOptions(), now));
+        }
+
         await outbox.PublishAsync(new ApplicationSubmitted(
             application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now));
 
@@ -92,3 +102,43 @@ internal static class ApplicationSubmission
 
 /// <summary>What the candidate told us about themselves: the assistive-technology switch and their AI-use answer.</summary>
 internal sealed record ApplicationDeclarations(bool AccommodationRequested, AiUseDeclaration AiUseDeclaration, string? AiUseDetails);
+
+/// <summary>
+/// What the careers form's submission arrived with, for the integrity engine: the candidate's address and browser, the
+/// device fingerprint, when the form was first shown and the automation markers the page reported. Only for careers-site
+/// applications, collected after the notice (CLAUDE.md non-negotiable 4).
+/// </summary>
+internal sealed record SubmissionSession(
+    string? IpAddress, string? UserAgent, string? DeviceFingerprint, DateTimeOffset? FormStartedAt, IReadOnlyList<string>? AutomationMarkers)
+{
+    /// <summary>
+    /// The row to store. The fingerprint is hashed with the organization's salt and never stored as sent; without a
+    /// device key it is dropped. The start time is dropped with an accommodation, and when it is in the future or more
+    /// than 30 days old.
+    /// </summary>
+    public SubmissionObservation ToObservation(JobApplication application, IntegrityOptions options, DateTimeOffset now)
+    {
+        var key = KeyedHashing.ParseKey(options.DeviceHashKey);
+        var markers = (AutomationMarkers ?? [])
+            .Select(m => m.Trim().ToLowerInvariant())
+            .Where(m => m.Length is > 0 and <= SubmissionObservation.MaxMarkerLength && m.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))
+            .Distinct(StringComparer.Ordinal)
+            .Take(SubmissionObservation.MaxMarkers)
+            .ToList();
+        return new SubmissionObservation
+        {
+            OrganizationId = application.OrganizationId,
+            ApplicationId = application.Id,
+            IpAddress = IpAddress,
+            UserAgent = UserAgent is { Length: > 0 } agent ? agent[..Math.Min(agent.Length, SubmissionObservation.MaxUserAgentLength)] : null,
+            DeviceHash = key is null ? null : KeyedHashing.DeviceHash(key, application.OrganizationId, DeviceFingerprint),
+            // Timing is never collected with the assistive-technology switch on (CLAUDE.md non-negotiable 4).
+            FormStartedAt = !application.AccommodationRequested && FormStartedAt is { } started && started <= now && started > now - TimeSpan.FromDays(30)
+                ? started.ToUniversalTime().ToDatabasePrecision()
+                : null,
+            AutomationMarkers = markers,
+            ObservedAt = now,
+            ExpiresAt = now + TimeSpan.FromDays(options.Retention.RawNetworkDays), // 1 to 30, checked at startup (RetentionLimit)
+        };
+    }
+}

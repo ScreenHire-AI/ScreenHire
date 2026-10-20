@@ -5,8 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AddIntegrityNoteRequest,
   ApiMeta,
   ApplicationDetail,
+  ApplicationIntegrity,
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
@@ -21,6 +23,7 @@ import type {
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
   CurrentUser,
+  DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -2238,6 +2241,241 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getApplicationIntegrityResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type getApplicationIntegrityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationIntegrityResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationIntegrityResponseSuccess = (getApplicationIntegrityResponse200) & {
+  headers: Headers;
+};
+export type getApplicationIntegrityResponseError = (getApplicationIntegrityResponse401 | getApplicationIntegrityResponse404) & {
+  headers: Headers;
+};
+
+export type getApplicationIntegrityResponse = (getApplicationIntegrityResponseSuccess | getApplicationIntegrityResponseError)
+
+export const getGetApplicationIntegrityUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity`
+}
+
+export const getApplicationIntegrity = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationIntegrityResponse> => {
+
+  return apiFetch<getApplicationIntegrityResponse>(getGetApplicationIntegrityUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type dismissIntegrityAssessmentResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type dismissIntegrityAssessmentResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type dismissIntegrityAssessmentResponse401 = {
+  data: void
+  status: 401
+}
+
+export type dismissIntegrityAssessmentResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type dismissIntegrityAssessmentResponse404 = {
+  data: void
+  status: 404
+}
+
+export type dismissIntegrityAssessmentResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type dismissIntegrityAssessmentResponseSuccess = (dismissIntegrityAssessmentResponse200) & {
+  headers: Headers;
+};
+export type dismissIntegrityAssessmentResponseError = (dismissIntegrityAssessmentResponse400 | dismissIntegrityAssessmentResponse401 | dismissIntegrityAssessmentResponse403 | dismissIntegrityAssessmentResponse404 | dismissIntegrityAssessmentResponse409) & {
+  headers: Headers;
+};
+
+export type dismissIntegrityAssessmentResponse = (dismissIntegrityAssessmentResponseSuccess | dismissIntegrityAssessmentResponseError)
+
+export const getDismissIntegrityAssessmentUrl = (applicationId: string,
+    assessmentId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/dismiss`
+}
+
+export const dismissIntegrityAssessment = async (applicationId: string,
+    assessmentId: string,
+    dismissIntegrityAssessmentRequest: DismissIntegrityAssessmentRequest, options?: Parameters<typeof apiFetch>[1]): Promise<dismissIntegrityAssessmentResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<dismissIntegrityAssessmentResponse>(getDismissIntegrityAssessmentUrl(applicationId,assessmentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(dismissIntegrityAssessmentRequest)
+  }
+);}
+
+
+
+export type addIntegrityNoteResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type addIntegrityNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addIntegrityNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addIntegrityNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addIntegrityNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addIntegrityNoteResponseSuccess = (addIntegrityNoteResponse200) & {
+  headers: Headers;
+};
+export type addIntegrityNoteResponseError = (addIntegrityNoteResponse400 | addIntegrityNoteResponse401 | addIntegrityNoteResponse403 | addIntegrityNoteResponse404) & {
+  headers: Headers;
+};
+
+export type addIntegrityNoteResponse = (addIntegrityNoteResponseSuccess | addIntegrityNoteResponseError)
+
+export const getAddIntegrityNoteUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/notes`
+}
+
+export const addIntegrityNote = async (applicationId: string,
+    addIntegrityNoteRequest: AddIntegrityNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addIntegrityNoteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<addIntegrityNoteResponse>(getAddIntegrityNoteUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addIntegrityNoteRequest)
+  }
+);}
+
+
+
+export type requestIdentityVerificationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type requestIdentityVerificationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestIdentityVerificationResponse404 = {
+  data: void
+  status: 404
+}
+
+;
+export type requestIdentityVerificationResponseError = (requestIdentityVerificationResponse401 | requestIdentityVerificationResponse403 | requestIdentityVerificationResponse404) & {
+  headers: Headers;
+};
+
+export type requestIdentityVerificationResponse = (requestIdentityVerificationResponseError)
+
+export const getRequestIdentityVerificationUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/request-verification`
+}
+
+export const requestIdentityVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<requestIdentityVerificationResponse> => {
+
+  return apiFetch<requestIdentityVerificationResponse>(getRequestIdentityVerificationUrl(applicationId),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

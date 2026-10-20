@@ -17,10 +17,12 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var byName = Enumerable.Range(0, 2).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
         byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role");
         byName["Software engineer"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.SoftwareEngineer);
-        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion1);
+        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion2);
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
         byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion1);
-        byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean() && t.GetProperty("latestPublishedVersion").GetInt32() == 1);
+        byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
+        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(2);
+        byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(1);
     }
 
     [Fact]
@@ -219,7 +221,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         publish.Expect(HttpStatusCode.Conflict);
         var after = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}");
         after.Text("name").Should().Be("Software engineer");
-        after.Count("versions").Should().Be(1);
+        after.Count("versions").Should().Be(2, "version 1 and the version 2 a later migration shipped");
     }
 
     [Fact]

@@ -1,0 +1,174 @@
+{
+  "applicant": "bot",
+  "rulesetVersion": "2026-10-20.2",
+  "authenticity": {
+    "level": "VerificationRecommended",
+    "reasonCodes": [
+      "AUTO_HONEYPOT",
+      "AUTO_SUBMIT_VELOCITY",
+      "AUTO_WEBDRIVER",
+      "ID_EMAIL_DISPOSABLE",
+      "ID_PHONE_INVALID",
+      "NET_DATACENTER_IP"
+    ],
+    "appliedRules": [],
+    "summary": "6 observations from network, identity and automation checks back each other up: hidden field filled in; completed faster than a person could; browser automation detected; throwaway email address; phone number is not a valid number; sent from a hosting provider's network.",
+    "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
+    "signals": [
+      {
+        "code": "AUTO_HONEYPOT",
+        "category": "Automation",
+        "weight": "Medium",
+        "confidence": "High",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": true,
+        "source": "automation@1",
+        "explanation": "A form field hidden from people was filled in. Automated software usually does this; some autofill tools can too.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Hidden field",
+            "value": "Filled in"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "AUTO_SUBMIT_VELOCITY",
+        "category": "Automation",
+        "weight": "Medium",
+        "confidence": "Medium",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": true,
+        "source": "automation@1",
+        "explanation": "The form was completed in 6 seconds, faster than reading and answering it plausibly takes (at least 32 seconds).",
+        "evidence": [
+          {
+            "kind": "Metric",
+            "label": "Time from opening the form to sending it",
+            "amount": 6,
+            "unit": "seconds",
+            "reference": 32,
+            "referenceLabel": "Plausible minimum for this form"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "AUTO_WEBDRIVER",
+        "category": "Automation",
+        "weight": "High",
+        "confidence": "High",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "automation@1",
+        "explanation": "The browser reported that automation software was controlling it (webdriver, headless).",
+        "evidence": [
+          {
+            "kind": "List",
+            "label": "Markers the browser reported",
+            "items": [
+              "webdriver",
+              "headless"
+            ]
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "ID_EMAIL_DISPOSABLE",
+        "category": "Identity",
+        "weight": "Medium",
+        "confidence": "High",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "identity@1",
+        "explanation": "The email address uses tempinbox.example.net, a disposable email service whose inboxes expire.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Email domain",
+            "value": "tempinbox.example.net"
+          },
+          {
+            "kind": "Fact",
+            "label": "Listed as",
+            "value": "Disposable email service (tempinbox.example.net)"
+          },
+          {
+            "kind": "Fact",
+            "label": "Source",
+            "value": "Public disposable-domain list (CC0)"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "ID_PHONE_INVALID",
+        "category": "Identity",
+        "weight": "Low",
+        "confidence": "Medium",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "identity@1",
+        "explanation": "The phone number does not match any number range in use for the United States.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Phone number check",
+            "value": "Not a valid number for the United States"
+          }
+        ],
+        "counterEvidence": []
+      },
+      {
+        "code": "NET_DATACENTER_IP",
+        "category": "Network",
+        "weight": "Medium",
+        "confidence": "High",
+        "countsTowardLevel": true,
+        "contextOnly": false,
+        "accessibilitySensitive": false,
+        "source": "network@1",
+        "explanation": "The application came from Example Cloud Hosting (AS64497), a hosting or cloud provider. People usually apply from a home, mobile or office connection.",
+        "evidence": [
+          {
+            "kind": "Fact",
+            "label": "Network operator",
+            "value": "Example Cloud Hosting (AS64497)"
+          },
+          {
+            "kind": "Fact",
+            "label": "Network type",
+            "value": "Hosting or cloud provider"
+          },
+          {
+            "kind": "Fact",
+            "label": "Network country",
+            "value": "United States"
+          },
+          {
+            "kind": "Fact",
+            "label": "Source",
+            "value": "configured ranges"
+          }
+        ],
+        "counterEvidence": []
+      }
+    ]
+  },
+  "aiAssistance": {
+    "level": "NotIndicated",
+    "reasonCodes": [],
+    "appliedRules": [],
+    "summary": "No signs that the content was generated or templated. This job allows AI help when disclosed. Declared AI use: not answered.",
+    "nextStep": "No action needed.",
+    "policyContext": "NotDisclosed",
+    "signals": []
+  }
+}

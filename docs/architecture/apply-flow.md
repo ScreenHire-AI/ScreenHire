@@ -46,9 +46,16 @@ integrity engine:
 - `BotCheck` (`AUTO_TURNSTILE_FAIL`): Cloudflare Turnstile's result when `ScreenHire:Turnstile:SiteKey` and `SecretKey`
   are set, otherwise `NotChecked`. Off locally and in tests.
 
-Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other. Telemetry
-and fingerprinting are not built yet; when they are, they start on the apply page after the notice, respect the
-switch, and bump `NOTICE_VERSION` with the privacy page.
+Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.
+
+With a careers-site application the API also stores a `SubmissionObservation` for the integrity engine
+(integrity-engine.md §10): the candidate's address (from `X-Forwarded-For`), their browser's user agent, which the
+careers server passes on as `userAgent` because the API only sees the server's, and `formStartedAt`, the moment the
+careers server first rendered the form (kept in the step state, so it round-trips through the browser and is only a
+hint). The request also takes `automationMarkers` and `deviceFingerprint`, which no careers script sends yet; the
+telemetry module will, starting on the apply page after the notice and respecting the switch. The API hashes a
+fingerprint per organization and never stores it as sent. The observation is deleted after 30 days. The notice and
+the privacy page say all of this (`NOTICE_VERSION` `2026-10-20.2`).
 
 ## 3. Uploads
 

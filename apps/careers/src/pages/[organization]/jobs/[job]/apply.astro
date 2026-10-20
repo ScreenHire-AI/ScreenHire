@@ -53,7 +53,8 @@ const questions = form?.questions ?? [];
 const steps = stepsFor(questions);
 const data = result?.data;
 const step = data && steps.includes(data.step) ? data.step : 'details';
-const state: ApplyState = data?.state ?? emptyState();
+// A first visit starts the clock the integrity engine's submit-velocity check reads (after the notice, which this page shows).
+const state: ApplyState = data?.state ?? emptyState(new Date().toISOString());
 const errors = data?.errors ?? {};
 const formError =
   data?.formError ??

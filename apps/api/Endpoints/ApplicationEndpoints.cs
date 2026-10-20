@@ -62,7 +62,8 @@ internal static class ApplicationEndpoints
             .OrderByDescending(a => a.SubmittedAt)
             .Join(db.Candidates, a => a.CandidateId, c => c.Id, (a, c) => new { Application = a, Candidate = c })
             .ToListAsync(cancellationToken);
-        return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(job, r.Candidate)).ToList());
+        var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
+        return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id))).ToList());
     }
 
     // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
@@ -206,9 +207,10 @@ internal static class ApplicationEndpoints
             .OrderByDescending(a => a.SubmittedAt)
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .ToListAsync(cancellationToken);
+        var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
-            [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate))]));
+            [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id)))]));
     }
 
     private static async Task<List<ApplicationFile>> FilesOfAsync(ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken) =>

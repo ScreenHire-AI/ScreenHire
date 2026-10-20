@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ApplicationStage } from './applicationStage.ts';
+import type { IntegritySummary } from './integritySummary.ts';
 
 /**
  * An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the
@@ -18,4 +19,5 @@ export interface ApplicationSummary {
   stage: ApplicationStage;
   submittedAt: string;
   stageEnteredAt: string;
+  integrity?: null | IntegritySummary;
 }

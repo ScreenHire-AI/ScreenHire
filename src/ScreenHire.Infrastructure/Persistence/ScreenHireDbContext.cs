@@ -7,6 +7,7 @@ using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
@@ -71,6 +72,22 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();
 
     public DbSet<ApplicationTask> ApplicationTasks => Set<ApplicationTask>();
+
+    public DbSet<IntegrityAnalyzerRun> IntegrityAnalyzerRuns => Set<IntegrityAnalyzerRun>();
+
+    public DbSet<IntegritySignal> IntegritySignals => Set<IntegritySignal>();
+
+    public DbSet<IntegrityAssessment> IntegrityAssessments => Set<IntegrityAssessment>();
+
+    public DbSet<IntegrityReviewAction> IntegrityReviewActions => Set<IntegrityReviewAction>();
+
+    public DbSet<SubmissionObservation> SubmissionObservations => Set<SubmissionObservation>();
+
+    /// <summary>
+    /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
+    /// and nothing uses it while the network's feature flag is off.
+    /// </summary>
+    public DbSet<SignalNetworkEntry> SignalNetworkEntries => Set<SignalNetworkEntry>();
 
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 

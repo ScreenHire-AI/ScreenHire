@@ -7,7 +7,7 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
-| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails), pure API logic (mappings, validation, the workflow diff, sanitizing). The API grants it `InternalsVisibleTo`. | Nothing |
+| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the integrity ruleset), the integrity analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing). The API grants it `InternalsVisibleTo`. | Nothing |
 | Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib`: formatting, the apply flow's state and checks, tenant hosts, the brand stylesheet), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
@@ -153,6 +153,17 @@ healthy, and launches one headless Chromium for the assembly. Test classes deriv
 
 Assert on what a person sees (headings, rows, cell text, links by accessible name) with Playwright's `Expect(...)`,
 which retries until its timeout. Status codes alone are not an end-to-end assertion.
+
+### Golden files
+
+Two unit tests compare output with files in the repository, and fail with the command that rewrites them:
+
+| Test | File | Rewrite with |
+|---|---|---|
+| `RealtimeContractTests` | `packages/realtime/contract/events.json` | `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"` |
+| `IntegrityGoldenTests` | `tests/ScreenHire.UnitTests/Integrity/Golden/*.json` | `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"` |
+
+Read the diff before committing a rewrite: it is the review of what changed for a person reading the output.
 
 ## Marketing site checks
 
