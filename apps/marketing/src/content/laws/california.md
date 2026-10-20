@@ -4,7 +4,7 @@ description: 'Two sets of California rules for automated hiring tools: the CPPA 
 name: California ADMT
 jurisdiction: California, United States
 status: 'FEHA rules in effect since 1 October 2025. CPPA ADMT compliance due 1 January 2027.'
-lastReviewed: '2026-10-20'
+lastReviewed: '2026-10-18'
 order: 6
 keyDates:
   - date: '1 October 2025'

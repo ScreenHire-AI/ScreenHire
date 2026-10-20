@@ -29,7 +29,10 @@ const intro = `# ScreenHire
 `;
 
 export const GET: APIRoute = async ({ site }) => {
-  const base = site ?? new URL('http://localhost:4321');
+  if (!site) {
+    throw new Error('llms.txt needs the site URL (SITE_URL, astro.config.mjs).');
+  }
+
   const entries = await siteIndex();
   const sections = new Map<IndexedPage['section'], IndexedPage[]>();
   for (const entry of entries) {
@@ -38,7 +41,7 @@ export const GET: APIRoute = async ({ site }) => {
 
   const lists = [...sections].map(
     ([section, items]) =>
-      `## ${section}\n\n${items.map((item) => `- [${item.title}](${absoluteUrl(item.path, base)}): ${item.description}`).join('\n')}\n`,
+      `## ${section}\n\n${items.map((item) => `- [${item.title}](${absoluteUrl(item.path, site)}): ${item.description}`).join('\n')}\n`,
   );
 
   return new Response([intro, ...lists].join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });

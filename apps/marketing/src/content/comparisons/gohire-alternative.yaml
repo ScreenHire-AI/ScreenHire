@@ -30,7 +30,7 @@ rows:
     screenhire: 'Everything in the dashboard is available through the public API.'
   - topic: 'Job posting'
     competitor: 'Posting to 27 job boards. A closed job counts as an active, billable job until it is archived.'
-    screenhire: 'Careers page and Google for Jobs, plus job boards, with per-board status and an honest removal estimate when you close a job.'
+    screenhire: 'Careers page and Google for Jobs, plus job boards, with per-board status and an estimated removal time per board when you close a job.'
 whenCompetitorFits:
   - 'You want posting to a long list of job boards today.'
   - 'You want AI that scores and summarises CVs.'
