@@ -60,11 +60,29 @@ internal static class OrganizationEndpoints
             db.IntegritySettings.Add(settings);
         }
 
+        Apply(settings, request, now);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // Two first saves at once: the other created the row. A PUT replaces the settings, so this one is applied
+            // on top of it (last write wins) instead of failing.
+            db.Entry(settings).State = EntityState.Detached;
+            settings = await db.IntegritySettings.SingleAsync(cancellationToken);
+            Apply(settings, request, now);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return TypedResults.Ok(await ToIntegritySettingsAsync(db, settings, now, cancellationToken));
+    }
+
+    private static void Apply(IntegritySettings settings, UpdateIntegritySettingsRequest request, DateTimeOffset now)
+    {
         settings.LlmConsistencyCheckEnabled = request.LlmConsistencyCheck;
         settings.MonthlyTokenBudget = request.MonthlyTokenBudget;
         settings.UpdatedAt = now;
-        await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(await ToIntegritySettingsAsync(db, settings, now, cancellationToken));
     }
 
     private static async Task<OrganizationIntegritySettings> ToIntegritySettingsAsync(

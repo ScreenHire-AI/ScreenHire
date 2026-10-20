@@ -228,6 +228,19 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
         return result;
     }
 
+    [Fact]
+    public async Task Simultaneous_first_saves_of_the_settings_all_succeed()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+
+        var saves = await Task.WhenAll(Enumerable.Range(1, 6).Select(budget =>
+            tenant.PutAsync("/v1/organization/integrity-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = budget * 1000 })));
+
+        saves.Should().AllSatisfy(save => save.Expect(HttpStatusCode.OK));
+        await using var db = await IntegritySupport.TenantDbAsync(fixture, tenant.OrganizationId);
+        (await db.IntegritySettings.CountAsync(Ct)).Should().Be(1);
+    }
+
     // A job whose questions are the "Software engineer" ones plus a LinkedIn export and a free-text motivation.
     private async Task<(string Slug, Guid JobId)> OpenJobWithQuestionsAsync(Tenant tenant)
     {
