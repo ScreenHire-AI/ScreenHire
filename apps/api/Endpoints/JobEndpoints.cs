@@ -15,8 +15,9 @@ internal static class JobEndpoints
     {
         var group = app.MapGroup("/v1/jobs").WithTags("Jobs").RequireAuthorization();
 
-        group.MapGet("/", ListJobs).WithName("ListJobs");
-        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob");
+        // 401 comes from the authentication middleware, so the handlers' signatures cannot declare it.
+        group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
 
         return app;
     }

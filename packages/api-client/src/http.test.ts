@@ -72,4 +72,25 @@ describe('apiFetch', () => {
 
     expect(result.data).toBeUndefined();
   });
+
+  it('sends the antiforgery cookie back as a header on requests that change state', async () => {
+    vi.stubGlobal('document', { cookie: 'theme=dark; XSRF-TOKEN=CfDJ8%2Babc; sh.session=x' });
+    fetchMock.mockImplementation(async () => new Response(null, { status: 204 }));
+
+    await apiFetch<Result>('/v1/auth/sign-out', { method: 'POST' });
+    await apiFetch<Result>('/v1/jobs');
+
+    const headers = fetchMock.mock.calls.map(([, init]) => init?.headers as Record<string, string>);
+    expect(headers[0]).toEqual({ Accept: 'application/json', 'X-XSRF-TOKEN': 'CfDJ8+abc' });
+    expect(headers[1]).toEqual({ Accept: 'application/json' });
+  });
+
+  it('sends no antiforgery header before the API has issued a token', async () => {
+    vi.stubGlobal('document', { cookie: 'theme=dark' });
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await apiFetch<Result>('/v1/auth/sign-out', { method: 'POST' });
+
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toEqual({ Accept: 'application/json' });
+  });
 });

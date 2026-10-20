@@ -1,4 +1,4 @@
-import type { JobSummary } from '@screenhire/api-client';
+import type { CurrentUser, JobSummary } from '@screenhire/api-client';
 import { render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
@@ -27,11 +27,18 @@ const jobs: JobSummary[] = [
   },
 ];
 
+const user: CurrentUser = {
+  id: '01a157d4-0000-7000-8000-0000000000aa',
+  email: 'avery@brightwater.example.com',
+  displayName: 'Avery Quinn',
+  organization: { id: '01a157d4-0000-7000-8000-0000000000bb', name: 'Brightwater Studio', slug: 'brightwater', role: 'Owner' },
+};
+
 const cellTexts = (row: HTMLElement) => within(row).getAllByRole('cell').map((cell) => cell.textContent?.trim());
 
 describe('jobs page', () => {
   it('shows a row per job with its location, status and publish date', () => {
-    render(Page, { props: { params: {}, data: { jobs } } });
+    render(Page, { props: { params: {}, data: { user, jobs } } });
 
     const [, ...rows] = screen.getAllByRole('row');
     expect(rows.map(cellTexts)).toEqual([
@@ -41,13 +48,13 @@ describe('jobs page', () => {
   });
 
   it('counts all jobs and open jobs', () => {
-    render(Page, { props: { params: {}, data: { jobs } } });
+    render(Page, { props: { params: {}, data: { user, jobs } } });
 
     expect(screen.getByText('2 jobs · 1 open')).toBeInTheDocument();
   });
 
   it('says so when there are no jobs', () => {
-    render(Page, { props: { params: {}, data: { jobs: [] } } });
+    render(Page, { props: { params: {}, data: { user, jobs: [] } } });
 
     expect(screen.getByRole('cell')).toHaveTextContent('No jobs yet.');
   });

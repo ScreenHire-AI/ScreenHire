@@ -31,7 +31,7 @@ internal static class AuthEndpoints
         var group = app.MapGroup("/v1/auth").WithTags("Auth");
 
         group.MapGet("/providers", GetSignInMethods).WithName("GetSignInMethods").AllowAnonymous();
-        group.MapGet("/me", GetCurrentUser).WithName("GetCurrentUser").AllowAnonymous();
+        group.MapGet("/me", GetCurrentUser).WithName("GetCurrentUser").AllowAnonymous().Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/challenge/{provider}", ChallengeProvider).WithName("ChallengeProvider").AllowAnonymous()
             .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy);
         // Where a provider's handler sends the browser once it has validated the response; a redirect, not an API call.
@@ -41,7 +41,7 @@ internal static class AuthEndpoints
         var mutations = group.MapGroup("").RequireAntiforgeryToken().RequireRateLimiting(AuthenticationSetup.RateLimitPolicy);
         mutations.MapPost("/magic-link", RequestMagicLink).WithName("RequestMagicLink").AllowAnonymous();
         mutations.MapPost("/magic-link/verify", VerifyMagicLink).WithName("VerifyMagicLink").AllowAnonymous();
-        mutations.MapPost("/onboarding", CompleteOnboarding).WithName("CompleteOnboarding");
+        mutations.MapPost("/onboarding", CompleteOnboarding).WithName("CompleteOnboarding").Produces(StatusCodes.Status401Unauthorized);
         // Cast: a handler taking only HttpContext would otherwise bind as a RequestDelegate and drop its result.
         mutations.MapPost("/sign-out", (Delegate)SignOut).WithName("SignOut").AllowAnonymous();
 
@@ -57,17 +57,17 @@ internal static class AuthEndpoints
             services.IsService(typeof(MagicLinks))));
     }
 
+    // Signed in or not, the answer carries a fresh antiforgery token: the dashboard asks on every page load, and a page
+    // such as the email-link one posts before anyone is signed in.
     private static async Task<Results<Ok<CurrentUser>, UnauthorizedHttpResult>> GetCurrentUser(
         HttpContext context, UserManager<ApplicationUser> users, ITenantContext tenant, ScreenHireDbContext db,
         CancellationToken cancellationToken)
     {
-        if (await users.GetUserAsync(context.User) is not { } user)
-        {
-            return TypedResults.Unauthorized();
-        }
-
+        var user = await users.GetUserAsync(context.User);
         Antiforgery.IssueRequestToken(context);
-        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+        return user is null
+            ? TypedResults.Unauthorized()
+            : TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
     }
 
     private static Results<ChallengeHttpResult, NotFound> ChallengeProvider(

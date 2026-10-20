@@ -91,12 +91,19 @@ export type getCurrentUserResponse200 = {
   status: 200
 }
 
+export type getCurrentUserResponse401 = {
+  data: void
+  status: 401
+}
+
 export type getCurrentUserResponseSuccess = (getCurrentUserResponse200) & {
   headers: Headers;
 };
-;
+export type getCurrentUserResponseError = (getCurrentUserResponse401) & {
+  headers: Headers;
+};
 
-export type getCurrentUserResponse = (getCurrentUserResponseSuccess)
+export type getCurrentUserResponse = (getCurrentUserResponseSuccess | getCurrentUserResponseError)
 
 export const getGetCurrentUserUrl = () => {
 
@@ -289,6 +296,11 @@ export type completeOnboardingResponse400 = {
   status: 400
 }
 
+export type completeOnboardingResponse401 = {
+  data: void
+  status: 401
+}
+
 export type completeOnboardingResponse409 = {
   data: ProblemDetails
   status: 409
@@ -297,7 +309,7 @@ export type completeOnboardingResponse409 = {
 export type completeOnboardingResponseSuccess = (completeOnboardingResponse200) & {
   headers: Headers;
 };
-export type completeOnboardingResponseError = (completeOnboardingResponse400 | completeOnboardingResponse409) & {
+export type completeOnboardingResponseError = (completeOnboardingResponse400 | completeOnboardingResponse401 | completeOnboardingResponse409) & {
   headers: Headers;
 };
 
@@ -458,12 +470,19 @@ export type listJobsResponse200 = {
   status: 200
 }
 
+export type listJobsResponse401 = {
+  data: void
+  status: 401
+}
+
 export type listJobsResponseSuccess = (listJobsResponse200) & {
   headers: Headers;
 };
-;
+export type listJobsResponseError = (listJobsResponse401) & {
+  headers: Headers;
+};
 
-export type listJobsResponse = (listJobsResponseSuccess)
+export type listJobsResponse = (listJobsResponseSuccess | listJobsResponseError)
 
 export const getListJobsUrl = () => {
 
@@ -491,6 +510,11 @@ export type getJobResponse200 = {
   status: 200
 }
 
+export type getJobResponse401 = {
+  data: void
+  status: 401
+}
+
 export type getJobResponse404 = {
   data: void
   status: 404
@@ -499,7 +523,7 @@ export type getJobResponse404 = {
 export type getJobResponseSuccess = (getJobResponse200) & {
   headers: Headers;
 };
-export type getJobResponseError = (getJobResponse404) & {
+export type getJobResponseError = (getJobResponse401 | getJobResponse404) & {
   headers: Headers;
 };
 
