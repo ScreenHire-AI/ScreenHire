@@ -12,13 +12,17 @@ namespace ScreenHire.Infrastructure.Integrity.Documents;
 /// </summary>
 internal static class WordText
 {
+    /// <summary>The most characters one part of the package may hold once unzipped. A long resume is well under 1 million.</summary>
+    private const long MaxCharactersInPart = 20_000_000;
+
     /// <summary>Font sizes in Word are half-points; under 4 is under 2 points.</summary>
     private const int TinyHalfPoints = 4;
 
     public static ExtractedDocument Extract(byte[] content, CancellationToken cancellationToken)
     {
         using var stream = new MemoryStream(content, writable: false);
-        using var document = WordprocessingDocument.Open(stream, isEditable: false);
+        // A cap on how far one part may expand, so a crafted file (a zip bomb) cannot exhaust memory.
+        using var document = WordprocessingDocument.Open(stream, isEditable: false, new OpenSettings { MaxCharactersInPart = MaxCharactersInPart });
         var body = document.MainDocumentPart?.Document?.Body;
         var lines = new List<string>();
         var hidden = new List<HiddenTextSpan>();

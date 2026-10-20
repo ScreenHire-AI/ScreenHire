@@ -93,6 +93,27 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Reassessing_as_each_content_stage_lands_runs_the_integrity_automation_once()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
+        var bot = SyntheticApplicants.Bot;
+        var applicationId = await IntegritySupport.ApplyAsync(fixture, slug, jobId, bot, answers: bot.Answers);
+
+        await IntegritySupport.SettledAsync(fixture, tenant, applicationId);
+        await using var db = await IntegritySupport.TenantDbAsync(fixture, tenant.OrganizationId);
+        await Messaging.WolverineStore.WaitUntilAsync(
+            () => db.AutomationRuns.AnyAsync(r => r.ApplicationId == applicationId && r.Trigger == TriggerType.IntegrityAssessed, Ct),
+            "the integrity automation to run",
+            Ct);
+
+        (await db.AutomationRuns.CountAsync(r => r.ApplicationId == applicationId && r.Trigger == TriggerType.IntegrityAssessed, Ct))
+            .Should().Be(1, "new evidence at the same levels is stored, not announced again");
+        (await db.ApplicationEvents.CountAsync(e => e.ApplicationId == applicationId && e.Type == ApplicationEventType.IntegrityAssessed, Ct))
+            .Should().Be(1);
+    }
+
+    [Fact]
     public async Task Once_the_monthly_budget_is_spent_the_check_is_skipped_and_says_why()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
@@ -157,6 +178,54 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
         saved.Body.GetProperty("monthlyTokenBudget").GetInt64().Should().Be(50000);
         (await other.GetAsync("/v1/organization/integrity-settings")).Expect(HttpStatusCode.OK)
             .Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeFalse("another organization's switch is its own");
+    }
+
+    [Fact]
+    public async Task Row_level_security_hides_and_refuses_another_organizations_fingerprints_and_settings()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        (await tenant.PutAsync("/v1/organization/integrity-settings", new JsonObject { ["llmConsistencyCheck"] = true })).Expect(HttpStatusCode.OK);
+        var (slug, jobId) = await OpenJobWithQuestionsAsync(tenant);
+        var applicationId = await IntegritySupport.ApplyAsync(
+            fixture, slug, jobId, SyntheticApplicants.GenuineHuman, answers: [.. SyntheticApplicants.GenuineHuman.Answers, new("motivation", Motivation)]);
+        await IntegritySupport.SettledAsync(fixture, tenant, applicationId);
+
+        // Raw SQL as the application role, past the EF query filter: only the policies stand in the way.
+        const string fingerprints = "SELECT count(*) FROM answer_fingerprints WHERE application_id = @id";
+        const string settings = "SELECT count(*) FROM integrity_settings WHERE organization_id = @id";
+        (await ScalarAsync(tenant.OrganizationId, fingerprints, applicationId)).Should().Be(1);
+        (await ScalarAsync(other.OrganizationId, fingerprints, applicationId)).Should().Be(0);
+        (await ScalarAsync(tenant.OrganizationId, settings, tenant.OrganizationId)).Should().Be(1);
+        (await ScalarAsync(other.OrganizationId, settings, tenant.OrganizationId)).Should().Be(0);
+
+        // Another organization can neither switch the check off for this one nor create a row in its name.
+        (await ScalarAsync(other.OrganizationId,
+            "WITH changed AS (UPDATE integrity_settings SET llm_consistency_check_enabled = false WHERE organization_id = @id RETURNING 1) SELECT count(*) FROM changed",
+            tenant.OrganizationId)).Should().Be(0);
+        var forged = () => ScalarAsync(other.OrganizationId,
+            "INSERT INTO integrity_settings (organization_id, llm_consistency_check_enabled, updated_at) VALUES (@id, false, now()) RETURNING 1",
+            tenant.OrganizationId);
+        (await forged.Should().ThrowAsync<Npgsql.PostgresException>()).Which.SqlState.Should().Be(Npgsql.PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    // One scalar statement as the application role with the organization as tenant, in a transaction like the API's.
+    private async Task<long> ScalarAsync(Guid organizationId, string sql, Guid id)
+    {
+        await using var connection = new Npgsql.NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        await using (var setTenant = new Npgsql.NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true)", connection, transaction))
+        {
+            setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
+            await setTenant.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var command = new Npgsql.NpgsqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("id", id);
+        var result = Convert.ToInt64(await command.ExecuteScalarAsync(Ct), System.Globalization.CultureInfo.InvariantCulture);
+        await transaction.RollbackAsync(Ct);
+        return result;
     }
 
     // A job whose questions are the "Software engineer" ones plus a LinkedIn export and a free-text motivation.

@@ -21,7 +21,9 @@ namespace ScreenHire.Application.Integrity;
 /// </para>
 /// <para>
 /// Analyzers that later tasks add (content forensics) plug in as more <see cref="IIntegrityAnalyzer"/> registrations, or
-/// publish <see cref="AnalyzeApplicationIntegrity"/> again when their own asynchronous work finishes.
+/// publish <see cref="AnalyzeApplicationIntegrity"/> again when their own asynchronous work finishes. An analyzer whose
+/// input is not ready yet records no run. A reassessment is announced (timeline, live update, workflow trigger) only
+/// when a level changes.
 /// </para>
 /// </remarks>
 public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IIntegrityAnalyzer> analyzers, TimeProvider time)
@@ -162,7 +164,23 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             return [];
         }
 
+        // The levels until now: the newest assessment of each kind. Read before the new rows are added.
+        var previous = (await db.IntegrityAssessments.AsNoTracking()
+                .Where(a => a.ApplicationId == application.Id)
+                .Select(a => new { a.Kind, a.Level, a.AssessedAt, a.Id })
+                .ToListAsync(cancellationToken))
+            .GroupBy(a => a.Kind)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.AssessedAt).ThenByDescending(a => a.Id).First().Level);
         db.IntegrityAssessments.AddRange(changed.Select(r => r.ToAssessment(application.OrganizationId, application.Id, inputs, now)));
+
+        // Content forensics reassess an application as each of their stages lands. New evidence at the same levels is
+        // stored (the panel shows it) but not announced: the timeline, the live update and the workflow engine's
+        // IntegrityAssessed trigger fire for a first assessment and for a change of level, so an automation that assigns
+        // a reviewer runs once, not once per stage.
+        if (results.All(r => previous.TryGetValue(r.Kind, out var level) && level == r.Level))
+        {
+            return [];
+        }
 
         var authenticity = results.Single(r => r.Kind == IntegrityAssessmentKind.Authenticity).Level;
         var aiAssistance = results.Single(r => r.Kind == IntegrityAssessmentKind.AiAssistance).Level;

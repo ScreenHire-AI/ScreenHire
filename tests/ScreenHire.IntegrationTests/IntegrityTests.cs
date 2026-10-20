@@ -315,22 +315,32 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         afterQuiet.Should().BeEmpty();
         (await RecordAsync(db, applicationId)).Should().Be(before with { Runs = before.Runs + 1 });
 
-        // Its next version runs once more and, with a new signal, reassesses and announces it.
-        var observed = new ObservedSignal(
-            SignalCatalogue.Inconsistency, SignalConfidence.Medium, [SignalEvidence.Fact("Probe", "A test observation.")],
-            new Dictionary<string, string> { ["detail"] = "A test observation." });
+        // Its next version runs once more. A new signal at the same level is stored as a new assessment but not
+        // announced: the bot's authenticity is already at the top level, so the workflow engine is not asked again.
+        var observed = new ObservedSignal(SignalCatalogue.Inconsistency, SignalConfidence.Medium, [SignalEvidence.Fact("Probe", "A test observation.")]);
         var bumped = new StandInAnalyzer("review-probe", 2, new AnalyzerResult([observed]));
         var afterBump = await new IntegrityPipeline(db, [.. same, quiet, bumped], TimeProvider.System).RunAsync(applicationId, Ct);
         await db.SaveChangesAsync(Ct);
 
         quiet.Calls.Should().Be(1);
         bumped.Calls.Should().Be(1);
-        afterBump.OfType<IntegrityAssessed>().Should().ContainSingle();
-        var after = await RecordAsync(db, applicationId);
-        after.Runs.Should().Be(before.Runs + 2);
-        after.Signals.Should().Be(before.Signals + 1);
-        after.Assessments.Should().BeGreaterThan(before.Assessments);
-        after.Timeline.Should().Be(before.Timeline + 1);
+        afterBump.Should().BeEmpty("the levels did not change");
+        var stored = await RecordAsync(db, applicationId);
+        stored.Runs.Should().Be(before.Runs + 2);
+        stored.Signals.Should().Be(before.Signals + 1);
+        stored.Assessments.Should().BeGreaterThan(before.Assessments);
+        stored.Timeline.Should().Be(before.Timeline);
+
+        // A signal that changes a level is announced: a second, independent content category behind the bot's hidden
+        // instructions raises AI assistance, so the timeline, the live update and the workflow engine hear of it.
+        var duplicate = new ObservedSignal(SignalCatalogue.NearDuplicateAnswer, SignalConfidence.High, [SignalEvidence.Fact("Probe", "A test observation.")]);
+        var raising = new StandInAnalyzer("review-probe", 3, new AnalyzerResult([duplicate]));
+        var afterRaise = await new IntegrityPipeline(db, [.. same, quiet, bumped, raising], TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        afterRaise.OfType<IntegrityAssessed>().Should().ContainSingle().Which.AiAssistance.Should().NotBe(AiAssistanceLevel.NotIndicated);
+        afterRaise.OfType<Application.Automations.RunAutomations>().Should().ContainSingle();
+        (await RecordAsync(db, applicationId)).Timeline.Should().Be(before.Timeline + 1);
     }
 
     [Fact]
