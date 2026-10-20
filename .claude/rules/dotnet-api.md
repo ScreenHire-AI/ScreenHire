@@ -70,4 +70,5 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
 
 - Unit tests (xUnit v3 + AwesomeAssertions) for domain logic and pure functions. Aspire integration tests in
   `tests/ScreenHire.IntegrationTests` for every endpoint and data rule. Tier choice and fixtures are the
-  `test-builder` agent's job; `docs/process/testing.md` describes the harness once it exists.
+  `test-builder` agent's job; `docs/process/testing.md` describes the harness (shared `AppHostFixture`, data isolation,
+  running one test).
