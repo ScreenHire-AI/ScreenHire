@@ -88,7 +88,7 @@ public sealed record SendIndexingNotification(Guid OrganizationId, Guid Notifica
 
 public static class SendIndexingNotificationHandler
 {
-    public static async Task<IReadOnlyList<JobPostingChanged>> Handle(
+    public static async Task<IReadOnlyList<JobPostingsChanged>> Handle(
         SendIndexingNotification message,
         ScreenHireDbContext db,
         IIndexingClient client,
@@ -117,6 +117,6 @@ public static class SendIndexingNotificationHandler
             posting.AwaitRemoval(expectedBy: null, nextCheckAt: null, now);
         }
 
-        return before == (posting.State, posting.JobVersion) ? [] : [JobPostingChanged.From(posting)];
+        return before == (posting.State, posting.JobVersion) ? [] : [new JobPostingsChanged(posting.OrganizationId, posting.JobId, posting.UpdatedAt)];
     }
 }

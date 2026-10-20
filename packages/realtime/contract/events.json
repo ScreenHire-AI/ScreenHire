@@ -41,15 +41,11 @@
     }
   },
   {
-    "type": "JobPostingChanged",
+    "type": "JobPostingsChanged",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",
       "jobId": "0199f0c4-0000-7000-8000-000000000002",
-      "postingId": "0199f0c4-0000-7000-8000-000000000003",
-      "boardId": "sample-4",
-      "state": "Draft",
-      "jobVersion": 6,
-      "changedAt": "2026-10-20T09:07:00+00:00"
+      "changedAt": "2026-10-20T09:03:00+00:00"
     }
   },
   {

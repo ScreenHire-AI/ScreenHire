@@ -38,6 +38,7 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
         var now = time.GetUtcNow();
         var added = new List<JobPosting>();
         var messages = new List<object>();
+        var changed = false;
         foreach (var boardId in targets)
         {
             var adapter = boards.Get(boardId);
@@ -66,10 +67,12 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
                 }
             }
 
-            if (before != (posting.State, posting.JobVersion) || added.Contains(posting))
-            {
-                messages.Add(JobPostingChanged.From(posting));
-            }
+            changed |= before != (posting.State, posting.JobVersion) || added.Contains(posting);
+        }
+
+        if (changed)
+        {
+            messages.Add(new JobPostingsChanged(organization.Id, content.JobId, now));
         }
 
         return new DistributionChanges(added, messages);
@@ -87,6 +90,7 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
         ArgumentNullException.ThrowIfNull(postings);
         var now = time.GetUtcNow();
         var messages = new List<object>();
+        JobPosting? changed = null;
         foreach (var posting in postings.Where(p => boardId is null || p.BoardId == boardId))
         {
             var adapter = boards.Find(posting.BoardId);
@@ -111,8 +115,13 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
 
             if (before != (posting.State, posting.JobVersion))
             {
-                messages.Add(JobPostingChanged.From(posting));
+                changed = posting;
             }
+        }
+
+        if (changed is not null)
+        {
+            messages.Add(new JobPostingsChanged(changed.OrganizationId, changed.JobId, now));
         }
 
         return new DistributionChanges([], messages);

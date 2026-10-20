@@ -147,7 +147,7 @@ public sealed record BoardResult(
 /// <summary>Applies a <see cref="BoardResult"/> to its posting: the one place adapters' answers become state.</summary>
 public static class BoardResults
 {
-    /// <summary>Returns whether the posting's state or version changed, which is when <c>JobPostingChanged</c> is raised.</summary>
+    /// <summary>Returns whether the posting's state or version changed, which is when <c>JobPostingsChanged</c> is raised.</summary>
     public static bool Apply(this JobPosting posting, BoardResult result, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(posting);

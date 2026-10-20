@@ -121,7 +121,7 @@ public static class ReconcileJobPostingHandler
 
             if (posting.State != before)
             {
-                messages.Add(JobPostingChanged.From(posting));
+                messages.Add(new JobPostingsChanged(posting.OrganizationId, posting.JobId, posting.UpdatedAt));
             }
 
             return messages;
@@ -171,7 +171,7 @@ internal static class PostingLocks
         var messages = new OutgoingMessages();
         if (changed)
         {
-            messages.Add(JobPostingChanged.From(posting));
+            messages.Add(new JobPostingsChanged(posting.OrganizationId, posting.JobId, posting.UpdatedAt));
         }
 
         if (posting.NextCheckAt is { } checkAt)
