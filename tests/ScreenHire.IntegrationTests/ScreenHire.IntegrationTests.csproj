@@ -17,14 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\apps\apphost\ScreenHire.AppHost.csproj" />
+    <ProjectReference Include="..\ScreenHire.Testing\ScreenHire.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="System.Net" />
-    <Using Include="Microsoft.Extensions.DependencyInjection" />
-    <Using Include="Aspire.Hosting.ApplicationModel" />
-    <Using Include="Aspire.Hosting.Testing" />
+    <Using Include="ScreenHire.Testing" />
     <Using Include="AwesomeAssertions" />
     <Using Include="Xunit" />
   </ItemGroup>

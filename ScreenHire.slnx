@@ -15,6 +15,9 @@
     <Project Path="src/ScreenHire.ServiceDefaults/ScreenHire.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ScreenHire.E2E/ScreenHire.E2E.csproj" />
     <Project Path="tests/ScreenHire.IntegrationTests/ScreenHire.IntegrationTests.csproj" />
+    <Project Path="tests/ScreenHire.Testing/ScreenHire.Testing.csproj" />
+    <Project Path="tests/ScreenHire.UnitTests/ScreenHire.UnitTests.csproj" />
   </Folder>
 </Solution>

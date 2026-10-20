@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ScreenHire.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\ScreenHire.ServiceDefaults\ScreenHire.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\src\ScreenHire.Infrastructure\ScreenHire.Infrastructure.csproj" />
   </ItemGroup>

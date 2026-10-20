@@ -15,6 +15,9 @@ mid-task (never as the final gate).
 
 - Docker is running (`docker info`). The integration and end-to-end tests boot the Aspire AppHost with fresh
   containers and random ports, so they do not collide with a running dev stack or a sibling task.
+- Playwright's Chromium is installed for this machine: `pnpm e2e:install` (once per machine, and again after a
+  `Microsoft.Playwright` bump). If the end-to-end tests fail with "Chromium is not installed", run it; that is setup,
+  not a code failure.
 - Dependencies match the lockfile: run `pnpm install --frozen-lockfile` if `package.json` or `pnpm-lock.yaml` changed
   since the worktree was created. If the frozen install fails because the branch changed dependencies, run
   `pnpm install` and commit the lockfile.
@@ -32,8 +35,11 @@ Full gate: `pnpm verify`. It runs, in order and stopping at the first failure:
    committed. Fix by committing the regenerated files, after checking the API change was intended.
 3. `pnpm check`: svelte-check (`--fail-on-warnings`), astro check, tsc.
 4. `pnpm -r build`: every frontend production build.
-5. `pnpm -r --if-present test`: Vitest and any other JS test suites.
-6. `dotnet test --solution ScreenHire.slnx`: unit, Aspire integration and Playwright end-to-end tests.
+5. `pnpm -r --if-present test`: Vitest (`apps/dashboard`, `apps/careers`, `packages/api-client`).
+6. `dotnet test --solution ScreenHire.slnx`: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire, frontends
+   off) and `ScreenHire.E2E` (Playwright and axe against the step 4 builds), run in parallel.
+
+The full gate takes about two minutes on the owner's machine; most of it is booting the two AppHosts.
 
 Quick: `pnpm verify:dotnet`, then `pnpm verify:contract`, then `pnpm check`, then `pnpm -r --if-present test`.
 
@@ -46,7 +52,9 @@ completion notification; do not poll, and do not stop it by name or port if it h
   unless the warning is a known false positive, and then say why in a comment.
 - **Contract drift:** an endpoint or DTO changed without `pnpm generate:api`. Commit the regenerated files.
 - **Test failure:** decide whether the code or the test is wrong, from the brief and the docs, and fix that one.
-  Never delete, skip or loosen a test only to pass the gate.
+  Never delete, skip or loosen a test only to pass the gate. A failed end-to-end test leaves a screenshot in
+  `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/screenshots/` (the path is in the test output); look at it.
+  An axe failure lists each violated rule with the element's selector: fix the markup or the token, not the test.
 - **Flaky test** (passes on a rerun with no change): fix the cause (an unawaited task, a fixed delay, a shared port,
   ordering between tests). Never add retries or sleeps.
 - **Infrastructure** (Docker not running, a port in use, a container that will not start): report it plainly. These

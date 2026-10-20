@@ -46,9 +46,13 @@
   </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
+    <!-- Wrapper is MIT; its Deque.AxeCore.Commons dependency (axe-core) is MPL-2.0: a test-only exception (ADR-0008). -->
+    <PackageVersion Include="Deque.AxeCore.Playwright" Version="4.14.0" />
   </ItemGroup>
 </Project>
