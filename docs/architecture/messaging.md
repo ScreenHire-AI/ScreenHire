@@ -32,6 +32,11 @@ those rows in every mode except the serverless ones (`DurabilityMode.ServerlessW
 `RunDurabilityPassAsync` in the 6.51 API docs), so the worker sends it. No test covers that crash window: it needs a
 process killed between two statements.
 
+The API cannot receive messages either: `ServerlessWithOutbox` runs no listeners and no local queues. Anything that
+must react inside the API process, such as pushing `ITenantEvent`s to connected clients, needs either a different
+durability mode for the API (`Balanced`, which brings back leader election and agents there) or a hop through the
+worker. Decide that in the task that needs it and update this page.
+
 Both hosts keep every Wolverine table, including the queue tables, in the `wolverine` schema of the application
 database. Wolverine creates and updates them at startup (`AutoProvision` plus JasperFx resource setup). They are not
 part of the EF Core model, so EF migrations never touch them.
@@ -46,6 +51,10 @@ part of the EF Core model, so EF migrations never touch them.
 - **Runtime code generation.** Wolverine compiles handler adapters at startup (`TypeLoadMode.Dynamic`), which needs
   `WolverineFx.RuntimeCompilation` (Roslyn). Pre-generated code (`TypeLoadMode.Static`) would cut cold start for
   production; it is not set up yet.
+- **Schema ownership.** Wolverine creates and migrates its own tables at startup, so the hosts' database role must be
+  allowed to create the `wolverine` schema. ADR-0008's production app role neither owns tables nor bypasses RLS;
+  when that role lands, the deploy step has to provision the `wolverine` schema (or grant it to a separate role) and
+  the hosts stop creating it.
 - **OpenAPI at build time.** The API build runs `Program` under `GetDocument.Insider`, which starts the host without
   the AppHost. Publishing setup detects it and registers Wolverine in `MediatorOnly` mode with no database, so the
   build never connects anywhere.
@@ -111,8 +120,9 @@ table stays until someone replays or deletes it; the workflow engine will surfac
 
 ## Telemetry
 
-`AddServiceDefaults()` subscribes OpenTelemetry to the `Wolverine` activity source and the `Wolverine:*` meters. A
-request that publishes a message and the worker span that handles it share one trace in the Aspire dashboard.
+`AddServiceDefaults()` subscribes OpenTelemetry to the `Wolverine` activity source and the `Wolverine:*` meters, so
+message spans, span events and counters reach the Aspire dashboard. `DeadLetterTests` checks the span event and the
+counter in process; no test reads them back from the dashboard.
 
 ## Tests
 
@@ -122,7 +132,8 @@ request that publishes a message and the worker span that handles it share one t
 |---|---|
 | `WorkerMessagingTests` | through the running API and worker: an event commits with its job and is handled once; no second event for a no-op; a message published while the worker is stopped is handled after it restarts. Runs in the non-parallel `WorkerLifecycle` collection because it stops the worker. |
 | `OutboxTests` | with the API's setup in a private schema: a change and its message commit together, and a failed `SaveChanges` sends nothing |
-| `DeadLetterTests` | with the worker's setup in a private schema and short delays: retries with backoff, then the dead-letter table, the error log, the trace event and the counter |
+| `DeadLetterTests` | with the worker's setup in a private schema and short delays: retries with backoff, then the dead-letter table, the error log, the trace event and the counter; and the production shape, where a scheduled retry follows the in-process retries |
+| `RecurringMessageTests` | `ReportOpenJobs` is registered every five minutes, tracked durably, and its handler runs when triggered |
 
 `MessagingHost` starts those private-schema hosts. `WolverineStore` reads Wolverine's tables and finds a test's own
 messages by a value in their body.

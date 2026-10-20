@@ -59,6 +59,29 @@ public sealed class DeadLetterTests(AppHostFixture fixture)
         deadLettered.Sum().Should().BeGreaterThanOrEqualTo(1, "the wolverine-dead-letter-queue counter counts it");
     }
 
+    [Fact]
+    public async Task Scheduled_retries_run_after_the_in_process_retries_before_the_message_is_dead_lettered()
+    {
+        // The worker's shape: in-process retries, then durable scheduled retries, then the dead-letter table.
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var marker = Guid.NewGuid();
+        var retryDelay = TimeSpan.FromMilliseconds(100);
+        var scheduledDelay = TimeSpan.FromSeconds(1);
+        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), RetryDelays = [retryDelay], ScheduledRetryDelays = [scheduledDelay] };
+
+        await using var worker = await MessagingHost.StartHandlerAsync(fixture, settings, [typeof(AlwaysFailsHandler)], cancellationToken);
+        await worker.Services.GetRequiredService<IMessageBus>().SendAsync(new AlwaysFails(marker));
+
+        await WolverineStore.WaitUntilAsync(
+            async () => (await worker.Store.GetDeadLettersAsync(marker.ToString(), cancellationToken)).Count == 1,
+            "the failing message to reach the dead-letter table after its scheduled retry", cancellationToken);
+
+        var attempts = AlwaysFailsHandler.Attempts[marker].ToArray();
+        attempts.Should().HaveCount(3, "one attempt, one in-process retry and one scheduled retry");
+        (attempts[1] - attempts[0]).Should().BeGreaterThanOrEqualTo(retryDelay - TimeSpan.FromMilliseconds(20));
+        (attempts[2] - attempts[1]).Should().BeGreaterThanOrEqualTo(scheduledDelay - TimeSpan.FromMilliseconds(20));
+    }
+
     private static ActivityListener ListenToWolverineSpans(ConcurrentQueue<string> events)
     {
         var listener = new ActivityListener
