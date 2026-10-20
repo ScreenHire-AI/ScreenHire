@@ -77,10 +77,12 @@ export function startTelemetry(form: HTMLFormElement, options: TelemetryOptions)
     return id ? [id, target] : null;
   };
 
-  // The next snapshot and its content without the sequence, so an unchanged page sends nothing twice.
+  // The next snapshot and its content without the sequence, so an unchanged page sends nothing twice. A page view that
+  // measured nothing (a button pressed on an empty form) has nothing to send.
   const next = (): [Snapshot, string] | null => {
     if (!collector || off()) return null;
     const { fields, visibilityChanges } = collector.aggregates(now());
+    if (fields.length === 0 && visibilityChanges === 0) return null;
     const page = { visibilityChanges, automationMarkers: markers };
     sequence++;
     return [{ sessionToken: options.sessionToken, pageViewId, sequence, fields, page }, JSON.stringify([fields, page])];
@@ -125,16 +127,16 @@ export function startTelemetry(form: HTMLFormElement, options: TelemetryOptions)
     }
   };
 
-  // On the last step the final snapshot travels with the form post, so the API has it before analysis starts.
+  // On the last step the final snapshot travels with the form post, so the API has it before analysis starts. The beacon
+  // on leaving still goes too: a post the server sends back with an error would otherwise lose this page view.
   const onSubmit = () => {
     leaving = true;
     const finalField = input(FINAL_SNAPSHOT_FIELD);
     if (!finalField) return;
     const final = next();
     finalField.value = final ? JSON.stringify(final[0]) : '';
-    if (final) lastSent = final[1];
     const markersField = input(MARKERS_FIELD);
-    if (markersField) markersField.value = final ? markers.join(',') : '';
+    if (markersField) markersField.value = collector && !off() ? markers.join(',') : '';
   };
 
   const onVisibility = () => {

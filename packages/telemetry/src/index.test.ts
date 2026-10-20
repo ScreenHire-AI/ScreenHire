@@ -105,6 +105,16 @@ function expectOnlyCounts(json: string) {
 }
 
 describe('startTelemetry', () => {
+  it('sends nothing for a page view that measured nothing', () => {
+    start();
+    focus(form().querySelector('input[type=checkbox]')!); // pressing a control, typing nothing
+    window.dispatchEvent(new Event('pagehide'));
+    submit();
+
+    expect(sent).toEqual([]);
+    expect((field('telemetry') as HTMLInputElement).value).toBe('');
+  });
+
   it('records nothing on the notice step until the candidate starts on the form', () => {
     start();
     hidePage();
@@ -163,7 +173,7 @@ describe('startTelemetry', () => {
     expect(sent.map((body) => JSON.parse(body).page.visibilityChanges)).toEqual([1, 2]);
   });
 
-  it('puts the final snapshot and the markers in the form on submit, and sends no beacon for the same content', () => {
+  it('puts the final snapshot and the markers in the form on submit, and sends the page view once on leaving', () => {
     start({ acknowledged: true });
     focus(field('q:motivation'));
     type(field('q:motivation'), 'Because.');
@@ -172,9 +182,14 @@ describe('startTelemetry', () => {
     const final = (field('telemetry') as HTMLInputElement).value;
     expectOnlyCounts(final);
     expect(JSON.parse(final).fields[0]).toMatchObject({ fieldId: 'motivation', typedCharacters: 8 });
-    hidePage(); // leaving for the next page: not a switch away, and nothing new to send
+    hidePage(); // leaving for the next page: not a switch away
     window.dispatchEvent(new Event('pagehide'));
-    expect(sent).toEqual([]);
+
+    expect(sent).toHaveLength(1);
+    const beacon = JSON.parse(sent[0]!);
+    expect(beacon.page.visibilityChanges).toBe(0);
+    expect(beacon.fields).toEqual(JSON.parse(final).fields);
+    expect(beacon.sequence).toBeGreaterThan(JSON.parse(final).sequence);
   });
 
   it('with the assistive-technology switch on, forgets everything and sends nothing', () => {

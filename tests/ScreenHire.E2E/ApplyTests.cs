@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
@@ -12,12 +13,14 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The careers apply flow, end to end: the notice, the three steps, the resume upload and the confirmation, with
-/// JavaScript off (native forms, the careers server uploads the file) and on (the island uploads straight to storage).
-/// Each test applies to a job of its own organization, copied from the "Software engineer" system template.
+/// JavaScript off (native forms, the careers server uploads the file) and on (the island uploads straight to storage),
+/// and the telemetry module's beacons, which the assistive-technology switch turns off. Each test applies to a job of
+/// its own organization, copied from the "Software engineer" system template.
 /// </summary>
 public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
 {
-    private const int JavaScriptBudgetBytes = 20 * 1024;
+    // About 20 KB for the upload island and Svelte, plus the telemetry module (about 2 KB; its own budget is 5 KB).
+    private const int JavaScriptBudgetBytes = 22 * 1024;
 
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
 
@@ -61,17 +64,73 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
                 scripts.Add(response);
             }
         };
+        await RecordBeaconsAsync();
 
         var applyPage = await OpenAsync("careers", $"/{organization.Slug}/jobs/engineer/apply");
         applyPage.Status.Should().Be(200);
         (await applyPage.AllHeadersAsync()).Should().NotContainKey("set-cookie", "the form sets no cookies");
         await Page.Locator("astro-island:not([ssr])").WaitForAsync(); // hydrated
-        (await JavaScriptBytesAsync(scripts)).Should().BeLessThanOrEqualTo(JavaScriptBudgetBytes, "the apply page ships about 20 KB of JavaScript at most");
+        (await JavaScriptBytesAsync(scripts)).Should().BeLessThanOrEqualTo(JavaScriptBudgetBytes, "the apply page ships about 22 KB of JavaScript at most");
 
         await ApplyAsync(organization, "jo.park@example.com", javaScript: true);
 
         await AssertApplicationAsync(organization, "jo.park@example.com");
         problems.Should().BeEmpty("the strict content security policy must not block anything the page needs");
+        // The journey types its details, then switches assistive technology on: what was counted is dropped, and no
+        // beacon is ever sent (CLAUDE.md non-negotiable 4).
+        (await TelemetryBeaconsAsync()).Should().BeEmpty();
+        await using var db = await TenantDbAsync(organization.Id);
+        (await db.TelemetrySnapshots.CountAsync(Ct)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Without_assistive_technology_the_form_sends_counts_only_and_they_reach_the_application()
+    {
+        var (organization, _) = await OrganizationWithEngineeringJobAsync();
+        await RecordBeaconsAsync();
+        await GoToAsync("careers", $"/{organization.Slug}/jobs/engineer/apply");
+        await Page.Locator("astro-island:not([ssr])").WaitForAsync();
+
+        await FillDetailsAsync("sam.lee@example.com");
+        await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Sam CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
+        await Expect(Page.GetByText("Uploaded: Sam CV.pdf")).ToBeVisibleAsync();
+        // Leaving a step sends its snapshot; waiting for it to be stored keeps the test from racing the submission.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+        await StoredSnapshotsAsync(organization.Id, 1);
+
+        await Page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
+            .GetByLabel("Yes").CheckAsync();
+        await Page.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
+            .GetByLabel("6 to 9").CheckAsync();
+        await Page.GetByLabel("What is your notice period?").PressSequentiallyAsync("Two months, negotiable");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
+        await StoredSnapshotsAsync(organization.Id, 2);
+
+        await Page.GetByLabel("No, I did not use AI tools").CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send application" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
+
+        var beacons = await TelemetryBeaconsAsync();
+        beacons.Should().HaveCountGreaterThanOrEqualTo(2, "leaving the details and questions steps each sent one");
+        foreach (var body in beacons)
+        {
+            body.Should().NotContain("Casey").And.NotContain("sam.lee").And.NotContain("negotiable").And.NotContain("7946");
+        }
+
+        await using var db = await TenantDbAsync(organization.Id);
+        var candidate = await db.Candidates.SingleAsync(c => c.Email == "sam.lee@example.com", Ct);
+        var application = await db.Applications.SingleAsync(a => a.CandidateId == candidate.Id, Ct);
+        var snapshots = await db.TelemetrySnapshots.Where(s => s.ApplicationId == application.Id).ToListAsync(Ct);
+        snapshots.Should().HaveCount(2, "the details and questions steps each sent one; the review step had nothing typed to measure");
+        snapshots.SelectMany(s => s.Fields).Should().Contain(f => f.FieldId == "notice_period" && f.TypedCharacters == "Two months, negotiable".Length);
+        snapshots.SelectMany(s => s.Fields).Select(f => f.FieldId).Should().OnlyContain(id => id == "fullName" || id == "email" || id == "phone" || id == "notice_period" || id == "work_sample" || id == "aiUseDetails");
+
+        // The device check and automation markers came with the submission: the job is in the UK, where the notice is
+        // the footing, and Playwright's browser says it is automated.
+        var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application.Id, Ct);
+        observation.DeviceHash.Should().NotBeNullOrEmpty();
+        observation.AutomationMarkers.Should().Contain("webdriver");
+        observation.FormStartedAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -252,6 +311,54 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
             appliedUrl ?? new Uri(Fixture.GetEndpoint("careers"), $"/{organization.Slug}/jobs/engineer/applied").ToString());
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
         await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    // Records every navigator.sendBeacon call the pages make, in sessionStorage so it survives the steps' navigations.
+    // Playwright's network events miss a beacon sent while its page unloads, so the record is taken where the page sends.
+    private async Task RecordBeaconsAsync() => await Page.AddInitScriptAsync("""
+        (() => {
+          const send = navigator.sendBeacon.bind(navigator);
+          navigator.sendBeacon = (url, body) => {
+            const log = JSON.parse(sessionStorage.getItem('test:beacons') ?? '[]');
+            log.push({ url: String(url), body: String(body) });
+            sessionStorage.setItem('test:beacons', JSON.stringify(log));
+            return send(url, body);
+          };
+        })();
+        """);
+
+    // The bodies of the telemetry beacons recorded so far in this tab.
+    private async Task<List<string>> TelemetryBeaconsAsync()
+    {
+        var json = await Page.EvaluateAsync<string>("() => sessionStorage.getItem('test:beacons') ?? '[]'");
+        var log = JsonSerializer.Deserialize<List<BeaconCall>>(json, JsonSerializerOptions.Web)!;
+        return [.. log.Where(call => call.Url.Contains("/telemetry?", StringComparison.Ordinal)).Select(call => call.Body)];
+    }
+
+    private sealed record BeaconCall(string Url, string Body);
+
+    // Waits until the organization has at least `count` telemetry snapshots stored.
+    private async Task StoredSnapshotsAsync(Guid organizationId, int count)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            await using var db = await TenantDbAsync(organizationId);
+            if (await db.TelemetrySnapshots.CountAsync(Ct) >= count)
+            {
+                return;
+            }
+
+            await Task.Delay(100, Ct);
+        }
+
+        throw new TimeoutException($"Expected {count} stored telemetry snapshots.");
+    }
+
+    private async Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId)
+    {
+        var tenant = new TenantContext();
+        tenant.SetOrganization(organizationId);
+        return await Fixture.CreateDbContextAsync(tenant, Ct);
     }
 
     private async Task FillDetailsAsync(string email)
