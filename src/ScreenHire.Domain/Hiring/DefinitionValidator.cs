@@ -28,8 +28,8 @@ public static partial class DefinitionValidator
     private static readonly Dictionary<ActionType, string> UnavailableActions = new()
     {
         [ActionType.RequestVerification] = "Verification requests arrive in phase 2 and cannot be used yet.",
-        [ActionType.SendQuestionnaire] = "Sending a questionnaire is not available yet.",
-        [ActionType.ScheduleInterview] = "Interview scheduling is not available yet.",
+        [ActionType.SendQuestionnaire] = "Sending a questionnaire cannot be used yet.",
+        [ActionType.ScheduleInterview] = "Interview scheduling cannot be used yet.",
     };
 
     private static readonly Dictionary<TriggerType, string> UnavailableTriggers = new()
