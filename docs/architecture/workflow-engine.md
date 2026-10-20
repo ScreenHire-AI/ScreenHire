@@ -208,6 +208,11 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   non-terminal stage: a custom stage named "Not progressing" would be a rejection under another name.
 - Conditions stay one level (section 7) rather than a recursive tree, because a recursive schema makes the OpenAPI
   document and the generated client recursive.
+- "Cancelled on stage exit" means the timer is dropped when it fires, not removed when the stage is left: its scheduled
+  envelope stays in Wolverine's tables until it falls due (up to 8760 hours), then finds the application has left that
+  stage entry and does nothing. Removing scheduled envelopes by hand would couple the engine to Wolverine's tables.
+- A manual run is keyed on an id the API makes per request, so a retried POST runs the automation a second time: one
+  click is one intent. An `Idempotency-Key` from the client can replace it when the dashboard needs retries.
 - Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
   either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
 

@@ -194,6 +194,7 @@ counter in process; no test reads them back from the dashboard.
 | `DeadLetterTests` | with the worker's setup in a private schema and short delays: retries with backoff, then the dead-letter table, the error log, the trace event and the counter; and the production shape, where a scheduled retry follows the in-process retries |
 | `RecurringMessageTests` | `ReportOpenJobs` is registered every five minutes, tracked durably, and its handler runs when triggered |
 | `Automations/AutomationEmailTests` | the workflow engine through the running stack: entering a stage sends the configured email (read back from Mailpit), and replaying the same `ApplicationMoved` sends nothing twice |
+| `Automations/TimeElapsedTests` | entering a stage schedules a durable timer; the timer runs its automation when it fires, and a timer from a stage entry the application has left does nothing |
 | `Automations/WorkflowEngineTests` | validate and simulate; a manual run's tag and rejection-review task; two automations moving an application back and forth stopped as a loop; and, in a private schema with no retries, a dead-lettered action reaching the automation issues list |
 
 Real-time delivery has its own tests (realtime.md). `MessagingHost` starts those private-schema hosts, and a publisher
