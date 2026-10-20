@@ -58,6 +58,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
   under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium.
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
+- After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
+  rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
+  `pnpm --filter @screenhire/realtime test` passes, and commit both (`/add-realtime-event`).
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 
 ## Board pipeline (Kangentic)

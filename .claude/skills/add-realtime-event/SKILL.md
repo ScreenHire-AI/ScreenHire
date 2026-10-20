@@ -30,7 +30,7 @@ handled and drops it.
 - **Only one record's screen needs it** (progress on one application, say)? Implement `ITopicEvent` instead, with
   `Topic` (a name from `RealtimeTopics` in `apps/api/Realtime/RealtimeGroups.cs`) and `TopicId`. It then goes only to
   clients that called `subscribe(topic, id)`. A new topic needs an entry in `RealtimeTopics.Exists` that checks the
-  record as the caller's organization, such as `db.Applications.AnyAsync(a => a.Id == id, cancellationToken)`.
+  record as the caller's organization: an `AnyAsync` on the new entity's `DbSet`, like the `job` entry.
 
 ## 2. The contract
 
