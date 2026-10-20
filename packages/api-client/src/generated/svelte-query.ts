@@ -21,8 +21,10 @@ import type {
 } from '@tanstack/svelte-query';
 
 import type {
+  AddIntegrityNoteRequest,
   ApiMeta,
   ApplicationDetail,
+  ApplicationIntegrity,
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
@@ -37,6 +39,7 @@ import type {
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
   CurrentUser,
+  DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -4388,6 +4391,426 @@ export function createGetCandidate<TData = Awaited<ReturnType<typeof getCandidat
 
 
 
+
+export type getApplicationIntegrityResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type getApplicationIntegrityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationIntegrityResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationIntegrityResponseSuccess = (getApplicationIntegrityResponse200) & {
+  headers: Headers;
+};
+export type getApplicationIntegrityResponseError = (getApplicationIntegrityResponse401 | getApplicationIntegrityResponse404) & {
+  headers: Headers;
+};
+
+export const getGetApplicationIntegrityUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity`
+}
+
+export const getApplicationIntegrity = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationIntegrityResponseSuccess> => {
+
+  return apiQueryFetch<getApplicationIntegrityResponseSuccess>(getGetApplicationIntegrityUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApplicationIntegrityQueryKey = (applicationId: string,) => {
+    return [
+    'v1','applications',applicationId,'integrity'
+    ] as const;
+    }
+
+
+export const getGetApplicationIntegrityQueryOptions = <TData = Awaited<ReturnType<typeof getApplicationIntegrity>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationIntegrity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApplicationIntegrityQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApplicationIntegrity>>> = ({ signal }) => getApplicationIntegrity(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApplicationIntegrity>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApplicationIntegrityQueryResult = NonNullable<Awaited<ReturnType<typeof getApplicationIntegrity>>>
+export type GetApplicationIntegrityQueryError = ErrorType<void>
+
+
+
+export function createGetApplicationIntegrity<TData = Awaited<ReturnType<typeof getApplicationIntegrity>>, TError = ErrorType<void>>(
+ applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationIntegrity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetApplicationIntegrityQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type dismissIntegrityAssessmentResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type dismissIntegrityAssessmentResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type dismissIntegrityAssessmentResponse401 = {
+  data: void
+  status: 401
+}
+
+export type dismissIntegrityAssessmentResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type dismissIntegrityAssessmentResponse404 = {
+  data: void
+  status: 404
+}
+
+export type dismissIntegrityAssessmentResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type dismissIntegrityAssessmentResponseSuccess = (dismissIntegrityAssessmentResponse200) & {
+  headers: Headers;
+};
+export type dismissIntegrityAssessmentResponseError = (dismissIntegrityAssessmentResponse400 | dismissIntegrityAssessmentResponse401 | dismissIntegrityAssessmentResponse403 | dismissIntegrityAssessmentResponse404 | dismissIntegrityAssessmentResponse409) & {
+  headers: Headers;
+};
+
+export const getDismissIntegrityAssessmentUrl = (applicationId: string,
+    assessmentId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/dismiss`
+}
+
+export const dismissIntegrityAssessment = async (applicationId: string,
+    assessmentId: string,
+    dismissIntegrityAssessmentRequest: DismissIntegrityAssessmentRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<dismissIntegrityAssessmentResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<dismissIntegrityAssessmentResponseSuccess>(getDismissIntegrityAssessmentUrl(applicationId,assessmentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(dismissIntegrityAssessmentRequest)
+  }
+);}
+
+
+
+
+
+export const getDismissIntegrityAssessmentMutationKey = () => ['dismissIntegrityAssessment'] as const;
+
+export const getDismissIntegrityAssessmentMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof dismissIntegrityAssessment>>, TError,DismissIntegrityAssessmentMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof dismissIntegrityAssessment>>, TError,DismissIntegrityAssessmentMutationVariables, TContext> => {
+
+const mutationKey = getDismissIntegrityAssessmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dismissIntegrityAssessment>>, DismissIntegrityAssessmentMutationVariables> = (props) => {
+          const {applicationId,assessmentId,data} = props ?? {};
+
+          return  dismissIntegrityAssessment(applicationId,assessmentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DismissIntegrityAssessmentMutationResult = NonNullable<Awaited<ReturnType<typeof dismissIntegrityAssessment>>>
+    export type DismissIntegrityAssessmentMutationBody = DismissIntegrityAssessmentRequest
+    export type DismissIntegrityAssessmentMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type DismissIntegrityAssessmentMutationVariables = {applicationId: string;assessmentId: string;data: DismissIntegrityAssessmentRequest}
+
+    export const createDismissIntegrityAssessment = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof dismissIntegrityAssessment>>, TError,DismissIntegrityAssessmentMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof dismissIntegrityAssessment>>,
+        TError,
+        DismissIntegrityAssessmentMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDismissIntegrityAssessmentMutationOptions(options?.()) }), queryClient);
+    }
+
+export type addIntegrityNoteResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type addIntegrityNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addIntegrityNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addIntegrityNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addIntegrityNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addIntegrityNoteResponseSuccess = (addIntegrityNoteResponse200) & {
+  headers: Headers;
+};
+export type addIntegrityNoteResponseError = (addIntegrityNoteResponse400 | addIntegrityNoteResponse401 | addIntegrityNoteResponse403 | addIntegrityNoteResponse404) & {
+  headers: Headers;
+};
+
+export const getAddIntegrityNoteUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/notes`
+}
+
+export const addIntegrityNote = async (applicationId: string,
+    addIntegrityNoteRequest: AddIntegrityNoteRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addIntegrityNoteResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<addIntegrityNoteResponseSuccess>(getAddIntegrityNoteUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addIntegrityNoteRequest)
+  }
+);}
+
+
+
+
+
+export const getAddIntegrityNoteMutationKey = () => ['addIntegrityNote'] as const;
+
+export const getAddIntegrityNoteMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addIntegrityNote>>, TError,AddIntegrityNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof addIntegrityNote>>, TError,AddIntegrityNoteMutationVariables, TContext> => {
+
+const mutationKey = getAddIntegrityNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addIntegrityNote>>, AddIntegrityNoteMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  addIntegrityNote(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddIntegrityNoteMutationResult = NonNullable<Awaited<ReturnType<typeof addIntegrityNote>>>
+    export type AddIntegrityNoteMutationBody = AddIntegrityNoteRequest
+    export type AddIntegrityNoteMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type AddIntegrityNoteMutationVariables = {applicationId: string;data: AddIntegrityNoteRequest}
+
+    export const createAddIntegrityNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addIntegrityNote>>, TError,AddIntegrityNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof addIntegrityNote>>,
+        TError,
+        AddIntegrityNoteMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAddIntegrityNoteMutationOptions(options?.()) }), queryClient);
+    }
+
+export type requestIdentityVerificationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type requestIdentityVerificationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestIdentityVerificationResponse404 = {
+  data: void
+  status: 404
+}
+
+;
+export type requestIdentityVerificationResponseError = (requestIdentityVerificationResponse401 | requestIdentityVerificationResponse403 | requestIdentityVerificationResponse404) & {
+  headers: Headers;
+};
+
+export type requestIdentityVerificationResponse = (requestIdentityVerificationResponseError)
+
+export const getRequestIdentityVerificationUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/request-verification`
+}
+
+export const requestIdentityVerification = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<requestIdentityVerificationResponse> => {
+
+  return apiQueryFetch<requestIdentityVerificationResponse>(getRequestIdentityVerificationUrl(applicationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestIdentityVerificationMutationKey = () => ['requestIdentityVerification'] as const;
+
+export const getRequestIdentityVerificationMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestIdentityVerification>>, TError,RequestIdentityVerificationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof requestIdentityVerification>>, TError,RequestIdentityVerificationMutationVariables, TContext> => {
+
+const mutationKey = getRequestIdentityVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestIdentityVerification>>, RequestIdentityVerificationMutationVariables> = (props) => {
+          const {applicationId} = props ?? {};
+
+          return  requestIdentityVerification(applicationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestIdentityVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof requestIdentityVerification>>>
+
+    export type RequestIdentityVerificationMutationError = ErrorType<void | ProblemDetails>
+    export type RequestIdentityVerificationMutationVariables = {applicationId: string}
+
+    export const createRequestIdentityVerification = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestIdentityVerification>>, TError,RequestIdentityVerificationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof requestIdentityVerification>>,
+        TError,
+        RequestIdentityVerificationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRequestIdentityVerificationMutationOptions(options?.()) }), queryClient);
+    }
 
 export type listBoardsResponse200 = {
   data: BoardSummary[]

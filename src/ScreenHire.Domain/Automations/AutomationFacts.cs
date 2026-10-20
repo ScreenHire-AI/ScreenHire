@@ -13,8 +13,9 @@ namespace ScreenHire.Domain.Automations;
 /// <c>answers</c>: The candidate's answers by question id; yes/no answers are <c>yes</c> or <c>no</c>, choice answers
 /// are option ids, numbers use invariant digits. Empty until the careers apply flow stores answers.
 /// <c>hoursInStage</c>: Whole hours between entering the current stage and the trigger.
-/// <c>integrityAuthenticity</c>, <c>integrityAiAssistance</c>, <c>verificationResult</c>: Levels from the integrity
-/// engine and the verification step, once they exist.
+/// <c>integrityAuthenticity</c>, <c>integrityAiAssistance</c>: Level names from the integrity engine's latest
+/// assessment (<c>NoConcerns</c>, <c>ReviewSuggested</c>, ...). <c>verificationResult</c>: From the verification step,
+/// once it exists.
 /// </remarks>
 public sealed record AutomationFacts(
     IReadOnlyList<AnswerFact> Answers,
@@ -71,9 +72,12 @@ public sealed record AutomationFacts(
 
         int? hoursInStage = entries.Count == 0 ? null : (int)Math.Max(0, Math.Floor((occurredAt - entries[^1].OccurredAt).TotalHours));
 
-        // Answers, the source and integrity levels join the snapshot when the apply flow and the integrity engine store
-        // them; until then those facts are absent.
-        return new AutomationFacts([], tags, HoursInStage: hoursInStage);
+        // The integrity levels as the latest assessment before the trigger left them. Answers and the source join the
+        // snapshot when the apply flow stores them; until then those facts are absent.
+        var integrity = seen.LastOrDefault(e => e.Type == ApplicationEventType.IntegrityAssessed)?.Data;
+        return new AutomationFacts(
+            [], tags, HoursInStage: hoursInStage,
+            IntegrityAuthenticity: integrity?.AuthenticityLevel, IntegrityAiAssistance: integrity?.AiAssistanceLevel);
     }
 
     /// <summary>The values of <paramref name="fact"/>, or an empty list when the application has none.</summary>

@@ -11,6 +11,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
+using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -189,6 +190,7 @@ public static class ScreenHireMessaging
 
         // Integrations the handlers use, each with a local adapter until a real one is registered first (CLAUDE.md).
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
+        opts.Services.AddScreenHireIntegrity();
 
         UsePostgres(opts, connectionString, settings);
         // Polled, like the real-time queue: a chain of events (an automation moving an application, which raises the next
@@ -252,6 +254,8 @@ public static class ScreenHireMessaging
     {
         ArgumentNullException.ThrowIfNull(opts);
         opts.Schedules.ScheduleRecurring<ReportOpenJobs>("*/5 * * * *");
+        // Raw network and telemetry data past its retention, daily (docs/architecture/integrity-engine.md, "Retention").
+        opts.Schedules.ScheduleRecurring<PurgeExpiredIntegrityData>("17 3 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

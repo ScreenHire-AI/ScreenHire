@@ -100,16 +100,5 @@ public sealed class RealtimeContractTests
             $"{eventType.Name} has a {type.Name} property; teach {nameof(RealtimeContractTests)}.{nameof(SampleValue)} a sample value for it.");
     }
 
-    private static string ContractFilePath()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "ScreenHire.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory is null
-            ? throw new InvalidOperationException($"No ScreenHire.slnx above {AppContext.BaseDirectory}.")
-            : Path.Combine(directory.FullName, "packages", "realtime", "contract", "events.json");
-    }
+    private static string ContractFilePath() => RepositoryFiles.PathTo("packages", "realtime", "contract", "events.json");
 }

@@ -6,6 +6,7 @@
  */
 import type { ApplicationSource } from './applicationSource.ts';
 import type { ApplicationStage } from './applicationStage.ts';
+import type { IntegritySummary } from './integritySummary.ts';
 
 /**
  * An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the
@@ -21,4 +22,5 @@ export interface ApplicationSummary {
   stageEnteredAt: string;
   jobTitle: string;
   source: ApplicationSource;
+  integrity?: null | IntegritySummary;
 }

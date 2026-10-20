@@ -140,7 +140,7 @@ otherwise run.
 | Test | Proves |
 |---|---|
 | `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a WebSocket from another origin gets 403; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
-| `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none |
+| `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none; the worker's `IntegrityAssessed` reaches its own organization with ids and levels only |
 | `AutomationRealtimeTests` (integration) | a NotifyTeam automation raises `TeamNotified` and `AutomationRunFinished` to its own organization, with ids and the status only, and never to another |
 | `JobCloseTests` (integration) | `POST /v1/jobs/{id}/close` closes once and raises `JobClosed` once; 404 for another organization; antiforgery and sign-in |
 | `DistributionTests` (integration) | publish and close raise one `JobPostingsChanged` per change, not one per board (job-distribution.md §5) |

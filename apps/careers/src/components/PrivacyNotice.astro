@@ -25,7 +25,7 @@ const { base, withSwitch = false, switchChecked = false } = Astro.props;
         <ul class="flex flex-col gap-1">
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>What you send: your details, answers and files</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Signs that a bot filled in the form</li>
-          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Your network address, in our server logs</li>
+          <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Your network address and browser, kept for 30 days</li>
         </ul>
       </div>
       <div class="flex flex-col gap-1">
@@ -46,7 +46,7 @@ const { base, withSwitch = false, switchChecked = false } = Astro.props;
           <span class="flex flex-col">
             <span class="text-sm font-semibold">I use dictation, a screen reader or other assistive technology</span>
             <span id="assistive-hint" class="text-[13px] text-candidate-muted-foreground">
-              We switch off any checks on how you type or paste. This is never held against you.
+              We switch off any checks on how you type, paste or how long you take. This is never held against you.
             </span>
           </span>
           <input

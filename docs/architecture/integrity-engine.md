@@ -1,6 +1,7 @@
 # Integrity Engine — Applicant Authenticity & AI-Assistance Signals
 
-> Status: **Draft v0.1 (2026-10-18)**. Grounded in `docs/research/legal.md` and `docs/research/competitors.md`.
+> Status: **v1 application stage built (2026-10-20)**; §10 describes the implementation. Design draft v0.1
+> (2026-10-18), grounded in `docs/research/legal.md` and `docs/research/competitors.md`.
 > This is ScreenHire's core differentiator: an integrity layer from first click to first day that recruiters and
 > candidates can both understand.
 
@@ -189,6 +190,213 @@ face-swap, second speaker, continuity with verified ID).
 
 **Later:** mailbox correspondence analysis, Signal Network enablement after legal review + DPIA, published accuracy
 reports.
+
+## 10. Implementation (v1, application stage)
+
+What is built, as of 2026-10-20. Code: `src/ScreenHire.Domain/Integrity` (signal model, catalogue, ruleset),
+`src/ScreenHire.Application/Integrity` (analyzers, pipeline, retention, synthetic applicants),
+`src/ScreenHire.Infrastructure/Integrity` (local data sources), `apps/api/Endpoints/IntegrityEndpoints.cs` (API).
+
+### 10.1 Signals and evidence
+
+An `IntegritySignal` row has the fields of §4: `code`, `category`, `assessment` (which of the two it feeds), `weight`
+(`Low`, `Medium`, `High`), `confidence` (same three), `source` and `sourceVersion` (the analyzer), `observedAt`,
+`accessibilitySensitive`, `contextOnly`, `explanation` (the catalogue's template with this observation's values filled
+in), `evidence[]` and `counterEvidence[]`. `SignalCatalogue` defines every code once: category, assessment, default
+weight, title and explanation template. An analyzer only says what it saw.
+
+Evidence is typed, so the dashboard renders any signal, including later content and telemetry signals, without code
+per signal. One flat record (`SignalEvidence`) with `kind` and the members that kind uses:
+
+| `kind` | Members | Example |
+|---|---|---|
+| `Fact` | `label`, `value` | Network operator: Example Cloud Hosting (AS64497) |
+| `Quote` | `label`, `text`, `source` | a hidden instruction quoted from page 2 of the resume |
+| `TextComparison` | `label`, `left`, `right` (each `label` and `text`) | two near-identical answers side by side |
+| `Metric` | `label`, `amount`, `unit`, `reference`, `referenceLabel` | 6 seconds; plausible minimum 32 seconds |
+| `List` | `label`, `items` | automation markers: webdriver, headless |
+
+A metric is a measurement, never a likelihood. Counter-evidence is a plain-language `explanation` with optional
+evidence of its own.
+
+Categories: `Network`, `Identity`, `Automation`, `Behavioural` (telemetry), `Document` (file metadata and hidden text)
+and `Content` (answer and resume text). `Document` and `Content` are separate so the content analyzers can corroborate
+each other: one is the file, the other the words.
+
+### 10.2 Pipeline
+
+`ApplicationSubmitted`'s worker handler cascades `AnalyzeApplicationIntegrity(organizationId, applicationId)`, a
+separate message so the pipeline retries and fails apart from the workflow engine. Its handler (`IntegrityPipeline`):
+
+1. runs each registered `IIntegrityAnalyzer` whose `(application, name, version)` has no `integrity_analyzer_runs`
+   row, and stores the run (with a `note` when it could not look, such as "No IP intelligence source is configured")
+   and its signals. A unique index on the run is the idempotency key;
+2. derives both assessments with the ruleset. An assessment row is written only when its inputs changed: its
+   `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index;
+3. when either changed, appends an `IntegrityAssessed` timeline entry with both level names, and publishes the
+   `IntegrityAssessed` tenant event and `RunAutomations(IntegrityAssessed)` for the workflow engine.
+
+A later analyzer (content forensics) registers as another `IIntegrityAnalyzer`, or publishes
+`AnalyzeApplicationIntegrity` again when its own asynchronous work lands. Bumping an analyzer's version re-runs it.
+
+| Analyzer | Signals | Reads | When it sees nothing |
+|---|---|---|---|
+| `network` | `NET_DATACENTER_IP`, `NET_ANON_PROXY` (context only), `NET_GEO_CLAIM_MISMATCH` | the submission's IP address; IP intelligence | no address (recruiter-added), no source configured, nothing known |
+| `identity` | `ID_EMAIL_DISPOSABLE`, `ID_EMAIL_NO_MX`, `ID_PHONE_INVALID`, `ID_PHONE_VOIP` | email and phone | MX not checked, number without a country code |
+| `automation` | `AUTO_HONEYPOT`, `AUTO_WEBDRIVER`, `AUTO_SUBMIT_VELOCITY`, `AUTO_TURNSTILE_FAIL` (context only) | honeypot, bot check, markers, form start time | |
+| `duplicates` | `ID_DUPLICATE_IN_ORG` | other candidates' email (plus tag ignored), phone, device hash, resume hash, same organization only | |
+| `behavioural` | `BEH_*` | `ITelemetrySource` (none registered yet) | always, until the telemetry module lands |
+
+Every application assessed before the telemetry module lands already has a `behavioural` version 1 run that saw
+nothing, and the pipeline never repeats a run. The telemetry module therefore bumps the analyzer's version and stores
+the aggregates before it publishes `AnalyzeApplicationIntegrity`. The input contract has no typing-rhythm field:
+timing between keys is keystroke dynamics, a behavioural biometric, and v1 has none (CLAUDE.md non-negotiable 3).
+`BEH_CADENCE_ANOMALY` above waits for that task's own legal review.
+
+Rules of thumb in the analyzers:
+
+- **Claimed location** is the country of the candidate's phone number: the form asks for no location, and the phone
+  is the only place a candidate says where they are. A VPN or proxy exit says where the service is, so no mismatch
+  is reported for one, and a VPN on a hosting network is reported once, as the VPN. A VPN exit in the claimed country
+  is counter-evidence.
+- **Submit velocity** compares the time from the careers server first showing the form to the submission with
+  15 seconds, plus 4 per answer, plus 1 per 50 characters of text. Not measured with an accommodation.
+- **Duplicates** count only other candidates. One person applying to two jobs is normal. A shared device or file is
+  `High`; a shared email base or phone alone is `Medium`. Earlier applications are not revisited when a later one
+  matches them, so the first member of a farm carries no duplicate signal of its own.
+- **Phone numbers** use libphonenumber. A number without a country code is checked only when the job is in exactly one
+  country; otherwise it is not a signal.
+- **Accommodation** (the assistive-technology switch): the API stores no form start time, accessibility-sensitive
+  signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
+  run's note reads the same either way, so nothing records the switch.
+
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.2`)
+
+Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
+context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
+category. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+For each assessment, in order:
+
+| Rule id | Rule |
+|---|---|
+| `accommodation-suppression` | With an accommodation, accessibility-sensitive signals are dropped. |
+| `telemetry-never-alone` | If no category other than `Behavioural` corroborates, the level is the lowest. |
+| `two-independent-categories` | If fewer than two categories corroborate, the level is the lowest. |
+| `top-level-needs-two-non-telemetry-categories` | The highest level needs two corroborating categories besides telemetry and a combined weight of at least 6; otherwise the middle level. |
+| `ai-within-policy-cap` | AI assistance that fits the job's policy (the job allows AI, or allows it with disclosure and the candidate disclosed) is capped at the middle level. |
+
+Levels: Authenticity `NoConcerns`, `ReviewSuggested`, `VerificationRecommended`; AI assistance `NotIndicated`,
+`SomeIndicators`, `StrongIndicators`. These names are what automation conditions compare
+(`integrity.authenticity`, `integrity.aiAssistance`). Reason codes are the codes of the signals in corroborating
+categories, and only when the level is raised; other signals are still shown, as context.
+
+The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
+(`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the summary
+and the next step only. The summary states the policy and the declaration side by side ("Declared AI use: no."), and
+the next step is the same whatever the candidate declared, so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
+number that grades the candidate.
+
+Changing a weight, threshold or rule means a new `IntegrityRuleset.Version`. Assessments store the version they were
+made with.
+
+### 10.4 Data and retention
+
+| Table | Holds | Application role |
+|---|---|---|
+| `submission_observations` | raw network and session data of a careers submission: IP address, user agent, device hash, form start time, automation markers, `expires_at` | insert, read, delete (retention) |
+| `integrity_analyzer_runs` | one row per analyzer version per application | insert, read |
+| `integrity_signals` | signals with their evidence (JSONB) | insert, read |
+| `integrity_assessments` | each assessment, newest per kind is current | insert, read |
+| `integrity_review_actions` | the reviewers' audit log | insert, read |
+| `signal_network_entries` | the Signal Network (§6), cross-tenant | none |
+
+All but the last carry `organization_id` with the usual `tenant_isolation` policy. Only careers-site submissions get
+an observation; a recruiter's own address is never recorded for a candidate. The device fingerprint is stored as an
+HMAC with a per-organization salt (`ScreenHire:Integrity:DeviceHashKey`, generated by the AppHost locally), so it never
+matches across employers. Evidence keeps the network operator and country, never the address.
+
+`PurgeExpiredIntegrityData` runs daily at 03:17 UTC and fans out one `PurgeOrganizationIntegrityData` per organization
+(the worker sees no tenant rows without a tenant). It deletes observations past `expires_at`
+(`ScreenHire:Integrity:Retention:RawNetworkDays`, 30, as the privacy page promises; the API and the worker refuse
+to start with more than 30) and asks `ITelemetrySource` to purge expired telemetry. Signals, assessments and the audit log stay for the employer's record period.
+
+### 10.5 Sources (local or operator-supplied; none needs an account)
+
+| Setting (`ScreenHire:Integrity:...`) | Source | Default |
+|---|---|---|
+| `Network:Ranges` | address ranges with operator, country, hosting and anonymizer flags | Development: the RFC 5737 documentation ranges the synthetic applicants use |
+| `Network:Ip2AsnFile` | an iptoasn.com `ip2asn` TSV the operator downloads under iptoasn.com's terms (published under the PDDL 1.0): ASN, operator, country | unset |
+| `Network:TorExitListFile` | an exit list the operator fetches from the Tor Project, following its terms and rate guidance | unset |
+| `Network:HostingAsns` | extra hosting-provider ASNs, on top of a built-in list of large clouds | empty |
+| `Identity:MxLookup` | MX lookups with DnsClient; reserved test domains are never looked up, and a failed lookup is "not checked" | on |
+| `Identity:ExtraDisposableDomains` | more disposable domains, on top of the embedded CC0-1.0 list (`Integrity/Data/README.md`, with its licence beside it) | Development: `tempinbox.example.net` |
+| `SignalNetwork:Enabled` | the Signal Network flag | off; a host refuses to start with it on |
+
+The worker refuses to start when `Network:Ip2AsnFile` or `Network:TorExitListFile` names a file that does not
+exist, because the files are read on the first lookup and a wrong path would fail every analysis. A commercial
+source such as MaxMind GeoIP2 needs an owner account; none is wired in. Adding one is another
+`IIpIntelligence` behind configuration.
+
+### 10.6 API
+
+Every route is tenant-scoped (another organization's application is 404). No response carries a score or a percentage.
+
+| Route | What |
+|---|---|
+| `GET /v1/applications/{id}/integrity` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log, and whether verification can be requested (not until phase 2) |
+| `POST .../integrity/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
+| `POST .../integrity/notes` | a note on the application's integrity or one assessment |
+| `POST .../integrity/request-verification` | always 409 until phase 2 |
+
+Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
+A unique index (`ix_integrity_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers
+dismiss at once; the second gets the same 409 as a later attempt.
+`ApplicationSummary.integrity` carries the chips for lists: both levels, their reason codes and whether each was
+dismissed. The `IntegrityAssessed` tenant event carries ids, the two level names and the ruleset version, never
+evidence.
+
+### 10.7 Signal Network
+
+The table, the normalisation (`Identifiers`) and the keyed hashing (`KeyedHashing.NetworkHash`, `ContributorHash`) exist,
+with `Organization.SignalNetworkOptIn` defaulting to false. Nothing writes or reads the table: the application role has
+no grant on it, and the worker and API refuse to start with `SignalNetwork:Enabled` on. Enabling it needs legal
+review and DPIA sign-off (ADR-0005), then grants, a security-definer query that returns counts only with the M ≥ 3
+floor, and an audit log of each query.
+
+### 10.8 Synthetic applicants
+
+`SyntheticApplicants` defines a genuine person, a bot, an honest AI-assisted candidate and a three-member application
+farm, all fictional. They are used three ways:
+
+- golden files in `tests/ScreenHire.UnitTests/Integrity/Golden`, run through the real analyzers and ruleset in memory.
+  Rewrite them with `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"`
+  and review the diff;
+- `IntegrityTests` (Aspire) submits them over HTTP and reads the assessments back through the API;
+- with `pnpm dev` the API submits them to Brightwater's "Senior .NET Engineer" job once it has started
+  (`SyntheticApplicantsDemo`, on when `ScreenHire:Demo:SyntheticApplicants` is true, which the AppHost sets only for
+  the dev frontends), so the local demo shows every level. Skipped for applicants already there. The test stacks do
+  not run it.
+
+Expected results: genuine and honest AI-assisted `NoConcerns` (the VPN is context, with counter-evidence); the bot and
+every farm member `VerificationRecommended`; AI assistance `NotIndicated` for all, because no content or telemetry
+analyzer exists yet.
+
+### 10.9 Known gaps
+
+- Version 1 of the "Software engineer" system template tests `integrity.aiAssistance` for `ReviewSuggested`, an
+  authenticity level, so that half of its integrity automation never matches. Version 2 (migration
+  `AddSoftwareEngineerTemplateVersion2`) corrects it: a reviewer is asked when either assessment is above its lowest
+  level. New jobs and the Brightwater seed use version 2; jobs copied from version 1 keep their copy and show "update
+  available". Level names in conditions are still not validated, because validation would block those version 1 jobs
+  until someone adopts version 2. Turning it on is a small change once no job uses version 1.
+- Duplicates do not revisit earlier applications (§10.2).
+- With the demo seeding on in the end-to-end stack, `LiveUpdatesTests` failed in 3 of 9 runs: a live `JobClosed` took
+  more than 5 seconds to reach the second browser. With it off, 10 of 10 runs passed. The demo itself finished well
+  before the test ran. The trigger is the burst of
+  submissions the API makes just after startup; how it delays later real-time delivery is not isolated yet. The demo
+  now runs only for `pnpm dev`. Worth a look before real traffic bursts matter.
+- Webdriver markers and the device fingerprint have an API contract (`automationMarkers`, `deviceFingerprint`) but no
+  careers-page script sends them yet; the telemetry module does.
 
 ## Open questions
 

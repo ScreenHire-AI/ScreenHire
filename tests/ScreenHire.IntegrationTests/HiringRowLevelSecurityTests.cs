@@ -214,7 +214,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         await using var db = await ContextAsync(organization.Id);
 
         (await db.HiringTemplates.Where(t => t.OrganizationId == null).CountAsync(Ct)).Should().Be(2);
-        (await db.HiringTemplateVersions.Where(v => v.OrganizationId == null).CountAsync(Ct)).Should().Be(2);
+        (await db.HiringTemplateVersions.Where(v => v.OrganizationId == null).CountAsync(Ct)).Should().Be(3, "two system templates, one of them with a second version");
     }
 
     [Fact]

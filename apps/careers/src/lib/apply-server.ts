@@ -58,9 +58,10 @@ export const forwardedFor = (address: string | undefined): RequestInit | undefin
 
 /**
  * Handles one posted step. Back and change buttons (`intent` = `go:<step>`) keep what was typed without checking it.
- * Next checks the step and moves on. On the last step, everything is checked again and sent to the API.
+ * Next checks the step and moves on. On the last step, everything is checked again and sent to the API, with the
+ * candidate's browser (`userAgent`) for the integrity engine.
  */
-export async function applyStep(form: FormData, clientAddress: string | undefined): Promise<ApplyResult> {
+export async function applyStep(form: FormData, clientAddress: string | undefined, userAgent?: string | null): Promise<ApplyResult> {
   const organization = text(form, 'organization');
   const jobSlug = text(form, 'job');
   const forwarded = forwardedFor(clientAddress);
@@ -106,6 +107,7 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
   const request = toRequest(state, questions, {
     honeypotFilled: text(form, HONEYPOT_FIELD) !== '',
     botCheckToken: text(form, TURNSTILE_FIELD) || null,
+    userAgent: userAgent ?? null,
   });
   const submitted = await submitPublicApplication(organization, definition.job.id, request, forwarded);
   switch (submitted.status) {

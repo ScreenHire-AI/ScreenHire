@@ -280,6 +280,13 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         var file = await db.ApplicationFiles.SingleAsync(f => f.ApplicationId == application.Id, Ct);
         file.FileName.Should().Be("Casey CV.pdf");
         file.SizeBytes.Should().Be(Pdf.Length);
+
+        // The careers server passed on what the integrity engine reads: the candidate's browser, not its own. These
+        // journeys switch assistive technology on, so no form timing is kept (CLAUDE.md non-negotiable 4).
+        var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application.Id, Ct);
+        observation.UserAgent.Should().Contain("Chrome");
+        observation.FormStartedAt.Should().BeNull();
+        observation.IpAddress.Should().NotBeNullOrEmpty();
     }
 
     // The JavaScript the page loaded, brotli-compressed as it would be served, plus its inline scripts (JSON-LD is data).

@@ -40,6 +40,10 @@
     <PackageVersion Include="HtmlSanitizer" Version="9.2.1039" />
     <!-- Transactional email templates (Liquid). MIT; its dependencies Parlot (BSD-3-Clause) and TimeZoneConverter (MIT). -->
     <PackageVersion Include="Fluid.Core" Version="2.40.0" />
+    <!-- Integrity identity checks: phone validation and number type (Apache-2.0, a port of Google's libphonenumber) and
+         MX lookups (DnsClient, Apache-2.0). -->
+    <PackageVersion Include="libphonenumber-csharp" Version="9.0.41" />
+    <PackageVersion Include="DnsClient" Version="1.8.0" />
   </ItemGroup>
   <ItemGroup Label="Messaging">
     <!-- Wolverine (ADR-0008): MIT, as are its JasperFx, Weasel and Cronos dependencies; NewId is Apache-2.0. -->

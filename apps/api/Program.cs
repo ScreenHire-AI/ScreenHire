@@ -25,6 +25,13 @@ builder.AddScreenHireApiMessaging(TenantEventPusher.For);
 builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
+if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:SyntheticApplicants"))
+{
+    // The integrity demo: synthetic applicants apply to Brightwater once the API has started. The AppHost turns it on
+    // for `pnpm dev` only.
+    builder.Services.AddHostedService<SyntheticApplicantsDemo>();
+}
+
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
 builder.Services.AddHiringValidation();
@@ -55,6 +62,7 @@ app.MapPublicApplicationEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapIntegrityEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();

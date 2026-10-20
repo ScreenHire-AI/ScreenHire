@@ -20,7 +20,10 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the
 /// application itself.
 /// </summary>
-/// <remarks><c>source</c> says whether the candidate applied on the careers page or a recruiter added them.</remarks>
+/// <remarks>
+/// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>integrity</c> holds
+/// the integrity chips; null until the application has been assessed.
+/// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
     Guid JobId,
@@ -30,7 +33,8 @@ public sealed record ApplicationSummary(
     DateTimeOffset SubmittedAt,
     DateTimeOffset StageEnteredAt,
     string JobTitle,
-    ApplicationSource Source);
+    ApplicationSource Source,
+    IntegritySummary? Integrity = null);
 
 /// <summary>
 /// One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's
@@ -101,9 +105,9 @@ internal static class ApplicationMappings
             ? new(stage.Id, stage.Name, stage.Kind)
             : new(application.CurrentStageId, application.CurrentStageId, StageKind.Custom);
 
-    public static ApplicationSummary ToSummary(this JobApplication application, Job job, Candidate candidate) =>
+    public static ApplicationSummary ToSummary(this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
-            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source);
+            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, integrity);
 
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files) =>

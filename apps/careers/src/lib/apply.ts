@@ -8,7 +8,7 @@ import { parseUploadRef, type UploadRef } from './files';
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-20';
+export const NOTICE_VERSION = '2026-10-20.2';
 
 /** The form asks for a resume first, on the details step (the API's ApplicationForm.ResumeQuestionId). */
 export const RESUME_QUESTION_ID = 'resume';
@@ -30,6 +30,11 @@ export interface ApplyState {
   files: Record<string, UploadRef>;
   aiUseDeclaration: AiUseAnswer;
   aiUseDetails: string;
+  /**
+   * When this server first showed the form (ISO 8601), or empty. Set by the server, not the browser, but it round-trips
+   * through the hidden field like everything else, so the integrity engine treats it as a hint (submit velocity).
+   */
+  startedAt: string;
 }
 
 /** Problems to show, by form field name, worded for the candidate. */
@@ -53,7 +58,7 @@ export const fields = {
 /** The element id for a field name, for labels and the error summary's links. */
 export const fieldId = (name: string): string => `field-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
-export const emptyState = (): ApplyState => ({
+export const emptyState = (startedAt = ''): ApplyState => ({
   fullName: '',
   email: '',
   phone: '',
@@ -62,7 +67,12 @@ export const emptyState = (): ApplyState => ({
   files: {},
   aiUseDeclaration: 'NotProvided',
   aiUseDetails: '',
+  startedAt,
 });
+
+/** A start time as the API takes it: an ISO 8601 instant that parses, or empty. */
+const parseInstant = (value: unknown): string =>
+  typeof value === 'string' && value.length <= 40 && /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value)) ? value : '';
 
 /** The questions on the details step: the resume. */
 export const detailsQuestions = (questions: readonly PublicQuestion[]): PublicQuestion[] =>
@@ -102,6 +112,7 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
   state.accommodationRequested = input.accommodationRequested === true;
   state.aiUseDeclaration = isAiUseAnswer(input.aiUseDeclaration) ? input.aiUseDeclaration : 'NotProvided';
   state.aiUseDetails = string('aiUseDetails', MAX_AI_DETAILS);
+  state.startedAt = parseInstant(input.startedAt);
 
   if (typeof input.answers === 'object' && input.answers !== null) {
     for (const [id, answer] of Object.entries(input.answers as Record<string, unknown>)) {
@@ -264,7 +275,7 @@ export function validateReview(state: ApplyState, policy: AiUsePolicy): FieldErr
 export function toRequest(
   state: ApplyState,
   questions: readonly PublicQuestion[],
-  checks: { honeypotFilled: boolean; botCheckToken: string | null },
+  checks: { honeypotFilled: boolean; botCheckToken: string | null; userAgent?: string | null },
 ): PublicApplicationRequest {
   const answers: ApplicationAnswer[] = [];
   for (const question of questions) {
@@ -288,6 +299,10 @@ export function toRequest(
     aiUseDetails: state.aiUseDetails || null,
     honeypotFilled: checks.honeypotFilled,
     botCheckToken: checks.botCheckToken,
+    // Session context for the integrity engine: the candidate's browser (the API only sees this server's) and when
+    // the form was first shown.
+    userAgent: checks.userAgent ? checks.userAgent.slice(0, 1024) : null,
+    formStartedAt: state.startedAt || null,
   };
 }
 

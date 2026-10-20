@@ -29,6 +29,9 @@ public enum ApplicationEventType
     Submitted,
     StageChanged,
     TagAdded,
+
+    /// <summary>The integrity engine assessed the application, or reassessed it with a different result.</summary>
+    IntegrityAssessed,
 }
 
 /// <summary>
@@ -38,6 +41,15 @@ public enum ApplicationEventType
 /// <remarks>
 /// <c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did. The engine
 /// follows it to find which automations led to a move (depth limit and cycle detection).
+/// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.IntegrityAssessed"/>,
+/// the levels as they stood after the assessment; automation conditions read them as integrity facts.
 /// </remarks>
 public sealed record ApplicationEventData(
-    string? FromStageId = null, string? ToStageId = null, string? Note = null, string? Tag = null, Guid? AutomationRunId = null);
+    string? FromStageId = null,
+    string? ToStageId = null,
+    string? Note = null,
+    string? Tag = null,
+    Guid? AutomationRunId = null,
+    string? AuthenticityLevel = null,
+    string? AiAssistanceLevel = null,
+    string? RulesetVersion = null);

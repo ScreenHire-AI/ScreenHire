@@ -17,6 +17,6 @@ export const server = {
    */
   apply: defineAction({
     accept: 'form',
-    handler: async (form: FormData, context) => applyStep(form, addressOf(context)),
+    handler: async (form: FormData, context) => applyStep(form, addressOf(context), context.request.headers.get('user-agent')),
   }),
 };

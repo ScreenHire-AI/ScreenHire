@@ -129,8 +129,9 @@ The data model and API from the jobs and templates task, and the engine that run
   exactly what ADR-0004 and the accommodation guardrail protect; the template builder must say so, and review of
   system templates checks it.
 - **Templates** have numbered versions: at most one draft, then published versions that never change. The system
-  templates "Software engineer" and "Hourly role" ship in the `AddHiringModel` migration with no organization; an
-  organization copies one (`copyFromVersionId`) to customise it.
+  templates "Software engineer" and "Hourly role" ship in the `AddHiringModel` migration with no organization, and a
+  later version of one ships as its own migration (`AddSoftwareEngineerTemplateVersion2`); an organization copies one
+  (`copyFromVersionId`) to customise it.
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
   template's newest published version, matching list elements by id. Applying an update (stage mapping) is not built
@@ -152,16 +153,21 @@ Code: `src/ScreenHire.Domain/Automations` (facts, evaluator, run records) and `s
 worker handlers, which write and send nothing when the job has no matching automation. `TimeElapsed` is a scheduled
 `RunAutomations` message, due `afterHours` after the stage entry it counts from; when it fires it does nothing if the
 application has left that stage entry, which is how leaving the stage cancels it. `Manual` is
-`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. `QuestionnaireCompleted`, `IntegrityAssessed` and
-`ReviewerDecision` are valid in definitions and run through `RunAutomations`, but nothing raises them yet: the apply
-flow, the integrity engine and reviewer decisions publish that message when they land.
+`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The integrity
+engine publishes `RunAutomations(IntegrityAssessed)` whenever an assessment changes, keyed on the `IntegrityAssessed`
+timeline entry it appends. `QuestionnaireCompleted` and `ReviewerDecision` are valid in definitions and run through
+`RunAutomations`, but nothing raises them yet.
 
 **Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
 trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
-sees what the first one saw. The snapshot and every rule's result are stored on the run. Answers, the application
-source and integrity levels are absent until the features that store them exist. The facts schema
-(`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only, and
-their values stay open until the integrity engine publishes its level names.
+sees what the first one saw. The snapshot and every rule's result are stored on the run. Integrity levels come from
+the latest `IntegrityAssessed` entry at or before the trigger. Answers and the application source are absent until
+the features that store them exist. The facts schema
+(`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only. The integrity engine's level names are `NoConcerns`, `ReviewSuggested` and
+`VerificationRecommended` for `integrity.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
+`integrity.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
+compares `integrity.aiAssistance` with `ReviewSuggested`, and validating names would block jobs copied from it.
+Version 2 corrects the condition (integrity-engine.md §10.9).
 
 **Runs and actions.** Every triggered automation gets an `automation_runs` row, unique on
 `(application, automation, event)`, whether it matched or not: that row is the audit record (guardrail 3) and the

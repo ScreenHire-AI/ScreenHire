@@ -24,4 +24,12 @@ export interface PublicApplicationRequest {
   honeypotFilled?: boolean;
   /** @nullable */
   botCheckToken?: string | null;
+  /** @nullable */
+  userAgent?: string | null;
+  /** @nullable */
+  formStartedAt?: string | null;
+  /** @nullable */
+  automationMarkers?: string[] | null;
+  /** @nullable */
+  deviceFingerprint?: string | null;
 }
