@@ -30,12 +30,13 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
-  dashboard :4323; the Aspire dashboard URL is printed on start. Sign in to the dashboard with **Dev SSO** (the
-  local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email lands in **Mailpit**.
-  Both run on random ports shown in the Aspire dashboard. No real provider accounts or secrets are needed.
+  dashboard :4323, Mailpit :8025, Dev SSO :5090; the Aspire dashboard URL is printed on start. Sign in to the dashboard
+  with **Dev SSO** (the local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email
+  lands in **Mailpit**. No real provider accounts or secrets are needed. `pnpm dev` also seeds the demo data
+  (`DevelopmentDemo`); the five-minute demo is [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
 - **Parallel worktrees:** several Kangentic tasks may run at once. Before `pnpm dev`, check/reserve ports with the
   Kangentic dev-port tools (`kangentic_check_dev_ports` / `kangentic_reserve_dev_ports`) and pass them as
-  `ScreenHire__Ports__Api|Marketing|Careers|Dashboard`, or run with `ScreenHire__PinPorts=false` for random ports
+  `ScreenHire__Ports__Api|Marketing|Careers|Dashboard|Mailpit|DevSso`, or run with `ScreenHire__PinPorts=false` for random ports
   (URLs are shown in the Aspire dashboard). Data volumes are already per-worktree; integration tests use no volumes and
   random ports.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these

@@ -467,7 +467,7 @@ farm, all fictional. They are used three ways:
   only the resume question, so the plausible minimum time is 19 seconds and the farm members (20 seconds) carry no
   `AUTO_SUBMIT_VELOCITY`, unlike their golden files;
 - with `pnpm dev` the API submits them to Brightwater's "Senior .NET Engineer" job once it has started
-  (`SyntheticApplicantsDemo`, on when `ScreenHire:Demo:SyntheticApplicants` is true, which the AppHost sets only for
+  (`DevelopmentDemo`, on when `ScreenHire:Demo:Enabled` is true, which the AppHost sets only for
   the dev frontends), so the local demo shows every level. Skipped for applicants already there. The test stacks do
   not run it.
 

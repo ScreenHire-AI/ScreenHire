@@ -158,6 +158,14 @@ healthy, and launches one headless Chromium for the assembly. Test classes deriv
 Assert on what a person sees (headings, rows, cell text, links by accessible name) with Playwright's `Expect(...)`,
 which retries until its timeout. Status codes alone are not an end-to-end assertion.
 
+`AcceptanceJourneyTests` is the MVP acceptance journey: the whole product in one test, in the order a hiring team meets
+it (Dev SSO sign-in and onboarding, a job from a template, publish to the careers page and the sandbox board, a genuine
+candidate and a bot applying on the careers site while the job is open, their levels and evidence arriving live, a move
+that sends the stage-change email to Mailpit, and the teardown). The other classes go deep on each step; this one
+proves the steps connect, so a change that breaks the hand-off between two areas fails here. It keeps the integrity
+levels deterministic in a browser: the genuine candidate's browser runs no JavaScript, so Playwright's automation
+markers and the device check never reach the API, and the bot uses Playwright's browser as it is.
+
 ### Golden files
 
 Two unit tests compare output with files in the repository, and fail with the command that rewrites them:

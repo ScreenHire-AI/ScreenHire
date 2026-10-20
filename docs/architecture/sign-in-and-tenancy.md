@@ -186,7 +186,8 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
 
 ## Local development and tests
 
-The AppHost runs Mailpit (every email lands there; web UI and API on a random port shown in the Aspire dashboard) and,
+The AppHost runs Mailpit (every email lands there; web UI and API on http://localhost:8025 with `pnpm dev`, a random
+port in the tests) and,
 in Development only, **Dev SSO**: navikt/mock-oauth2-server with the seeded users in `apps/apphost/DevSso/config.json`,
 listed on its login page.
 
