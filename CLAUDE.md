@@ -26,7 +26,8 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 
 ## Commands
 
-- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs), then
+- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs) and
+  `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
@@ -34,14 +35,17 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   with **Dev SSO** (the local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email
   lands in **Mailpit**. No real provider accounts or secrets are needed. `pnpm dev` also seeds the demo data
   (`DevelopmentDemo`); the five-minute demo is [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
-- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview stop`). It reserves ports,
-  starts the stack, waits until the demo data is in, reports the URLs and logins and opens the dashboard in the task's
-  browser pane; `/run` uses it too.
-- **Parallel worktrees:** several Kangentic tasks may run at once, so a worktree's stack needs nine ports of its own,
-  the Aspire dashboard's three included. `/preview` reserves them with `kangentic_reserve_dev_ports` and passes them
-  on the command line, with `--no-launch-profile` because `launchSettings.json` pins the Aspire dashboard's ports.
-  `ScreenHire__PinPorts=false` randomises the app ports but not the Aspire dashboard's. Data volumes are already
-  per-worktree; integration tests use no volumes and random ports.
+- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview stop`). It runs the stack
+  through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
+  dashboard in the task's browser pane; `/run` uses it too. Agents never `dotnet run` the AppHost. After a change to the
+  API or worker, `dotnet aspire resource api rebuild` (or `worker`) rebuilds and restarts just that service.
+- **Parallel worktrees:** several Kangentic tasks may run at once. In a worktree `/preview` starts with
+  `dotnet aspire start --isolated`, which gives every port, the Aspire dashboard's included, a random free number, so
+  stacks never collide and nothing needs reserving. Data volumes are already per-worktree; integration tests use no
+  volumes and random ports.
+- **Aspire MCP server:** `.mcp.json` runs `dotnet tool run aspire agent mcp`, which gives agents the running stack's
+  resources, console and structured logs, traces and resource commands. Never run `aspire agent init`: it installs
+  hooks and MCP settings into the machine-wide Claude Code and Copilot configuration.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact

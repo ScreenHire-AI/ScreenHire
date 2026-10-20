@@ -17,10 +17,11 @@ and a five-minute demo script.
 ## Start it
 
 In Claude Code, run **`/preview`** ([the skill](../../.claude/skills/preview/SKILL.md)). It checks Docker and the
-packages, picks ports (this task's reserved ones in a Kangentic worktree, the pinned ones below in the main checkout),
-starts the stack, waits until the demo data is in, and reports the URLs, the logins and the Aspire dashboard's link.
-In a Kangentic task it also signs in as Avery Quinn in the task's browser pane. `/preview fresh` starts a clean demo
-and `/preview stop` stops it. Without Claude Code:
+packages, starts the stack in the background with the Aspire CLI (`dotnet aspire start`; in a Kangentic worktree with
+`--isolated`, which gives it random free ports), waits until the demo data is in, and reports the URLs, the logins and
+the Aspire dashboard's link. In a Kangentic task it also signs in as Avery Quinn in the task's browser pane.
+`/preview fresh` starts a clean demo and `/preview stop` stops it. The Aspire CLI is a repo-local tool: run
+`dotnet tool restore` once. Without Claude Code:
 
 ```bash
 pnpm install   # once, and again after pulling changes to any package.json
@@ -33,17 +34,19 @@ The API listens only once it has migrated and seeded the database, and reports h
 in, so when the dashboard shows every resource as healthy, the demo data is there. The synthetic applicants' integrity
 levels follow within a minute, once the worker has assessed them.
 
-Frontend changes reload on their own while it runs. A .NET change needs a restart: run `/preview` again, which
-replaces the running stack of this clone, or restart that resource in the Aspire dashboard.
+Frontend changes reload on their own while it runs. After a change to the API or the worker, rebuild just that service
+while the rest keeps running: `dotnet aspire resource api rebuild` (or `worker`), or **Rebuild** on the resource in the
+Aspire dashboard. Attach a debugger to the `ScreenHire.Api` or `ScreenHire.Worker` process, or start the AppHost from
+your IDE. After a change to the AppHost itself, start it again; this clone's running stack is replaced.
 
-Stop with Ctrl+C (or `/preview stop`). Aspire then removes the containers it started. The database, uploaded files and
+Stop with Ctrl+C (or `/preview stop`, which is `dotnet aspire stop`). Aspire then removes the containers it started. The database, uploaded files and
 Mailpit's inbox stay in Docker volumes (one set per clone or worktree), so the next start has the same candidates, the
 same emails and anything you changed.
 
 ### Start over
 
 - **A clean demo, keeping your data:** `/preview fresh`, or
-  `dotnet run --project apps/apphost -- --ScreenHire:PersistData=false`. It runs with no volumes at all and deletes
+  `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false`. It runs with no volumes at all and deletes
   nothing; the next normal start has your data back.
 - **Wipe this clone's data for good:** stop the stack, then remove its three data volumes one at a time by exact name,
   as `/preview` reports them: `screenhire.apphost-<hash>-postgres-data`, `-storage-data` and `-mailpit-data`, each with
@@ -62,11 +65,10 @@ same emails and anything you changed.
 | Dev SSO (the local sign-in provider) | http://localhost:5090, reached through "Continue with Dev SSO" on the sign-in page |
 | Aspire dashboard (resources, logs, traces) | https://localhost:17113, with the token from the console |
 
-These are the main checkout's ports. `/preview` in a worktree uses that task's own nine ports and prints them.
-Another stack already on one of these ports? Pin others with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`,
-`__Dashboard`, `__Mailpit` or `__DevSso`, or run with `ScreenHire__PinPorts=false` for random ports, which the Aspire
-dashboard lists. Neither moves the Aspire dashboard's own ports, which `launchSettings.json` pins; `/preview` moves
-those with `--no-launch-profile`.
+These are the main checkout's ports. `/preview` in a worktree starts with `--isolated`, so every port, the Aspire
+dashboard's included, is random; it prints the real ones (`dotnet aspire describe` lists them too). Another stack already
+on one of these ports? Pin others with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashboard`, `__Mailpit`
+or `__DevSso`, or run with `ScreenHire__PinPorts=false` for random app ports, which the Aspire dashboard lists.
 
 ## Demo logins
 

@@ -16,9 +16,9 @@ pnpm install   # once, at the repo root
 pnpm dev       # runs the Aspire AppHost: Postgres (pgvector), Azurite, Mailpit, Dev SSO, API, worker and frontends
 ```
 
-In Claude Code, `/preview` does the same on ports of its own, waits until the demo data is in and reports the URLs and
-logins; `/preview fresh` gives a clean demo and `/preview stop` stops it
-([docs/operations/local-demo.md](docs/operations/local-demo.md)).
+In Claude Code, `/preview` runs it through the Aspire CLI (`dotnet tool restore` once, then `dotnet aspire start`),
+waits until the demo data is in and reports the URLs and logins; `/preview fresh` gives a clean demo and
+`/preview stop` stops it ([docs/operations/local-demo.md](docs/operations/local-demo.md)).
 
 | Service | URL |
 |---|---|

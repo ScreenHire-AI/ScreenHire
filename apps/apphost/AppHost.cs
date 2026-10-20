@@ -6,10 +6,8 @@
 //                               include a hash of this AppHost's path, so each git worktree gets its own data.
 //   PinPorts    (default true)  stable local URLs; set false (as the integration tests do) for random ports, or
 //                               override individual ports with Ports:Api / Ports:Marketing / Ports:Careers / Ports:Dashboard
-//                               / Ports:Mailpit (its web UI) / Ports:DevSso. Aspire's own dashboard ports come from
-//                               Properties/launchSettings.json; `dotnet run --no-launch-profile` with ASPNETCORE_URLS,
-//                               ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL and ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL moves them
-//                               (the /preview skill does, so two stacks can run side by side).
+//                               / Ports:Mailpit (its web UI) / Ports:DevSso. `aspire start --isolated` (what /preview
+//                               uses in a worktree) randomises every port, these and the Aspire dashboard's included.
 //   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).

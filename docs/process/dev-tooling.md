@@ -19,7 +19,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
 | [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
-| [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | reserves this task's nine ports, starts the stack with `--no-launch-profile`, waits until the demo data is in, reports URLs and logins, signs in as Avery Quinn in the task's browser pane; `fresh` for a clean demo, `stop` to stop it and remove its containers by exact name |
+| [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo, `stop` for `aspire stop` |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, runs `doc-auditor`, fixes drifted docs and prose |
 | [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
 | [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
@@ -71,7 +71,7 @@ Every command in these files was run once when they were written (October 2026),
 | Command | Named in | Why not |
 |---|---|---|
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
-| `dotnet run --project apps/apphost --no-launch-profile ...` with the root checkout's pinned ports | `preview` | run from a worktree with reserved ports only; the root checkout belongs to the owner, whose own stack may be running |
+| `dotnet aspire start` without `--isolated`, in the root checkout | `preview` | run from a worktree with `--isolated` only; the root checkout belongs to the owner, whose own stack may be running |
 | `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,

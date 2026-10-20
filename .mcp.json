@@ -8,6 +8,19 @@
         "-y",
         "@upstash/context7-mcp"
       ]
+    },
+    "aspire": {
+      "command": "dotnet",
+      "args": [
+        "tool",
+        "run",
+        "aspire",
+        "agent",
+        "mcp"
+      ],
+      "env": {
+        "ASPIRE_CLI_TELEMETRY_OPTOUT": "true"
+      }
     }
   }
 }
