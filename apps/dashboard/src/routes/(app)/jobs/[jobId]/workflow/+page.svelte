@@ -75,7 +75,7 @@
         jobId: params.jobId,
         data: { templateVersionId: update.latestVersionId, expectedWorkflowVersion: detail.workflowVersion },
       });
-      draft.load(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
+      draft.replace(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
       reviewing = false;
       status = `Applied version ${update.latestVersion} of ${detail.template?.templateName}.`;
     } catch (error) {
@@ -140,6 +140,12 @@
       </section>
     {/if}
 
+    {#if draft.outdated}
+      <div role="alert" class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px]">
+        <p>Someone else saved this job's workflow (now version {detail.workflowVersion}). Your changes here are not saved, and saving them would be refused.</p>
+        <Button variant="outline" size="sm" onclick={() => draft.discardForNewer()}>Discard mine and load theirs</Button>
+      </div>
+    {/if}
     <p role="status" class="text-[13px] empty:hidden">{status}</p>
     <p role="alert" class="text-[13px] font-semibold text-destructive empty:hidden">{failure}</p>
     {#if readonly}<p class="text-[13px] text-muted-foreground">This job is closed, so its workflow can no longer change.</p>{/if}

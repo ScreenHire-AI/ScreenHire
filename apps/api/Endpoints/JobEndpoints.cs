@@ -460,11 +460,12 @@ internal static class JobEndpoints
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
         Guid jobId,
         UpdateJobWorkflowRequest request,
-        ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         BoardRegistry boards,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
+        var db = outbox.DbContext;
         var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
         if (job is null)
         {
@@ -492,7 +493,7 @@ internal static class JobEndpoints
         }
 
         job.ReviseWorkflow(request.Workflow, time.GetUtcNow());
-        return await SaveWorkflowAsync(db, boards, job, cancellationToken);
+        return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
     }
 
     // "Apply update": the job takes a published version of its source template, replacing its own edits as the diff
@@ -500,11 +501,12 @@ internal static class JobEndpoints
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyTemplateUpdate(
         Guid jobId,
         ApplyTemplateUpdateRequest request,
-        ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         BoardRegistry boards,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
+        var db = outbox.DbContext;
         var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
         if (job is null)
         {
@@ -535,7 +537,7 @@ internal static class JobEndpoints
         }
 
         job.ApplyTemplateUpdate(version, time.GetUtcNow());
-        return await SaveWorkflowAsync(db, boards, job, cancellationToken);
+        return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
     }
 
     private static ProblemHttpResult? WorkflowConflict(Job job, int expectedWorkflowVersion) =>
@@ -571,19 +573,21 @@ internal static class JobEndpoints
         return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["workflow.stages"] = messages });
     }
 
+    // The change and JobWorkflowChanged commit together, so open dashboards refetch the job's stages.
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> SaveWorkflowAsync(
-        ScreenHireDbContext db, BoardRegistry boards, Job job, CancellationToken cancellationToken)
+        IDbContextOutbox<ScreenHireDbContext> outbox, BoardRegistry boards, Job job, CancellationToken cancellationToken)
     {
+        await outbox.PublishAsync(new JobWorkflowChanged(job.OrganizationId, job.Id, job.WorkflowVersion, job.UpdatedAt!.Value));
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
             return ChangedMeanwhile();
         }
 
-        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+        return TypedResults.Ok((await LoadDetailAsync(outbox.DbContext, boards, job.Id, cancellationToken))!);
     }
 
     /// <summary>

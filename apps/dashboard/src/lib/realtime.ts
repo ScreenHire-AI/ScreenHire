@@ -25,6 +25,7 @@ export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
   JobClosed: [jobsPath],
   JobPostingsChanged: [jobsPath],
+  JobWorkflowChanged: [jobsPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],

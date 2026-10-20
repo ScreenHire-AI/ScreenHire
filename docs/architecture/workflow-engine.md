@@ -159,8 +159,9 @@ The data model and API from the jobs and templates task, and the engine that run
   `POST /v1/jobs/{id}/workflow/apply-template-update` replaces it with a published version of its source template
   (which replaces the job's own edits too; the diff lists them). Both validate like a template save, refuse a closed
   job (409), and take `expectedWorkflowVersion`, so a stale editor gets 409 rather than overwriting someone's change.
-  Each change adds one to the job's `workflowVersion`. Neither republishes the job: the careers form reads the
-  workflow live. There is no stage mapping yet: a change that drops a stage still holding applications is refused
+  Each change adds one to the job's `workflowVersion` and raises `JobWorkflowChanged` through the outbox, so open
+  dashboards refetch the job; an editor with unsaved changes keeps them and says a newer version exists. Neither
+  republishes the job: the careers form reads the workflow live. There is no stage mapping yet: a change that drops a stage still holding applications is refused
   (400 on `workflow.stages`, naming the stage) until someone moves those candidates.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with

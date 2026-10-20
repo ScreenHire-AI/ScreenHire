@@ -15,6 +15,8 @@ export function createWorkflowDraft() {
   let source = $state('');
   let baseline = $state('');
   let saveErrors = $state<{ snapshot: string; errors: DefinitionError[] } | null>(null);
+  // A newer stored version that arrived while there were unsaved changes: kept aside, never loaded over them.
+  let newer = $state<{ workflow: HiringWorkflow; key: string } | null>(null);
   const snapshot = $derived(workflow ? JSON.stringify(workflow) : '');
   const live = createLiveValidation(() => workflow);
 
@@ -25,16 +27,46 @@ export function createWorkflowDraft() {
     set workflow(value: HiringWorkflow | undefined) {
       workflow = value;
     },
-    /** Starts editing `loaded` when `key` (which version, in which state) differs from what is being edited. */
+    /**
+     * Starts editing `loaded` when `key` (which version, in which state) differs from what is being edited. With unsaved
+     * changes it keeps them and sets `outdated` instead: someone else's save never wipes work in progress.
+     */
     load(loaded: HiringWorkflow, key: string) {
       if (key === source) return;
+      if (snapshot !== '' && snapshot !== baseline) {
+        newer = { workflow: loaded, key };
+        return;
+      }
+      newer = null;
       source = key;
       workflow = JSON.parse(JSON.stringify(loaded)) as HiringWorkflow;
       baseline = JSON.stringify(workflow);
       saveErrors = null;
     },
+    /** Someone else saved a newer version while there were unsaved changes here. */
+    get outdated() {
+      return newer !== null && newer.key !== source;
+    },
+    /** Drops the unsaved changes and loads the newer version. */
+    discardForNewer() {
+      if (!newer) return;
+      const { workflow: loaded, key } = newer;
+      newer = null;
+      source = '';
+      baseline = '';
+      workflow = undefined;
+      this.load(loaded, key);
+    },
+    /** Loads `loaded` whatever is on screen: the result of an action that replaced the workflow on purpose. */
+    replace(loaded: HiringWorkflow, key: string) {
+      newer = null;
+      source = '';
+      workflow = undefined;
+      this.load(loaded, key);
+    },
     /** The save went through: what is on screen is what is stored. */
     saved(stored: HiringWorkflow, key: string) {
+      newer = null;
       source = key;
       baseline = JSON.stringify(stored);
       saveErrors = null;
