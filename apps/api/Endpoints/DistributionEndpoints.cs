@@ -35,8 +35,9 @@ internal static class DistributionEndpoints
     private static async Task<List<BoardSummary>> ListBoards(
         ScreenHireDbContext db, ITenantContext tenant, BoardRegistry boards, CancellationToken cancellationToken)
     {
-        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
-        return [.. boards.AvailableTo(organization).Select(a => a.ToSummary())];
+        // A signed-in user who has not onboarded yet has no organization, and so no boards.
+        var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        return organization is null ? [] : [.. boards.AvailableTo(organization).Select(a => a.ToSummary())];
     }
 
     private static async Task<Results<Ok<List<JobPostingStatus>>, NotFound>> ListJobPostings(
