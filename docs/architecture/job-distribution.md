@@ -222,8 +222,8 @@ read it. Ids are our UUIDs, and `content` is sanitized HTML, which Greenhouse es
 `ScreenHire:Distribution:Sandbox` (`Enabled`, `AcceptanceDelay`, `RemovalDelay`) turns on a push board whose "remote"
 storage is the `sandbox_listings` table. It accepts a posting after the acceptance delay and removes it after the
 removal delay. Only then does `GetStatus` report Live or Closed. `GET /v1/public/sandbox-board/{slug}/listings` shows
-what it lists now, and is a 404 while it is off. The AppHost enables it (20 s and 30 s), and the test stack uses 4 s
-(`AppHostFixture.SandboxDelay`).
+what it lists now, and is a 404 while it is off. The AppHost's `appsettings.Development.json` enables it (20 s and
+30 s), so it never reaches real tenants; the test stack enables it with 4 s (`AppHostFixture.SandboxDelay`).
 
 ### Partner boards
 

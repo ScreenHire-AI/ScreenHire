@@ -41,6 +41,7 @@ public class AppHostFixture : IAsyncLifetime
                 "--ScreenHire:PersistData=false", "--ScreenHire:PinPorts=false", $"--ScreenHire:Frontends={Frontends}",
                 // Job distribution: a quick sandbox board, so its delayed acceptance and removal fit in a test, and the
                 // local Indexing API fake, so the Google queue runs with no account.
+                "--ScreenHire:Distribution:Sandbox:Enabled=true",
                 $"--ScreenHire:Distribution:Sandbox:AcceptanceDelay={SandboxDelay}",
                 $"--ScreenHire:Distribution:Sandbox:RemovalDelay={SandboxDelay}",
                 "--ScreenHire:Distribution:GoogleIndexing:Mode=Local",

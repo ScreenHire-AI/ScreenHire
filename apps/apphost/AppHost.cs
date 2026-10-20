@@ -10,8 +10,9 @@
 //                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
 //                               (the integration tests use it; only the API, worker and infrastructure start).
 //   Distribution:*              job distribution settings, forwarded as they are to the API and the worker so both see
-//                               the same boards (ScreenHire.Application DistributionOptions). appsettings.json turns
-//                               on the local sandbox board; GoogleIndexing:Mode is Off unless set (Local is the fake).
+//                               the same boards (ScreenHire.Application DistributionOptions). appsettings.Development.json
+//                               turns on the local sandbox board, a fake that must never reach real tenants;
+//                               GoogleIndexing:Mode is Off unless set (Local is the fake).
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
