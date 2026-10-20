@@ -1,3 +1,4 @@
+import type { SignalEvidence as SignalEvidenceView } from '@screenhire/api-client';
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { evidenceOfEveryKind } from '../../test-support/integrity-fixtures.js';
@@ -45,5 +46,28 @@ describe('signal evidence', () => {
 
     expect(screen.getByText('Automation markers')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual(['webdriver', 'headless']);
+  });
+
+  it('shows what is there when fields are missing', () => {
+    const { container } = render(SignalEvidence, {
+      props: { evidence: { kind: 'Metric', label: 'Pasted characters', amount: null, unit: null, reference: null } },
+    });
+    expect(container.querySelector('[data-evidence-kind="Metric"]')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Pasted characters: not measured');
+
+    const comparison = render(SignalEvidence, {
+      props: { evidence: { kind: 'TextComparison', label: 'Cover letter', left: { label: 'This application', text: 'Hello.' }, right: null } },
+    });
+    expect(comparison.container.querySelectorAll('.grid > div')).toHaveLength(1);
+
+    const list = render(SignalEvidence, { props: { evidence: { kind: 'List', label: 'Markers', items: null } } });
+    expect(within(list.container).queryAllByRole('listitem')).toHaveLength(0);
+    expect(list.container).toHaveTextContent('Markers');
+  });
+
+  it('shows a kind this build does not know in words, so a new kind never hides evidence', () => {
+    const evidence = { kind: 'Timeline', label: 'Submitted', value: 'Twice within a minute' } as unknown as SignalEvidenceView;
+    const { container } = render(SignalEvidence, { props: { evidence } });
+
+    expect(container.querySelector('[data-evidence-kind="Timeline"]')).toHaveTextContent('Submitted: Twice within a minute');
   });
 });

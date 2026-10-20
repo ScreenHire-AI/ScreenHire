@@ -149,6 +149,78 @@ describe('integrity panel', () => {
     expect(sent).toEqual([]);
   });
 
+  it('closes and says so when the assessment was already dismissed or replaced', async () => {
+    serve(botIntegrity(), {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/dismiss`]: () => ({ status: 409, body: { title: 'Conflict', status: 409 } }),
+    });
+    renderPanel();
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    const dialog = await screen.findByRole('dialog');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
+
+    await screen.findByText('This assessment was already dismissed, or a newer one replaced it. The panel now shows the latest.');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps the dialog open with a message when the API fails, and opens clean the next time', async () => {
+    serve(botIntegrity(), {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/dismiss`]: () => ({ status: 500, body: { title: 'Server error', status: 500 } }),
+    });
+    renderPanel();
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    let dialog = await screen.findByRole('dialog');
+    await fireEvent.click(within(dialog).getByRole('radio', { name: 'Explained by the candidate' }));
+    await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Said so on the phone.' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent("We couldn't record the dismissal just now. Try again in a minute.");
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await fireEvent.click(screen.getByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('radio', { name: 'The observations do not apply' })).toBeChecked();
+    expect(within(dialog).getByLabelText('Note (optional)')).toHaveValue('');
+  });
+
+  it('shows a rejected note under the field', async () => {
+    serve(botIntegrity(), {
+      [`POST ${base}/notes`]: () => ({
+        status: 400,
+        body: { title: 'One or more validation errors occurred.', status: 400, errors: { note: ['The note is too long.'] } },
+      }),
+    });
+    renderPanel();
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a note' });
+    await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: 'A note.' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add note' }));
+
+    expect(await within(dialog).findByText('The note is too long.')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Note')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('keeps the evidence on screen when a refetch fails', async () => {
+    let failing = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(apiStub({ [`GET ${base}`]: () => (failing ? Response.json({ title: 'Server error', status: 500 }, { status: 500 }) : Response.json(botIntegrity())) })),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId }, client } });
+    await screen.findByRole('region', { name: 'Authenticity' });
+
+    failing = true;
+    await invalidatePath(client, '/v1/applications');
+
+    expect(await screen.findByText(/Could not load the integrity checks/)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Authenticity' })).toHaveTextContent('Suggested next step');
+  });
+
   it('adds a note to the review log', async () => {
     const noted: ApplicationIntegrity = {
       ...botIntegrity(),

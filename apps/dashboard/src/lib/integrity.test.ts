@@ -1,7 +1,8 @@
+import { StageKind } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { applications, now } from '../test-support/fixtures.js';
 import { summary } from '../test-support/integrity-fixtures.js';
-import { integrityOverview, matchesIntegrityFilter, needsReview, noIntegrityFilter, verificationRecommended } from './integrity.js';
+import { bulkMoveStages, integrityOverview, matchesIntegrityFilter, needsReview, noIntegrityFilter, verificationRecommended } from './integrity.js';
 import { findSavedView } from './saved-views.js';
 
 const [clear, review, verify] = [
@@ -54,5 +55,26 @@ describe('integrity saved views', () => {
   it('ignores AI assistance, which is information rather than a queue', () => {
     const aiOnly = { ...clear, integrity: summary({ aiAssistance: 'StrongIndicators', aiAssistanceReasons: ['X'] }) };
     expect(needsReview(aiOnly)).toBe(false);
+  });
+});
+
+describe('bulk moves under an integrity filter', () => {
+  const stages = Object.values(StageKind).map((kind) => ({ id: kind.toLowerCase(), name: kind, kind }));
+
+  it('offers every stage when no integrity filter picks the rows', () => {
+    expect(bulkMoveStages(stages, noIntegrityFilter)).toEqual(stages);
+  });
+
+  it('never offers a stage that ends the candidacy while either integrity filter is set (ADR-0004)', () => {
+    for (const filter of [
+      { ...noIntegrityFilter, authenticity: 'VerificationRecommended' },
+      { ...noIntegrityFilter, authenticity: 'Pending' },
+      { ...noIntegrityFilter, aiAssistance: 'StrongIndicators' },
+    ] as const) {
+      const kinds = bulkMoveStages(stages, filter).map((stage) => stage.kind);
+      expect(kinds).not.toContain('Rejected');
+      expect(kinds).not.toContain('Withdrawn');
+      expect(kinds).toContain('Interview');
+    }
   });
 });
