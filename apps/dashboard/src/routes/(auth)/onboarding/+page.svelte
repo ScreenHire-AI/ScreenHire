@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { completeOnboarding, signOut } from '@screenhire/api-client';
+  import { completeOnboarding } from '@screenhire/api-client';
   import { CompleteOnboardingBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
@@ -8,6 +8,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { applyValidationProblem, slugify } from '#lib/forms.js';
+  import { signOutAndRedirect } from '#lib/session.js';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -43,11 +44,6 @@
     if (!slugEdited) {
       $form.slug = slugify($form.organizationName);
     }
-  }
-
-  async function handleSignOut() {
-    await signOut();
-    await goto('/sign-in', { invalidateAll: true });
   }
 </script>
 
@@ -103,6 +99,6 @@
 
   <p class="text-sm text-muted-foreground">
     Signed in as {data.user?.email}.
-    <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline" onclick={handleSignOut}>Sign out</button>
+    <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline" onclick={signOutAndRedirect}>Sign out</button>
   </p>
 </div>

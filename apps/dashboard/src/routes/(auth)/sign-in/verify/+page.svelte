@@ -1,5 +1,6 @@
 <script lang="ts">
   import { verifyMagicLink } from '@screenhire/api-client';
+  import { tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -10,6 +11,8 @@
 
   let failed = $state(false);
   let submitting = $state(false);
+  // The Sign in button disappears when the link fails, so focus moves to the explanation's heading (WCAG 2.4.3).
+  let failedHeading = $state<HTMLHeadingElement>();
 
   async function signIn(event: SubmitEvent) {
     event.preventDefault();
@@ -24,6 +27,8 @@
       await goto('/', { invalidateAll: true, replaceState: true });
     } else {
       failed = true;
+      await tick();
+      failedHeading?.focus();
     }
   }
 </script>
@@ -34,7 +39,7 @@
 
 {#if !token || failed}
   <div class="flex flex-col gap-3">
-    <h1 class="font-display text-[22px] leading-tight font-bold">This link doesn't work</h1>
+    <h1 bind:this={failedHeading} tabindex="-1" class="font-display text-[22px] leading-tight font-bold">This link doesn't work</h1>
     <p role="alert">This sign-in link has expired or has already been used. Each link works once, for 15 minutes.</p>
     <Button href="/sign-in" size="lg">Get a new link</Button>
   </div>

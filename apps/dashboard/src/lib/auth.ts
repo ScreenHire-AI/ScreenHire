@@ -7,11 +7,19 @@ const onboardingRoute = '/(auth)/onboarding';
 /** The query parameter that carries where to go after signing in. */
 export const returnUrlParameter = 'returnUrl';
 
+// Only the origin comparison matters, so any origin the dashboard can never have will do.
+const probeOrigin = 'http://dashboard.invalid';
+
 /**
- * A local path to return to after sign-in, or `/`. Never another site: no scheme, no `//host`, no `/\host`.
+ * A local path to return to after sign-in, or `/`. Never another site. The value is resolved the way the browser will
+ * resolve it, because the URL parser drops tabs and newlines and reads `\` as `/`: `/\t/host` becomes `//host`.
  */
 export function safeReturnUrl(value: string | null | undefined): string {
-  return value && value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\') ? value : '/';
+  if (!value?.startsWith('/')) {
+    return '/';
+  }
+  const resolved = new URL(value, probeOrigin);
+  return resolved.origin === probeOrigin ? `${resolved.pathname}${resolved.search}${resolved.hash}` : '/';
 }
 
 /**

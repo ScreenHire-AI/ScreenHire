@@ -7,7 +7,8 @@ import { defineConfig } from 'vite';
 // Aspire sets PORT and API_URL in development; the /v1 proxy keeps the API same-origin for cookie auth.
 const apiUrl = process.env.API_URL ?? 'http://localhost:5080';
 const port = Number(process.env.PORT ?? 4323);
-const proxy = { '/v1': { target: apiUrl, changeOrigin: true } };
+// xfwd: the API rate-limits sign-in per client address, which it reads from X-Forwarded-For.
+const proxy = { '/v1': { target: apiUrl, changeOrigin: true, xfwd: true } };
 
 export default defineConfig({
   plugins: [

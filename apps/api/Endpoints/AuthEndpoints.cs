@@ -85,7 +85,7 @@ internal static class AuthEndpoints
 
     private static async Task<RedirectHttpResult> CompleteExternalSignIn(
         string? returnUrl, HttpContext context, SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users,
-        ExternalProviders providers, IOptions<DomainOptions> domains, TimeProvider time)
+        ExternalProviders providers, IOptions<DomainOptions> domains, ScreenHireDbContext db, TimeProvider time)
     {
         var appDomains = domains.Value;
         RedirectHttpResult Failed(string reason) => TypedResults.Redirect(appDomains.AppUrl($"/sign-in?error={reason}").ToString());
@@ -109,9 +109,8 @@ internal static class AuthEndpoints
                     return Failed("email-unverified");
                 }
 
-                var user = await users.FindByEmailAsync(email)
-                    ?? await CreateUserAsync(users, email, login.Principal.FindFirstValue("name"), time.GetUtcNow());
-                if (user is null || !(await users.AddLoginAsync(user, login)).Succeeded)
+                var user = await FindOrCreateUserAsync(users, db, email, login.Principal.FindFirstValue("name"), time.GetUtcNow());
+                if (user is null || !await TryAddLoginAsync(users, db, user, login))
                 {
                     return Failed("provider");
                 }
@@ -147,8 +146,8 @@ internal static class AuthEndpoints
 
     private static async Task<Results<NoContent, ValidationProblem, NotFound>> VerifyMagicLink(
         MagicLinkVerification request, IValidator<MagicLinkVerification> validator, IServiceProvider services,
-        HttpContext context, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, TimeProvider time,
-        CancellationToken cancellationToken)
+        HttpContext context, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, ScreenHireDbContext db,
+        TimeProvider time, CancellationToken cancellationToken)
     {
         if (services.GetService<MagicLinks>() is not { } magicLinks)
         {
@@ -165,7 +164,7 @@ internal static class AuthEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["token"] = [AlreadyUsedLink] });
         }
 
-        var user = await users.FindByEmailAsync(email) ?? await CreateUserAsync(users, email, null, time.GetUtcNow())
+        var user = await FindOrCreateUserAsync(users, db, email, null, time.GetUtcNow())
             ?? throw new InvalidOperationException("Could not create the user for a redeemed sign-in link.");
         if (!user.EmailConfirmed)
         {
@@ -201,6 +200,8 @@ internal static class AuthEndpoints
         // retrying strategy refuses transactions started outside it.
         return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
+            // A retry starts clean: the failed attempt's organization and membership must not be inserted again.
+            db.ChangeTracker.Clear();
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             await db.Database.ExecuteSqlAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({user.Id.ToString()}, 0))", cancellationToken);
@@ -245,7 +246,7 @@ internal static class AuthEndpoints
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
         {
             return SlugTaken(); // another sign-up took the slug between the check and the insert
         }
@@ -272,8 +273,31 @@ internal static class AuthEndpoints
     private static ValidationProblem SlugTaken() =>
         TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["slug"] = ["That address is taken. Choose another."] });
 
+    // Two first sign-ins for one new address can both miss the lookup. The unique email index lets only one of them
+    // create the user, and the other then finds it.
+    private static async Task<ApplicationUser?> FindOrCreateUserAsync(
+        UserManager<ApplicationUser> users, ScreenHireDbContext db, string email, string? displayName, DateTimeOffset now) =>
+        await users.FindByEmailAsync(email)
+        ?? await CreateUserAsync(users, db, email, displayName, now)
+        ?? await users.FindByEmailAsync(email);
+
+    // The same identity finishing two sign-ins at once: the second insert hits the login's primary key.
+    private static async Task<bool> TryAddLoginAsync(
+        UserManager<ApplicationUser> users, ScreenHireDbContext db, ApplicationUser user, UserLoginInfo login)
+    {
+        try
+        {
+            return (await users.AddLoginAsync(user, login)).Succeeded;
+        }
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            db.ChangeTracker.Clear(); // the failed row stays tracked and would be inserted again by the next save
+            return false;
+        }
+    }
+
     private static async Task<ApplicationUser?> CreateUserAsync(
-        UserManager<ApplicationUser> users, string email, string? displayName, DateTimeOffset now)
+        UserManager<ApplicationUser> users, ScreenHireDbContext db, string email, string? displayName, DateTimeOffset now)
     {
         var user = new ApplicationUser
         {
@@ -283,8 +307,20 @@ internal static class AuthEndpoints
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim(),
             CreatedAt = now,
         };
-        return (await users.CreateAsync(user)).Succeeded ? user : null;
+        try
+        {
+            return (await users.CreateAsync(user)).Succeeded ? user : null;
+        }
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            // Identity's uniqueness check passed, but a simultaneous sign-in inserted the same address first.
+            db.ChangeTracker.Clear();
+            return null;
+        }
     }
+
+    private static bool IsUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     // Signs in and re-issues the antiforgery token: tokens are bound to the user, so the anonymous one stops working.
     private static async Task SignInAsync(HttpContext context, SignInManager<ApplicationUser> signIn, ApplicationUser user)

@@ -42,22 +42,39 @@ internal sealed partial class MagicLinks(
         var email = NormalizeEmail(address);
 
         var since = now - options.Window;
-        var recent = await db.MagicLinkTokens.CountAsync(t => t.Email == email && t.CreatedAt > since, cancellationToken);
-        if (recent >= options.PerAddressLimit)
+        var token = NewToken();
+
+        // Count and insert under a per-address advisory lock, so simultaneous requests cannot all slip under the cap.
+        // Inside the execution strategy, because Aspire's retrying strategy refuses transactions started outside it.
+        var issued = await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({email}, 0))", cancellationToken);
+
+            var recent = await db.MagicLinkTokens.CountAsync(t => t.Email == email && t.CreatedAt > since, cancellationToken);
+            if (recent >= options.PerAddressLimit)
+            {
+                return false;
+            }
+
+            db.MagicLinkTokens.Add(new MagicLinkToken
+            {
+                Email = email,
+                TokenHash = Hash(token),
+                CreatedAt = now,
+                ExpiresAt = now + options.Lifetime,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        });
+
+        if (!issued)
         {
             LogLimitReached(logger, options.PerAddressLimit);
             return;
         }
-
-        var token = NewToken();
-        db.MagicLinkTokens.Add(new MagicLinkToken
-        {
-            Email = email,
-            TokenHash = Hash(token),
-            CreatedAt = now,
-            ExpiresAt = now + options.Lifetime,
-        });
-        await db.SaveChangesAsync(cancellationToken);
 
         var link = domains.Value.AppUrl($"{VerifyPath}#token={token}");
         await emailSender.SendAsync(Compose(email, link, options.Lifetime), cancellationToken);

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.Extensions.Options;
+using ScreenHire.Api.Configuration;
 
 namespace ScreenHire.Api.Auth;
 
@@ -25,11 +27,13 @@ internal static class Antiforgery
     public static void IssueRequestToken(HttpContext context)
     {
         var tokens = context.RequestServices.GetRequiredService<IAntiforgery>().GetAndStoreTokens(context);
+        var scheme = context.RequestServices.GetRequiredService<IOptions<DomainOptions>>().Value.Scheme;
         context.Response.Cookies.Append(RequestTokenCookie, tokens.RequestToken!, new CookieOptions
         {
             HttpOnly = false, // the dashboard reads it to send the header
             SameSite = SameSiteMode.Strict,
-            Secure = context.Request.IsHttps,
+            // From configuration, like the other cookies: behind a TLS-terminating proxy the request itself is http.
+            Secure = scheme == "https",
             Path = "/",
         });
     }

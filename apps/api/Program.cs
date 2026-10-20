@@ -23,6 +23,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(); // first: the rate limiter partitions on the client address it restores
 app.UseExceptionHandler();
 app.UseCors();
 app.UseAuthentication();

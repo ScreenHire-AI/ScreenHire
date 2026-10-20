@@ -3,6 +3,7 @@
   import { RequestMagicLinkBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
+  import { tick } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -13,6 +14,8 @@
 
   // The address the link went to, once it has been sent.
   let sentTo = $state<string | undefined>();
+  // The submit button disappears with the form, so focus moves to the confirmation's heading (WCAG 2.4.3).
+  let sentHeading = $state<HTMLHeadingElement>();
 
   const { form, errors, enhance, submitting, reset } = superForm(defaults(zod4(RequestMagicLinkBody)), {
     SPA: true,
@@ -26,6 +29,8 @@
       const response = await requestMagicLink(form.data);
       if (response.status === 202) {
         sentTo = form.data.email;
+        await tick();
+        sentHeading?.focus();
       } else if (response.status === 400) {
         applyValidationProblem(form, response.data);
       } else {
@@ -47,7 +52,7 @@
 
 {#if sentTo}
   <div class="flex flex-col gap-3" role="status">
-    <h1 class="font-display text-[22px] leading-tight font-bold">Check your email</h1>
+    <h1 bind:this={sentHeading} tabindex="-1" class="font-display text-[22px] leading-tight font-bold">Check your email</h1>
     <p>
       We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.
     </p>

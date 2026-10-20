@@ -1,3 +1,4 @@
+using System.Net.Mail;
 using FluentValidation;
 using ScreenHire.Domain.Organizations;
 
@@ -27,7 +28,21 @@ public sealed record CurrentOrganization(Guid Id, string Name, string Slug, Orga
 internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkRequest>
 {
     public MagicLinkRequestValidator() =>
-        RuleFor(r => r.Email).NotEmpty().MaximumLength(256).EmailAddress().WithMessage("Enter an email address, like name@example.com.");
+        RuleFor(r => r.Email).NotEmpty().MaximumLength(256).Must(IsBareAddress).WithMessage("Enter an email address, like name@example.com.");
+
+    /// <summary>
+    /// One address and nothing else. FluentValidation's <c>EmailAddress()</c> only looks for an <c>@</c>, so it lets
+    /// through <c>Name &lt;victim@example.com&gt;</c> (a fresh per-address link cap for every display name) and lists of
+    /// addresses, which the SMTP sender cannot parse.
+    /// </summary>
+    internal static bool IsBareAddress(string? email)
+    {
+        var trimmed = email?.Trim();
+        return trimmed is { Length: > 0 }
+            && MailAddress.TryCreate(trimmed, out var parsed)
+            && parsed.DisplayName.Length == 0
+            && string.Equals(parsed.Address, trimmed, StringComparison.Ordinal);
+    }
 }
 
 internal sealed class MagicLinkVerificationValidator : AbstractValidator<MagicLinkVerification>

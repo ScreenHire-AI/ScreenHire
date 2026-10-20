@@ -28,7 +28,9 @@ internal sealed class ExternalProviders(IReadOnlyList<ExternalProvider> provider
 
     public ExternalProvider? Find(string id) => providers.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.Ordinal));
 
-    public static ExternalProviders FromOptions(AuthOptions options)
+    /// <param name="options">The bound <c>ScreenHire:Auth</c> settings.</param>
+    /// <param name="allowPlainHttp">Development only: the local mock provider (Dev SSO) has no TLS.</param>
+    public static ExternalProviders FromOptions(AuthOptions options, bool allowPlainHttp)
     {
         var providers = new List<ExternalProvider>();
         if (options.Google.IsConfigured)
@@ -49,9 +51,15 @@ internal sealed class ExternalProviders(IReadOnlyList<ExternalProvider> provider
                     $"ScreenHire:Auth:Oidc:{id}: provider ids are lower-case letters, digits and hyphens, and cannot be 'google' or 'microsoft'.");
             }
 
-            if (!Uri.TryCreate(client.Authority, UriKind.Absolute, out _))
+            if (!Uri.TryCreate(client.Authority, UriKind.Absolute, out var authority))
             {
                 throw new InvalidOperationException($"ScreenHire:Auth:Oidc:{id}:Authority must be an absolute URL.");
+            }
+
+            // Checked here, at startup, rather than when the handler's options are first built on someone's sign-in.
+            if (authority.Scheme != Uri.UriSchemeHttps && !allowPlainHttp)
+            {
+                throw new InvalidOperationException($"ScreenHire:Auth:Oidc:{id}:Authority must use https outside Development.");
             }
 
             providers.Add(new(id, client.DisplayName ?? id, ProviderKind.Generic, client.Authority!, client));

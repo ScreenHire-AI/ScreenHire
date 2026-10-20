@@ -24,6 +24,13 @@ public sealed class AuthOptions
     /// <summary>Requests per minute per client IP address across the sign-in endpoints that change state.</summary>
     [Range(1, 10_000)]
     public int PermitsPerMinute { get; set; } = 100;
+
+    /// <summary>
+    /// IP addresses of the reverse proxies in front of the API whose <c>X-Forwarded-For</c> is believed, besides
+    /// loopback (the dashboard's own <c>/v1</c> proxy). Without the deployed proxy here, every visitor shares the
+    /// proxy's rate-limit bucket.
+    /// </summary>
+    public List<string> TrustedProxies { get; set; } = [];
 }
 
 public sealed class OidcClientOptions

@@ -1,9 +1,11 @@
+using System.Net;
 using System.Reflection;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -76,12 +78,12 @@ internal static class AuthenticationSetup
             options.Cookie.SecurePolicy = secure;
         });
 
-        var providers = ExternalProviders.FromOptions(authOptions);
+        var providers = ExternalProviders.FromOptions(authOptions, allowPlainHttp: builder.Environment.IsDevelopment());
         services.AddSingleton(providers);
         foreach (var provider in providers.All)
         {
             authentication.AddOpenIdConnect(provider.Id, provider.DisplayName,
-                options => ConfigureProvider(options, provider, secure, builder.Environment));
+                options => ConfigureProvider(options, provider, secure));
         }
 
         services.AddAuthorizationBuilder()
@@ -93,6 +95,20 @@ internal static class AuthenticationSetup
             options.Cookie.Name = "sh.antiforgery";
             options.Cookie.SameSite = SameSiteMode.Strict;
             options.Cookie.SecurePolicy = secure;
+        });
+
+        // Browsers reach the API through a proxy (the dashboard's /v1 path), so the connection's address is the proxy's.
+        // The client's comes from X-Forwarded-For, believed only from loopback (the default) and the configured proxies;
+        // trusting any sender would hand every request a fresh rate-limit bucket.
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+            foreach (var proxy in authOptions.TrustedProxies)
+            {
+                options.KnownProxies.Add(IPAddress.TryParse(proxy, out var address)
+                    ? address
+                    : throw new InvalidOperationException($"{AuthOptions.Section}:TrustedProxies: '{proxy}' is not an IP address."));
+            }
         });
 
         services.AddRateLimiter(options =>
@@ -135,13 +151,10 @@ internal static class AuthenticationSetup
     }
 
     private static void ConfigureProvider(
-        OpenIdConnectOptions options, ExternalProvider provider, CookieSecurePolicy secure, IHostEnvironment environment)
+        OpenIdConnectOptions options, ExternalProvider provider, CookieSecurePolicy secure)
     {
+        // ExternalProviders.FromOptions already refused plain http outside Development.
         var plainHttp = provider.Authority.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
-        if (plainHttp && !environment.IsDevelopment())
-        {
-            throw new InvalidOperationException($"Sign-in provider '{provider.Id}' must use https outside Development.");
-        }
 
         options.SignInScheme = IdentityConstants.ExternalScheme;
         options.Authority = provider.Authority;

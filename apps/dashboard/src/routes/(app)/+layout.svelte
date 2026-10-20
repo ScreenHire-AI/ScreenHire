@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { signOut } from '@screenhire/api-client';
-  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import { signOutAndRedirect } from '#lib/session.js';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
@@ -23,11 +22,6 @@
       .map((part) => part[0]?.toUpperCase())
       .join(''),
   );
-
-  async function handleSignOut() {
-    await signOut();
-    await goto('/sign-in', { invalidateAll: true });
-  }
 </script>
 
 <div class="flex min-h-screen flex-wrap">
@@ -82,7 +76,7 @@
               <span class="truncate font-normal">{user.email}</span>
             </DropdownMenu.Label>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item onSelect={handleSignOut}>Sign out</DropdownMenu.Item>
+            <DropdownMenu.Item onSelect={signOutAndRedirect}>Sign out</DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
       </div>
