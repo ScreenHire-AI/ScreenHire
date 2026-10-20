@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ScreenHire.ServiceDefaults\ScreenHire.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\..\src\ScreenHire.Infrastructure\ScreenHire.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ScreenHire.Application\ScreenHire.Application.csproj" />
   </ItemGroup>
 
 </Project>

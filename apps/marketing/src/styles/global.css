@@ -1,7 +1,14 @@
 @import "tailwindcss";
-@import "@screenhire/ui/fonts.css";
 @import "@screenhire/ui/tokens.css";
 @import "@screenhire/ui/theme.css";
+
+/* Fonts come from Astro's fonts API (astro.config.mjs), which adds metric-matched fallbacks, instead of
+   @screenhire/ui/fonts.css. Same files, same families. */
+:root {
+  --sh-font-display: var(--font-bricolage);
+  --sh-font-body: var(--font-hanken);
+  --sh-font-data: var(--font-jetbrains);
+}
 
 @layer base {
   html {
@@ -14,5 +21,87 @@
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+}
+
+/* Long-form Markdown (law tracker entries, blog posts). Tokens only. */
+@layer components {
+  .prose {
+    max-width: 68ch;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--secondary-foreground);
+
+    & > * + * {
+      margin-top: 1em;
+    }
+
+    & h2 {
+      margin-top: 2em;
+      font-family: var(--sh-font-display);
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.015em;
+      color: var(--foreground);
+    }
+
+    & h3 {
+      margin-top: 1.6em;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--foreground);
+    }
+
+    & a {
+      color: var(--primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    & ul,
+    & ol {
+      padding-left: 1.4em;
+    }
+
+    & ul {
+      list-style: disc;
+    }
+
+    & ol {
+      list-style: decimal;
+    }
+
+    & li + li {
+      margin-top: 0.35em;
+    }
+
+    & strong {
+      color: var(--foreground);
+    }
+
+    & code {
+      font-family: var(--sh-font-data);
+      font-size: 0.9em;
+    }
+
+    & blockquote {
+      border-left: 2px solid var(--border);
+      padding-left: 1em;
+    }
+
+    & table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    & th,
+    & td {
+      border-bottom: 1px solid var(--border);
+      padding: 0.5em 0.75em 0.5em 0;
+      text-align: left;
+      vertical-align: top;
+    }
   }
 }

@@ -10,6 +10,7 @@
     <Project Path="apps/worker/ScreenHire.Worker.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/ScreenHire.Application/ScreenHire.Application.csproj" />
     <Project Path="src/ScreenHire.Domain/ScreenHire.Domain.csproj" />
     <Project Path="src/ScreenHire.Infrastructure/ScreenHire.Infrastructure.csproj" />
     <Project Path="src/ScreenHire.ServiceDefaults/ScreenHire.ServiceDefaults.csproj" />

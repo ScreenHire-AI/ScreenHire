@@ -1,0 +1,17 @@
+---
+// The top of an inner page: mono kicker, the page's one h1, and a lead paragraph.
+interface Props {
+  kicker: string;
+  title: string;
+  lead?: string;
+}
+
+const { kicker, title, lead } = Astro.props;
+---
+
+<header class="mx-auto flex max-w-6xl flex-col gap-4 px-6 pt-10 pb-10">
+  <p class="font-mono text-xs tracking-[0.1em] text-muted-foreground uppercase">{kicker}</p>
+  <h1 class="max-w-4xl font-display text-4xl leading-[1.02] font-extrabold tracking-[-0.03em] sm:text-6xl">{title}</h1>
+  {lead && <p class="max-w-2xl text-xl leading-relaxed text-secondary-foreground">{lead}</p>}
+  <slot />
+</header>

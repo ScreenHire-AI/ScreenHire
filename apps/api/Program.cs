@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Endpoints;
+using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,10 @@ builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
+
+// Wolverine publishing only: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with
+// the data and the worker handles it (docs/architecture/messaging.md).
+builder.AddScreenHireMessagePublishing();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();

@@ -16,8 +16,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   A Svelte island (`client:visible`, `client:idle`) only where the page needs behaviour HTML cannot give, and the
   PR says why. The only `<script>` on a page is JSON-LD (`type="application/ld+json"`).
 - **The embeddable apply widget is an iframe**, never Shadow DOM or a script that injects into the host page.
-- **SEO on every page.** Marketing pages pass `title`, `description` and optional `jsonLd` to `BaseLayout`, which
-  renders `Seo.astro` (canonical URL, Open Graph, Twitter card, Organization and WebSite JSON-LD). Careers pages pass
+- **SEO on every page.** Marketing pages take `title` and `description` from `src/lib/pages.ts` (or collection
+  frontmatter) and pass them with `breadcrumbs` and `jsonLd` to `BaseLayout`, which renders `Seo.astro` (canonical
+  URL, hreflang, Open Graph image, Twitter card, Organization and WebSite JSON-LD). Careers pages pass
   `title` and `description` to `CareersLayout` and add their JSON-LD through its `head` slot. A job page carries a
   schema.org `JobPosting` (`docs/architecture/job-distribution.md`).
 - **Domains are configuration.** Marketing uses `Astro.site` (from `SITE_URL`); careers reads `API_URL`, and tenant
@@ -28,6 +29,13 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 - **Notice before collection.** Browsing a careers or marketing page collects server and security logs only. No
   analytics beacons, fingerprinting or form telemetry before an application starts and the notice is shown, and no
   third-party script tags at all.
+- **One exception: cookieless analytics on the marketing site** (ADR-0003). `apps/marketing/src/components/Analytics.astro`
+  renders a Plausible or Umami script only when `PUBLIC_ANALYTICS` names a provider and `PUBLIC_ANALYTICS_SCRIPT_PATH`
+  is a site-relative path (a self-hosted instance or same-origin proxy, never a third-party host). It is off by
+  default and in every test. Careers pages, the apply flow and the dashboard never load analytics. Turning it on is
+  an owner decision: it needs a marketing privacy page that lists it, a provider configured to set no cookies or
+  local storage and keep no raw IP addresses, and a check of the ePrivacy position per market (EDPB Guidelines 2/2023
+  cover any script that reads from the device, cookie or not).
 - **Careers data comes from the API** through `apps/careers/src/lib/api.ts` (the generated client with the server
   base URL), and only on the server. Unknown organization or job returns `new Response(null, { status: 404 })`; a
   closed job returns 410.
@@ -39,3 +47,5 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 - `pnpm --filter @screenhire/marketing check` and `pnpm --filter @screenhire/careers check` (astro check).
 - After a build, `find apps/marketing/dist apps/careers/dist/client -name '*.js'` prints nothing unless the PR adds
   an island on purpose.
+- `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken internal link, and
+  `pnpm --filter @screenhire/marketing lighthouse` checks mobile LCP and CLS (both run in `pnpm verify`).

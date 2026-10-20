@@ -1,0 +1,24 @@
+---
+// Numbered sources, so a claim can cite "[2]" and a reader can check it.
+interface Props {
+  sources: { label: string; url: string }[];
+  title?: string;
+}
+
+const { sources, title = 'Sources' } = Astro.props;
+---
+
+<section aria-labelledby="sources-title" class="flex flex-col gap-3">
+  <h2 id="sources-title" class="font-display text-2xl font-bold tracking-tight">{title}</h2>
+  <ol class="flex list-decimal flex-col gap-1.5 pl-6 text-sm text-secondary-foreground marker:font-mono marker:text-muted-foreground">
+    {
+      sources.map((source, index) => (
+        <li id={`source-${index + 1}`}>
+          <a href={source.url} rel="noopener" class="text-primary underline-offset-2 hover:underline">
+            {source.label}
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</section>

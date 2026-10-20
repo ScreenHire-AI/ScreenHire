@@ -1,0 +1,98 @@
+---
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import Faqs from '../components/Faqs.astro';
+import PageHeader from '../components/PageHeader.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { pages } from '../lib/pages';
+import { hasPrice, includedInEveryPlan, plans, pricedOffers } from '../lib/pricing';
+import { faqPage, softwareApplication, type Faq } from '../lib/seo';
+
+const { title, description, path, label } = pages.pricing;
+const site = Astro.site ?? new URL(Astro.url.origin);
+// Sign-up lives in the dashboard; until its URL is configured the buttons point at what every plan includes.
+const startUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : '#included';
+
+const faqs: Faq[] = [
+  {
+    question: 'Do I pay per user?',
+    answer: 'No. Every plan includes unlimited users, so the whole hiring team can review applications.',
+  },
+  {
+    question: 'Are integrity checks an add-on?',
+    answer:
+      'No. Applicant integrity checks, with their evidence and suggested next steps, are part of every plan.',
+  },
+  {
+    question: 'Do I need a credit card to start?',
+    answer: 'No. You can start without one.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: label, path }]}
+  jsonLd={[softwareApplication(description, site, pricedOffers(plans)), faqPage(faqs)]}
+>
+  <PageHeader
+    kicker="Pricing"
+    title="Simple pricing for small teams."
+    lead="One monthly price per plan, unlimited users, and integrity checks included. No credit card to start."
+  />
+
+  <section aria-labelledby="plans-title" class="mx-auto max-w-6xl px-6 pb-10">
+    <h2 id="plans-title" class="sr-only">Plans</h2>
+    <ul class="grid gap-4 md:grid-cols-3">
+      {
+        plans.map((plan) => (
+          <li
+            class:list={[
+              'flex flex-col gap-4 rounded-2xl border bg-card p-6',
+              plan.highlighted ? 'border-primary' : 'border-border',
+            ]}
+          >
+            <div class="flex flex-col gap-1">
+              <h3 class="font-display text-2xl font-bold">{plan.name}</h3>
+              <p class="text-secondary-foreground">{plan.summary}</p>
+            </div>
+            <p class="flex items-baseline gap-1.5">
+              <span class="font-display text-4xl font-extrabold tracking-tight">
+                {hasPrice(plan) ? `$${plan.monthlyPrice}` : plan.monthlyPrice}
+              </span>
+              <span class="text-muted-foreground">a month</span>
+            </p>
+            <p class="font-mono text-xs text-muted-foreground uppercase">{plan.activeJobs} · unlimited users</p>
+            <a
+              href={startUrl}
+              class:list={[
+                'mt-auto inline-flex h-12 items-center justify-center rounded-xl px-5 font-bold no-underline',
+                plan.highlighted
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'border border-input text-foreground hover:border-primary',
+              ]}
+            >
+              Start free<span class="sr-only"> on {plan.name}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section id="included" aria-labelledby="included-title" class="mx-auto max-w-6xl px-6 py-10">
+    <h2 id="included-title" class="font-display text-3xl font-bold tracking-tight">Included in every plan</h2>
+    <ul class="mt-5 grid gap-3 md:grid-cols-2">
+      {
+        includedInEveryPlan.map((item) => (
+          <li class="flex items-start gap-2.5 text-secondary-foreground">
+            <span aria-hidden="true" class="mt-2 size-2 shrink-0 rounded-full bg-primary" />
+            {item}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <Faqs faqs={faqs} />
+</BaseLayout>

@@ -8,8 +8,8 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
 | .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle), pure API logic (mappings, validation). The API grants it `InternalsVisibleTo`. | Nothing |
-| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `apps/careers` (`src/lib/format.ts`) | Frontend logic and component rendering with fixed data | Nothing |
-| Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), anything that needs Postgres | Docker |
+| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte), `packages/api-client` (the fetch mutator), `apps/careers` (`src/lib/format.ts`), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
+| Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
 Pick the lowest tier that can catch the bug. A rule in the domain gets a unit test even when an integration test also
@@ -105,6 +105,23 @@ There is no reset between tests and no Respawn. Instead:
   pages; `fixture.Mailpit` reads the emailed link. The seeded Brightwater Owner (`avery@brightwater.example.com`, Dev
   SSO user `brightwater-owner`) is read-only like its organization: sign in as them, change nothing.
 
+### Messaging tests (`tests/ScreenHire.IntegrationTests/Messaging`)
+
+Messages cross processes, so these tests wait on Wolverine's tables in Postgres, never on time:
+
+- `WolverineStore` counts a message in the outbox, the worker queue, the inbox (handled or not) or the dead-letter
+  table, found by an id in its body so a test only sees its own messages. `WolverineStore.WaitUntilAsync` polls a
+  condition with a 60-second deadline.
+- `MessagingHost` starts an in-process Wolverine host with the API's or the worker's setup
+  (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and
+  drops the schema afterwards. Use it to make a handler fail or a transaction roll back without touching the running
+  worker.
+- A test that stops or restarts the worker joins the `WorkerLifecycle` collection
+  (`[Collection(nameof(WorkerLifecycle))]`). xUnit runs that collection on its own after the parallel tests, so no
+  other test waits on a stopped worker.
+
+What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
+
 ### `E2EFixture` and `BrowserTest` (`tests/ScreenHire.E2E`)
 
 `E2EFixture` extends `AppHostFixture` with `Frontends=Built`, waits for the API and all three frontends to be
@@ -119,6 +136,24 @@ healthy, and launches one headless Chromium for the assembly. Test classes deriv
 
 Assert on what a person sees (headings, rows, cell text, links by accessible name) with Playwright's `Expect(...)`,
 which retries until its timeout. Status codes alone are not an end-to-end assertion.
+
+## Marketing site checks
+
+The marketing site's SEO and performance budgets (ADR-0003) are checked at three tiers:
+
+| Check | Where | Runs in |
+|---|---|---|
+| Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
+| At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse` |
+| Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
+
+`MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
+sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
+Playwright's Chromium, then an installed Chrome. Its simulated mobile numbers were identical to within 3 ms across
+two consecutive full runs (about 90 s each), which is why it is in the gate. Run a subset with
+`pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
+paths are rewritten into Windows paths.
 
 ## Flake policy
 
@@ -138,3 +173,11 @@ Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Targe
 | Vitest | none | 53 tests, ~1 to 9 s per package |
 
 Measured 2026-10-20 over two consecutive runs with no changes in between; both passed.
+
+With messaging (2026-10-20, two consecutive passing runs): `pnpm verify` 79-83 s; .NET tests ~54 s wall clock for 35
+tests, of which integration is 19 tests in about 53 s. The longest is `RecurringMessageTests` (~33 s): Wolverine's recurring
+agent acts on a manual trigger on its next tick, and that interval is not configurable. It runs in parallel with the
+others, and the `WorkerLifecycle` collection runs alone after them.
+
+With the marketing site v1 on top of messaging (Lighthouse on 15 pages, 59 .NET tests, 73 Vitest tests), `pnpm verify`
+took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.

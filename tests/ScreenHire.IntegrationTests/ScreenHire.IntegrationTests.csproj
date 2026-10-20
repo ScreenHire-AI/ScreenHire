@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ScreenHire.Testing\ScreenHire.Testing.csproj" />
+    <!-- The shared Wolverine setup, for tests that start their own messaging host in a private schema. -->
+    <ProjectReference Include="..\..\src\ScreenHire.Application\ScreenHire.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

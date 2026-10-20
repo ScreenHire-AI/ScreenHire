@@ -149,3 +149,19 @@ export const GetJobResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('A job as shown in the recruiter dashboard.')
+
+
+export const PublishJobParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const PublishJobResponse = zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "location": zod.string(),
+  "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
+  "status": zod.enum(['Draft', 'Open', 'Closed']),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A job as shown in the recruiter dashboard.')

@@ -1,0 +1,34 @@
+---
+import { getCollection } from 'astro:content';
+import PageHeader from '../../components/PageHeader.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pages } from '../../lib/pages';
+
+const { title, description, path, label } = pages.compare;
+const comparisons = (await getCollection('comparisons')).sort((a, b) => a.data.competitor.localeCompare(b.data.competitor));
+---
+
+<BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]}>
+  <PageHeader
+    kicker="Compare"
+    title="ScreenHire and other applicant trackers."
+    lead="Factual comparisons built from each vendor's own pages, dated and sourced, so you can check every claim."
+  />
+  <section aria-labelledby="list-title" class="mx-auto max-w-6xl px-6 pb-16">
+    <h2 id="list-title" class="sr-only">Comparisons</h2>
+    <ul class="grid gap-4 md:grid-cols-2">
+      {
+        comparisons.map((comparison) => (
+          <li class="flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
+            <h3 class="font-display text-2xl font-bold">
+              <a href={`${path}${comparison.id}/`} class="text-foreground no-underline hover:text-primary">
+                {comparison.data.competitor} alternative
+              </a>
+            </h3>
+            <p class="text-secondary-foreground">{comparison.data.description}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>

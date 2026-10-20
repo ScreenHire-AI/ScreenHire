@@ -10,12 +10,13 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 |---|---|
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
 | `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`); emits `packages/api-client/openapi.json` at build |
-| `apps/worker` | .NET background worker (Wolverine messaging lands here) |
+| `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
 | `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts |
 | `packages/api-client` | Orval-generated TS client + Zod schemas (do not edit `src/generated`) |
+| `src/ScreenHire.Application` | Message contracts (`ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
@@ -48,9 +49,13 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
   `Built` (production previews, used by the end-to-end tests) or `None` (used by the integration tests).
-- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and every
-  test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract` and
-  `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
+- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
+  marketing site's Lighthouse budgets and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
+  steps `verify:dotnet`, `verify:contract`, `verify:lighthouse` and `verify:test` run alone too). It is the only CI for
+  now; see the `/verify` skill.
+- Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
+  internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium.
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 
@@ -109,24 +114,32 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
 ## Backend rules
 
 Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Procedures: `/add-endpoint`,
-`/add-migration`.
+`/add-migration`, `/add-message`.
 
 - .NET 10, central package management (`Directory.Packages.props`). **Licence policy (ADR-0008):** MIT/Apache/BSD
   preferred; do not add MediatR, AutoMapper, MassTransit 9, FluentAssertions 8, Duende, ImageSharp, Finbuckle, iText,
   or Polly/Verify directly. Check the licence of every new package.
 - Minimal APIs with `TypedResults`, one `Map*Endpoints` extension per area under `apps/api/Endpoints`, DTO records in
   `apps/api/Contracts`. Enums serialize as strings; numbers are strict (clean OpenAPI → clean TS).
-- Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops).
+- Messaging/background work: Wolverine with the Postgres outbox (not hosted-service loops); see
+  [`docs/architecture/messaging.md`](docs/architecture/messaging.md) and `/add-message`. The API only publishes, through
+  `IDbContextOutbox<ScreenHireDbContext>` and one `SaveChangesAndFlushMessagesAsync`; the worker runs every handler.
+  Client-visible events implement `ITenantEvent`.
+- Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
+  twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
+  `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,
+  unique index or upsert).
 - Sign-in and tenancy (`docs/architecture/sign-in-and-tenancy.md`): every route needs a signed-in user unless it
   calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Tenant-owned entities
   implement `ITenantOwned` and get a row-level security policy in their migration. The API and worker connect as
   `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic
   OIDC providers appear only when their client id and secret are in user secrets.
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
-  settings need it.
+  settings need it. The DbContext is registered without EF's retrying execution strategy (`DisableRetry`), which
+  refuses the outbox's transaction.
 
 ## Claude Code tooling
 
-Skills (`/add-endpoint`, `/add-migration`, `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`,
-`/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
+Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-dashboard-page`, `/add-careers-page`,
+`/add-marketing-page`, `/commit`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
 [`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).
