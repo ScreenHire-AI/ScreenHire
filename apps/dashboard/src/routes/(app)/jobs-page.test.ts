@@ -26,7 +26,7 @@ describe('jobs page', () => {
     renderPage();
 
     expect((await dataRows()).map(cellTexts)).toEqual([
-      ['Customer Success Lead', 'Manchester, UK', 'Draft', '—', 'Publish'],
+      ['Customer Success Lead', 'Manchester, UK', 'Draft', '-', 'Publish'],
       ['Senior .NET Engineer', 'Remote (GB, IE)', 'Open', '18 Oct', 'Close'],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);

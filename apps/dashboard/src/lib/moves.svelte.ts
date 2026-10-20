@@ -24,7 +24,7 @@ export function createMoves() {
   let announcement = $state('');
   let failure = $state('');
 
-  return {
+  const moves = {
     /** What the last move did, for a polite live region. */
     get announcement() {
       return announcement;
@@ -40,7 +40,10 @@ export function createMoves() {
     async move(application: Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'>, to: WorkflowStage): Promise<boolean> {
       failure = '';
       const stage: ApplicationStage = { id: to.id, name: to.name, kind: to.kind };
-      queryClient.setQueryData<JobApplications>(getListJobApplicationsQueryKey(application.jobId), (cached) =>
+      const queryKey = getListJobApplicationsQueryKey(application.jobId);
+      // A refetch already in flight (another dashboard's ApplicationMoved) would land after this and put the card back.
+      await queryClient.cancelQueries({ queryKey });
+      queryClient.setQueryData<JobApplications>(queryKey, (cached) =>
         cached && { ...cached, data: cached.data.map((item) => (item.id === application.id ? { ...item, stage } : item)) },
       );
       try {
@@ -53,7 +56,34 @@ export function createMoves() {
         return false;
       }
     },
+
+    /**
+     * Moves several applications one after another and announces the outcome of all of them, not just the last.
+     * Returns the ids of the ones that did not move, so a caller can keep them selected for another try.
+     */
+    async moveAll(applications: readonly Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'>[], to: WorkflowStage): Promise<string[]> {
+      const failed: Pick<ApplicationSummary, 'id' | 'candidateName'>[] = [];
+      let lastFailure = '';
+      for (const application of applications) {
+        if (!(await moves.move(application, to))) {
+          failed.push(application);
+          lastFailure = failure;
+        }
+      }
+
+      if (failed.length > 0) {
+        const moved = applications.length - failed.length;
+        failure = `Moved ${moved} of ${applications.length} to ${to.name}. Could not move ${failed.map((application) => application.candidateName).join(', ')}: ${lastFailure}`;
+        announcement = failure;
+      } else if (applications.length > 1) {
+        announcement = `Moved ${applications.length} candidates to ${to.name}.`;
+      }
+
+      return failed.map((application) => application.id);
+    },
   };
+
+  return moves;
 }
 
 export type Moves = ReturnType<typeof createMoves>;

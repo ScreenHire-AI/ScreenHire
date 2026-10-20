@@ -119,7 +119,7 @@
   }
 
   function onkeydown(event: KeyboardEvent) {
-    if (!preferences.shortcutsEnabled || hasModifier(event) || isTypingTarget(event.target) || rows.length === 0) return;
+    if (!preferences.shortcutsEnabled || event.defaultPrevented || hasModifier(event) || isTypingTarget(event.target) || rows.length === 0) return;
     const key = event.key.toLowerCase();
     if (key === 'j') {
       event.preventDefault();

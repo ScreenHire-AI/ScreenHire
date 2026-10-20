@@ -102,7 +102,7 @@
                 <Table.Cell class="text-muted-foreground">{job.location}</Table.Cell>
                 <Table.Cell><Badge variant={statusVariant[job.status]}>{job.status}</Badge></Table.Cell>
                 <Table.Cell class="text-right font-mono text-xs text-muted-foreground">
-                  {job.publishedAt ? formatShortDate(job.publishedAt) : '—'}
+                  {job.publishedAt ? formatShortDate(job.publishedAt) : '-'}
                 </Table.Cell>
                 <Table.Cell class="text-right">
                   {#if action}

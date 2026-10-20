@@ -68,10 +68,8 @@
   }
 
   async function moveSelected(stage: (typeof stages)[number]) {
-    for (const application of selected) {
-      await moves.move(application, stage);
-    }
-    selectedIds = [];
+    // The ones that failed stay selected, so they can be moved again.
+    selectedIds = await moves.moveAll(selected, stage);
   }
 
   async function closeEverywhere() {

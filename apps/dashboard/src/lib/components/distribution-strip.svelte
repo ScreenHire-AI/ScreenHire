@@ -115,7 +115,7 @@
     </ul>
     {#if job.status === 'Draft' && rows.length > 0}
       <div class="flex items-center px-3 py-1.5">
-        <Button size="sm" disabled={publish.isPending} onclick={publishEverywhere}>Publish to {rows.length} boards</Button>
+        <Button size="sm" disabled={publish.isPending} onclick={publishEverywhere}>Publish to {rows.length === 1 ? '1 board' : `${rows.length} boards`}</Button>
       </div>
     {/if}
   </div>

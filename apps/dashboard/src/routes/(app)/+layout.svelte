@@ -5,6 +5,7 @@
   import { onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import { clock } from '#lib/clock.svelte.js';
   import CommandPalette from '#lib/components/command-palette.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
@@ -50,14 +51,9 @@
 
   // Saved-view counts come from the same list the candidates page shows, so they agree and update live.
   const applications = createListApplications();
-  let now = $state(Date.now());
-  $effect(() => {
-    const timer = setInterval(() => (now = Date.now()), 60_000);
-    return () => clearInterval(timer);
-  });
   const viewCounts = $derived(
     Object.fromEntries(
-      savedViews.map((view) => [view.id, applications.data?.data.filter((application) => view.matches(application, now)).length]),
+      savedViews.map((view) => [view.id, applications.data?.data.filter((application) => view.matches(application, clock.now)).length]),
     ),
   );
 
@@ -65,7 +61,8 @@
   const currentView = $derived(page.url.pathname === '/candidates' ? page.url.searchParams.get('view') : null);
 </script>
 
-<svelte:window {onkeydown} />
+<!-- Capture, so a G chord sees its second key before a table's J / K handler can claim it. -->
+<svelte:window onkeydowncapture={onkeydown} />
 
 <div class="flex min-h-screen flex-wrap">
   <nav

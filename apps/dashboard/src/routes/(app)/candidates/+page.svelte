@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createListApplications } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
@@ -12,9 +13,9 @@
   // Every application in the organization, newest first; new ones and stage moves arrive live (#lib/realtime.ts).
   const applications = createListApplications();
   const view = $derived(findSavedView(page.url.searchParams.get('view')));
-  const now = Date.now();
   const all = $derived(applications.data?.data ?? []);
-  const shown = $derived(view ? all.filter((application) => view.matches(application, now)) : all);
+  // The sidebar counts use the same clock, so a view and its count agree.
+  const shown = $derived(view ? all.filter((application) => view.matches(application, clock.now)) : all);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
 </script>
