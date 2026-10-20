@@ -105,7 +105,7 @@ API clients and the engine share one contract.
 
 ## 7. What v1 implements
 
-The data model and API from the jobs and templates task. The engine that runs automations is a separate task.
+The data model and API from the jobs and templates task, and the engine that runs automations (section 8).
 
 - **Definitions** are the records in `src/ScreenHire.Domain/Hiring/HiringWorkflow.cs`. Each element is one flat record
   with a kind enum, so OpenAPI, Orval and the JSON Schema stay simple: no polymorphism, and conditions are one level
@@ -138,6 +138,76 @@ The data model and API from the jobs and templates task. The engine that runs au
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
   `HiringTemplateVersionPublished`.
+
+## 8. The engine (v1)
+
+Code: `src/ScreenHire.Domain/Automations` (facts, evaluator, run records) and `src/ScreenHire.Application/Automations`
+(Wolverine messages and handlers). It follows section 3; what follows is what v1 actually does and where it stops.
+
+**Triggers.** Submitting an application fires `ApplicationSubmitted` and `StageEntered` for the first stage; a move fires
+`StageExited` and `StageEntered`. Both evaluate inline in the existing `ApplicationSubmitted` and `ApplicationMoved`
+worker handlers, which write and send nothing when the job has no matching automation. `TimeElapsed` is a scheduled
+`RunAutomations` message, due `afterHours` after the stage entry it counts from; when it fires it does nothing if the
+application has left that stage entry, which is how leaving the stage cancels it. `Manual` is
+`POST /v1/applications/{id}/automations/{automationId}/run`. `QuestionnaireCompleted`, `IntegrityAssessed` and
+`ReviewerDecision` are valid in definitions and run through `RunAutomations`, but nothing raises them yet: the apply
+flow, the integrity engine and reviewer decisions publish that message when they land.
+
+**Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
+trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
+sees what the first one saw. The snapshot and every rule's result are stored on the run. Answers, the application
+source and integrity levels are absent until the features that store them exist. The facts schema
+(`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only, and
+their values stay open until the integrity engine publishes its level names.
+
+**Runs and actions.** Every triggered automation gets an `automation_runs` row, unique on
+`(application, automation, event)`, whether it matched or not: that row is the audit record (guardrail 3) and the
+reason a replayed event runs nothing twice. A matched run copies its actions into `automation_action_runs` and runs them
+in order, one `ExecuteAutomationAction` message each, keyed `application:automation:event:index` and
+`[Deduplicated]`. An action's database effect (a move, a tag, a task) commits with its status, so a redelivery finds it
+done. Email and webhooks happen before that commit; a crash in between can repeat one once.
+
+| Action | What v1 does |
+|---|---|
+| `SendEmail` | Renders the named template (`application-received`, `stage-change`, `application-rejected`) to the candidate. Skipped when email is not configured. |
+| `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
+| `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
+| `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. |
+| `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards. |
+| `CreateTask` | Creates a `Task` with the note. |
+| `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
+| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` (or the named template) with the reason, then moves to the rejected stage. Without email, or if the opt-in is gone, it queues a rejection review instead: the candidate must be told why. |
+| `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time). No HTTP retries of its own: Wolverine retries the action. Not signed yet. |
+| `RequestVerification`, `SendQuestionnaire`, `ScheduleInterview` | Refused at save. Verification is phase 2; the other two need features that do not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
+
+**Loops and depth.** A run records the chain of automations whose actions led to it. An automation already in its own
+chain is a loop, and a chain of `AutomationEvaluator.MaxDepth` (10) stops there; either way the run is `Blocked` and
+nothing runs. The engine also re-validates the job's workflow before running anything, so a definition saved under
+older rules is blocked rather than run.
+
+**Accommodation.** For an application with an accommodation, an automation with a `TimeElapsed` trigger or a condition
+on `application.hoursInStage` (or, later, a `telemetry.*` fact) is skipped: recorded as `Skipped`, with no actions.
+
+**Issues and events.** `GET /v1/automation-issues` lists blocked and failed runs, newest first. An action that fails
+after every retry goes to the dead-letter table, and the error policy's last step (`AutomationFailures`) publishes
+`AutomationActionFailed`, which marks the action and its run failed. `AutomationRunFinished` (completed, failed or
+blocked) and `TeamNotified` reach the organization's dashboards; quiet outcomes raise nothing, so a skip for an
+accommodation never reaches anyone's browser. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
+
+**Validate and simulate.** `POST /v1/workflows/validate` returns the validator's errors with their paths, 200 either
+way. `POST /v1/workflows/simulate` refuses an invalid workflow, then runs a sample facts snapshot through the same
+evaluator for one trigger and lists each triggered automation's outcome, rule results and actions.
+
+**Decisions that differ from the text above.**
+
+- Signal-driven automations may not use `NotifyTeam` even though "notify" reads as routing. ADR-0004 lists route, tag,
+  assign and request verification, and the validator keeps to that list.
+- A signal may move an application into a screening, assessment, verification or interview stage only, not any
+  non-terminal stage: a custom stage named "Not progressing" would be a rejection under another name.
+- Conditions stay one level (section 7) rather than a recursive tree, because a recursive schema makes the OpenAPI
+  document and the generated client recursive.
+- Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
+  either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
 
 ## Open questions
 
