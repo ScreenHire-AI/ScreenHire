@@ -30,6 +30,10 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.EmploymentType).HasConversion<string>().HasMaxLength(20);
         builder.Property(j => j.SalaryPeriod).HasConversion<string>().HasMaxLength(20);
 
+        // Optimistic concurrency on Postgres' xmin system column (no real column): a publish that loaded the job before
+        // someone closed it fails instead of writing Status = Open back over the close.
+        builder.Property<uint>("Version").IsRowVersion();
+
         builder.HasOne<Organization>().WithMany().HasForeignKey(j => j.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         // The target of the composite tenant foreign keys on job_versions and applications: a child row can only point at
         // a job of its own organization, whatever id a request carries (foreign key checks bypass row-level security).

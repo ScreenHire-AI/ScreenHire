@@ -11,6 +11,13 @@ namespace ScreenHire.Api.Auth;
 /// gets 403 with a problem body. The role is read per request, like the membership itself
 /// (<see cref="TenantResolutionMiddleware"/>), so a role change takes effect on the next request.
 /// </summary>
+/// <remarks>
+/// An endpoint filter rather than an authorization policy: a failed policy ends in the cookie handler's bare 403
+/// (<c>OnRedirectToAccessDenied</c>), and the dashboard needs the problem body that says why ("No organization" or
+/// "Read-only role"). A policy would need a custom <c>IAuthorizationMiddlewareResultHandler</c> to say that, which is
+/// a bigger layer than this filter. <c>HiringRolesTests</c> sends every write route as a Viewer, so a route that
+/// forgets the filter fails a test.
+/// </remarks>
 internal static class HiringAuthorization
 {
     private static readonly OrganizationRole[] Writers = [OrganizationRole.Owner, OrganizationRole.Admin, OrganizationRole.Recruiter];

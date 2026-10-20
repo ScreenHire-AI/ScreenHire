@@ -186,6 +186,8 @@ internal sealed class JobContentValidator : AbstractValidator<JobSnapshot>
 {
     public const int MaxDescriptionLength = 50_000;
 
+    private const decimal MaxSalary = 10_000_000_000m;
+
     public JobContentValidator()
     {
         RuleFor(j => j.Title).NotEmpty().MaximumLength(200);
@@ -212,7 +214,9 @@ internal sealed class JobContentValidator : AbstractValidator<JobSnapshot>
         {
             salary.RuleFor(s => s.Currency).NotEmpty().Matches("^[A-Z]{3}$").WithMessage("A currency is an ISO 4217 code such as GBP.");
             salary.RuleFor(s => s.Period).IsInEnum();
-            salary.RuleFor(s => s.Min).GreaterThanOrEqualTo(0);
+            // The columns are numeric(12, 2): anything larger, or with more decimal places, would fail or round on save.
+            salary.RuleFor(s => s.Min).GreaterThanOrEqualTo(0).LessThan(MaxSalary).PrecisionScale(12, 2, true);
+            salary.RuleFor(s => s.Max).LessThan(MaxSalary).PrecisionScale(12, 2, true);
             salary.RuleFor(s => s.Max).GreaterThanOrEqualTo(s => s.Min ?? 0).WithMessage("The maximum is below the minimum.");
             salary.RuleFor(s => s).Must(s => s.Min is not null || s.Max is not null)
                 .OverridePropertyName("Min").WithMessage("A salary needs a minimum, a maximum or both.");

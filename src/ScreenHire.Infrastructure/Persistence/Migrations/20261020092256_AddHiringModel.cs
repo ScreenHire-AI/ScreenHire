@@ -270,6 +270,15 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 nullable: false,
                 defaultValue: 1);
 
+            // xmin is a system column: Npgsql emits no SQL for it, but the model records it as the row version.
+            migrationBuilder.AddColumn<uint>(
+                name: "xmin",
+                table: "jobs",
+                type: "xid",
+                rowVersion: true,
+                nullable: false,
+                defaultValue: 0u);
+
             migrationBuilder.Sql(BackfillJobs);
 
             migrationBuilder.DropColumn(
@@ -640,6 +649,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropColumn(
                 name: "workflow_version",
+                table: "jobs");
+
+            migrationBuilder.DropColumn(
+                name: "xmin",
                 table: "jobs");
         }
     }

@@ -1,6 +1,6 @@
 ---
 import CareersLayout from '../../../layouts/CareersLayout.astro';
-import { formatSalary, getPublicJob, label, listPublicJobs } from '../../../lib/api';
+import { escapeHtml, formatSalary, getPublicJob, jsonLdScript, label, listPublicJobs } from '../../../lib/api';
 
 const { organization, job: jobSlug } = Astro.params;
 const [jobResponse, boardResponse] = await Promise.all([
@@ -30,7 +30,7 @@ const jobPosting = {
   '@context': 'https://schema.org',
   '@type': 'JobPosting',
   title: job.title,
-  description: job.description || `<p>${job.title} at ${board.organizationName}.</p>`,
+  description: job.description || `<p>${escapeHtml(job.title)} at ${escapeHtml(board.organizationName)}.</p>`,
   datePosted: job.publishedAt,
   ...(job.validThrough && { validThrough: job.validThrough }),
   employmentType: job.employmentType.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(),
@@ -63,7 +63,7 @@ const jobPosting = {
   organizationName={board.organizationName}
   organizationSlug={board.organizationSlug}
 >
-  <script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(jobPosting)} />
+  <script slot="head" type="application/ld+json" is:inline set:html={jsonLdScript(jobPosting)} />
 
   <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
   <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">

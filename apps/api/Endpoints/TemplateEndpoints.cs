@@ -111,7 +111,7 @@ internal static class TemplateEndpoints
         }
 
         var template = HiringTemplate.Create(
-            tenant.OrganizationId!.Value, request.Name.Trim(), Clean(request.Description), Sanitize(definition), time.GetUtcNow(), tenant.UserId);
+            tenant.OrganizationId!.Value, request.Name.Trim(), Text.NullIfBlank(request.Description), Sanitize(definition), time.GetUtcNow(), tenant.UserId);
         db.HiringTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Created($"/v1/templates/{template.Id}", template.ToDetail());
@@ -141,7 +141,7 @@ internal static class TemplateEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
-        template.Rename(request.Name.Trim(), Clean(request.Description), time.GetUtcNow());
+        template.Rename(request.Name.Trim(), Text.NullIfBlank(request.Description), time.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(template.ToDetail());
     }
@@ -231,7 +231,16 @@ internal static class TemplateEndpoints
         }
 
         found.Revise(Sanitize(request.Definition));
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Row-level security updates drafts only, so an edit that lost a race with a publish matched no row.
+            return PublishedMeanwhile(version);
+        }
+
         return TypedResults.Ok(found.ToDetail());
     }
 
@@ -267,7 +276,20 @@ internal static class TemplateEndpoints
             template.Publish(found, time.GetUtcNow(), tenant.UserId);
             await outbox.PublishAsync(new HiringTemplateVersionPublished(
                 template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value));
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Two publishes of one draft: row-level security updates drafts only, so the second matched no row and
+                // committed nothing. The first published it, which is what this caller asked for.
+                var published = await outbox.DbContext.HiringTemplateVersions.AsNoTracking()
+                    .SingleAsync(v => v.Id == found.Id, cancellationToken);
+                return published.Status == TemplateVersionStatus.Published
+                    ? TypedResults.Ok(published.ToDetail())
+                    : PublishedMeanwhile(version);
+            }
         }
 
         return TypedResults.Ok(found.ToDetail());
@@ -286,5 +308,6 @@ internal static class TemplateEndpoints
             ? definition with { PostingDefaults = definition.PostingDefaults with { Description = RichText.Sanitize(description) } }
             : definition;
 
-    private static string? Clean(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    private static ProblemHttpResult PublishedMeanwhile(int version) =>
+        TypedResults.Problem($"Version {version} was published at the same moment and cannot change; create a new version.", statusCode: StatusCodes.Status409Conflict);
 }

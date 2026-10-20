@@ -794,10 +794,15 @@ export type closeJobResponse404 = {
   status: 404
 }
 
+export type closeJobResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type closeJobResponseSuccess = (closeJobResponse200) & {
   headers: Headers;
 };
-export type closeJobResponseError = (closeJobResponse401 | closeJobResponse403 | closeJobResponse404) & {
+export type closeJobResponseError = (closeJobResponse401 | closeJobResponse403 | closeJobResponse404 | closeJobResponse409) & {
   headers: Headers;
 };
 

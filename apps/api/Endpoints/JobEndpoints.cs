@@ -45,6 +45,7 @@ internal static class JobEndpoints
         group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
             .RequireAntiforgeryToken()
             .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").Produces(StatusCodes.Status401Unauthorized);
@@ -84,9 +85,9 @@ internal static class JobEndpoints
         TimeProvider time,
         CancellationToken cancellationToken)
     {
-        if (request.Description?.Length > JobContentValidator.MaxDescriptionLength)
+        if (TooLongToSanitize(request.Description) is { } tooLong)
         {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem("description", "At most 50000 characters."));
+            return tooLong;
         }
 
         HiringTemplateVersion? template = null;
@@ -109,7 +110,7 @@ internal static class JobEndpoints
             title,
             slug,
             RichText.Sanitize(request.Description ?? defaults.Description),
-            Clean(request.Department ?? defaults.Department),
+            Text.NullIfBlank(request.Department ?? defaults.Department),
             request.EmploymentType ?? defaults.EmploymentType ?? EmploymentType.FullTime,
             request.WorkplaceType ?? defaults.WorkplaceType ?? WorkplaceType.Onsite,
             [.. request.Locations ?? []],
@@ -169,16 +170,16 @@ internal static class JobEndpoints
             return TypedResults.Problem("A closed job cannot be changed; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        if (request.Description?.Length > JobContentValidator.MaxDescriptionLength)
+        if (TooLongToSanitize(request.Description) is { } tooLong)
         {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem("description", "At most 50000 characters."));
+            return tooLong;
         }
 
         var content = new JobSnapshot(
             request.Title?.Trim() ?? "",
             request.Slug?.Trim() ?? job.Slug,
             RichText.Sanitize(request.Description),
-            Clean(request.Department),
+            Text.NullIfBlank(request.Department),
             request.EmploymentType,
             request.WorkplaceType,
             [.. request.Locations ?? []],
@@ -209,6 +210,10 @@ internal static class JobEndpoints
         {
             await db.SaveChangesAsync(cancellationToken);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ChangedMeanwhile();
+        }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             return TypedResults.Problem("Another job took this slug at the same moment; try again.", statusCode: StatusCodes.Status409Conflict);
@@ -219,7 +224,9 @@ internal static class JobEndpoints
 
     // Opens the job, or republishes changed content, as a new JobVersion. The version, the job change and JobPublished
     // commit in one transaction (the EF Core outbox), and the worker handles the event. Publishing an open job whose
-    // content equals its newest version commits nothing and raises no event.
+    // content equals its newest version commits nothing and raises no event. A publish that races another publish, an
+    // edit or a close gets 409 (the job's row version, or the version number's unique index), so a closed job stays
+    // closed.
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
         Guid jobId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -271,14 +278,21 @@ internal static class JobEndpoints
         {
             db.JobVersions.Add(version);
             await outbox.PublishAsync(new JobPublished(job.OrganizationId, job.Id, version.PublishedAt, version.Version, version.Id));
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (exception is DbUpdateConcurrencyException || exception.IsUniqueViolation())
+            {
+                return ChangedMeanwhile();
+            }
         }
 
         return TypedResults.Ok((await LoadDetailAsync(db, job.Id, cancellationToken))!);
     }
 
     // Closing a closed job commits nothing and raises no second event.
-    private static async Task<Results<Ok<JobDetail>, NotFound>> CloseJob(
+    private static async Task<Results<Ok<JobDetail>, NotFound, ProblemHttpResult>> CloseJob(
         Guid jobId, IDbContextOutbox<ScreenHireDbContext> outbox, TimeProvider time, CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
@@ -291,7 +305,14 @@ internal static class JobEndpoints
         if (job.Close(time.GetUtcNow()))
         {
             await outbox.PublishAsync(new JobClosed(job.OrganizationId, job.Id, job.ClosedAt!.Value));
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return ChangedMeanwhile();
+            }
         }
 
         return TypedResults.Ok((await LoadDetailAsync(db, job.Id, cancellationToken))!);
@@ -376,5 +397,13 @@ internal static class JobEndpoints
             ? null
             : new JobSalary(salary.Min, salary.Max, salary.Currency ?? defaults.SalaryCurrency ?? "", salary.Period ?? defaults.SalaryPeriod ?? SalaryPeriod.Year);
 
-    private static string? Clean(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    // Checked before sanitizing, so an oversized body is refused without parsing it. The validator checks the result.
+    private static ValidationProblem? TooLongToSanitize(string? description) =>
+        description?.Length > JobContentValidator.MaxDescriptionLength
+            ? TypedResults.ValidationProblem(
+                ValidationExtensions.Problem("description", $"At most {JobContentValidator.MaxDescriptionLength} characters."))
+            : null;
+
+    private static ProblemHttpResult ChangedMeanwhile() =>
+        TypedResults.Problem("Someone else changed this job at the same moment; refresh and try again.", statusCode: StatusCodes.Status409Conflict);
 }
