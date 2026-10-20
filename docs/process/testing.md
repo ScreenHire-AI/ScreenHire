@@ -221,3 +221,7 @@ others, and the `WorkerLifecycle` collection runs alone after them.
 
 With the marketing site v1 on top of messaging (Lighthouse on 15 pages, 59 .NET tests, 73 Vitest tests), `pnpm verify`
 took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both passed. Lighthouse is about 90 s of that.
+
+With the MVP acceptance journey (881 .NET tests, 9 Vitest packages), `pnpm verify` took 3 min 55 s and 3 min 40 s over
+two consecutive runs on 2026-10-20; both passed. The end-to-end assembly, the journey included, takes about 65 s of
+that, in parallel with the integration tests (about 85 s).
