@@ -128,7 +128,8 @@ internal static class PublicDistributionEndpoints
         return TypedResults.Ok(job.ToJobBoardJob(withContent: true));
     }
 
-    // What the sandbox board shows right now: accepted listings that have not been removed. A 404 while the sandbox is off.
+    // What the sandbox board shows right now: accepted listings that have not been removed (SandboxListing.IsShowing in
+    // SQL; change both together). A 404 while the sandbox is off.
     private static async Task<Results<Ok<List<SandboxBoardListing>>, NotFound>> ListSandboxListings(
         string organizationSlug, ScreenHireDbContext db, TenantContext tenant, BoardRegistry boards, TimeProvider time,
         CancellationToken cancellationToken)

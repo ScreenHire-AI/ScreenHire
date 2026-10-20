@@ -35,6 +35,7 @@ public sealed class SandboxListing : ITenantOwned
     /// <summary>When the board stops showing the listing, once a removal was requested.</summary>
     public DateTimeOffset? RemovesAt { get; set; }
 
+    // ListSandboxListings (PublicDistributionEndpoints) spells this out in SQL; change both together.
     public bool IsShowing(DateTimeOffset now) => AcceptsAt <= now && (RemovesAt is null || RemovesAt > now);
 
     public bool IsRemoved(DateTimeOffset now) => RemovesAt <= now;
