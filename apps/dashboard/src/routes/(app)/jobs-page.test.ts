@@ -188,7 +188,7 @@ describe('new job dialog', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Create job' }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toMatchObject({ workplaceType: 'Onsite', applicantLocationRequirements: null, locations: [{ city: 'Leeds', country: 'GB' }] });
+    expect(bodies[0]).toMatchObject({ workplaceType: 'Onsite', applicantLocationRequirements: null, locations: [{ city: 'Leeds', region: null, country: 'GB' }] });
   });
 
   it('asks where the work happens, and for a description when no template brings one, before sending anything', async () => {

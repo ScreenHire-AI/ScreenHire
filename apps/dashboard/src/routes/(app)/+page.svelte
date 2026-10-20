@@ -115,7 +115,7 @@
             templateVersionId: templateVersionId || null,
             workplaceType: workplaceType || null,
             applicantLocationRequirements: remote ? countryCodes(countries) : null,
-            locations: remote ? null : [{ city: city.trim() || null, country: country.trim().toUpperCase() }],
+            locations: remote ? null : [{ city: city.trim() || null, region: null, country: country.trim().toUpperCase() }],
             description: description.trim() ? paragraphs(description) : null,
           },
         });
