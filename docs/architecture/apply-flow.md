@@ -52,8 +52,8 @@ switch, and bump `NOTICE_VERSION` with the privacy page.
 
 ## 3. Uploads
 
-Files go straight to blob storage (Azurite locally) through a write-only link the API issues, so bytes never pass
-through the API:
+Files go straight to blob storage (Azurite locally) through a create-only link the API issues, so bytes never pass
+through the API. The link writes its blob once and cannot replace it, so the file the API checked is the file it keeps:
 
 1. `POST .../jobs/{jobId}/questions/{questionId}/uploads` with the file name and size: the API checks the extension
    against the question's accepted types (within PDF, DOCX, DOC, JPG and PNG) and the size against
@@ -83,6 +83,9 @@ and then, through the outbox in one transaction: finds or creates the candidate 
 details are never changed by a public form), creates the application in the first stage with its `Submitted` timeline
 event, stores the files, and publishes `ApplicationSubmitted` (a tenant event, so open dashboards update) plus the scan
 messages. A second application from the same email is 409, which the careers page shows as the normal confirmation.
+The API's own 409 does say that an email applied to a job; it is rate limited, and the form, which is what
+candidates and the public use, never shows it. A clash on the candidates index (a new email applying to two jobs at the
+same moment) is an error the candidate can retry, never the "already applied" answer.
 
 The careers server forwards the candidate's address in `X-Forwarded-For`. The API believes it only from
 `ScreenHire:Auth:TrustedProxies` (loopback by default), so in production the careers servers' addresses go there.
