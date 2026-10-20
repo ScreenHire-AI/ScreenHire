@@ -54,6 +54,10 @@ describe('safe return URL', () => {
     ['https://evil.example.org', '/'],
     ['//evil.example.org', '/'],
     ['/\\evil.example.org', '/'],
+    ['/\t/evil.example.org', '/'],
+    ['/\n/evil.example.org', '/'],
+    ['\t//evil.example.org', '/'],
+    ['/%09/evil.example.org', '/%09/evil.example.org'],
   ])('%s becomes %s', (value, expected) => {
     expect(safeReturnUrl(value)).toBe(expected);
   });

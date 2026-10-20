@@ -81,7 +81,7 @@ public sealed class SignInRulesTests
             },
         };
 
-        var providers = ExternalProviders.FromOptions(options).All;
+        var providers = ExternalProviders.FromOptions(options, allowPlainHttp: false).All;
 
         providers.Select(p => (p.Id, p.DisplayName, p.Kind)).Should().Equal(
             ("microsoft", "Microsoft", ProviderKind.Microsoft),
@@ -100,9 +100,23 @@ public sealed class SignInRulesTests
             Oidc = { [id] = new OidcClientOptions { ClientId = "id", ClientSecret = "secret", Authority = "https://sso.example.com" } },
         };
 
-        var build = () => ExternalProviders.FromOptions(options);
+        var build = () => ExternalProviders.FromOptions(options, allowPlainHttp: false);
 
         build.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Plain_http_provider_is_refused_at_startup_outside_development()
+    {
+        var options = new AuthOptions
+        {
+            Oidc = { ["dev-sso"] = new OidcClientOptions { ClientId = "id", ClientSecret = "secret", Authority = "http://localhost:8080/dev" } },
+        };
+
+        var production = () => ExternalProviders.FromOptions(options, allowPlainHttp: false);
+
+        production.Should().Throw<InvalidOperationException>().WithMessage("*https*");
+        ExternalProviders.FromOptions(options, allowPlainHttp: true).All.Should().ContainSingle(p => p.Id == "dev-sso");
     }
 
     [Fact]
