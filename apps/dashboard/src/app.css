@@ -26,3 +26,31 @@
     outline-offset: 2px;
   }
 }
+
+/*
+ * The workflow graph (Svelte Flow) in Warm Grid tokens. Svelte Flow reads each colour from a variable that falls back to
+ * its own light or dark default, so setting the variables here themes it in both modes from the tokens.
+ */
+.svelte-flow {
+  --xy-background-color: var(--card);
+  --xy-background-pattern-dots-color: var(--border);
+  --xy-edge-stroke: var(--muted-foreground);
+  --xy-edge-label-background-color: var(--card);
+  --xy-edge-label-color: var(--foreground);
+  --xy-handle-background-color: var(--muted-foreground);
+  --xy-handle-border-color: var(--card);
+  --xy-node-background-color: transparent;
+  --xy-node-border: none;
+  --xy-node-color: var(--foreground);
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: none;
+  --xy-attribution-background-color: var(--card);
+}
+
+.svelte-flow__attribution a {
+  color: var(--muted-foreground);
+}

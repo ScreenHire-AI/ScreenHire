@@ -97,6 +97,13 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-light");
 
+        // The graph takes its colours from the tokens in the dark theme too.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to dark theme" }).ClickAsync();
+        await Expect(Page.Locator(".svelte-flow")).ToHaveClassAsync(new Regex(@"\bdark\b"));
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-workflow-graph-dark");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
+
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Publish version 1" }).ClickAsync();
