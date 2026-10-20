@@ -47,6 +47,8 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
 - Every tenant-owned entity has `OrganizationId`, an index that starts with it, and (once tenancy lands) a named
   query filter plus a Postgres RLS policy keyed on `app.tenant_id`, set transaction-locally with
   `set_config('app.tenant_id', ..., true)`. Before tenancy lands, filter by organization explicitly in every query.
+- Never call `IgnoreQueryFilters()` in an endpoint. Only the audited, feature-flagged Signal Network path (ADR-0005)
+  reads across organizations.
 - Times are `DateTimeOffset` from `TimeProvider` (`.claude/rules/utc-timestamps.md`).
 - Reads use `AsNoTracking()`. Pass the request's `CancellationToken` to every async EF call. Load what the response
   needs in one query; never query inside a loop.

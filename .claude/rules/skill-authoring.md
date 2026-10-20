@@ -21,8 +21,8 @@ a question parks a task overnight.
 - **Outcome lines are contracts.** Never change the board outcome lines (`Implementation: complete`,
   `Verdict: Ready`, `PR: merged`, ...) or the pipeline skills (`verify`, `task-review`, `pull-request`,
   `merge-pull-request`) unless the task is about them.
-- **Agents.** Reviewers and auditors are read-only: `tools: Read, Glob, Grep, Bash`, with Bash limited to read-only
-  commands in the body. An agent that writes (`test-builder`) says so in its description. Never point a writing
+- **Agents.** Reviewers and auditors are read-only: `tools: Read, Glob, Grep`, plus `Bash` when they need `git` or
+  another command, with Bash limited to read-only commands in the body. An agent that writes (`test-builder`) says so in its description. Never point a writing
   task at the built-in `Explore` or `Plan` agents; they are read-only and skip CLAUDE.md.
 - **Do not fork a mutating skill.** A skill that commits, pushes or edits code runs in the main conversation, and
   heavy review work goes to subagents through the Agent tool. `context: fork` is only for a self-contained,

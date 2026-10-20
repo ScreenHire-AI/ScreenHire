@@ -45,7 +45,8 @@ export const load: PageLoad = async () => {
 Every page handles all four:
 
 - **Loading.** `load` runs before the page renders. For data that should not block the page, call the client in the
-  component and render `{#await promise}` with a `Skeleton` placeholder of the same shape.
+  component and render `{#await promise}` with a `Skeleton` placeholder of the same shape. If
+  `#lib/components/ui/skeleton` does not exist yet, add `skeleton` with the command in section 4.
 - **Empty.** An `{:else}` branch on the `{#each}` with one line that says what is missing and, when the user can fix
   it, the action ("No jobs yet." plus a "Create job" button).
 - **Error.** `error(status, message)` in `load` renders the nearest `+error.svelte` (`page.status`, `page.error` from

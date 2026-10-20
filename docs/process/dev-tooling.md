@@ -38,7 +38,7 @@ report findings as `file:line`, severity, evidence and fix; the caller verifies 
 | [`licence-check`](../../.claude/agents/licence-check.md) | read-only | `/task-review`, any skill that adds a package | every new NuGet or npm package against ADR-0008 |
 | [`migration-safety`](../../.claude/agents/migration-safety.md) | read-only | `/add-migration`, `/task-review` | generated SQL, types, existing data, destructive operations, snapshot drift, RLS for tenant tables |
 | [`doc-auditor`](../../.claude/agents/doc-auditor.md) | read-only | `/sync-docs` | lists in docs against the sources that define them |
-| [`test-builder`](../../.claude/agents/test-builder.md) | writes tests | the page and endpoint skills, `/task-review` | picks the tier, writes and red-greens tests; audit-only mode returns a gap table |
+| [`test-builder`](../../.claude/agents/test-builder.md) | writes tests | the three page skills, `/task-review` | picks the tier, writes and red-greens tests; audit-only mode returns a gap table |
 
 ## Rules
 
