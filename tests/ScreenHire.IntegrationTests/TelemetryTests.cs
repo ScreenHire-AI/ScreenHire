@@ -214,6 +214,63 @@ public sealed class TelemetryTests(AppHostFixture fixture)
             Ct);
     }
 
+    [Fact]
+    public async Task A_session_binds_to_one_application_even_when_the_form_is_sent_twice()
+    {
+        var (organization, jobs) = await OrganizationWithJobsAsync(("engineer", ["GB"]));
+        var job = jobs[0];
+        using var client = fixture.CreateHttpClient("api");
+        var token = await TokenAsync(client, organization, job);
+        var lastPage = Guid.CreateVersion7();
+
+        // The last page's beacon lands first; the form post's final snapshot of the same page view replaces it.
+        await PostAsync(client, organization, job, Snapshot(token, lastPage, 1, fieldId: "aiUseDetails", typed: 5));
+        var first = await ApplyAsync(client, organization, job, "rowan.price@example.com", token, Snapshot(token, lastPage, 2, fieldId: "aiUseDetails", typed: 20));
+        // The same form sent again under another email: a new application, and the session stays with the first.
+        var second = await ApplyAsync(client, organization, job, "sam.okafor@example.com", token, Snapshot(token, lastPage, 3, fieldId: "aiUseDetails", typed: 90));
+
+        await using var db = await TenantDbAsync(organization.Id);
+        var snapshot = (await db.TelemetrySnapshots.Where(s => s.JobId == job.Id).ToListAsync(Ct)).Should().ContainSingle().Which;
+        snapshot.ApplicationId.Should().Be(first);
+        snapshot.Sequence.Should().Be(2);
+        snapshot.Fields.Single().TypedCharacters.Should().Be(20);
+        (await db.TelemetrySnapshots.AnyAsync(s => s.ApplicationId == second, Ct)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Another_organizations_token_and_purge_never_touch_this_organizations_telemetry()
+    {
+        var (mine, myJobs) = await OrganizationWithJobsAsync(("engineer", ["GB"]));
+        var (theirs, theirJobs) = await OrganizationWithJobsAsync(("engineer", ["GB"]));
+        using var client = fixture.CreateHttpClient("api");
+        var myToken = await TokenAsync(client, mine, myJobs[0]);
+        (await PostAsync(client, theirs, theirJobs[0], Snapshot(await TokenAsync(client, theirs, theirJobs[0])))).StatusCode
+            .Should().Be(HttpStatusCode.Accepted);
+
+        (await PostAsync(client, theirs, theirJobs[0], Snapshot(myToken))).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest, "a token names its own organization and job");
+        (await PostAsync(client, theirs, myJobs[0], Snapshot(myToken))).StatusCode
+            .Should().Be(HttpStatusCode.NotFound, "the job is not theirs");
+        (await PostAsync(client, mine, myJobs[0], Snapshot(myToken))).StatusCode.Should().Be(HttpStatusCode.Accepted);
+
+        await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        await sender.Services.GetRequiredService<IMessageBus>()
+            .PublishAsync(new PurgeOrganizationIntegrityData(mine.Id, DateTimeOffset.UtcNow.AddDays(2)));
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                await using var db = await TenantDbAsync(mine.Id);
+                return !await db.TelemetrySnapshots.AnyAsync(s => s.JobId == myJobs[0].Id, Ct);
+            },
+            "the worker to purge this organization's expired telemetry",
+            Ct);
+
+        await using var their = await TenantDbAsync(theirs.Id);
+        (await their.TelemetrySnapshots.CountAsync(Ct)).Should().Be(1, "only their own valid snapshot, and another organization's purge leaves it");
+        await using var my = await TenantDbAsync(mine.Id);
+        (await my.TelemetrySnapshots.AnyAsync(s => s.JobId == theirJobs[0].Id, Ct)).Should().BeFalse("row-level security hides their rows");
+    }
+
     private static JsonObject Snapshot(
         string token,
         Guid? pageViewId = null,

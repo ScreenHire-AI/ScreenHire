@@ -127,6 +127,15 @@ describe('startTelemetry', () => {
     expect(sent).toHaveLength(1);
   });
 
+  it('does not start when the candidate reaches the assistive-technology switch', () => {
+    start();
+    focus(field('accommodationRequested'));
+    hidePage();
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(sent).toEqual([]);
+  });
+
   it('sends counts and never what was typed or pasted (fixture)', () => {
     start();
     const name = field('fullName');
