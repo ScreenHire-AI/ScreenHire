@@ -136,6 +136,14 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         (await tenant.PostAsync(
             $"/v1/applications/{genuine}/integrity/assessments/{clear.Id("authenticity.id")}/dismiss", new JsonObject { ["reason"] = "FalsePositive" }))
             .Expect(HttpStatusCode.Conflict);
+
+        // Two reviewers at once can both pass the endpoint's check; the database still keeps one dismissal.
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        var assessment = await db.IntegrityAssessments.AsNoTracking().SingleAsync(a => a.Id == assessmentId, Ct);
+        db.IntegrityReviewActions.Add(IntegrityReviewAction.Dismiss(assessment, DismissReason.FalsePositive, null, tenant.UserId, DateTimeOffset.UtcNow));
+        var second = () => db.SaveChangesAsync(Ct);
+        (await second.Should().ThrowAsync<DbUpdateException>()).WithInnerException<PostgresException>()
+            .Which.SqlState.Should().Be(PostgresErrorCodes.UniqueViolation);
     }
 
     [Fact]
@@ -182,7 +190,9 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         var (slug, jobId) = await OpenJobAsync(tenant);
         var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
         await AssessedAsync(tenant, applicationId);
-        string[] tables = ["integrity_analyzer_runs", "integrity_signals", "integrity_assessments", "submission_observations"];
+        (await tenant.PostAsync($"/v1/applications/{applicationId}/integrity/notes", new JsonObject { ["note"] = "Checked the references." }))
+            .Expect(HttpStatusCode.OK);
+        string[] tables = ["integrity_analyzer_runs", "integrity_signals", "integrity_assessments", "integrity_review_actions", "submission_observations"];
 
         // Raw SQL as the application role, past the EF query filter: only the policies stand in the way.
         foreach (var table in tables)
@@ -270,6 +280,53 @@ public sealed class IntegrityTests(AppHostFixture fixture)
             Ct);
         await using var after = await TenantDbAsync(tenant.OrganizationId);
         (await after.IntegritySignals.CountAsync(s => s.ApplicationId == applicationId, Ct)).Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task Running_the_pipeline_again_changes_nothing_and_only_a_new_analyzer_version_runs()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        await AssessedAsync(tenant, applicationId);
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        var ran = await db.IntegrityAnalyzerRuns.AsNoTracking().Where(r => r.ApplicationId == applicationId)
+            .Select(r => new { r.Analyzer, r.AnalyzerVersion }).ToListAsync(Ct);
+        var before = await RecordAsync(db, applicationId);
+
+        // A redelivery: the analyzer versions that already ran. Each stand-in fails the test if the pipeline calls it.
+        IIntegrityAnalyzer[] same = [.. ran.Select(r => new StandInAnalyzer(r.Analyzer, r.AnalyzerVersion))];
+        var redelivered = await new IntegrityPipeline(db, same, TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        redelivered.Should().BeEmpty("nothing changed, so there is no new assessment to announce");
+        (await RecordAsync(db, applicationId)).Should().Be(before);
+
+        // A new analyzer runs alone. Reporting nothing, it leaves the assessments as they were.
+        var quiet = new StandInAnalyzer("review-probe", 1, AnalyzerResult.Nothing("Nothing to report."));
+        var afterQuiet = await new IntegrityPipeline(db, [.. same, quiet], TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        quiet.Calls.Should().Be(1);
+        afterQuiet.Should().BeEmpty();
+        (await RecordAsync(db, applicationId)).Should().Be(before with { Runs = before.Runs + 1 });
+
+        // Its next version runs once more and, with a new signal, reassesses and announces it.
+        var observed = new ObservedSignal(
+            SignalCatalogue.Inconsistency, SignalConfidence.Medium, [SignalEvidence.Fact("Probe", "A test observation.")],
+            new Dictionary<string, string> { ["detail"] = "A test observation." });
+        var bumped = new StandInAnalyzer("review-probe", 2, new AnalyzerResult([observed]));
+        var afterBump = await new IntegrityPipeline(db, [.. same, quiet, bumped], TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        quiet.Calls.Should().Be(1);
+        bumped.Calls.Should().Be(1);
+        afterBump.OfType<IntegrityAssessed>().Should().ContainSingle();
+        var after = await RecordAsync(db, applicationId);
+        after.Runs.Should().Be(before.Runs + 2);
+        after.Signals.Should().Be(before.Signals + 1);
+        after.Assessments.Should().BeGreaterThan(before.Assessments);
+        after.Timeline.Should().Be(before.Timeline + 1);
     }
 
     [Fact]
@@ -391,5 +448,32 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);
         return await fixture.CreateDbContextAsync(tenant, Ct);
+    }
+
+    // What the pipeline has written for one application.
+    private static async Task<PipelineRecord> RecordAsync(ScreenHireDbContext db, Guid applicationId) => new(
+        await db.IntegrityAnalyzerRuns.CountAsync(r => r.ApplicationId == applicationId, Ct),
+        await db.IntegritySignals.CountAsync(s => s.ApplicationId == applicationId, Ct),
+        await db.IntegrityAssessments.CountAsync(a => a.ApplicationId == applicationId, Ct),
+        await db.ApplicationEvents.CountAsync(e => e.ApplicationId == applicationId && e.Type == ApplicationEventType.IntegrityAssessed, Ct));
+
+    private sealed record PipelineRecord(int Runs, int Signals, int Assessments, int Timeline);
+
+    // An analyzer with a given name and version. Without a result it must never run.
+    private sealed class StandInAnalyzer(string name, int version, AnalyzerResult? result = null) : IIntegrityAnalyzer
+    {
+        public string Name => name;
+
+        public int Version => version;
+
+        public int Calls { get; private set; }
+
+        public Task<AnalyzerResult> AnalyzeAsync(IntegrityContext context, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return result is null
+                ? Task.FromException<AnalyzerResult>(new InvalidOperationException($"{name} version {version} already ran and must not run again."))
+                : Task.FromResult(result);
+        }
     }
 }

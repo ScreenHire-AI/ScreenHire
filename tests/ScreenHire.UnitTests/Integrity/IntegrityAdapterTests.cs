@@ -159,6 +159,55 @@ public sealed class IntegrityAdapterTests
     }
 
     [Fact]
+    public void A_host_refuses_to_keep_raw_network_data_longer_than_the_privacy_notice_promises()
+    {
+        var limit = new RetentionLimit();
+
+        limit.Validate(null, new IntegrityOptions()).Succeeded.Should().BeTrue();
+        limit.Validate(null, Keeping(1)).Succeeded.Should().BeTrue();
+        limit.Validate(null, Keeping(30)).Succeeded.Should().BeTrue();
+        limit.Validate(null, Keeping(31)).Failed.Should().BeTrue("the careers notice says within 30 days");
+        limit.Validate(null, Keeping(0)).Failed.Should().BeTrue();
+
+        static IntegrityOptions Keeping(int days) => new() { Retention = new RetentionOptions { RawNetworkDays = days } };
+    }
+
+    [Fact]
+    public void The_worker_refuses_to_start_with_an_ip_data_file_that_does_not_exist()
+    {
+        var files = new NetworkSourceFiles();
+        var existing = Path.GetTempFileName();
+        var missing = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.tsv");
+        try
+        {
+            files.Validate(null, new IntegrityOptions()).Succeeded.Should().BeTrue("an unset file is a source that is off");
+            files.Validate(null, Reading(existing, existing)).Succeeded.Should().BeTrue();
+
+            var result = files.Validate(null, Reading(missing, existing));
+
+            result.Failed.Should().BeTrue();
+            result.FailureMessage.Should().Contain("Ip2AsnFile").And.NotContain("TorExitListFile");
+        }
+        finally
+        {
+            File.Delete(existing);
+        }
+
+        static IntegrityOptions Reading(string ip2Asn, string torExits) =>
+            new() { Network = new NetworkIntelligenceOptions { Ip2AsnFile = ip2Asn, TorExitListFile = torExits } };
+    }
+
+    [Fact]
+    public void The_synthetic_applicants_saw_the_notice_version_the_careers_site_shows()
+    {
+        var apply = File.ReadAllText(RepositoryFiles.PathTo("apps", "careers", "src", "lib", "apply.ts"));
+        var careers = System.Text.RegularExpressions.Regex.Match(apply, @"export const NOTICE_VERSION = '([^']+)'");
+
+        careers.Success.Should().BeTrue("apps/careers/src/lib/apply.ts exports NOTICE_VERSION");
+        SyntheticApplicantsDemo.PrivacyNoticeVersion.Should().Be(careers.Groups[1].Value);
+    }
+
+    [Fact]
     public void A_submission_stores_a_salted_device_hash_clean_markers_and_a_plausible_start_only()
     {
         var application = Application();
