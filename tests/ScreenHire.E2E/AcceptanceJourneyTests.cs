@@ -67,6 +67,16 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var jobId = Guid.Parse(new Uri(Page.Url).Segments[^1]);
         var jobSlug = (await DashboardJsonAsync($"/v1/jobs/{jobId}")).GetProperty("slug").GetString()!;
 
+        // The details the template does not set: a salary range, before anyone sees the job.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Edit details" }).ClickAsync();
+        var details = Page.GetByRole(AriaRole.Dialog, new() { Name = "Edit job details" });
+        await details.GetByLabel("From", new() { Exact = true }).FillAsync("70000");
+        await details.GetByLabel("To", new() { Exact = true }).FillAsync("90000");
+        await ExpectNoAccessibilityViolationsAsync();
+        await details.GetByRole(AriaRole.Button, new() { Name = "Save details" }).ClickAsync();
+        await Expect(details).ToBeHiddenAsync();
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("£70k-£90k");
+
         var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" });
         await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
@@ -177,6 +187,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await using var context = await Fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false });
         var page = await context.NewPageAsync();
         await page.GotoAsync(CareersUrl($"/{organization}/jobs/{job}"));
+        await Expect(page.GetByRole(AriaRole.Main)).ToContainTextAsync("£70k–£90k"); // the salary set in the dashboard
         await page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" }).ClickAsync();
 
         await Expect(page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" })).ToBeVisibleAsync();

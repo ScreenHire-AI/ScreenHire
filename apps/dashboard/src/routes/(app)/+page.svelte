@@ -25,7 +25,8 @@
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
-  import { applyValidationProblem, areCountryCodes, countryCodes, paragraphs } from '#lib/forms.js';
+  import { applyValidationProblem, paragraphs } from '#lib/forms.js';
+  import { checkWhere, whereBody, workplaceOptions } from '#lib/job-form.js';
   import { formatShortDate } from '#lib/format.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -64,8 +65,8 @@
   const usable = $derived((templates.data?.data ?? []).filter((template) => template.latestPublishedVersionId));
 
   // The select's "none" is an empty string, which the body's uuid would refuse; it becomes null on the way out.
-  // Where the work happens is asked here because publishing needs it (JobPublishValidator) and the dashboard has no
-  // other place to set it yet; so is a description when no template brings one.
+  // Where the work happens is asked up front because publishing needs it (JobPublishValidator); so is a description
+  // when no template brings one. The rest of the posting is the job page's "Edit details".
   const newJobSchema = CreateJobBody.pick({ title: true })
     .extend({
       title: z.string().trim().min(1, 'Give the job a title.'),
@@ -78,17 +79,7 @@
     })
     .superRefine((value, context) => {
       const issue = (path: string, message: string) => context.addIssue({ code: 'custom', path: [path], message });
-      if (value.workplaceType === '') issue('workplaceType', 'Choose where the work happens.');
-      if (value.workplaceType === 'Remote') {
-        const codes = countryCodes(value.countries);
-        if (codes.length === 0) issue('countries', 'List the countries candidates can work from, such as GB, IE.');
-        else if (!areCountryCodes(codes)) issue('countries', 'Use two-letter country codes, such as GB.');
-      }
-
-      if ((value.workplaceType === 'Hybrid' || value.workplaceType === 'Onsite') && !areCountryCodes([value.country.trim().toUpperCase()])) {
-        issue('country', 'Give the country as a two-letter code, such as GB.');
-      }
-
+      checkWhere(value, issue);
       if (!value.templateVersionId && !value.description.trim()) issue('description', 'Describe the job, or choose a template that has a description.');
     });
   const emptyNewJob = { title: '', templateVersionId: '', workplaceType: '', countries: '', city: '', country: '', description: '' } as const;
@@ -106,16 +97,13 @@
     invalidateAll: false,
     async onUpdate({ form }) {
       if (!form.valid) return;
-      const { title, templateVersionId, workplaceType, countries, city, country, description } = form.data;
-      const remote = workplaceType === 'Remote';
+      const { title, templateVersionId, description } = form.data;
       try {
         const response = await create.mutateAsync({
           data: {
             title: title.trim(),
             templateVersionId: templateVersionId || null,
-            workplaceType: workplaceType || null,
-            applicantLocationRequirements: remote ? countryCodes(countries) : null,
-            locations: remote ? null : [{ city: city.trim() || null, region: null, country: country.trim().toUpperCase() }],
+            ...whereBody(form.data),
             description: description.trim() ? paragraphs(description) : null,
           },
         });
@@ -279,9 +267,7 @@
           aria-describedby={$newJobErrors.workplaceType ? 'new-job-workplace-error' : undefined}
         >
           <option value="">Choose where the work happens</option>
-          <option value="Remote">Remote</option>
-          <option value="Hybrid">Hybrid</option>
-          <option value="Onsite">On-site</option>
+          {#each workplaceOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
         </select>
         <Field.Error id="new-job-workplace-error" errors={$newJobErrors.workplaceType?.map((message) => ({ message }))} />
       </Field.Field>

@@ -94,7 +94,8 @@ Software engineer pipeline plus the three candidate emails.
    records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
    to Robin within a second or two. On the very first start with fresh data, every synthetic applicant's "We received
    your application" email is there too.
-4. **Publish everywhere (60 s).** Open Backend Engineer (Payments) and press **Publish to 8 boards**. The careers page
+4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** shows everything the posting
+   carries (salary, location, closing date, description). Press **Publish to 8 boards**. The careers page
    is live at once; the local sandbox board confirms in about 20 seconds; the feed boards show "Sent" with each one's
    usual delay. The job is now on http://localhost:4322/brightwater.
 5. **Apply as a candidate (60 s).** On the careers page, open the new job and apply: the notice comes first, then three

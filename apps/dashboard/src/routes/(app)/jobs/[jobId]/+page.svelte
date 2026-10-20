@@ -7,6 +7,7 @@
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import IntegrityOverview from '#lib/components/integrity-overview.svelte';
+  import JobDetailsSheet from '#lib/components/job-details-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -47,6 +48,8 @@
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
   let confirmClose = $state(false);
+  let editing = $state(false);
+  let saved = $state('');
   let closeFailure = $state('');
 
   const shown = $derived(
@@ -135,6 +138,9 @@
         </ul>
       </div>
       <div class="flex flex-wrap gap-2">
+        {#if detail.status !== 'Closed'}
+          <Button variant="outline" class="h-[34px] font-semibold" onclick={() => ((saved = ''), (editing = true))}>Edit details</Button>
+        {/if}
         <a href={`/jobs/${detail.id}/workflow`} class={cn(buttonVariants({ variant: 'outline' }), 'h-[34px] font-semibold')}>
           Workflow{#if detail.template?.updateAvailable}<span class="text-primary"> · update available</span>{/if}
         </a>
@@ -145,6 +151,9 @@
         {/if}
       </div>
     </section>
+
+    <p role="status" class="text-[12.5px] text-muted-foreground empty:hidden">{saved}</p>
+    <JobDetailsSheet job={detail} bind:open={editing} onsaved={(message) => (saved = message)} />
 
     <DistributionStrip job={detail} boards={boards.data?.data ?? []} />
 
