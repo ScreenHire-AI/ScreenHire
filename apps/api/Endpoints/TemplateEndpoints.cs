@@ -228,8 +228,9 @@ internal static class TemplateEndpoints
         return TypedResults.Ok(found.ToDetail());
     }
 
-    // Publishing a published version changes nothing and raises no second event.
-    private static async Task<Results<Ok<HiringTemplateVersionDetail>, NotFound, ProblemHttpResult>> PublishVersion(
+    // Publishing a published version changes nothing and raises no second event. The draft is validated again first: it
+    // was valid when saved, but the rules (the guardrails above all) may have tightened since.
+    private static async Task<Results<Ok<HiringTemplateVersionDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishVersion(
         Guid templateId,
         int version,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -251,6 +252,11 @@ internal static class TemplateEndpoints
 
         if (found.Status == TemplateVersionStatus.Draft)
         {
+            if (DefinitionValidator.Validate(found.Definition).ToProblems("definition") is { } problems)
+            {
+                return TypedResults.ValidationProblem(problems);
+            }
+
             template.Publish(found, time.GetUtcNow(), tenant.UserId);
             await outbox.PublishAsync(new HiringTemplateVersionPublished(
                 template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value));

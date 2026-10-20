@@ -218,6 +218,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_applications_organization_id_job_id_candidate_id");
 
+                    b.HasIndex("OrganizationId", "JobId", "CurrentStageId")
+                        .HasDatabaseName("ix_applications_organization_id_job_id_current_stage_id");
+
                     b.ToTable("applications", (string)null);
                 });
 

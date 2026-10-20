@@ -96,10 +96,10 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         (string Title, string Location, string Status)[] seeded =
         [
-            ("Senior Product Designer", "Remote — UK & EU", "Open"),
-            ("Senior .NET Engineer", "Remote — UK & EU", "Open"),
-            ("Frontend Engineer (Svelte)", "London, UK", "Open"),
-            ("Customer Success Lead", "Manchester, UK", "Draft"),
+            ("Senior Product Designer", "Remote (GB, IE)", "Open"),
+            ("Senior .NET Engineer", "Remote (GB, IE)", "Open"),
+            ("Frontend Engineer (Svelte)", "London, England, GB", "Open"),
+            ("Customer Success Lead", "Manchester, England, GB", "Draft"),
         ];
         foreach (var (title, location, status) in seeded)
         {

@@ -7,7 +7,8 @@
 import type { ApplicationStage } from './applicationStage.ts';
 
 /**
- * An application in a list.
+ * An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the
+ * application itself.
  */
 export interface ApplicationSummary {
   id: string;
@@ -15,7 +16,6 @@ export interface ApplicationSummary {
   candidateId: string;
   candidateName: string;
   stage: ApplicationStage;
-  accommodationRequested: boolean;
   submittedAt: string;
   stageEnteredAt: string;
 }

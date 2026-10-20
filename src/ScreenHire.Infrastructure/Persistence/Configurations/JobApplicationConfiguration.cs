@@ -31,6 +31,8 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.HasAlternateKey(a => new { a.OrganizationId, a.Id });
         builder.HasIndex(a => new { a.OrganizationId, a.JobId, a.CandidateId }).IsUnique();
         builder.HasIndex(a => new { a.OrganizationId, a.CandidateId });
+        // The pipeline view: one job's applications by stage.
+        builder.HasIndex(a => new { a.OrganizationId, a.JobId, a.CurrentStageId });
     }
 }
 

@@ -25,14 +25,21 @@ public static partial class DefinitionValidator
         "application.hoursInStage",
     };
 
-    // Accommodation status and timing or telemetry facts about a person are deliberately absent: conditions on them
-    // would be the negative inference CLAUDE.md non-negotiable 4 forbids.
+    // Accommodation status and the AI-use declaration are deliberately absent: a condition on them would hold a request
+    // for accommodation or an honest disclosure against a candidate (CLAUDE.md non-negotiable 4). Timing facts stay
+    // (application.hoursInStage, TimeElapsed); the workflow engine skips them for an application with an accommodation
+    // (workflow-engine.md §2, guardrail 4).
     private const string AnswersPrefix = "answers.";
 
     // What an automation that uses an integrity or verification signal may do: route and step up, never reject
-    // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to non-terminal stages.
+    // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages.
     private static readonly HashSet<ActionType> SignalSafeActions =
         [ActionType.RequestVerification, ActionType.AssignReviewer, ActionType.AddTag, ActionType.MoveToStage];
+
+    // Review stages a signal may route an application into. Not Custom: a custom stage named "Not progressing" would be
+    // a rejection under another name. Not Offer or the terminal kinds either.
+    private static readonly HashSet<StageKind> SignalSafeStages =
+        [StageKind.Screening, StageKind.Assessment, StageKind.Verification, StageKind.Interview];
 
     public const int MaxStages = 30;
     public const int MaxQuestions = 50;
@@ -309,9 +316,79 @@ public static partial class DefinitionValidator
             ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), stages, errors);
             ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), questions, errors);
             ValidateActions(automation.Actions, Join(automationPath, "actions"), stages, errors);
-            ValidateGuardrails(automation, automationPath, stages, questions, errors);
+        }
+
+        var signalDriven = SignalDrivenAutomations(automations);
+        for (var i = 0; i < automations.Count; i++)
+        {
+            if (automations[i] is { } automation)
+            {
+                ValidateGuardrails(automation, $"{path}[{i}]", signalDriven.Contains(i), stages, questions, errors);
+            }
         }
     }
+
+    /// <summary>
+    /// The automations an integrity or verification signal can drive, directly or at one remove. Directly: a signal
+    /// trigger or a signal fact. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
+    /// trigger on a stage one moves applications into. Otherwise a signal could tag or route an application and a second
+    /// automation could act on the tag or the stage, laundering the signal past guardrail 1. Repeated until nothing new
+    /// is found, so chains of any length count.
+    /// </summary>
+    private static HashSet<int> SignalDrivenAutomations(IReadOnlyList<Automation> automations)
+    {
+        var driven = new HashSet<int>();
+        var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var stages = new HashSet<string>(StringComparer.Ordinal);
+        bool found;
+        do
+        {
+            found = false;
+            for (var i = 0; i < automations.Count; i++)
+            {
+                if (driven.Contains(i) || automations[i] is not { } automation || !IsSignalDriven(automation, tags, stages))
+                {
+                    continue;
+                }
+
+                driven.Add(i);
+                found = true;
+                foreach (var action in automation.Actions?.Where(a => a is not null) ?? [])
+                {
+                    if (action.Type == ActionType.AddTag && action.Tag is not null)
+                    {
+                        tags.Add(action.Tag);
+                    }
+                    else if (action.Type == ActionType.MoveToStage && action.StageId is not null)
+                    {
+                        stages.Add(action.StageId);
+                    }
+                }
+            }
+        }
+        while (found);
+
+        return driven;
+    }
+
+    private static bool IsSignalDriven(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages)
+    {
+        if (automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
+            || (automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId)))
+        {
+            return true;
+        }
+
+        return automation.Conditions?.Rules?.Any(rule => rule is not null
+            && (IsSignalFact(rule.Fact) || (rule.Fact == "application.tags" && ReadsTaintedTag(rule, taintedTags)))) == true;
+    }
+
+    // Conservative: any test that could match a tainted tag counts.
+    private static bool ReadsTaintedTag(AutomationCondition rule, HashSet<string> taintedTags) =>
+        taintedTags.Count > 0
+        && (rule.Operator == ConditionOperator.Exists
+            || (rule.Value is { } value && taintedTags.Any(t => t.Contains(value, StringComparison.OrdinalIgnoreCase)))
+            || (rule.Values?.Any(v => v is not null && taintedTags.Contains(v)) == true));
 
     private static void ValidateTrigger(
         AutomationTrigger? trigger, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
@@ -512,6 +589,7 @@ public static partial class DefinitionValidator
     private static void ValidateGuardrails(
         Automation automation,
         string path,
+        bool signalDriven,
         Dictionary<string, WorkflowStage> stages,
         Dictionary<string, Question> questions,
         List<DefinitionError> errors)
@@ -522,8 +600,6 @@ public static partial class DefinitionValidator
         }
 
         var rules = automation.Conditions?.Rules?.Where(r => r is not null).ToList() ?? [];
-        var signalDriven = automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
-            || rules.Any(r => IsSignalFact(r.Fact));
 
         for (var i = 0; i < automation.Actions.Count; i++)
         {
@@ -534,11 +610,13 @@ public static partial class DefinitionValidator
 
             var actionPath = $"{path}.actions[{i}]";
             var target = action.StageId is null ? null : stages.GetValueOrDefault(action.StageId);
-            if (signalDriven && (!SignalSafeActions.Contains(action.Type) || target?.Kind.IsTerminal() == true))
+            if (signalDriven && (!SignalSafeActions.Contains(action.Type)
+                || (action.Type == ActionType.MoveToStage && target is not null && !SignalSafeStages.Contains(target.Kind))))
             {
                 errors.Add(new(actionPath,
-                    "An automation that uses an integrity or verification signal may only request verification, assign a reviewer, " +
-                    "add a tag or move to a non-terminal stage. Integrity signals never drive rejection (ADR-0004)."));
+                    "An automation that uses an integrity or verification signal, directly or through a tag or stage another such " +
+                    "automation sets, may only request verification, assign a reviewer, add a tag or move to a screening, " +
+                    "assessment, verification or interview stage. Integrity signals never drive rejection (ADR-0004)."));
                 continue;
             }
 
@@ -549,12 +627,12 @@ public static partial class DefinitionValidator
                 continue;
             }
 
-            var onlyKnockouts = rules.Count > 0 && rules.All(r => IsKnockoutFact(r.Fact, questions));
+            var onlyKnockouts = rules.Count > 0 && rules.All(r => IsKnockoutRule(r, questions));
             if (!onlyKnockouts)
             {
                 errors.Add(new(actionPath,
-                    "Only a knockout automation, whose every condition is a knockout question's answer, may reject. " +
-                    "Use QueueForRejectionReview so a person decides."));
+                    "Only a knockout automation may reject: every condition must be a knockout question equal to its " +
+                    "disqualifying answer. Use QueueForRejectionReview so a person decides."));
             }
             else if (!automation.AllowAutoReject)
             {
@@ -612,11 +690,15 @@ public static partial class DefinitionValidator
     private static bool IsSignalFact(string? fact) =>
         fact is not null && (fact.StartsWith("integrity.", StringComparison.Ordinal) || fact.StartsWith("verification.", StringComparison.Ordinal));
 
-    private static bool IsKnockoutFact(string? fact, Dictionary<string, Question> questions) =>
-        fact is not null
+    // answers.{id} EqualTo the knockout's disqualifying answer ("yes" or "no"), not negated: anything else could reject
+    // an eligible candidate.
+    private static bool IsKnockoutRule(AutomationCondition rule, Dictionary<string, Question> questions) =>
+        rule.Fact is { } fact
         && fact.StartsWith(AnswersPrefix, StringComparison.Ordinal)
         && questions.TryGetValue(fact[AnswersPrefix.Length..], out var question)
-        && question.Knockout is not null;
+        && question.Knockout is { } knockout
+        && rule is { Operator: ConditionOperator.EqualTo, Negate: false }
+        && rule.Value == (knockout.DisqualifyingAnswer ? "yes" : "no");
 
     private static void ValidateStageReference(string? stageId, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
     {

@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261020085958_AddHiringModel")]
+    [Migration("20261020092256_AddHiringModel")]
     partial class AddHiringModel
     {
         /// <inheritdoc />
@@ -220,6 +220,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "JobId", "CandidateId")
                         .IsUnique()
                         .HasDatabaseName("ix_applications_organization_id_job_id_candidate_id");
+
+                    b.HasIndex("OrganizationId", "JobId", "CurrentStageId")
+                        .HasDatabaseName("ix_applications_organization_id_job_id_current_stage_id");
 
                     b.ToTable("applications", (string)null);
                 });

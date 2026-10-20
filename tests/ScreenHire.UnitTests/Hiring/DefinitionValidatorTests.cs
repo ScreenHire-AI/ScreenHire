@@ -277,6 +277,76 @@ public sealed class DefinitionValidatorTests
         Paths(workflow).Should().Contain("automations[0].actions[0]");
     }
 
+    [Fact]
+    public void A_signal_cannot_be_laundered_through_a_tag()
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationAction(ActionType.AddTag, Tag: "Integrity-Review"), "tagger", new AutomationTrigger(TriggerType.IntegrityAssessed)),
+            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "integrity-review")),
+                new AutomationAction(ActionType.SendEmail, EmailTemplate: "decline"), "mailer"),
+            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral")),
+                new AutomationAction(ActionType.SendEmail, EmailTemplate: "thanks"), "unrelated"),
+        ]);
+
+        Paths(workflow).Should().Equal("automations[1].actions[0]");
+    }
+
+    [Fact]
+    public void A_signal_cannot_be_laundered_through_a_stage_even_along_a_chain()
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "screening"), "route",
+                new AutomationTrigger(TriggerType.VerificationCompleted)),
+            Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "interview"), "hop",
+                new AutomationTrigger(TriggerType.StageEntered, "screening")),
+            Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Stalled"), "queue",
+                new AutomationTrigger(TriggerType.TimeElapsed, "interview", 72)),
+        ]);
+
+        Paths(workflow).Should().Equal("automations[2].actions[0]");
+    }
+
+    [Theory]
+    [InlineData(StageKind.Custom)]
+    [InlineData(StageKind.Offer)]
+    public void A_signal_may_only_route_into_a_review_stage(StageKind kind)
+    {
+        var workflow = Workflow(
+            stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("parked", "Not progressing", kind)],
+            automations:
+            [
+                Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "a",
+                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+            ]);
+
+        Paths(workflow).Should().Equal("automations[0].actions[0]");
+    }
+
+    [Theory]
+    [InlineData(ConditionOperator.EqualTo, "yes", false)]
+    [InlineData(ConditionOperator.EqualTo, "no", true)]
+    [InlineData(ConditionOperator.Exists, null, false)]
+    public void A_knockout_rejection_tests_exactly_the_disqualifying_answer(ConditionOperator op, string? value, bool negate)
+    {
+        var workflow = Workflow(questions: [WorkAuthorization], automations:
+        [
+            Automation(Conditions(new AutomationCondition("answers.work_authorization", op, value, Negate: negate)),
+                new AutomationAction(ActionType.Reject, Reason: "Not eligible"), allowAutoReject: true),
+        ]);
+
+        Paths(workflow).Should().Contain("automations[0].actions[0]");
+    }
+
+    [Fact]
+    public void Accommodation_and_the_ai_use_declaration_are_not_facts()
+    {
+        DefinitionValidator.KnownFacts.Should().NotContain(f =>
+            f.Contains("accommodation", StringComparison.OrdinalIgnoreCase) || f.Contains("aiUse", StringComparison.OrdinalIgnoreCase));
+    }
+
     // Guardrail 2: only knockouts may reject, and only with the per-rule opt-in.
     [Fact]
     public void A_knockout_automation_may_reject_only_with_the_explicit_opt_in()

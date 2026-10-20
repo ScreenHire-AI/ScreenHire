@@ -1122,6 +1122,16 @@
           "404": {
             "description": "Not Found"
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict",
             "content": {
@@ -1647,7 +1657,6 @@
           "candidateId",
           "candidateName",
           "stage",
-          "accommodationRequested",
           "submittedAt",
           "stageEnteredAt"
         ],
@@ -1671,9 +1680,6 @@
           "stage": {
             "$ref": "#/components/schemas/ApplicationStage"
           },
-          "accommodationRequested": {
-            "type": "boolean"
-          },
           "submittedAt": {
             "type": "string",
             "format": "date-time"
@@ -1683,7 +1689,7 @@
             "format": "date-time"
           }
         },
-        "description": "An application in a list."
+        "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
       },
       "ApplicationTimelineEntry": {
         "required": [

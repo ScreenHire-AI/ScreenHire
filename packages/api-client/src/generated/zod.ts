@@ -1565,10 +1565,9 @@ export const ListJobApplicationsResponseItem = zod.object({
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
-  "accommodationRequested": zod.boolean(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true})
-}).describe('An application in a list.')
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
 
@@ -1723,10 +1722,9 @@ export const GetCandidateResponse = zod.object({
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
-  "accommodationRequested": zod.boolean(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true})
-}).describe('An application in a list.'))
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.'))
 }).describe('A candidate and every application they made to the organization.')
 
 

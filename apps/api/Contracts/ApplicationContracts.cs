@@ -16,14 +16,16 @@ public sealed record CandidateDetail(
 /// <summary>A stage of the job's workflow, as an application sees it.</summary>
 public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 
-/// <summary>An application in a list.</summary>
+/// <summary>
+/// An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the
+/// application itself.
+/// </summary>
 public sealed record ApplicationSummary(
     Guid Id,
     Guid JobId,
     Guid CandidateId,
     string CandidateName,
     ApplicationStage Stage,
-    bool AccommodationRequested,
     DateTimeOffset SubmittedAt,
     DateTimeOffset StageEnteredAt);
 
@@ -73,7 +75,7 @@ internal static class ApplicationMappings
 
     public static ApplicationSummary ToSummary(this JobApplication application, Job job, Candidate candidate) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
-            application.AccommodationRequested, application.SubmittedAt, application.StageEnteredAt);
+            application.SubmittedAt, application.StageEnteredAt);
 
     public static ApplicationDetail ToDetail(this JobApplication application, Job job, Candidate candidate) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),

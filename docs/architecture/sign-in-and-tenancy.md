@@ -109,6 +109,19 @@ Two layers, so one mistake is not a breach.
    organization id, never as a list: no policy stops a list of every tenant. The one list is a worker message that
    walks every organization in turn (`ReportOpenJobs`), reading ids only.
 
+   The hiring tables (migration `AddHiringModel`) follow the `jobs` pattern: `job_versions`, `candidates`,
+   `applications` and `application_events` each carry `organization_id` and a `tenant_isolation` policy. Child tables
+   reference their parent with a composite foreign key on `(organization_id, id)`, because foreign key checks bypass
+   row-level security: an application can only point at a job and a candidate of its own organization, whatever id a
+   request carries. `job_versions` and `application_events` are append-only: `screenhire_app` has no `UPDATE` or
+   `DELETE` on them.
+
+   System hiring templates are the one shared data: `hiring_templates` and `hiring_template_versions` rows with a NULL
+   `organization_id`. A `system_read` policy lets every tenant read them, the write policies require the caller's own
+   organization, so no tenant can change one, and the entities carry a hand-written query filter (own organization or
+   system) instead of `ITenantOwned`. Published template versions are immutable in the database too: the update and
+   delete policies match drafts only.
+
 `users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
 `OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.

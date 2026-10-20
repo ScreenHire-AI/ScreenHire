@@ -68,15 +68,81 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
             CREATE POLICY tenant_delete_drafts ON hiring_template_versions FOR DELETE
                 USING (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid AND status = 'Draft');
+            -- Deleting a template would cascade to its published versions, which are meant to be permanent.
+            REVOKE DELETE ON hiring_templates FROM screenhire_app;
             """;
 
-        // The old free-text location becomes a city, except for remote jobs, whose text described where candidates may
-        // live rather than a place. Every existing job gets the default workflow (HiringWorkflow.Default, frozen below).
+        // Foreign key checks bypass row-level security, and a system template has no organization, so a composite tenant
+        // key cannot protect these two links. These triggers do instead. They run as the caller, under row-level
+        // security, so a row the caller cannot see is treated as missing: a version must belong to its template's
+        // organization (no tenant can add a version to a system template or another tenant's), and a job's template
+        // source must be a system version or one of its own organization's.
+        private const string EnableTemplateGuards = """
+            CREATE FUNCTION hiring_template_version_same_organization() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT FROM hiring_templates t
+                    WHERE t.id = NEW.template_id AND t.organization_id IS NOT DISTINCT FROM NEW.organization_id) THEN
+                    RAISE EXCEPTION 'A template version must belong to its template''s organization.'
+                        USING ERRCODE = 'foreign_key_violation';
+                END IF;
+                RETURN NEW;
+            END
+            $$;
+            CREATE TRIGGER same_organization BEFORE INSERT OR UPDATE OF template_id, organization_id ON hiring_template_versions
+                FOR EACH ROW EXECUTE FUNCTION hiring_template_version_same_organization();
+
+            -- Only a newly set source is checked, so ON DELETE SET NULL cascades never trip it.
+            CREATE FUNCTION job_template_source_visible() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+                IF NEW.source_template_version_id IS NOT NULL
+                    AND (TG_OP = 'INSERT'
+                         OR NEW.source_template_version_id IS DISTINCT FROM OLD.source_template_version_id
+                         OR NEW.organization_id IS DISTINCT FROM OLD.organization_id)
+                    AND NOT EXISTS (
+                        SELECT FROM hiring_template_versions v
+                        WHERE v.id = NEW.source_template_version_id
+                          AND (v.organization_id IS NULL OR v.organization_id = NEW.organization_id)) THEN
+                    RAISE EXCEPTION 'A job can only use a system template or one of its own organization''s.'
+                        USING ERRCODE = 'foreign_key_violation';
+                END IF;
+                RETURN NEW;
+            END
+            $$;
+            CREATE TRIGGER template_source_visible BEFORE INSERT OR UPDATE OF source_template_version_id, organization_id ON jobs
+                FOR EACH ROW EXECUTE FUNCTION job_template_source_visible();
+            """;
+
+        // The version trigger goes with its table; the jobs trigger and both functions need dropping.
+        private const string DisableTemplateGuards = """
+            DROP TRIGGER IF EXISTS template_source_visible ON jobs;
+            DROP FUNCTION IF EXISTS job_template_source_visible();
+            DROP TRIGGER IF EXISTS same_organization ON hiring_template_versions;
+            DROP FUNCTION IF EXISTS hiring_template_version_same_organization();
+            """;
+
+        // The old free-text location becomes the city of one structured location, remote jobs included (their text said
+        // where candidates may live; a recruiter turns it into country codes on the next edit). Every existing job gets
+        // the default workflow (HiringWorkflow.Default, frozen below).
+        //
+        // jobs has FORCE ROW LEVEL SECURITY, which binds the owner running this migration too: with no app.tenant_id the
+        // UPDATE would match no rows, and the DROP COLUMN after it would lose every location. So FORCE is lifted around
+        // the UPDATE (transactional DDL: a failure rolls all of it back), and the migration aborts if any text was not
+        // carried over.
         private const string BackfillJobs = """
+            ALTER TABLE jobs NO FORCE ROW LEVEL SECURITY;
             UPDATE jobs SET locations = CASE
-                WHEN workplace_type = 'Remote' OR btrim(location) = '' THEN '[]'::jsonb
-                ELSE jsonb_build_array(jsonb_build_object('city', location))
+                WHEN btrim(location) = '' THEN '[]'::jsonb
+                ELSE jsonb_build_array(jsonb_build_object('city', btrim(location)))
             END;
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT FROM jobs WHERE btrim(location) <> '' AND locations = '[]'::jsonb) THEN
+                    RAISE EXCEPTION 'AddHiringModel: job locations were not carried over; aborting before location is dropped.';
+                END IF;
+            END
+            $$;
+            ALTER TABLE jobs FORCE ROW LEVEL SECURITY;
             ALTER TABLE jobs ALTER COLUMN locations DROP DEFAULT;
             ALTER TABLE jobs ALTER COLUMN applicant_location_requirements DROP DEFAULT;
             ALTER TABLE jobs ALTER COLUMN workflow DROP DEFAULT;
@@ -107,8 +173,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             """;
 
         // Best effort for a rollback: the first location's city, or nothing.
+        // FORCE is lifted for the same reason as in BackfillJobs.
         private const string RestoreLocation = """
+            ALTER TABLE jobs NO FORCE ROW LEVEL SECURITY;
             UPDATE jobs SET location = left(COALESCE(locations -> 0 ->> 'city', ''), 200);
+            ALTER TABLE jobs FORCE ROW LEVEL SECURITY;
             ALTER TABLE jobs ALTER COLUMN location DROP DEFAULT;
             """;
 
@@ -403,6 +472,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "ix_applications_organization_id_job_id_current_stage_id",
+                table: "applications",
+                columns: new[] { "organization_id", "job_id", "current_stage_id" });
+
+            migrationBuilder.CreateIndex(
                 name: "ix_candidates_organization_id_normalized_email",
                 table: "candidates",
                 columns: new[] { "organization_id", "normalized_email" },
@@ -455,12 +529,15 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
             migrationBuilder.Sql(InsertSystemTemplates);
             migrationBuilder.Sql(EnableRowLevelSecurity);
+            migrationBuilder.Sql(EnableTemplateGuards);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             // Dropping the tables drops their policies and grants with them.
+            migrationBuilder.Sql(DisableTemplateGuards);
+
             migrationBuilder.AddColumn<string>(
                 name: "location",
                 table: "jobs",

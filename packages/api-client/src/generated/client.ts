@@ -1359,6 +1359,11 @@ export type publishHiringTemplateVersionResponse200 = {
   status: 200
 }
 
+export type publishHiringTemplateVersionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
 export type publishHiringTemplateVersionResponse401 = {
   data: void
   status: 401
@@ -1377,7 +1382,7 @@ export type publishHiringTemplateVersionResponse409 = {
 export type publishHiringTemplateVersionResponseSuccess = (publishHiringTemplateVersionResponse200) & {
   headers: Headers;
 };
-export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409) & {
+export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse400 | publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409) & {
   headers: Headers;
 };
 

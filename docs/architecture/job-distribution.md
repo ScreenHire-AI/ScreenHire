@@ -38,6 +38,11 @@ Job (canonical, schema.org JobPosting superset)
                                  + disposition sync back to boards
 ```
 
+- **Job versions (built)**: `POST /v1/jobs/{id}/publish` freezes the job's posting content as a numbered `JobVersion`
+  (`job_versions`, append-only) and raises `JobPublished` with that version. Editing an open job changes the live job
+  and the careers page at once but not the boards: the job reports `hasUnpublishedChanges` until someone publishes
+  again, which freezes the next version. Publishing unchanged content creates no version and no event. Adapters
+  publish from a version, never from the live job.
 - **Single source of truth**: the canonical job. Board-specific fields (category IDs, company IDs, sponsorship budget)
   live in `posting.boardOptions`.
 - **Validation before publish**: the "Post" dialog runs every selected adapter's `Validate` and shows fixable issues

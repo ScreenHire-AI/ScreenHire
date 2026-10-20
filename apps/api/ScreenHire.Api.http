@@ -12,3 +12,56 @@ Accept: application/json
 
 GET {{api}}/v1/meta
 Accept: application/json
+
+###
+
+# The dashboard routes below need a signed-in session cookie, and the POSTs and PUTs also need the antiforgery header
+# (X-XSRF-TOKEN, the value of the XSRF-TOKEN cookie). Sign in through the dashboard first and copy both.
+@xsrf = paste-the-XSRF-TOKEN-cookie-here
+
+GET {{api}}/v1/templates
+Accept: application/json
+
+###
+
+POST {{api}}/v1/jobs
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{
+  "title": "Platform Engineer",
+  "templateVersionId": "0199e8a0-0000-7000-8000-000000000101",
+  "applicantLocationRequirements": ["GB", "IE"],
+  "salary": { "min": 70000, "max": 90000, "currency": "GBP" }
+}
+
+###
+
+# Replace the ids with ones from the responses above.
+POST {{api}}/v1/jobs/00000000-0000-0000-0000-000000000000/publish
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+POST {{api}}/v1/jobs/00000000-0000-0000-0000-000000000000/applications
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{
+  "candidate": { "fullName": "Jordan Example", "email": "jordan@example.com" },
+  "accommodationRequested": false,
+  "aiUseDeclaration": "DidNotUse"
+}
+
+###
+
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/move
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "toStageId": "screening", "note": "Strong portfolio" }
+
+###
+
+GET {{api}}/v1/schemas/hiring-template-definition.json
+Accept: application/schema+json
