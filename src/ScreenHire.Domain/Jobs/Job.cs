@@ -11,6 +11,8 @@ namespace ScreenHire.Domain.Jobs;
 /// </summary>
 public sealed class Job : ITenantOwned
 {
+    private DateTimeOffset? validThrough;
+
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
     public Guid OrganizationId { get; init; }
@@ -46,7 +48,11 @@ public sealed class Job : ITenantOwned
     public SalaryPeriod? SalaryPeriod { get; private set; }
 
     /// <summary>When the posting expires (schema.org <c>validThrough</c>). Job distribution tears it down then.</summary>
-    public DateTimeOffset? ValidThrough { get; set; }
+    public DateTimeOffset? ValidThrough
+    {
+        get => validThrough;
+        set => validThrough = value?.ToDatabasePrecision();
+    }
 
     /// <summary>This job's own copy of the hiring workflow. Template changes never reach it silently.</summary>
     public HiringWorkflow Workflow { get; private set; } = HiringWorkflow.Default;

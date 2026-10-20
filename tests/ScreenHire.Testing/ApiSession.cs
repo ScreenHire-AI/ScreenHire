@@ -30,14 +30,21 @@ public sealed class ApiSession : IDisposable
     public HttpClient Client { get; }
 
     /// <summary>Sends a JSON POST with the antiforgery header, fetching a token first if this session has none.</summary>
-    public async Task<HttpResponseMessage> PostAsync<T>(string path, T body, CancellationToken cancellationToken)
+    public Task<HttpResponseMessage> PostAsync<T>(string path, T body, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Post, path, body, cancellationToken);
+
+    /// <summary>Sends a JSON PUT with the antiforgery header, fetching a token first if this session has none.</summary>
+    public Task<HttpResponseMessage> PutAsync<T>(string path, T body, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Put, path, body, cancellationToken);
+
+    private async Task<HttpResponseMessage> SendAsync<T>(HttpMethod method, string path, T body, CancellationToken cancellationToken)
     {
         if (AntiforgeryToken() is null)
         {
             (await Client.GetAsync("/v1/auth/providers", cancellationToken)).EnsureSuccessStatusCode();
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(body) };
+        using var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) };
         request.Headers.Add(AntiforgeryHeader, AntiforgeryToken());
         return await Client.SendAsync(request, cancellationToken);
     }

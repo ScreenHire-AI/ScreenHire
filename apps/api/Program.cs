@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
@@ -18,7 +19,7 @@ builder.AddScreenHireAuthentication();
 // the data and the worker handles it (docs/architecture/messaging.md).
 builder.AddScreenHireMessagePublishing();
 
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TimeProvider>(new DatabasePrecisionTimeProvider());
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
 builder.Services.AddHiringValidation();

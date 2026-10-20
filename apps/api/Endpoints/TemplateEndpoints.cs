@@ -174,6 +174,9 @@ internal static class TemplateEndpoints
         }
 
         var draft = template.CreateDraft(Sanitize(definition), time.GetUtcNow(), tenant.UserId);
+        // Added explicitly: found through the tracked template's collection, a new row with a client-generated key
+        // would be taken for an existing one and saved as an UPDATE.
+        db.HiringTemplateVersions.Add(draft);
         try
         {
             await db.SaveChangesAsync(cancellationToken);

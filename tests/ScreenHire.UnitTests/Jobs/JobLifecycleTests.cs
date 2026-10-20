@@ -85,6 +85,17 @@ public sealed class JobLifecycleTests
     }
 
     [Fact]
+    public void Valid_through_keeps_the_databases_microsecond_precision_so_a_frozen_snapshot_matches_the_job_read_back()
+    {
+        var job = NewJob();
+
+        job.ValidThrough = Monday.AddTicks(1234567);
+
+        job.ValidThrough.Should().Be(Monday.AddTicks(1234560));
+        job.Snapshot().ValidThrough!.Value.Ticks.Should().Be(Monday.AddTicks(1234560).Ticks);
+    }
+
+    [Fact]
     public void Closing_an_open_job_records_when_and_keeps_the_publish_date()
     {
         var job = NewJob();
