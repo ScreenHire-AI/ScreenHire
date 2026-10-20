@@ -108,6 +108,10 @@ There is no reset between tests and no Respawn. Instead:
   address and account; `OnboardAsync()` gives it its own organization. End-to-end tests click through the sign-in
   pages; `fixture.Mailpit` reads the emailed link. The seeded Brightwater Owner (`avery@brightwater.example.com`, Dev
   SSO user `brightwater-owner`) is read-only like its organization: sign in as them, change nothing.
+- **Careers applicants.** `fixture.ApplyAsync(slug, jobId, applicant, ct)` (`SyntheticApplications` in
+  `tests/ScreenHire.Testing`) submits one of the synthetic applicants (`SyntheticApplicants`) to a published job the
+  way the careers server does, with its address, session and resume, so the integrity engine assesses it. Integration
+  and end-to-end tests both use it.
 
 ### Messaging tests (`tests/ScreenHire.IntegrationTests/Messaging`)
 

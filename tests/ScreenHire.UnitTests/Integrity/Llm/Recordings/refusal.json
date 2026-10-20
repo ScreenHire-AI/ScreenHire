@@ -1,0 +1,22 @@
+{
+  "description": "The model declines on the first call. The check is unavailable, not failed.",
+  "sources": {
+    "Resume": "Dana Whitfield\nSenior data engineer at Harbour Lane Analytics since 2019.",
+    "Answers": "Who is your current employer? Lakeside Data Ltd"
+  },
+  "responses": [
+    {
+      "status": 200,
+      "body": {
+        "id": "msg_rec_031",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [],
+        "stop_reason": "refusal",
+        "stop_sequence": null,
+        "usage": { "input_tokens": 470, "output_tokens": 0 }
+      }
+    }
+  ]
+}

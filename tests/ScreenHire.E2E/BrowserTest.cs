@@ -114,10 +114,10 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 
     private static async Task CheckAsync(IPage page)
     {
-        // Colours fade between states (a theme switch, a hover): axe must measure where they end, not a frame of the fade.
-        // Infinite animations (a pulsing indicator) never finish, so only finite ones are awaited.
+        // Colours ease when the theme switches; axe measuring mid-transition reports contrast between two themes.
+        // CSS transitions only: an endless animation (a skeleton's pulse) would never finish.
         await page.EvaluateAsync(
-            "() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})))");
+            "() => Promise.all(document.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished.catch(() => undefined)))");
         var result = await page.RunAxe(new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
 
         result.Violations.Should().BeEmpty("axe found WCAG 2.2 AA violations on {0}:{1}", page.Url, Describe(result.Violations));

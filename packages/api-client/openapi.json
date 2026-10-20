@@ -2762,6 +2762,80 @@
         }
       }
     },
+    "/v1/organization/integrity-settings": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationIntegritySettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationIntegritySettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "UpdateOrganizationIntegritySettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntegritySettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationIntegritySettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/workflows/validate": {
       "post": {
         "tags": [
@@ -3383,7 +3457,8 @@
           "authenticity",
           "aiAssistance",
           "reviewLog",
-          "requestVerification"
+          "requestVerification",
+          "consistencyCheck"
         ],
         "type": "object",
         "properties": {
@@ -3422,6 +3497,16 @@
           },
           "requestVerification": {
             "$ref": "#/components/schemas/IntegrityActionAvailability"
+          },
+          "consistencyCheck": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConsistencyCheckView"
+              }
+            ]
           }
         },
         "description": "An application's integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\r\n`reviewLog`."
@@ -4375,6 +4460,66 @@
           "Exists"
         ]
       },
+      "ConsistencyCheckStatus": {
+        "enum": [
+          "Running",
+          "Completed",
+          "Unavailable",
+          "Disabled",
+          "OverBudget",
+          "NotEnoughSources"
+        ]
+      },
+      "ConsistencyCheckView": {
+        "required": [
+          "status",
+          "note",
+          "promptVersion",
+          "extractionModel",
+          "consistencyModel",
+          "contradictions",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ConsistencyCheckStatus"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "promptVersion": {
+            "type": "string"
+          },
+          "extractionModel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "consistencyModel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contradictions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans."
+      },
       "CounterEvidence": {
         "required": [
           "explanation"
@@ -5170,7 +5315,9 @@
           "counterEvidence",
           "source",
           "sourceVersion",
-          "observedAt"
+          "observedAt",
+          "informational",
+          "llm"
         ],
         "type": "object",
         "properties": {
@@ -5227,6 +5374,19 @@
           "observedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "informational": {
+            "type": "boolean"
+          },
+          "llm": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmProvenance"
+              }
+            ]
           }
         },
         "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers."
@@ -6089,6 +6249,26 @@
         },
         "description": "Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2)."
       },
+      "LlmProvenance": {
+        "required": [
+          "promptVersion",
+          "extractionModel",
+          "consistencyModel"
+        ],
+        "type": "object",
+        "properties": {
+          "promptVersion": {
+            "type": "string"
+          },
+          "extractionModel": {
+            "type": "string"
+          },
+          "consistencyModel": {
+            "type": "string"
+          }
+        },
+        "description": "Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names."
+      },
       "MagicLinkRequest": {
         "required": [
           "email"
@@ -6206,6 +6386,31 @@
           }
         },
         "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable."
+      },
+      "OrganizationIntegritySettings": {
+        "required": [
+          "llmConsistencyCheck",
+          "monthlyTokenBudget",
+          "tokensUsedThisMonth"
+        ],
+        "type": "object",
+        "properties": {
+          "llmConsistencyCheck": {
+            "type": "boolean"
+          },
+          "monthlyTokenBudget": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "tokensUsedThisMonth": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "The organization's integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\r\n`tokensUsedThisMonth` is what the check has used so far this month."
       },
       "OrganizationRole": {
         "enum": [
@@ -7312,6 +7517,25 @@
           }
         },
         "description": "Replaces a draft version's definition."
+      },
+      "UpdateIntegritySettingsRequest": {
+        "required": [
+          "llmConsistencyCheck"
+        ],
+        "type": "object",
+        "properties": {
+          "llmConsistencyCheck": {
+            "type": "boolean"
+          },
+          "monthlyTokenBudget": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        },
+        "description": "Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default)."
       },
       "UpdateJobRequest": {
         "required": [

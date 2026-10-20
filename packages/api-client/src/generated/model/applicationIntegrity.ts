@@ -6,6 +6,7 @@
  */
 import type { AiAssistanceAssessmentView } from './aiAssistanceAssessmentView.ts';
 import type { AuthenticityAssessmentView } from './authenticityAssessmentView.ts';
+import type { ConsistencyCheckView } from './consistencyCheckView.ts';
 import type { IntegrityActionAvailability } from './integrityActionAvailability.ts';
 import type { IntegrityReviewEntry } from './integrityReviewEntry.ts';
 import type { IntegrityStatus } from './integrityStatus.ts';
@@ -23,4 +24,5 @@ export interface ApplicationIntegrity {
   aiAssistance: null | AiAssistanceAssessmentView;
   reviewLog: IntegrityReviewEntry[];
   requestVerification: IntegrityActionAvailability;
+  consistencyCheck: null | ConsistencyCheckView;
 }

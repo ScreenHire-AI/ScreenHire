@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
@@ -51,7 +52,19 @@ public static class DevelopmentDataSeeder
         var organization = await SeedOrganizationAsync(db, now, cancellationToken);
         tenant.SetOrganization(organization.Id);
         await SeedBrandAsync(db, organization, cancellationToken);
+        await SeedIntegritySettingsAsync(db, organization, now, cancellationToken);
         await SeedOwnerAsync(db, organization, now, cancellationToken);
+    }
+
+    // Brightwater has the LLM consistency check on, so the demo shows it; locally the fake model answers. A step of its
+    // own, for data volumes seeded before the setting existed.
+    private static async Task SeedIntegritySettingsAsync(ScreenHireDbContext db, Organization organization, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (!await db.IntegritySettings.AnyAsync(s => s.OrganizationId == organization.Id, cancellationToken))
+        {
+            db.IntegritySettings.Add(new IntegritySettings { OrganizationId = organization.Id, LlmConsistencyCheckEnabled = true, UpdatedAt = now });
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     // A step of its own, so a data volume seeded before brand colours existed gets one too.

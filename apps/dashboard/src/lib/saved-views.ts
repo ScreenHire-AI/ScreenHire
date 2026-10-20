@@ -1,5 +1,6 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
 import type { MarkShape, MarkTone } from '#lib/distribution.js';
+import { needsReview, verificationRecommended } from '#lib/integrity.js';
 
 /** A ready-made filter on the candidates table, listed in the sidebar with its count. */
 export interface SavedView {
@@ -13,10 +14,24 @@ export interface SavedView {
 const day = 24 * 60 * 60 * 1000;
 
 /**
- * The sidebar's saved views, in order. They open `/candidates?view=<id>`. Integrity views (review suggested,
- * verification recommended) join this list with the integrity data.
+ * The sidebar's saved views, in order. They open `/candidates?view=<id>`. The integrity views follow authenticity only:
+ * AI assistance is information, not a queue (ADR-0004). A dismissed assessment leaves both.
  */
 export const savedViews: readonly SavedView[] = [
+  {
+    id: 'needs-review',
+    label: 'Needs review',
+    shape: 'diamond',
+    tone: 'review',
+    matches: (application) => needsReview(application),
+  },
+  {
+    id: 'verification-recommended',
+    label: 'Verification recommended',
+    shape: 'square',
+    tone: 'verify',
+    matches: (application) => verificationRecommended(application),
+  },
   {
     id: 'new-today',
     label: 'New today',

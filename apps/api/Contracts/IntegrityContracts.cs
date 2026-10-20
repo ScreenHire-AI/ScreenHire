@@ -14,6 +14,8 @@ namespace ScreenHire.Api.Contracts;
 /// <remarks>
 /// <c>status</c> is <c>Pending</c> until the pipeline has assessed the application; both assessments are null then.
 /// <c>requestVerification</c> says whether a reviewer can ask the candidate to verify their identity (phase 2).
+/// <c>consistencyCheck</c> is the LLM consistency check's state: null until it is decided, then whether it ran and, if
+/// not, why. A check that could not run is unavailable, never a mark against the application.
 /// </remarks>
 public sealed record ApplicationIntegrity(
     Guid ApplicationId,
@@ -21,7 +23,21 @@ public sealed record ApplicationIntegrity(
     AuthenticityAssessmentView? Authenticity,
     AiAssistanceAssessmentView? AiAssistance,
     IReadOnlyList<IntegrityReviewEntry> ReviewLog,
-    IntegrityActionAvailability RequestVerification);
+    IntegrityActionAvailability RequestVerification,
+    ConsistencyCheckView? ConsistencyCheck);
+
+/// <summary>
+/// The LLM consistency check for an application: its status, why it did not run (<c>note</c>), and the prompt version and
+/// models it ran with. Contradictions appear as <c>CNT_INCONSISTENCY</c> signals, each citing both spans.
+/// </summary>
+public sealed record ConsistencyCheckView(
+    ConsistencyCheckStatus Status,
+    string? Note,
+    string PromptVersion,
+    string? ExtractionModel,
+    string? ConsistencyModel,
+    int Contradictions,
+    DateTimeOffset? CompletedAt);
 
 public enum IntegrityStatus
 {
@@ -73,7 +89,8 @@ public sealed record AiAssistanceAssessmentView(
 /// <remarks>
 /// <c>countsTowardLevel</c>: the signal is in a category another independent category backs up, so it is one of the
 /// level's reasons. <c>contextOnly</c>: shown for context and never a reason on its own (a VPN, a failed bot challenge).
-/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it.
+/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it. <c>informational</c>: shown and never counted.
+/// <c>llm</c>: for a signal a language model helped derive, the prompt version and the models that answered.
 /// </remarks>
 public sealed record IntegritySignalView(
     Guid Id,
@@ -90,7 +107,9 @@ public sealed record IntegritySignalView(
     IReadOnlyList<CounterEvidence> CounterEvidence,
     string Source,
     int SourceVersion,
-    DateTimeOffset ObservedAt);
+    DateTimeOffset ObservedAt,
+    bool Informational,
+    LlmProvenance? Llm);
 
 /// <summary>A reviewer set an assessment aside. <c>actorName</c> is the reviewer's display name, when they have one.</summary>
 public sealed record IntegrityDismissal(Guid ActionId, DismissReason Reason, string? Note, Guid ActorUserId, string? ActorName, DateTimeOffset DismissedAt);

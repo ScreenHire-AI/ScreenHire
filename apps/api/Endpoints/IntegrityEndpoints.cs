@@ -6,6 +6,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Integrity;
+using ScreenHire.Infrastructure.Integrity.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -182,6 +183,9 @@ internal static class IntegrityReads
             .Where(u => actorIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.Email, cancellationToken);
         var kinds = assessments.ToDictionary(a => a.Id, a => a.Kind);
+        var check = await db.ConsistencyChecks.AsNoTracking()
+            .Where(c => c.ApplicationId == applicationId && c.PromptVersion == ConsistencyPrompts.Version)
+            .SingleOrDefaultAsync(cancellationToken);
 
         IntegrityDismissal? DismissalOf(IntegrityAssessment assessment) =>
             actions.LastOrDefault(a => a.AssessmentId == assessment.Id && a.Type == IntegrityReviewActionType.Dismissed) is { } action
@@ -193,7 +197,7 @@ internal static class IntegrityReads
             .. assessment.SignalIds.Where(signals.ContainsKey).Select(id => signals[id]).Select(s => new IntegritySignalView(
                 s.Id, s.Code, SignalCatalogue.All.TryGetValue(s.Code, out var definition) ? definition.Title : s.Code, s.Category, s.Weight,
                 s.Confidence, assessment.CountedSignalIds.Contains(s.Id), s.ContextOnly, s.AccessibilitySensitive, s.Explanation, s.Evidence,
-                s.CounterEvidence, s.Source, s.SourceVersion, s.ObservedAt)),
+                s.CounterEvidence, s.Source, s.SourceVersion, s.ObservedAt, s.Informational, s.Llm)),
         ];
 
         return new ApplicationIntegrity(
@@ -216,7 +220,11 @@ internal static class IntegrityReads
                     a.Id, a.Type, a.AssessmentId is { } id && kinds.TryGetValue(id, out var kind) ? kind : null, a.AssessmentId, a.DismissReason,
                     a.Note, a.ActorUserId, names.GetValueOrDefault(a.ActorUserId), a.OccurredAt)),
             ],
-            new IntegrityActionAvailability(false, IntegrityEndpoints.VerificationUnavailable));
+            new IntegrityActionAvailability(false, IntegrityEndpoints.VerificationUnavailable),
+            check is null || check.Status == ConsistencyCheckStatus.Running
+                ? null
+                : new ConsistencyCheckView(
+                    check.Status, check.Note, check.PromptVersion, check.ExtractionModel, check.ConsistencyModel, check.Contradictions.Count, check.CompletedAt));
     }
 
     /// <summary>The chips for each application in <paramref name="applicationIds"/> that has been assessed.</summary>
