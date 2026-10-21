@@ -1,5 +1,7 @@
 <script lang="ts" module>
-  export type StepState = 'done' | 'current' | 'upcoming';
+  import type { StepState } from './step-marker.svelte';
+
+  export type { StepState };
 
   export interface Step {
     label: string;

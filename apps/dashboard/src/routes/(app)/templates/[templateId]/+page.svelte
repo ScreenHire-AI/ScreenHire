@@ -83,6 +83,10 @@
   async function saveDraft(): Promise<boolean> {
     if (!current || !draft.workflow) return false;
     failure = '';
+    if (!draft.dirty) {
+      notice = 'No changes to save.';
+      return true;
+    }
     try {
       const response = await save.mutateAsync({
         templateId: params.templateId,
@@ -180,7 +184,7 @@
     <Tabs.Root bind:value={tab}>
       <HeaderBand title={detail.name}>
         {#snippet status()}
-          <ValidationBadge errors={draft.errors} checking={draft.checking} />
+          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
           <span class="flex flex-wrap gap-1.5">
             <Badge variant="muted" class="tabular-nums">Version {current.version}</Badge>
             {#if current.status === 'Draft'}

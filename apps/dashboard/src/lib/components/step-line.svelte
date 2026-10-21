@@ -2,8 +2,8 @@
   import type { Snippet } from 'svelte';
   import StepMarker from './step-marker.svelte';
 
-  // Steps down a line (design system section 11): numbered square markers joined by a line, each step's content beside
-  // its marker. For a sequence with no progress, such as a workflow's stages; `StepMarkers` draws progress across.
+  // Steps down a line (design system section 11), each step's content beside its marker. For a sequence with no
+  // progress, such as a workflow's stages; `StepMarkers` draws progress across.
   let { items, label, key, children }: { items: readonly T[]; label: string; key: (item: T) => string; children: Snippet<[T]> } = $props();
 </script>
 

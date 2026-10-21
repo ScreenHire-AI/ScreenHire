@@ -186,7 +186,7 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>New template</Dialog.Title>
-      <Dialog.Description>Version 1 starts as a draft. Publish it when it is ready for jobs to use.</Dialog.Description>
+      <Dialog.Description>Version 1 starts as a draft.</Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
       <Field.Field data-invalid={$errors.name ? true : undefined}>

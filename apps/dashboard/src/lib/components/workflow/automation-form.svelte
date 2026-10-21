@@ -45,10 +45,6 @@
   const facts = $derived(factsFor(workflow));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
   const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
-  const usesSignal = $derived(
-    automation.trigger.type === 'IntegrityAssessed' || (automation.conditions?.rules ?? []).some((rule) => factOf(rule.fact)?.signal),
-  );
-
   function setTrigger(type: TriggerType) {
     const stageId = triggerNeedsStage(type) ? (automation.trigger.stageId ?? workflow.stages[0]?.id ?? '') : undefined;
     automation.trigger = { type, ...(stageId !== undefined && { stageId }), ...(type === 'TimeElapsed' && { afterHours: automation.trigger.afterHours ?? 48 }) };
@@ -190,8 +186,7 @@
             </div>
             {#if fact?.signal}
               <p class="text-caption text-muted-foreground">
-                An integrity signal can route a candidate for review: add a tag, assign a reviewer or move to a screening,
-                assessment, verification or interview stage. It never rejects anyone.
+                An integrity signal can route a candidate for review, never reject them.
               </p>
             {/if}
             <FieldErrors id={`${uid}-rule-${ruleIndex}-errors`} messages={ruleErrors} />
@@ -275,10 +270,7 @@
         Reject without a person reviewing first
       </label>
       <p class="text-body text-muted-foreground">
-        Only a knockout automation may reject: every condition must be a knockout question equal to its disqualifying answer.
-        The candidate is told the reason and that a person reviews the decision on request. Without this, use "Queue for
-        rejection review" so a person decides.
-        {#if usesSignal}Integrity signals never drive rejection.{/if}
+        Only a knockout automation may reject: the candidate is told the reason and can ask a person to review it.
       </p>
       <FieldErrors id={`${uid}-auto-reject-errors`} messages={errorsAt(errors, `${path}.allowAutoReject`)} />
     </div>

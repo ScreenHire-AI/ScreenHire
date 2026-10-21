@@ -4,9 +4,10 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { describePath, laneOf, newAutomation, removeAt } from '#lib/workflow.js';
+  import { laneOf, newAutomation, removeAt } from '#lib/workflow.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
+  import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
   import SimulatePanel from './simulate-panel.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
@@ -52,15 +53,7 @@
   }
 </script>
 
-{#if errors.length > 0}
-  <Panel title="Problems to fix" count={errors.length}>
-    <ul class="flex flex-col gap-1">
-      {#each errors as error, index (index)}
-        <li><span class="font-semibold">{describePath(workflow, error.path)}:</span> {error.message}</li>
-      {/each}
-    </ul>
-  </Panel>
-{/if}
+<ProblemsPanel title="Problems to fix" {workflow} {errors} />
 
 <Tabs.Content value="pipeline">
   <PipelineView bind:workflow {errors} onopen={openLane} />

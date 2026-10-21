@@ -104,7 +104,8 @@ validation result is a status badge beside the page title.
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
 its path names, so the guardrail refusal of an integrity-driven rejection appears on that action. A draft that does
 not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it. The editor lists
-the open problems in a "Problems to fix" panel above every tab.
+the open problems in a "Problems to fix" panel above every tab; a read-only view lists a stored version's in a
+"Problems" panel. Saving with no changes sends nothing, because each save of a job's workflow is a new version.
 
 ## 5. API surface (public, same API the dashboard uses)
 

@@ -1,9 +1,12 @@
+<script lang="ts" module>
+  export type StepState = 'done' | 'current' | 'upcoming';
+</script>
+
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import type { StepState } from './step-markers.svelte';
 
-  // One step marker (design system section 11): a 28px square with an edge, holding the step's number or a check. With
-  // no state it is a step in a plain sequence, such as a workflow's stages.
+  // One step marker (design system section 11), holding the step's number or a check. With no state it is a step in a
+  // plain sequence, such as a workflow's stages.
   let { state, children }: { state?: StepState; children: Snippet } = $props();
 </script>
 

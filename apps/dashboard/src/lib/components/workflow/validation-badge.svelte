@@ -4,14 +4,20 @@
 
   // The API validator's result as the status beside a workflow's title. The region is busy while the check of the
   // latest change is on its way, so neither assistive technology nor the end-to-end tests read the previous result as
-  // the answer. The problems themselves are listed in the builder's "Problems to fix" panel.
-  let { errors, checking = false }: { errors: readonly DefinitionError[]; checking?: boolean } = $props();
+  // the answer. The problems themselves are listed in a `ProblemsPanel`. A workflow that cannot be edited here has
+  // problems, not problems to fix.
+  let {
+    errors,
+    checking = false,
+    editable = true,
+  }: { errors: readonly DefinitionError[]; checking?: boolean; editable?: boolean } = $props();
+  const problems = $derived(`${errors.length} ${errors.length === 1 ? 'problem' : 'problems'}`);
 </script>
 
 <section aria-label="Validation" aria-live="polite" aria-busy={checking} class="flex">
   {#if errors.length === 0}
     <StatusBadge status="clear" label="No problems found" />
   {:else}
-    <StatusBadge status="verify" label={`${errors.length} ${errors.length === 1 ? 'problem' : 'problems'} to fix`} />
+    <StatusBadge status="verify" label={editable ? `${problems} to fix` : problems} />
   {/if}
 </section>

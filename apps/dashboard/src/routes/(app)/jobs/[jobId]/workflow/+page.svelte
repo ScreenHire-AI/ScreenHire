@@ -69,6 +69,11 @@
   async function saveWorkflow() {
     if (!detail || !draft.workflow) return;
     failure = '';
+    // Every save is a new version of the job's workflow, so an unchanged one is not sent.
+    if (!draft.dirty) {
+      notice = 'No changes to save.';
+      return;
+    }
     try {
       const response = await save.mutateAsync({
         jobId: params.jobId,
@@ -148,7 +153,7 @@
     <Tabs.Root bind:value={tab}>
       <HeaderBand title={`Workflow: ${detail.title}`}>
         {#snippet status()}
-          <ValidationBadge errors={draft.errors} checking={draft.checking} />
+          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={!readonly} />
           <span class="flex flex-wrap gap-1.5">
             <Badge variant="muted" class="tabular-nums">Workflow version {detail.workflowVersion}</Badge>
             {#if detail.template}

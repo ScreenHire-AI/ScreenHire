@@ -7,6 +7,7 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { aiUseLabels, isTerminal, questionTypeLabels, stageKindLabels, summarize } from '#lib/workflow.js';
   import { rowClass } from './controls.js';
+  import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import SimulatePanel from './simulate-panel.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
@@ -21,6 +22,9 @@
   const questions = $derived(workflow.questionnaire.questions);
   const days = (count: number) => `${count}-day limit`;
 </script>
+
+<!-- A stored version that today's validator refuses: say why, as the badge counts it. -->
+<ProblemsPanel title="Problems" {workflow} {errors} />
 
 {#snippet endStages()}
   <div class="flex flex-wrap items-center gap-1.5">
