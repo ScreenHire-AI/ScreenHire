@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import WithTooltips from '../../test-support/with-tooltips.svelte';
 import StepMarkers from './step-markers.svelte';
 
 const steps = [
@@ -11,7 +12,7 @@ const steps = [
 
 describe('step markers', () => {
   it('lists the steps in order, marking the current one and saying which are done', async () => {
-    const { container } = render(StepMarkers, { props: { label: 'New job', steps } });
+    const { container } = render(WithTooltips, { props: { component: StepMarkers, props: { label: 'New job', steps } } });
 
     const list = screen.getByRole('list', { name: 'New job' });
     const items = screen.getAllByRole('listitem');
@@ -23,9 +24,9 @@ describe('step markers', () => {
   });
 
   it('draws square markers joined by a line, never a count pill (T4)', () => {
-    const { container } = render(StepMarkers, { props: { label: 'New job', steps } });
+    const { container } = render(WithTooltips, { props: { component: StepMarkers, props: { label: 'New job', steps } } });
 
-    const markers = [...container.querySelectorAll('[data-state]')];
+    const markers = [...container.querySelectorAll('[data-state]:not([data-slot=tooltip-trigger])')];
     expect(markers).toHaveLength(3);
     for (const marker of markers) {
       expect(marker).toHaveClass('size-7', 'rounded-step', 'border', 'bg-card');

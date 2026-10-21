@@ -133,7 +133,7 @@
               </span>
               <span class="flex items-center gap-2">
                 <Badge variant="muted">{sourceLabel(card.source)}</Badge>
-                <span class="min-w-0 truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
+                <span class="shrink-0 text-caption whitespace-nowrap text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
                 <span class="ml-auto shrink-0">
                   <MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
                 </span>

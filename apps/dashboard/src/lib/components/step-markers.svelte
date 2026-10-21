@@ -11,6 +11,7 @@
 
 <script lang="ts">
   import CheckIcon from '@lucide/svelte/icons/check';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import StepMarker from './step-marker.svelte';
 
   // Steps in a sequence: square markers joined by a line (design system section 11). Never a count's wide pill (T4).
@@ -26,8 +27,9 @@
         <StepMarker state={step.state}>
           {#if step.state === 'done'}<CheckIcon />{:else}{index + 1}{/if}
         </StepMarker>
-        <span class={['truncate', step.state === 'current' ? 'font-semibold' : 'text-muted-foreground sr-only @xl:not-sr-only']}>
-          {step.label}{#if step.state === 'done'}<span class="sr-only">, done</span>{/if}
+        <!-- A label cut short keeps its full text in a tooltip (F5). -->
+        <span class={['flex min-w-0', step.state === 'current' ? 'font-semibold' : 'text-muted-foreground sr-only @xl:not-sr-only']}>
+          <TruncatedText text={step.label} />{#if step.state === 'done'}<span class="sr-only">, done</span>{/if}
         </span>
       </span>
       {#if !last}
