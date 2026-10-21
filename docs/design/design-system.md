@@ -308,7 +308,7 @@ in a development build, shows every component in each state, and its test fails 
 | Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
-| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5) |
+| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
