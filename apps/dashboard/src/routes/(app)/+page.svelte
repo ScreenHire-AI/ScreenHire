@@ -160,7 +160,8 @@
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
               {#snippet meta()}{@render published(job)}{/snippet}
               {#snippet facts()}
-                <Badge variant="muted">{job.location}</Badge>
+                <!-- A long location is cut to the item's width; the job page shows it in full. -->
+                <Badge variant="muted" class="max-w-full"><span class="truncate">{job.location}</span></Badge>
                 <Badge variant="muted">{employmentLabel(job.employmentType)}</Badge>
                 {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
               {/snippet}
