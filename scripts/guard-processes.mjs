@@ -40,7 +40,8 @@ const DENY = [
   [/\bnet\s+stop\b/i, 'stopping services'],
   [/\bwsl(\.exe)?\s+--(shutdown|terminate)\b/i, 'stopping WSL (Docker Desktop runs on it)'],
   // Launching Docker Desktop. Each entry is one launch form; naming it in a read-only command matches none of them.
-  [/\b(Start-Process|saps)\b[^\n]*Docker[ _-]?Desktop/i, 'starting Docker Desktop with Start-Process', DOCKER_ROUTE],
+  // Within the one command: `Start-Process notepad; Get-Process 'Docker Desktop'` only reads.
+  [/\b(Start-Process|saps)\b[^;|&\n]*Docker[ _-]?Desktop/i, 'starting Docker Desktop with Start-Process', DOCKER_ROUTE],
   [
     new RegExp(String.raw`(^|[;|&(]|\n)\s*(?:[&.]\s*)?${DOCKER_EXE}`, 'i'),
     'running Docker Desktop.exe directly',

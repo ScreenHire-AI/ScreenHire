@@ -45,6 +45,7 @@ public sealed class GuardProcessesTests
         { "PowerShell", "Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue" },
         { "PowerShell", $"(Get-Item \"{DockerExe}\").VersionInfo" },
         { "PowerShell", $"Start-Sleep 1; Test-Path \"{DockerExe}\"" },
+        { "PowerShell", "Start-Process notepad; Get-Process 'Docker Desktop'" },
         { "PowerShell", "foreach ($n in 'WindowsTerminal.exe','explorer.exe','Docker Desktop.exe') { Get-Process -Name $n }" },
         { "Bash", "docker desktop status" },
         { "Bash", "docker info --format '{{.ServerVersion}}'" },
