@@ -2,15 +2,15 @@
 	import { tv, type VariantProps } from "tailwind-variants";
 
 	export const sidebarMenuButtonVariants = tv({
-		base: " hover:bg-secondary active:bg-secondary data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-[state=open]:hover:bg-secondary gap-2 rounded-md p-2 text-left text-body transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2.5! group-data-[collapsible=icon]:[&_svg]:size-5 data-active:font-medium peer/menu-button group/menu-button flex w-full items-center overflow-hidden disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+		base: " hover:bg-secondary active:bg-secondary data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-[state=open]:hover:bg-secondary gap-2 rounded-md p-2 text-left text-body transition-[width,height,padding] motion-reduce:transition-none group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-10! pointer-coarse:group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2.5! group-data-[collapsible=icon]:[&_svg]:size-5 data-active:font-medium peer/menu-button group/menu-button flex w-full items-center overflow-hidden disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
 		variants: {
 			variant: {
 				default: "hover:bg-secondary",
 				outline: "bg-background hover:bg-secondary shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-border)]",
 			},
 			size: {
-				default: "h-8 text-body",
-				sm: "h-7 text-caption",
+				default: "h-8 text-body pointer-coarse:h-11",
+				sm: "h-7 text-caption pointer-coarse:h-11",
 				lg: "h-12 text-body group-data-[collapsible=icon]:p-0!",
 			},
 		},

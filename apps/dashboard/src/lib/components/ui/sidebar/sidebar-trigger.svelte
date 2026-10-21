@@ -30,7 +30,7 @@
 				data-slot="sidebar-trigger"
 				variant="ghost"
 				size="icon"
-				class={cn(className)}
+				class={cn("pointer-coarse:size-11", className)}
 				type="button"
 				aria-label={label}
 				onclick={(e) => {
