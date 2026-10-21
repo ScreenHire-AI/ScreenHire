@@ -52,3 +52,12 @@ export function initials(name: string): string {
     .map((part) => part[0]!.toUpperCase())
     .join('');
 }
+
+const kilobytes = new Intl.NumberFormat(locales, { style: 'unit', unit: 'kilobyte', maximumFractionDigits: 0 });
+const megabytes = new Intl.NumberFormat(locales, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 });
+
+/** A file's size for a fact pill, in the browser's locale: `12 kB`, `2.4 MB`. */
+export function fileSize(bytes: number): string {
+  if (bytes < 1_000_000) return kilobytes.format(Math.max(1, Math.round(bytes / 1000)));
+  return megabytes.format(bytes / 1_000_000);
+}

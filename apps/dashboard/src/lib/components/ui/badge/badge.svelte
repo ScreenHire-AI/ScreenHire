@@ -12,6 +12,8 @@
 				outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
 				ghost: "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
 				link: "text-primary underline-offset-4 hover:underline",
+				// A fact pill (design system section 11): a fact, never a status, on a white surface.
+				muted: "border-input bg-secondary text-muted-foreground",
 				// ScreenHire status semantics (design-system §2.2): always pair with a shape mark and a text label. Badges do
 				// not transition: a chip changes when its data does (a live level, a theme switch), and should be read at once.
 				clear: "bg-status-clear-soft font-bold text-status-clear",
