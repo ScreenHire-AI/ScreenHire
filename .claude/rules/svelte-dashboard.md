@@ -53,7 +53,9 @@ new route is the `/add-dashboard-page` skill.
   `apps/dashboard`. Use `field` with superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
 - Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
   `text-muted-foreground`, `text-status-review`). Never a hex value, never `rgb(...)`, never a Tailwind palette
-  colour such as `text-red-600`, never a pixel font size such as `text-[11px]`.
+  colour such as `text-red-600`, never a pixel font size such as `text-[11px]`. Type sizes are the type tokens
+  (`text-body`, `text-caption`, ...), never Tailwind's defaults (`text-sm`) or `tracking-*`. A new `--text-*` token
+  also joins `typeScale` in `#lib/utils.ts`, or `cn()` reads it as a colour and drops it.
 - Status is a shape mark, a colour and a text label, always all three (design system section 3.2). Colour alone
   fails WCAG 1.4.1.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
@@ -79,5 +81,6 @@ new route is the `/add-dashboard-page` skill.
 ## Checks
 
 - `pnpm --filter @screenhire/dashboard check` runs `svelte-check --fail-on-warnings`. A warning fails the gate.
-- `src/tokens-only.test.ts` (Vitest) fails on a pixel font size, a hex colour, a colour function such as `rgb(` or a
-  Tailwind palette colour anywhere in `apps/dashboard/src`, the shadcn-svelte sources included.
+- `src/tokens-only.test.ts` (Vitest) fails on a font size or letter spacing off the type tokens, a hex colour, a
+  colour function such as `rgb(` or a Tailwind palette colour anywhere in `apps/dashboard/src`, the shadcn-svelte
+  sources included.
