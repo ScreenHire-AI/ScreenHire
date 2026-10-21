@@ -76,16 +76,19 @@ drive a browser, so you take the screenshots and measurements and it judges them
    reason for `Verdict: Blocked`.
 2. Pick the pages, at most six:
    - `/style-guide`, always;
-   - each changed route under `apps/dashboard/src/routes/`, as its URL without the `(group)` folders. Fill
-     `[jobId]` from `kangentic_browser_query_all` on `a[href^="/jobs/"]` (with `includeHtml`) on `/`, and
-     `[applicationId]` from `a[href^="/applications/"]` on that job's page. Leave `(auth)` routes to the code review:
-     the signed-in pane redirects away from them;
+   - each changed route under `apps/dashboard/src/routes/`, as its URL without the `(group)` folders. Fill a
+     `[param]` from the first matching link on the page above it: `kangentic_browser_query_all` with `includeHtml`
+     on `a[href^="/jobs/"]` on `/` for `[jobId]`, `a[href^="/applications/"]` on that job's page for
+     `[applicationId]`, `a[href^="/templates/"]` on `/templates` for `[templateId]`. If no link matches, skip the
+     page and say so in the findings table. Leave `(auth)` routes to the code review: the signed-in pane redirects
+     away from them;
    - when no route changed (only `src/lib/`, `app.css` or a layout), `/` and the "Senior .NET Engineer" job page.
 3. For each page, `kangentic_browser_navigate` to it and `kangentic_browser_wait` for `h1` (repeat the wait once if
    it fails with a driver error mid-navigation). Then at 1440x900, 768x1024 and 390x844:
    1. `kangentic_browser_set_viewport` with that width and height;
    2. `kangentic_browser_screenshot`. Its result names the saved image (`source: ...`); keep that path. If the image
-      is blank, take it again: the first paint after a navigation can lag;
+      is blank, take it again: the first paint after a navigation can lag. If a result names no file, the notes
+      carry what you saw in it instead;
    3. `kangentic_browser_eval` with the full text of [`visual-probe.js`](visual-probe.js) on the first width of each
       page load, and `visualProbe()` on the others. It returns raw measurements as JSON. If eval is refused (a
       Kangentic setting, Agent Browser > Allow eval), go on with screenshots alone and say so in the notes.
