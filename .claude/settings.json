@@ -54,6 +54,7 @@
       "PowerShell(git *)",
       "PowerShell(Remove-Item *)",
       "mcp__context7",
+      "mcp__aspire",
       "mcp__kangentic",
       "WebSearch",
       "WebFetch(domain:www.npmjs.com)",
@@ -107,6 +108,7 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "context7"
+    "context7",
+    "aspire"
   ]
 }

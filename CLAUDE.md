@@ -45,7 +45,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   volumes and random ports.
 - **Aspire MCP server:** `.mcp.json` runs `dotnet tool run aspire agent mcp`, which gives agents the running stack's
   resources, console and structured logs, traces and resource commands. Never run `aspire agent init`: it installs
-  hooks and MCP settings into the machine-wide Claude Code and Copilot configuration.
+  hooks and MCP settings into the machine-wide Claude Code and Copilot configuration. `.claude/settings.json` approves
+  every `.mcp.json` server (`enabledMcpjsonServers`) and its tools (`mcp__<name>` in `permissions.allow`), so a new
+  worktree starts without a prompt; add both when you add a server, or `ProjectMcpServersTests` fails.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
