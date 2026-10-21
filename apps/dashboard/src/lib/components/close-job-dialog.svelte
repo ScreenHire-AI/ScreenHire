@@ -36,8 +36,7 @@
     <Dialog.Header>
       <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
       <Dialog.Description>
-        The careers page stops taking applications at once, and every board is asked to remove the job. Boards that
-        refresh on their own schedule may show it until they do. A closed job cannot be reopened.
+        The careers page stops taking applications and every board is asked to remove the job. This cannot be undone.
       </Dialog.Description>
     </Dialog.Header>
     <p role="alert" class="text-body text-destructive empty:hidden">{failure}</p>

@@ -14,6 +14,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -118,8 +119,15 @@
           <QueryError message={describeError(jobs.error, 'Could not load jobs')} onretry={() => jobs.refetch()} inset />
         </div>
       {:else if jobs.isPending}
-        <div aria-hidden="true" class="flex flex-col gap-2 p-4">
-          {#each [0, 1, 2] as row (row)}<Skeleton class="h-8 w-full" />{/each}
+        <!-- Rows of the table's shape: a status, a title and a date (E1). -->
+        <div aria-hidden="true" class="flex flex-col">
+          {#each [0, 1, 2] as row (row)}
+            <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4 last:border-0">
+              <Skeleton class="h-4 w-16" />
+              <Skeleton class="h-4 min-w-0 flex-1" />
+              <Skeleton class="h-4 w-24" />
+            </div>
+          {/each}
         </div>
         <p class="sr-only" role="status">Loading jobs…</p>
       {:else if shown.length === 0}
@@ -131,9 +139,13 @@
               {filtering ? 'Nothing matches this search and status.' : 'A new job starts as a draft that only your team sees.'}
             </Empty.Description>
           </Empty.Header>
-          {#if filtering}
-            <Empty.Content><Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button></Empty.Content>
-          {/if}
+          <Empty.Content>
+            {#if filtering}
+              <Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>
+            {:else}
+              <Button href="/jobs/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
+            {/if}
+          </Empty.Content>
         </Empty.Root>
       {:else if sidebar.isMobile}
         <ul aria-label="Jobs">
@@ -175,7 +187,9 @@
                     {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
                   </span>
                 </Table.Cell>
-                <Table.Cell class="text-muted-foreground">{job.location}</Table.Cell>
+                <Table.Cell class="max-w-60 text-muted-foreground">
+                  <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
+                </Table.Cell>
                 <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
                 <Table.Cell class="text-right text-muted-foreground tabular-nums">
                   <span class="relative">{@render published(job)}</span>

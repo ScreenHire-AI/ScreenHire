@@ -122,8 +122,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         // A job from the template, then a sample application through the job's copy of the workflow.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Jobs") }).ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "New job" }).ClickAsync();
-        var newJob = Page.GetByRole(AriaRole.Dialog, new() { Name = "New job" });
+        await Page.GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
+        var newJob = Page.GetByRole(AriaRole.Form, new() { Name = "New job" });
         await newJob.GetByLabel("Title").FillAsync("Warehouse associate, nights");
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
         await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "On-site" });

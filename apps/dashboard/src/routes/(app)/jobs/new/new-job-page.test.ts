@@ -65,7 +65,7 @@ describe('new job page', () => {
     await fireEvent.input(within(form).getByLabelText('Title'), { target: { value: 'Warehouse lead' } });
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
     await fireEvent.input(await within(form).findByLabelText('City'), { target: { value: 'Leeds' } });
-    await fireEvent.input(within(form).getByLabelText('Country'), { target: { value: 'gb' } });
+    await fireEvent.input(within(form).getByLabelText('Country code'), { target: { value: 'gb' } });
     await fireEvent.input(within(form).getByLabelText('Description'), { target: { value: 'Lead the night shift.' } });
     await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
 

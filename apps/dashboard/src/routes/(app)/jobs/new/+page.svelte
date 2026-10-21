@@ -113,14 +113,13 @@
               class={selectClass}
               bind:value={$form.templateVersionId}
               aria-invalid={$errors.templateVersionId ? 'true' : undefined}
-              aria-describedby={describedBy('new-job-template-error', $errors.templateVersionId, 'new-job-template-hint')}
+              aria-describedby={describedBy('new-job-template-error', $errors.templateVersionId)}
             >
               <option value="">None: a basic pipeline</option>
               {#each usable as template (template.id)}
                 <option value={template.latestPublishedVersionId}>{template.name} (v{template.latestPublishedVersion})</option>
               {/each}
             </select>
-            <Field.Description id="new-job-template-hint">The job gets its own copy of the template's workflow.</Field.Description>
             <Field.Error id="new-job-template-error" errors={$errors.templateVersionId?.map((message) => ({ message }))} />
           </Field.Field>
           <Field.Field data-invalid={$errors.workplaceType ? true : undefined}>
@@ -170,7 +169,7 @@
                   <Field.Error id="new-job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
                 </Field.Field>
                 <Field.Field data-invalid={$errors.country ? true : undefined}>
-                  <Field.Label for="new-job-country">Country</Field.Label>
+                  <Field.Label for="new-job-country">Country code</Field.Label>
                   <Input
                     id="new-job-country"
                     name="country"
@@ -179,9 +178,8 @@
                     autocomplete="off"
                     bind:value={$form.country}
                     aria-invalid={$errors.country ? 'true' : undefined}
-                    aria-describedby={describedBy('new-job-country-error', $errors.country, 'new-job-country-hint')}
+                    aria-describedby={describedBy('new-job-country-error', $errors.country)}
                   />
-                  <Field.Description id="new-job-country-hint">Code, such as GB</Field.Description>
                   <Field.Error id="new-job-country-error" errors={$errors.country?.map((message) => ({ message }))} />
                 </Field.Field>
               </div>
@@ -195,11 +193,11 @@
               rows={6}
               bind:value={$form.description}
               aria-invalid={$errors.description ? 'true' : undefined}
-              aria-describedby={describedBy('new-job-description-error', $errors.description, 'new-job-description-hint')}
+              aria-describedby={describedBy('new-job-description-error', $errors.description, $form.templateVersionId ? 'new-job-description-hint' : undefined)}
             />
-            <Field.Description id="new-job-description-hint">
-              {$form.templateVersionId ? "Optional: empty keeps the template's description." : 'For the careers page and the boards.'}
-            </Field.Description>
+            {#if $form.templateVersionId}
+              <Field.Description id="new-job-description-hint">Optional: empty keeps the template's description.</Field.Description>
+            {/if}
             <Field.Error id="new-job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
           </Field.Field>
         </div>

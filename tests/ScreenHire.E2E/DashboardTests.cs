@@ -62,8 +62,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-        await Expect(Page.GetByText("0 jobs · 0 open")).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Cell)).ToHaveTextAsync("No jobs yet.");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("No jobs yet");
         await ExpectNoAccessibilityViolationsAsync();
 
         // The user menu names the account and signs out.
@@ -101,7 +100,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
     private async Task ExpectBrightwaterJobsAsync()
     {
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-        var table = Page.GetByRole(AriaRole.Region, new() { Name = "Jobs" }).GetByRole(AriaRole.Table);
+        var table = Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" }).GetByRole(AriaRole.Table, new() { Name = "Jobs" });
         var rows = table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Cell) });
         await Expect(rows).ToHaveCountAsync(4);
 
@@ -115,14 +114,16 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         foreach (var (title, location, status) in seeded)
         {
             var cells = rows.Filter(new() { HasText = title }).GetByRole(AriaRole.Cell);
-            await Expect(cells.Nth(0)).ToHaveTextAsync(title);
-            await Expect(cells.Nth(1)).ToHaveTextAsync(location);
-            await Expect(cells.Nth(2)).ToHaveTextAsync(status);
+            // Status first (T2), then the title, location, type and publish date.
+            await Expect(cells.Nth(0)).ToHaveTextAsync(status);
+            await Expect(cells.Nth(1)).ToHaveTextAsync(title);
+            await Expect(cells.Nth(2)).ToHaveTextAsync(location);
             // Published date ("Oct 20, 2026") for open jobs; a hyphen for the draft, which was never published.
-            await Expect(cells.Nth(3)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
+            await Expect(cells.Nth(4)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
         }
 
-        await Expect(Page.GetByText("4 jobs · 3 open")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Combobox, new() { Name = "Status" }).GetByRole(AriaRole.Option))
+            .ToHaveTextAsync(["All", "Open (3)", "Draft (1)", "Closed (0)"]);
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Avery Quinn" })).ToContainTextAsync("Brightwater Studio");
         await ExpectNoAccessibilityViolationsAsync();
     }

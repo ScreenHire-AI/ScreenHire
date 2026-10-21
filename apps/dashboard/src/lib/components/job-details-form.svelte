@@ -171,9 +171,8 @@
             <Field.Error id="job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
           </Field.Field>
           <Field.Field data-invalid={$errors.country ? true : undefined}>
-            <Field.Label for="job-country">Country</Field.Label>
-            <Input id="job-country" name="country" required maxlength={2} autocomplete="off" bind:value={$form.country} aria-invalid={$errors.country ? 'true' : undefined} aria-describedby={describedBy('job-country-error', $errors.country, 'job-country-hint')} />
-            <Field.Description id="job-country-hint">Code, such as GB</Field.Description>
+            <Field.Label for="job-country">Country code</Field.Label>
+            <Input id="job-country" name="country" required maxlength={2} autocomplete="off" bind:value={$form.country} aria-invalid={$errors.country ? 'true' : undefined} aria-describedby={describedBy('job-country-error', $errors.country)} />
             <Field.Error id="job-country-error" errors={$errors.country?.map((message) => ({ message }))} />
           </Field.Field>
         </div>

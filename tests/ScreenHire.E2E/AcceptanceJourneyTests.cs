@@ -55,8 +55,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var templateName = await ArrangeTemplateWithStageEmailAsync(recruiter);
 
         // 2. A job from the template, published to every board.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "New job" }).ClickAsync();
-        var newJob = Page.GetByRole(AriaRole.Dialog, new() { Name = "New job" });
+        await Page.GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
+        var newJob = Page.GetByRole(AriaRole.Form, new() { Name = "New job" });
         await newJob.GetByLabel("Title").FillAsync(JobTitle);
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
         await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "Remote" });
@@ -68,20 +68,20 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var jobSlug = (await DashboardJsonAsync($"/v1/jobs/{jobId}")).GetProperty("slug").GetString()!;
 
         // The details the template does not set: a salary range, before anyone sees the job.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Edit details" }).ClickAsync();
-        var details = Page.GetByRole(AriaRole.Dialog, new() { Name = "Edit job details" });
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Edit details" }).ClickAsync();
+        var details = Page.GetByRole(AriaRole.Form, new() { Name = "Edit job details" });
         await details.GetByLabel("From", new() { Exact = true }).FillAsync("70000");
         await details.GetByLabel("To", new() { Exact = true }).FillAsync("90000");
         await ExpectNoAccessibilityViolationsAsync();
         await details.GetByRole(AriaRole.Button, new() { Name = "Save details" }).ClickAsync();
         await Expect(details).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync(new Regex("£70[Kk]-£90[Kk]")); // "K" or "k", by the browser's locale
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(JobTitle);
+        await Expect(HeaderBand).ToContainTextAsync(new Regex("£70[Kk]-£90[Kk]")); // "K" or "k", by the browser's locale
 
         // Each board's answer reaches this page as a live event, so check the connection first: a lost one fails here
         // with its own name, not as a board that seems to stay Queued.
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
-        var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" });
-        await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        await HeaderBand.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board("sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(organizationSlug)).Should().Contain(jobId.ToString(), "the sandbox board lists the job");
@@ -142,13 +142,14 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
 
         // 5. Close the job: it comes down from every board, and the careers page answers 410 Gone.
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Close & remove everywhere" }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Close this job and remove it everywhere?" });
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(Board("careers")).ToContainTextAsync("Removed:");
         await Expect(Board("sandbox")).ToContainTextAsync("Removed:", WaitForBoard);
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("Closed");
+        await Expect(HeaderBand).ToContainTextAsync("Closed");
         (await SandboxListingsAsync(organizationSlug)).Should().NotContain(jobId.ToString(), "the sandbox board dropped the job");
 
         await using var visitor = await Fixture.Browser.NewContextAsync();
@@ -253,6 +254,9 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
     private ILocator Chip(string candidate, string kind) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
             .Locator($"[data-integrity-chip='{kind}']");
+
+    // The job page's header band: its title, status badge, actions and facts.
+    private ILocator HeaderBand => Page.Locator("[data-slot='header-band']");
 
     private ILocator Board(string boardId) =>
         Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" }).Locator($"[data-board='{boardId}']");

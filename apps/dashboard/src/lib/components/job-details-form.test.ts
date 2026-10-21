@@ -73,7 +73,7 @@ describe('job details form', () => {
 
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
     await fireEvent.input(await within(form).findByLabelText('City'), { target: { value: 'Leeds' } });
-    await fireEvent.input(within(form).getByLabelText('Country'), { target: { value: 'gb' } });
+    await fireEvent.input(within(form).getByLabelText('Country code'), { target: { value: 'gb' } });
     await fireEvent.input(within(form).getByLabelText('Description'), { target: { value: 'Run payouts.\n\nOffice in Leeds.' } });
     await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
