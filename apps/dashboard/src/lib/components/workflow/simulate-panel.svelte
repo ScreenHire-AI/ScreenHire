@@ -17,6 +17,7 @@
     triggerTypes,
   } from '#lib/workflow.js';
   import { checkboxClass, kickerClass, labelClass, rowClass, selectClass } from './controls.js';
+  import ProblemMark from './problem-mark.svelte';
 
   // "Test this workflow" (workflow-engine.md §4): a sample application through the definition being edited, unsaved
   // changes included, with the evaluator the worker runs. Nothing is saved or sent.
@@ -177,7 +178,7 @@
   <Panel title="What would happen" aria-live="polite" class="max-w-95 flex-[1_1_320px]">
     {#if failure}
       <div role="alert">
-        <p class="font-semibold text-status-verify">{failure.message}</p>
+        <p class="flex items-baseline gap-1.5 font-semibold text-status-verify"><ProblemMark />{failure.message}</p>
         {#if failure.problems.length > 0}
           <ul class="mt-1.5 flex list-disc flex-col gap-0.5 pl-5">{#each failure.problems as problem (problem)}<li>{problem}</li>{/each}</ul>
         {/if}

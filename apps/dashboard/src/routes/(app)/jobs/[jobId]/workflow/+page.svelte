@@ -19,6 +19,7 @@
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
@@ -160,7 +161,7 @@
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
-          <p role="alert" class="font-semibold text-destructive empty:hidden">{failure}</p>
+          <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
           {#if !readonly}
             <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}>Save workflow</Button>
           {/if}
@@ -222,7 +223,7 @@
       </ul>
     {/if}
     {#if draft.dirty}<p class="text-body font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
-    <p role="alert" class="text-body font-semibold text-destructive empty:hidden">{applyFailure}</p>
+    <p role="alert" class="flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if applyFailure}<ProblemMark />{applyFailure}{/if}</p>
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep this workflow</Dialog.Close>
       <Button onclick={applyUpdate} disabled={apply.isPending || !update}>Apply update</Button>

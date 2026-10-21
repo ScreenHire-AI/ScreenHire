@@ -122,7 +122,7 @@
                   </label>
                   <p class="text-muted-foreground">
                     A knockout is an objective eligibility check only, such as the right to work. Never use one for AI use or an
-                    accommodation.
+                    accommodation. A knockout answer only queues the application for a person to review.
                   </p>
                   {#if question.knockout}
                     <div class="grid gap-2 @md:grid-cols-[10rem_minmax(0,1fr)]">

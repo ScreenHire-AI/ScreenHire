@@ -104,7 +104,7 @@
           <label class="relative flex items-center">
             <span class="sr-only">Search templates</span>
             <SearchIcon aria-hidden="true" class="pointer-events-none absolute left-2.5 text-muted-foreground" />
-            <Input type="search" bind:value={search} class="w-56 max-w-full pl-8" />
+            <Input type="search" bind:value={search} class="w-40 pl-8" />
           </label>
         {/snippet}
         {#if templates.isPending}
