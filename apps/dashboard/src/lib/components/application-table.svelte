@@ -73,6 +73,9 @@
   // padding.
   const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
   const nameColumn = 'sticky left-10 pointer-coarse:left-15';
+  // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
+  let scrolledSideways = $state(false);
+  const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
 
   const table = createTable({
     features: candidateTableFeatures,
@@ -137,7 +140,7 @@
   }
 
   function onkeydown(event: KeyboardEvent) {
-    if (phone.current || !preferences.shortcutsEnabled || event.defaultPrevented || hasModifier(event) || isTypingTarget(event.target) || rows.length === 0) return;
+    if (!preferences.shortcutsEnabled || event.defaultPrevented || hasModifier(event) || isTypingTarget(event.target) || rows.length === 0) return;
     const key = event.key.toLowerCase();
     if (key === 'j') {
       event.preventDefault();
@@ -195,13 +198,17 @@
       data-row-link
       href={`/applications/${application.id}`}
       text={application.candidateName}
-      class="max-w-56 font-bold text-foreground no-underline hover:underline"
+      class="max-w-56 font-bold text-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
     />
   </span>
 {/snippet}
 
 {#snippet jobCell(application: ApplicationSummary)}
-  <TruncatedText href={`/jobs/${application.jobId}`} text={application.jobTitle} class="max-w-64 text-secondary-foreground no-underline hover:underline" />
+  <TruncatedText
+    href={`/jobs/${application.jobId}`}
+    text={application.jobTitle}
+    class="max-w-64 text-secondary-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
+  />
 {/snippet}
 
 {#snippet stageCell(application: ApplicationSummary)}
@@ -296,7 +303,11 @@
     <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
          instead of the page scrolling sideways on a phone (F1). On a tablet the table scrolls sideways here, with the
          checkbox and name columns stuck to its left edge (section 8). -->
-    <div bind:this={scrollElement} class="relative max-h-[min(70vh,640px)] overflow-auto">
+    <div
+      bind:this={scrollElement}
+      onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
+      class="relative max-h-[min(70vh,640px)] overflow-auto"
+    >
       <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
         <thead class="sticky top-0 z-10 bg-muted">
           {#each table.getHeaderGroups() as group (group.id)}
@@ -310,6 +321,7 @@
                     'h-11 border-b border-border py-0 text-caption whitespace-nowrap text-muted-foreground',
                     header.id === 'select' ? selectColumn : 'px-3',
                     header.id === 'candidate' && nameColumn,
+                    header.id === 'candidate' && scrolledSideways && nameEdge,
                     (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
                     header.id === 'move' && 'w-10',
                     (header.id === 'applied' || header.id === 'move') && 'text-right',
@@ -354,6 +366,7 @@
                       'border-b border-border-subtle py-0 whitespace-nowrap',
                       cell.column.id === 'select' ? selectColumn : 'px-3',
                       cell.column.id === 'candidate' && nameColumn,
+                      cell.column.id === 'candidate' && scrolledSideways && nameEdge,
                       // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
                       (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
                       (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
