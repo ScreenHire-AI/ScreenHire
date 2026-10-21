@@ -6,7 +6,7 @@
 	import { Dialog as SheetPrimitive } from "bits-ui";
 	import XIcon from '@lucide/svelte/icons/x';
 	import * as Tooltip from "#lib/components/ui/tooltip/index.js";
-	import { Button } from "#lib/components/ui/button/index.js";
+	import IconButton from "#lib/components/icon-button.svelte";
 	import { cn, type WithoutChildrenOrChild } from "#lib/utils.js";
 	import SheetOverlay from "./sheet-overlay.svelte";
 	import SheetPortal from "./sheet-portal.svelte";
@@ -43,23 +43,14 @@
 	>
 		{@render children?.()}
 		{#if showCloseButton}
-			<!-- Our change: an icon-only button has its label in a tooltip too (A4). Its own provider, so the dialog works
-			     outside the root layout. -->
+			<!-- Our change: an icon-only button has its label in a tooltip too (A4), through IconButton. Its own provider,
+			     so the dialog works outside the root layout. -->
 			<Tooltip.Provider>
-				<Tooltip.Root>
-					<Tooltip.Trigger>
-						{#snippet child({ props: tooltipProps })}
-							<SheetPrimitive.Close data-slot="sheet-close" {...tooltipProps}>
-								{#snippet child({ props })}
-									<Button variant="ghost" class="absolute top-3 right-3" size="icon-sm" {...props} aria-label="Close">
-										<XIcon aria-hidden="true" />
-									</Button>
-								{/snippet}
-							</SheetPrimitive.Close>
-						{/snippet}
-					</Tooltip.Trigger>
-					<Tooltip.Content>Close</Tooltip.Content>
-				</Tooltip.Root>
+				<SheetPrimitive.Close data-slot="sheet-close">
+					{#snippet child({ props })}
+						<IconButton label="Close" class="absolute top-3 right-3" size="icon-sm" {...props}><XIcon aria-hidden="true" /></IconButton>
+					{/snippet}
+				</SheetPrimitive.Close>
 			</Tooltip.Provider>
 		{/if}
 	</SheetPrimitive.Content>

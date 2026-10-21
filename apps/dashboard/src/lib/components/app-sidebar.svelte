@@ -7,6 +7,7 @@
   import { page } from '$app/state';
   import Hint from '#lib/components/hint.svelte';
   import LiveIndicator, { liveStatus } from '#lib/components/live-indicator.svelte';
+  import LogoMark from '#lib/components/logo-mark.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -63,7 +64,7 @@
 <Sidebar.Root collapsible="icon">
   <Sidebar.Header>
     <a href="/" onclick={closeSheet} class="flex h-10 items-center gap-2.5 px-1.5 pointer-coarse:h-11 text-foreground no-underline group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-      <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-lg bg-foreground font-display font-extrabold text-background">S</span>
+      <LogoMark />
       <span class="font-display text-heading font-bold group-data-[collapsible=icon]:sr-only">ScreenHire</span>
     </a>
 
