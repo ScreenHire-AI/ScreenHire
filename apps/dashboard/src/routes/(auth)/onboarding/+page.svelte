@@ -53,7 +53,7 @@
 
 <div class="flex flex-col gap-5">
   <div class="flex flex-col gap-1.5">
-    <h1 class="font-display text-[22px] leading-tight font-bold">Set up your organization</h1>
+    <h1 class="font-display text-page-title">Set up your organization</h1>
     <p class="text-muted-foreground">You'll be its owner, and you can invite your team later.</p>
   </div>
 
@@ -92,12 +92,12 @@
     </Field.Field>
 
     {#if $errors._errors}
-      <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+      <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
     {/if}
     <Button type="submit" size="lg" disabled={$submitting}>Create organization</Button>
   </form>
 
-  <p class="text-sm text-muted-foreground">
+  <p class="text-body text-muted-foreground">
     Signed in as {data.user?.email}.
     <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline" onclick={signOutAndRedirect}>Sign out</button>
   </p>

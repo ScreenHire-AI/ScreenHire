@@ -37,11 +37,11 @@
 <main class="flex flex-col gap-3.5 px-5 py-4.5">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div class="flex flex-col gap-1.5">
-      <h1 class="flex items-center gap-2.5 font-display text-[30px] leading-tight font-bold tracking-[-0.02em]">
+      <h1 class="flex items-center gap-2.5 font-display text-page-title">
         {#if view}<StatusMark shape={view.shape} tone={view.tone} class="size-2.5" />{/if}
         {view?.label ?? 'Candidates'}
       </h1>
-      <p class="font-mono text-[11.5px] text-muted-foreground uppercase">
+      <p class="text-caption text-muted-foreground">
         {#if applications.isSuccess}
           {shown.length} {shown.length === 1 ? 'application' : 'applications'}{#if view} · <a href="/candidates" class="normal-case">show all</a>{/if}
         {:else}&nbsp;{/if}

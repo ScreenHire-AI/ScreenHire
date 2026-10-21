@@ -18,7 +18,7 @@ function renderStrip(job: StripJob) {
 }
 
 const item = (boardId: string) => document.querySelector<HTMLElement>(`[data-board="${boardId}"]`)!;
-const stateOf = (boardId: string) => within(item(boardId)).getByText(/^[A-Z][A-Z ·~0-9]+$/).textContent;
+const stateOf = (boardId: string) => item(boardId).querySelector('[data-state]')?.textContent;
 const in20Seconds = new Date(now + 20_000).toISOString();
 const in4Hours = new Date(now + 4 * 3_600_000).toISOString();
 
@@ -38,9 +38,9 @@ describe('distribution strip', () => {
       ],
     });
 
-    expect(stateOf('careers')).toBe('LIVE');
-    expect(stateOf('adzuna')).toBe('SENT · ~4H');
-    expect(stateOf('sandbox')).toBe('QUEUED · ~20S');
+    expect(stateOf('careers')).toBe('Live');
+    expect(stateOf('adzuna')).toBe('Sent · ~4h');
+    expect(stateOf('sandbox')).toBe('Queued · ~20s');
     expect(item('careers').querySelector('[data-shape]')).toHaveAttribute('data-shape', 'circle');
     expect(item('sandbox').querySelector('[data-shape]')).toHaveAttribute('data-shape', 'diamond');
     expect(item('adzuna')).toHaveTextContent('this board never confirms when a job shows');
@@ -57,9 +57,9 @@ describe('distribution strip', () => {
       ],
     });
 
-    expect(stateOf('careers')).toBe('REMOVED');
-    expect(stateOf('adzuna')).toBe('REMOVAL REQUESTED · ~4H');
-    expect(stateOf('sandbox')).toBe('REMOVING · ~20S');
+    expect(stateOf('careers')).toBe('Removed');
+    expect(stateOf('adzuna')).toBe('Removal requested · ~4h');
+    expect(stateOf('sandbox')).toBe('Removing · ~20s');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -67,7 +67,7 @@ describe('distribution strip', () => {
     const fetchMock = vi.fn(apiStub({ [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({}) }));
     vi.stubGlobal('fetch', fetchMock);
     renderStrip({ id: jobId, status: 'Draft', postings: [] });
-    expect(stateOf('sandbox')).toBe('NOT POSTED');
+    expect(stateOf('sandbox')).toBe('Not posted');
 
     await fireEvent.click(screen.getByRole('button', { name: 'Publish to 3 boards' }));
 

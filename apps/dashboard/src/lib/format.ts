@@ -4,22 +4,6 @@ const minute = 60_000;
 const hour = 60 * minute;
 const day = 24 * hour;
 
-/** Compact age for tables and strips: `now`, `30m`, `3h`, `2d`, `5w`. */
-export function age(iso: string, now: number): string {
-  const elapsed = Math.max(0, now - Date.parse(iso));
-  if (elapsed < minute) return 'now';
-  if (elapsed < hour) return `${Math.floor(elapsed / minute)}m`;
-  if (elapsed < day) return `${Math.floor(elapsed / hour)}h`;
-  if (elapsed < 7 * day) return `${Math.floor(elapsed / day)}d`;
-  return `${Math.floor(elapsed / (7 * day))}w`;
-}
-
-/** An age in a sentence: `just now`, `3h ago`. */
-export function ago(iso: string, now: number): string {
-  const compact = age(iso, now);
-  return compact === 'now' ? 'just now' : `${compact} ago`;
-}
-
 /** Compact time until an instant: `~20s`, `~5m`, `~4h`, `~1d`. */
 export function eta(iso: string, now: number): string {
   const remaining = Date.parse(iso) - now;
@@ -28,12 +12,6 @@ export function eta(iso: string, now: number): string {
   if (remaining < day) return `~${Math.round(remaining / hour)}h`;
   return `~${Math.round(remaining / day)}d`;
 }
-
-const dateTime = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-const shortDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
-
-export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
-export const formatShortDate = (iso: string) => shortDate.format(new Date(iso));
 
 const employmentLabels: Record<EmploymentType, string> = {
   FullTime: 'Full-time',

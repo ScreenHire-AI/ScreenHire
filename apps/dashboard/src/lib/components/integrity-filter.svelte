@@ -43,7 +43,7 @@
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="w-64">
     <DropdownMenu.Group>
-      <DropdownMenu.GroupHeading class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Authenticity</DropdownMenu.GroupHeading>
+      <DropdownMenu.GroupHeading class="text-caption text-muted-foreground">Authenticity</DropdownMenu.GroupHeading>
       <DropdownMenu.RadioGroup
         value={authenticityValue}
         onValueChange={(value) => (filter = { ...filter, authenticity: value === 'all' ? null : (value as AuthenticityLevel | 'Pending') })}
@@ -59,7 +59,7 @@
     </DropdownMenu.Group>
     <DropdownMenu.Separator />
     <DropdownMenu.Group>
-      <DropdownMenu.GroupHeading class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">AI assistance</DropdownMenu.GroupHeading>
+      <DropdownMenu.GroupHeading class="text-caption text-muted-foreground">AI assistance</DropdownMenu.GroupHeading>
       <DropdownMenu.RadioGroup
         value={aiValue}
         onValueChange={(value) => (filter = { ...filter, aiAssistance: value === 'all' ? null : (value as AiAssistanceLevel) })}

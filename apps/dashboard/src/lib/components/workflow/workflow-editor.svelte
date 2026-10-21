@@ -54,7 +54,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-  <section aria-label="Validation" aria-live="polite" aria-busy={checking} class="text-[13px]">
+  <section aria-label="Validation" aria-live="polite" aria-busy={checking} class="text-body">
     {#if errors.length > 0}
       <div class="rounded-xl border border-destructive/40 bg-card px-3.5 py-2.5">
         <p class="font-semibold text-destructive">
@@ -84,7 +84,7 @@
       <PipelineView bind:workflow {errors} {readonly} onopen={openLane} />
     </Tabs.Content>
     <Tabs.Content value="graph" class="pt-2">
-      <p class="mb-2 text-[12.5px] text-muted-foreground">
+      <p class="mb-2 text-body text-muted-foreground">
         The same workflow as a graph: stages along the top, then each automation from trigger to actions. Edit an automation
         from its node, or in the pipeline view.
       </p>
@@ -114,7 +114,7 @@
     <fieldset disabled={readonly} class="flex flex-col gap-3 px-4 pb-4">
       <legend class="sr-only">Automations for {laneName}</legend>
       {#if drawerItems.length === 0}
-        <p class="text-[13px] text-muted-foreground">No automations here yet.</p>
+        <p class="text-body text-muted-foreground">No automations here yet.</p>
       {/if}
       {#each drawerItems as index (workflow.automations[index]!.id)}
         <AutomationForm

@@ -33,12 +33,12 @@
 </script>
 
 <span class="inline-flex items-center gap-1.5" data-integrity-chip={kind} data-level={level ? shown.label : 'pending'}>
-  <Badge variant={shown.variant} class="h-[22px] gap-1.5 px-2.5 text-xs">
+  <Badge variant={shown.variant} class="h-[22px] gap-1.5 px-2.5 text-caption">
     <StatusMark shape={shown.shape} tone={shown.tone} class="size-1.5" />
     <span aria-hidden="true">{words}{reasons > 0 ? ` · ${reasons}` : ''}</span>
     <span class="sr-only">{description}</span>
   </Badge>
   {#if dismissed}
-    <span aria-hidden="true" class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Dismissed</span>
+    <span aria-hidden="true" class="text-caption text-muted-foreground">Dismissed</span>
   {/if}
 </span>

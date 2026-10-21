@@ -61,7 +61,7 @@ describe('pipeline board', () => {
       'Casey Morgan, Applied',
       'Sam Taylor, Applied',
     ]);
-    expect(within(card('Casey Morgan')).getByText('careers · 2h')).toBeInTheDocument();
+    expect(card('Casey Morgan')).toHaveTextContent('careers · 2 hours ago');
   });
 
   it('moves the focused card to the next stage with Shift + Right, keeps focus on it and announces it', async () => {

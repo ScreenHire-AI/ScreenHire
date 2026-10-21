@@ -40,7 +40,7 @@
         {#each jobs.data.data as job (job.id)}
           <Command.Item value={`Job ${job.title} ${job.id}`} onSelect={() => run(() => goto(`/jobs/${job.id}`))}>
             {job.title}
-            <span class="ml-auto font-mono text-[11px] text-muted-foreground uppercase">{job.status}</span>
+            <span class="ml-auto text-caption text-muted-foreground">{job.status}</span>
           </Command.Item>
         {/each}
       </Command.Group>
@@ -53,7 +53,7 @@
             onSelect={() => run(() => goto(`/applications/${application.id}`))}
           >
             {application.candidateName}
-            <span class="ml-auto truncate text-xs text-muted-foreground">{application.jobTitle} · {application.stage.name}</span>
+            <span class="ml-auto truncate text-caption text-muted-foreground">{application.jobTitle} · {application.stage.name}</span>
           </Command.Item>
         {/each}
       </Command.Group>

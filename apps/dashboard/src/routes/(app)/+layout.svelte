@@ -71,7 +71,7 @@
   >
     <a href="/" class="flex items-center gap-2.5 px-1.5 py-1 text-foreground no-underline">
       <span class="grid size-7 place-items-center rounded-lg bg-foreground font-display font-extrabold text-background">S</span>
-      <span class="font-display text-[17px] font-bold tracking-tight">ScreenHire</span>
+      <span class="font-display text-heading font-bold tracking-tight">ScreenHire</span>
     </a>
 
     {#if user?.organization}
@@ -85,12 +85,12 @@
           <ChevronsUpDownIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="start" class="w-60">
-          <DropdownMenu.Label class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Workspaces</DropdownMenu.Label>
+          <DropdownMenu.Label class="text-caption text-muted-foreground">Workspaces</DropdownMenu.Label>
           <DropdownMenu.RadioGroup value={user.organization.id}>
             <DropdownMenu.RadioItem value={user.organization.id}>
               <span class="flex flex-col">
                 <span class="font-semibold">{user.organization.name}</span>
-                <span class="text-xs text-muted-foreground">{user.organization.role}</span>
+                <span class="text-caption text-muted-foreground">{user.organization.role}</span>
               </span>
             </DropdownMenu.RadioItem>
           </DropdownMenu.RadioGroup>
@@ -115,7 +115,7 @@
           >
             {section.label}
             {#if preferences.shortcutsEnabled}
-              <kbd class="font-mono text-[11px] font-normal text-muted-foreground">G {section.key.toUpperCase()}</kbd>
+              <kbd class="font-mono text-code font-normal text-muted-foreground">G {section.key.toUpperCase()}</kbd>
             {/if}
           </a>
         </li>
@@ -123,7 +123,7 @@
     </ul>
 
     <section aria-labelledby="saved-views-heading" class="flex flex-col gap-0.5">
-      <h2 id="saved-views-heading" class="px-2.5 font-mono text-[10.5px] font-medium tracking-[0.08em] text-muted-foreground uppercase">
+      <h2 id="saved-views-heading" class="px-2.5 text-caption text-muted-foreground">
         Saved views
       </h2>
       <ul class="flex flex-col gap-0.5">
@@ -141,7 +141,7 @@
                 <StatusMark shape={view.shape} tone={view.tone} />
                 {view.label}
               </span>
-              <span class="font-mono text-xs tabular-nums">{viewCounts[view.id] ?? ''}</span>
+              <span class="text-caption tabular-nums">{viewCounts[view.id] ?? ''}</span>
             </a>
           </li>
         {/each}
@@ -157,17 +157,17 @@
           >
             <span
               aria-hidden="true"
-              class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] font-semibold text-secondary-foreground"
+              class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground"
               >{initials(user.displayName ?? '')}</span
             >
             <span class="flex min-w-0 flex-col">
               <span class="truncate font-semibold text-sidebar-foreground">{user.displayName}</span>
-              <span class="truncate text-xs text-muted-foreground">{user.organization?.name}</span>
+              <span class="truncate text-caption text-muted-foreground">{user.organization?.name}</span>
             </span>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="start" class="w-60">
             <DropdownMenu.Label class="flex flex-col gap-0.5">
-              <span class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Signed in as</span>
+              <span class="text-caption text-muted-foreground">Signed in as</span>
               <span class="truncate font-normal">{user.email}</span>
             </DropdownMenu.Label>
             <DropdownMenu.Separator />

@@ -52,7 +52,7 @@
 
 {#if sentTo}
   <div class="flex flex-col gap-3" role="status">
-    <h1 bind:this={sentHeading} tabindex="-1" class="font-display text-[22px] leading-tight font-bold">Check your email</h1>
+    <h1 bind:this={sentHeading} tabindex="-1" class="font-display text-page-title">Check your email</h1>
     <p>
       We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.
     </p>
@@ -62,7 +62,7 @@
 {:else}
   <div class="flex flex-col gap-5">
     <div class="flex flex-col gap-1.5">
-      <h1 class="font-display text-[22px] leading-tight font-bold">Sign in to ScreenHire</h1>
+      <h1 class="font-display text-page-title">Sign in to ScreenHire</h1>
       <p class="text-muted-foreground">No password needed.</p>
     </div>
 
@@ -93,7 +93,7 @@
       {#if data.methods.providers.length > 0}
         <div class="flex items-center gap-3 text-muted-foreground" aria-hidden="true">
           <span class="h-px flex-1 bg-border"></span>
-          <span class="font-mono text-[11px] uppercase">or</span>
+          <span class="text-caption">or</span>
           <span class="h-px flex-1 bg-border"></span>
         </div>
       {/if}
@@ -114,7 +114,7 @@
           <Field.Error id="email-error" errors={$errors.email?.map((message) => ({ message }))} />
         </Field.Field>
         {#if $errors._errors}
-          <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+          <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
         {/if}
         <Button type="submit" size="lg" disabled={$submitting}>Email me a sign-in link</Button>
       </form>

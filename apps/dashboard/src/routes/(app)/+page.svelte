@@ -27,7 +27,7 @@
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem, paragraphs } from '#lib/forms.js';
   import { checkWhere, whereBody, workplaceOptions, workplaceValues } from '#lib/job-form.js';
-  import { formatShortDate } from '#lib/format.js';
+  import { formatDate } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
@@ -146,8 +146,8 @@
 <main class="flex flex-col gap-3.5 px-5 py-4.5">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div class="flex flex-col gap-1.5">
-      <h1 class="font-display text-[30px] leading-tight font-bold tracking-[-0.02em]">Jobs</h1>
-      <p class="font-mono text-[11.5px] text-muted-foreground uppercase">
+      <h1 class="font-display text-page-title">Jobs</h1>
+      <p class="text-caption text-muted-foreground">
         {#if jobs.isSuccess}{list.length} jobs · {openCount} open{:else}&nbsp;{/if}
       </p>
     </div>
@@ -163,11 +163,11 @@
       <Table.Root>
         <Table.Header>
           <Table.Row>
-            <Table.Head class="font-mono text-[10.5px] tracking-[0.06em] uppercase">Title</Table.Head>
-            <Table.Head class="font-mono text-[10.5px] tracking-[0.06em] uppercase">Location</Table.Head>
-            <Table.Head class="font-mono text-[10.5px] tracking-[0.06em] uppercase">Status</Table.Head>
-            <Table.Head class="text-right font-mono text-[10.5px] tracking-[0.06em] uppercase">Published</Table.Head>
-            <Table.Head class="text-right font-mono text-[10.5px] tracking-[0.06em] uppercase">
+            <Table.Head class="text-caption">Title</Table.Head>
+            <Table.Head class="text-caption">Location</Table.Head>
+            <Table.Head class="text-caption">Status</Table.Head>
+            <Table.Head class="text-right text-caption">Published</Table.Head>
+            <Table.Head class="text-right text-caption">
               <span class="sr-only">Actions</span>
             </Table.Head>
           </Table.Row>
@@ -186,13 +186,13 @@
                 <Table.Cell class="font-semibold">
                   <a href={`/jobs/${job.id}`} class="text-foreground no-underline hover:underline">{job.title}</a>
                   {#if job.templateUpdateAvailable}
-                    <a href={`/jobs/${job.id}/workflow`} class="ml-2 text-[12px] font-semibold text-primary">Template update available</a>
+                    <a href={`/jobs/${job.id}/workflow`} class="ml-2 text-caption font-semibold text-primary">Template update available</a>
                   {/if}
                 </Table.Cell>
                 <Table.Cell class="text-muted-foreground">{job.location}</Table.Cell>
                 <Table.Cell><Badge variant={statusVariant[job.status]}>{job.status}</Badge></Table.Cell>
-                <Table.Cell class="text-right font-mono text-xs text-muted-foreground">
-                  {job.publishedAt ? formatShortDate(job.publishedAt) : '-'}
+                <Table.Cell class="text-right text-muted-foreground tabular-nums">
+                  {job.publishedAt ? formatDate(job.publishedAt) : '-'}
                 </Table.Cell>
                 <Table.Cell class="text-right">
                   {#if action}
@@ -333,7 +333,7 @@
         <Field.Error id="new-job-description-error" errors={$newJobErrors.description?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $newJobErrors._errors}
-        <p role="alert" class="text-sm text-destructive">{$newJobErrors._errors[0]}</p>
+        <p role="alert" class="text-body text-destructive">{$newJobErrors._errors[0]}</p>
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>

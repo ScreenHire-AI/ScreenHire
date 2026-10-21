@@ -105,7 +105,7 @@
         <Field.Error id="dismiss-note-error" errors={$errors.note?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>

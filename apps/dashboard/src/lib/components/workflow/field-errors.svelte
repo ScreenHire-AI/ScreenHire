@@ -5,7 +5,7 @@
 </script>
 
 {#if messages.length > 0}
-  <ul {id} class="flex flex-col gap-0.5 text-[12.5px] font-semibold text-destructive">
+  <ul {id} class="flex flex-col gap-0.5 text-body font-semibold text-destructive">
     {#each messages as message (message)}<li>{message}</li>{/each}
   </ul>
 {/if}

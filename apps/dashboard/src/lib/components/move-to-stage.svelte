@@ -35,11 +35,11 @@
     {compact ? 'Move' : 'Move to stage'}
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="w-52">
-    <DropdownMenu.Label class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Move to</DropdownMenu.Label>
+    <DropdownMenu.Label class="text-caption text-muted-foreground">Move to</DropdownMenu.Label>
     {#each stages as stage (stage.id)}
       <DropdownMenu.Item disabled={stage.id === currentStageId} onSelect={() => onmove(stage)}>
         {stage.name}
-        {#if stage.id === currentStageId}<span class="ml-auto text-xs text-muted-foreground">current</span>{/if}
+        {#if stage.id === currentStageId}<span class="ml-auto text-caption text-muted-foreground">current</span>{/if}
       </DropdownMenu.Item>
     {/each}
   </DropdownMenu.Content>

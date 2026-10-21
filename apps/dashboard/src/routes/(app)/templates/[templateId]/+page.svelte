@@ -17,7 +17,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
-  import { formatShortDate } from '#lib/format.js';
+  import { formatDateTime, timeAgo } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
@@ -128,10 +128,10 @@
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
   {#if template.isError}
     {#if notFound}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Template not found</h1>
+      <h1 class="font-display text-page-title">Template not found</h1>
       <p class="text-muted-foreground">This template does not exist, or it belongs to another organization. <a href="/templates">Back to templates</a></p>
     {:else}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Template</h1>
+      <h1 class="font-display text-page-title">Template</h1>
       <QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} />
     {/if}
   {:else if !detail || !current || !draft.workflow}
@@ -148,11 +148,11 @@
   {:else}
     <section aria-label="Template" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex min-w-0 flex-col gap-1.5">
-        <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">{detail.name}</h1>
-        <p class="flex flex-wrap items-center gap-2 font-mono text-[11.5px] text-muted-foreground uppercase">
+        <h1 class="font-display text-page-title">{detail.name}</h1>
+        <p class="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
           <span>Version {current.version}</span>
           <Badge variant={current.status === 'Draft' ? 'secondary' : 'clear'}>{current.status}</Badge>
-          {#if current.publishedAt}<span>Published {formatShortDate(current.publishedAt)}</span>{/if}
+          {#if current.publishedAt}<span>Published <time datetime={current.publishedAt} title={formatDateTime(current.publishedAt)}>{timeAgo(current.publishedAt, Date.now())}</time></span>{/if}
           {#if detail.isSystem}<span>ScreenHire template · read-only</span>{/if}
         </p>
       </div>
@@ -174,17 +174,17 @@
           href={`/templates/${detail.id}?version=${candidate.version}`}
           aria-current={candidate.version === current.version ? 'page' : undefined}
           class={[
-            'rounded-md border px-2 py-0.5 font-mono text-[11.5px] no-underline',
+            'rounded-md border px-2 py-0.5 text-caption no-underline',
             candidate.version === current.version ? 'border-primary bg-sidebar-accent font-semibold text-sidebar-accent-foreground' : 'border-border text-muted-foreground hover:bg-muted',
           ]}>v{candidate.version} · {candidate.status === 'Draft' ? 'draft' : 'published'}</a
         >
       {/each}
     </nav>
 
-    <p role="status" class="text-[13px] empty:hidden">{status}</p>
-    <p role="alert" class="text-[13px] font-semibold text-destructive empty:hidden">{failure}</p>
+    <p role="status" class="text-body empty:hidden">{status}</p>
+    <p role="alert" class="text-body font-semibold text-destructive empty:hidden">{failure}</p>
     {#if !isDraft && !detail.isSystem && hasDraft}
-      <p class="text-[13px] text-muted-foreground">Published versions never change. Open the draft to edit.</p>
+      <p class="text-body text-muted-foreground">Published versions never change. Open the draft to edit.</p>
     {/if}
 
     <WorkflowEditor

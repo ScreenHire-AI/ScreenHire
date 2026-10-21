@@ -163,7 +163,7 @@
           </select>
         </label>
       </div>
-      <label class="flex items-center gap-2 text-[13px] font-semibold">
+      <label class="flex items-center gap-2 text-body font-semibold">
         <input type="checkbox" class={checkboxClass} bind:checked={accommodation} />
         The candidate asked for an accommodation (timing facts are off)
       </label>
@@ -175,37 +175,37 @@
   <section aria-labelledby="results-heading" aria-live="polite" class="flex flex-col gap-2">
     <h3 id="results-heading" class={kickerClass}>What would happen</h3>
     {#if failure}
-      <div role="alert" class="rounded-xl border border-destructive/40 bg-card p-3.5 text-[13px]">
+      <div role="alert" class="rounded-xl border border-destructive/40 bg-card p-3.5 text-body">
         <p class="font-semibold text-destructive">{failure.message}</p>
         {#if failure.problems.length > 0}
           <ul class="mt-1.5 flex list-disc flex-col gap-0.5 pl-5">{#each failure.problems as problem (problem)}<li>{problem}</li>{/each}</ul>
         {/if}
       </div>
     {:else if !result}
-      <p class="text-[13px] text-muted-foreground">Fill in a sample application and run the test. Unsaved changes are included.</p>
+      <p class="text-body text-muted-foreground">Fill in a sample application and run the test. Unsaved changes are included.</p>
     {:else if result.automations.length === 0}
-      <p class="text-[13px]">No automation fires on this trigger.</p>
+      <p class="text-body">No automation fires on this trigger.</p>
     {:else}
       <ol class="flex flex-col gap-2">
         {#each result.automations as automation (automation.automationId)}
           <li aria-label={`${automation.name}: ${outcomeText[automation.outcome]}`} class="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3.5">
             <div class="flex flex-wrap items-baseline justify-between gap-2">
               <h4 class="font-bold">{automation.name}</h4>
-              <span class={['font-mono text-[11px] font-medium uppercase', automation.outcome === 'Matched' ? 'text-foreground' : 'text-muted-foreground']}>
+              <span class={['text-caption', automation.outcome === 'Matched' ? 'text-foreground' : 'text-muted-foreground']}>
                 <span aria-hidden="true">{automation.outcome === 'Matched' ? '●' : '○'}</span>
                 {outcomeText[automation.outcome]}
               </span>
             </div>
-            {#if automation.reason}<p class="text-[12.5px] text-muted-foreground">{automation.reason}</p>{/if}
+            {#if automation.reason}<p class="text-body text-muted-foreground">{automation.reason}</p>{/if}
             {#if automation.rules.length > 0}
-              <ul class="flex flex-col gap-0.5 font-mono text-[11.5px]">
+              <ul class="flex flex-col gap-0.5">
                 {#each automation.rules as rule, ruleIndex (ruleIndex)}
-                  <li>{rule.fact} {operatorLabels[rule.operator]}: {rule.held ? 'holds' : 'does not hold'}</li>
+                  <li><code class="font-mono text-code">{rule.fact}</code> {operatorLabels[rule.operator]}: {rule.held ? 'holds' : 'does not hold'}</li>
                 {/each}
               </ul>
             {/if}
             {#if automation.actions.length > 0}
-              <ol class="flex list-decimal flex-col gap-0.5 pl-5 text-[13px]">
+              <ol class="flex list-decimal flex-col gap-0.5 pl-5 text-body">
                 {#each automation.actions as action, actionIndex (actionIndex)}<li>{describeAction(action, workflow)}</li>{/each}
               </ol>
             {/if}

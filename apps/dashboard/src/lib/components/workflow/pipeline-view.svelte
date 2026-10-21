@@ -38,7 +38,7 @@
   {@const problems = laneErrors(stageId)}
   <div class="flex flex-col gap-1.5">
     {#if automations.length > 0}
-      <ul class="flex flex-col gap-1 text-[13px]">
+      <ul class="flex flex-col gap-1 text-body">
         {#each automations as automation (automation.id)}
           <li class={['flex gap-1.5', automation.enabled === false && 'text-muted-foreground']}>
             <span aria-hidden="true" class="text-muted-foreground">→</span>
@@ -50,10 +50,10 @@
     <div class="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="sm" onclick={() => onopen(stageId)}>
         Automations <span class="sr-only">for {name}</span>
-        <span class="font-mono text-[11px] text-muted-foreground tabular-nums">{automations.length}</span>
+        <span class="text-caption text-muted-foreground tabular-nums">{automations.length}</span>
       </Button>
       {#if problems > 0}
-        <span class="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive">
+        <span class="inline-flex items-center gap-1.5 text-body font-semibold text-destructive">
           <ProblemMark />{problems} {problems === 1 ? 'problem' : 'problems'} to fix
         </span>
       {/if}
@@ -65,7 +65,7 @@
   <section aria-labelledby="lane-workflow" class="flex flex-col gap-2 rounded-xl border border-border bg-card p-3.5">
     <div>
       <h3 id="lane-workflow" class="font-bold">Whole workflow</h3>
-      <p class="text-[12.5px] text-muted-foreground">
+      <p class="text-body text-muted-foreground">
         Automations tied to no one stage: when an application arrives, when the integrity checks finish, or run by hand.
       </p>
     </div>
@@ -88,7 +88,7 @@
             <legend class="sr-only">Stage {index + 1}</legend>
             <div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_6rem_auto]">
               <label class={labelClass}>
-                <span>Name <span class="font-mono text-[11px] font-normal text-muted-foreground">{stage.id}</span></span>
+                <span>Name <span class="font-mono text-code font-normal text-muted-foreground">{stage.id}</span></span>
                 <Input bind:value={stage.name} maxlength={80} aria-invalid={stageErrors.length > 0 || undefined} />
               </label>
               <label class={labelClass}>

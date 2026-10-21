@@ -14,13 +14,13 @@
 <Handle type="target" position={Position.Left} isConnectable={false} />
 <div
   class={[
-    'flex w-[200px] flex-col gap-0.5 rounded-lg border bg-card px-2.5 py-2 text-left text-[12px] text-card-foreground',
+    'flex w-[200px] flex-col gap-0.5 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
     data.kind === 'stage' ? 'border-foreground/40' : 'border-border',
     data.invalid ? 'border-destructive' : '',
     data.disabled ? 'opacity-60' : '',
   ]}
 >
-  <span class="font-mono text-[10px] tracking-[0.06em] text-muted-foreground uppercase">{kindLabel[data.kind]}{data.disabled ? ' · off' : ''}</span>
+  <span class="text-caption text-muted-foreground">{kindLabel[data.kind]}{data.disabled ? ' · off' : ''}</span>
   <span class="leading-snug font-semibold">{data.title}</span>
   {#if data.detail}<span class="line-clamp-2 text-muted-foreground">{data.detail}</span>{/if}
   {#if data.invalid}
@@ -29,7 +29,7 @@
   {#if data.kind === 'trigger' && data.automation !== null && edit}
     <button
       type="button"
-      class="nodrag nopan mt-1 self-start rounded-md border border-border px-2 py-0.5 text-[11.5px] font-semibold hover:bg-muted"
+      class="nodrag nopan mt-1 self-start rounded-md border border-border px-2 py-0.5 text-caption font-semibold hover:bg-muted"
       onclick={() => edit(data.automation!)}>Edit <span class="sr-only">{data.title}</span></button
     >
   {/if}

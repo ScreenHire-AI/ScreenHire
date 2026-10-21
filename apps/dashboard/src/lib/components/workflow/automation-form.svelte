@@ -91,7 +91,7 @@
       Name
       <Input bind:value={automation.name} maxlength={120} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
     </label>
-    <label class="flex items-center gap-2 self-end pb-1.5 text-[13px] font-semibold">
+    <label class="flex items-center gap-2 self-end pb-1.5 text-body font-semibold">
       <input type="checkbox" class={checkboxClass} bind:checked={() => automation.enabled !== false, (on) => (automation.enabled = on)} />
       On
     </label>
@@ -182,7 +182,7 @@
                   <Input bind:value={rule.value} maxlength={200} />
                 </label>
               {/if}
-              <label class="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold">
+              <label class="flex items-center gap-1.5 pb-1.5 text-body font-semibold">
                 <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
                 Not
               </label>
@@ -191,7 +191,7 @@
               </Button>
             </div>
             {#if fact?.signal}
-              <p class="text-[12px] text-muted-foreground">
+              <p class="text-caption text-muted-foreground">
                 An integrity signal can route a candidate for review: add a tag, assign a reviewer or move to a screening,
                 assessment, verification or interview stage. It never rejects anyone.
               </p>
@@ -201,7 +201,7 @@
         {/each}
       </ol>
     {:else}
-      <p class="text-[13px] text-muted-foreground">No conditions: it runs every time the trigger fires.</p>
+      <p class="text-body text-muted-foreground">No conditions: it runs every time the trigger fires.</p>
     {/if}
     <FieldErrors
       id={`${uid}-conditions-errors`}
@@ -285,11 +285,11 @@
 
   {#if rejects}
     <div class="flex flex-col gap-1.5 rounded-lg border border-border bg-secondary/60 p-2.5">
-      <label class="flex items-center gap-2 text-[13px] font-semibold">
+      <label class="flex items-center gap-2 text-body font-semibold">
         <input type="checkbox" class={checkboxClass} bind:checked={() => automation.allowAutoReject ?? false, (on) => (automation.allowAutoReject = on)} />
         Reject without a person reviewing first
       </label>
-      <p class="text-[12.5px] text-muted-foreground">
+      <p class="text-body text-muted-foreground">
         Only a knockout automation may reject: every condition must be a knockout question equal to its disqualifying answer.
         The candidate is told the reason and that a person reviews the decision on request. Without this, use "Queue for
         rejection review" so a person decides.

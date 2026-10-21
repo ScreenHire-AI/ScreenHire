@@ -9,7 +9,8 @@
   import { get } from 'svelte/store';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
-  import { age, formatDateTime, initials, sourceLabel } from '#lib/format.js';
+  import { formatDate, formatDateTime } from '#lib/dates.js';
+  import { initials, sourceLabel } from '#lib/format.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
@@ -25,7 +26,6 @@
     selectedIds = $bindable([]),
     emptyText = 'No candidates yet.',
     hints,
-    now = Date.now(),
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -44,8 +44,6 @@
     emptyText?: string;
     /** Extra shortcut hints for the footer, such as the page's own `V`. */
     hints?: Snippet;
-    /** The clock for "applied" ages; tests fix it. */
-    now?: number;
   } = $props();
 
   const columns = $derived<CandidateColumn[]>([
@@ -167,7 +165,7 @@
   <span class="flex items-center gap-2.5">
     <span
       aria-hidden="true"
-      class="grid size-[26px] shrink-0 place-items-center rounded-full bg-secondary text-[10.5px] font-bold text-secondary-foreground"
+      class="grid size-[26px] shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
       >{initials(application.candidateName)}</span
     >
     <a data-row-link href={`/applications/${application.id}`} class="font-bold text-foreground no-underline hover:underline"
@@ -181,12 +179,12 @@
 {/snippet}
 
 {#snippet sourceCell(application: ApplicationSummary)}
-  <span class="font-mono text-[11.5px] text-muted-foreground">{sourceLabel(application.source)}</span>
+  <span class="text-muted-foreground">{sourceLabel(application.source)}</span>
 {/snippet}
 
 {#snippet appliedCell(application: ApplicationSummary)}
-  <time datetime={application.submittedAt} title={formatDateTime(application.submittedAt)} class="font-mono text-[11.5px] text-muted-foreground"
-    >{age(application.submittedAt, now)}</time
+  <time datetime={application.submittedAt} title={formatDateTime(application.submittedAt)} class="text-muted-foreground tabular-nums"
+    >{formatDate(application.submittedAt)}</time
   >
 {/snippet}
 
@@ -219,7 +217,7 @@
                 scope="col"
                 aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                 class={[
-                  'border-b border-border-subtle px-3 py-2 font-mono text-[10.5px] font-medium tracking-[0.06em] whitespace-nowrap text-muted-foreground uppercase',
+                  'border-b border-border-subtle px-3 py-2 text-caption whitespace-nowrap text-muted-foreground',
                   (header.id === 'select' || header.id === 'move') && 'w-10',
                   (header.id === 'applied' || header.id === 'move') && 'text-right',
                 ]}
@@ -229,7 +227,7 @@
                   <button
                     type="button"
                     onclick={header.column.getToggleSortingHandler()}
-                    class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 uppercase hover:text-foreground"
+                    class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground"
                   >
                     <FlexRender {header} />
                     {#if sorted === 'desc'}
@@ -283,7 +281,7 @@
     </table>
   </div>
   <div
-    class="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-border-subtle bg-muted px-3 py-2 font-mono text-[11px] text-muted-foreground"
+    class="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-border-subtle bg-muted px-3 py-2 text-caption text-muted-foreground"
   >
     <span>{applications.length} {applications.length === 1 ? 'candidate' : 'candidates'}{selectedIds.length > 0 ? ` · ${selectedIds.length} selected` : ''}</span>
     {#if preferences.shortcutsEnabled}
