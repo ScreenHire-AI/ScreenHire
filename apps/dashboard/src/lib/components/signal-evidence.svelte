@@ -39,9 +39,7 @@
       <span class="text-muted-foreground">{evidence.label}:</span>
       <span class="font-semibold tabular-nums">{evidence.amount == null ? 'not measured' : measure(evidence.amount, evidence.unit)}</span>
       {#if evidence.reference != null}
-        <span class="text-muted-foreground"
-          >· {evidence.referenceLabel ?? 'Reference'}: <span class="tabular-nums">{measure(evidence.reference, evidence.unit)}</span></span
-        >
+        <span class="block text-muted-foreground">{evidence.referenceLabel ?? 'Reference'}: <span class="tabular-nums">{measure(evidence.reference, evidence.unit)}</span></span>
       {/if}
     </p>
   {:else if evidence.kind === 'List'}

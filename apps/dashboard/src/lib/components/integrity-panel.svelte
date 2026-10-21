@@ -96,7 +96,7 @@
     <p>{view.summary}</p>
     <!-- Every result keeps its next step (section 16): a calm one as a quiet line, the others in an inset. -->
     {#if level.rank > 0}
-      <p class="rounded-lg bg-secondary px-3 py-2 text-secondary-foreground"><span class="font-bold">Suggested next step:</span> {view.nextStep}</p>
+      <p class="rounded-lg bg-secondary px-3 py-2 text-secondary-foreground"><span class="font-semibold">Suggested next step:</span> {view.nextStep}</p>
     {:else}
       <p class="text-muted-foreground">Suggested next step: {view.nextStep}</p>
     {/if}

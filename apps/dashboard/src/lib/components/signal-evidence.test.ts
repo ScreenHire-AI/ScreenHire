@@ -36,8 +36,10 @@ describe('signal evidence', () => {
 
     const metric = container.querySelector('[data-evidence-kind="Metric"]')!;
     expect(metric.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'Time from opening the form to sending it: 6 seconds · Plausible minimum for this form: 32 seconds',
+      'Time from opening the form to sending it: 6 seconds Plausible minimum for this form: 32 seconds',
     );
+    // The reference is its own line, not joined to the measurement by a separator (W3).
+    expect(within(metric as HTMLElement).getByText(/^Plausible minimum for this form:/)).toHaveClass('block');
     expect(metric.textContent).not.toContain('%');
   });
 

@@ -6,9 +6,9 @@ using ScreenHire.Application.Integrity;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The candidate page on the detail template (design system sections 7 and 8) at the review canvas's three sizes: main
-/// and side columns on a desktop, one column with Integrity first on a tablet and a phone, and Move to stage in a bar at
-/// the bottom on a phone. Signs in as a new person with a new organization.
+/// The candidate page on the detail template (design system sections 7 and 8) at the sizes F1 names and the review
+/// canvas's 820 and 390: main and side columns from a laptop up, one column with Integrity first on a tablet and a
+/// phone, and Move to stage in a bar at the bottom on a phone. Signs in as a new person with a new organization.
 /// </summary>
 public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -17,7 +17,7 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task The_candidate_page_follows_the_detail_template_on_a_desktop_a_tablet_and_a_phone()
+    public async Task The_candidate_page_follows_the_detail_template_at_every_size()
     {
         var applicant = SyntheticApplicants.GenuineHuman;
         var (email, applicationId) = await ApplicationAsync(applicant);
@@ -30,66 +30,50 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(move).ToBeVisibleAsync();
         await Expect(Region("Integrity").GetByRole(AriaRole.Region, new() { Name = "Authenticity" })).ToBeVisibleAsync(new() { Timeout = 30_000 });
 
-        // Desktop: Integrity heads the side column, level with Resume; Review log and Activity follow it.
-        var integrity = await BoxAsync(Region("Integrity"));
-        var resume = await BoxAsync(Region("Resume"));
-        var reviewLog = await BoxAsync(Region("Review log"));
-        var activity = await BoxAsync(Region("Activity"));
-        integrity.X.Should().BeGreaterThan(resume.X + resume.Width, "the side column is right of the main column");
-        integrity.Y.Should().BeApproximately(resume.Y, 1, "panels in a row share a top edge (S4)");
-        integrity.Width.Should().BeApproximately(320, 1);
-        reviewLog.X.Should().BeApproximately(integrity.X, 1);
-        reviewLog.Y.Should().BeGreaterThan(integrity.Y + integrity.Height);
-        activity.Y.Should().BeGreaterThan(reviewLog.Y + reviewLog.Height);
-        (await BoxAsync(move)).Y.Should().BeLessThan(resume.Y, "the primary action is in the header band");
-        await ExpectNoSideScrollAsync();
-        await ExpectNoAccessibilityViolationsAsync();
-        await SaveScreenshotAsync(Page, "dashboard-candidate-desktop");
-
-        foreach (var (width, height, phone) in new[] { (820, 1180, false), (390, 844, true) })
+        // Desktop and laptop: two columns. Tablet and phone: one column, Integrity first (design system section 8).
+        foreach (var (width, height, name) in new[] { (1920, 1080, "wide"), (1440, 1000, "desktop"), (1024, 900, "laptop"), (820, 1180, "tablet"), (768, 1024, "small-tablet"), (390, 844, "phone"), (360, 780, "small-phone") })
         {
             await Page.SetViewportSizeAsync(width, height);
             await Page.EvaluateAsync("() => window.scrollTo(0, 0)");
-            // The sidebar switches to the rail or the sheet a frame after the resize and then slides; measure once the
-            // content has held still for 20 frames.
-            await Page.EvaluateAsync(
-                """
-                () => new Promise((resolve) => {
-                  let last = '', still = 0;
-                  const step = () => {
-                    const box = document.querySelector('[data-slot="header-band"]').getBoundingClientRect();
-                    const key = `${box.left},${box.width}`;
-                    still = key === last ? still + 1 : 0;
-                    last = key;
-                    if (still >= 20) resolve(); else requestAnimationFrame(step);
-                  };
-                  requestAnimationFrame(step);
-                })
-                """);
+            await SettledAsync();
 
-            // One column, Integrity first, then the main column's panels, then the rest of the side column.
-            integrity = await BoxAsync(Region("Integrity"));
-            resume = await BoxAsync(Region("Resume"));
+            var integrity = await BoxAsync(Region("Integrity"));
+            var resume = await BoxAsync(Region("Resume"));
             var declarations = await BoxAsync(Region("Declarations"));
-            reviewLog = await BoxAsync(Region("Review log"));
-            resume.Y.Should().BeGreaterThan(integrity.Y + integrity.Height, $"Integrity comes first at {width}px");
-            resume.X.Should().BeApproximately(integrity.X, 1);
-            resume.Width.Should().BeApproximately(integrity.Width, 1);
-            reviewLog.Y.Should().BeGreaterThan(declarations.Y + declarations.Height);
-
+            var reviewLog = await BoxAsync(Region("Review log"));
+            var activity = await BoxAsync(Region("Activity"));
             var action = await BoxAsync(move);
-            if (phone)
+            if (width >= 1024)
+            {
+                // Integrity heads the side column, level with Resume; Review log and Activity follow it.
+                integrity.X.Should().BeGreaterThan(resume.X + resume.Width, $"the side column is right of the main column at {width}px");
+                integrity.Y.Should().BeApproximately(resume.Y, 1, "panels in a row share a top edge (S4)");
+                integrity.Width.Should().BeApproximately(320, 1);
+                reviewLog.X.Should().BeApproximately(integrity.X, 1);
+                reviewLog.Y.Should().BeGreaterThan(integrity.Y + integrity.Height);
+                activity.Y.Should().BeGreaterThan(reviewLog.Y + reviewLog.Height);
+            }
+            else
+            {
+                // One column: Integrity, then the main column's panels, then the rest of the side column.
+                resume.Y.Should().BeGreaterThan(integrity.Y + integrity.Height, $"Integrity comes first at {width}px");
+                resume.X.Should().BeApproximately(integrity.X, 1);
+                resume.Width.Should().BeApproximately(integrity.Width, 1);
+                reviewLog.Y.Should().BeGreaterThan(declarations.Y + declarations.Height);
+            }
+
+            if (width < 768)
             {
                 (action.Y + action.Height).Should().BeGreaterThan(height - 80, "phones keep the primary action in a bar at the bottom");
             }
             else
             {
-                action.Y.Should().BeLessThan(integrity.Y, "tablets keep the primary action in the header band");
+                action.Y.Should().BeLessThan(Math.Min(integrity.Y, resume.Y), "the primary action is in the header band");
             }
 
             await ExpectNoSideScrollAsync();
             await ExpectNoAccessibilityViolationsAsync();
-            await SaveScreenshotAsync(Page, phone ? "dashboard-candidate-phone" : "dashboard-candidate-tablet");
+            await SaveScreenshotAsync(Page, $"dashboard-candidate-{name}");
         }
 
         // The bar's menu still moves the candidate.
@@ -99,6 +83,23 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
     }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
+
+    // The sidebar switches between full, rail and sheet a frame after a resize and then slides; measure once the content
+    // has held still for 20 frames.
+    private async Task SettledAsync() => await Page.EvaluateAsync(
+        """
+        () => new Promise((resolve) => {
+          let last = '', still = 0;
+          const step = () => {
+            const box = document.querySelector('[data-slot="header-band"]').getBoundingClientRect();
+            const key = `${box.left},${box.width}`;
+            still = key === last ? still + 1 : 0;
+            last = key;
+            if (still >= 20) resolve(); else requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        })
+        """);
 
     private static async Task<LocatorBoundingBoxResult> BoxAsync(ILocator locator)
     {
