@@ -34,6 +34,12 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
             {
                 if (TestContext.Current.TestState?.Result == TestResult.Failed)
                 {
+                    // A server that died mid-run fails every test that reaches it, each with its own symptom.
+                    foreach (var stopped in fixture.StoppedResources)
+                    {
+                        TestContext.Current.TestOutputHelper?.WriteLine(stopped);
+                    }
+
                     await SaveScreenshotAsync();
                 }
             }
