@@ -39,6 +39,7 @@ const panels: Record<string, string[]> = {
   'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
+  'Icon button': ['Icon button'],
   'Summary list': ['Summary list'],
   'File tile': ['File tile'],
   'Resume preview': ['Resume preview'],

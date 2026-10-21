@@ -19,14 +19,25 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    // The region is busy while the check of the latest change is on its way, and until then it still shows the previous
-    // change's result. Assert on the settled result, never on an earlier one that happens to match.
+    // The validation badge beside the title is busy while the check of the latest change is on its way, and until then
+    // it still shows the previous change's result. Assert on the settled result, never on an earlier one that happens to
+    // match.
     private async Task ExpectValidationAsync(string text)
     {
         var validation = Page.GetByRole(AriaRole.Region, new() { Name = "Validation" });
         await Expect(validation).ToHaveAttributeAsync("aria-busy", "false");
         await Expect(validation).ToContainTextAsync(text);
     }
+
+    // A settled check that found a problem: the badge counts it, and the builder's "Problems to fix" panel says it.
+    private async Task ExpectProblemAsync(string text)
+    {
+        await ExpectValidationAsync("to fix");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Problems to fix" })).ToContainTextAsync(text);
+    }
+
+    // The page's header band: the title, the validation badge and the version's facts as pills.
+    private ILocator HeaderBand => Page.Locator("[data-slot=header-band]");
 
     [Fact]
     public async Task A_recruiter_builds_and_publishes_a_template_creates_a_job_from_it_and_simulates_an_application()
@@ -39,15 +50,15 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // A new template from the templates list.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Templates") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Templates");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Templates" })).ToContainTextAsync("Software engineer");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All templates" })).ToContainTextAsync("Software engineer");
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "New template" }).ClickAsync();
         var newTemplate = Page.GetByRole(AriaRole.Dialog, new() { Name = "New template" });
         await newTemplate.GetByLabel("Name").FillAsync(templateName);
         await newTemplate.GetByRole(AriaRole.Button, new() { Name = "Create template" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(templateName);
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Template" })).ToContainTextAsync("Draft");
-        await ExpectValidationAsync("No problems found.");
+        await Expect(HeaderBand).ToContainTextAsync("Draft");
+        await ExpectValidationAsync("No problems found");
 
         // A knockout question, which the candidate preview shows as the careers page would.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questionnaire" }).ClickAsync();
@@ -80,14 +91,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Reason", Exact = true }).FillAsync("The role needs a verified identity.");
         await Expect(drawer.GetByRole(AriaRole.Article)).ToContainTextAsync(Guardrail);
         await Expect(firstAction).ToHaveAttributeAsync("aria-invalid", "true");
-        await ExpectValidationAsync(Guardrail);
+        await ExpectProblemAsync(Guardrail);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-automation-guardrail-light");
 
         // Routing for review instead is allowed.
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Add a tag" });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Tag", Exact = true }).FillAsync("needs-review");
-        await ExpectValidationAsync("No problems found.");
+        await ExpectValidationAsync("No problems found");
         await Expect(drawer).Not.ToContainTextAsync(Guardrail);
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
@@ -117,8 +128,17 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Publish version 1" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Published version 1." })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Template" })).ToContainTextAsync("Published");
+        await Expect(HeaderBand).ToContainTextAsync("Published");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Edit as version 2" })).ToBeVisibleAsync();
+
+        // A published version reads as content: no inputs, the stages on a line and the automations as rows.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });
+        await Expect(pipeline.Locator("input, select, textarea")).ToHaveCountAsync(0);
+        await Expect(pipeline.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
+        await Expect(pipeline.GetByRole(AriaRole.Region, new() { Name = "Automations" })).ToContainTextAsync("Route for review");
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-read-only-light");
 
         // A job from the template, then a sample application through the job's copy of the workflow.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Jobs") }).ClickAsync();
@@ -134,7 +154,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Warehouse associate, nights");
         await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Workflow") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Workflow: Warehouse associate, nights");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Job workflow" })).ToContainTextAsync($"from {templateName} v1");
+        await Expect(HeaderBand).ToContainTextAsync($"From {templateName} v1");
 
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
         var sample = Page.GetByRole(AriaRole.Form, new() { Name = "Sample application" });
@@ -200,10 +220,62 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Applied version 2 of Retail assistant." })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Job workflow" })).ToContainTextAsync("Workflow version 2");
+        await Expect(HeaderBand).ToContainTextAsync("Workflow version 2");
         await Expect(update).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.Spinbutton, new() { Name = "SLA (days)" }).Nth(1)).ToHaveValueAsync("2");
+        await Expect(Page.GetByRole(AriaRole.Spinbutton, new() { Name = "Time limit (days)" }).Nth(1)).ToHaveValueAsync("2");
     }
+
+    [Fact]
+    public async Task A_ScreenHire_template_reads_as_content_and_every_template_screen_fits_a_phone()
+    {
+        var email = await OnboardAsync();
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await SignInAsync(email);
+
+        // A ScreenHire template cannot be edited: it reads as content, with Copy to customise as the one action.
+        await Page.GotoAsync(DashboardUrl("/templates"));
+        await Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer");
+        await Expect(HeaderBand).ToContainTextAsync("ScreenHire template");
+        await ExpectValidationAsync("No problems found");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Copy to customise" })).ToBeVisibleAsync();
+        var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });
+        await Expect(pipeline.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
+        await Expect(pipeline.Locator("input, select, textarea")).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-screenhire-light");
+
+        // Its earlier version, from the versions menu.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Versions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("^Version 1, published") }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"\?version=1$"));
+        await Expect(HeaderBand).ToContainTextAsync("Version 1");
+
+        // On a phone: the read-only view, the list and a draft in the builder, none scrolling sideways.
+        await Page.SetViewportSizeAsync(390, 844);
+        await ExpectNoSidewaysScrollAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-screenhire-390");
+
+        await Page.GotoAsync(DashboardUrl("/templates"));
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true })).ToBeVisibleAsync();
+        await ExpectNoSidewaysScrollAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-templates-390");
+
+        await Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Copy to customise" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer (copy)");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" })).ToBeVisibleAsync();
+        await ExpectValidationAsync("No problems found");
+        await ExpectNoSidewaysScrollAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-builder-390");
+    }
+
+    private async Task ExpectNoSidewaysScrollAsync() =>
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
+            .Should().BeTrue("the page at {0} scrolls sideways", Page.Url);
 
     private async Task<string> OnboardAsync()
     {

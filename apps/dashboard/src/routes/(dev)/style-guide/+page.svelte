@@ -1,5 +1,7 @@
 <script lang="ts">
+  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
@@ -8,6 +10,7 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SunIcon from '@lucide/svelte/icons/sun';
+  import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
@@ -16,6 +19,7 @@
   import Fact from '#lib/components/fact.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import IconButton from '#lib/components/icon-button.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -27,6 +31,7 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge, { type Status } from '#lib/components/status-badge.svelte';
+  import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
@@ -92,6 +97,11 @@
     { label: 'Questions', state: 'current' },
     { label: 'Workflow', state: 'upcoming' },
     { label: 'Publish', state: 'upcoming' },
+  ];
+  const stages = [
+    { name: 'Applied', limit: '' },
+    { name: 'Phone screen', limit: '3-day limit' },
+    { name: 'Interview', limit: '5-day limit' },
   ];
 
   const people = [
@@ -303,9 +313,29 @@
       </div>
 
       <Panel title="Step marker">
-        <div class="flex flex-col gap-4">
-          <StepMarkers label="New job" {steps} />
-          <StepMarkers label="New job, finished" steps={steps.map((step) => ({ ...step, state: 'done' as const }))} />
+        <div class="flex flex-wrap items-start gap-x-8 gap-y-5">
+          <figure class="flex min-w-0 flex-[999_1_320px] flex-col gap-4">
+            <figcaption class="text-caption text-muted-foreground">Across, for progress</figcaption>
+            <StepMarkers label="New job" {steps} />
+            <StepMarkers label="New job, finished" steps={steps.map((step) => ({ ...step, state: 'done' as const }))} />
+          </figure>
+          <figure class="flex min-w-0 flex-[1_1_240px] flex-col gap-4">
+            <figcaption class="text-caption text-muted-foreground">Down, for a workflow's stages</figcaption>
+            <StepLine items={stages} label="Stages in order" key={(stage) => stage.name}>
+              {#snippet children(stage)}
+                <span class="font-semibold">{stage.name}</span>
+                {#if stage.limit}<span class="flex flex-wrap gap-1.5"><Badge variant="muted">{stage.limit}</Badge></span>{/if}
+              {/snippet}
+            </StepLine>
+          </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Icon button">
+        <div class="flex flex-wrap items-center gap-1">
+          <IconButton label="Move up"><ArrowUpIcon /></IconButton>
+          <IconButton label="Move down"><ArrowDownIcon /></IconButton>
+          <IconButton label="Remove"><Trash2Icon /></IconButton>
         </div>
       </Panel>
 

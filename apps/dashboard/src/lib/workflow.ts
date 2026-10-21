@@ -4,6 +4,7 @@
 // so conditions offer the operators a fact allows.
 import type {
   ActionType,
+  AiUsePolicy,
   Automation,
   AutomationAction,
   AutomationCondition,
@@ -101,6 +102,13 @@ export const newAction = (type: ActionType, stages: readonly WorkflowStage[] = [
   if (field === 'emailTemplate') return { type, emailTemplate: emailTemplates[0]!.id };
   if (field === 'stageId') return { type, stageId: stages.find((stage) => !isTerminal(stage.kind))?.id ?? stages[0]?.id ?? '' };
   return { type, [field]: '' };
+};
+
+/** The AI-use policy as candidates are told it before they start. */
+export const aiUseLabels: Record<AiUsePolicy, string> = {
+  Allowed: 'Allowed: candidates may use AI tools and need not say so',
+  AllowedWithDisclosure: 'Allowed with disclosure: candidates say if they used AI tools',
+  NotAllowed: 'Not allowed: candidates are asked to write without AI tools',
 };
 
 export const questionTypeLabels: Record<QuestionType, string> = {

@@ -45,8 +45,10 @@ var demo = bool.TryParse(settings["Demo"], out var demoSetting) ? demoSetting : 
 int? PortFor(string name, int fallback) =>
     !pinPorts ? null : int.TryParse(settings[$"Ports:{name}"], out var port) ? port : fallback;
 
-// pgvector image: near-duplicate answer detection needs the `vector` extension (ADR-0008).
-var postgres = builder.AddPostgres("postgres").WithImage("pgvector/pgvector", "pg17");
+// pgvector image: near-duplicate answer detection needs the `vector` extension (ADR-0008). The API, the worker, their
+// Wolverine agents and the tests each keep their own connection pool, so a burst (the worker assessing every applicant
+// at start) went past Postgres's default 100 connections and refused clients; 300 leaves room for all of them.
+var postgres = builder.AddPostgres("postgres").WithImage("pgvector/pgvector", "pg17").WithArgs("-c", "max_connections=300");
 if (persistData)
 {
     postgres.WithDataVolume();
