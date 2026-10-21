@@ -11,14 +11,14 @@ afterEach(() => {
 });
 
 describe('candidates page', () => {
-  it('counts the ticked rows in its count line, as the table has no footer (K1)', async () => {
+  it('counts the ticked rows in a pill beside the count, as the table has no footer (K1, W3)', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => Response.json(applications) })));
     render(WithQueryClient, { props: { component: Page, props: {} } });
-    const total = `${applications.length} applications`;
-    expect(await screen.findByText(total)).toBeInTheDocument();
+    expect(await screen.findByText(`${applications.length} applications`)).toBeInTheDocument();
+    expect(screen.queryByText(/selected$/)).toBeNull();
 
     await fireEvent.click(screen.getByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
 
-    expect(screen.getByText(`${total}, 1 selected`)).toBeInTheDocument();
+    expect(screen.getByText('1 selected')).toHaveAttribute('data-slot', 'badge');
   });
 });

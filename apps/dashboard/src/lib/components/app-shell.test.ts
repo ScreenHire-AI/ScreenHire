@@ -143,6 +143,37 @@ describe('app shell', () => {
     await fireEvent.click(await screen.findByRole('menuitem', { name: /^Keyboard shortcuts/ }));
 
     expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
+    // The sheet gives way to the dialog, so closing the dialog lands on the page.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull());
+  });
+
+  it('keeps the sheet shut after the window widens past phone size and narrows again', async () => {
+    const viewport = stubViewport(390);
+    render(ShellHarness, { props: { user } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    await screen.findByRole('dialog', { name: 'Navigation' });
+
+    viewport.resize(800);
+    await waitFor(() => expect(sidebar()).toHaveAttribute('data-collapsible', 'icon'));
+    viewport.resize(390);
+
+    await screen.findByRole('button', { name: 'Open navigation' });
+    expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull();
+  });
+
+  it('shows no count pills while the applications load', () => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user, viewCounts: {} } });
+
+    const links = within(main()).getAllByRole('link');
+    expect(links.map((link) => link.textContent?.trim()).slice(3)).toEqual([
+      'Needs review',
+      'Verification recommended',
+      'New today',
+      'Not screened yet',
+      'Interviewing',
+    ]);
+    expect(main().querySelector('[data-slot="badge"]')).toBeNull();
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

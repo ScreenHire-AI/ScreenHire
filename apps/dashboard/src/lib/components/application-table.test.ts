@@ -132,7 +132,7 @@ describe('candidate table', () => {
     const { container } = render(ApplicationTable, { props: { applications } });
 
     expect(container.querySelector('kbd')).toBeNull();
-    expect(container.firstElementChild?.lastElementChild?.querySelector('table')).not.toBeNull();
+    expect(screen.queryByText(/\d+ candidates?\b/)).toBeNull();
   });
 
   it('says so when there is nothing to show', () => {
