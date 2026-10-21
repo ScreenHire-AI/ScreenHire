@@ -75,7 +75,8 @@
       .slice(0, 10)
       .map(describe),
     truncated: all
-      .filter((el) => getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth)
+      // sr-only labels are 1px boxes that always overflow; they are not visible truncation.
+      .filter((el) => el.clientWidth > 1 && getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth)
       .slice(0, 10)
       .map((el) => ({ el: describe(el), title: el.getAttribute('title'), inTooltipTrigger: !!el.closest('[data-slot=tooltip-trigger]') })),
     fontSizes,

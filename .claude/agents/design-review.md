@@ -54,7 +54,7 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    against section 11, not one per screen that needs it.
 6. Visual notes, when the caller gives them, hold for each page and width: the URL, screenshot paths, the JSON from
    `.claude/skills/task-review/visual-probe.js` and what the caller saw. Read every screenshot (Read shows images)
-   and hold each page at each width to the checklist, the ones code cannot show first: navigation and actions for
+   before you write a finding, not a sample of them, and hold each page at each width to the checklist, the ones code cannot show first: navigation and actions for
    the size (F3, section 8), layers and shadows (S5, section 6), panels sharing a top edge and nesting (S3, S4),
    wrapping and truncation (F5), sideways scrolling (F1), type sizes (W1) and target sizes (F4). Apply the limits
    from the design system to the probe's raw numbers:
