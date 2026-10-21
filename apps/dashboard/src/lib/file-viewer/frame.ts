@@ -13,6 +13,9 @@ import { isRenderRequest, maxPreviewPages, type FrameMessage } from './protocol.
 // name, so the target is "*". Nothing sent here is secret: sizes and a page count.
 const post = (message: FrameMessage) => parent.postMessage(message, '*');
 
+// The largest canvas every browser allocates (Safari's limit), far above a letter page at twice the dashboard's width.
+const maxCanvasPixels = 16_777_216;
+
 const pages = document.querySelector('main')!;
 let started = false;
 
@@ -21,7 +24,11 @@ async function render(bytes: ArrayBuffer): Promise<void> {
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
   for (let number = 1; number <= Math.min(pdf.numPages, maxPreviewPages); number++) {
     const page = await pdf.getPage(number);
-    const viewport = page.getViewport({ scale: (pages.clientWidth * ratio) / page.getViewport({ scale: 1 }).width });
+    const natural = page.getViewport({ scale: 1 });
+    // The file sets each page's size, so a hostile one could ask for a canvas too big to allocate. Fit the width, and
+    // draw a page larger than maxCanvasPixels at the lower scale that fits (CSS still stretches it to the width).
+    const scale = Math.min((pages.clientWidth * ratio) / natural.width, Math.sqrt(maxCanvasPixels / (natural.width * natural.height)));
+    const viewport = page.getViewport({ scale });
     const canvas = document.createElement('canvas');
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);

@@ -1,13 +1,3 @@
-<script lang="ts" module>
-  import type { MarkShape } from '#lib/distribution.js';
-
-  // Why a file is not offered. Only these two scan results withhold a file.
-  const withheld: Record<'Pending' | 'Infected', { label: string; shape: MarkShape; tone: 'review' | 'verify' }> = {
-    Pending: { label: 'Being scanned for malware', shape: 'diamond', tone: 'review' },
-    Infected: { label: 'Withheld: malware found', shape: 'square', tone: 'verify' },
-  };
-</script>
-
 <script lang="ts">
   import { getDownloadApplicationFileUrl, type ApplicationFileSummary } from '@screenhire/api-client';
   import DownloadIcon from '@lucide/svelte/icons/download';
@@ -18,14 +8,14 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { canDownload } from '#lib/files.js';
+  import { withheldReason } from '#lib/files.js';
   import { fileSize } from '#lib/format.js';
 
   // One uploaded file: its type, name and size, and Download. A file the scan withholds says why instead.
   let { applicationId, file, facts }: { applicationId: string; file: ApplicationFileSummary; facts?: Snippet } = $props();
 
   const Icon = $derived(file.contentType.startsWith('image/') ? FileImageIcon : FileTextIcon);
-  const attention = $derived(canDownload(file) ? undefined : withheld[file.scanStatus as keyof typeof withheld]);
+  const attention = $derived(withheldReason(file));
 </script>
 
 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">

@@ -28,6 +28,8 @@
 
   $effect(() => {
     if (!previewable) return;
+    // Try again re-imports too, in case the viewer was what failed to load.
+    void attempt;
     let current = true;
     // The viewer carries pdf.js, so it loads only when a preview is on screen.
     import('virtual:file-viewer').then(

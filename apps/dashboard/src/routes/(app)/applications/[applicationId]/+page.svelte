@@ -9,7 +9,7 @@
   import TopBar from '#lib/components/top-bar.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { formatDateTime, timeAgo } from '#lib/dates.js';
-  import { canDownload } from '#lib/files.js';
+  import { canDownload, withheldReason } from '#lib/files.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { describeError } from '#lib/query.js';
@@ -62,11 +62,6 @@
     if (entry.actorUserId) return 'by a teammate';
     return '';
   }
-
-  const fileStatus: Record<string, string> = {
-    Pending: 'Being scanned for malware',
-    Infected: 'Withheld: the malware scan found a threat',
-  };
 
   const notFound = $derived(application.error instanceof ApiError && application.error.status === 404);
 </script>
@@ -152,7 +147,7 @@
                     {#if file && canDownload(file)}
                       <a href={getDownloadApplicationFileUrl(detail.id, file.id)} data-sveltekit-reload>Download {file.fileName}</a>
                     {:else if file}
-                      {file.fileName}: {fileStatus[file.scanStatus]}.
+                      {file.fileName}: {withheldReason(file)?.label}.
                     {:else}
                       {answerText(answer, question)}
                     {/if}
