@@ -20,6 +20,6 @@ export default defineConfig({
     }),
   ],
   server: { port, strictPort: true, proxy },
-  // `vite preview` serves the production build (AppHost Frontends=Built, used by the end-to-end tests).
+  // `vite preview` is for a quick local look at a build. The AppHost's Frontends=Built serves build/ from Caddy instead.
   preview: { port, strictPort: true, proxy },
 });

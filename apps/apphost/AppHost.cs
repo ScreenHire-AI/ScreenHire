@@ -8,9 +8,11 @@
 //                               override individual ports with Ports:Api / Ports:Marketing / Ports:Careers / Ports:Dashboard
 //                               / Ports:Mailpit (its web UI) / Ports:DevSso. `aspire start --isolated` (what /preview
 //                               uses in a worktree) randomises every port, these and the Aspire dashboard's included.
-//   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
-//                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
-//                               (the integration tests use it; only the API, worker and infrastructure start).
+//   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: the output of `pnpm -r build` served as it
+//                               ships (the end-to-end tests use it): the dashboard and marketing sites from Caddy
+//                               containers (Caddy/*/Caddyfile; the dashboard's sends /v1 to the API), careers from its
+//                               own Node server, dist/server/entry.mjs. None: no JS apps at all (the integration tests
+//                               use it; only the API, worker and infrastructure start).
 //   Demo        (on with Dev)   the local demo's data on Brightwater (the API's DevelopmentDemo): on with Frontends Dev,
 //                               off with Built and None, which the test stacks use. The integration tests'
 //                               DevelopmentDemoTests turn it on for a stack of their own. With it on, the API is healthy
@@ -194,12 +196,25 @@ if (demo)
 if (frontends != FrontendMode.None)
 {
     var apiUrl = api.GetEndpoint("http");
-    var script = frontends == FrontendMode.Built ? "preview" : "dev";
+    var built = frontends == FrontendMode.Built;
+
+    // Built serves what ships, with no Vite or Astro preview server: their Node processes died mid-run in the end-to-end
+    // tests with a native abort (0xC0000409) and no message (docs/process/testing.md, "Flake history"). The static apps
+    // go to Caddy, a real static file server, with Caddyfiles in Caddy/; careers runs its own Node server, the one that
+    // ships, with no pnpm or Astro CLI around it.
+    IResourceBuilder<ContainerResource> StaticSite(string name, string site, int fallbackPort) =>
+        builder.AddContainer(name, "caddy", "2.10.2-alpine")
+            .WithBindMount(Path.Combine(builder.AppHostDirectory, "Caddy", name), "/etc/caddy", isReadOnly: true)
+            .WithBindMount(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", site)), "/srv", isReadOnly: true)
+            .WithHttpEndpoint(port: PortFor(char.ToUpperInvariant(name[0]) + name[1..], fallbackPort), targetPort: 8080)
+            .WithHttpHealthCheck("/");
 
     // Health checks make WaitFor and the test fixtures wait until each server actually answers, not just until the
     // process starts. Careers' "/" redirects to the demo board, which also proves the API round trip.
-    var careers = builder.AddJavaScriptApp("careers", "../careers", script)
-        .WithPnpm(install: false)
+    IResourceBuilder<Aspire.Hosting.JavaScript.JavaScriptAppResource> careers = built
+        ? builder.AddNodeApp("careers", "../careers", "dist/server/entry.mjs")
+        : builder.AddJavaScriptApp("careers", "../careers", "dev");
+    careers.WithPnpm(install: false)
         .WithHttpEndpoint(port: PortFor("Careers", 4322), env: "PORT")
         .WithEnvironment("API_URL", apiUrl)
         .WithHttpHealthCheck("/")
@@ -216,17 +231,28 @@ if (frontends != FrontendMode.None)
             .WithEnvironment("ScreenHire__Domains__CareersHostPattern", "{tenant}.{CareersDomain}");
     }
 
-    builder.AddJavaScriptApp("marketing", "../marketing", script)
-        .WithPnpm(install: false)
-        .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")
-        .WithHttpHealthCheck("/");
+    if (built)
+    {
+        StaticSite("marketing", "marketing/dist", 4321);
+    }
+    else
+    {
+        builder.AddJavaScriptApp("marketing", "../marketing", "dev")
+            .WithPnpm(install: false)
+            .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")
+            .WithHttpHealthCheck("/");
+    }
 
-    var dashboard = builder.AddViteApp("dashboard", "../dashboard", script)
-        .WithPnpm(install: false)
-        .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Dashboard", 4323))
-        .WithEnvironment("API_URL", apiUrl)
-        .WithHttpHealthCheck("/")
-        .WaitFor(api);
+    // The dashboard reaches the API through its own /v1 path (cookies stay same-origin): the Vite dev server's proxy, or
+    // in Built mode the Caddyfile's, which also carries the real-time hub's WebSocket.
+    IResourceBuilder<IResourceWithEndpoints> dashboard = built
+        ? StaticSite("dashboard", "dashboard/build", 4323).WithEnvironment("API_URL", apiUrl).WaitFor(api)
+        : builder.AddViteApp("dashboard", "../dashboard", "dev")
+            .WithPnpm(install: false)
+            .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Dashboard", 4323))
+            .WithEnvironment("API_URL", apiUrl)
+            .WithHttpHealthCheck("/")
+            .WaitFor(api);
 
     // Sign-in cookies, OIDC redirect URIs and emailed links point at the dashboard, which reaches the API through its
     // /v1 proxy. Its real endpoint, because ports are random in tests.

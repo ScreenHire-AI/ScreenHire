@@ -60,7 +60,7 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
-  `Built` (production previews, used by the end-to-end tests) or `None` (used by the integration tests).
+  `Built` (the production builds served as they ship, used by the end-to-end tests) or `None` (used by the integration tests).
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
   `ScreenHire:Integrity:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
