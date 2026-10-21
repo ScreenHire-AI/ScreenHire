@@ -56,7 +56,7 @@
 
   const readonly = $derived(detail?.status === 'Closed');
   let tab = $state('pipeline');
-  let status = $state('');
+  let notice = $state('');
   let failure = $state('');
   let reviewing = $state(false);
   let applyFailure = $state('');
@@ -74,7 +74,7 @@
         data: { workflow: draft.workflow, expectedWorkflowVersion: baseVersion },
       });
       draft.saved(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
-      status = `Saved. The job's workflow is now version ${response.data.workflowVersion}.`;
+      notice = `Saved. The job's workflow is now version ${response.data.workflowVersion}.`;
     } catch (error) {
       failure = draft.failed(error, 'Could not save the workflow');
     }
@@ -90,7 +90,7 @@
       });
       draft.replace(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
       reviewing = false;
-      status = `Applied version ${update.latestVersion} of ${detail.template?.templateName}.`;
+      notice = `Applied version ${update.latestVersion} of ${detail.template?.templateName}.`;
     } catch (error) {
       applyFailure =
         error instanceof ApiError && error.status === 400
@@ -159,7 +159,7 @@
           </span>
         {/snippet}
         {#snippet actions()}
-          <p role="status" class="text-muted-foreground empty:hidden">{status}</p>
+          <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
           <p role="alert" class="font-semibold text-destructive empty:hidden">{failure}</p>
           {#if !readonly}
             <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}>Save workflow</Button>

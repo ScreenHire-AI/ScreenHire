@@ -83,7 +83,10 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
   would fire — essential trust feature, cheap because evaluation is deterministic.
 
 What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`): one
-editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own copy, with four tabs.
+editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own copy, with four tabs on
+the page's header band. A workflow that cannot be edited there (a ScreenHire template, a published version, a closed
+job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no form controls. The
+validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
   in a Sheet drawer. Automations whose trigger has no stage (an arriving application, the integrity checks, a manual
@@ -100,7 +103,8 @@ editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
 its path names, so the guardrail refusal of an integrity-driven rejection appears on that action. A draft that does
-not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it.
+not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it. The editor lists
+the open problems in a "Problems to fix" panel above every tab.
 
 ## 5. API surface (public, same API the dashboard uses)
 

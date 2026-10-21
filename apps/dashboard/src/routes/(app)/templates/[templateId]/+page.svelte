@@ -70,7 +70,7 @@
   });
 
   let tab = $state('pipeline');
-  let status = $state('');
+  let notice = $state('');
   let failure = $state('');
   const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending);
 
@@ -89,7 +89,7 @@
         data: { definition: { ...current.definition, workflow: draft.workflow } },
       });
       draft.saved(response.data.definition.workflow, `${response.data.id}:${response.data.status}`);
-      status = `Saved version ${current.version}.`;
+      notice = `Saved version ${current.version}.`;
       return true;
     } catch (error) {
       failure = draft.failed(error, 'Could not save the draft');
@@ -103,7 +103,7 @@
     failure = '';
     try {
       await publish.mutateAsync({ templateId: params.templateId, version: current.version });
-      status = `Published version ${current.version}.`;
+      notice = `Published version ${current.version}.`;
     } catch (error) {
       failure = draft.failed(error, 'Could not publish');
     }
@@ -191,7 +191,7 @@
           </span>
         {/snippet}
         {#snippet actions()}
-          <p role="status" class="text-muted-foreground empty:hidden">{status}</p>
+          <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
           <p role="alert" class="font-semibold text-destructive empty:hidden">{failure}</p>
           {#if versions.length > 1}
             <DropdownMenu.Root>
