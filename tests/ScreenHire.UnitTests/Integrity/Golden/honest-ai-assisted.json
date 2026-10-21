@@ -1,6 +1,6 @@
 {
   "applicant": "honest-ai-assisted",
-  "rulesetVersion": "2026-10-20.4",
+  "rulesetVersion": "2026-10-21.1",
   "authenticity": {
     "level": "NoConcerns",
     "reasonCodes": [],
@@ -55,7 +55,7 @@
     "appliedRules": [
       "telemetry-never-alone"
     ],
-    "summary": "2 observations from form behaviour and document checks, with nothing from a second, independent kind of check to back them up. Shown for context only. The candidate said they used AI tools, which this job allows when disclosed.",
+    "summary": "2 observations from form behaviour and document checks, with nothing from a second, independent kind of check to back them up. Shown for context only. This job allows AI help when disclosed.",
     "nextStep": "No action needed.",
     "policyContext": "Disclosed",
     "signals": [

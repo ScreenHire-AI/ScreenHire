@@ -143,8 +143,8 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
    percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and
    "Same resume file" shared with Alex Reed and Morgan Hale, then Sam Okafor, who used AI within the job's policy and
    raises no concern.
-3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The timeline
-   records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
+3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The
+   Activity panel records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
    to Robin within a second or two. Every candidate's "We received your application" email is there too, and the
    Screening and Interview emails for the designer and frontend candidates.
 4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** opens the form with everything the
@@ -158,7 +158,7 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
 6. **Take it down (15 s).** On the job page, open **More actions**, choose **Close & remove everywhere** and confirm. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
-Extras if there is time: Support Engineer for a closed job and its candidates' timelines with the recruiter's notes,
+Extras if there is time: Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
 the Templates page and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.

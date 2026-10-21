@@ -1,18 +1,25 @@
 <script lang="ts">
+  // Every Lucide icon has this one component type.
+  import type LucideIcon from '@lucide/svelte/icons/circle';
   import Hint from '#lib/components/hint.svelte';
   import { cn } from '#lib/utils.js';
 
   // One line of text that ends in an ellipsis when it does not fit, with the full value in a tooltip (design system F5).
   // The tooltip, and its tab stop, exist only while the text is cut. With `href` the text is a link, such as a name in a
-  // table, and its tooltip opens on the link itself.
+  // table, and its tooltip opens on the link itself. A link outside a list of names is `underlined` at rest (A5) and may
+  // take an `icon` that goes before its text, inside the link.
   let {
     text,
     href,
+    icon: Icon,
+    underlined = false,
     class: className,
     ...restProps
   }: {
     text: string;
     href?: string;
+    icon?: typeof LucideIcon;
+    underlined?: boolean;
     class?: string;
     /** -1 inside a card that is itself the tab stop, such as a board card. */
     tabindex?: number;
@@ -35,8 +42,14 @@
 
 <Hint content={text} disabled={!truncated}>
   {#snippet children({ props })}
-    {#if href}
-      <a {...props} {...restProps} {href} bind:this={element} class={cn('block min-w-0 truncate', className)}>{text}</a>
+    {#if href && Icon}
+      <!-- The icon sits inside the link, so the text is the part that is cut. -->
+      <a {...props} {...restProps} {href} class={cn('flex min-w-0 items-center gap-1.5', className)}>
+        <Icon aria-hidden="true" class="shrink-0" />
+        <span bind:this={element} class={cn('min-w-0 truncate', underlined && 'underline underline-offset-2')}>{text}</span>
+      </a>
+    {:else if href}
+      <a {...props} {...restProps} {href} bind:this={element} class={cn('block min-w-0 truncate', underlined && 'underline underline-offset-2', className)}>{text}</a>
     {:else}
       <span {...props} {...restProps} bind:this={element} class={cn('block min-w-0 truncate', className)}>{text}</span>
     {/if}

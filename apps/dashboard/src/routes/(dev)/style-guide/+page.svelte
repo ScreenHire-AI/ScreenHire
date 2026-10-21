@@ -5,9 +5,11 @@
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
+  import MailIcon from '@lucide/svelte/icons/mail';
   import MessageSquareIcon from '@lucide/svelte/icons/message-square';
   import MoonIcon from '@lucide/svelte/icons/moon';
   import PencilIcon from '@lucide/svelte/icons/pencil';
+  import PhoneIcon from '@lucide/svelte/icons/phone';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SunIcon from '@lucide/svelte/icons/sun';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
@@ -15,6 +17,7 @@
   import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
@@ -180,12 +183,15 @@
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Detail: status, actions and facts</figcaption>
+            <figcaption class="text-caption text-muted-foreground">Detail: status, details, actions and facts</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
+                {#snippet details()}
+                  <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined class="text-muted-foreground" />
+                  <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined class="text-muted-foreground" />
+                {/snippet}
                 {#snippet actions()}
-                  <Button variant="outline" size="lg">Add note</Button>
                   <Button size="lg">Move to stage</Button>
                 {/snippet}
                 {#snippet facts()}
@@ -418,6 +424,9 @@
           <SummaryList>
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>
+            <SummaryItem label="Truncated link">
+              <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} underlined />
+            </SummaryItem>
           </SummaryList>
         </Panel>
       </div>
@@ -510,6 +519,15 @@
           <ActivityList label="Activity" items={activity} />
         </Panel>
       </div>
+
+      <Panel title="Action bar">
+        <figure class="flex flex-col gap-2">
+          <figcaption class="text-caption text-muted-foreground">A phone's primary action, fixed to the bottom of the screen; shown in place here</figcaption>
+          <div class="max-w-95 overflow-hidden rounded-lg bg-secondary pt-6">
+            <ActionBar class="static z-auto"><Button size="lg">Move to stage</Button></ActionBar>
+          </div>
+        </figure>
+      </Panel>
 
       <Panel title="Integrity chip and evidence">
         <div class="flex flex-col gap-4">

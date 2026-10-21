@@ -219,10 +219,13 @@ public sealed class IntegrityRulesetTests
     }
 
     [Fact]
-    public void Ai_assistance_summaries_say_where_the_candidate_stands_against_the_policy()
+    public void Ai_assistance_summaries_state_the_policy_and_leave_the_declaration_to_the_application()
     {
         Assess([], AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.Used).Ai.Summary
-            .Should().Be("No signs that the content was generated or templated. The candidate said they used AI tools, which this job allows when disclosed.");
+            .Should().Be("No signs that the content was generated or templated. This job allows AI help when disclosed.");
+        Assess([], AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.DidNotUse).Ai.Summary
+            .Should().Be(Assess([], AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.Used).Ai.Summary);
+        Assess([], AiUsePolicy.NotAllowed, AiUseDeclaration.NotProvided).Ai.Summary.Should().NotContain("Declared");
         // A declaration changes neither the next step nor its tone: honest disclosure draws no extra prompt.
         Assess([], AiUsePolicy.NotAllowed, AiUseDeclaration.Used).Ai.NextStep.Should().Be("No action needed.");
         Assess(StrongAiSignals(), AiUsePolicy.NotAllowed, AiUseDeclaration.Used).Ai.NextStep

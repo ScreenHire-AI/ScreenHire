@@ -239,10 +239,12 @@ Atlassian's surfaces.
 | Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
 
 - **Header band:** a white strip under the top bar. Title first, status badge beside it, actions on the right, then
-  a labelled facts row (label 12px above value 14px, thin rules between) or tabs on its bottom edge.
+  a labelled facts row (label 12px above value 14px, thin rules between) or tabs on its bottom edge. One muted line
+  under the title may hold a person's contact details, each an icon and its value, with no labels.
 - **Panel:** header (title, optional count, actions on the right), body, optional footer inset.
-- **Columns:** main `flex: 999 1 520px`, side `flex: 1 1 320px` with `max-width: 380px`, gap 20px. When they stack,
-  panels go in priority order: status first.
+- **Columns:** from `lg`, the main column takes the room the 320px side column leaves, gap 20px. Below `lg` they
+  stack in one column in priority order, status first. The status panel comes first in the page's order and sits at
+  the top of the side column from `lg`, so the order on screen and the reading order agree at every size.
 
 ## 8. Screen sizes
 
@@ -252,7 +254,7 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 |---|---|---|---|---|
 | Window | under 768px | 768 to 1023px (`md`) | 1024 to 1535px (`lg`, `xl`) | 1536px and up (`2xl`) |
 | Navigation | Sidebar as a sheet behind a menu button; Back on detail pages | Icon rail, labels in tooltips | Full sidebar | Full sidebar |
-| Columns | One, status first | Side column wraps below when both cannot fit | Main and side | Same, centred at 1280px |
+| Columns | One, status first | One, status first | Main and side | Same, centred at 1280px |
 | Header band | Facts in a two-column grid | Facts wrap | One line of facts | One line of facts |
 | Actions | Primary in a bar at the bottom; the rest in More | In the header; extras fold into More | In the header | In the header |
 | Tables | Rows become two-line list items | Scroll inside the panel; first column sticks | Full | Full, optional columns may show |
@@ -312,8 +314,9 @@ in a development build, shows every component in each state, and its test fails 
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, time ago |
-| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence` | Section 16 |
+| Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
+| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
 
 ## 12. Words
 

@@ -76,7 +76,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         // The move is recorded on the application's timeline.
         await Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Casey Morgan");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Timeline" })).ToContainTextAsync("Moved from Applied to Screening by you");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");
         await ExpectNoAccessibilityViolationsAsync();
     }
 
@@ -163,7 +163,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Riley Chen");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Answers" })).ToContainTextAsync("No questionnaire answers.");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Timeline" })).ToContainTextAsync("Added to Applied by you");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Added to Applied by you");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-application-light");
 

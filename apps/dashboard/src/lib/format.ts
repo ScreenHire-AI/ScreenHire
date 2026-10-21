@@ -43,6 +43,11 @@ const sourceLabels: Record<ApplicationSource, string> = { CareersSite: 'careers'
 /** Where an application came from, as the mono source column shows it. */
 export const sourceLabel = (source: ApplicationSource) => sourceLabels[source];
 
+const sourceNames: Record<ApplicationSource, string> = { CareersSite: 'Careers page', Recruiter: 'Added by a recruiter' };
+
+/** Where an application came from, as a detail page's Source fact. */
+export const sourceName = (source: ApplicationSource) => sourceNames[source];
+
 /** Up to two initials for an avatar: "Casey Morgan" is "CM". */
 export function initials(name: string): string {
   return name

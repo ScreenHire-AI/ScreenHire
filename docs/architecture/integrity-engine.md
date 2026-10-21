@@ -163,13 +163,15 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as a pill; a job overview
   with a numeric legend (each entry filters the table) and an `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
-  page. The panel shows each assessment's summary, suggested next step, reasons (signals that count toward the level)
-  and context signals with their evidence drawn by kind (§10.1) and counter-evidence, the AI policy and the
-  candidate's declaration, any dismissal, and the review log. Its actions are *Dismiss with a reason* (per assessment
-  above the lowest level) and *Add note*; *Request verification* is shown disabled with the API's phase 2 reason. The
-  footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed` refetches the chips,
-  overview and panel live. AI chips use one colour and no mark, so they read as information; "Not indicated" is
-  neutral. While an integrity filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a
+  page. The panel shows each assessment's summary, suggested next step (one quiet line for a calm result), reasons
+  (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
+  counter-evidence, the job's AI policy and any dismissal. The candidate's AI declaration is in the page's Declarations
+  panel, not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
+  log panel beside it lists every dismissal and note and holds *Add note*. *Request verification* is hidden until
+  phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
+  `IntegrityAssessed` refetches the chips, overview and panel live. AI chips use one colour and no mark, so they read
+  as information; "Not indicated" is neutral. While an integrity filter is set, the job page's bulk move offers no
+  Rejected or Withdrawn stage, and a
   new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a filtered "select all" must not become
   rejection driven by integrity signals. Moving one candidate stays a person's decision about that candidate.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
@@ -340,11 +342,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.4`)
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-21.1`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -363,8 +365,9 @@ categories, and only when the level is raised; other signals are still shown, as
 
 The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
 (`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the summary
-and the next step only. The summary states the policy and the declaration side by side ("Declared AI use: no."), and
-the next step is the same whatever the candidate declared, so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
+and the next step only. The summary states the job's policy and not the declaration, which the application page shows
+in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
+so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
 number that grades the candidate.
 
 Changing a weight, threshold or rule means a new `IntegrityRuleset.Version`. Assessments store the version they were

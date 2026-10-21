@@ -12,8 +12,8 @@ import {
   integrityApplicationId,
   pendingIntegrity,
 } from '../../test-support/integrity-fixtures.js';
+import IntegrityHarness from '../../test-support/integrity-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
-import IntegrityPanel from './integrity-panel.svelte';
 
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
 
@@ -38,7 +38,7 @@ function serve(initial: ApplicationIntegrity, posts: Record<string, (body: unkno
 }
 
 function renderPanel() {
-  return render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId } } });
+  return render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId } } });
 }
 
 const section = (name: string) => screen.getByRole('region', { name });
@@ -56,23 +56,26 @@ describe('integrity panel', () => {
     expect(within(authenticity).getByText('Authenticity: Verification recommended')).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('3 observations from network and automation checks back each other up.');
     expect(authenticity).toHaveTextContent('Suggested next step: Confirm the candidate is who they say they are');
-    expect(within(authenticity).getByRole('heading', { name: 'Reasons · 3' })).toBeInTheDocument();
+    expect(within(authenticity).getByRole('heading', { name: 'Reasons 3' })).toBeInTheDocument();
     const codes = [...authenticity.querySelectorAll('[data-signal]')].map((item) => item.getAttribute('data-signal'));
     expect(codes).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER', 'NET_DATACENTER_IP', 'NET_ANON_PROXY']);
     expect(within(authenticity).getByRole('heading', { name: 'Context, not counted toward the level' })).toBeInTheDocument();
     expect(authenticity.querySelector('[data-signal="AUTO_SUBMIT_VELOCITY"] [data-evidence-kind="Metric"]')).toHaveTextContent('6 seconds');
     const counter = authenticity.querySelector('[data-signal="NET_DATACENTER_IP"] [data-counter-evidence]')!;
-    expect(counter).toHaveTextContent('Counter-evidence · The candidate gave a phone number in the same country.');
+    expect(counter).toHaveTextContent('Counter-evidence: The candidate gave a phone number in the same country.');
     expect(counter).toHaveTextContent('Phone country: United Kingdom');
   });
 
-  it('shows AI assistance as information, with the job policy and the candidate declaration', async () => {
+  it("shows AI assistance as information, with the job policy and not the candidate's declaration", async () => {
     serve(botIntegrity());
     renderPanel();
 
-    const ai = await screen.findByRole('region', { name: /AI assistance/ });
-    expect(within(ai).getByRole('heading', { level: 3 })).toHaveTextContent('AI assistance · informational');
-    expect(ai).toHaveTextContent('Job policy: Allowed with disclosure · Declared AI use: No');
+    const ai = await screen.findByRole('region', { name: 'AI assistance' });
+    expect(within(ai).getByRole('heading', { level: 3 })).toHaveTextContent('AI assistance');
+    expect(ai).toHaveTextContent('Informational');
+    expect(ai).toHaveTextContent('Job policy: Allowed with disclosure');
+    // The declaration has its own place on the page, in Declarations (section 16).
+    expect(ai).not.toHaveTextContent(/Declared AI use/);
     expect(ai.querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-evidence-kind="TextComparison"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-slot="badge"]')!.className).not.toMatch(/status-(review|verify)/);
@@ -90,13 +93,26 @@ describe('integrity panel', () => {
     expect(section('Integrity')).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
-  it('keeps request verification disabled with the phase 2 hint', async () => {
+  it('hides request verification until it exists', async () => {
     serve(botIntegrity());
     renderPanel();
+    await screen.findByRole('region', { name: 'Authenticity' });
 
-    const request = await screen.findByRole('button', { name: 'Request verification' });
-    expect(request).toBeDisabled();
-    expect(request).toHaveAccessibleDescription('Phase 2 Identity verification arrives in phase 2.');
+    expect(screen.queryByRole('button', { name: /Request verification/ })).not.toBeInTheDocument();
+    expect(section('Integrity')).not.toHaveTextContent(/phase 2/i);
+  });
+
+  it('keeps a calm next step as a quiet line and a concern in an inset', async () => {
+    serve(genuineIntegrity());
+    const { unmount } = renderPanel();
+    const calm = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(within(calm).getByText('Suggested next step: No action needed.')).not.toHaveClass('bg-secondary');
+    unmount();
+
+    serve(botIntegrity());
+    renderPanel();
+    const concern = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(within(concern).getByText(/Confirm the candidate is who they say they are/)).toHaveClass('bg-secondary');
   });
 
   it('dismisses an assessment with a reason, which lands in the review log', async () => {
@@ -211,7 +227,7 @@ describe('integrity panel', () => {
       vi.fn(apiStub({ [`GET ${base}`]: () => (failing ? Response.json({ title: 'Server error', status: 500 }, { status: 500 }) : Response.json(botIntegrity())) })),
     );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId }, client } });
+    render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId }, client } });
     await screen.findByRole('region', { name: 'Authenticity' });
 
     failing = true;
@@ -255,7 +271,7 @@ describe('integrity panel', () => {
     let assessed = false;
     vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET ${base}`]: () => Response.json(assessed ? botIntegrity() : pendingIntegrity()) })));
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId }, client } });
+    render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId }, client } });
     await screen.findByText(/Checks are still running/);
 
     // What the shell's live connection does with the event (#lib/realtime.ts).

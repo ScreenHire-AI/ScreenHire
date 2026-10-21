@@ -34,7 +34,7 @@ namespace ScreenHire.Domain.Integrity;
 public static class IntegrityRuleset
 {
     /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes.</summary>
-    public const string Version = "2026-10-20.4";
+    public const string Version = "2026-10-21.1";
 
     public const int CorroboratingWeight = 2;
 
@@ -130,7 +130,7 @@ public static class IntegrityRuleset
             [.. Ordered(signals).Select(s => s.Id)],
             [.. counted.Select(s => s.Id)],
             rules,
-            Summaries.Summary(kind, step, signals, counted, aiContext, inputs.AiUseDeclaration),
+            Summaries.Summary(kind, step, signals, counted, aiContext),
             Summaries.NextStep(kind, step, aiContext),
             aiContext,
             Fingerprint(kind, ofKind, inputs));
@@ -175,8 +175,7 @@ public static class IntegrityRuleset
     private static class Summaries
     {
         public static string Summary(
-            IntegrityAssessmentKind kind, int step, List<IntegritySignal> shown, List<IntegritySignal> counted, AiPolicyContext? context,
-            AiUseDeclaration declaration)
+            IntegrityAssessmentKind kind, int step, List<IntegritySignal> shown, List<IntegritySignal> counted, AiPolicyContext? context)
         {
             var text = step > 0
                 ? $"{Observations(counted.Count)} from {Categories(counted)} checks back each other up: {Titles(counted)}."
@@ -187,7 +186,7 @@ public static class IntegrityRuleset
                     : shown.All(s => s.ContextOnly)
                             ? $"Shown for context only: {Titles(shown)}. This is never a reason on its own."
                             : $"{Observations(shown.Count)} from {Categories(shown)} checks, with nothing from a second, independent kind of check to back {(shown.Count == 1 ? "it" : "them")} up. Shown for context only.";
-            return context is { } policy ? $"{text} {PolicySentence(policy, declaration)}" : text;
+            return context is { } policy ? $"{text} {PolicySentence(policy)}" : text;
         }
 
         public static string NextStep(IntegrityAssessmentKind kind, int step, AiPolicyContext? context)
@@ -211,20 +210,13 @@ public static class IntegrityRuleset
             };
         }
 
-        private static string PolicySentence(AiPolicyContext context, AiUseDeclaration declaration) => context switch
+        // The job's policy only. The candidate's declaration is shown beside the panel, in the application's own
+        // Declarations (design system section 16), and is never set against the evidence.
+        private static string PolicySentence(AiPolicyContext context) => context switch
         {
             AiPolicyContext.AllowedByPolicy => "This job allows AI help.",
-            AiPolicyContext.Disclosed => "The candidate said they used AI tools, which this job allows when disclosed.",
-            AiPolicyContext.NotDisclosed => $"This job allows AI help when disclosed. {Declared(declaration)}",
-            AiPolicyContext.DeclaredUseNotAllowed => $"This job does not allow AI help. {Declared(declaration)}",
-            _ => $"This job does not allow AI help. {Declared(declaration)}",
-        };
-
-        private static string Declared(AiUseDeclaration declaration) => declaration switch
-        {
-            AiUseDeclaration.Used => "Declared AI use: yes.",
-            AiUseDeclaration.DidNotUse => "Declared AI use: no.",
-            _ => "Declared AI use: not answered.",
+            AiPolicyContext.Disclosed or AiPolicyContext.NotDisclosed => "This job allows AI help when disclosed.",
+            _ => "This job does not allow AI help.",
         };
 
         private static string Observations(int count) =>

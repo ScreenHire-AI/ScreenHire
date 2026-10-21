@@ -1,3 +1,4 @@
+import MailIcon from '@lucide/svelte/icons/mail';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
@@ -46,5 +47,30 @@ describe('truncated text', () => {
     expect(link).toHaveClass('truncate');
     await fireEvent.focus(link);
     expect(tooltip()).toHaveTextContent(text);
+  });
+
+  it('underlines a link at rest only when asked, and a name in a table keeps its hover underline', () => {
+    const { unmount } = render(WithTooltips, { props: { component: TruncatedText, props: { text: 'Platform Engineer', href: '/jobs/1', underlined: true } } });
+    expect(screen.getByRole('link', { name: 'Platform Engineer' })).toHaveClass('truncate', 'underline');
+    unmount();
+
+    render(WithTooltips, { props: { component: TruncatedText, props: { text: 'Platform Engineer', href: '/jobs/1' } } });
+    expect(screen.getByRole('link', { name: 'Platform Engineer' })).not.toHaveClass('underline');
+  });
+
+  it('as a link, is one tab stop that carries the tooltip, with its icon hidden', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    const email = 'samuel.okonkwo-hartley@careers.example.com';
+    render(WithTooltips, { props: { component: TruncatedText, props: { text: email, href: `mailto:${email}`, icon: MailIcon, underlined: true } } });
+
+    const link = screen.getByRole('link', { name: email });
+    expect(link).toHaveAttribute('href', `mailto:${email}`);
+    expect(link.querySelectorAll('[tabindex]')).toHaveLength(0);
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    // A link outside a list of names underlines at rest (A5), and only its text does.
+    expect(screen.getByText(email)).toHaveClass('underline');
+    await fireEvent.focus(link);
+    expect(tooltip()).toHaveTextContent(email);
+    await expectNoAxeViolations(document.body);
   });
 });

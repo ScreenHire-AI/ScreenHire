@@ -44,6 +44,15 @@ describe('activity list', () => {
     expect(items[0]!.querySelector('svg')!.parentElement).toHaveAttribute('aria-hidden', 'true');
     await expectNoAxeViolations(container);
   });
+
+  it('shows skeleton rows of the same shape while loading (E1)', () => {
+    render(ActivityList, { props: { label: 'Activity', items: undefined } });
+
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    const skeleton = document.querySelector('[data-activity-skeleton]')!;
+    expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+    expect(skeleton.querySelectorAll('.rounded-full')).toHaveLength(2);
+  });
 });
 
 describe('relative time', () => {
