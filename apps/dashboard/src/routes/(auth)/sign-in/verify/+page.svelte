@@ -3,6 +3,7 @@
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -47,7 +48,7 @@
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
     {#if broken}
       <Panel title="Email link" footer={newLink}>
-        <p role="alert">This sign-in link has expired or has already been used. Each link works once, for 15 minutes.</p>
+        <FailureText message="This sign-in link has expired or has already been used. Each link works once, for 15 minutes." />
       </Panel>
     {:else}
       <form onsubmit={signIn} aria-label="Finish signing in">

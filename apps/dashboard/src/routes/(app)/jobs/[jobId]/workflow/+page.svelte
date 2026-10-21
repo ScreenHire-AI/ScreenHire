@@ -9,6 +9,7 @@
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -21,7 +22,6 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
@@ -169,7 +169,7 @@
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
-          <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
+          <FailureText message={failure} />
           <!-- The one primary action; a phone has it in the action bar (section 8). -->
           {#if !readonly && !sidebar.isMobile}{@render saveButton()}{/if}
         {/snippet}
@@ -237,7 +237,7 @@
       </ul>
     {/if}
     {#if draft.dirty}<p class="text-body font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
-    <p role="alert" class="flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if applyFailure}<ProblemMark />{applyFailure}{/if}</p>
+    <FailureText message={applyFailure} />
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep this workflow</Dialog.Close>
       <Button onclick={applyUpdate} disabled={apply.isPending || !update}>Apply update</Button>

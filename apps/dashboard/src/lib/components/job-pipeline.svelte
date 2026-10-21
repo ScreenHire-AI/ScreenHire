@@ -2,12 +2,12 @@
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -200,13 +200,9 @@
   {:else}
     <PipelineBoard applications={searched} {stages} {moves} />
   {/if}
-  <!-- A failed move is a problem to fix: mark, colour and text (T1). A move that worked is a quiet line. -->
-  <p
-    role="status"
-    class={['px-4.5 py-2 text-body empty:hidden max-md:px-4', moves.failure ? 'flex items-center gap-2 text-status-verify' : 'text-muted-foreground']}
-  >
-    {#if moves.failure && moves.announcement}<StatusMark shape="square" tone="verify" />{/if}{moves.announcement}
-  </p>
+  <!-- A move that worked is a quiet line; a failed one is a problem to fix (T1). -->
+  <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{moves.failure ? '' : moves.announcement}</p>
+  <FailureText message={moves.failure ? moves.announcement : ''} class="px-4.5 py-2 max-md:px-4" />
 </Panel>
 
 {#snippet searchField(className: string)}

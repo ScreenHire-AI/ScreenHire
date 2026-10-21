@@ -123,7 +123,7 @@
 
       {#if providers.length === 0 && !magicLink}
         <Panel title="Sign-in methods">
-          <p role="alert">Sign-in is not set up on this server yet.</p>
+          <FailureText message="Sign-in is not set up on this server yet." />
         </Panel>
       {/if}
     {/if}

@@ -16,6 +16,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -31,7 +32,6 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
@@ -225,7 +225,7 @@
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
-          <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
+          <FailureText message={failure} />
           {#if sidebar.isMobile}
             <!-- A phone has the primary action in the action bar and the rest in More (section 8). -->
             {#if isDraft || versions.length > 1}

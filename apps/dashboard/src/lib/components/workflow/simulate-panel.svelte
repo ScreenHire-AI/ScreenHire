@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AnswerFact, EvaluationOutcome, HiringWorkflow, TriggerType, WorkflowSimulationResult } from '@screenhire/api-client';
   import { ApiError, createSimulateWorkflow } from '@screenhire/api-client/svelte-query';
+  import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -17,7 +18,6 @@
     triggerTypes,
   } from '#lib/workflow.js';
   import { checkboxClass, kickerClass, labelClass, rowClass, selectClass } from './controls.js';
-  import ProblemMark from './problem-mark.svelte';
 
   // "Test this workflow" (workflow-engine.md §4): a sample application through the definition being edited, unsaved
   // changes included, with the evaluator the worker runs. Nothing is saved or sent.
@@ -177,8 +177,8 @@
 
   <Panel title="What would happen" aria-live="polite" class="flex-[1_1_320px]">
     {#if failure}
-      <div role="alert">
-        <p class="flex items-baseline gap-1.5 font-semibold text-status-verify"><ProblemMark />{failure.message}</p>
+      <div>
+        <FailureText message={failure.message} />
         {#if failure.problems.length > 0}
           <ul class="mt-1.5 flex list-disc flex-col gap-0.5 pl-5">{#each failure.problems as problem (problem)}<li>{problem}</li>{/each}</ul>
         {/if}
