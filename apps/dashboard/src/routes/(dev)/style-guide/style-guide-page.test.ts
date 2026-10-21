@@ -56,6 +56,7 @@ const panels: Record<string, string[]> = {
   'Relative time, truncated text': ['Time and long text'],
   'Table date': ['Time and long text'],
   'Failure text': ['Failure text'],
+  'Form field': ['Form field'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
 };
 

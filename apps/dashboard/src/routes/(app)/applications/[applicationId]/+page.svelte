@@ -150,7 +150,7 @@
     {:else}
       <HeaderBand title="Application" />
       <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
-        <QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} />
+        <Panel title="Could not load the application"><QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} inset /></Panel>
       </div>
     {/if}
   {:else if !detail}

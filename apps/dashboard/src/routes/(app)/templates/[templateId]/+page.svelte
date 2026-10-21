@@ -163,14 +163,14 @@
           </Empty.Root>
         </Panel>
       {:else}
-        <QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} />
+        <Panel title="Could not load the template"><QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} inset /></Panel>
       {/if}
     </div>
   {:else if !detail || !current || !draft.workflow}
     {#if version.isError}
       <HeaderBand title={detail?.name ?? 'Template'} />
       <div class={workArea}>
-        <QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} />
+        <Panel title="Could not load the version"><QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} inset /></Panel>
       </div>
     {:else}
       <div aria-hidden="true">

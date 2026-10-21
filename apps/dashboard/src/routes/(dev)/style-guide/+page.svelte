@@ -46,6 +46,8 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Field from '#lib/components/ui/field/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -252,6 +254,13 @@
           </Panel>
           <Panel title="Could not load">
             <QueryError message="Could not load the timeline. Check your connection." onretry={() => {}} inset />
+          </Panel>
+          <Panel title="Form field">
+            <Field.Field data-invalid>
+              <Field.Label for="style-guide-email">Email</Field.Label>
+              <Input id="style-guide-email" type="email" value="samuel.okonkwo" aria-invalid="true" aria-describedby="style-guide-email-error" />
+              <Field.Error id="style-guide-email-error" errors={[{ message: 'Enter an email address, such as name@example.com.' }]} />
+            </Field.Field>
           </Panel>
           <Panel title="Failure text">
             <FailureText message="Could not publish Senior product designer. Try again in a minute." />

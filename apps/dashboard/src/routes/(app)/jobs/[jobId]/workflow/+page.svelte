@@ -136,7 +136,7 @@
           </Empty.Root>
         </Panel>
       {:else}
-        <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} />
+        <Panel title="Could not load the job"><QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset /></Panel>
       {/if}
     </div>
   {:else if !detail || !draft.workflow}
