@@ -206,9 +206,8 @@
       </fieldset>
 
       <Field.Field data-invalid={$errors.closingDate ? true : undefined}>
-        <Field.Label for="job-closing">Closing date <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
-        <Input id="job-closing" name="closingDate" type="date" bind:value={$form.closingDate} aria-invalid={$errors.closingDate ? 'true' : undefined} aria-describedby={describedBy('job-closing-error', $errors.closingDate, 'job-closing-hint')} />
-        <Field.Description id="job-closing-hint">The posting expires at the end of this day, UTC.</Field.Description>
+        <Field.Label for="job-closing">Closing date, UTC <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+        <Input id="job-closing" name="closingDate" type="date" bind:value={$form.closingDate} aria-invalid={$errors.closingDate ? 'true' : undefined} aria-describedby={describedBy('job-closing-error', $errors.closingDate)} />
         <Field.Error id="job-closing-error" errors={$errors.closingDate?.map((message) => ({ message }))} />
       </Field.Field>
 
