@@ -10,9 +10,13 @@
   import { tick } from 'svelte';
   import { dndzone, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
   import { goto } from '$app/navigation';
+  import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
-  import { formatDateTime, timeAgo } from '#lib/dates.js';
+  import RelativeTime from '#lib/components/relative-time.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { initials, sourceLabel } from '#lib/format.js';
+  import { chipOf } from '#lib/integrity.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
 
@@ -20,13 +24,10 @@
     applications,
     stages,
     moves,
-    now = Date.now(),
   }: {
     applications: readonly ApplicationSummary[];
     stages: readonly WorkflowStage[];
     moves: Moves;
-    /** The clock for "applied" ages; tests fix it. */
-    now?: number;
   } = $props();
 
   type Card = ApplicationSummary & { isDndShadowItem?: boolean };
@@ -78,13 +79,14 @@
   }
 </script>
 
+<!-- The board scrolls sideways inside its panel; each column is an inset (design system section 6). -->
 <div class="overflow-x-auto">
   <div class="flex min-w-max gap-3 p-3">
     {#each columns as column (column.stage.id)}
-      <section aria-labelledby={`stage-${column.stage.id}`} class="flex w-60 flex-col rounded-lg bg-secondary">
-        <h3 id={`stage-${column.stage.id}`} class="flex items-center justify-between px-3 pt-2.5 pb-1.5 text-body font-bold">
+      <section aria-labelledby={`stage-${column.stage.id}`} class="flex w-64 flex-col rounded-lg bg-secondary">
+        <h3 id={`stage-${column.stage.id}`} class="flex items-center gap-2 px-3 pt-3 pb-2 text-body font-semibold">
           {column.stage.name}
-          <span class="text-caption text-muted-foreground tabular-nums">{column.cards.filter((card) => !card.isDndShadowItem).length}</span>
+          <Badge variant="count" class="bg-card">{column.cards.filter((card) => !card.isDndShadowItem).length}</Badge>
         </h3>
         <ul
           aria-label={`${column.stage.name} stage`}
@@ -94,26 +96,47 @@
           onfinalize={(event) => onfinalize(column.stage, event)}
         >
           {#each column.cards as card (card.id)}
+            {@const authenticity = chipOf(card.integrity, 'authenticity')}
+            {@const ai = chipOf(card.integrity, 'aiAssistance')}
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions: svelte-dnd-action makes each card focusable (tabindex 0) and draggable; these keys are its non-drag alternative -->
             <li
               data-card-id={card.id}
               aria-label={`${card.candidateName}, ${column.stage.name}`}
-              class="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-2.5 outline-offset-2"
+              class="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 outline-offset-2"
               onkeydown={(event) => onkeydown(card, event)}
             >
-              <span class="flex items-center gap-2">
+              <span class="flex min-w-0 items-center gap-2">
                 <span
                   aria-hidden="true"
-                  class="grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
+                  class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
                   >{initials(card.candidateName)}</span
                 >
-                <a href={`/applications/${card.id}`} tabindex="-1" class="truncate font-bold text-foreground no-underline hover:underline"
-                  >{card.candidateName}</a
-                >
+                <TruncatedText
+                  href={`/applications/${card.id}`}
+                  tabindex={-1}
+                  text={card.candidateName}
+                  class="font-semibold text-foreground no-underline hover:underline"
+                />
               </span>
-              <span class="flex items-center justify-between gap-2">
-                <span class="text-caption text-muted-foreground">{sourceLabel(card.source)} · <time datetime={card.submittedAt} title={formatDateTime(card.submittedAt)}>{timeAgo(card.submittedAt, now)}</time></span>
-                <MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
+              <!-- Status first, calm states quiet (T2, T3); the column already says the stage. -->
+              <span class="flex flex-wrap items-center gap-1.5">
+                <IntegrityChip
+                  kind="authenticity"
+                  compact
+                  level={authenticity?.level ?? null}
+                  reasons={authenticity?.reasons ?? 0}
+                  dismissed={authenticity?.dismissed ?? false}
+                />
+                {#if ai && ai.level.rank > 0}
+                  <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
+                {/if}
+              </span>
+              <span class="flex items-center gap-2">
+                <Badge variant="muted">{sourceLabel(card.source)}</Badge>
+                <span class="min-w-0 truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
+                <span class="ml-auto shrink-0">
+                  <MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
+                </span>
               </span>
             </li>
           {/each}

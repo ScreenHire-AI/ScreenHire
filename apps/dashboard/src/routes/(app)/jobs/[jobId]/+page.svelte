@@ -7,18 +7,16 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import ApplicationTable from '#lib/components/application-table.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import DistributionPanel from '#lib/components/distribution-panel.svelte';
   import Fact from '#lib/components/fact.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
-  import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import IntegrityOverview from '#lib/components/integrity-overview.svelte';
+  import JobPipeline from '#lib/components/job-pipeline.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Panel from '#lib/components/panel.svelte';
-  import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -26,25 +24,18 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
-  import { Kbd } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { Toggle } from '#lib/components/ui/toggle/index.js';
-  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { boardRows } from '#lib/distribution.js';
   import { employmentLabel, formatSalary, sourceLabel } from '#lib/format.js';
-  import { integrityColumns } from '#lib/integrity-columns.js';
-  import { bulkMoveStages, chipOf, isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { chipOf, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
-  import { preferences } from '#lib/preferences.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
-  import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
-  import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -64,51 +55,17 @@
   const all = $derived(applications.data?.data ?? []);
   const boardCount = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings).length : 0);
 
-  let stageFilter = $state<string | null>(null);
-  // Set from the overview's legend or the filter menu, through setIntegrityFilter.
+  // Set from the overview's legend or the pipeline's filter menu, through the pipeline's setIntegrityFilter.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
+  let pipeline = $state<JobPipeline>();
   let view = $state<'table' | 'board'>('table');
   let activeId = $state<string | null>(null);
-  let selectedIds = $state<string[]>([]);
   let confirmClose = $state(false);
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;
   let publishFailure = $state('');
 
-  const shown = $derived(
-    all.filter((application) => (!stageFilter || application.stage.id === stageFilter) && matchesIntegrityFilter(application, integrityFilter)),
-  );
-  const filtering = $derived(Boolean(stageFilter) || isIntegrityFiltered(integrityFilter));
-  const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   const active = $derived(all.find((application) => application.id === activeId));
-  const selected = $derived(all.filter((application) => selectedIds.includes(application.id)));
-  const countIn = (stageId: string) => all.filter((application) => application.stage.id === stageId).length;
-  const views = [
-    { id: 'table', label: 'Table' },
-    { id: 'board', label: 'Board' },
-  ] as const;
-
-  // V switches between the table and the board while focus is in the pipeline.
-  function onPipelineKeydown(event: KeyboardEvent) {
-    if (!preferences.shortcutsEnabled || hasModifier(event) || isTypingTarget(event.target)) return;
-    if (event.key.toLowerCase() === 'v') {
-      event.preventDefault();
-      view = view === 'table' ? 'board' : 'table';
-    }
-  }
-
-  // A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
-  // filter's menu (bulkMoveStages). The filter applies to the table, so it shows the table.
-  function setIntegrityFilter(next: IntegrityFilter) {
-    integrityFilter = next;
-    selectedIds = [];
-    view = 'table';
-  }
-
-  async function moveSelected(stage: (typeof stages)[number]) {
-    // The ones that failed stay selected, so they can be moved again.
-    selectedIds = await moves.moveAll(selected, stage);
-  }
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
@@ -228,89 +185,24 @@
     <!-- The detail template (section 7): a main column and a side column, in a 1280px container (S6). -->
     <div class={['mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6', detail.status === 'Draft' && 'max-md:pb-24']}>
       {#if applications.isSuccess && all.length > 0}
-        <IntegrityOverview applications={all} bind:filter={() => integrityFilter, setIntegrityFilter} />
+        <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
       {/if}
 
       <div class="flex flex-wrap items-start gap-5">
         <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-5">
-          <!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. -->
-          <Panel title="Pipeline" count={applications.isSuccess ? all.length : undefined} flush onkeydown={onPipelineKeydown}>
-            {#snippet actions()}
-              <div role="group" aria-label="View" class="flex gap-1">
-                {#each views as option (option.id)}
-                  <Tooltip.Root>
-                    <Tooltip.Trigger>
-                      {#snippet child({ props })}
-                        <Toggle
-                          {...props}
-                          bind:pressed={() => view === option.id, () => (view = option.id)}
-                          aria-keyshortcuts={preferences.shortcutsEnabled ? 'V' : undefined}>{option.label}</Toggle
-                        >
-                      {/snippet}
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>
-                      Switch view{#if preferences.shortcutsEnabled}<Kbd>V</Kbd>{/if}
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                {/each}
-              </div>
-            {/snippet}
-
-            {#if view === 'table'}
-              <!-- The table's filters: one line that scrolls inside the panel rather than wrapping (F5). -->
-              <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-                <div role="group" aria-label="Stage" class="flex shrink-0 gap-1">
-                  {#each [{ id: null, name: 'All', count: null }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
-                    <Toggle size="lg" bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
-                      {option.name}
-                      {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}
-                    </Toggle>
-                  {/each}
-                </div>
-                <div class="ml-auto flex shrink-0 items-center gap-2">
-                  <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
-                  {#if selected.length > 0}
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
-                        Move {selected.length} selected…
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content align="end" class="w-52">
-                        {#each moveTargets as stage (stage.id)}
-                          <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
-                        {/each}
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  {/if}
-                </div>
-              </div>
-            {/if}
-
-            {#if applications.isError}
-              <div class="p-4">
-                <QueryError message={describeError(applications.error, 'Could not load the candidates')} onretry={() => applications.refetch()} inset />
-              </div>
-            {:else if applications.isPending}
-              <div aria-hidden="true" class="flex flex-col gap-2 p-4">
-                {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-8 w-full" />{/each}
-              </div>
-            {:else if view === 'table'}
-              <ApplicationTable
-                applications={shown}
-                label={`Candidates for ${detail.title}`}
-                {stages}
-                {moves}
-                extraColumns={integrityColumns}
-                bind:activeId
-                bind:selectedIds
-                emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
-              />
-            {:else}
-              <PipelineBoard applications={all} {stages} {moves} />
-            {/if}
-            <p role="status" class={['px-4.5 py-2 text-body empty:hidden max-md:px-4', moves.failure ? 'text-destructive' : 'text-muted-foreground']}>
-              {moves.announcement}
-            </p>
-          </Panel>
+          <JobPipeline
+            bind:this={pipeline}
+            bind:integrityFilter
+            bind:view
+            bind:activeId
+            jobTitle={detail.title}
+            {stages}
+            applications={all}
+            pending={applications.isPending}
+            error={applications.isError ? applications.error : null}
+            onretry={() => applications.refetch()}
+            {moves}
+          />
         </div>
 
         <div class="flex min-w-0 max-w-95 flex-[1_1_320px] flex-col gap-5">
@@ -352,7 +244,7 @@
       <SummaryItem label="Entered stage"><RelativeTime at={application.stageEnteredAt} /></SummaryItem>
       <SummaryItem label="Applied"><RelativeTime at={application.submittedAt} /></SummaryItem>
       <SummaryItem label="Source">{sourceLabel(application.source)}</SummaryItem>
-      {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assist' }] as const as row (row.kind)}
+      {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assistance' }] as const as row (row.kind)}
         {@const chip = chipOf(application.integrity, row.kind)}
         <SummaryItem label={row.label}>
           <IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} />

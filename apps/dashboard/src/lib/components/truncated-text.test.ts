@@ -35,4 +35,16 @@ describe('truncated text', () => {
     expect(span).toHaveAttribute('aria-describedby', tooltip()!.id);
     await expectNoAxeViolations(document.body);
   });
+
+  it('can be a link, such as a name in a table, whose own focus opens the full value', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    render(WithTooltips, { props: { component: TruncatedText, props: { text, href: '/jobs/1', 'data-row-link': '' } } });
+
+    const link = screen.getByRole('link', { name: text });
+    expect(link).toHaveAttribute('href', '/jobs/1');
+    expect(link).toHaveAttribute('data-row-link');
+    expect(link).toHaveClass('truncate');
+    await fireEvent.focus(link);
+    expect(tooltip()).toHaveTextContent(text);
+  });
 });

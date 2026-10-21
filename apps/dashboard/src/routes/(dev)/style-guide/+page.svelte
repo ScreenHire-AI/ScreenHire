@@ -27,6 +27,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge, { type Status } from '#lib/components/status-badge.svelte';
@@ -480,6 +481,14 @@
             </Table.Body>
           </Table.Root>
         </div>
+      </Panel>
+
+      <Panel label="Search field" flush>
+        {#snippet tools()}
+          <SearchField label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <Badge variant="muted">2 selected</Badge>
+        {/snippet}
+        <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its search and filters in the header, in place of a title.</p>
       </Panel>
 
       <div class="flex flex-wrap items-start gap-5">

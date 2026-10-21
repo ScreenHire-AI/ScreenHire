@@ -11,7 +11,10 @@
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
   import { formatDate, formatDateTime } from '#lib/dates.js';
   import { initials, sourceLabel } from '#lib/format.js';
@@ -31,6 +34,7 @@
     activeId = $bindable(null),
     selectedIds = $bindable([]),
     emptyText = 'No candidates yet.',
+    onclearfilters,
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -47,22 +51,31 @@
     /** Rows ticked with X or their checkbox. */
     selectedIds?: string[];
     emptyText?: string;
+    /** While the page filters the rows: the empty state's one action (E1). */
+    onclearfilters?: () => void;
   } = $props();
 
   const columns = $derived<CandidateColumn[]>([
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
     { id: 'candidate', header: 'Candidate', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
     ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
-    { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false },
+    { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false, cell: ({ row }) => renderSnippet(stageCell, row.original) },
     ...extraColumns,
     { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     { id: 'applied', header: 'Applied', cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
 
-  // Rows become two-line list items on phones (design system section 8): authenticity first, the name as the link,
-  // facts as pills. Selection, J / K and the per-row Move are wide-screen tools; a phone moves from the application page.
+  // Phones get two-line list items in place of the table (design system section 8), at the shell's own phone width.
   const phone = new IsMobile();
+  // The checkbox and name columns stay put while a tablet scrolls the table sideways (design system section 8). The
+  // checkbox column's width is fixed, so the name column knows where to stick: its 24px hit area (44px on touch) plus
+  // padding.
+  const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
+  const nameColumn = 'sticky left-10 pointer-coarse:left-15';
+  // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
+  let scrolledSideways = $state(false);
+  const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
 
   const table = createTable({
     features: candidateTableFeatures,
@@ -178,17 +191,28 @@
   <span class="flex items-center gap-2.5">
     <span
       aria-hidden="true"
-      class="grid size-[26px] shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
+      class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
       >{initials(application.candidateName)}</span
     >
-    <a data-row-link href={`/applications/${application.id}`} class="font-bold text-foreground no-underline hover:underline"
-      >{application.candidateName}</a
-    >
+    <TruncatedText
+      data-row-link
+      href={`/applications/${application.id}`}
+      text={application.candidateName}
+      class="max-w-56 font-bold text-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
+    />
   </span>
 {/snippet}
 
 {#snippet jobCell(application: ApplicationSummary)}
-  <a href={`/jobs/${application.jobId}`} class="text-secondary-foreground no-underline hover:underline">{application.jobTitle}</a>
+  <TruncatedText
+    href={`/jobs/${application.jobId}`}
+    text={application.jobTitle}
+    class="max-w-64 text-secondary-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
+  />
+{/snippet}
+
+{#snippet stageCell(application: ApplicationSummary)}
+  <Badge variant="muted">{application.stage.name}</Badge>
 {/snippet}
 
 {#snippet sourceCell(application: ApplicationSummary)}
@@ -220,26 +244,58 @@
   {/if}
 {/snippet}
 
+{#snippet listItem(application: ApplicationSummary)}
+  {@const authenticity = chipOf(application.integrity, 'authenticity')}
+  {@const ai = chipOf(application.integrity, 'aiAssistance')}
+  <ListItem href={`/applications/${application.id}`} title={application.candidateName}>
+    {#snippet status()}
+      <IntegrityChip
+        kind="authenticity"
+        compact
+        level={authenticity?.level ?? null}
+        reasons={authenticity?.reasons ?? 0}
+        dismissed={authenticity?.dismissed ?? false}
+      />
+    {/snippet}
+    {#snippet meta()}
+      <Hint content={formatDateTime(application.submittedAt)}>
+        {#snippet children({ props })}
+          <time {...props} datetime={application.submittedAt} class="tabular-nums">{formatDate(application.submittedAt)}</time>
+        {/snippet}
+      </Hint>
+    {/snippet}
+    {#snippet facts()}
+      <Badge variant="muted">{application.stage.name}</Badge>
+      {#if showJob}
+        <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->
+        <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>
+      {/if}
+      {#if ai && ai.level.rank > 0}
+        <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
+      {/if}
+      {#if stages && moves}
+        <span class="relative ml-auto">{@render moveCell(application)}</span>
+      {/if}
+    {/snippet}
+  </ListItem>
+{/snippet}
+
+{#snippet empty()}
+  <Empty.Root class="gap-3 p-6">
+    <Empty.Description>{emptyText}</Empty.Description>
+    {#if onclearfilters}
+      <Button variant="outline" onclick={onclearfilters}>Clear filters</Button>
+    {/if}
+  </Empty.Root>
+{/snippet}
+
 {#if phone.current}
-  {#if applications.length === 0}
-    <p class="px-4 py-3 text-muted-foreground">{emptyText}</p>
+  {#if rows.length === 0}
+    {@render empty()}
   {:else}
     <ul aria-label={label}>
-      {#each applications as application (application.id)}
-        {@const chip = chipOf(application.integrity, 'authenticity')}
-        <ListItem href={`/applications/${application.id}`} title={application.candidateName}>
-          {#snippet status()}
-            <IntegrityChip kind="authenticity" level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} compact />
-          {/snippet}
-          {#snippet meta()}
-            <Hint content={formatDateTime(application.submittedAt)}>{#snippet children({ props })}<time {...props} datetime={application.submittedAt}>{formatDate(application.submittedAt)}</time>{/snippet}</Hint>
-          {/snippet}
-          {#snippet facts()}
-            <Badge variant="muted">{application.stage.name}</Badge>
-            {#if showJob}<Badge variant="muted" class="max-w-full"><span class="truncate">{application.jobTitle}</span></Badge>{/if}
-            <Badge variant="muted">{sourceLabel(application.source)}</Badge>
-          {/snippet}
-        </ListItem>
+      {#each rows as row (row.id)}
+        {@render listItem(row.original)}
       {/each}
     </ul>
   {/if}
@@ -247,10 +303,15 @@
   <!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->
   <div class="flex flex-col" {onkeydown} {onfocusin}>
     <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
-         instead of the page scrolling sideways on a phone (F1). -->
-    <div bind:this={scrollElement} class="relative max-h-[min(70vh,640px)] overflow-auto">
+         instead of the page scrolling sideways on a phone (F1). On a tablet the table scrolls sideways here, with the
+         checkbox and name columns stuck to its left edge (section 8). -->
+    <div
+      bind:this={scrollElement}
+      onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
+      class="relative max-h-[min(70vh,640px)] overflow-auto"
+    >
       <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
-        <thead class="sticky top-0 z-10 bg-card">
+        <thead class="sticky top-0 z-10 bg-muted">
           {#each table.getHeaderGroups() as group (group.id)}
             <tr>
               {#each group.headers as header (header.id)}
@@ -259,8 +320,12 @@
                   scope="col"
                   aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                   class={[
-                    'border-b border-border-subtle px-3 py-2 text-caption whitespace-nowrap text-muted-foreground',
-                    (header.id === 'select' || header.id === 'move') && 'w-10',
+                    'h-11 border-b border-border py-0 text-caption whitespace-nowrap text-muted-foreground',
+                    header.id === 'select' ? selectColumn : 'px-3',
+                    header.id === 'candidate' && nameColumn,
+                    header.id === 'candidate' && scrolledSideways && nameEdge,
+                    (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
+                    header.id === 'move' && 'w-10',
                     (header.id === 'applied' || header.id === 'move') && 'text-right',
                   ]}
                 >
@@ -269,7 +334,7 @@
                     <button
                       type="button"
                       onclick={header.column.getToggleSortingHandler()}
-                      class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground"
+                      class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground pointer-coarse:h-11"
                     >
                       <FlexRender {header} />
                       {#if sorted === 'desc'}
@@ -296,15 +361,16 @@
             {@const row = rows[item.index]}
             {#if row}
               {@const tinted = row.id === activeId || selectedIds.includes(row.id)}
-              <tr
-                data-row-id={row.id}
-                aria-rowindex={item.index + 2}
-                class={['h-10', tinted ? 'bg-row-selected' : 'hover:bg-muted']}
-              >
+              <tr data-row-id={row.id} aria-rowindex={item.index + 2} class={['group h-12', tinted ? 'bg-row-selected' : 'hover:bg-muted']}>
                 {#each row.getAllCells() as cell (cell.id)}
                   <td
                     class={[
-                      'border-b border-border-subtle px-3 py-0 whitespace-nowrap',
+                      'border-b border-border-subtle py-0 whitespace-nowrap',
+                      cell.column.id === 'select' ? selectColumn : 'px-3',
+                      cell.column.id === 'candidate' && nameColumn,
+                      cell.column.id === 'candidate' && scrolledSideways && nameEdge,
+                      // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
+                      (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
                       (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
                     ]}
                   >
@@ -313,8 +379,6 @@
                 {/each}
               </tr>
             {/if}
-          {:else}
-            <tr><td colspan={columns.length} class="px-3 py-3 text-muted-foreground">{emptyText}</td></tr>
           {/each}
           {#if paddingBottom > 0}
             <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingBottom}px`} class="p-0"></td></tr>
@@ -322,5 +386,7 @@
         </tbody>
       </table>
     </div>
+    <!-- Outside the scroller, so a table wider than its panel never pushes the message out of view (F1). -->
+    {#if rows.length === 0}{@render empty()}{/if}
   </div>
 {/if}

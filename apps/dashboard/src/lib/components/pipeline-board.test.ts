@@ -1,7 +1,7 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applications, apiStub, jobId, now, stages } from '../../test-support/fixtures.js';
+import { applications, apiStub, jobId, stages } from '../../test-support/fixtures.js';
 import PipelineHarness from '../../test-support/pipeline-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
@@ -34,7 +34,7 @@ function stubApi(options: { refuseMove?: boolean } = {}) {
 }
 
 function renderBoard() {
-  return render(WithQueryClient, { props: { component: PipelineHarness, props: { jobId, stages, now } } });
+  return render(WithQueryClient, { props: { component: PipelineHarness, props: { jobId, stages } } });
 }
 
 const column = (name: string) => screen.getByRole('list', { name: `${name} stage` });
@@ -61,7 +61,10 @@ describe('pipeline board', () => {
       'Casey Morgan, Applied',
       'Sam Taylor, Applied',
     ]);
-    expect(card('Casey Morgan')).toHaveTextContent('careers · 2 hours ago');
+    // Facts as a pill and a time, never strung together with a dot (W3).
+    expect(within(card('Casey Morgan')).getByText('careers')).toHaveAttribute('data-slot', 'badge');
+    expect(card('Casey Morgan').querySelector('time')).toHaveAttribute('datetime', casey.submittedAt);
+    expect(card('Casey Morgan')).not.toHaveTextContent('·');
   });
 
   it('moves the focused card to the next stage with Shift + Right, keeps focus on it and announces it', async () => {

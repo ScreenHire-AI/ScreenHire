@@ -310,6 +310,7 @@ in a development build, shows every component in each state, and its test fails 
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8 |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
+| Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, time ago |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence` | Section 16 |

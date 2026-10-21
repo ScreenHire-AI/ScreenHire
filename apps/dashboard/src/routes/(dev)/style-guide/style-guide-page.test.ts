@@ -49,6 +49,7 @@ const panels: Record<string, string[]> = {
   'Shortcuts dialog': ['Shortcuts dialog'],
   Sidebar: ['Sidebar'],
   'Table, list item': ['Table', 'List item, the table on a phone'],
+  'Search field': ['Search field'],
   Activity: ['Activity'],
   'Relative time, truncated text': ['Time and long text'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
