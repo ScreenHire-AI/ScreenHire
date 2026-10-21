@@ -23,7 +23,7 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import { selectClass } from '#lib/components/workflow/controls.js';
+  import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { formatDate, formatDateTime } from '#lib/dates.js';
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
@@ -39,7 +39,7 @@
 
   const all = $derived(jobs.data?.data ?? []);
   const statuses: JobStatus[] = ['Open', 'Draft', 'Closed'];
-  let statusFilter = $state<JobStatus | ''>('');
+  let statusFilter = $state<JobStatus | null>(null);
   let search = $state('');
   const countOf = (status: JobStatus) => all.filter((job) => job.status === status).length;
   const shown = $derived.by(() => {
@@ -83,7 +83,7 @@
   }
 
   function clearFilters() {
-    statusFilter = '';
+    statusFilter = null;
     search = '';
   }
 </script>
@@ -108,17 +108,24 @@
   <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet actions()}
-        <InputGroup.Root class="w-48 max-md:w-28">
+        <InputGroup.Root class="w-48">
           <InputGroup.Addon><SearchIcon aria-hidden="true" /></InputGroup.Addon>
           <InputGroup.Input type="search" aria-label="Search jobs" bind:value={search} />
         </InputGroup.Root>
-        <select aria-label="Status" class={[selectClass, 'w-auto']} bind:value={statusFilter}>
-          <option value="">All</option>
-          {#each statuses as status (status)}
-            <option value={status}>{jobStatus[status].label} ({countOf(status)})</option>
-          {/each}
-        </select>
       {/snippet}
+
+      <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). -->
+      <div class="flex items-center overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+        <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
+          <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>All</Toggle>
+          {#each statuses as status (status)}
+            <Toggle size="lg" bind:pressed={() => statusFilter === status, () => (statusFilter = status)}>
+              {jobStatus[status].label}
+              {#if jobs.isSuccess}<Badge variant="count">{countOf(status)}</Badge>{/if}
+            </Toggle>
+          {/each}
+        </div>
+      </div>
 
       {#if jobs.isError}
         <div class="p-4">

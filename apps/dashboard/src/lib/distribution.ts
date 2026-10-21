@@ -61,13 +61,13 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
         ? {
             status: 'review',
             label: 'Submitted',
-        eta: etaOf(expectedBy, now),
+            eta: etaOf(expectedBy, now),
             detail: `Submitted: the board took it and has not confirmed it shows yet.${estimateSentence(expectedBy, now, 'shows it')}`,
           }
         : {
             status: 'review',
             label: 'Sent',
-        eta: etaOf(expectedBy, now),
+            eta: etaOf(expectedBy, now),
             detail: `Sent: this board never confirms when a job shows.${estimateSentence(expectedBy, now, 'picks it up')}`,
           };
     case 'Closing':
@@ -75,13 +75,13 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
         ? {
             status: 'review',
             label: 'Removing',
-        eta: etaOf(expectedBy, now),
+            eta: etaOf(expectedBy, now),
             detail: `Removing: the board has not confirmed the job is gone yet.${estimateSentence(expectedBy, now, 'removes it')}`,
           }
         : {
             status: 'review',
             label: 'Removal requested',
-        eta: etaOf(expectedBy, now),
+            eta: etaOf(expectedBy, now),
             detail: `Removal requested: this board never confirms removal, so the job may still show until it refreshes.${estimateSentence(expectedBy, now, 'refreshes')}`,
           };
     case 'Closed':

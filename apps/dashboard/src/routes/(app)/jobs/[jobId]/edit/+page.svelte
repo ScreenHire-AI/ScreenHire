@@ -34,12 +34,12 @@
 
   <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
-    {#if job.isError}
+    <!-- A failed refetch keeps the form and what was typed in it; the error shows only when there is no job yet. -->
+    {#if job.isError && !detail}
       <Panel title={notFound ? 'Job not found' : 'Could not load the job'}>
         {#if notFound}
           <Empty.Root>
             <Empty.Header>
-              <Empty.Title>Job not found</Empty.Title>
               <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
             </Empty.Header>
             <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>

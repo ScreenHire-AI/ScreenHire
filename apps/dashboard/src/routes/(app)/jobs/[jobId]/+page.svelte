@@ -133,14 +133,14 @@
 />
 
 <main class="flex flex-col">
-  {#if job.isError}
+  <!-- A failed refetch keeps the job on screen; the error replaces it only when there is nothing to show. -->
+  {#if job.isError && !detail}
     <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
     <div class="mx-auto w-full max-w-page px-4 py-6 md:px-6">
-      <Panel title={notFound ? 'Not found' : 'Could not load the job'}>
+      <Panel title={notFound ? 'Details' : 'Could not load the job'}>
         {#if notFound}
           <Empty.Root>
             <Empty.Header>
-              <Empty.Title>Job not found</Empty.Title>
               <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
             </Empty.Header>
             <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>
@@ -317,7 +317,25 @@
           {#if view === 'table' && active}
             {@render candidatePanel(active)}
           {/if}
-          <DistributionPanel job={detail} boards={boards.data?.data ?? []} notice={page.state.saved ?? ''} {publishFailure} />
+          {#if boards.data}
+            <DistributionPanel job={detail} boards={boards.data.data} notice={page.state.saved ?? ''} {publishFailure} />
+          {:else if boards.isError}
+            <Panel title="Distribution">
+              <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />
+            </Panel>
+          {:else}
+            <!-- Rows of the panel's shape: a board's name, then its state (E1). -->
+            <Panel title="Distribution" flush>
+              <div aria-hidden="true" class="flex flex-col">
+                {#each [0, 1] as row (row)}
+                  <div class="flex flex-col gap-2 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
+                    <Skeleton class="h-5 w-32" />
+                    <Skeleton class="h-5 w-20" />
+                  </div>
+                {/each}
+              </div>
+            </Panel>
+          {/if}
         </div>
       </div>
     </div>
