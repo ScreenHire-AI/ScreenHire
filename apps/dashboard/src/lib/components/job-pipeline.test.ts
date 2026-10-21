@@ -1,4 +1,6 @@
+import type { WorkflowStage } from '@screenhire/api-client';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import type { ComponentProps } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
 import { applications, stages } from '../../test-support/fixtures.js';
@@ -7,11 +9,11 @@ import JobPipeline from './job-pipeline.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
 
-function renderPipeline() {
+function renderPipeline(overrides: Partial<ComponentProps<typeof JobPipeline>> = {}) {
   return render(WithQueryClient, {
     props: {
       component: JobPipeline,
-      props: { jobTitle: 'Senior .NET Engineer', stages, applications, pending: false, error: null, onretry: vi.fn() },
+      props: { jobTitle: 'Senior .NET Engineer', stages, applications, pending: false, error: null, onretry: vi.fn(), ...overrides },
     },
   });
 }
@@ -60,6 +62,34 @@ describe('job pipeline', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' })).toHaveValue('');
     expect(names()).toEqual(applications.map((application) => application.candidateName));
+  });
+
+  it('offers no stage that ends a candidacy to a bulk move while an integrity filter is set (ADR-0004)', async () => {
+    const withEnds: WorkflowStage[] = [
+      ...stages,
+      { id: 'rejected', name: 'Rejected', kind: 'Rejected' },
+      { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' },
+    ];
+    // The fixtures have no assessment yet, so the Pending filter shows every row.
+    renderPipeline({ stages: withEnds, integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+
+    await fireEvent.pointerDown(within(panelHeader()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
+
+    const items = (await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim());
+    expect(items).toEqual(stages.map((stage) => stage.name));
+  });
+
+  it('keeps the board when its empty state clears a search', async () => {
+    renderPipeline();
+    await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
+    await fireEvent.input(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'nobody' } });
+
+    expect(screen.getByText('No candidates match this search.')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+
+    expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
+    expect(within(panelHeader()).getByRole('button', { name: 'Board' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('is named by a hidden h2, and shows the selected candidate in a panel beside the table (S3)', async () => {
