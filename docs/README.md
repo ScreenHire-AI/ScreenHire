@@ -76,8 +76,8 @@ brackets.
   `IIpIntelligence` (#13). Set `ScreenHire:Integrity:DeviceHashKey` (32+ characters) in production (#13). Refresh the
   embedded disposable-domain list from time to time (#13).
 - **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
-  dashboard host (the resume preview), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real malware scanner behind `IMalwareScanner` (#11, #15).
-  Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
+  dashboard host (the resume preview, #27), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
+  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
 - **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
   its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
   until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's

@@ -153,8 +153,9 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
 ## 7. Owner actions before production
 
 - Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts and `GET`
-  from the dashboard host (the resume preview), and a lifecycle rule that deletes unclaimed uploads (blobs with no application) after a day. Development does the first two
-  at startup (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
+  from the dashboard host (the resume preview), and a lifecycle rule that deletes unclaimed uploads (blobs with no
+  application) after a day. Development does the first two at startup
+  (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
 - Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
 - Behind a CDN or load balancer, set Astro's `security.allowedDomains` to the careers hosts when building
   `apps/careers`. Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those
