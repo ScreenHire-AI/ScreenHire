@@ -189,10 +189,15 @@ describe('candidate table', () => {
     expect(screen.queryByText(/\d+ candidates?\b/)).toBeNull();
   });
 
-  it('says so when there is nothing to show', () => {
-    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates in this stage.' } } });
+  it('says why it is empty below the headers, outside the scroller, with Clear filters while filtered (E1, F1)', async () => {
+    const onclearfilters = vi.fn();
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates in this stage.', onclearfilters } } });
 
-    expect(screen.getByRole('cell')).toHaveTextContent('No candidates in this stage.');
+    const message = screen.getByText('No candidates in this stage.');
+    expect(screen.getByRole('table').parentElement).not.toContainElement(message);
+    expect(screen.queryAllByRole('cell')).toHaveLength(0);
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(onclearfilters).toHaveBeenCalledOnce();
   });
 
   it('renders only the rows in view for a long list', () => {

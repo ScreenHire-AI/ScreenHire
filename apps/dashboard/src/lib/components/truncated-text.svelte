@@ -10,7 +10,13 @@
     href,
     class: className,
     ...restProps
-  }: { text: string; href?: string; class?: string } & Record<`data-${string}`, unknown> = $props();
+  }: {
+    text: string;
+    href?: string;
+    class?: string;
+    /** -1 inside a card that is itself the tab stop, such as a board card. */
+    tabindex?: number;
+  } & Record<`data-${string}`, unknown> = $props();
 
   let element = $state<HTMLElement | null>(null);
   let truncated = $state(false);

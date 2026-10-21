@@ -364,8 +364,6 @@
                 {/each}
               </tr>
             {/if}
-          {:else}
-            <tr><td colspan={columns.length} class="p-0">{@render empty()}</td></tr>
           {/each}
           {#if paddingBottom > 0}
             <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingBottom}px`} class="p-0"></td></tr>
@@ -373,5 +371,7 @@
         </tbody>
       </table>
     </div>
+    <!-- Outside the scroller, so a table wider than its panel never pushes the message out of view (F1). -->
+    {#if rows.length === 0}{@render empty()}{/if}
   </div>
 {/if}

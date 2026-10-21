@@ -67,7 +67,7 @@ describe('job pipeline', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toHaveClass('sr-only');
     const side = screen.getByRole('region', { name: 'Selected candidate' });
-    expect(side).toHaveTextContent('Choose a candidate');
+    expect(side).toHaveTextContent('No candidate selected');
 
     const link = screen.getByRole('link', { name: 'Jordan Lee' });
     link.focus();

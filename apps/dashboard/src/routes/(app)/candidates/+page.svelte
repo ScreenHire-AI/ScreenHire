@@ -68,7 +68,7 @@
           </div>
         {:else if applications.isPending}
           <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-            {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full max-md:h-16" />{/each}
+            {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full max-md:h-18" />{/each}
           </div>
         {:else}
           <ApplicationTable

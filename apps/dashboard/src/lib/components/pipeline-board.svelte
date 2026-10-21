@@ -13,6 +13,7 @@
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { chipOf } from '#lib/integrity.js';
@@ -110,9 +111,12 @@
                   class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
                   >{initials(card.candidateName)}</span
                 >
-                <a href={`/applications/${card.id}`} tabindex="-1" class="truncate font-semibold text-foreground no-underline hover:underline"
-                  >{card.candidateName}</a
-                >
+                <TruncatedText
+                  href={`/applications/${card.id}`}
+                  tabindex={-1}
+                  text={card.candidateName}
+                  class="font-semibold text-foreground no-underline hover:underline"
+                />
               </span>
               <!-- Status first, calm states quiet (T2, T3); the column already says the stage. -->
               <span class="flex flex-wrap items-center gap-1.5">

@@ -15,7 +15,8 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { buttonVariants } from '#lib/components/ui/button/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -209,7 +210,7 @@
       </div>
     {:else if pending}
       <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-16" />{/each}
+        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-18" />{/each}
       </div>
     {:else if view === 'table'}
       <ApplicationTable
@@ -223,6 +224,11 @@
         emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
         onclearfilters={filtering ? clearFilters : undefined}
       />
+    {:else if searched.length === 0}
+      <Empty.Root class="gap-3 p-6">
+        <Empty.Description>{search.trim() ? 'No candidates match this search.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
+        {#if search.trim()}<Button variant="outline" onclick={clearFilters}>Clear filters</Button>{/if}
+      </Empty.Root>
     {:else}
       <PipelineBoard applications={searched} {stages} {moves} />
     {/if}
@@ -239,7 +245,7 @@
       {#if active}
         {@render selectedCandidate(active)}
       {:else}
-        <p class="text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
+        <p class="text-muted-foreground">No candidate selected</p>
       {/if}
     </Panel>
   {/if}
