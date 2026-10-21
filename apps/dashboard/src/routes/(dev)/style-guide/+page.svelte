@@ -12,7 +12,7 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import UsersIcon from '@lucide/svelte/icons/users';
-  import type { SignalEvidence as Evidence, FilePreview } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
@@ -105,11 +105,26 @@
 
   const icons = [BriefcaseIcon, UsersIcon, LayoutTemplateIcon];
 
-  const resume: FilePreview = {
-    status: 'Ready',
-    text: 'Jordan Ellis\nSenior product designer\n\nExperience\nBrightwater Studio, lead designer, 2019 to 2026\nLed a team of four through two product launches.',
-    pageCount: 2,
-    note: null,
+  // Files as the API describes them. None of these exists: a download from this page fails, which the preview shows.
+  const applicationId = '00000000-0000-7000-8000-000000000000';
+  const file = (n: number, fileName: string, contentType: string, scanStatus: ApplicationFileSummary['scanStatus'], sizeBytes: number): ApplicationFileSummary => ({
+    id: `00000000-0000-7000-8000-00000000000${n}`,
+    questionId: 'resume',
+    uploadId: `00000000-0000-7000-8000-00000000001${n}`,
+    fileName,
+    contentType,
+    sizeBytes,
+    scanStatus,
+    uploadedAt: new Date(now).toISOString(),
+  });
+  const word = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const files = {
+    clean: file(1, 'jordan-ellis-resume.pdf', 'application/pdf', 'Clean', 248_000),
+    long: file(2, 'portfolio-case-studies-2019-to-2026-final-version.pdf', 'application/pdf', 'NotScanned', 4_200_000),
+    image: file(3, 'headshot.png', 'image/png', 'Clean', 820_000),
+    word: file(4, 'jordan-ellis-resume.docx', word, 'Clean', 52_000),
+    pending: file(5, 'cover-letter.docx', word, 'Pending', 48_000),
+    infected: file(6, 'references.zip', 'application/zip', 'Infected', 12_000),
   };
 </script>
 
@@ -267,36 +282,33 @@
           </SummaryList>
         </Panel>
         <Panel title="File tile" class="flex-[1_1_320px] max-w-95">
-          <div class="flex flex-col gap-2">
-            <FileTile name="jordan-ellis-resume.pdf" size={248_000} href="#file-tile" scanStatus="Clean" />
-            <FileTile name="portfolio-case-studies-2019-to-2026-final-version.pdf" size={4_200_000} href="#file-tile" />
-            <FileTile name="cover-letter.docx" href="#file-tile" scanStatus="Pending" />
-            <FileTile name="references.zip" href="#file-tile" scanStatus="Infected" />
+          <div class="flex flex-col gap-3">
+            <FileTile {applicationId} file={files.clean}>
+              {#snippet facts()}<Badge variant="muted" class="tabular-nums">2 pages</Badge>{/snippet}
+            </FileTile>
+            <FileTile {applicationId} file={files.long} />
+            <FileTile {applicationId} file={files.image} />
+            <FileTile {applicationId} file={files.pending} />
+            <FileTile {applicationId} file={files.infected} />
           </div>
         </Panel>
       </div>
 
       <Panel title="Resume preview">
-        <div class="flex flex-wrap items-start gap-4">
-          <figure class="flex min-w-0 flex-[999_1_420px] flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">The text read from the file</figcaption>
-            <ResumePreview name="jordan-ellis-resume.pdf" preview={resume} />
+        <div class="flex flex-wrap items-start gap-x-6 gap-y-5">
+          <figure class="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A PDF that does not load. A loaded one draws its pages in a sandboxed frame</figcaption>
+            <ResumePreview {applicationId} file={files.clean} />
           </figure>
-          <div class="flex min-w-0 flex-[1_1_260px] flex-col gap-4">
-            <figure class="flex flex-col gap-2">
-              <figcaption class="text-caption text-muted-foreground">Loading</figcaption>
-              <ResumePreview name="jordan-ellis-resume.pdf" preview={undefined} />
-            </figure>
-            <figure class="flex flex-col gap-2">
-              <figcaption class="text-caption text-muted-foreground">No preview</figcaption>
-              <ResumePreview
-                name="portfolio.png"
-                preview={{ status: 'Unavailable', text: '', pageCount: 0, note: 'No text is read from PNG files.' }}
-              >
-                {#snippet fallback()}<FileTile name="portfolio.png" size={48_000} href="#resume-preview" />{/snippet}
-              </ResumePreview>
-            </figure>
-          </div>
+          <figure class="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A type with no preview</figcaption>
+            <ResumePreview {applicationId} file={files.word} />
+          </figure>
+          <figure class="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Withheld until the malware scan clears it</figcaption>
+            <ResumePreview {applicationId} file={files.pending} />
+            <ResumePreview {applicationId} file={files.infected} />
+          </figure>
         </div>
       </Panel>
 

@@ -298,8 +298,8 @@ in a development build, shows every component in each state, and its test fails 
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
 | Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
-| File tile | Our component | Type icon, name, Download; scan status only when a file needs attention |
-| Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated, as the text read from them |
+| File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention |
+| Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |

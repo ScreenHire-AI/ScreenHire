@@ -2223,52 +2223,6 @@
         }
       }
     },
-    "/v1/applications/{applicationId}/files/{fileId}/preview": {
-      "get": {
-        "tags": [
-          "Applications"
-        ],
-        "operationId": "GetApplicationFilePreview",
-        "parameters": [
-          {
-            "name": "applicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "fileId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FilePreview"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
     "/v1/candidates": {
       "get": {
         "tags": [
@@ -5015,42 +4969,6 @@
         },
         "additionalProperties": false,
         "description": "Counts for one form field. `fieldId` is a question id or one of the form's own fields (`fullName`, ...)."
-      },
-      "FilePreview": {
-        "required": [
-          "status",
-          "text",
-          "pageCount",
-          "note"
-        ],
-        "type": "object",
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/FilePreviewStatus"
-          },
-          "text": {
-            "type": "string"
-          },
-          "pageCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "A file's text for the dashboard's inline preview: the text a person sees, as the worker read it. It is shown as text,\r\nso nothing in the file can run. Hidden text is never part of it."
-      },
-      "FilePreviewStatus": {
-        "enum": [
-          "Ready",
-          "Pending",
-          "Unavailable"
-        ],
-        "description": "Whether a file's preview can be shown yet."
       },
       "HiringTemplateDefinition": {
         "required": [

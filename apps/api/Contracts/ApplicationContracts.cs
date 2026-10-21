@@ -66,25 +66,6 @@ public sealed record ApplicationDetail(
 public sealed record ApplicationFileSummary(
     Guid Id, string QuestionId, Guid UploadId, string FileName, string ContentType, long SizeBytes, MalwareScanStatus ScanStatus, DateTimeOffset UploadedAt);
 
-/// <summary>Whether a file's preview can be shown yet.</summary>
-public enum FilePreviewStatus
-{
-    /// <summary>The text is there to show.</summary>
-    Ready,
-
-    /// <summary>The file has not been scanned and read yet. Ask again shortly.</summary>
-    Pending,
-
-    /// <summary>There is no preview: the scan withheld the file, or it has no text that could be read. <c>note</c> says why.</summary>
-    Unavailable,
-}
-
-/// <summary>
-/// A file's text for the dashboard's inline preview: the text a person sees, as the worker read it. It is shown as text,
-/// so nothing in the file can run. Hidden text is never part of it.
-/// </summary>
-public sealed record FilePreview(FilePreviewStatus Status, string Text, int PageCount, string? Note);
-
 /// <summary>One entry of an application's timeline, oldest first. Members that do not apply to the type are null.</summary>
 /// <remarks><c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did.</remarks>
 public sealed record ApplicationTimelineEntry(

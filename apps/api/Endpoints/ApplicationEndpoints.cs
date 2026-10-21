@@ -7,7 +7,6 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
-using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -44,9 +43,6 @@ internal static class ApplicationEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapGet("/{applicationId:guid}/files/{fileId:guid}/preview", GetApplicationFilePreview)
-            .WithName("GetApplicationFilePreview")
             .Produces(StatusCodes.Status401Unauthorized);
 
         var candidates = app.MapGroup("/v1/candidates").WithTags("Candidates").RequireAuthorization();
@@ -227,39 +223,6 @@ internal static class ApplicationEndpoints
                 "This file is still being scanned for malware. Try again in a minute.", statusCode: StatusCodes.Status409Conflict),
             _ => TypedResults.Redirect((await uploads.IssueReadLinkAsync(file.BlobName, file.FileName, cancellationToken)).ToString()),
         };
-    }
-
-    // The text the worker read from one of the application's files, for the dashboard's inline preview. A file the scan
-    // has not cleared has none, the same rule as the download.
-    private static async Task<Results<Ok<FilePreview>, NotFound>> GetApplicationFilePreview(
-        Guid applicationId, Guid fileId, ScreenHireDbContext db, CancellationToken cancellationToken)
-    {
-        var file = await db.ApplicationFiles.AsNoTracking()
-            .SingleOrDefaultAsync(f => f.Id == fileId && f.ApplicationId == applicationId, cancellationToken);
-        if (file is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        switch (file.ScanStatus)
-        {
-            case MalwareScanStatus.Infected:
-                return TypedResults.Ok(new FilePreview(FilePreviewStatus.Unavailable, "", 0, "The malware scan found a threat in this file."));
-            case MalwareScanStatus.Pending:
-                return TypedResults.Ok(new FilePreview(FilePreviewStatus.Pending, "", 0, null));
-        }
-
-        var document = await db.ApplicationDocuments.AsNoTracking()
-            .Where(d => d.FileId == fileId)
-            .OrderByDescending(d => d.ExtractorVersion)
-            .FirstOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(document switch
-        {
-            null => new FilePreview(FilePreviewStatus.Pending, "", 0, null),
-            { Status: DocumentExtractionStatus.Extracted, Text.Length: > 0 } => new FilePreview(
-                FilePreviewStatus.Ready, document.Text, document.PageCount, null),
-            _ => new FilePreview(FilePreviewStatus.Unavailable, "", 0, document.Note ?? "This file has no text to show."),
-        });
     }
 
     private static async Task<List<CandidateSummary>> ListCandidates(ScreenHireDbContext db, CancellationToken cancellationToken)

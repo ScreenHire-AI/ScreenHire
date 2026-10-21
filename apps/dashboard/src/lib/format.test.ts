@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eta, formatFileSize, formatSalary, initials } from './format.js';
+import { eta, fileSize, formatSalary, initials } from './format.js';
 
 const now = Date.parse('2026-10-20T12:00:00Z');
 
@@ -31,11 +31,12 @@ describe('initials', () => {
   });
 });
 
-describe('formatFileSize', () => {
-  it('shows kilobytes up to a megabyte, rounding up, then megabytes', () => {
-    expect(formatFileSize(1)).toBe('1 kB');
-    expect(formatFileSize(122_880)).toBe('120 kB');
-    expect(formatFileSize(1_047_553)).toBe('1 MB');
-    expect(formatFileSize(2_558_525)).toBe('2.4 MB');
+describe('fileSize', () => {
+  it.each([
+    [120, '1 kB'],
+    [48_200, '48 kB'],
+    [2_430_000, '2.4 MB'],
+  ])('%i bytes is %s', (bytes, expected) => {
+    expect(fileSize(bytes)).toBe(expected);
   });
 });

@@ -127,7 +127,7 @@ describe('application page', () => {
     expect(rows).toEqual([
       ['Do you have the right to work in the UK?', 'Yes'],
       ['Years of experience', '3 to 5 years'],
-      ['Portfolio', 'portfolio.pdf: Withheld: the malware scan found a threat.'],
+      ['Portfolio', 'portfolio.pdf: Withheld: malware found.'],
       ['Why this role?', 'Small teams.\nReal problems.'],
     ]);
     expect(within(answers).queryByRole('link')).not.toBeInTheDocument();

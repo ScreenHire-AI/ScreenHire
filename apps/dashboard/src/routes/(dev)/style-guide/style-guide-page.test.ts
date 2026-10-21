@@ -1,10 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
 import Page from './+page.svelte';
+
+// The real viewer (pdf.js) is built by file-viewer-plugin.ts and is not needed to draw the page.
+vi.mock('virtual:file-viewer', () => ({ viewerDocument: '<!doctype html><title>viewer</title>' }));
+// No file behind the sample PDF: its download fails, which is the state the page shows.
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 404 })));
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));

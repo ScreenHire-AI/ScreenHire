@@ -56,9 +56,8 @@ export function initials(name: string): string {
 const kilobytes = new Intl.NumberFormat(locales, { style: 'unit', unit: 'kilobyte', maximumFractionDigits: 0 });
 const megabytes = new Intl.NumberFormat(locales, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 });
 
-/** A file's size: `120 kB` up to a megabyte, then `2.4 MB`. Never `0 kB` for a file that has content. */
-export function formatFileSize(bytes: number): string {
-  // Rounding up can reach 1,024 kB, which is a megabyte.
-  const kb = Math.ceil(bytes / 1024);
-  return kb < 1024 ? kilobytes.format(kb) : megabytes.format(bytes / (1024 * 1024));
+/** A file's size for a fact pill, in the browser's locale: `12 kB`, `2.4 MB`. */
+export function fileSize(bytes: number): string {
+  if (bytes < 1_000_000) return kilobytes.format(Math.max(1, Math.round(bytes / 1000)));
+  return megabytes.format(bytes / 1_000_000);
 }

@@ -65,8 +65,6 @@ export * from './employmentType.ts';
 export * from './evaluationOutcome.ts';
 export * from './evidenceKind.ts';
 export * from './fieldTelemetryInput.ts';
-export * from './filePreview.ts';
-export * from './filePreviewStatus.ts';
 export * from './hiringTemplateDefinition.ts';
 export * from './hiringTemplateDetail.ts';
 export * from './hiringTemplateSummary.ts';

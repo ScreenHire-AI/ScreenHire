@@ -1,47 +1,57 @@
+import type { ApplicationFileSummary } from '@screenhire/api-client';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
-import WithTooltips from '../../test-support/with-tooltips.svelte';
 import FileTile from './file-tile.svelte';
 
-const renderTile = (props: Record<string, unknown>) => render(WithTooltips, { props: { component: FileTile, props } });
+const applicationId = '0198a3c4-0000-7000-8000-000000000001';
+
+function file(overrides: Partial<ApplicationFileSummary> = {}): ApplicationFileSummary {
+  return {
+    id: '0198a3c4-0000-7000-8000-0000000000f1',
+    questionId: 'resume',
+    uploadId: '0198a3c4-0000-7000-8000-0000000000a1',
+    fileName: 'resume.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 122_000,
+    scanStatus: 'Clean',
+    uploadedAt: '2026-10-20T09:00:00Z',
+    ...overrides,
+  };
+}
 
 describe('file tile', () => {
-  it('shows the name, the size and Download, which loads the file outside the client router', async () => {
-    const { container } = renderTile({ name: 'resume.pdf', size: 122_880, href: '/v1/files/1', scanStatus: 'Clean' });
+  it('shows the name, the size as a fact pill and Download, which loads the file outside the client router', async () => {
+    const { container } = render(FileTile, { props: { applicationId, file: file() } });
 
     expect(screen.getByText('resume.pdf')).toBeInTheDocument();
-    expect(screen.getByText('120 kB')).toBeInTheDocument();
+    expect(screen.getByText('122 kB')).toHaveAttribute('data-slot', 'badge');
     const download = screen.getByRole('link', { name: 'Download resume.pdf' });
-    expect(download).toHaveAttribute('href', '/v1/files/1');
+    expect(download).toHaveAttribute('href', `/v1/applications/${applicationId}/files/${file().id}`);
     expect(download).toHaveAttribute('data-sveltekit-reload');
     // 44px on touch (F4).
     expect(download).toHaveClass('pointer-coarse:h-11');
-    // An inset inside a panel: secondary fill, no edge (section 6).
-    expect(container.querySelector('[data-slot="file-tile"]')).toHaveClass('bg-secondary');
-    expect(container.querySelector('[data-slot="file-tile"]')).not.toHaveClass('border');
     await expectNoAxeViolations(container);
+  });
+
+  it('has nothing to say about a file nobody scanned', () => {
+    render(FileTile, { props: { applicationId, file: file({ scanStatus: 'NotScanned' }) } });
+
+    expect(screen.queryByText(/scan|withheld/i)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Download resume.pdf' })).toBeInTheDocument();
   });
 
   it.each([
-    ['Pending', 'Scanning', 'diamond', 'Being scanned for malware'],
-    ['Infected', 'Withheld', 'square', 'The malware scan found a threat'],
-  ])('shows a %s file as a status that needs attention, and offers no Download', async (scanStatus, label, shape, detail) => {
-    const { container } = renderTile({ name: 'resume.pdf', size: 1000, href: '/v1/files/1', scanStatus });
+    ['Pending', 'Being scanned for malware', 'diamond', 'bg-status-review-soft'],
+    ['Infected', 'Withheld: malware found', 'square', 'bg-status-verify-soft'],
+  ] as const)('shows a %s file as a status that needs attention, and offers no Download', async (scanStatus, label, shape, fill) => {
+    const { container } = render(FileTile, { props: { applicationId, file: file({ scanStatus }) } });
 
-    const badge = screen.getByText(label);
-    expect(badge).toHaveAttribute('data-slot', 'badge');
+    const badge = screen.getByText(label).closest('[data-slot="badge"]')!;
+    // Mark, colour and label (T1).
     expect(badge.querySelector('[data-shape]')).toHaveAttribute('data-shape', shape);
-    expect(screen.getByText(detail)).toBeInTheDocument();
+    expect(badge).toHaveClass(fill);
     expect(screen.queryByRole('link')).toBeNull();
-    expect(screen.queryByText('1 kB')).toBeNull();
     await expectNoAxeViolations(container);
-  });
-
-  it('says nothing about a scan that needs no attention', () => {
-    renderTile({ name: 'resume.pdf', href: '/v1/files/1', scanStatus: 'NotScanned' });
-
-    expect(screen.queryByText(/scan/i)).toBeNull();
-    expect(screen.getByRole('link', { name: 'Download resume.pdf' })).toBeInTheDocument();
   });
 });

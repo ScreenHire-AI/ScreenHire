@@ -21,7 +21,7 @@
 				// A calm status in a list or table: its mark and muted text, no fill (T3).
 				quiet: "px-0 text-muted-foreground",
 				// A fact pill (section 11).
-				muted: "border-input bg-secondary text-secondary-foreground",
+				muted: "border-input bg-secondary text-muted-foreground",
 				// A count after its label (T4): a wide pill, never a square.
 				count: "min-w-7 bg-secondary text-muted-foreground tabular-nums",
 			},

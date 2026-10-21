@@ -41,7 +41,6 @@ import type {
   CreateJobRequest,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
-  FilePreview,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -4568,105 +4567,6 @@ export function createDownloadApplicationFile<TData = Awaited<ReturnType<typeof 
 
 
   const query = createQuery(() => getDownloadApplicationFileQueryOptions(applicationId(),
-    fileId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
-export type getApplicationFilePreviewResponse200 = {
-  data: FilePreview
-  status: 200
-}
-
-export type getApplicationFilePreviewResponse401 = {
-  data: void
-  status: 401
-}
-
-export type getApplicationFilePreviewResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getApplicationFilePreviewResponseSuccess = (getApplicationFilePreviewResponse200) & {
-  headers: Headers;
-};
-export type getApplicationFilePreviewResponseError = (getApplicationFilePreviewResponse401 | getApplicationFilePreviewResponse404) & {
-  headers: Headers;
-};
-
-export const getGetApplicationFilePreviewUrl = (applicationId: string,
-    fileId: string,) => {
-
-
-
-
-  return `/v1/applications/${applicationId}/files/${fileId}/preview`
-}
-
-export const getApplicationFilePreview = async (applicationId: string,
-    fileId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationFilePreviewResponseSuccess> => {
-
-  return apiQueryFetch<getApplicationFilePreviewResponseSuccess>(getGetApplicationFilePreviewUrl(applicationId,fileId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetApplicationFilePreviewQueryKey = (applicationId: string,
-    fileId: string,) => {
-    return [
-    'v1','applications',applicationId,'files',fileId,'preview'
-    ] as const;
-    }
-
-
-export const getGetApplicationFilePreviewQueryOptions = <TData = Awaited<ReturnType<typeof getApplicationFilePreview>>, TError = ErrorType<void>>(applicationId: string,
-    fileId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationFilePreview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApplicationFilePreviewQueryKey(applicationId,fileId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApplicationFilePreview>>> = ({ signal }) => getApplicationFilePreview(applicationId,fileId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined && fileId !== null && fileId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApplicationFilePreview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetApplicationFilePreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApplicationFilePreview>>>
-export type GetApplicationFilePreviewQueryError = ErrorType<void>
-
-
-
-export function createGetApplicationFilePreview<TData = Awaited<ReturnType<typeof getApplicationFilePreview>>, TError = ErrorType<void>>(
- applicationId: () =>  string,
-    fileId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationFilePreview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getGetApplicationFilePreviewQueryOptions(applicationId(),
     fileId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
