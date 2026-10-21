@@ -202,11 +202,11 @@ if (frontends != FrontendMode.None)
     // tests with a native abort (0xC0000409) and no message (docs/process/testing.md, "Flake history"). The static apps
     // go to Caddy, a real static file server, with Caddyfiles in Caddy/; careers runs its own Node server, the one that
     // ships, with no pnpm or Astro CLI around it. Caddy is the official caddy image (Apache-2.0), pinned.
-    IResourceBuilder<ContainerResource> StaticSite(string name, string site, int fallbackPort) =>
+    IResourceBuilder<ContainerResource> StaticSite(string name, string site, int? port) =>
         builder.AddContainer(name, "caddy", "2.10.2-alpine")
             .WithBindMount(Path.Combine(builder.AppHostDirectory, "Caddy", name), "/etc/caddy", isReadOnly: true)
             .WithBindMount(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", site)), "/srv", isReadOnly: true)
-            .WithHttpEndpoint(port: PortFor(char.ToUpperInvariant(name[0]) + name[1..], fallbackPort), targetPort: 8080)
+            .WithHttpEndpoint(port: port, targetPort: 8080)
             .WithHttpHealthCheck("/");
 
     // Health checks make WaitFor and the test fixtures wait until each server actually answers, not just until the
@@ -233,7 +233,7 @@ if (frontends != FrontendMode.None)
 
     if (built)
     {
-        StaticSite("marketing", "marketing/dist", 4321);
+        StaticSite("marketing", "marketing/dist", PortFor("Marketing", 4321));
     }
     else
     {
@@ -246,7 +246,7 @@ if (frontends != FrontendMode.None)
     // The dashboard reaches the API through its own /v1 path (cookies stay same-origin): the Vite dev server's proxy, or
     // in Built mode the Caddyfile's, which also carries the real-time hub's WebSocket.
     IResourceBuilder<IResourceWithEndpoints> dashboard = built
-        ? StaticSite("dashboard", "dashboard/build", 4323).WithEnvironment("API_URL", apiUrl).WaitFor(api)
+        ? StaticSite("dashboard", "dashboard/build", PortFor("Dashboard", 4323)).WithEnvironment("API_URL", apiUrl).WaitFor(api)
         : builder.AddViteApp("dashboard", "../dashboard", "dev")
             .WithPnpm(install: false)
             .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Dashboard", 4323))
