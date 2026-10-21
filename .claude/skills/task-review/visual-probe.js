@@ -43,11 +43,12 @@
     return false;
   };
   const all = [...document.body.querySelectorAll('*')].filter(visible);
-  // sr-only controls (1px boxes) are not targets anyone taps.
-  const targets = all.filter((el) =>
-    el.matches('a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=checkbox], [role=switch], [role=menuitem], [role=option]') &&
-    el.clientWidth > 1,
-  );
+  // sr-only controls (1px boxes) are not targets anyone taps. Measured by their box: an inline link's clientWidth is 0.
+  const targets = all.filter((el) => {
+    const r = el.getBoundingClientRect();
+    return el.matches('a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=checkbox], [role=switch], [role=menuitem], [role=option]') &&
+      r.width > 1 && r.height > 1;
+  });
   // A wrapping label is an input's hit area, so its size is the target's size.
   const hitBox = (el) => (el.matches('input') && el.closest('label') ? el.closest('label') : el).getBoundingClientRect();
   const main = document.querySelector('main');

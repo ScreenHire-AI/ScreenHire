@@ -140,7 +140,7 @@
 </script>
 
 {#snippet selectHeader()}
-  <!-- The label is the hit area: 24px with a mouse, 44px on touch (design system F4, section 17). -->
+  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
   <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
     <input
       type="checkbox"
@@ -153,7 +153,7 @@
 {/snippet}
 
 {#snippet selectCell(application: ApplicationSummary)}
-  <!-- The label is the hit area: 24px with a mouse, 44px on touch (design system F4, section 17). -->
+  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
   <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
     <input
       type="checkbox"
