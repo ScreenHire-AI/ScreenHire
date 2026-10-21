@@ -1,9 +1,5 @@
 import type { ApplicationSource, EmploymentType, JobSalary } from '@screenhire/api-client';
-import { locales } from '#lib/dates.js';
-
-const minute = 60_000;
-const hour = 60 * minute;
-const day = 24 * hour;
+import { day, hour, locales, minute } from '#lib/dates.js';
 
 /** Compact time until an instant: `~20s`, `~5m`, `~4h`, `~1d`. */
 export function eta(iso: string, now: number): string {

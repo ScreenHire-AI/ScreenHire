@@ -1,15 +1,12 @@
-/**
- * Every date the dashboard shows goes through this module (docs/design/design-system.md section 13): time ago in
- * text, the date in tables and for anything older than a week, the exact time on hover. The browser's languages come
- * first and US English is the fallback. The API sends ISO instants only.
- */
+// Every date the dashboard shows goes through this module (docs/design/design-system.md section 13). The API sends
+// ISO instants only.
 
 /** The browser's languages, then US English. Numbers are formatted in them too. */
 export const locales = [...(globalThis.navigator?.languages ?? []), 'en-US'];
 
-const minute = 60_000;
-const hour = 60 * minute;
-const day = 24 * hour;
+export const minute = 60_000;
+export const hour = 60 * minute;
+export const day = 24 * hour;
 
 const date = new Intl.DateTimeFormat(locales, { dateStyle: 'medium' });
 const dateTime = new Intl.DateTimeFormat(locales, { dateStyle: 'medium', timeStyle: 'short' });
