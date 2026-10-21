@@ -179,7 +179,7 @@
       </ol>
       {#snippet footer()}
         <div class="flex flex-wrap items-end gap-2">
-          <label class={[labelClass, 'w-56 max-w-full']}>
+          <label class={[labelClass, 'max-w-56 flex-[1_1_14rem]']}>
             New question's answer type
             <select class={cn(selectClass, 'bg-card')} bind:value={addType}>
               {#each questionTypes as type (type)}<option value={type}>{questionTypeLabels[type]}</option>{/each}

@@ -20,6 +20,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
+  import StatusMark from '#lib/components/status-mark.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -178,7 +179,10 @@
 
     <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
       <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it; a failure shows. -->
-      <p role="status" class={moves.failure ? 'rounded-panel border border-border bg-card px-4 py-3 text-status-verify' : 'sr-only'}>{moves.announcement}</p>
+      <!-- A failed move is a problem to fix: mark, colour and text (T1). Success is only announced. -->
+      <p role="status" class={moves.failure ? 'flex items-center gap-2 rounded-panel border border-border bg-card px-4 py-3 text-status-verify' : 'sr-only'}>
+        {#if moves.failure}<StatusMark shape="square" tone="verify" />{/if}{moves.announcement}
+      </p>
 
       <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
            top of the side column, and the main column spans both of the side column's rows. -->
