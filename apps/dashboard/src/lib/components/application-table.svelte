@@ -277,9 +277,4 @@
       </tbody>
     </table>
   </div>
-  <div
-    class="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-border-subtle bg-muted px-3 py-2 text-caption text-muted-foreground"
-  >
-    <span>{applications.length} {applications.length === 1 ? 'candidate' : 'candidates'}{selectedIds.length > 0 ? `, ${selectedIds.length} selected` : ''}</span>
-  </div>
 </div>

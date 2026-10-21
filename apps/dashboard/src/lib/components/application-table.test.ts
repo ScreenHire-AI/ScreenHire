@@ -103,7 +103,7 @@ describe('candidate table', () => {
     await fireEvent.keyDown(link, { key: 'x' });
 
     expect(screen.getByRole('checkbox', { name: 'Select Jordan Lee' })).toBeChecked();
-    expect(screen.getByText(/3 candidates, 1 selected/)).toBeInTheDocument();
+    expect(rowOf('Jordan Lee')).toHaveClass('bg-row-selected');
 
     await fireEvent.keyDown(link, { key: 'x' });
     expect(screen.getByRole('checkbox', { name: 'Select Jordan Lee' })).not.toBeChecked();
@@ -128,10 +128,11 @@ describe('candidate table', () => {
     expect(first).toHaveFocus();
   });
 
-  it('has no always-on bar of shortcut hints; the ? dialog lists them (K1)', () => {
+  it('has no always-on bar of shortcut hints or footer; the ? dialog lists the keys (K1)', () => {
     const { container } = render(ApplicationTable, { props: { applications } });
 
     expect(container.querySelector('kbd')).toBeNull();
+    expect(container.firstElementChild?.lastElementChild?.querySelector('table')).not.toBeNull();
   });
 
   it('says so when there is nothing to show', () => {
@@ -150,6 +151,6 @@ describe('candidate table', () => {
 
     expect(dataRows().length).toBeGreaterThan(10);
     expect(dataRows().length).toBeLessThan(60);
-    expect(screen.getByText('500 candidates')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toHaveAttribute('aria-rowcount', '501');
   });
 });

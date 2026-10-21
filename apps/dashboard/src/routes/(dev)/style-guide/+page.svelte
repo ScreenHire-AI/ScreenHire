@@ -1,17 +1,14 @@
 <script lang="ts">
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
-  import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
   import MessageSquareIcon from '@lucide/svelte/icons/message-square';
   import MoonIcon from '@lucide/svelte/icons/moon';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SunIcon from '@lucide/svelte/icons/sun';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import UsersIcon from '@lucide/svelte/icons/users';
   import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -103,7 +100,6 @@
     source: 'Question 2',
   };
 
-  const icons = [BriefcaseIcon, UsersIcon, LayoutTemplateIcon];
 
   // Files as the API describes them. None of these exists: a download from this page fails, which the preview shows.
   const applicationId = '00000000-0000-7000-8000-000000000000';
@@ -367,7 +363,7 @@
                       <Sidebar.Group>
                         <Sidebar.Menu>
                           {#each sections as section, index (section.href)}
-                            {@const Icon = icons[index]}
+                            {@const Icon = section.icon}
                             <Sidebar.MenuItem>
                               <Sidebar.MenuButton isActive={index === 0} tooltipContent={section.label}>
                                 {#snippet child({ props })}

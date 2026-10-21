@@ -1,15 +1,19 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
-import type { MarkShape, MarkTone } from '#lib/distribution.js';
+import CalendarPlusIcon from '@lucide/svelte/icons/calendar-plus';
+import InboxIcon from '@lucide/svelte/icons/inbox';
+import MessagesSquareIcon from '@lucide/svelte/icons/messages-square';
 import { needsReview, verificationRecommended } from '#lib/integrity.js';
+import type { LucideIcon } from '#lib/shell.js';
 
-/** A ready-made filter on the candidates table, listed in the sidebar with its count. */
-export interface SavedView {
+/**
+ * A ready-made filter on the candidates table, listed in the sidebar with its count. A view of an integrity status shows
+ * that status's mark; any other view shows an icon (design system I2).
+ */
+export type SavedView = {
   id: string;
   label: string;
-  shape: MarkShape;
-  tone: MarkTone;
   matches(application: ApplicationSummary, now: number): boolean;
-}
+} & ({ mark: { shape: 'diamond' | 'square'; tone: 'review' | 'verify' }; icon?: never } | { icon: LucideIcon; mark?: never });
 
 const day = 24 * 60 * 60 * 1000;
 
@@ -21,36 +25,31 @@ export const savedViews: readonly SavedView[] = [
   {
     id: 'needs-review',
     label: 'Needs review',
-    shape: 'diamond',
-    tone: 'review',
+    mark: { shape: 'diamond', tone: 'review' },
     matches: (application) => needsReview(application),
   },
   {
     id: 'verification-recommended',
     label: 'Verification recommended',
-    shape: 'square',
-    tone: 'verify',
+    mark: { shape: 'square', tone: 'verify' },
     matches: (application) => verificationRecommended(application),
   },
   {
     id: 'new-today',
     label: 'New today',
-    shape: 'circle',
-    tone: 'primary',
+    icon: CalendarPlusIcon,
     matches: (application, now) => now - Date.parse(application.submittedAt) < day,
   },
   {
     id: 'not-screened',
     label: 'Not screened yet',
-    shape: 'ring',
-    tone: 'neutral',
+    icon: InboxIcon,
     matches: (application) => application.stage.kind === 'Applied',
   },
   {
     id: 'interviewing',
     label: 'Interviewing',
-    shape: 'ring',
-    tone: 'neutral',
+    icon: MessagesSquareIcon,
     matches: (application) => application.stage.kind === 'Interview',
   },
 ];

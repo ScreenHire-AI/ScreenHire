@@ -112,7 +112,9 @@
   <title>{detail?.title ?? 'Job'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Jobs', href: '/' }, ...(detail?.department ? [{ label: detail.department }] : []), { label: detail?.title ?? 'Job' }]} />
+<TopBar crumbs={[{ label: 'Jobs', href: '/' }, ...(detail?.department ? [{ label: detail.department }] : []), { label: detail?.title ?? 'Job' }]}
+  back={{ href: '/', label: 'Jobs' }}
+/>
 
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
   {#if job.isError}
