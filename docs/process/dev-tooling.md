@@ -80,7 +80,7 @@ The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHir
 `pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run
 once on 2026-10-20, after the test harness landed.
 
-## Worktree installs: pnpm's global virtual store was tried and not adopted
+## pnpm's global virtual store was tried for worktree installs and not adopted
 
 Every worktree runs `pnpm install --frozen-lockfile` as Kangentic's post-worktree script. On 2026-10-21 we measured
 pnpm's [global virtual store](https://pnpm.io/global-virtual-store) (`enableGlobalVirtualStore: true` in
