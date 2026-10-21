@@ -84,19 +84,18 @@ describe('app shell', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull());
   });
 
-  it('shows Back in place of the menu button on a phone detail page', () => {
+  it('shows Back, a level up the breadcrumb, in place of the menu button on a phone detail page', () => {
     stubViewport(390);
-    render(ShellHarness, {
-      props: { user, crumbs: [{ label: 'Candidates', href: '/candidates' }, { label: 'Jordan Lee' }], back: { href: '/candidates', label: 'Candidates' } },
-    });
+    const crumbs = [{ label: 'Candidates', href: '/candidates' }, { label: 'Senior product designer', href: '/jobs/1' }, { label: 'Jordan Lee' }];
+    render(ShellHarness, { props: { user, crumbs, back: true } });
 
-    expect(screen.getByRole('link', { name: 'Back to Candidates' })).toHaveAttribute('href', '/candidates');
+    expect(screen.getByRole('link', { name: 'Back to Senior product designer' })).toHaveAttribute('href', '/jobs/1');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
   });
 
   it('keeps Back for phones: wider screens have the sidebar', () => {
     stubViewport(768);
-    render(ShellHarness, { props: { user, back: { href: '/candidates', label: 'Candidates' } } });
+    render(ShellHarness, { props: { user, crumbs: [{ label: 'Candidates', href: '/candidates' }, { label: 'Jordan Lee' }], back: true } });
 
     expect(screen.queryByRole('link', { name: 'Back to Candidates' })).toBeNull();
   });
@@ -132,5 +131,17 @@ describe('app shell', () => {
     await waitFor(() => expect(tooltip()).toHaveTextContent('Keyboard shortcuts'));
     expect(tooltip()!.querySelector('kbd')).toBeNull();
     expect(within(main()).getByRole('link', { name: 'Jobs' })).not.toHaveAttribute('aria-keyshortcuts');
+  });
+
+  it('opens the shortcuts dialog from the user menu, which phones reach through the sheet', async () => {
+    stubViewport(390);
+    render(ShellHarness, { props: { user } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Navigation' });
+
+    await fireEvent.pointerDown(within(sheet).getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: /^Keyboard shortcuts/ }));
+
+    expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
   });
 });

@@ -13,6 +13,8 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
 {
     private const string CandidateName = "Jordan Lee";
 
+    private const string JobTitle = "Senior Product Designer";
+
     private static readonly string[] UkAndIreland = ["GB", "IE"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -64,8 +66,9 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(CandidateName);
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Open navigation" })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Back to Candidates" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(DashboardUrl("/candidates"));
+        // Back goes a level up the breadcrumb (Candidates / job / candidate), to the job.
+        await Page.GetByRole(AriaRole.Link, new() { Name = $"Back to {JobTitle}" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl($"/jobs/{scene.JobId}"));
     }
 
     [Fact]
@@ -86,7 +89,7 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(dialog).ToBeVisibleAsync();
     }
 
-    private sealed record Scene(string Email, Guid ApplicationId);
+    private sealed record Scene(string Email, Guid JobId, Guid ApplicationId);
 
     // A new person and organization with one draft job and one application, created through the API as that person.
     private async Task<Scene> SceneAsync()
@@ -103,7 +106,7 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
             "/v1/jobs",
             new
             {
-                title = "Senior Product Designer",
+                title = JobTitle,
                 department = "Design",
                 description = "<p>Shape how small hiring teams review applicants: research, prototype and ship the recruiter dashboard with engineering, end to end.</p>",
                 employmentType = "FullTime",
@@ -111,12 +114,13 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
                 applicantLocationRequirements = UkAndIreland,
             },
             Ct), HttpStatusCode.Created);
+        var jobId = job.GetProperty("id").GetGuid();
         var application = await ReadAsync(await session.PostAsync(
-            $"/v1/jobs/{job.GetProperty("id").GetGuid()}/applications",
+            $"/v1/jobs/{jobId}/applications",
             new { candidate = new { fullName = CandidateName, email = "jordan.lee@example.com" } },
             Ct), HttpStatusCode.Created);
 
-        return new Scene(email, application.GetProperty("id").GetGuid());
+        return new Scene(email, jobId, application.GetProperty("id").GetGuid());
     }
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)

@@ -16,12 +16,14 @@
   // switch. On a phone it starts with the menu button, or with Back on a detail page (design system section 8).
   let {
     crumbs,
-    back,
+    back = false,
   }: {
     crumbs: readonly { label: string; href?: string }[];
-    /** On a detail page: the level up, which phones show as Back in place of the menu button. */
-    back?: { href: string; label: string };
+    /** A detail page: phones show Back, to the breadcrumb's level up, in place of the menu button. */
+    back?: boolean;
   } = $props();
+
+  const up = $derived(back ? crumbs.slice(0, -1).findLast((crumb) => crumb.href) : undefined);
 
   const shell = getShell();
   // The sidebar's own phone test (under md), so the bar and the sheet switch together.
@@ -32,8 +34,8 @@
 
 <header class="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-4 md:px-5">
   {#if sidebar.isMobile}
-    {#if back}
-      <Button href={back.href} variant="ghost" size="lg" aria-label={`Back to ${back.label}`} class="-ml-2">
+    {#if up?.href}
+      <Button href={up.href} variant="ghost" size="lg" aria-label={`Back to ${up.label}`} class="-ml-2">
         <ArrowLeftIcon aria-hidden="true" />
         Back
       </Button>

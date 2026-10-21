@@ -14,7 +14,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { savedViews } from '#lib/saved-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { sections } from '#lib/shell.js';
+  import { getShell, sections } from '#lib/shell.js';
 
   // The app's navigation (design system sections 8 and 9): the full sidebar, the icon rail or the phone sheet, as the
   // provider around it decides. In the rail, labels hide and show in tooltips.
@@ -30,6 +30,7 @@
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
+  const shell = getShell();
   const rail = $derived(sidebar.state === 'collapsed' && !sidebar.isMobile);
   const currentView = $derived(page.url.pathname === '/candidates' ? page.url.searchParams.get('view') : null);
 
@@ -54,14 +55,15 @@
                 <Sidebar.MenuButton
                   {...props}
                   size="lg"
-                  aria-label={`Workspace: ${user.organization!.name}`}
                   tooltipContent={user.organization!.name}
                   class="border border-border bg-card"
                 >
                   <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-md bg-secondary text-caption font-semibold text-secondary-foreground"
                     >{initials(user.organization!.name)}</span
                   >
-                  <span class="min-w-0 flex-1 truncate font-semibold text-foreground group-data-[collapsible=icon]:sr-only">{user.organization!.name}</span>
+                  <span class="min-w-0 flex-1 truncate font-semibold text-foreground group-data-[collapsible=icon]:sr-only"
+                    ><span class="sr-only">Workspace: </span>{user.organization!.name}</span
+                  >
                   <ChevronsUpDownIcon class="text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden="true" />
                 </Sidebar.MenuButton>
               {/snippet}
@@ -135,7 +137,7 @@
                       {@const Icon = view.icon}
                       <Icon aria-hidden="true" />
                     {/if}
-                    <span class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:sr-only">{view.label}</span>
+                    <span class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{view.label}</span>
                     {#if count !== undefined}
                       <Badge variant="count" class="group-data-[collapsible=icon]:hidden">{count}</Badge>
                     {/if}
@@ -184,6 +186,11 @@
                 <span class="truncate font-normal">{user.email}</span>
               </DropdownMenu.Label>
               <DropdownMenu.Separator />
+              <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there. -->
+              <DropdownMenu.Item onSelect={() => shell.openShortcuts()}>
+                Keyboard shortcuts
+                {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut>?</DropdownMenu.Shortcut>{/if}
+              </DropdownMenu.Item>
               <DropdownMenu.CheckboxItem
                 checked={preferences.shortcutsEnabled}
                 onCheckedChange={(checked) => preferences.setShortcutsEnabled(checked)}>Single-key shortcuts</DropdownMenu.CheckboxItem

@@ -76,7 +76,7 @@
     ...(detail ? [{ label: detail.jobTitle, href: `/jobs/${detail.jobId}` }] : []),
     { label: detail?.candidate.fullName ?? 'Application' },
   ]}
-  back={{ href: '/candidates', label: 'Candidates' }}
+  back
 />
 
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">

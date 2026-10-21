@@ -17,7 +17,7 @@
   }: {
     user: CurrentUser;
     crumbs?: readonly { label: string; href?: string }[];
-    back?: { href: string; label: string };
+    back?: boolean;
     viewCounts?: Record<string, number | undefined>;
   } = $props();
 

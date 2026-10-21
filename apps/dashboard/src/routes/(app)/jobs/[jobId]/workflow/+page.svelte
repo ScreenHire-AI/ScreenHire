@@ -100,7 +100,7 @@
 </svelte:head>
 
 <TopBar crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: `/jobs/${params.jobId}` }, { label: 'Workflow' }]}
-  back={{ href: `/jobs/${params.jobId}`, label: detail?.title ?? 'Job' }}
+  back
 />
 
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
