@@ -1,6 +1,6 @@
 {
   "applicant": "bot",
-  "rulesetVersion": "2026-10-21.1",
+  "rulesetVersion": "2026-10-21.2",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [

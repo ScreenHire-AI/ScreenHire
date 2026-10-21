@@ -34,7 +34,7 @@ namespace ScreenHire.Domain.Integrity;
 public static class IntegrityRuleset
 {
     /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes.</summary>
-    public const string Version = "2026-10-21.1";
+    public const string Version = "2026-10-21.2";
 
     public const int CorroboratingWeight = 2;
 
@@ -238,7 +238,6 @@ public static class IntegrityRuleset
             SignalCategory.Document => "document",
             _ => "content",
         };
-
     }
 }
 
