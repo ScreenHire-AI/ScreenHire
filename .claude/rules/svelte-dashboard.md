@@ -76,8 +76,8 @@ new route is the `/add-dashboard-page` skill.
   `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`. The
   integrity chips are `integrityColumns` (`#lib/integrity-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`) but never filters: pages filter the rows they pass in (stage, saved view,
-  `IntegrityFilter`), so the count and "select all" match what is shown. Saved views are the list in
-  `#lib/saved-views.ts`.
+  `IntegrityFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
+  the list in `#lib/saved-views.ts`.
 - Integrity levels are drawn from `#lib/integrity.ts` (label, shape, tone, badge variant) through `IntegrityChip`;
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 

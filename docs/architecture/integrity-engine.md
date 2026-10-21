@@ -168,7 +168,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   candidate's declaration, any dismissal, and the review log. Its actions are *Dismiss with a reason* (per assessment
   above the lowest level) and *Add note*; *Request verification* is shown disabled with the API's phase 2 reason. The
   footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed` refetches the chips,
-  overview and panel live. AI chips use one colour and a ring mark, so they read as information; "Not indicated" is
+  overview and panel live. AI chips use one colour and no mark, so they read as information; "Not indicated" is
   neutral. While an integrity filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a
   new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a filtered "select all" must not become
   rejection driven by integrity signals. Moving one candidate stays a person's decision about that candidate.
