@@ -320,7 +320,7 @@ public sealed class DistributionTests(AppHostFixture fixture)
     private static System.Text.Json.JsonElement PostingOf(ApiResult job, string boardId) =>
         job.At("postings").EnumerateArray().Single(p => p.GetProperty("boardId").GetString() == boardId);
 
-    private static async Task<System.Text.Json.JsonElement> WaitForPostingAsync(Tenant recruiter, Guid jobId, string boardId, string state)
+    internal static async Task<System.Text.Json.JsonElement> WaitForPostingAsync(Tenant recruiter, Guid jobId, string boardId, string state)
     {
         System.Text.Json.JsonElement posting = default;
         await WolverineStore.WaitUntilAsync(async () =>

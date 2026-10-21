@@ -16,8 +16,8 @@ namespace ScreenHire.Testing;
 /// <c>[assembly: AssemblyFixture(typeof(AppHostFixture))]</c> and take it as a constructor parameter.
 /// Every run gets fresh infrastructure: no data volumes and random ports, so it never collides with a running dev
 /// stack or a sibling worktree, and Aspire removes the containers when the assembly finishes. Every resource's console
-/// log goes to <c>TestResults/logs/{resource}.log</c> next to the test assembly, and a resource that stops while the tests
-/// run is kept in <see cref="StoppedResources"/>, so a server that dies mid-run names itself.
+/// log goes to <c>TestResults/logs/{fixture}/{resource}.log</c> next to the test assembly, and a resource that stops
+/// while the tests run is kept in <see cref="StoppedResources"/>, so a server that dies mid-run names itself.
 /// </summary>
 public class AppHostFixture : IAsyncLifetime
 {
@@ -115,7 +115,14 @@ public class AppHostFixture : IAsyncLifetime
         Directory.CreateDirectory(directory);
         foreach (var old in Directory.EnumerateFiles(directory, "*.log"))
         {
-            File.Delete(old); // the files describe this run only
+            try
+            {
+                File.Delete(old); // the files describe this run only
+            }
+            catch (IOException)
+            {
+                // Still open in a test host left over from an earlier run. The diagnostics never fail the run.
+            }
         }
 
         var logs = started.Services.GetRequiredService<ResourceLoggerService>();
@@ -151,15 +158,22 @@ public class AppHostFixture : IAsyncLifetime
         }
     }
 
+    // A file that cannot be written loses its log, not the run: the watcher's task is awaited when the stack is disposed.
     private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
     {
-        await using var file = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) { AutoFlush = true };
-        await foreach (var batch in logs.WatchAsync(resourceId).WithCancellation(cancellationToken))
+        try
         {
-            foreach (var line in batch)
+            await using var file = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) { AutoFlush = true };
+            await foreach (var batch in logs.WatchAsync(resourceId).WithCancellation(cancellationToken))
             {
-                await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                foreach (var line in batch)
+                {
+                    await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                }
             }
+        }
+        catch (IOException)
+        {
         }
     }
 
@@ -208,18 +222,25 @@ public class AppHostFixture : IAsyncLifetime
     private async ValueTask DisposeAppAsync()
     {
         // Stop watching first: shutting the stack down is not a crash, and the streams end with the app's services.
+        // A watcher that failed still lets the stack shut down, so its containers never outlive the run.
         await watching.CancelAsync();
-        if (watcher is not null)
+        try
         {
-            await watcher;
-            watcher = null;
+            if (watcher is not null)
+            {
+                var watched = watcher;
+                watcher = null;
+                await watched;
+            }
         }
-
-        if (app is not null)
+        finally
         {
-            var started = app;
-            app = null;
-            await started.DisposeAsync();
+            if (app is not null)
+            {
+                var started = app;
+                app = null;
+                await started.DisposeAsync();
+            }
         }
     }
 }

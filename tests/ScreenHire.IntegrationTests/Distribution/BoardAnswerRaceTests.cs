@@ -23,7 +23,7 @@ public sealed class BoardAnswerRaceTests(AppHostFixture fixture)
         var body = Samples.RemoteJob("Answer race");
         var jobId = (await recruiter.CreateJobAsync(body)).Id();
         await recruiter.PublishJobAsync(jobId);
-        await WaitForSandboxAsync(recruiter, jobId, "Live");
+        await DistributionTests.WaitForPostingAsync(recruiter, jobId, "sandbox", "Live");
         body["title"] = "Answer race, renamed";
         (await recruiter.PutAsync($"/v1/jobs/{jobId}", body)).Expect(HttpStatusCode.OK);
 
@@ -39,7 +39,7 @@ public sealed class BoardAnswerRaceTests(AppHostFixture fixture)
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var jobId = (await recruiter.CreateJobAsync(Samples.RemoteJob("Close race"))).Id();
         await recruiter.PublishJobAsync(jobId);
-        await WaitForSandboxAsync(recruiter, jobId, "Live");
+        await DistributionTests.WaitForPostingAsync(recruiter, jobId, "sandbox", "Live");
 
         var closed = await WhileABoardAnswerIsSavedAsync(recruiter, jobId, () => recruiter.PostAsync($"/v1/jobs/{jobId}/close"));
 
@@ -68,7 +68,8 @@ public sealed class BoardAnswerRaceTests(AppHostFixture fixture)
     }
 
     // Postgres' own view of lock waits; the owner connection only observes, it changes nothing. A handler of the real
-    // worker locks one posting by id, so its lock query is left out: only the API can be the one waiting here.
+    // worker locks one posting by id, so its lock query is left out: only the API can be the one waiting here. The filter
+    // matches the SQL of PostingLocks.LockAsync; keep the two in step.
     private async Task<bool> IsBlockedByAsync(int pid)
     {
         await using var connection = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct));
@@ -83,9 +84,4 @@ public sealed class BoardAnswerRaceTests(AppHostFixture fixture)
 
     private static System.Text.Json.JsonElement Sandbox(ApiResult job) =>
         job.At("postings").EnumerateArray().Single(p => p.GetProperty("boardId").GetString() == "sandbox");
-
-    private static async Task WaitForSandboxAsync(Tenant recruiter, Guid jobId, string state) =>
-        await WolverineStore.WaitUntilAsync(
-            async () => Sandbox((await recruiter.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.OK)).GetProperty("state").GetString() == state,
-            $"the sandbox posting to be {state}", Ct);
 }
