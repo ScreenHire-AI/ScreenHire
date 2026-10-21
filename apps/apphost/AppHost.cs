@@ -201,7 +201,7 @@ if (frontends != FrontendMode.None)
     // Built serves what ships, with no Vite or Astro preview server: their Node processes died mid-run in the end-to-end
     // tests with a native abort (0xC0000409) and no message (docs/process/testing.md, "Flake history"). The static apps
     // go to Caddy, a real static file server, with Caddyfiles in Caddy/; careers runs its own Node server, the one that
-    // ships, with no pnpm or Astro CLI around it.
+    // ships, with no pnpm or Astro CLI around it. Caddy is the official caddy image (Apache-2.0), pinned.
     IResourceBuilder<ContainerResource> StaticSite(string name, string site, int fallbackPort) =>
         builder.AddContainer(name, "caddy", "2.10.2-alpine")
             .WithBindMount(Path.Combine(builder.AppHostDirectory, "Caddy", name), "/etc/caddy", isReadOnly: true)
