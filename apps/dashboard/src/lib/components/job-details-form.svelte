@@ -7,10 +7,10 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
-  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import Panel from '#lib/components/panel.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { employmentLabel } from '#lib/format.js';
@@ -32,11 +32,11 @@
   } from '#lib/job-form.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
-  import { cn } from '#lib/utils.js';
 
-  // "Edit details": the job's posting content after it was created (PUT /v1/jobs/{id}). The workflow has its own page.
-  // An open job's edit is live on the careers page at once; boards get it when the job is published again.
-  let { job, open = $bindable(false), onsaved }: { job: JobDetail; open?: boolean; onsaved?: (message: string) => void } = $props();
+  // "Edit details": the job's posting content after it was created (PUT /v1/jobs/{id}), on the form template. The
+  // workflow has its own page. An open job's edit is live on the careers page at once; boards get it when the job is
+  // published again.
+  let { job, cancelHref, onsaved }: { job: JobDetail; cancelHref: string; onsaved?: (message: string) => void } = $props();
 
   const queryClient = useQueryClient();
   const update = createUpdateJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
@@ -85,7 +85,9 @@
     };
   }
 
-  const { form, errors, enhance, submitting, reset } = superForm(defaults(untrack(() => fieldsOf(job)), zod4(schema)), {
+  // The form starts from the job as it is when the page opens. The page hands over a new `job` whenever the query
+  // refetches (a live event, a board confirming the job), and that must not wipe what the person has typed.
+  const { form, errors, enhance, submitting } = superForm(defaults(untrack(() => fieldsOf(job)), zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -109,7 +111,6 @@
             description: descriptionBody(value.description, original),
           },
         });
-        open = false;
         onsaved?.(job.status === 'Open' ? 'Saved. The careers page shows it now; publish again to update the boards.' : 'Saved.');
       } catch (error) {
         if (error instanceof ApiError && error.status === 400) {
@@ -122,29 +123,19 @@
     },
   });
 
-  // Each opening starts from the job as it is then. Only `open` is tracked: the page hands over a new `job` whenever the
-  // query refetches (a live event, a board confirming the job), and that must not wipe what the person has typed.
-  $effect(() => {
-    if (open) untrack(() => reset({ data: fieldsOf(job) }));
-  });
-
   const describedBy = (id: string, error: unknown, hint?: string) => [hint, error ? id : undefined].filter(Boolean).join(' ') || undefined;
 </script>
 
-<Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
-    <Sheet.Header>
-      <Sheet.Title>Edit job details</Sheet.Title>
-      <Sheet.Description>What candidates see on the careers page and the boards. The stages and questions are on the Workflow page.</Sheet.Description>
-    </Sheet.Header>
-    <form method="POST" use:enhance novalidate class="flex flex-col gap-4 px-4 pb-6">
+<form method="POST" use:enhance novalidate aria-label="Edit job details">
+  <Panel title="Details">
+    <div class="@container flex flex-col gap-4">
       <Field.Field data-invalid={$errors.title ? true : undefined}>
         <Field.Label for="job-title">Title</Field.Label>
         <Input id="job-title" name="title" maxlength={200} required bind:value={$form.title} aria-invalid={$errors.title ? 'true' : undefined} aria-describedby={describedBy('job-title-error', $errors.title)} />
         <Field.Error id="job-title-error" errors={$errors.title?.map((message) => ({ message }))} />
       </Field.Field>
 
-      <div class="grid gap-3 sm:grid-cols-2">
+      <div class="flex flex-col gap-4 @md:grid @md:grid-cols-2 @md:gap-3">
         <Field.Field data-invalid={$errors.department ? true : undefined}>
           <Field.Label for="job-department">Department</Field.Label>
           <Input id="job-department" name="department" maxlength={100} bind:value={$form.department} aria-invalid={$errors.department ? 'true' : undefined} aria-describedby={describedBy('job-department-error', $errors.department)} />
@@ -173,16 +164,15 @@
           <Field.Error id="job-countries-error" errors={$errors.countries?.map((message) => ({ message }))} />
         </Field.Field>
       {:else}
-        <div class="grid grid-cols-[1fr_8rem] gap-3">
+        <div class="flex flex-col gap-4 @md:grid @md:grid-cols-[2fr_1fr] @md:gap-3">
           <Field.Field data-invalid={$errors.city ? true : undefined}>
             <Field.Label for="job-city">City</Field.Label>
             <Input id="job-city" name="city" maxlength={100} bind:value={$form.city} aria-invalid={$errors.city ? 'true' : undefined} aria-describedby={describedBy('job-city-error', $errors.city)} />
             <Field.Error id="job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
           </Field.Field>
           <Field.Field data-invalid={$errors.country ? true : undefined}>
-            <Field.Label for="job-country">Country</Field.Label>
-            <Input id="job-country" name="country" required maxlength={2} autocomplete="off" bind:value={$form.country} aria-invalid={$errors.country ? 'true' : undefined} aria-describedby={describedBy('job-country-error', $errors.country, 'job-country-hint')} />
-            <Field.Description id="job-country-hint">Code, such as GB</Field.Description>
+            <Field.Label for="job-country">Country code</Field.Label>
+            <Input id="job-country" name="country" required maxlength={2} autocomplete="off" bind:value={$form.country} aria-invalid={$errors.country ? 'true' : undefined} aria-describedby={describedBy('job-country-error', $errors.country)} />
             <Field.Error id="job-country-error" errors={$errors.country?.map((message) => ({ message }))} />
           </Field.Field>
         </div>
@@ -190,7 +180,7 @@
 
       <fieldset class="flex flex-col gap-2">
         <legend class="mb-1 text-body font-medium">Salary <span class="font-normal text-muted-foreground">(optional)</span></legend>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_6rem_8rem]">
+        <div class="grid grid-cols-2 gap-3 @lg:grid-cols-4">
           <Field.Field data-invalid={$errors.salaryMin ? true : undefined}>
             <Field.Label for="job-salary-min">From</Field.Label>
             <Input id="job-salary-min" name="salaryMin" inputmode="decimal" bind:value={$form.salaryMin} aria-invalid={$errors.salaryMin ? 'true' : undefined} aria-describedby={describedBy('job-salary-min-error', $errors.salaryMin)} />
@@ -216,26 +206,27 @@
       </fieldset>
 
       <Field.Field data-invalid={$errors.closingDate ? true : undefined}>
-        <Field.Label for="job-closing">Closing date <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
-        <Input id="job-closing" name="closingDate" type="date" bind:value={$form.closingDate} aria-invalid={$errors.closingDate ? 'true' : undefined} aria-describedby={describedBy('job-closing-error', $errors.closingDate, 'job-closing-hint')} />
-        <Field.Description id="job-closing-hint">The posting expires at the end of this day (UTC). Leave it empty to keep it open until you close it.</Field.Description>
+        <Field.Label for="job-closing">Closing date, UTC <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+        <Input id="job-closing" name="closingDate" type="date" bind:value={$form.closingDate} aria-invalid={$errors.closingDate ? 'true' : undefined} aria-describedby={describedBy('job-closing-error', $errors.closingDate)} />
         <Field.Error id="job-closing-error" errors={$errors.closingDate?.map((message) => ({ message }))} />
       </Field.Field>
 
       <Field.Field data-invalid={$errors.description ? true : undefined}>
         <Field.Label for="job-description">Description</Field.Label>
         <Textarea id="job-description" name="description" rows={10} bind:value={$form.description} aria-invalid={$errors.description ? 'true' : undefined} aria-describedby={describedBy('job-description-error', $errors.description, 'job-description-hint')} />
-        <Field.Description id="job-description-hint">A blank line starts a new paragraph, and a line starting with "- " is a list item. Left as it is, the description keeps its formatting; once edited, headings become paragraphs.</Field.Description>
+        <Field.Description id="job-description-hint">A blank line starts a paragraph. "- " starts a list item.</Field.Description>
         <Field.Error id="job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
       </Field.Field>
 
-      {#if $errors._errors}
-        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
-      {/if}
-      <div class="flex justify-end gap-2">
-        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Sheet.Close>
-        <Button type="submit" disabled={$submitting}>Save details</Button>
+    </div>
+    {#snippet footer()}
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        {#if $errors._errors}
+          <p role="alert" class="mr-auto text-body text-destructive">{$errors._errors[0]}</p>
+        {/if}
+        <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
+        <Button type="submit" size="lg" disabled={$submitting}>Save details</Button>
       </div>
-    </form>
-  </Sheet.Content>
-</Sheet.Root>
+    {/snippet}
+  </Panel>
+</form>

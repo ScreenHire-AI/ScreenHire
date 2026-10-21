@@ -161,14 +161,14 @@
   {:else}
     <HeaderBand title={detail.candidate.fullName} actions={sidebar.isMobile ? undefined : moveToStage}>
       {#snippet details()}
-        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} class="text-muted-foreground" />
+        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground" />
         {#if detail.candidate.phone}
-          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} class="text-muted-foreground" />
+          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="text-muted-foreground" />
         {/if}
       {/snippet}
       {#snippet facts()}
         <Fact label="Stage">{detail.stage.name}</Fact>
-        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} /></Fact>
+        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></Fact>
         <Fact label="Applied"><RelativeTime at={detail.submittedAt} /></Fact>
         <Fact label="Source">{sourceName(detail.source)}</Fact>
       {/snippet}

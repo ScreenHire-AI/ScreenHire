@@ -1,8 +1,11 @@
 <script lang="ts" module>
-  /** The status meanings in design system section 3.2. `ai` is information and has no mark. */
-  export type Status = 'clear' | 'review' | 'verify' | 'ai';
+  /**
+   * The status meanings in design system section 3.2. `ai` is information and has no mark; `neutral` is a state that
+   * needs nothing (not started, ended).
+   */
+  export type Status = 'clear' | 'review' | 'verify' | 'ai' | 'neutral';
 
-  const shapes = { clear: 'circle', review: 'diamond', verify: 'square' } as const;
+  const shapes = { clear: 'circle', review: 'diamond', verify: 'square', neutral: 'ring' } as const;
 </script>
 
 <script lang="ts">

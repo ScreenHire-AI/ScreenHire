@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, board, jobId, now, posting } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
-import DistributionStrip from './distribution-strip.svelte';
+import DistributionPanel from './distribution-panel.svelte';
 
 const boards = [
   board('careers', 'Careers page', { mode: 'Hosted', canUnpublishPerBoard: false }),
@@ -11,14 +11,15 @@ const boards = [
   board('sandbox', 'Sandbox board'),
 ];
 
-type StripJob = Pick<JobDetail, 'id' | 'status' | 'postings'>;
+type PanelJob = Pick<JobDetail, 'id' | 'status' | 'postings'>;
 
-function renderStrip(job: StripJob) {
-  return render(WithQueryClient, { props: { component: DistributionStrip, props: { job, boards, now } } });
+function renderPanel(job: PanelJob, props: Record<string, unknown> = {}) {
+  return render(WithQueryClient, { props: { component: DistributionPanel, props: { job, boards, now, ...props } } });
 }
 
 const item = (boardId: string) => document.querySelector<HTMLElement>(`[data-board="${boardId}"]`)!;
-const stateOf = (boardId: string) => item(boardId).querySelector('[data-state]')?.textContent;
+const stateOf = (boardId: string) => item(boardId).querySelector('[data-posting-state]')?.textContent?.trim();
+const etaOf = (boardId: string) => item(boardId).querySelector('[data-slot=badge]:not([data-status])')?.textContent?.trim();
 const in20Seconds = new Date(now + 20_000).toISOString();
 const in4Hours = new Date(now + 4 * 3_600_000).toISOString();
 
@@ -26,9 +27,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('distribution strip', () => {
-  it("shows each board's state with its shape mark, and the board's own estimate", () => {
-    renderStrip({
+describe('distribution panel', () => {
+  it("shows each board's state as a status badge, and the board's own estimate as a pill", () => {
+    renderPanel({
       id: jobId,
       status: 'Open',
       postings: [
@@ -39,15 +40,19 @@ describe('distribution strip', () => {
     });
 
     expect(stateOf('careers')).toBe('Live');
-    expect(stateOf('adzuna')).toBe('Sent · ~4h');
-    expect(stateOf('sandbox')).toBe('Queued · ~20s');
+    expect(stateOf('adzuna')).toBe('Sent');
+    expect(etaOf('adzuna')).toBe('~4h');
+    expect(stateOf('sandbox')).toBe('Queued');
+    expect(etaOf('sandbox')).toBe('~20s');
+    expect(etaOf('careers')).toBeUndefined();
     expect(item('careers').querySelector('[data-shape]')).toHaveAttribute('data-shape', 'circle');
     expect(item('sandbox').querySelector('[data-shape]')).toHaveAttribute('data-shape', 'diamond');
+    expect(screen.getByRole('region', { name: 'Distribution' })).toBeInTheDocument();
     expect(item('adzuna')).toHaveTextContent('this board never confirms when a job shows');
   });
 
   it('never says "removed" for a board that does not confirm removal', () => {
-    renderStrip({
+    renderPanel({
       id: jobId,
       status: 'Closed',
       postings: [
@@ -58,27 +63,29 @@ describe('distribution strip', () => {
     });
 
     expect(stateOf('careers')).toBe('Removed');
-    expect(stateOf('adzuna')).toBe('Removal requested · ~4h');
-    expect(stateOf('sandbox')).toBe('Removing · ~20s');
+    expect(stateOf('adzuna')).toBe('Removal requested');
+    expect(stateOf('sandbox')).toBe('Removing');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('publishes a draft to every board in one click', async () => {
-    const fetchMock = vi.fn(apiStub({ [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({}) }));
-    vi.stubGlobal('fetch', fetchMock);
-    renderStrip({ id: jobId, status: 'Draft', postings: [] });
+  it('offers no board action on a draft, which is published from the page header', () => {
+    renderPanel({ id: jobId, status: 'Draft', postings: [] });
+
     expect(stateOf('sandbox')).toBe('Not posted');
+    expect(screen.queryByRole('button', { name: /Post|Publish/ })).not.toBeInTheDocument();
+  });
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Publish to 3 boards' }));
+  it("says what the page reports about the boards, such as a saved edit or a failed publish", () => {
+    renderPanel({ id: jobId, status: 'Open', postings: [] }, { notice: 'Saved.', publishFailure: 'Could not publish the job (HTTP 409).' });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/v1/jobs/${jobId}/publish`, expect.objectContaining({ method: 'POST' })));
-    expect(fetchMock.mock.calls[0]![1]!.body).toBeUndefined();
+    expect(screen.getByRole('status')).toHaveTextContent('Saved.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not publish the job (HTTP 409).');
   });
 
   it('takes the job down from one board, and offers no take-down where only closing the job removes it', async () => {
     const fetchMock = vi.fn(apiStub({ [`POST /v1/jobs/${jobId}/postings/sandbox/close`]: () => Response.json({}) }));
     vi.stubGlobal('fetch', fetchMock);
-    renderStrip({
+    renderPanel({
       id: jobId,
       status: 'Open',
       postings: [posting('careers', 'Careers page'), posting('sandbox', 'Sandbox board')],
@@ -95,7 +102,7 @@ describe('distribution strip', () => {
   it('posts an open job to a board it is not on, naming only that board', async () => {
     const fetchMock = vi.fn(apiStub({ [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({}) }));
     vi.stubGlobal('fetch', fetchMock);
-    renderStrip({
+    renderPanel({
       id: jobId,
       status: 'Open',
       postings: [posting('careers', 'Careers page'), posting('sandbox', 'Sandbox board', { state: 'Closed' })],
@@ -121,10 +128,10 @@ describe('distribution strip', () => {
         }),
       ),
     );
-    renderStrip({ id: jobId, status: 'Open', postings: [posting('sandbox', 'Sandbox board')] });
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('sandbox', 'Sandbox board')] });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Take down from Sandbox board' }));
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('A board answered meanwhile; refresh and try again.'));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('A board answered meanwhile; refresh and try again.'));
   });
 });

@@ -1,10 +1,13 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
 
-  // The page's header band (design system section 7, S2): title, the status beside it, details under it, actions on the
-  // right, then a facts row or tabs on its bottom edge. It holds the page's one h1.
+  // The page's header band (design system section 7, S2): title, a list's count or the status beside it, details under
+  // it, actions on the right, then a facts row or tabs on its bottom edge. It holds the page's one h1.
   let {
     title,
+    count,
+    countLabel,
     status,
     details,
     actions,
@@ -13,6 +16,10 @@
     wide = false,
   }: {
     title: string;
+    /** A list page's count, as a count pill after the title (T4). */
+    count?: number;
+    /** What the count counts ("applications"), for screen readers. */
+    countLabel?: string;
     /** A status badge, shown beside the title. */
     status?: Snippet;
     /** One line under the title, such as a person's contact details. */
@@ -34,6 +41,9 @@
       <div class="flex min-w-0 flex-[1_1_16rem] flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
           <h1 class="min-w-0 font-display text-page-title break-words">{title}</h1>
+          {#if count !== undefined}
+            <Badge variant="count">{count}{#if countLabel}<span class="sr-only">&nbsp;{countLabel}</span>{/if}</Badge>
+          {/if}
           {@render status?.()}
         </div>
         {#if details}

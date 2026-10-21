@@ -1,5 +1,7 @@
 <script lang="ts">
+  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
@@ -10,6 +12,7 @@
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SunIcon from '@lucide/svelte/icons/sun';
+  import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
@@ -19,27 +22,33 @@
   import Fact from '#lib/components/fact.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import IconButton from '#lib/components/icon-button.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge, { type Status } from '#lib/components/status-badge.svelte';
+  import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
@@ -67,6 +76,14 @@
 
   let shortcutsOpen = $state(false);
 
+  const toggleOptions = [
+    { id: 'all', label: 'All', count: null },
+    { id: 'applied', label: 'Applied', count: 12 },
+    { id: 'screening', label: 'Screening', count: 5 },
+    { id: 'interview', label: 'Interview', count: 2 },
+  ];
+  let toggleChoice = $state('all');
+
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
 
@@ -75,6 +92,7 @@
     { status: 'review', label: 'Review suggested' },
     { status: 'verify', label: 'Verification recommended' },
     { status: 'ai', label: 'Some indicators' },
+    { status: 'neutral', label: 'Draft' },
   ];
 
   const steps: Step[] = [
@@ -82,6 +100,11 @@
     { label: 'Questions', state: 'current' },
     { label: 'Workflow', state: 'upcoming' },
     { label: 'Publish', state: 'upcoming' },
+  ];
+  const stages = [
+    { name: 'Applied', limit: '' },
+    { name: 'Phone screen', limit: '3-day limit' },
+    { name: 'Interview', limit: '5-day limit' },
   ];
 
   const people = [
@@ -165,8 +188,8 @@
               <HeaderBand title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
                 {#snippet details()}
-                  <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} class="text-muted-foreground" />
-                  <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} class="text-muted-foreground" />
+                  <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined class="text-muted-foreground" />
+                  <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined class="text-muted-foreground" />
                 {/snippet}
                 {#snippet actions()}
                   <Button size="lg">Move to stage</Button>
@@ -243,6 +266,7 @@
             <div class="flex flex-wrap gap-4">
               <StatusBadge status="clear" label="No concerns" quiet />
               <StatusBadge status="clear" label="Live" quiet />
+              <StatusBadge status="neutral" label="Closed" quiet />
             </div>
           </figure>
         </div>
@@ -265,10 +289,59 @@
         </Panel>
       </div>
 
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Toggle" class="flex-[999_1_520px]">
+          <div class="flex flex-col gap-4">
+            <div role="group" aria-label="Stage" class="flex gap-1 overflow-x-auto">
+              {#each toggleOptions as option (option.id)}
+                <Toggle bind:pressed={() => toggleChoice === option.id, () => (toggleChoice = option.id)}>
+                  {option.label}
+                  {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}
+                </Toggle>
+              {/each}
+            </div>
+            <div role="group" aria-label="View" class="flex gap-1">
+              <Toggle pressed>Table</Toggle>
+              <Toggle>Board</Toggle>
+            </div>
+          </div>
+        </Panel>
+        <Panel title="More menu" class="flex-[1_1_320px]">
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
+            <MoreMenu label="More actions">
+              <DropdownMenu.Item>Duplicate</DropdownMenu.Item>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item variant="destructive">Close &amp; remove everywhere</DropdownMenu.Item>
+            </MoreMenu>
+          </div>
+        </Panel>
+      </div>
+
       <Panel title="Step marker">
-        <div class="flex flex-col gap-4">
-          <StepMarkers label="New job" {steps} />
-          <StepMarkers label="New job, finished" steps={steps.map((step) => ({ ...step, state: 'done' as const }))} />
+        <div class="flex flex-wrap items-start gap-x-8 gap-y-5">
+          <figure class="flex min-w-0 flex-[999_1_320px] flex-col gap-4">
+            <figcaption class="text-caption text-muted-foreground">Across, for progress</figcaption>
+            <StepMarkers label="New job" {steps} />
+            <StepMarkers label="New job, finished" steps={steps.map((step) => ({ ...step, state: 'done' as const }))} />
+          </figure>
+          <figure class="flex min-w-0 flex-[1_1_240px] flex-col gap-4">
+            <figcaption class="text-caption text-muted-foreground">Down, for a workflow's stages</figcaption>
+            <StepLine items={stages} label="Stages in order" key={(stage) => stage.name}>
+              {#snippet children(stage)}
+                <span class="font-semibold">{stage.name}</span>
+                {#if stage.limit}<span class="flex flex-wrap gap-1.5"><Badge variant="muted">{stage.limit}</Badge></span>{/if}
+              {/snippet}
+            </StepLine>
+          </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Icon button">
+        <div class="flex flex-wrap items-center gap-1">
+          <IconButton label="Move up"><ArrowUpIcon /></IconButton>
+          <IconButton label="Move down"><ArrowDownIcon /></IconButton>
+          <IconButton label="Remove"><Trash2Icon /></IconButton>
         </div>
       </Panel>
 
@@ -352,7 +425,7 @@
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>
             <SummaryItem label="Truncated link">
-              <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} />
+              <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} underlined />
             </SummaryItem>
           </SummaryList>
         </Panel>
@@ -417,6 +490,14 @@
             </Table.Body>
           </Table.Root>
         </div>
+      </Panel>
+
+      <Panel label="Search field" flush>
+        {#snippet tools()}
+          <SearchField label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <Badge variant="muted">2 selected</Badge>
+        {/snippet}
+        <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its search and filters in the header, in place of a title.</p>
       </Panel>
 
       <div class="flex flex-wrap items-start gap-5">

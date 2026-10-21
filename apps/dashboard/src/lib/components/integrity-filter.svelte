@@ -4,6 +4,7 @@
   import StatusMark from '#lib/components/status-mark.svelte';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import {
     aiAssistanceLevels,
     aiAssistanceOrder,
@@ -12,10 +13,12 @@
     pendingLevel,
     type IntegrityFilter,
   } from '#lib/integrity.js';
+  import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
   // Filters the candidate table by either assessment's level. The page applies it to the rows before the table sees
-  // them, as it does the stage filter, so counts and "select all" match what is shown.
+  // them, as it does the stage filter, so counts and "select all" match what is shown. In a narrow panel header the
+  // trigger is its icon, and the tooltip says what it filters (F5, A4).
   let { filter = $bindable() }: { filter: IntegrityFilter } = $props();
 
   const authenticityOptions = [
@@ -31,16 +34,32 @@
     ].filter(Boolean),
   );
 
+  // The tooltip says the label only where the label is cut: visually hidden in a narrow panel header, or ending in an
+  // ellipsis (F5).
+  let labelCut = $state(false);
+  const watchLabel = watchTruncation((cut) => (labelCut = cut));
+  const summary = $derived(`Integrity: ${active.length > 0 ? active.join(', ') : 'all'}`);
+
   // bits-ui radio groups take strings; "all" stands for no filter.
   const authenticityValue = $derived(filter.authenticity ?? 'all');
   const aiValue = $derived(filter.aiAssistance ?? 'all');
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), active.length > 0 && 'border-primary text-primary')}>
-    <ListFilterIcon aria-hidden="true" />
-    Integrity: {active.length > 0 ? active.join(', ') : 'all'}
-  </DropdownMenu.Trigger>
+  <Tooltip.Root disabled={!labelCut}>
+    <Tooltip.Trigger>
+      {#snippet child({ props })}
+        <DropdownMenu.Trigger
+          {...props}
+          class={cn(buttonVariants({ variant: 'outline' }), 'max-w-72 min-w-0 shrink @max-3xl/panel:w-8 @max-3xl/panel:shrink-0 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11', active.length > 0 && 'border-primary text-primary')}
+        >
+          <ListFilterIcon aria-hidden="true" />
+          <span {@attach watchLabel} class="min-w-0 truncate @max-3xl/panel:sr-only">{summary}</span>
+        </DropdownMenu.Trigger>
+      {/snippet}
+    </Tooltip.Trigger>
+    <Tooltip.Content>{summary}</Tooltip.Content>
+  </Tooltip.Root>
   <DropdownMenu.Content align="end" class="w-64">
     <DropdownMenu.Group>
       <DropdownMenu.GroupHeading class="text-caption text-muted-foreground">Authenticity</DropdownMenu.GroupHeading>

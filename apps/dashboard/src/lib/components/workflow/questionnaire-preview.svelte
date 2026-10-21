@@ -12,8 +12,9 @@
   let phone = $state('');
 </script>
 
-<!-- The candidate theme: the careers site's background, ink and 15px base. Native controls only, as on the real page. -->
-<div class="candidate-preview flex flex-col gap-4 rounded-xl border border-candidate-border bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
+<!-- The candidate theme: the careers site's background, ink and 15px base, as an inset in its panel. Native controls only,
+     as on the real page. -->
+<div class="candidate-preview flex flex-col gap-4 rounded-lg bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
   <p class="text-caption text-candidate-chip-foreground">Your details</p>
   <TextField name="preview-fullName" label="Full name" required autocomplete="off" bind:value={fullName} />
   <TextField name="preview-email" label="Email" type="email" required autocomplete="off" bind:value={email} />

@@ -37,19 +37,38 @@ describe('truncated text', () => {
     await expectNoAxeViolations(document.body);
   });
 
+  it('can be a link, such as a name in a table, whose own focus opens the full value', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    render(WithTooltips, { props: { component: TruncatedText, props: { text, href: '/jobs/1', 'data-row-link': '' } } });
+
+    const link = screen.getByRole('link', { name: text });
+    expect(link).toHaveAttribute('href', '/jobs/1');
+    expect(link).toHaveAttribute('data-row-link');
+    expect(link).toHaveClass('truncate');
+    await fireEvent.focus(link);
+    expect(tooltip()).toHaveTextContent(text);
+  });
+
+  it('underlines a link at rest only when asked, and a name in a table keeps its hover underline', () => {
+    const { unmount } = render(WithTooltips, { props: { component: TruncatedText, props: { text: 'Platform Engineer', href: '/jobs/1', underlined: true } } });
+    expect(screen.getByRole('link', { name: 'Platform Engineer' })).toHaveClass('truncate', 'underline');
+    unmount();
+
+    render(WithTooltips, { props: { component: TruncatedText, props: { text: 'Platform Engineer', href: '/jobs/1' } } });
+    expect(screen.getByRole('link', { name: 'Platform Engineer' })).not.toHaveClass('underline');
+  });
+
   it('as a link, is one tab stop that carries the tooltip, with its icon hidden', async () => {
     vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
     const email = 'samuel.okonkwo-hartley@careers.example.com';
-    render(WithTooltips, { props: { component: TruncatedText, props: { text: email, href: `mailto:${email}`, icon: MailIcon } } });
+    render(WithTooltips, { props: { component: TruncatedText, props: { text: email, href: `mailto:${email}`, icon: MailIcon, underlined: true } } });
 
     const link = screen.getByRole('link', { name: email });
     expect(link).toHaveAttribute('href', `mailto:${email}`);
-    expect(link).not.toHaveAttribute('tabindex');
     expect(link.querySelectorAll('[tabindex]')).toHaveLength(0);
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     // A link outside a list of names underlines at rest (A5), and only its text does.
     expect(screen.getByText(email)).toHaveClass('underline');
-    expect(link).not.toHaveClass('no-underline');
     await fireEvent.focus(link);
     expect(tooltip()).toHaveTextContent(email);
     await expectNoAxeViolations(document.body);

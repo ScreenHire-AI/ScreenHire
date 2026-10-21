@@ -25,4 +25,4 @@ function integrityColumn(kind: AssessmentKind, header: string): CandidateColumn 
 }
 
 /** The candidate table's Authenticity and AI assistance chips, for its `extraColumns` slot; both sort by level. */
-export const integrityColumns: readonly CandidateColumn[] = [integrityColumn('authenticity', 'Authenticity'), integrityColumn('aiAssistance', 'AI assist')];
+export const integrityColumns: readonly CandidateColumn[] = [integrityColumn('authenticity', 'Authenticity'), integrityColumn('aiAssistance', 'AI assistance')];

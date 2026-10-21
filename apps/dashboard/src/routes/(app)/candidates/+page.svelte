@@ -1,16 +1,19 @@
 <script lang="ts">
   import { createListApplications } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import { matchesSearch } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
+  import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
+  import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
-  import { matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
 
@@ -21,13 +24,19 @@
   const all = $derived(applications.data?.data ?? []);
   // The sidebar counts use the same clock, so a view and its count agree.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
+  let search = $state('');
   const shown = $derived(
-    all.filter((application) => (!view || view.matches(application, clock.now)) && matchesIntegrityFilter(application, integrityFilter)),
+    all.filter(
+      (application) =>
+        (!view || view.matches(application, clock.now)) && matchesIntegrityFilter(application, integrityFilter) && matchesSearch(application, search, true),
+    ),
   );
-  const filtering = $derived(Boolean(view || integrityFilter.authenticity || integrityFilter.aiAssistance));
+  // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
+  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || Boolean(search.trim()));
+  const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
-  // The table has no footer (design system K1), so a pill beside the count says how many of the shown rows are ticked.
+  // The table has no footer (design system K1), so a pill in the panel header says how many of the shown rows are ticked.
   const selectedCount = $derived(shown.filter((application) => selectedIds.includes(application.id)).length);
 </script>
 
@@ -37,42 +46,42 @@
 
 <TopBar crumbs={view ? [{ label: 'Candidates', href: '/candidates' }, { label: view.label }] : [{ label: 'Candidates' }]} />
 
-<main class="flex flex-col gap-3.5 px-5 py-4.5">
-  <div class="flex flex-wrap items-end justify-between gap-3">
-    <div class="flex flex-col gap-1.5">
-      <h1 class="flex items-center gap-2.5 font-display text-page-title">
-        {#if view?.mark}<StatusMark shape={view.mark.shape} tone={view.mark.tone} class="size-2.5" />{/if}
-        {view?.label ?? 'Candidates'}
-      </h1>
-      <p class="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-muted-foreground">
-        {#if applications.isSuccess}
-          <span>{shown.length} {shown.length === 1 ? 'application' : 'applications'}</span>
-          {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
-          {#if view}<a href="/candidates">Show all</a>{/if}
-        {/if}
-      </p>
-    </div>
-    <IntegrityFilterMenu bind:filter={integrityFilter} />
-  </div>
+<main class="flex min-w-0 flex-col">
+  <HeaderBand
+    title={view?.label ?? 'Candidates'}
+    count={applications.isSuccess ? shown.length : undefined}
+    countLabel={shown.length === 1 ? 'application' : 'applications'}
+    wide
+  />
 
-  {#if applications.isError}
-    <QueryError message={describeError(applications.error, 'Could not load candidates')} onretry={() => applications.refetch()} />
-  {:else}
-    <section aria-label="Candidates" class="overflow-hidden rounded-xl border border-border bg-card">
-      {#if applications.isPending}
-        <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-          {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-8 w-full" />{/each}
-        </div>
-      {:else}
-        <ApplicationTable
-          applications={shown}
-          showJob
-          extraColumns={integrityColumns}
-          bind:activeId
-          bind:selectedIds
-          emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
-        />
-      {/if}
-    </section>
-  {/if}
+  <div class="@container">
+    <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 @3xl:px-6 2xl:max-w-page-wide">
+      <Panel label="Applications" flush>
+        {#snippet tools()}
+          <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <IntegrityFilterMenu bind:filter={integrityFilter} />
+          {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
+        {/snippet}
+        {#if applications.isError}
+          <div class="p-4">
+            <QueryError message={describeError(applications.error, 'Could not load candidates')} onretry={() => applications.refetch()} inset />
+          </div>
+        {:else if applications.isPending}
+          <div aria-hidden="true" class="flex flex-col gap-1 p-3">
+            {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
+          </div>
+        {:else}
+          <ApplicationTable
+            applications={shown}
+            showJob
+            extraColumns={integrityColumns}
+            bind:activeId
+            bind:selectedIds
+            emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
+            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter })) : undefined}
+          />
+        {/if}
+      </Panel>
+    </div>
+  </div>
 </main>

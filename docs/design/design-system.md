@@ -129,10 +129,11 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 
 | Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
 |---|---|---|---|---|---|
-| No concerns, Live | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| No concerns, Live, a workflow with no problems found | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review suggested, Queued, a file being scanned | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verification recommended, a file withheld by the scan | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| Verification recommended, a file withheld by the scan, a workflow with problems to fix | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
+| Not started or ended: a draft, a closed job, a board the job is not on | ring | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
 is `aria-hidden` and always has its numeric legend.
@@ -282,7 +283,7 @@ Forward and back slide (200ms); everything honours `prefers-reduced-motion`.
 | Primary | Filled `primary` | One per page, sheet or dialog. It moves the work forward. |
 | Secondary | White, `input` edge | Supporting actions, and Cancel |
 | Quiet | Text or icon button | Row actions. Every icon button has a tooltip and an `aria-label`. |
-| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. |
+| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. An action the same screen can undo (taking a job down from one board, which Post puts back) is not destructive. |
 
 Features that do not exist yet are hidden (A3).
 
@@ -295,19 +296,23 @@ in a development build, shows every component in each state, and its test fails 
 | Component | Built on | Rules |
 |---|---|---|
 | Header band, Panel | Our components (`HeaderBand` with `Fact` for the facts row, `Panel`) | Section 7 |
-| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
+| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
-| Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
+| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5) |
+| More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
+| Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
 | File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention |
 | Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
+| Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8 |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
+| Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, time ago |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |

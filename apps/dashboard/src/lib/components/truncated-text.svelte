@@ -5,14 +5,25 @@
   import { cn } from '#lib/utils.js';
 
   // One line of text that ends in an ellipsis when it does not fit, with the full value in a tooltip (design system F5).
-  // The tooltip, and its tab stop, exist only while the text is cut. With `href` the text is a link, and the link is the
-  // tooltip's trigger, so it stays one tab stop; an `icon` goes before the text, inside the link.
+  // The tooltip, and its tab stop, exist only while the text is cut. With `href` the text is a link, such as a name in a
+  // table, and its tooltip opens on the link itself. A link outside a list of names is `underlined` at rest (A5) and may
+  // take an `icon` that goes before its text, inside the link.
   let {
     text,
     href,
     icon: Icon,
+    underlined = false,
     class: className,
-  }: { text: string; href?: string; icon?: typeof LucideIcon; class?: string } = $props();
+    ...restProps
+  }: {
+    text: string;
+    href?: string;
+    icon?: typeof LucideIcon;
+    underlined?: boolean;
+    class?: string;
+    /** -1 inside a card that is itself the tab stop, such as a board card. */
+    tabindex?: number;
+  } & Record<`data-${string}`, unknown> = $props();
 
   let element = $state<HTMLElement | null>(null);
   let truncated = $state(false);
@@ -31,15 +42,16 @@
 
 <Hint content={text} disabled={!truncated}>
   {#snippet children({ props })}
-    {#if href}
-      <!-- A link already takes focus: the hint's tab stop is not needed. -->
-      <!-- Not a name in a list, so it underlines at rest (A5); the icon stays plain. -->
-      <a {...props} tabindex={undefined} {href} class={cn('flex min-w-0 items-center gap-1.5', className)}>
-        {#if Icon}<Icon aria-hidden="true" class="shrink-0" />{/if}
-        <span bind:this={element} class="min-w-0 truncate underline underline-offset-2">{text}</span>
+    {#if href && Icon}
+      <!-- The icon sits inside the link, so the text is the part that is cut. -->
+      <a {...props} {...restProps} {href} class={cn('flex min-w-0 items-center gap-1.5', className)}>
+        <Icon aria-hidden="true" class="shrink-0" />
+        <span bind:this={element} class={cn('min-w-0 truncate', underlined && 'underline underline-offset-2')}>{text}</span>
       </a>
+    {:else if href}
+      <a {...props} {...restProps} {href} bind:this={element} class={cn('block min-w-0 truncate', underlined && 'underline underline-offset-2', className)}>{text}</a>
     {:else}
-      <span {...props} bind:this={element} class={cn('block min-w-0 truncate', className)}>{text}</span>
+      <span {...props} {...restProps} bind:this={element} class={cn('block min-w-0 truncate', className)}>{text}</span>
     {/if}
   {/snippet}
 </Hint>

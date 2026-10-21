@@ -81,4 +81,22 @@ describe('list item', () => {
     expect(within(first!).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
     await expectNoAxeViolations(container);
   });
+
+  it('drops the name below a wide status badge instead of breaking it mid-word (F2, F5)', () => {
+    render(LayoutHarness, { props: { example: 'list' } });
+
+    const link = within(screen.getAllByRole('listitem')[0]!).getByRole('link', { name: 'Jordan Ellis' });
+    expect(link.parentElement).toHaveClass('flex-wrap');
+    expect(link).toHaveClass('flex-[1_1_10rem]');
+  });
+
+  it('keeps the meta out of the wrapping group, so it sits top right in every row', () => {
+    render(LayoutHarness, { props: { example: 'list' } });
+
+    const item = screen.getAllByRole('listitem')[0]!;
+    const group = within(item).getByRole('link', { name: 'Jordan Ellis' }).parentElement!;
+    const meta = within(item).getByText('Oct 20, 2026');
+    expect(group).not.toContainElement(meta);
+    expect(meta.parentElement).toBe(group.parentElement);
+  });
 });

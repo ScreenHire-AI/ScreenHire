@@ -35,8 +35,11 @@ const panels: Record<string, string[]> = {
   'Header band, Panel': ['Header band', 'Panel'],
   'Status badge': ['Status badge'],
   'Fact pill': ['Fact pill'],
+  Toggle: ['Toggle'],
+  'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
+  'Icon button': ['Icon button'],
   'Summary list': ['Summary list'],
   'File tile': ['File tile'],
   'Resume preview': ['Resume preview'],
@@ -46,6 +49,7 @@ const panels: Record<string, string[]> = {
   'Shortcuts dialog': ['Shortcuts dialog'],
   Sidebar: ['Sidebar'],
   'Table, list item': ['Table', 'List item, the table on a phone'],
+  'Search field': ['Search field'],
   Activity: ['Activity'],
   'Action bar': ['Action bar'],
   'Relative time, truncated text': ['Time and long text'],
@@ -66,6 +70,12 @@ describe('style guide', () => {
     render(WithTooltips, { props: { component: Page } });
 
     await expectNoAxeViolations(document.body);
+  });
+
+  it('has one main landmark; the sidebar demos frame their inset in a div (X1)', () => {
+    render(WithTooltips, { props: { component: Page } });
+
+    expect(screen.getAllByRole('main')).toHaveLength(1);
   });
 
   it('shows the sidebar expanded at 248px and as a 64px rail', () => {
