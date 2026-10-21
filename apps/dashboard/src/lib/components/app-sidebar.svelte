@@ -2,6 +2,8 @@
   import type { CurrentUser } from '@screenhire/api-client';
   import type { ConnectionStatus } from '@screenhire/realtime';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
+  import type { Attachment } from 'svelte/attachments';
+  import { SvelteSet } from 'svelte/reactivity';
   import { page } from '$app/state';
   import Hint from '#lib/components/hint.svelte';
   import LiveIndicator, { liveStatus } from '#lib/components/live-indicator.svelte';
@@ -36,11 +38,27 @@
 
   // A link in the phone sheet closes it, so the page it opens is not hidden behind the sheet.
   const closeSheet = () => sidebar.setOpenMobile(false);
+
+  // A menu button's tooltip is its label: shown in the rail, and wherever the label is cut with an ellipsis (F5).
+  const cut = new SvelteSet<string>();
+  function truncation(key: string): Attachment<HTMLElement> {
+    return (element) => {
+      const measure = () => (element.scrollWidth > element.clientWidth ? cut.add(key) : cut.delete(key));
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(element);
+      return () => {
+        observer.disconnect();
+        cut.delete(key);
+      };
+    };
+  }
+  const tooltipFor = (key: string) => ({ hidden: !rail && !cut.has(key) });
 </script>
 
 <Sidebar.Root collapsible="icon">
   <Sidebar.Header>
-    <a href="/" onclick={closeSheet} class="flex h-10 items-center gap-2.5 px-1.5 text-foreground no-underline group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+    <a href="/" onclick={closeSheet} class="flex h-10 items-center gap-2.5 px-1.5 pointer-coarse:h-11 text-foreground no-underline group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
       <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-lg bg-foreground font-display font-extrabold text-background">S</span>
       <span class="font-display text-heading font-bold group-data-[collapsible=icon]:sr-only">ScreenHire</span>
     </a>
@@ -56,12 +74,15 @@
                   {...props}
                   size="lg"
                   tooltipContent={user.organization!.name}
+                  tooltipContentProps={tooltipFor('workspace')}
                   class="border border-border bg-card"
                 >
                   <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-md bg-secondary text-caption font-semibold text-secondary-foreground"
                     >{initials(user.organization!.name)}</span
                   >
-                  <span class="min-w-0 flex-1 truncate font-semibold text-foreground group-data-[collapsible=icon]:sr-only"
+                  <span
+                    {@attach truncation('workspace')}
+                    class="min-w-0 flex-1 truncate font-semibold text-foreground group-data-[collapsible=icon]:sr-only"
                     ><span class="sr-only">Workspace: </span>{user.organization!.name}</span
                   >
                   <ChevronsUpDownIcon class="text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden="true" />
@@ -124,6 +145,7 @@
               <Sidebar.MenuButton
                 isActive={currentView === view.id}
                 tooltipContent={count === undefined ? view.label : `${view.label}, ${count}`}
+                tooltipContentProps={tooltipFor(view.id)}
                 onclick={closeSheet}
               >
                 {#snippet child({ props })}
@@ -137,7 +159,7 @@
                       {@const Icon = view.icon}
                       <Icon aria-hidden="true" />
                     {/if}
-                    <span class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{view.label}</span>
+                    <span {@attach truncation(view.id)} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{view.label}</span>
                     {#if count !== undefined}
                       <Badge variant="count" class="group-data-[collapsible=icon]:hidden">{count}</Badge>
                     {/if}
@@ -167,14 +189,14 @@
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               {#snippet child({ props })}
-                <Sidebar.MenuButton {...props} size="lg" tooltipContent={user.displayName}>
+                <Sidebar.MenuButton {...props} size="lg" tooltipContent={user.displayName} tooltipContentProps={tooltipFor('user')}>
                   <span
                     aria-hidden="true"
                     class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground"
                     >{initials(user.displayName)}</span
                   >
                   <span class="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:sr-only">
-                    <span class="truncate font-semibold text-sidebar-foreground">{user.displayName}</span>
+                    <span {@attach truncation('user')} class="truncate font-semibold text-sidebar-foreground">{user.displayName}</span>
                     <span class="truncate text-caption text-muted-foreground">{user.organization?.name}</span>
                   </span>
                 </Sidebar.MenuButton>

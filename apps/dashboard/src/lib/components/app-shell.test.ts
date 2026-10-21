@@ -144,4 +144,29 @@ describe('app shell', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
   });
+
+  it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {
+    // jsdom does no layout: make the long saved view's label wider than its box.
+    const scrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth')!;
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.textContent === 'Verification recommended' ? 2000 : 0;
+      },
+    });
+    try {
+      stubViewport(1280);
+      render(ShellHarness, { props: { user, viewCounts } });
+
+      await fireEvent.focus(within(main()).getByRole('link', { name: /^Verification recommended/ }));
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Verification recommended, 1'));
+      expect(tooltip()).not.toHaveAttribute('hidden');
+
+      await fireEvent.focus(within(main()).getByRole('link', { name: /^New today/ }));
+      await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]:not([hidden])')).toBeNull());
+    } finally {
+      delete (HTMLElement.prototype as { scrollWidth?: number }).scrollWidth;
+      Object.defineProperty(Element.prototype, 'scrollWidth', scrollWidth);
+    }
+  });
 });
