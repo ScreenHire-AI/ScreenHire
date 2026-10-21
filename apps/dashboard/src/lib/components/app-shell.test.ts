@@ -143,8 +143,10 @@ describe('app shell', () => {
     await fireEvent.click(await screen.findByRole('menuitem', { name: /^Keyboard shortcuts/ }));
 
     expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
-    // The sheet gives way to the dialog, so closing the dialog lands on the page.
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull());
+    // The dialog opens over the sheet; closing it returns focus to the sheet, never to the page body (WCAG 2.4.3).
+    await fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull());
+    await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
   });
 
   it('keeps the sheet shut after the window widens past phone size and narrows again', async () => {

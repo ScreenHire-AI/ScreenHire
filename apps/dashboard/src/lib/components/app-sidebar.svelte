@@ -213,13 +213,9 @@
                 <span class="truncate font-normal">{user.email}</span>
               </DropdownMenu.Label>
               <DropdownMenu.Separator />
-              <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there, and gives way to the dialog. -->
-              <DropdownMenu.Item
-                onSelect={() => {
-                  closeSheet();
-                  shell.openShortcuts();
-                }}
-              >
+              <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there. The dialog opens over the
+                   sheet, so closing it brings the person back to where they were. -->
+              <DropdownMenu.Item onSelect={() => shell.openShortcuts()}>
                 Keyboard shortcuts
                 {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut>?</DropdownMenu.Shortcut>{/if}
               </DropdownMenu.Item>
