@@ -1,4 +1,5 @@
 using ScreenHire.Api.Demo;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.UnitTests.Integrity;
@@ -22,6 +23,45 @@ public sealed class DevelopmentDemoTests
         [DemoCandidates.SeniorDotnetEngineer] = SoftwareEngineerStages,
         [DemoCandidates.SupportEngineer] = SoftwareEngineerStages,
     };
+
+    // The questions each job's candidates answer: the "Software engineer" template's, written out in the harness, or the
+    // questionnaire the demo adds to a job seeded without a template.
+    private static readonly Dictionary<string, IReadOnlyList<Question>> QuestionsByJob = new()
+    {
+        [DemoCandidates.ProductDesigner] = QuestionnaireOf(DemoCandidates.ProductDesigner),
+        [DemoCandidates.FrontendEngineer] = QuestionnaireOf(DemoCandidates.FrontendEngineer),
+        [DemoCandidates.SeniorDotnetEngineer] = IntegrityHarness.SoftwareEngineerQuestions,
+        [DemoCandidates.SupportEngineer] = IntegrityHarness.SoftwareEngineerQuestions,
+    };
+
+    [Fact]
+    public void Each_job_seeded_without_a_template_gets_a_valid_questionnaire()
+    {
+        DemoQuestionnaires.All.Select(q => q.Slug).Should().BeEquivalentTo(
+            [DemoCandidates.ProductDesigner, DemoCandidates.FrontendEngineer, DemoQuestionnaires.CustomerSuccessLead]);
+        DemoQuestionnaires.All.Should().AllSatisfy(entry =>
+        {
+            entry.Questionnaire.Questions.Should().NotBeEmpty(entry.Slug);
+            DefinitionValidator.Validate(HiringWorkflow.Default with { Questionnaire = entry.Questionnaire })
+                .Should().BeEmpty(entry.Slug);
+        });
+    }
+
+    [Fact]
+    public void Each_demo_candidate_answers_every_question_of_their_job()
+    {
+        DemoCandidates.All.Should().AllSatisfy(candidate =>
+        {
+            var questions = ApplicationForm.QuestionsFor(HiringWorkflow.Default with { Questionnaire = new(QuestionsByJob[candidate.JobSlug]) });
+            // The demo uploads the resume itself.
+            ApplicationAnswer[] answers = [new(ApplicationForm.ResumeQuestionId, Guid.CreateVersion7().ToString()), .. candidate.Applicant.Answers];
+
+            ApplicationForm.Validate(questions, answers).Should().BeEmpty(candidate.Applicant.Key);
+            answers.Select(a => a.QuestionId).Should().BeEquivalentTo(questions.Select(q => q.Id), candidate.Applicant.Key);
+            var links = questions.Where(q => q.Type == QuestionType.Url).Select(q => answers.Single(a => a.QuestionId == q.Id).Value);
+            links.Should().AllSatisfy(link => new Uri(link!).Host.Should().MatchRegex(@"(^|\.)example\.org$", candidate.Applicant.Key));
+        });
+    }
 
     [Fact]
     public void The_candidate_emails_are_a_valid_workflow_edit()
@@ -72,8 +112,10 @@ public sealed class DevelopmentDemoTests
     public async Task The_demo_candidates_raise_no_concerns()
     {
         // One organization for all of them, in order, so a shared device, address, file or answer would show as a
-        // duplicate. The "Software engineer" questions, which the candidates on those jobs answer.
-        var harness = new IntegrityHarness();
+        // duplicate. The harness has one job, so it asks every demo job's questions; a shared id (experience, notice
+        // period) keeps the "Software engineer" wording, which comes first.
+        var harness = new IntegrityHarness(
+            [.. IntegrityHarness.SoftwareEngineerQuestions.Concat(QuestionsByJob.Values.SelectMany(q => q)).DistinctBy(q => q.Id)]);
 
         foreach (var candidate in DemoCandidates.All)
         {
@@ -83,4 +125,7 @@ public sealed class DevelopmentDemoTests
             result.AiAssistance.Level.Should().Be(nameof(AiAssistanceLevel.NotIndicated), candidate.Applicant.Key);
         }
     }
+
+    private static IReadOnlyList<Question> QuestionnaireOf(string slug) =>
+        DemoQuestionnaires.All.Single(q => q.Slug == slug).Questionnaire.Questions;
 }
