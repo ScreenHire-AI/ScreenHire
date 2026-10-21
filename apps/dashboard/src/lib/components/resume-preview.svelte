@@ -3,6 +3,7 @@
   import FileTile from '#lib/components/file-tile.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { maxPreviewPages, readFrameMessage, type RenderRequest } from '#lib/file-viewer/protocol.js';
   import { canDownload, canPreview } from '#lib/files.js';
@@ -95,7 +96,7 @@
     {#if outcome === 'unavailable'}
       <QueryError message="Could not load the preview." onretry={() => attempt++} />
     {:else if outcome === 'unreadable'}
-      <p class="rounded-lg bg-secondary p-3 text-muted-foreground">Preview unavailable for this file.</p>
+      <Empty.Root class="p-4"><Empty.Description>Preview unavailable for this file.</Empty.Description></Empty.Root>
     {:else}
       <div class="flex flex-col gap-3 rounded-lg bg-secondary p-3" data-resume-preview>
         {#if outcome === 'loading'}
@@ -120,6 +121,6 @@
       </div>
     {/if}
   {:else if canDownload(file)}
-    <p class="rounded-lg bg-secondary p-3 text-muted-foreground">No preview for this file type.</p>
+    <Empty.Root class="p-4"><Empty.Description>No preview for this file type.</Empty.Description></Empty.Root>
   {/if}
 </div>

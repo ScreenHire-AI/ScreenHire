@@ -112,6 +112,18 @@ describe('resume preview', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('holds the whole file name in a tooltip that opens on focus, for a name cut short', async () => {
+    serveFile();
+    render(ResumePreview, { props: { applicationId, file: resume({ scanStatus: 'Infected' }) } });
+
+    const name = screen.getByText('avery-example-resume.pdf');
+    expect(name).toHaveAttribute('tabindex', '0');
+    name.focus();
+    // jsdom has no layout, so the positioned tooltip stays invisible here; its state and text are what count.
+    await waitFor(() => expect(name).toHaveAttribute('data-state', expect.stringMatching(/open/)));
+    expect(document.getElementById(name.getAttribute('aria-describedby')!)).toHaveTextContent('avery-example-resume.pdf');
+  });
+
   it.each([
     ['Pending', 'Being scanned for malware'],
     ['Infected', 'Withheld: malware found'],
