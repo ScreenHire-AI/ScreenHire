@@ -174,7 +174,7 @@
     {#if diff.isPending}
       <Skeleton class="h-24 w-full" />
     {:else if diff.isError}
-      <QueryError message={describeError(diff.error, 'Could not load the differences')} onretry={() => diff.refetch()} />
+      <QueryError message={describeError(diff.error, 'Could not load the differences')} onretry={() => diff.refetch()} inset />
     {:else if update}
       <ul aria-label="Differences" class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border text-body">
         {#each update.changes as change, index (index)}

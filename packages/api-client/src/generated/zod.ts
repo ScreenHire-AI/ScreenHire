@@ -2486,6 +2486,19 @@ export const DownloadApplicationFileParams = zod.object({
 export const DownloadApplicationFileResponse = zod.void()
 
 
+export const GetApplicationFilePreviewParams = zod.object({
+  "applicationId": zod.uuid(),
+  "fileId": zod.uuid()
+})
+
+export const GetApplicationFilePreviewResponse = zod.object({
+  "status": zod.enum(['Ready', 'Pending', 'Unavailable']).describe('Whether a file\'s preview can be shown yet.'),
+  "text": zod.string(),
+  "pageCount": zod.int(),
+  "note": zod.string().nullable()
+}).describe('A file\'s text for the dashboard\'s inline preview: the text a person sees, as the worker read it. It is shown as text,\r\nso nothing in the file can run. Hidden text is never part of it.')
+
+
 export const ListCandidatesResponseItem = zod.object({
   "id": zod.uuid(),
   "fullName": zod.string(),

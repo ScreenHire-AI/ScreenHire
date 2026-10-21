@@ -12,7 +12,7 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import UsersIcon from '@lucide/svelte/icons/users';
-  import type { SignalEvidence as Evidence } from '@screenhire/api-client';
+  import type { SignalEvidence as Evidence, FilePreview } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
@@ -24,7 +24,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
-  import ResumePreview, { type PreviewPage } from '#lib/components/resume-preview.svelte';
+  import ResumePreview from '#lib/components/resume-preview.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge, { type Status } from '#lib/components/status-badge.svelte';
@@ -105,17 +105,12 @@
 
   const icons = [BriefcaseIcon, UsersIcon, LayoutTemplateIcon];
 
-  // A drawn sample page, inline so no image ships with the build: a heading and lines of text.
-  const lines = [40, 64, 58, 70, 52, 66, 44, 61, 68, 49]
-    .map((width, index) => `<rect x="40" y="${120 + index * 22}" width="${width * 4}" height="8" rx="4" fill="black" fill-opacity="0.18"/>`)
-    .join('');
-  const samplePage = `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 440"><rect width="340" height="440" fill="white"/><rect x="40" y="48" width="150" height="16" rx="4" fill="black" fill-opacity="0.7"/><rect x="40" y="76" width="110" height="8" rx="4" fill="black" fill-opacity="0.35"/>${lines}</svg>`,
-  )}`;
-  const resumePages: PreviewPage[] = [
-    { image: samplePage, text: 'Jordan Ellis. Senior product designer.' },
-    { image: samplePage, text: 'Experience. Brightwater Studio, 2019 to 2026.' },
-  ];
+  const resume: FilePreview = {
+    status: 'Ready',
+    text: 'Jordan Ellis\nSenior product designer\n\nExperience\nBrightwater Studio, lead designer, 2019 to 2026\nLed a team of four through two product launches.',
+    pageCount: 2,
+    note: null,
+  };
 </script>
 
 <svelte:head>
@@ -214,7 +209,7 @@
             </div>
           </Panel>
           <Panel title="Could not load">
-            <QueryError message="Could not load the timeline. Check your connection." onretry={() => {}} />
+            <QueryError message="Could not load the timeline. Check your connection." onretry={() => {}} inset />
           </Panel>
         </div>
       </div>
@@ -284,18 +279,21 @@
       <Panel title="Resume preview">
         <div class="flex flex-wrap items-start gap-4">
           <figure class="flex min-w-0 flex-[999_1_420px] flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Pages, drawn by the server as images with their text</figcaption>
-            <ResumePreview name="jordan-ellis-resume.pdf" pages={resumePages} />
+            <figcaption class="text-caption text-muted-foreground">The text read from the file</figcaption>
+            <ResumePreview name="jordan-ellis-resume.pdf" preview={resume} />
           </figure>
           <div class="flex min-w-0 flex-[1_1_260px] flex-col gap-4">
             <figure class="flex flex-col gap-2">
               <figcaption class="text-caption text-muted-foreground">Loading</figcaption>
-              <ResumePreview name="jordan-ellis-resume.pdf" pages={undefined} />
+              <ResumePreview name="jordan-ellis-resume.pdf" preview={undefined} />
             </figure>
             <figure class="flex flex-col gap-2">
               <figcaption class="text-caption text-muted-foreground">No preview</figcaption>
-              <ResumePreview name="cover-letter.odt" pages={null}>
-                {#snippet fallback()}<FileTile name="cover-letter.odt" size={48_000} href="#resume-preview" />{/snippet}
+              <ResumePreview
+                name="portfolio.png"
+                preview={{ status: 'Unavailable', text: '', pageCount: 0, note: 'No text is read from PNG files.' }}
+              >
+                {#snippet fallback()}<FileTile name="portfolio.png" size={48_000} href="#resume-preview" />{/snippet}
               </ResumePreview>
             </figure>
           </div>

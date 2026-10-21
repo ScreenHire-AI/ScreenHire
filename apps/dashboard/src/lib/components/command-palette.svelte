@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createListApplications, createListJobs } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Command from '#lib/components/ui/command/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
@@ -55,7 +56,10 @@
             onSelect={() => run(() => goto(`/applications/${application.id}`))}
           >
             {application.candidateName}
-            <span class="ml-auto truncate text-caption text-muted-foreground">{application.jobTitle} · {application.stage.name}</span>
+            <span class="ml-auto flex min-w-0 items-center gap-2">
+              <span class="truncate text-caption text-muted-foreground">{application.jobTitle}</span>
+              <Badge variant="muted">{application.stage.name}</Badge>
+            </span>
           </Command.Item>
         {/each}
       </Command.Group>

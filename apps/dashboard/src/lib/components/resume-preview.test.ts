@@ -1,46 +1,51 @@
 import { createRawSnippet } from 'svelte';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import ResumePreview from './resume-preview.svelte';
 
-const pages = [
-  { image: '/v1/previews/1/1.png', text: 'Jordan Ellis. Senior product designer.' },
-  { image: '/v1/previews/1/2.png', text: 'Experience. Brightwater Studio, 2019 to 2026.' },
-];
-
 describe('resume preview', () => {
-  it('shows each page as an image with its text for screen readers, never the file itself', async () => {
-    const { container } = render(ResumePreview, { props: { name: 'resume.pdf', pages } });
+  it('shows the text read from the file as text, never the file itself', async () => {
+    const text = 'Jordan Ellis\nSenior product designer\n<script>alert(1)</script>';
+    const { container } = render(ResumePreview, {
+      props: { name: 'resume.pdf', preview: { status: 'Ready', text, pageCount: 2, note: null } },
+    });
 
-    const list = screen.getByRole('list', { name: 'resume.pdf, 2 pages' });
-    const images = within(list).getAllByRole('img');
-    expect(images.map((image) => image.getAttribute('alt'))).toEqual(['Page 1 of 2', 'Page 2 of 2']);
-    expect(images[0]).toHaveAttribute('src', '/v1/previews/1/1.png');
-    expect(within(list).getByText('Experience. Brightwater Studio, 2019 to 2026.')).toHaveClass('sr-only');
-    // Isolation: no frame, object or embed that could run the file.
-    expect(container.querySelector('iframe, object, embed')).toBeNull();
-    // An inset: secondary fill, no edge (section 6).
+    const page = screen.getByRole('article', { name: 'resume.pdf, 2 pages' });
+    expect(page.textContent?.trim()).toBe(text);
+    // Isolation: markup in the file stays text, and nothing frames, embeds or runs the file.
+    expect(container.querySelector('script, iframe, object, embed, img')).toBeNull();
+    // An inset with a page on it (section 6).
     expect(container.querySelector('[data-slot="resume-preview"]')).toHaveClass('bg-secondary');
+    expect(page).toHaveClass('bg-card', 'text-reading');
     await expectNoAxeViolations(container);
   });
 
-  it('shows a page-shaped skeleton while the preview loads', async () => {
-    const { container } = render(ResumePreview, { props: { name: 'resume.pdf', pages: undefined } });
+  it.each([
+    ['loading', undefined],
+    ['waiting for the scan and the read', { status: 'Pending', text: '', pageCount: 0, note: null }],
+  ] as const)('shows a page-shaped skeleton while %s', async (_, preview) => {
+    const { container } = render(ResumePreview, { props: { name: 'resume.pdf', preview } });
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading the preview of resume.pdf');
-    // A card-coloured page on the inset, as the loaded page will be; the skeleton's own fill would not show on it.
+    // A card-coloured page on the inset, as the text will be; the skeleton's own fill would not show on it.
     expect(container.querySelector('[data-slot="skeleton"]')).toHaveClass('aspect-[17/22]', 'bg-card');
     expect(container.querySelector('[data-slot="skeleton"]')).not.toHaveClass('bg-muted');
     await expectNoAxeViolations(container);
   });
 
-  it('says there is no preview and shows the fallback, so the file can still be downloaded', async () => {
-    const fallback = createRawSnippet(() => ({ render: () => '<a href="/v1/files/1">Download resume.docx</a>' }));
-    const { container } = render(ResumePreview, { props: { name: 'resume.docx', pages: null, fallback } });
+  it('says why there is no preview and shows the fallback, so the file can still be downloaded', async () => {
+    const fallback = createRawSnippet(() => ({ render: () => '<a href="/v1/files/1">Download portfolio.png</a>' }));
+    const { container } = render(ResumePreview, {
+      props: {
+        name: 'portfolio.png',
+        preview: { status: 'Unavailable', text: '', pageCount: 0, note: 'No text is read from PNG files.' },
+        fallback,
+      },
+    });
 
-    expect(screen.getByText('No preview for this file.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Download resume.docx' })).toBeInTheDocument();
+    expect(screen.getByText('No text is read from PNG files.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Download portfolio.png' })).toBeInTheDocument();
     await expectNoAxeViolations(container);
   });
 });

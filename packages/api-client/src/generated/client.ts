@@ -25,6 +25,7 @@ import type {
   CreateJobRequest,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
+  FilePreview,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -2470,6 +2471,53 @@ export const downloadApplicationFile = async (applicationId: string,
     fileId: string, options?: Parameters<typeof apiFetch>[1]): Promise<downloadApplicationFileResponse> => {
 
   return apiFetch<downloadApplicationFileResponse>(getDownloadApplicationFileUrl(applicationId,fileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getApplicationFilePreviewResponse200 = {
+  data: FilePreview
+  status: 200
+}
+
+export type getApplicationFilePreviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationFilePreviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationFilePreviewResponseSuccess = (getApplicationFilePreviewResponse200) & {
+  headers: Headers;
+};
+export type getApplicationFilePreviewResponseError = (getApplicationFilePreviewResponse401 | getApplicationFilePreviewResponse404) & {
+  headers: Headers;
+};
+
+export type getApplicationFilePreviewResponse = (getApplicationFilePreviewResponseSuccess | getApplicationFilePreviewResponseError)
+
+export const getGetApplicationFilePreviewUrl = (applicationId: string,
+    fileId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/files/${fileId}/preview`
+}
+
+export const getApplicationFilePreview = async (applicationId: string,
+    fileId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationFilePreviewResponse> => {
+
+  return apiFetch<getApplicationFilePreviewResponse>(getGetApplicationFilePreviewUrl(applicationId,fileId),
   {
     ...options,
     method: 'GET'

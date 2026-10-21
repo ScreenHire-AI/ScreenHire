@@ -99,6 +99,12 @@ Reviewers download a file the same way, without the bytes passing through the AP
 candidate's file name, so storage serves the document as a download and never renders it. A file whose scan is
 `Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
 
+The dashboard previews a file inline without opening it. `GET /v1/applications/{applicationId}/files/{fileId}/preview`
+returns the text the worker read from it (`ApplicationDocument.Text`, the text a person sees, never the hidden text)
+with its page count. The dashboard's `ResumePreview` draws that text as text, so nothing in the file can run. The
+status is `Pending` until the scan and the read are done, and `Unavailable`, with the reason in `note`, for an
+`Infected` file or one with no readable text.
+
 ## 4. Submission
 
 `POST /v1/public/organizations/{slug}/jobs/{jobId}/applications` (anonymous, rate-limited per candidate address by the

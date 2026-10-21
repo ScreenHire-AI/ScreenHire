@@ -103,7 +103,7 @@ describe('candidate table', () => {
     await fireEvent.keyDown(link, { key: 'x' });
 
     expect(screen.getByRole('checkbox', { name: 'Select Jordan Lee' })).toBeChecked();
-    expect(screen.getByText(/3 candidates · 1 selected/)).toBeInTheDocument();
+    expect(screen.getByText(/3 candidates, 1 selected/)).toBeInTheDocument();
 
     await fireEvent.keyDown(link, { key: 'x' });
     expect(screen.getByRole('checkbox', { name: 'Select Jordan Lee' })).not.toBeChecked();
@@ -117,7 +117,7 @@ describe('candidate table', () => {
     expect(screen.getAllByRole('checkbox', { name: /^Select (?!all)/ }).every((box) => (box as HTMLInputElement).checked)).toBe(true);
   });
 
-  it('ignores single-key shortcuts when they are turned off, and hides their hints', async () => {
+  it('ignores single-key shortcuts when they are turned off', async () => {
     preferences.setShortcutsEnabled(false);
     render(ApplicationTable, { props: { applications } });
     const first = screen.getByRole('link', { name: 'Casey Morgan' });
@@ -126,7 +126,12 @@ describe('candidate table', () => {
     await fireEvent.keyDown(first, { key: 'j' });
 
     expect(first).toHaveFocus();
-    expect(screen.queryByText('select')).not.toBeInTheDocument();
+  });
+
+  it('has no always-on bar of shortcut hints; the ? dialog lists them (K1)', () => {
+    const { container } = render(ApplicationTable, { props: { applications } });
+
+    expect(container.querySelector('kbd')).toBeNull();
   });
 
   it('says so when there is nothing to show', () => {

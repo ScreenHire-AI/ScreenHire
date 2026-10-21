@@ -25,7 +25,6 @@
     activeId = $bindable(null),
     selectedIds = $bindable([]),
     emptyText = 'No candidates yet.',
-    hints,
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -42,8 +41,6 @@
     /** Rows ticked with X or their checkbox. */
     selectedIds?: string[];
     emptyText?: string;
-    /** Extra shortcut hints for the footer, such as the page's own `V`. */
-    hints?: Snippet;
   } = $props();
 
   const columns = $derived<CandidateColumn[]>([
@@ -283,12 +280,6 @@
   <div
     class="flex flex-wrap gap-x-3.5 gap-y-1 border-t border-border-subtle bg-muted px-3 py-2 text-caption text-muted-foreground"
   >
-    <span>{applications.length} {applications.length === 1 ? 'candidate' : 'candidates'}{selectedIds.length > 0 ? ` · ${selectedIds.length} selected` : ''}</span>
-    {#if preferences.shortcutsEnabled}
-      <span><kbd>J</kbd> / <kbd>K</kbd> move</span>
-      <span><kbd>Enter</kbd> open</span>
-      <span><kbd>X</kbd> select</span>
-      {@render hints?.()}
-    {/if}
+    <span>{applications.length} {applications.length === 1 ? 'candidate' : 'candidates'}{selectedIds.length > 0 ? `, ${selectedIds.length} selected` : ''}</span>
   </div>
 </div>

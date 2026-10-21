@@ -116,9 +116,6 @@
             ]}
           >
             {section.label}
-            {#if preferences.shortcutsEnabled}
-              <kbd class="font-mono text-code font-normal text-muted-foreground">G {section.key.toUpperCase()}</kbd>
-            {/if}
           </a>
         </li>
       {/each}

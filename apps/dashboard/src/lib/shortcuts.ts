@@ -107,6 +107,7 @@ export function shortcutGroups(
       label: 'Job pipeline',
       shortcuts: [
         { label: 'Switch between table and board', keys: ['V'], singleKey: true },
+        { label: 'Pick up a card to drag it with the arrow keys', keys: ['Space'], singleKey: false },
         { label: 'Move a card to the next stage', keys: ['Shift', '→'], singleKey: false },
         { label: 'Move a card to the previous stage', keys: ['Shift', '←'], singleKey: false },
         { label: 'Open a card', keys: ['Enter'], singleKey: false },

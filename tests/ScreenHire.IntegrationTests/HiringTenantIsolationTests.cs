@@ -78,6 +78,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
             ["move"] = await a.PostAsync($"/v1/applications/{scene.BApplicationId}/move", new JsonObject { ["toStageId"] = "screening" }),
             ["candidate"] = await a.GetAsync($"/v1/candidates/{scene.BCandidateId}"),
             ["file"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/files/{bFileId}"),
+            ["file preview"] = await a.GetAsync($"/v1/applications/{scene.BApplicationId}/files/{bFileId}/preview"),
         };
 
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -125,7 +126,7 @@ internal static class HiringTestExtensions
     /// download endpoint refuses or redirects on the row alone.
     /// </summary>
     public static async Task<Guid> AddApplicationFileAsync(
-        this AppHostFixture fixture, Guid organizationId, Guid applicationId, MalwareScanStatus status)
+        this AppHostFixture fixture, Guid organizationId, Guid applicationId, MalwareScanStatus status, string questionId = "resume")
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var tenant = new TenantContext();
@@ -135,7 +136,7 @@ internal static class HiringTestExtensions
         {
             OrganizationId = organizationId,
             ApplicationId = applicationId,
-            QuestionId = "resume",
+            QuestionId = questionId,
             UploadId = Guid.NewGuid(),
             BlobName = $"{organizationId}/unused/resume/{Guid.NewGuid()}/cv.pdf",
             FileName = "cv.pdf",
@@ -152,6 +153,30 @@ internal static class HiringTestExtensions
         db.ApplicationFiles.Add(file);
         await db.SaveChangesAsync(cancellationToken);
         return file.Id;
+    }
+
+    /// <summary>Records what the worker read from a file, as <c>ExtractApplicationDocument</c> does.</summary>
+    public static async Task AddApplicationDocumentAsync(
+        this AppHostFixture fixture, Guid organizationId, Guid applicationId, Guid fileId, DocumentExtractionStatus status, string text, string? note = null)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var tenant = new TenantContext();
+        tenant.SetOrganization(organizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, cancellationToken);
+        db.ApplicationDocuments.Add(new ApplicationDocument
+        {
+            OrganizationId = organizationId,
+            ApplicationId = applicationId,
+            FileId = fileId,
+            Kind = DocumentKind.Resume,
+            Status = status,
+            ExtractorVersion = 1,
+            Text = text,
+            PageCount = text.Length > 0 ? 2 : 0,
+            Note = note,
+            ExtractedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

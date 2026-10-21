@@ -151,7 +151,7 @@
   <!-- A failed background refetch keeps the evidence on screen, under the error. -->
   {#if integrity.isError}
     <div class="px-4 py-3.5">
-      <QueryError message={describeError(integrity.error, 'Could not load the integrity checks')} onretry={() => integrity.refetch()} />
+      <QueryError message={describeError(integrity.error, 'Could not load the integrity checks')} onretry={() => integrity.refetch()} inset />
     </div>
   {/if}
   {#if !detail}

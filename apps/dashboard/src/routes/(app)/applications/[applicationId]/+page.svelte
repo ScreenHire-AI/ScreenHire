@@ -188,7 +188,7 @@
         <section aria-labelledby="timeline-heading" class="flex min-w-0 flex-col rounded-xl border border-border bg-card px-4 py-3.5">
           <h2 id="timeline-heading" class="mb-2 text-heading">Timeline</h2>
           {#if timeline.isError}
-            <QueryError message={describeError(timeline.error, 'Could not load the timeline')} onretry={() => timeline.refetch()} />
+            <QueryError message={describeError(timeline.error, 'Could not load the timeline')} onretry={() => timeline.refetch()} inset />
           {:else if !timeline.data}
             <Skeleton class="h-16 w-full" />
           {:else}
