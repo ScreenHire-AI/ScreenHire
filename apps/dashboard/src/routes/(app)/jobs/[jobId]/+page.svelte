@@ -1,31 +1,20 @@
 <script lang="ts">
-  import type { ApplicationSummary } from '@screenhire/api-client';
   import { ApiError, createCloseJob, createGetJob, createListBoards, createListJobApplications } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import ApplicationTable from '#lib/components/application-table.svelte';
   import DistributionStrip from '#lib/components/distribution-strip.svelte';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
-  import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import IntegrityOverview from '#lib/components/integrity-overview.svelte';
   import JobDetailsSheet from '#lib/components/job-details-sheet.svelte';
-  import MoveToStage from '#lib/components/move-to-stage.svelte';
-  import PipelineBoard from '#lib/components/pipeline-board.svelte';
+  import JobPipeline from '#lib/components/job-pipeline.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
-  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { timeAgo } from '#lib/dates.js';
-  import { employmentLabel, formatSalary, initials, sourceLabel } from '#lib/format.js';
-  import { integrityColumns } from '#lib/integrity-columns.js';
-  import { bulkMoveStages, chipOf, isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
-  import { createMoves } from '#lib/moves.svelte.js';
-  import { preferences } from '#lib/preferences.svelte.js';
+  import { employmentLabel, formatSalary } from '#lib/format.js';
+  import { noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
-  import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
 
@@ -36,32 +25,18 @@
   const job = createGetJob(() => params.jobId);
   const applications = createListJobApplications(() => params.jobId);
   const boards = createListBoards();
-  const moves = createMoves();
   const close = createCloseJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
 
   const detail = $derived(job.data?.data);
-  const stages = $derived(detail?.workflow.stages ?? []);
   const all = $derived(applications.data?.data ?? []);
 
-  let stageFilter = $state<string | null>(null);
-  // Set from the overview's legend or the filter menu, through setIntegrityFilter.
+  // Set from the overview's legend or the pipeline's filter menu, through the pipeline's setIntegrityFilter.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
-  let view = $state<'table' | 'board'>('table');
-  let activeId = $state<string | null>(null);
-  let selectedIds = $state<string[]>([]);
+  let pipeline = $state<JobPipeline>();
   let confirmClose = $state(false);
   let editing = $state(false);
   let saved = $state('');
   let closeFailure = $state('');
-
-  const shown = $derived(
-    all.filter((application) => (!stageFilter || application.stage.id === stageFilter) && matchesIntegrityFilter(application, integrityFilter)),
-  );
-  const filtering = $derived(Boolean(stageFilter) || isIntegrityFiltered(integrityFilter));
-  const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
-  const active = $derived(all.find((application) => application.id === activeId));
-  const selected = $derived(all.filter((application) => selectedIds.includes(application.id)));
-  const countIn = (stageId: string) => all.filter((application) => application.stage.id === stageId).length;
 
   const meta = $derived.by(() => {
     if (!detail) return [];
@@ -73,28 +48,6 @@
     else parts.push(detail.status);
     return parts.filter(Boolean);
   });
-
-  // V switches between the table and the board while focus is in the pipeline.
-  function onPipelineKeydown(event: KeyboardEvent) {
-    if (!preferences.shortcutsEnabled || hasModifier(event) || isTypingTarget(event.target)) return;
-    if (event.key.toLowerCase() === 'v') {
-      event.preventDefault();
-      view = view === 'table' ? 'board' : 'table';
-    }
-  }
-
-  // A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
-  // filter's menu (bulkMoveStages). The filter applies to the table, so it shows the table.
-  function setIntegrityFilter(next: IntegrityFilter) {
-    integrityFilter = next;
-    selectedIds = [];
-    view = 'table';
-  }
-
-  async function moveSelected(stage: (typeof stages)[number]) {
-    // The ones that failed stay selected, so they can be moved again.
-    selectedIds = await moves.moveAll(selected, stage);
-  }
 
   async function closeEverywhere() {
     closeFailure = '';
@@ -163,148 +116,21 @@
     <DistributionStrip job={detail} boards={boards.data?.data ?? []} />
 
     {#if applications.isSuccess && all.length > 0}
-      <IntegrityOverview applications={all} bind:filter={() => integrityFilter, setIntegrityFilter} />
+      <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
     {/if}
 
-    <div class="flex flex-wrap items-start gap-3.5">
-      <!-- svelte-ignore a11y_no_noninteractive_element_interactions: V is a shortcut for the focusable rows and cards inside, whose key presses bubble here -->
-      <section
-        aria-label="Pipeline"
-        class="min-w-0 flex-[999_1_600px] overflow-hidden rounded-xl border border-border bg-card"
-        onkeydown={onPipelineKeydown}
-      >
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle px-2.5 py-2">
-          {#if view === 'table'}
-            <div role="group" aria-label="Stage" class="flex flex-wrap gap-0.5 rounded-[9px] bg-secondary p-[3px]">
-              {#each [{ id: null, name: 'All', count: all.length }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
-                <button
-                  type="button"
-                  aria-pressed={stageFilter === option.id}
-                  onclick={() => (stageFilter = option.id)}
-                  class={[
-                    'h-7 rounded-[7px] px-2.5',
-                    stageFilter === option.id
-                      ? 'bg-card font-bold text-foreground shadow-[0_1px_2px_color-mix(in_oklab,var(--foreground)_14%,transparent)]'
-                      : 'font-semibold text-secondary-foreground hover:bg-card/60',
-                  ]}
-                >
-                  {option.name}
-                  <span class="text-caption text-muted-foreground tabular-nums">{option.count}</span>
-                </button>
-              {/each}
-            </div>
-          {:else}
-            <h2 class="px-1 font-bold">Board</h2>
-          {/if}
-          <div class="flex flex-wrap items-center gap-2">
-            {#if view === 'table'}
-              <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
-            {/if}
-            {#if view === 'table' && selected.length > 0}
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
-                  Move {selected.length} selected…
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" class="w-52">
-                  {#each moveTargets as stage (stage.id)}
-                    <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
-                  {/each}
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-            {/if}
-            <div role="group" aria-label="View" class="flex gap-0.5 rounded-[9px] bg-secondary p-[3px]">
-              {#each [{ id: 'table', label: 'Table' }, { id: 'board', label: 'Board' }] as const as option (option.id)}
-                <button
-                  type="button"
-                  aria-pressed={view === option.id}
-                  aria-keyshortcuts={preferences.shortcutsEnabled ? 'V' : undefined}
-                  onclick={() => (view = option.id)}
-                  class={['h-7 rounded-[7px] px-2.5', view === option.id ? 'bg-card font-bold' : 'font-semibold text-secondary-foreground']}
-                  >{option.label}</button
-                >
-              {/each}
-            </div>
-          </div>
-        </div>
-
-        {#if applications.isError}
-          <div class="p-3">
-            <QueryError message={describeError(applications.error, 'Could not load the candidates')} onretry={() => applications.refetch()} inset />
-          </div>
-        {:else if applications.isPending}
-          <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-            {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-8 w-full" />{/each}
-          </div>
-        {:else if view === 'table'}
-          <ApplicationTable
-            applications={shown}
-            label={`Candidates for ${detail.title}`}
-            {stages}
-            {moves}
-            extraColumns={integrityColumns}
-            bind:activeId
-            bind:selectedIds
-            emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
-          />
-        {:else}
-          <PipelineBoard applications={all} {stages} {moves} />
-        {/if}
-        <p role="status" class={['px-3 py-1.5 text-body empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
-          {moves.announcement}
-        </p>
-      </section>
-
-      <!-- The panel keeps its place before a row is chosen: appearing on the first click's mousedown narrowed the table
-           under the pointer, so the mouseup missed the candidate's link and the click never opened it. -->
-      {#if view === 'table' && all.length > 0}
-        {#if active}
-          {@render panel(active)}
-        {:else}
-          <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-xl border border-border bg-card">
-            <p class="px-4 py-3.5 text-body text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
-          </aside>
-        {/if}
-      {/if}
-    </div>
+    <JobPipeline
+      bind:this={pipeline}
+      bind:integrityFilter
+      jobTitle={detail.title}
+      stages={detail.workflow.stages}
+      applications={all}
+      pending={applications.isPending}
+      error={applications.isError ? applications.error : null}
+      onretry={() => applications.refetch()}
+    />
   {/if}
 </main>
-
-{#snippet panel(application: ApplicationSummary)}
-  <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-xl border border-border bg-card">
-    <div class="flex items-center gap-2.5 border-b border-border-subtle px-4 py-3.5">
-      <span aria-hidden="true" class="grid size-10 flex-none place-items-center rounded-full bg-secondary font-bold text-secondary-foreground"
-        >{initials(application.candidateName)}</span
-      >
-      <div class="flex min-w-0 flex-col">
-        <h2 class="font-display text-panel-title">{application.candidateName}</h2>
-        <span class="text-body text-muted-foreground">
-          Applied <RelativeTime at={application.submittedAt} /> via {sourceLabel(application.source)}
-        </span>
-      </div>
-    </div>
-    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-b border-border-subtle px-4 py-3.5">
-      <dt class="text-caption text-muted-foreground">Stage</dt>
-      <dd>{application.stage.name}</dd>
-      <dt class="text-caption text-muted-foreground">Entered stage</dt>
-      <dd><RelativeTime at={application.stageEnteredAt} /></dd>
-      {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assist' }] as const as row (row.kind)}
-        {@const chip = chipOf(application.integrity, row.kind)}
-        <dt class="text-caption text-muted-foreground">{row.label}</dt>
-        <dd><IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} /></dd>
-      {/each}
-    </dl>
-    <div class="flex flex-wrap gap-1.5 px-4 py-3.5">
-      <a href={`/applications/${application.id}`} class={cn(buttonVariants({ size: 'sm' }))}>Open application</a>
-      <MoveToStage
-        candidateName={application.candidateName}
-        currentStageId={application.stage.id}
-        {stages}
-        disabled={moves.pending}
-        onmove={(stage) => moves.move(application, stage)}
-      />
-    </div>
-  </aside>
-{/snippet}
 
 <Dialog.Root bind:open={confirmClose}>
   <Dialog.Content class="sm:max-w-md">

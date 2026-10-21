@@ -29,5 +29,13 @@ export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSumma
  */
 export const candidateColumns = createColumnHelper<CandidateTableFeatures, ApplicationSummary>();
 
-/** Each row is exactly this tall (design-system section 4); the virtualizer relies on it. */
-export const candidateRowHeight = 40;
+/** Each row is exactly this tall (design system section 5); the virtualizer relies on it. */
+export const candidateRowHeight = 48;
+
+/** A list's search: every word of the query appears in the candidate's name, or the job's title when `withJob`. */
+export function matchesSearch(application: ApplicationSummary, query: string, withJob = false): boolean {
+  const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const text = (withJob ? `${application.candidateName} ${application.jobTitle}` : application.candidateName).toLocaleLowerCase();
+  return words.every((word) => text.includes(word));
+}

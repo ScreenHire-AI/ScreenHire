@@ -1,12 +1,13 @@
 import { renderSnippet } from '@tanstack/svelte-table';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
 import { applications } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/integrity-fixtures.js';
+import { stubViewport } from '../../test-support/viewport.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import ApplicationTable from './application-table.svelte';
 
@@ -16,10 +17,11 @@ const rowOf = (name: string) => screen.getByRole('link', { name }).closest('tr')
 
 afterEach(() => {
   preferences.setShortcutsEnabled(true);
+  vi.unstubAllGlobals();
 });
 
 describe('candidate table', () => {
-  it('shows a 40 px row per application with its stage, source and date, newest first', () => {
+  it('shows a 48px row per application with its stage as a pill, source and date, newest first', () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications } } });
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied']);
@@ -28,7 +30,8 @@ describe('candidate table', () => {
       ['JL Jordan Lee', 'Screening', 'recruiter', 'Oct 19, 2026'],
       ['ST Sam Taylor', 'Applied', 'careers', 'Oct 17, 2026'],
     ]);
-    expect(dataRows().every((row) => row.classList.contains('h-10'))).toBe(true);
+    expect(dataRows().every((row) => row.classList.contains('h-12'))).toBe(true);
+    expect(within(rowOf('Jordan Lee')).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
   });
 
@@ -60,7 +63,7 @@ describe('candidate table', () => {
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'AI assist', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'AI assistance', 'Source', 'Applied']);
     expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification recommended, 2 reasons')).toBeInTheDocument();
     expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some indicators, 1 reason')).toBeInTheDocument();
     expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();
@@ -133,6 +136,39 @@ describe('candidate table', () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications } } });
 
     expect(screen.getByRole('table').parentElement).toHaveClass('relative', 'overflow-auto');
+  });
+
+  it('keeps the checkbox and name columns stuck to the left while the table scrolls sideways (section 8)', () => {
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true, extraColumns: integrityColumns } } });
+    const header = (name: string) => screen.getAllByRole('columnheader').find((cell) => cell.textContent?.trim() === name)!;
+
+    for (const cell of [header(''), ...within(rowOf('Casey Morgan')).getAllByRole('cell').slice(0, 1)]) {
+      expect(cell).toHaveClass('sticky', 'left-0');
+    }
+    expect(header('Candidate')).toHaveClass('sticky', 'left-10');
+    expect(rowOf('Casey Morgan').querySelector('td:nth-child(2)')).toHaveClass('sticky', 'left-10', 'bg-card');
+    expect(header('Job')).not.toHaveClass('sticky');
+  });
+
+  it('turns rows into two-line list items on a phone, status first and facts as pills (section 8)', () => {
+    stubViewport(390);
+    const rows = [
+      { ...applications[0]!, integrity: summary({ authenticity: 'ReviewSuggested', authenticityReasons: ['A', 'B'] }) },
+      { ...applications[1]!, integrity: summary({}) },
+    ];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, showJob: true, label: 'Candidates' } } });
+
+    expect(screen.queryByRole('table')).toBeNull();
+    const items = within(screen.getByRole('list', { name: 'Candidates' })).getAllByRole('listitem');
+    expect(items.map((item) => within(item).getAllByRole('link')[0]!.textContent)).toEqual(['Casey Morgan', 'Jordan Lee']);
+    expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
+    // Attention gets a filled badge and a count pill; a calm level stays quiet (T3, T4).
+    const casey = items[0]!.querySelector('[data-integrity-chip="authenticity"]')!;
+    expect(casey.querySelector('[data-slot="badge"]')).toHaveClass('bg-status-review-soft');
+    expect(casey).toHaveTextContent('2');
+    expect(items[1]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-quiet');
+    expect(within(items[1]!).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
+    expect(within(items[0]!).getByText('Oct 20, 2026')).toBeInTheDocument();
   });
 
   it('ignores single-key shortcuts when they are turned off', async () => {

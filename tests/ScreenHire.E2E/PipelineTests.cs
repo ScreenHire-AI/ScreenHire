@@ -36,8 +36,11 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
         await Expect(table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }) }))
             .ToContainTextAsync("Applied");
-        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Stage" }).GetByRole(AriaRole.Button, new() { Name = "All" }))
+        // The stage filter is a menu in the pipeline panel's header, each stage with its count.
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Stage: All") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitemradio, new() { NameRegex = new("^All") }))
             .ToContainTextAsync(Candidates.Length.ToString(CultureInfo.InvariantCulture));
+        await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync($"{Candidates.Length} applicants");
         // J moves the cursor to the next row and shows it in the side panel.
         await table.GetByRole(AriaRole.Link, new() { Name = Candidates[0] }).FocusAsync();
@@ -167,13 +170,63 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(390, 844);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(Page, scene.JobId);
-        await Expect(Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0] }))
+        // On a phone the table's rows are two-line list items (design system section 8).
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0] }))
             .ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" })).ToHaveCountAsync(0);
 
-        // The table is wider than the phone and scrolls inside its panel; its chips' sr-only labels must not widen the page.
+        // Nothing on the page, the chips' sr-only labels included, widens it past the phone.
         var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
         overflow.Should().Be(0, "the page never scrolls sideways (design system F1)");
     }
+
+    [Fact]
+    public async Task The_candidates_list_and_the_pipeline_fit_every_width_with_the_name_column_stuck_on_a_tablet()
+    {
+        var scene = await SceneAsync(publish: true);
+        await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
+        await SignInAsync(Page, scene.Email);
+
+        foreach (var width in new[] { 1440, 768, 390, 360 })
+        {
+            await Page.SetViewportSizeAsync(width, width < 768 ? 844 : DesignHeight);
+            await Page.GotoAsync(DashboardUrl("/candidates"));
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
+            await Expect(Page.GetByRole(AriaRole.Link, new() { Name = Candidates[0], Exact = true })).ToBeVisibleAsync();
+            (await PageOverflowAsync(Page)).Should().Be(0, $"the candidates page never scrolls sideways at {width}px (F1)");
+
+            if (width == 768)
+            {
+                // The table scrolls inside its panel and the name column stays put (section 8).
+                var shift = await Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" }).EvaluateAsync<double[]>(
+                    """
+                    table => {
+                      const scroller = table.parentElement;
+                      const name = table.querySelector('[data-row-link]');
+                      const before = name.getBoundingClientRect().left;
+                      scroller.scrollLeft = 400;
+                      return [scroller.scrollLeft, name.getBoundingClientRect().left - before];
+                    }
+                    """);
+                shift[0].Should().BeGreaterThan(0, "the table is wider than a tablet's panel");
+                shift[1].Should().Be(0, "the name column sticks while the table scrolls");
+            }
+
+            if (width is 1440 or 390)
+            {
+                await ExpectNoAccessibilityViolationsAsync();
+                await SaveScreenshotAsync(Page, $"dashboard-candidates-{width}-light");
+            }
+
+            await GoToJobAsync(Page, scene.JobId);
+            await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0], Exact = true }))
+                .ToBeVisibleAsync();
+            (await PageOverflowAsync(Page)).Should().Be(0, $"the job page never scrolls sideways at {width}px (F1)");
+        }
+    }
+
+    private static Task<int> PageOverflowAsync(IPage page) =>
+        page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
 
     private sealed record Scene(string Email, string Slug, Guid JobId, string Title);
 

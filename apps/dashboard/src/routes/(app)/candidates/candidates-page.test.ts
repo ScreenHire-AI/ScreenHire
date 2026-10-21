@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, applications } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
@@ -10,15 +10,47 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const render_ = () => {
+  vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => Response.json(applications) })));
+  return render(WithQueryClient, { props: { component: Page, props: {} } });
+};
+
 describe('candidates page', () => {
-  it('counts the ticked rows in a pill beside the count, as the table has no footer (K1, W3)', async () => {
-    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => Response.json(applications) })));
-    render(WithQueryClient, { props: { component: Page, props: {} } });
-    expect(await screen.findByText(`${applications.length} applications`)).toBeInTheDocument();
+  it('shows the title with a count pill in the header band (section 7, T4)', async () => {
+    render_();
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Candidates' });
+    await waitFor(() => expect(screen.getByText(`${applications.length}`, { selector: '[data-slot="badge"]' })).toBeInTheDocument());
+    const count = screen.getByText(`${applications.length}`, { selector: '[data-slot="badge"]' });
+    expect(count).toHaveClass('min-w-7');
+    expect(count).toHaveTextContent(`${applications.length} applications`);
+    expect(heading.closest('[data-slot="header-band"]')).toContainElement(count);
+  });
+
+  it('holds the search and the integrity filter in the table panel header, and the search narrows the rows and the count', async () => {
+    render_();
+    const panel = await screen.findByRole('region', { name: 'Applications' });
+    const header = panel.querySelector('header')!;
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+
+    expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
+    expect(within(header).getByRole('button', { name: /^Integrity: all/ })).toBeInTheDocument();
+
+    await fireEvent.input(within(header).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'jordan' } });
+
+    expect(screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent)).toEqual(['Jordan Lee']);
+    expect(screen.getByText('1', { selector: '[data-slot="badge"]' })).toHaveTextContent('1 application');
+  });
+
+  it('counts the ticked rows in a pill in the panel header, as the table has no footer (K1, W3)', async () => {
+    render_();
+    await screen.findByRole('link', { name: 'Casey Morgan' });
     expect(screen.queryByText(/selected$/)).toBeNull();
 
     await fireEvent.click(screen.getByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
 
-    expect(screen.getByText('1 selected')).toHaveAttribute('data-slot', 'badge');
+    const pill = screen.getByText('1 selected');
+    expect(pill).toHaveAttribute('data-slot', 'badge');
+    expect(screen.getByRole('region', { name: 'Applications' }).querySelector('header')).toContainElement(pill);
   });
 });
