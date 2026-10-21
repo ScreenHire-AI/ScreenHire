@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
+  import { buttonVariants } from '#lib/components/ui/button/index.js';
+  import { cn } from '#lib/utils.js';
   import type { StepNode } from '#lib/workflow-graph.js';
   import ProblemMark from './problem-mark.svelte';
 
@@ -16,20 +18,20 @@
   class={[
     'flex w-[200px] flex-col gap-0.5 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
     data.kind === 'stage' ? 'border-foreground/40' : 'border-border',
-    data.invalid ? 'border-destructive' : '',
+    data.invalid ? 'border-status-verify-mark' : '',
     data.disabled ? 'opacity-60' : '',
   ]}
 >
-  <span class="text-caption text-muted-foreground">{kindLabel[data.kind]}{data.disabled ? ' · off' : ''}</span>
+  <span class="text-caption text-muted-foreground">{kindLabel[data.kind]}{data.disabled ? ', off' : ''}</span>
   <span class="leading-snug font-semibold">{data.title}</span>
   {#if data.detail}<span class="line-clamp-2 text-muted-foreground">{data.detail}</span>{/if}
   {#if data.invalid}
-    <span class="inline-flex items-center gap-1.5 font-semibold text-destructive"><ProblemMark />Needs a fix</span>
+    <span class="inline-flex items-center gap-1.5 font-semibold text-status-verify"><ProblemMark />Needs a fix</span>
   {/if}
   {#if data.kind === 'trigger' && data.automation !== null && edit}
     <button
       type="button"
-      class="nodrag nopan mt-1 self-start rounded-md border border-border px-2 py-0.5 text-caption font-semibold hover:bg-muted"
+      class={cn(buttonVariants({ variant: 'outline', size: 'xs' }), 'nodrag nopan mt-1 self-start')}
       onclick={() => edit(data.automation!)}>Edit <span class="sr-only">{data.title}</span></button
     >
   {/if}

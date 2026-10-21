@@ -8,23 +8,37 @@
     createPublishHiringTemplateVersion,
     createUpdateHiringTemplateVersion,
   } from '@screenhire/api-client/svelte-query';
+  import CheckIcon from '@lucide/svelte/icons/check';
+  import CopyIcon from '@lucide/svelte/icons/copy';
+  import HistoryIcon from '@lucide/svelte/icons/history';
+  import PencilIcon from '@lucide/svelte/icons/pencil';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { beforeNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
+  import HeaderBand from '#lib/components/header-band.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
+  import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
+  import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
+  import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
+  import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
   import type { PageProps } from './$types';
 
-  // One hiring template: its versions, and the builder over the chosen one. A draft is edited and saved here, then
-  // published; a published version never changes, so editing one starts the next version as a draft.
+  // One hiring template: its versions, and the chosen one. Your own draft opens in the builder, to edit, save and
+  // publish; anything else (a ScreenHire template, a published version) reads as content. A published version never
+  // changes, so editing one starts the next version as a draft.
   let { params }: PageProps = $props();
 
   const queryClient = useQueryClient();
@@ -44,7 +58,7 @@
   );
   const current = $derived(version.data?.data);
   const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem);
-  const hasDraft = $derived(versions.some((candidate) => candidate.status === 'Draft'));
+  const draftVersion = $derived(versions.find((candidate) => candidate.status === 'Draft'));
 
   const save = createUpdateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const publish = createPublishHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
@@ -56,7 +70,8 @@
     if (current) draft.load(current.definition.workflow, `${current.id}:${current.status}`);
   });
 
-  let status = $state('');
+  let tab = $state('pipeline');
+  let notice = $state('');
   let failure = $state('');
   const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending);
 
@@ -68,6 +83,10 @@
   async function saveDraft(): Promise<boolean> {
     if (!current || !draft.workflow) return false;
     failure = '';
+    if (!draft.dirty) {
+      notice = 'No changes to save.';
+      return true;
+    }
     try {
       const response = await save.mutateAsync({
         templateId: params.templateId,
@@ -75,7 +94,7 @@
         data: { definition: { ...current.definition, workflow: draft.workflow } },
       });
       draft.saved(response.data.definition.workflow, `${response.data.id}:${response.data.status}`);
-      status = `Saved version ${current.version}.`;
+      notice = `Saved version ${current.version}.`;
       return true;
     } catch (error) {
       failure = draft.failed(error, 'Could not save the draft');
@@ -89,7 +108,7 @@
     failure = '';
     try {
       await publish.mutateAsync({ templateId: params.templateId, version: current.version });
-      status = `Published version ${current.version}. New jobs can use it, and jobs from older versions show an update.`;
+      notice = `Published version ${current.version}.`;
     } catch (error) {
       failure = draft.failed(error, 'Could not publish');
     }
@@ -117,6 +136,7 @@
   }
 
   const notFound = $derived(template.error instanceof ApiError && template.error.status === 404);
+  const workArea = 'mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6';
 </script>
 
 <svelte:head>
@@ -125,73 +145,97 @@
 
 <TopBar crumbs={[{ label: 'Templates', href: '/templates' }, { label: detail?.name ?? 'Template' }]} back />
 
-<main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
+<main>
   {#if template.isError}
-    {#if notFound}
-      <h1 class="font-display text-page-title">Template not found</h1>
-      <p class="text-muted-foreground">This template does not exist, or it belongs to another organization. <a href="/templates">Back to templates</a></p>
-    {:else}
-      <h1 class="font-display text-page-title">Template</h1>
-      <QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} />
-    {/if}
+    <HeaderBand title={notFound ? 'Template not found' : 'Template'} />
+    <div class={workArea}>
+      {#if notFound}
+        <Empty.Root class="rounded-panel border border-border bg-card">
+          <Empty.Header>
+            <Empty.Title>This template does not exist, or it belongs to another organization.</Empty.Title>
+          </Empty.Header>
+          <Empty.Content><Button href="/templates" variant="outline">Back to templates</Button></Empty.Content>
+        </Empty.Root>
+      {:else}
+        <QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} />
+      {/if}
+    </div>
   {:else if !detail || !current || !draft.workflow}
     {#if version.isError}
-      <QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} />
+      <HeaderBand title={detail?.name ?? 'Template'} />
+      <div class={workArea}>
+        <QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} />
+      </div>
     {:else}
-      <div aria-hidden="true" class="flex flex-col gap-2">
-        <Skeleton class="h-9 w-80" />
-        <Skeleton class="h-4 w-96" />
-        <Skeleton class="mt-2 h-64 w-full" />
+      <div aria-hidden="true">
+        <div class="border-b border-border bg-card">
+          <div class="mx-auto flex max-w-page flex-col gap-4 px-4 pt-5 md:px-6">
+            <Skeleton class="h-9 w-80 max-w-full" />
+            <Skeleton class="h-8 w-96 max-w-full" />
+          </div>
+        </div>
+        <div class={workArea}>
+          <Skeleton class="h-96 w-full rounded-panel" />
+        </div>
       </div>
       <p class="sr-only" role="status">Loading the template…</p>
     {/if}
   {:else}
-    <section aria-label="Template" class="flex flex-wrap items-start justify-between gap-3">
-      <div class="flex min-w-0 flex-col gap-1.5">
-        <h1 class="font-display text-page-title">{detail.name}</h1>
-        <p class="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
-          <span>Version {current.version}</span>
-          <Badge variant={current.status === 'Draft' ? 'secondary' : 'clear'}>{current.status}</Badge>
-          {#if current.publishedAt}<span>Published <RelativeTime at={current.publishedAt} /></span>{/if}
-          {#if detail.isSystem}<span>ScreenHire template · read-only</span>{/if}
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        {#if detail.isSystem}
-          <Button onclick={copyTemplate} disabled={busy}>Copy to customise</Button>
-        {:else if isDraft}
-          <Button variant="outline" onclick={saveDraft} disabled={busy || !draft.dirty}>Save draft</Button>
-          <Button onclick={publishDraft} disabled={busy}>Publish version {current.version}</Button>
-        {:else if !hasDraft}
-          <Button onclick={startNextVersion} disabled={busy}>Edit as version {(detail.versions.at(-1)?.version ?? 0) + 1}</Button>
+    <Tabs.Root bind:value={tab}>
+      <HeaderBand title={detail.name}>
+        {#snippet status()}
+          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
+          <span class="flex flex-wrap gap-1.5">
+            <Badge variant="muted" class="tabular-nums">Version {current.version}</Badge>
+            {#if current.status === 'Draft'}
+              <Badge variant="muted">Draft</Badge>
+            {:else if current.publishedAt}
+              <Badge variant="muted">Published&nbsp;<RelativeTime at={current.publishedAt} /></Badge>
+            {/if}
+            {#if detail.isSystem}<Badge variant="muted">ScreenHire template</Badge>{/if}
+          </span>
+        {/snippet}
+        {#snippet actions()}
+          <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
+          <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
+          {#if versions.length > 1}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
+                <HistoryIcon aria-hidden="true" />Versions
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end" class="w-56">
+                {#each versions.toReversed() as candidate (candidate.id)}
+                  <DropdownMenu.Item onSelect={() => goto(`/templates/${detail.id}?version=${candidate.version}`)}>
+                    Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
+                    {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+                  </DropdownMenu.Item>
+                {/each}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          {/if}
+          {#if detail.isSystem}
+            <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy to customise</Button>
+          {:else if isDraft}
+            <Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}>Save draft</Button>
+            <Button size="lg" onclick={publishDraft} disabled={busy}>Publish version {current.version}</Button>
+          {:else if draftVersion}
+            <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
+          {:else}
+            <Button size="lg" onclick={startNextVersion} disabled={busy}
+              ><PencilIcon aria-hidden="true" />Edit as version {(versions.at(-1)?.version ?? 0) + 1}</Button
+            >
+          {/if}
+        {/snippet}
+        {#snippet tabs()}<WorkflowTabs />{/snippet}
+      </HeaderBand>
+
+      <div class={workArea}>
+        {#if isDraft}
+          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} {tab} />
+        {:else}
+          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
         {/if}
       </div>
-    </section>
-
-    <nav aria-label="Versions" class="flex flex-wrap gap-1.5">
-      {#each versions as candidate (candidate.id)}
-        <a
-          href={`/templates/${detail.id}?version=${candidate.version}`}
-          aria-current={candidate.version === current.version ? 'page' : undefined}
-          class={[
-            'rounded-md border px-2 py-0.5 text-caption no-underline',
-            candidate.version === current.version ? 'border-primary bg-sidebar-accent font-semibold text-sidebar-accent-foreground' : 'border-border text-muted-foreground hover:bg-muted',
-          ]}>v{candidate.version} · {candidate.status === 'Draft' ? 'draft' : 'published'}</a
-        >
-      {/each}
-    </nav>
-
-    <p role="status" class="text-body empty:hidden">{status}</p>
-    <p role="alert" class="text-body font-semibold text-destructive empty:hidden">{failure}</p>
-    {#if !isDraft && !detail.isSystem && hasDraft}
-      <p class="text-body text-muted-foreground">Published versions never change. Open the draft to edit.</p>
-    {/if}
-
-    <WorkflowEditor
-      bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
-      errors={draft.errors}
-      checking={draft.checking}
-      readonly={!isDraft}
-    />
+    </Tabs.Root>
   {/if}
 </main>

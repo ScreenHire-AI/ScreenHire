@@ -129,9 +129,9 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 
 | Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
 |---|---|---|---|---|---|
-| No concerns, Live | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| No concerns, Live, a workflow with no problems found | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review suggested, Queued, a file being scanned | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verification recommended, a file withheld by the scan | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| Verification recommended, a file withheld by the scan, a workflow with problems to fix | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
 | Not started or ended: a draft, a closed job, a board the job is not on | ring | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
@@ -299,12 +299,13 @@ in a development build, shows every component in each state, and its test fails 
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
 | Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5) |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
-| Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
+| Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
 | File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention |
 | Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
+| Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8 |
