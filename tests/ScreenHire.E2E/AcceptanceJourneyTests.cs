@@ -77,6 +77,9 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(details).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("£70k-£90k");
 
+        // Each board's answer reaches this page as a live event, so check the connection first: a lost one fails here
+        // with its own name, not as a board that seems to stay Queued.
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
         var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" });
         await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
@@ -86,7 +89,6 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
 
         // The recruiter keeps the job open while candidates apply; nothing below reloads it.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {JobTitle}" });
-        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
         await Page.EvaluateAsync("() => { window.__screenhireNoReload = true; }");
 
         // 3. The candidates apply on the careers site, each in a browser of their own. The genuine candidate's browser runs

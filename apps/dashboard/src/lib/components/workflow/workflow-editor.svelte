@@ -54,7 +54,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-  <section aria-label="Validation" aria-live="polite" class="text-[13px]">
+  <section aria-label="Validation" aria-live="polite" aria-busy={checking} class="text-[13px]">
     {#if errors.length > 0}
       <div class="rounded-xl border border-destructive/40 bg-card px-3.5 py-2.5">
         <p class="font-semibold text-destructive">
