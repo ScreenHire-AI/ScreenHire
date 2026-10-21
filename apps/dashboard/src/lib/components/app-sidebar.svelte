@@ -86,7 +86,7 @@
   </Sidebar.Header>
 
   <Sidebar.Content>
-    <nav aria-label="Main" class="contents">
+    <nav aria-label="Main" class="flex min-h-0 flex-col">
       <Sidebar.Group>
         <Sidebar.Menu>
           {#each sections as section (section.href)}

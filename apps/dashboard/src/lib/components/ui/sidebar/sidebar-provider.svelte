@@ -1,5 +1,4 @@
 <script lang="ts">
-	import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from "./constants.js";
 	import { setSidebar } from "./context.svelte.js";
@@ -19,7 +18,8 @@
 	} = $props();
 
 	// The shell keeps the open state through onOpenChange (no cookie), and there is no Ctrl B toggle: section 15 of the
-	// design system lists every shortcut.
+	// design system lists every shortcut. No tooltip provider here: the root layout's serves the whole app, and the rail's
+	// labels set their own delay (sidebar-menu-button.svelte).
 	setSidebar({
 		open: () => open,
 		setOpen: (value: boolean) => {
@@ -29,17 +29,15 @@
 	});
 </script>
 
-<Tooltip.Provider delayDuration={0}>
-	<div
-		data-slot="sidebar-wrapper"
-		style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style}"
-		class={cn(
-			"group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
-			className
-		)}
-		bind:this={ref}
-		{...restProps}
-	>
-		{@render children?.()}
-	</div>
-</Tooltip.Provider>
+<div
+	data-slot="sidebar-wrapper"
+	style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style}"
+	class={cn(
+		"group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar",
+		className
+	)}
+	bind:this={ref}
+	{...restProps}
+>
+	{@render children?.()}
+</div>
