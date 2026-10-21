@@ -12,6 +12,8 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
+When Docker is down, `pnpm docker:start` starts Docker Desktop and waits for the engine.
+
 Pick the lowest tier that can catch the bug. A rule in the domain gets a unit test even when an integration test also
 covers the endpoint. End-to-end tests prove that the pieces connect and render; they do not enumerate edge cases.
 

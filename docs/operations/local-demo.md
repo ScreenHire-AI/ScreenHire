@@ -181,7 +181,7 @@ The [MVP status](../README.md#mvp-status) lists what each of these needs before 
 ## When something looks wrong
 
 - **A resource is unhealthy in the Aspire dashboard.** Open its logs there. Docker not running and a port already in
-  use are the usual causes.
+  use are the usual causes. `pnpm docker:start` starts Docker Desktop and waits for the engine.
 - **No integrity chips yet.** The worker assesses after the API has started; give it a few seconds. The first assessment
   after a cold start is the slowest.
 - **The sandbox board still says "Submitted".** It waits 20 seconds on purpose, like a real board's review.

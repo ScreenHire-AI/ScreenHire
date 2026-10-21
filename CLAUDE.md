@@ -27,8 +27,8 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 ## Commands
 
 - First run: Docker running (`pnpm docker:start` starts Docker Desktop when the engine is down and waits for it;
-  never launch Docker Desktop from a task's shell, the guard refuses it), then `pnpm install` at the repo root (Aspire does **not** run installs) and
-  `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
+  never launch Docker Desktop from a task's shell, the guard refuses it), then `pnpm install` at the repo root
+  (Aspire does **not** run installs) and `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
@@ -58,8 +58,8 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
   `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
-  end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end tests serve the
-  `pnpm -r build` output).
+  end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
+  tests serve the `pnpm -r build` output).
 - **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
