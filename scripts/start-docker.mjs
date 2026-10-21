@@ -26,6 +26,11 @@ const TASK_TAG = 'KANGENTIC_TASK_ID';
 /** The engine's version when `docker info` answers, otherwise null. */
 function engineVersion() {
   const result = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], { encoding: 'utf8', timeout: 20_000 });
+  if (result.error?.code === 'ENOENT') {
+    // Without the CLI no poll can ever answer, so do not start Docker Desktop and wait three minutes for nothing.
+    console.error('docker:start: the docker CLI is not on PATH. Report it as infrastructure.');
+    process.exit(1);
+  }
   return result.status === 0 ? result.stdout.trim() : null;
 }
 

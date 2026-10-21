@@ -27,6 +27,8 @@ public sealed class GuardProcessesTests
         { "Bash", "/c/Program\\ Files/Docker/Docker/Docker\\ Desktop.exe &" },
         { "Bash", $"cmd //c start \"\" \"{DockerExe}\"" },
         { "Bash", $"docker info || \"{DockerExe}\"" },
+        { "Bash", $"cmd.exe //c \"{DockerExe}\"" },
+        { "PowerShell", $"cmd /c \"{DockerExe}\"" },
         { "Bash", "docker desktop start" },
         { "PowerShell", "docker desktop restart --timeout 120" },
     };
@@ -37,6 +39,8 @@ public sealed class GuardProcessesTests
         { "PowerShell", "Get-Process chrome | Stop-Process" },
         { "PowerShell", "Stop-Process -Name dotnet" },
         { "Bash", "pkill -f vite" },
+        // PowerShell has no backslash escape: this bar is a pipe, unlike a grep alternation in Bash.
+        { "PowerShell", @"Get-Process node \| Stop-Process" },
     };
 
     public static TheoryData<string, string> Allowed => new()

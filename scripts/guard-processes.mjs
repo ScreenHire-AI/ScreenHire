@@ -30,8 +30,10 @@ const DENY = [
   [/\btaskkill\b[^\n]*\s(\/{1,2}|-)(t|im|fi)\b/i, 'taskkill by image name, filter or process tree'],
   [/\b(pkill|killall|fuser|kill-port)\b/i, 'killing processes by name or port'],
   [/\bStop-Process\b[^\n]*-(Name|ProcessName|InputObject)\b/i, 'Stop-Process by name'],
-  // A grep alternation (`\|kill`, `\|stop-process-tree`) is not a pipe: skip an escaped bar and a hyphenated word.
+  // A grep alternation (`\|kill`, `\|stop-process-tree`) is not a pipe: skip a hyphenated word, and in Bash an escaped
+  // bar. PowerShell has no backslash escape, so there `x \| Stop-Process` is still a pipe.
   [/(?<!\\)\|\s*(Stop-Process|kill)(?![\w-])/i, 'piping processes into Stop-Process'],
+  [/\|\s*(Stop-Process|kill)(?![\w-])/i, 'piping processes into Stop-Process', SAFE_ROUTE, 'PowerShell'],
   [/\b(Invoke-CimMethod|wmic)\b[^\n]*\b(Terminate|delete)\b/i, 'terminating processes through WMI'],
   [/\.Kill\(\)/, 'calling .Kill() on processes'],
   [/\bdocker\s+(system|container|volume|image|network|builder)\s+prune\b/i, 'pruning Docker objects'],
@@ -49,7 +51,7 @@ const DENY = [
   ],
   [
     // The path is the launcher's argument, after any switches (`/c`, `-Path`) and `start`'s empty title.
-    new RegExp(String.raw`(?<![\w-])(?:start|Invoke-Item|ii|explorer(?:\.exe)?)(?:\s+(?:[/-]+\w+|""|''))*\s+${DOCKER_EXE}`, 'i'),
+    new RegExp(String.raw`(?<![\w-])(?:start|Invoke-Item|ii|explorer(?:\.exe)?|cmd(?:\.exe)?)(?:\s+(?:[/-]+\w+|""|''))*\s+${DOCKER_EXE}`, 'i'),
     'opening Docker Desktop.exe',
     DOCKER_ROUTE,
   ],
@@ -117,8 +119,8 @@ process.stdin.on('end', () => {
   const command = data.tool_input?.command;
   if (typeof command !== 'string') return;
 
-  for (const [pattern, label, route] of DENY) {
-    if (pattern.test(command)) {
+  for (const [pattern, label, route, tool] of DENY) {
+    if ((!tool || tool === data.tool_name) && pattern.test(command)) {
       deny(`${label[0].toUpperCase()}${label.slice(1)}`, route);
       return;
     }

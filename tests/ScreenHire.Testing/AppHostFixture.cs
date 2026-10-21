@@ -213,9 +213,10 @@ public class AppHostFixture : IAsyncLifetime
                 process.Kill(entireProcessTree: true);
                 process.WaitForExit(TimeSpan.FromSeconds(10));
             }
-            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception)
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
+                or AggregateException)
             {
-                // Already gone, or not ours to read.
+                // Already gone, or not ours to read. Kill throws AggregateException when part of the tree would not stop.
             }
         }
 
@@ -303,8 +304,14 @@ public class AppHostFixture : IAsyncLifetime
             {
                 var started = app;
                 app = null;
-                StopOwnProcesses();
-                await started.DisposeAsync();
+                try
+                {
+                    StopOwnProcesses();
+                }
+                finally
+                {
+                    await started.DisposeAsync();
+                }
             }
         }
     }
