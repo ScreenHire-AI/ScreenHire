@@ -125,6 +125,11 @@ process-killing commands.
 Detail and the add-component command: `.claude/rules/svelte-dashboard.md` and `.claude/rules/astro-public.md`.
 Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
 
+- **Design system:** [`docs/design/design-system.md`](docs/design/design-system.md) is the one source of truth for
+  every screen (ADR-0010). Read its principles and its review checklist (section 2) before building UI; the
+  `design-review` agent checks every UI change against that checklist. Change the design there, never only in a rule,
+  a skill or a component.
+
 - **Svelte 5 runes only** (`compilerOptions.runes: true`); no `export let`, `$:`, `on:`, `<slot>`.
 - **SvelteKit 3:** config in `vite.config.ts` (no `svelte.config.js`); import via `#lib/...` with `.js` extensions
   (not `$lib`); `$app/state` (not `$app/stores`); `$app/env` (not `$app/environment`); tsconfig extends `$app/tsconfig`.
@@ -132,8 +137,9 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
   invalidate queries by API path (`#lib/realtime.ts`). Single-key shortcuts can be turned off (WCAG 2.1.4).
 - **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
-- **Tokens only:** colours, fonts and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
-  `text-status-review`); never hard-code hex values. Status = shape mark + colour + text label, always.
+- **Tokens only:** colours, fonts, type sizes and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
+  `text-status-review`); never hard-code hex values or pixel font sizes. Status = shape mark + colour + text label,
+  always.
 - **Public pages ship ~0 KB JS:** Astro components and native HTML controls; Svelte islands only where behaviour is
   needed. Embeddable apply widget = iframe (never Shadow DOM).
 - Accessibility: WCAG 2.2 AA, visible focus ring, non-drag alternatives for drag-and-drop.

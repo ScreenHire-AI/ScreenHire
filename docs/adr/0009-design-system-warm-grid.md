@@ -1,6 +1,7 @@
 # ADR-0009: "Warm Grid" design direction, shadcn-svelte + daisyUI, one token source
 
-- **Status:** Accepted (2026-10-18)
+- **Status:** Accepted (2026-10-18); amended by [ADR-0010](0010-design-system-v0-2.md) (2026-10-20), which replaces
+  the "dense, keyboard-first" brief
 - **Deciders:** Owner
 - **Research:** `docs/research/component-libraries.md` · **Mockups:** "ScreenHire Look & Feel" canvas (flavor D)
 - **Spec:** `docs/design/design-system.md`

@@ -6,7 +6,8 @@ argument-hint: [route path - what it shows]
 # Add a dashboard page
 
 Read `.claude/rules/svelte-dashboard.md` first. `apps/dashboard/src/routes/(app)/+page.svelte` (the jobs table) and
-`(app)/jobs/[jobId]/+page.svelte` (the job's pipeline) are the reference pages. The visual language is `docs/design/design-system.md`.
+`(app)/jobs/[jobId]/+page.svelte` (the job's pipeline) are the reference pages for code. How the page looks and reads
+comes from `docs/design/design-system.md`, the one source of truth; step 2 applies it.
 
 **Page:** $ARGUMENTS
 
@@ -15,7 +16,18 @@ Read `.claude/rules/svelte-dashboard.md` first. `apps/dashboard/src/routes/(app)
 If the data the page needs has no endpoint yet, add it with `/add-endpoint` and regenerate the client before you
 write the page. The page imports only generated functions and types from `@screenhire/api-client`.
 
-## 2. Route files
+## 2. Design first
+
+Read sections 1, 2, 7 and 8 of `docs/design/design-system.md`. Before writing markup, decide, and put in your final
+summary:
+
+- the page template (section 7) and its header band: title, status badge, the one primary action, facts or tabs;
+- the panels in priority order, each with its title, and what each holds;
+- what changes on a tablet and a phone (section 8).
+
+Build from the component catalogue (section 11). A pattern it does not have joins section 11 in the same change.
+
+## 3. Route files
 
 Signed-in pages live under `apps/dashboard/src/routes/(app)/`. `<path>/+page.svelte` queries its own data with the
 generated TanStack Query hooks; there is no `+page.ts`:
@@ -39,7 +51,7 @@ generated TanStack Query hooks; there is no `+page.ts`:
 - Add the route to `sections` in `#lib/shell.ts` if it is a top-level section: the sidebar, its G shortcut and the
   command palette all read that list.
 
-## 3. States
+## 4. States
 
 Every page handles all four:
 
@@ -52,7 +64,7 @@ Every page handles all four:
   and a link back. Never show raw response bodies or stack traces.
 - **Success.** The real content.
 
-## 4. Components
+## 5. Components
 
 - Use the shadcn-svelte components in `#lib/components/ui`. To add one, from `apps/dashboard`:
 
@@ -65,10 +77,10 @@ Every page handles all four:
   `pnpm --filter @screenhire/dashboard add -D <package>` and run the `licence-check` agent.
 - Status cells use the badge variants with a shape mark and a text label (`clear`, `review`, `verify`, `ai`). Never
   colour alone.
-- Tokens only (`bg-card`, `text-muted-foreground`, `font-mono`). No hex, no palette colours.
+- Tokens only (`bg-card`, `text-muted-foreground`). No hex, no palette colours, no pixel font sizes.
 - Integrity data shows levels, reason codes and evidence; never a score, and no reject control.
 
-## 5. Tests
+## 6. Tests
 
 - **Vitest** for component logic and rendering, if the dashboard has a `test` script in `package.json`
   (`@testing-library/svelte` on jsdom; see `docs/process/testing.md`). Run `pnpm --filter @screenhire/dashboard test`.
@@ -78,7 +90,7 @@ Every page handles all four:
 - If either tier is missing on your branch, note it in your final summary and cover the logic at the tier that
   exists. Use the `test-builder` agent to pick tiers and write the tests.
 
-## 6. Done when
+## 7. Done when
 
 ```
 pnpm --filter @screenhire/dashboard check
@@ -87,3 +99,7 @@ pnpm --filter @screenhire/dashboard build
 
 both pass with no warnings, the tests above pass, and the page works with the keyboard alone (tab order, visible
 focus, Enter and Space on controls).
+
+Then hold the page to the design system: run the `design-review` agent on your changes and fix what it reports, and
+look at the page with `/preview` at 1440, 768 and 390px wide (`kangentic_browser_set_viewport`). The review checklist
+(section 2) must hold at all three.

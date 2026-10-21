@@ -105,7 +105,8 @@ brackets.
 | [0006](adr/0006-dashboard-svelte.md) | Recruiter dashboard: Svelte 5 + SvelteKit 3 SPA | Accepted |
 | [0007](adr/0007-hosting-azure.md) | Azure bootstrap (~$45–65/mo pre-credits), Cloudflare in front | Accepted |
 | [0008](adr/0008-dotnet-building-blocks.md) | .NET building blocks (Wolverine, Identity, Aspire, Orval, RLS) under licence policy | Accepted |
-| [0009](adr/0009-design-system-warm-grid.md) | "Warm Grid" design direction; shadcn-svelte (dashboard) + daisyUI CSS-only (public pages); one token source | Accepted |
+| [0009](adr/0009-design-system-warm-grid.md) | "Warm Grid" design direction; shadcn-svelte (dashboard) + daisyUI CSS-only (public pages); one token source | Accepted, amended by 0010 |
+| [0010](adr/0010-design-system-v0-2.md) | Design system v0.2: simple and approachable; layers, page templates, fluid sizes, words | Accepted |
 
 ## Architecture
 
@@ -123,8 +124,8 @@ brackets.
 
 ## Design
 
-- [Design System — "Warm Grid"](design/design-system.md) — tokens (light/dark/candidate), type, status semantics,
-  components, accessibility, employer branding, voice
+- [Design system](design/design-system.md) - the one source of truth for the UI: principles, the review checklist,
+  colour, type, layers, page templates, screen sizes, flow, components, words, dates, icons, integrity UI
 
 ## Operations
 

@@ -12,6 +12,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 
 ## The rule
 
+- **Design system.** `docs/design/design-system.md` is the one source of truth for how these pages look and read:
+  its principles (section 1), its review checklist where it applies (section 2), candidate colours (3.4), candidate
+  type (4.3), words (12) and employer branding (18).
 - **No client JavaScript by default.** Astro components and native HTML (`<details>`, `<dialog>`, forms that post).
   A Svelte island (`client:visible`, `client:idle`) only where the page needs behaviour HTML cannot give, and the
   PR says why. The one island today is the apply form's `FileField.svelte` (direct-to-storage upload, from

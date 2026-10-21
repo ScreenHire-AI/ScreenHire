@@ -14,7 +14,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`add-message`](../../.claude/skills/add-message/SKILL.md) | adding background work, a domain event or a scheduled job | contract in `ScreenHire.Application`, worker handler, publishing through the EF Core outbox, idempotency keys, `ITenantMessage` and `ITenantEvent`, scheduled or cron delivery, an Aspire integration test |
 | [`add-realtime-event`](../../.claude/skills/add-realtime-event/SKILL.md) | a change should appear in open dashboards without a reload | an `ITenantEvent` record, its Zod schema and the C#/Zod contract file, the dashboard `load` dependency it invalidates, an optional record topic, integration tests with the SignalR client |
 | [`add-migration`](../../.claude/skills/add-migration/SKILL.md) | an entity or EF configuration changes | naming, generating and reviewing the SQL, the tenant-table checklist (`OrganizationId`, query filter, RLS, grants), the never-edit-merged and merge-conflict rules |
-| [`add-dashboard-page`](../../.claude/skills/add-dashboard-page/SKILL.md) | adding a recruiter-dashboard screen | SvelteKit 3 route with runes, `#lib` imports, `$app/state`, shadcn-svelte, the generated client, loading/empty/error states, Vitest and Playwright tests |
+| [`add-dashboard-page`](../../.claude/skills/add-dashboard-page/SKILL.md) | adding a recruiter-dashboard screen | design first from the design system (template, panels, sizes), SvelteKit 3 route with runes, `#lib` imports, `$app/state`, shadcn-svelte, the generated client, loading/empty/error states, Vitest and Playwright tests, `design-review` and a look at three widths |
 | [`add-careers-page`](../../.claude/skills/add-careers-page/SKILL.md) | adding a candidate-facing page | Astro SSR route, `CareersLayout`, server-side API data, 404/410, tenant-host links, `JobPosting` JSON-LD, no client JS or inline styles, notice before collection |
 | [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
@@ -42,6 +42,7 @@ report findings as `file:line`, severity, evidence and fix; the caller verifies 
 | [`licence-check`](../../.claude/agents/licence-check.md) | read-only | `/task-review`, any skill that adds a package | every new NuGet or npm package against ADR-0008 |
 | [`migration-safety`](../../.claude/agents/migration-safety.md) | read-only | `/add-migration`, `/task-review` | generated SQL, types, existing data, destructive operations, snapshot drift, RLS for tenant tables |
 | [`doc-auditor`](../../.claude/agents/doc-auditor.md) | read-only | `/sync-docs` | lists in docs against the sources that define them |
+| [`design-review`](../../.claude/agents/design-review.md) | read-only | `/task-review` (UI changes), `/add-dashboard-page` | screens against the review checklist in `docs/design/design-system.md`, the one source of truth for UI |
 | [`test-builder`](../../.claude/agents/test-builder.md) | writes tests | the three page skills, `/task-review` | picks the tier, writes and red-greens tests; audit-only mode returns a gap table |
 
 ## Rules
@@ -59,7 +60,7 @@ convention; the rule holds the detail.
 | [`cli-features-over-custom-layers`](../../.claude/rules/cli-features-over-custom-layers.md) | always | use Aspire, ASP.NET Core, EF Core, Orval and Claude Code features before writing a layer; no model-name lists |
 | [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
 | [`utc-timestamps`](../../.claude/rules/utc-timestamps.md) | `src`, `apps/api`, `apps/worker` | `DateTimeOffset` in UTC from `TimeProvider`, `timestamp with time zone` |
-| [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility |
+| [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility; points to the design system for how screens look |
 | [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS (one upload island), forms that work without JS, strict CSP, SEO and JSON-LD, domains as configuration, notice before collection |
 | [`docs-stay-in-sync`](../../.claude/rules/docs-stay-in-sync.md) | sources that docs enumerate | update the doc that lists an item when the item changes |
 | [`skill-authoring`](../../.claude/rules/skill-authoring.md) | `.claude/skills`, `.claude/agents`, `.claude/rules` | grounded commands, no questions, read-only reviewers, no forked mutating skills |
