@@ -55,6 +55,14 @@ describe('validation badge', () => {
     expect(region.querySelector('[data-status="verify"]')).not.toBeNull();
   });
 
+  it('counts problems, not problems to fix, when the workflow cannot be edited here', () => {
+    render(ValidationBadge, { props: { errors: [{ path: 'stages', message: 'A workflow needs a hired stage.' }], editable: false } });
+
+    const region = screen.getByRole('region', { name: 'Validation' });
+    expect(region).toHaveTextContent('1 problem');
+    expect(region).not.toHaveTextContent('to fix');
+  });
+
   it('shows a clear badge when there is nothing to fix', () => {
     render(ValidationBadge, { props: { errors: [] } });
 
@@ -104,6 +112,27 @@ describe('read-only workflow', () => {
     // The candidate's form is a preview to try, not the template's data.
     expect(within(pane).getByRole('region', { name: 'Candidate preview' })).toBeInTheDocument();
     await expectNoAxeViolations(container);
+  });
+
+  it('lists each problem in words in a Problems region, with nothing to fix and no controls', () => {
+    const { container } = renderViews('summary', 'pipeline', [
+      { path: 'stages[1].name', message: 'Give the stage a name.' },
+      { path: 'stages', message: 'A workflow needs a hired stage.' },
+    ]);
+
+    const problems = screen.getByRole('region', { name: 'Problems' });
+    const items = within(problems).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Give the stage a name.');
+    expect(items[1]).toHaveTextContent('A workflow needs a hired stage.');
+    expect(screen.queryByRole('region', { name: 'Problems to fix' })).toBeNull();
+    expect(container.querySelectorAll(':disabled')).toHaveLength(0);
+  });
+
+  it('has no Problems region when the stored workflow is valid', () => {
+    renderViews('summary');
+
+    expect(screen.queryByRole('region', { name: 'Problems' })).toBeNull();
   });
 
   it('draws the graph without Edit buttons', () => {
