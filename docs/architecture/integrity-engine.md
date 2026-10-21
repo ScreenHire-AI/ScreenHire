@@ -159,8 +159,8 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add note*.
   Every action is audit-logged. No "reject" button sits in the integrity panel.
 
-  Built in v1 (`apps/dashboard`): Authenticity and AI assist chip columns in every candidate table, sortable by level
-  and filterable from an "Integrity" menu; a job overview with a numeric legend (each entry filters the table) and an
+  Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
+  level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as a pill; a job overview with a numeric legend (each entry filters the table) and an
   `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
   page. The panel shows each assessment's summary, suggested next step, reasons (signals that count toward the level)
