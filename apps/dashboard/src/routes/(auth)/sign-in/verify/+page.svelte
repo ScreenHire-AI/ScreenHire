@@ -1,4 +1,6 @@
 <script lang="ts">
+  import LogInIcon from '@lucide/svelte/icons/log-in';
+  import MailIcon from '@lucide/svelte/icons/mail';
   import { verifyMagicLink } from '@screenhire/api-client';
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';
@@ -62,12 +64,12 @@
 
 {#snippet confirm()}
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button type="submit" size="lg" disabled={submitting}>Sign in</Button>
+    <Button type="submit" size="lg" disabled={submitting}><LogInIcon aria-hidden="true" />Sign in</Button>
   </div>
 {/snippet}
 
 {#snippet newLink()}
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button href="/sign-in" size="lg">Get a new link</Button>
+    <Button href="/sign-in" size="lg"><MailIcon aria-hidden="true" />Get a new link</Button>
   </div>
 {/snippet}

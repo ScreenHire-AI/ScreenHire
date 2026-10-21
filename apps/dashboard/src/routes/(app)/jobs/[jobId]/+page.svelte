@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import SendIcon from '@lucide/svelte/icons/send';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
@@ -102,7 +103,7 @@
             <Empty.Header>
               <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
             </Empty.Header>
-            <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>
+            <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
           </Empty.Root>
         {:else}
           <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset />

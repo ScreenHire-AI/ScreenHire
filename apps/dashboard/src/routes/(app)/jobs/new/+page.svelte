@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PlusIcon from '@lucide/svelte/icons/plus';
   import type { HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createCreateJob, createListHiringTemplates } from '@screenhire/api-client/svelte-query';
   import { CreateJobBody } from '@screenhire/api-client/zod';
@@ -208,7 +209,7 @@
               <FailureText message={$errors._errors[0]} class="mr-auto" />
             {/if}
             <Button href="/" variant="outline" size="lg">Cancel</Button>
-            <Button type="submit" size="lg" disabled={$submitting}>Create job</Button>
+            <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create job</Button>
           </div>
         {/snippet}
       </Panel>

@@ -5,6 +5,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import LogOutIcon from '@lucide/svelte/icons/log-out';
   import MailIcon from '@lucide/svelte/icons/mail';
+  import PlusIcon from '@lucide/svelte/icons/plus';
   import { goto } from '$app/navigation';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -123,6 +124,6 @@
     {#if $errors._errors}
       <FailureText message={$errors._errors[0]} class="mr-auto" />
     {/if}
-    <Button type="submit" size="lg" disabled={$submitting}>Create organization</Button>
+    <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create organization</Button>
   </div>
 {/snippet}

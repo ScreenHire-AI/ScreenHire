@@ -328,6 +328,9 @@ in a development build, shows every component in each state, and its test fails 
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
 | Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the verify mark and colour (T1) |
+| Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked |
+| Confirm dialog | shadcn `Dialog` (`CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2) |
+| Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
 | Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
 

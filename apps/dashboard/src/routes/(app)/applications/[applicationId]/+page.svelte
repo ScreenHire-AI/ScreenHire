@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import MailIcon from '@lucide/svelte/icons/mail';
@@ -143,7 +144,7 @@
             <Empty.Header>
               <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
             </Empty.Header>
-            <Empty.Content><Button href="/candidates" variant="outline" size="lg">Back to candidates</Button></Empty.Content>
+            <Empty.Content><Button href="/candidates" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to candidates</Button></Empty.Content>
           </Empty.Root>
         </Panel>
       </div>

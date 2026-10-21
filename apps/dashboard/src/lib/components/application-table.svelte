@@ -57,9 +57,10 @@
   const columns = $derived<CandidateColumn[]>([
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
     { id: 'candidate', header: 'Candidate', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
+    // Status first, right after the name (T2): the integrity columns, then the facts.
+    ...extraColumns,
     ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
     { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false, cell: ({ row }) => renderSnippet(stageCell, row.original) },
-    ...extraColumns,
     { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     { id: 'applied', header: 'Applied', cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),

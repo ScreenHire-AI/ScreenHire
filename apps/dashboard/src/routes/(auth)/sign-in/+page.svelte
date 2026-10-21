@@ -1,4 +1,6 @@
 <script lang="ts">
+  import LogInIcon from '@lucide/svelte/icons/log-in';
+  import MailIcon from '@lucide/svelte/icons/mail';
   import { getChallengeProviderUrl, requestMagicLink } from '@screenhire/api-client';
   import { RequestMagicLinkBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
@@ -88,7 +90,7 @@
                     size="lg"
                     class="w-full"
                   >
-                    Continue with {provider.displayName}
+                    <LogInIcon aria-hidden="true" />Continue with {provider.displayName}
                   </Button>
                 </li>
               {/each}
@@ -142,7 +144,7 @@
     {#if $errors._errors}
       <FailureText message={$errors._errors[0]} class="mr-auto" />
     {/if}
-    <Button type="submit" size="lg" disabled={$submitting}>Email me a sign-in link</Button>
+    <Button type="submit" size="lg" disabled={$submitting}><MailIcon aria-hidden="true" />Email me a sign-in link</Button>
   </div>
 {/snippet}
 

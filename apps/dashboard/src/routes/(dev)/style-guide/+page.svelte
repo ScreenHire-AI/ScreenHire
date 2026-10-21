@@ -14,7 +14,7 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -28,7 +28,9 @@
   import IconButton from '#lib/components/icon-button.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
+  import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -43,7 +45,8 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -80,6 +83,12 @@
   }
 
   let shortcutsOpen = $state(false);
+  let confirmOpen = $state(false);
+  const demoStages: WorkflowStage[] = [
+    { id: 'applied', name: 'Applied', kind: 'Applied' },
+    { id: 'screening', name: 'Screening', kind: 'Screening' },
+    { id: 'interview', name: 'Interview', kind: 'Interview' },
+  ];
 
   const toggleOptions = [
     { id: 'all', label: 'All', count: null },
@@ -159,6 +168,20 @@
 </svelte:head>
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
+
+<!-- The confirm dialog's shape, as CloseJobDialog and LeaveDialog draw it (section 9). -->
+<Dialog.Root bind:open={confirmOpen}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
+      <Dialog.Description>The careers page stops taking applications and every board is asked to remove the job.</Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Dialog.Close class={buttonVariants({ variant: 'outline', size: 'lg' })}>Keep it open</Dialog.Close>
+      <Button variant="destructive" size="lg" onclick={() => (confirmOpen = false)}>Close &amp; remove everywhere</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
 
 <main class="flex min-h-screen flex-col">
   <HeaderBand title="Style guide" wide>
@@ -421,6 +444,20 @@
         </Panel>
         <Panel title="Shortcuts dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (shortcutsOpen = true)}><KeyboardIcon aria-hidden="true" />Keyboard shortcuts</Button>
+        </Panel>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Move to stage" class="flex-[1_1_320px]">
+          <MoveToStage candidateName="Samuel Okonkwo-Hartley" currentStageId="screening" stages={demoStages} variant="outline" size="lg" onmove={() => {}} />
+        </Panel>
+        <Panel title="Confirm dialog" class="flex-[1_1_320px]">
+          <Button variant="outline" onclick={() => (confirmOpen = true)}>Close the job</Button>
+        </Panel>
+        <Panel title="Live indicator" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-1">
+            {#each ['connected', 'reconnecting', 'disconnected'] as const as status (status)}<LiveIndicator {status} />{/each}
+          </div>
         </Panel>
       </div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import { page } from '$app/state';
   import BrandBar from '#lib/components/brand-bar.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -30,6 +31,6 @@
 
 {#snippet back()}
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button href="/" size="lg">Back to jobs</Button>
+    <Button href="/" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button>
   </div>
 {/snippet}

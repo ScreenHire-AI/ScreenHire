@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SaveIcon from '@lucide/svelte/icons/save';
   import type { HttpValidationProblemDetails, JobDetail } from '@screenhire/api-client';
   import { ApiError, createUpdateJob } from '@screenhire/api-client/svelte-query';
   import { UpdateJobBody } from '@screenhire/api-client/zod';
@@ -226,7 +227,7 @@
           <FailureText message={$errors._errors[0]} class="mr-auto" />
         {/if}
         <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
-        <Button type="submit" size="lg" disabled={$submitting}>Save details</Button>
+        <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save details</Button>
       </div>
     {/snippet}
   </Panel>

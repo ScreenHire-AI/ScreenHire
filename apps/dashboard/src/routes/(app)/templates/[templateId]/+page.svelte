@@ -8,10 +8,13 @@
     createPublishHiringTemplateVersion,
     createUpdateHiringTemplateVersion,
   } from '@screenhire/api-client/svelte-query';
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CheckIcon from '@lucide/svelte/icons/check';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import HistoryIcon from '@lucide/svelte/icons/history';
   import PencilIcon from '@lucide/svelte/icons/pencil';
+  import SaveIcon from '@lucide/svelte/icons/save';
+  import SendIcon from '@lucide/svelte/icons/send';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -159,7 +162,7 @@
             <Empty.Header>
               <Empty.Title>This template does not exist, or it belongs to another organization.</Empty.Title>
             </Empty.Header>
-            <Empty.Content><Button href="/templates" variant="outline" size="lg">Back to templates</Button></Empty.Content>
+            <Empty.Content><Button href="/templates" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to templates</Button></Empty.Content>
           </Empty.Root>
         </Panel>
       {:else}
@@ -200,7 +203,7 @@
       {#if detail.isSystem}
         <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy to customise</Button>
       {:else if isDraft}
-        <Button size="lg" onclick={publishDraft} disabled={busy}>Publish version {current.version}</Button>
+        <Button size="lg" onclick={publishDraft} disabled={busy}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
       {:else if draftVersion}
         <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
       {:else}
@@ -247,7 +250,7 @@
                 <DropdownMenu.Content align="end" class="w-56">{@render versionItems()}</DropdownMenu.Content>
               </DropdownMenu.Root>
             {/if}
-            {#if isDraft}<Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}>Save draft</Button>{/if}
+            {#if isDraft}<Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}><SaveIcon aria-hidden="true" />Save draft</Button>{/if}
             {@render primaryAction()}
           {/if}
         {/snippet}

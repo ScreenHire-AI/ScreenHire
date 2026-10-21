@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import SaveIcon from '@lucide/svelte/icons/save';
   import type { WorkflowChangeKind } from '@screenhire/api-client';
   import {
     ApiError,
@@ -12,12 +14,14 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -64,6 +68,9 @@
   let notice = $state('');
   let failure = $state('');
   let reviewing = $state(false);
+  // "Discard mine" waits for its confirmation, which opens once the menu has closed.
+  let discardChosen = false;
+  let confirmDiscard = $state(false);
   let applyFailure = $state('');
 
 
@@ -132,7 +139,7 @@
             <Empty.Header>
               <Empty.Title>This job does not exist, or it belongs to another organization.</Empty.Title>
             </Empty.Header>
-            <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>
+            <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
           </Empty.Root>
         </Panel>
       {:else}
@@ -179,7 +186,19 @@
       <div class={workArea}>
         {#if draft.outdated}
           <Panel title="Someone else saved this workflow" role="alert">
-            {#snippet actions()}<Button variant="outline" onclick={() => draft.discardForNewer()}>Discard mine and load theirs</Button>{/snippet}
+            <!-- Discarding the unsaved draft cannot be undone, so it lives in a menu and confirms (A2). -->
+            {#snippet actions()}
+              <MoreMenu
+                label="More actions"
+                size="icon"
+                onclosed={() => {
+                  if (discardChosen) confirmDiscard = true;
+                  discardChosen = false;
+                }}
+              >
+                <DropdownMenu.Item variant="destructive" onSelect={() => (discardChosen = true)}>Discard mine and load theirs</DropdownMenu.Item>
+              </MoreMenu>
+            {/snippet}
             <p>It is now version {detail.workflowVersion}. Your changes here are not saved, and saving them would be refused.</p>
           </Panel>
         {/if}
@@ -207,7 +226,7 @@
 </main>
 
 {#snippet saveButton()}
-  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}>Save workflow</Button>
+  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save workflow</Button>
 {/snippet}
 
 <Dialog.Root bind:open={reviewing}>
@@ -241,6 +260,26 @@
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep this workflow</Dialog.Close>
       <Button onclick={applyUpdate} disabled={apply.isPending || !update}>Apply update</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root bind:open={confirmDiscard}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Discard your changes and load version {detail?.workflowVersion ?? ''}?</Dialog.Title>
+      <Dialog.Description>Your unsaved changes to this workflow are lost.</Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep my changes</Dialog.Close>
+      <Button
+        variant="destructive"
+        size="lg"
+        onclick={() => {
+          draft.discardForNewer();
+          confirmDiscard = false;
+        }}>Discard and load</Button
+      >
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>

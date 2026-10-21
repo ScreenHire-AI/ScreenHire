@@ -49,7 +49,7 @@ describe('candidate table', () => {
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications, extraColumns } } });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'Stage', 'Source', 'Applied']);
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
   });
 
@@ -63,7 +63,7 @@ describe('candidate table', () => {
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'AI assistance', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'AI assistance', 'Stage', 'Source', 'Applied']);
     expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification recommended, 2 reasons')).toBeInTheDocument();
     expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some indicators, 1 reason')).toBeInTheDocument();
     expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();
