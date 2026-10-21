@@ -37,6 +37,9 @@
   --ring: #4338ca;
   --row-selected: #f3f1fc;
   --scrim: #1c1b19;
+  /* Section 6: the raised layer (the card in hand) and the overlay layer (menus, tooltips, sheets, dialogs). */
+  --elevation-raised: 0 4px 12px rgb(28 27 25 / 0.14);
+  --elevation-overlay: 0 16px 48px rgb(28 27 25 / 0.18);
 
   --sidebar: #fbfaf6;
   --sidebar-foreground: #3a3630;

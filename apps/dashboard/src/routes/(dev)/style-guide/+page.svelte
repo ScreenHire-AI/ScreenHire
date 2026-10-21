@@ -2,6 +2,7 @@
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import CircleXIcon from '@lucide/svelte/icons/circle-x';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
@@ -174,11 +175,11 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
-      <Dialog.Description>The careers page stops taking applications and every board is asked to remove the job.</Dialog.Description>
+      <Dialog.Description>The careers page stops taking applications and every board is asked to remove the job, for good.</Dialog.Description>
     </Dialog.Header>
     <Dialog.Footer>
       <Dialog.Close class={buttonVariants({ variant: 'outline', size: 'lg' })}>Keep it open</Dialog.Close>
-      <Button variant="destructive" size="lg" onclick={() => (confirmOpen = false)}>Close &amp; remove everywhere</Button>
+      <Button variant="destructive" size="lg" onclick={() => (confirmOpen = false)}><CircleXIcon aria-hidden="true" />Close &amp; remove everywhere</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
@@ -220,7 +221,7 @@
                   <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined class="text-muted-foreground" />
                 {/snippet}
                 {#snippet actions()}
-                  <Button size="lg">Move to stage</Button>
+                  <Button variant="outline" size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
                 {/snippet}
                 {#snippet facts()}
                   <Fact label="Job">Senior product designer</Fact>
@@ -584,7 +585,7 @@
         <figure class="flex flex-col gap-2">
           <figcaption class="text-caption text-muted-foreground">A phone's primary action, fixed to the bottom of the screen; shown in place here</figcaption>
           <div class="max-w-95 overflow-hidden rounded-lg bg-secondary pt-6">
-            <ActionBar class="static z-auto"><Button size="lg">Move to stage</Button></ActionBar>
+            <ActionBar class="static z-auto"><Button size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button></ActionBar>
           </div>
         </figure>
       </Panel>

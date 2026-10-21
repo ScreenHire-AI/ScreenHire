@@ -42,7 +42,7 @@ describe('candidate table', () => {
     expect(within(rowOf('Casey Morgan')).getByRole('link', { name: 'Senior .NET Engineer' })).toBeInTheDocument();
   });
 
-  it('puts extra columns, such as the integrity ones, between Stage and Source', () => {
+  it('puts extra columns, such as the integrity ones, right after the candidate', () => {
     const level = createRawSnippet((name: () => string) => ({ render: () => `<span>Level for ${name()}</span>` }));
     const extraColumns = [
       candidateColumns.display({ id: 'authenticity', header: 'Authenticity', cell: ({ row }) => renderSnippet(level, row.original.candidateName) }),

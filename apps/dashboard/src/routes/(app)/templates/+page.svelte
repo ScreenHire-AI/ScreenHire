@@ -125,9 +125,9 @@
             </Empty.Header>
             <Empty.Content>
               {#if list.length === 0}
-                <Button variant="outline" onclick={() => (creating = true)}>New template</Button>
+                <Button variant="outline" size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>
               {:else}
-                <Button variant="outline" onclick={() => (search = '')}>Clear search</Button>
+                <Button variant="outline" size="lg" onclick={() => (search = '')}>Clear search</Button>
               {/if}
             </Empty.Content>
           </Empty.Root>
@@ -241,8 +241,8 @@
         <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={$submitting}>Create template</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+        <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create template</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

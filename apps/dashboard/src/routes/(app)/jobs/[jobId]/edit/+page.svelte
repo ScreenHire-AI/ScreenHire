@@ -63,7 +63,7 @@
             <Empty.Title>This job is closed</Empty.Title>
             <Empty.Description>A closed job is no longer posted, so its details stay as they were.</Empty.Description>
           </Empty.Header>
-          <Empty.Content><Button href={jobHref} variant="outline" size="lg">Back to the job</Button></Empty.Content>
+          <Empty.Content><Button href={jobHref} variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to the job</Button></Empty.Content>
         </Empty.Root>
       </Panel>
     {:else}

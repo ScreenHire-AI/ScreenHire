@@ -1,7 +1,7 @@
 <script lang="ts" module>
   import type { ConnectionStatus } from '@screenhire/realtime';
 
-  // Shape, colour and label together (design-system section 2.2): circle for live, diamond while (re)connecting,
+  // Shape, colour and label together (design-system section 3.2): circle for live, diamond while (re)connecting,
   // square when offline.
   export const liveStatus: Record<ConnectionStatus, { label: string; mark: string; text: string }> = {
     connected: { label: 'Live', mark: 'rounded-full bg-status-clear-mark', text: 'text-status-clear' },

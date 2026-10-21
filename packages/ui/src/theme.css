@@ -50,6 +50,10 @@
   --radius-panel: 0.75rem;
   --radius-step: 0.4375rem;
 
+  /* Section 6: `shadow-raised` and `shadow-overlay`, the only shadows. */
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

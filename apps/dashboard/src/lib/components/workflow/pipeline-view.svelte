@@ -57,7 +57,7 @@
 {/snippet}
 
 {#snippet automationsButton(stageId: string | null, name: string)}
-  <Button variant="outline" onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
+  <Button variant="outline" size="lg" onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
 {/snippet}
 
 <div class="flex flex-wrap items-start gap-5">

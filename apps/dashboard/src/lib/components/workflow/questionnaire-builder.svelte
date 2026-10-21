@@ -103,6 +103,7 @@
                   <div>
                     <Button
                       variant="outline"
+                      size="lg"
                       onclick={() => {
                         const label = `Option ${(question.options?.length ?? 0) + 1}`;
                         question.options = [...(question.options ?? []), { id: idFrom(label, (question.options ?? []).map((o) => o.id), 'option'), label }];
@@ -185,7 +186,7 @@
               {#each questionTypes as type (type)}<option value={type}>{questionTypeLabels[type]}</option>{/each}
             </select>
           </label>
-          <Button variant="outline" onclick={() => setQuestions([...questions, newQuestion(workflow, addType)])}><PlusIcon aria-hidden="true" />Add question</Button>
+          <Button variant="outline" size="lg" onclick={() => setQuestions([...questions, newQuestion(workflow, addType)])}><PlusIcon aria-hidden="true" />Add question</Button>
         </div>
       {/snippet}
     </Panel>

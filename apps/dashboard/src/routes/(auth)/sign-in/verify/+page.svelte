@@ -54,9 +54,7 @@
       </Panel>
     {:else}
       <form onsubmit={signIn} aria-label="Finish signing in">
-        <Panel title="Email link" footer={confirm}>
-          <p>You opened a sign-in link for ScreenHire.</p>
-        </Panel>
+        <Panel title="Email link" footer={confirm} />
       </form>
     {/if}
   </div>

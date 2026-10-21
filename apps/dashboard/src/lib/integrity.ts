@@ -15,7 +15,7 @@ import { invalidatePath } from '#lib/query.js';
 import { applicationsPath, jobsPath } from '#lib/realtime.js';
 
 /**
- * How the dashboard shows one integrity level (docs/architecture/integrity-engine.md, design-system section 2.2):
+ * How the dashboard shows one integrity level (docs/architecture/integrity-engine.md, design-system section 3.2):
  * always a shape mark, a colour and words. Levels are categories, never scores (ADR-0004); `rank` only orders them.
  */
 export interface LevelView {

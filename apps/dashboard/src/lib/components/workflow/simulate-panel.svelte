@@ -171,7 +171,7 @@
         </label>
       </fieldset>
 
-      <div><Button type="submit" variant="outline" disabled={simulate.isPending}>Run test</Button></div>
+      <div><Button type="submit" variant="outline" size="lg" disabled={simulate.isPending}>Run test</Button></div>
     </form>
   </Panel>
 

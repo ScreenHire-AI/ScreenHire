@@ -1,11 +1,11 @@
 import type { BoardSummary, JobPostingStatus, JobStatus } from '@screenhire/api-client';
 import { eta, timeUntil } from '#lib/dates.js';
 
-/** A status mark's shape (design-system section 2.2): circle done, diamond waiting, square needs a person, ring none. */
+/** A status mark's shape (design-system section 3.2): circle done, diamond waiting, square needs a person, ring none. */
 export type MarkShape = 'circle' | 'diamond' | 'square' | 'ring';
 /**
  * Status tones, plus `primary` for marks that are not a status, such as the "New today" view, and `ai` for AI
- * assistance, which is information rather than a status (design-system section 2.2).
+ * assistance, which is information rather than a status (design-system section 3.2).
  */
 export type MarkTone = 'clear' | 'review' | 'verify' | 'neutral' | 'primary' | 'ai';
 

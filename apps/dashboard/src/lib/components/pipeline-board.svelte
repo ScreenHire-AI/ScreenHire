@@ -91,7 +91,14 @@
         <ul
           aria-label={`${column.stage.name} stage`}
           class="flex min-h-24 flex-1 flex-col gap-2 px-2 pb-2"
-          use:dndzone={{ items: column.cards, type: 'pipeline', flipDurationMs: 150, dropTargetClasses: ['outline-2', 'outline-ring/50'] }}
+          use:dndzone={{
+            items: column.cards,
+            type: 'pipeline',
+            flipDurationMs: 150,
+            dropTargetClasses: ['outline-2', 'outline-ring/50'],
+            // The card in hand is the raised layer (design system section 6).
+            transformDraggedElement: (element) => element?.classList.add('shadow-raised'),
+          }}
           onconsider={(event) => onconsider(column.stage.id, event)}
           onfinalize={(event) => onfinalize(column.stage, event)}
         >

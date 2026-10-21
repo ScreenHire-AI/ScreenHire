@@ -89,7 +89,7 @@
       {:else}
         <p class="text-muted-foreground">No automations here yet.</p>
       {/each}
-      <div><Button variant="outline" onclick={addAutomation}>Add automation</Button></div>
+      <div><Button variant="outline" size="lg" onclick={addAutomation}>Add automation</Button></div>
     </div>
   </Sheet.Content>
 </Sheet.Root>

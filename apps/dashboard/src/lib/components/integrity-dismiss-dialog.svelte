@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
   import { dismissIntegrityAssessment, DismissReason } from '@screenhire/api-client';
   import { DismissIntegrityAssessmentBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
@@ -75,9 +76,7 @@
     <Dialog.Header>
       <Dialog.Title>Dismiss this {name} assessment?</Dialog.Title>
       <Dialog.Description>
-        The level and its evidence stay on record. Your reason and your name go in the review log{assessment?.kind === 'authenticity'
-          ? ', and the candidate leaves the "Needs review" queue.'
-          : '.'}
+        The evidence stays on record and your reason goes in the review log{assessment?.kind === 'authenticity' ? '; the candidate leaves "Needs review".' : '.'}
       </Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
@@ -109,8 +108,8 @@
         <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={$submitting}>Dismiss with this reason</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+        <Button type="submit" size="lg" disabled={$submitting}><CircleSlashIcon aria-hidden="true" />Dismiss with this reason</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

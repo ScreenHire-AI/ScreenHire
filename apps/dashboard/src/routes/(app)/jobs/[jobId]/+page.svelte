@@ -183,6 +183,14 @@
     <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
       {#if applications.isSuccess && all.length > 0}
         <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
+      {:else if applications.isPending}
+        <!-- The overview's shape while the applications load, so the panels below do not jump (E1). -->
+        <Panel title="Authenticity" aria-hidden="true">
+          <div class="flex flex-col gap-3">
+            <div class="flex gap-2"><Skeleton class="h-9 w-32" /><Skeleton class="h-9 w-40" /><Skeleton class="h-9 w-48" /></div>
+            <Skeleton class="h-2 w-full rounded-full" />
+          </div>
+        </Panel>
       {/if}
 
       <div class="flex flex-wrap items-start gap-5">
@@ -260,11 +268,12 @@
     </SummaryList>
     {#snippet footer()}
       <div class="flex flex-wrap gap-2">
-        <Button href={`/applications/${application.id}`} variant="outline">Open application</Button>
+        <Button href={`/applications/${application.id}`} variant="outline" size="lg">Open application</Button>
         <MoveToStage
           candidateName={application.candidateName}
           currentStageId={application.stage.id}
           {stages}
+          size="lg"
           disabled={moves.pending}
           onmove={(stage) => moves.move(application, stage)}
         />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CircleXIcon from '@lucide/svelte/icons/circle-x';
   import { createCloseJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -36,14 +37,12 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
-      <Dialog.Description>
-        The careers page stops taking applications and every board is asked to remove the job. This cannot be undone.
-      </Dialog.Description>
+      <Dialog.Description>The careers page stops taking applications and every board is asked to remove the job, for good.</Dialog.Description>
     </Dialog.Header>
     <FailureText message={failure} />
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep it open</Dialog.Close>
-      <Button variant="destructive" size="lg" disabled={close.isPending} onclick={confirm}>Close &amp; remove everywhere</Button>
+      <Button variant="destructive" size="lg" disabled={close.isPending} onclick={confirm}><CircleXIcon aria-hidden="true" />Close &amp; remove everywhere</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>

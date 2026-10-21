@@ -31,7 +31,7 @@
       <Badge variant={attention.tone}><StatusMark shape={attention.shape} tone={attention.tone} />{attention.label}</Badge>
     {:else}
       <!-- A full navigation, not the client router: the API redirects to a short-lived link that downloads the file. -->
-      <Button variant="outline" href={getDownloadApplicationFileUrl(applicationId, file.id)} data-sveltekit-reload aria-label={`Download ${file.fileName}`} class="pointer-coarse:h-11">
+      <Button variant="outline" size="lg" href={getDownloadApplicationFileUrl(applicationId, file.id)} data-sveltekit-reload aria-label={`Download ${file.fileName}`} class="pointer-coarse:h-11">
         <DownloadIcon aria-hidden="true" />Download
       </Button>
     {/if}

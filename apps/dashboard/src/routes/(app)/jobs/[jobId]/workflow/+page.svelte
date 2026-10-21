@@ -1,5 +1,7 @@
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+  import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
   import SaveIcon from '@lucide/svelte/icons/save';
   import type { WorkflowChangeKind } from '@screenhire/api-client';
   import {
@@ -233,10 +235,7 @@
   <Dialog.Content class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
     <Dialog.Header>
       <Dialog.Title>Apply version {update?.latestVersion ?? ''} of {detail?.template?.templateName ?? 'the template'}?</Dialog.Title>
-      <Dialog.Description>
-        Applying replaces this job's workflow with the template's, including any changes made to this job alone. These
-        are all the differences. Candidates already here stay where they are.
-      </Dialog.Description>
+      <Dialog.Description>This replaces the job's workflow with the template's, including changes made to this job alone.</Dialog.Description>
     </Dialog.Header>
     {#if diff.isPending}
       <Skeleton class="h-24 w-full" />
@@ -258,8 +257,8 @@
     {#if draft.dirty}<p class="text-body font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
     <FailureText message={applyFailure} />
     <Dialog.Footer>
-      <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep this workflow</Dialog.Close>
-      <Button onclick={applyUpdate} disabled={apply.isPending || !update}>Apply update</Button>
+      <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep this workflow</Dialog.Close>
+      <Button size="lg" onclick={applyUpdate} disabled={apply.isPending || !update}><RefreshCwIcon aria-hidden="true" />Apply update</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
@@ -278,7 +277,7 @@
         onclick={() => {
           draft.discardForNewer();
           confirmDiscard = false;
-        }}>Discard and load</Button
+        }}><RotateCcwIcon aria-hidden="true" />Discard and load</Button
       >
     </Dialog.Footer>
   </Dialog.Content>

@@ -195,7 +195,7 @@
   {:else if searched.length === 0}
     <Empty.Root class="gap-3 p-6">
       <Empty.Description>{search.trim() ? 'No candidates match this search.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
-      {#if search.trim()}<Button variant="outline" onclick={clearFilters}>Clear filters</Button>{/if}
+      {#if search.trim()}<Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>{/if}
     </Empty.Root>
   {:else}
     <PipelineBoard applications={searched} {stages} {moves} />

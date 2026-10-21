@@ -17,5 +17,5 @@
 >
   <StatusMark shape="square" tone="verify" />
   <p class="flex-1 text-status-verify">{message}</p>
-  <Button variant="outline" size="sm" onclick={() => onretry()}>Try again</Button>
+  <Button variant="outline" size="lg" onclick={() => onretry()}>Try again</Button>
 </div>

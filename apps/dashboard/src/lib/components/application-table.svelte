@@ -43,7 +43,7 @@
     /** With `moves`: the job's stages, for each row's "Move" menu. */
     stages?: readonly WorkflowStage[];
     moves?: Moves;
-    /** Columns between Stage and Source: the slot the integrity columns fill (#lib/candidate-table.ts). */
+    /** Columns right after Candidate (status first, T2): the slot the integrity columns fill (#lib/candidate-table.ts). */
     extraColumns?: readonly CandidateColumn[];
     /** The keyboard cursor's row (J / K), tinted; the job page shows it in its side panel. */
     activeId?: string | null;
@@ -278,7 +278,7 @@
   <Empty.Root class="gap-3 p-6">
     <Empty.Description>{emptyText}</Empty.Description>
     {#if onclearfilters}
-      <Button variant="outline" onclick={onclearfilters}>Clear filters</Button>
+      <Button variant="outline" size="lg" onclick={onclearfilters}>Clear filters</Button>
     {/if}
   </Empty.Root>
 {/snippet}
