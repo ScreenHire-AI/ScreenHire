@@ -23,6 +23,8 @@ one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Pl
 careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their levels and
 evidence, a move sends the stage-change email, and closing takes the job down everywhere. Nothing is hosted yet.
 
+What comes next, in order, is the [roadmap](roadmap.md).
+
 ### Built
 
 | Area | What works | PRs |
