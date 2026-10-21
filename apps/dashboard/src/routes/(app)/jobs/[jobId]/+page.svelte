@@ -11,12 +11,13 @@
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatDateTime, timeAgo } from '#lib/dates.js';
+  import { timeAgo } from '#lib/dates.js';
   import { employmentLabel, formatSalary, initials, sourceLabel } from '#lib/format.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import { bulkMoveStages, chipOf, isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
@@ -277,7 +278,7 @@
       <div class="flex min-w-0 flex-col">
         <h2 class="font-display text-panel-title">{application.candidateName}</h2>
         <span class="text-body text-muted-foreground">
-          Applied <time datetime={application.submittedAt} title={formatDateTime(application.submittedAt)}>{timeAgo(application.submittedAt, Date.now())}</time> via {sourceLabel(application.source)}
+          Applied <RelativeTime at={application.submittedAt} /> via {sourceLabel(application.source)}
         </span>
       </div>
     </div>
@@ -285,7 +286,7 @@
       <dt class="text-caption text-muted-foreground">Stage</dt>
       <dd>{application.stage.name}</dd>
       <dt class="text-caption text-muted-foreground">Entered stage</dt>
-      <dd><time datetime={application.stageEnteredAt} title={formatDateTime(application.stageEnteredAt)}>{timeAgo(application.stageEnteredAt, Date.now())}</time></dd>
+      <dd><RelativeTime at={application.stageEnteredAt} /></dd>
       {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assist' }] as const as row (row.kind)}
         {@const chip = chipOf(application.integrity, row.kind)}
         <dt class="text-caption text-muted-foreground">{row.label}</dt>

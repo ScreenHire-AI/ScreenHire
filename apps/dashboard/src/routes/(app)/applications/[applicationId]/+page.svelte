@@ -5,10 +5,10 @@
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatDateTime, timeAgo } from '#lib/dates.js';
   import { canDownload, withheldReason } from '#lib/files.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
@@ -97,7 +97,7 @@
   {:else}
     <section aria-label="Candidate" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span aria-hidden="true" class="grid size-12 place-items-center rounded-full bg-secondary text-heading font-bold text-secondary-foreground"
+        <span aria-hidden="true" class="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-heading font-bold text-secondary-foreground"
           >{initials(detail.candidate.fullName)}</span
         >
         <div class="flex min-w-0 flex-col gap-1">
@@ -106,7 +106,7 @@
             <li><a href={`mailto:${detail.candidate.email}`}>{detail.candidate.email}</a></li>
             {#if detail.candidate.phone}<li>{detail.candidate.phone}</li>{/if}
             <li>{detail.stage.name} stage</li>
-            <li>Applied <time datetime={detail.submittedAt} title={formatDateTime(detail.submittedAt)}>{timeAgo(detail.submittedAt, Date.now())}</time> via {sourceLabel(detail.source)}</li>
+            <li>Applied <RelativeTime at={detail.submittedAt} /> via {sourceLabel(detail.source)}</li>
           </ul>
         </div>
       </div>
@@ -189,7 +189,7 @@
                 <li class="flex flex-col gap-0.5">
                   <span class="font-semibold">{describeEvent(entry)} <span class="font-normal text-muted-foreground">{actor(entry)}</span></span>
                   {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
-                  <time datetime={entry.occurredAt} title={formatDateTime(entry.occurredAt)} class="text-caption text-muted-foreground">{timeAgo(entry.occurredAt, Date.now())}</time>
+                  <RelativeTime at={entry.occurredAt} class="text-caption text-muted-foreground" />
                 </li>
               {/each}
             </ol>
