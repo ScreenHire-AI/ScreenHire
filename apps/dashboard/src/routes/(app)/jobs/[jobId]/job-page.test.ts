@@ -177,4 +177,13 @@ describe('job page', () => {
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
     expect(within(band).queryByRole('link', { name: 'Edit details' })).not.toBeInTheDocument();
   });
+
+  it("puts a draft's publish in the action bar on a phone", async () => {
+    stubViewport(360);
+    stub({ ...job, status: 'Draft', publishedAt: null, postings: [] });
+
+    const publish = await screen.findByRole('button', { name: 'Publish to 2 boards' });
+    expect(publish.closest('[data-slot=action-bar]')).not.toBeNull();
+    expect(publish.closest('[data-slot=header-band]')).toBeNull();
+  });
 });

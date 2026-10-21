@@ -18,6 +18,26 @@ export const formatDate = (iso: string) => date.format(new Date(iso));
 /** The exact date and time, for the `title` of a `<time>`: `Oct 20, 2026, 2:30 PM`. */
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
 
+/**
+ * Time until an instant, in its largest whole unit and the browser's locale: `20s`, `5m`, `4h`, `1d` narrow, or
+ * `20 seconds`, `1 day` long.
+ */
+export function timeUntil(iso: string, now: number, unitDisplay: 'narrow' | 'long' = 'narrow'): string {
+  const remaining = Date.parse(iso) - now;
+  const [unit, amount] =
+    remaining < minute
+      ? (['second', Math.max(1, Math.ceil(remaining / 1000))] as const)
+      : remaining < hour
+        ? (['minute', Math.round(remaining / minute)] as const)
+        : remaining < day
+          ? (['hour', Math.round(remaining / hour)] as const)
+          : (['day', Math.round(remaining / day)] as const);
+  return new Intl.NumberFormat(locales, { style: 'unit', unit, unitDisplay }).format(amount);
+}
+
+/** A board's estimate, for a fact pill: `~20s`, `~1d`. */
+export const eta = (iso: string, now: number) => `~${timeUntil(iso, now)}`;
+
 /** Time ago in text: `now`, `5 minutes ago`, `yesterday`; the date once it is more than a week old. */
 export function timeAgo(iso: string, now: number): string {
   const elapsed = Math.max(0, now - Date.parse(iso));

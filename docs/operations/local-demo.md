@@ -73,7 +73,8 @@ single ports with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashb
 
 ## Demo logins
 
-Sign in at http://localhost:4323 with **Continue with Dev SSO**, then pick a user. No password anywhere.
+Sign in at http://localhost:4323 with **Continue with Dev SSO** in the sign-in page's Single sign-on panel, then pick
+a user. No password anywhere.
 
 | Dev SSO user | Signs in as |
 |---|---|
@@ -82,7 +83,8 @@ Sign in at http://localhost:4323 with **Continue with Dev SSO**, then pick a use
 | Any email address you type | A new user each time you use a new address: the way to show onboarding again |
 | Unverified address | Refused: the provider did not vouch for the address |
 
-**Email me a sign-in link** works too: the link arrives in Mailpit.
+The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
+one more click (**Sign in**) so a mail scanner cannot use it up.
 
 ## What the demo data is
 
@@ -136,8 +138,8 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, and the Status filter
    counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification recommended".
-2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The overview bar sorts the seven applicants by
-   authenticity level, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
+2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The Authenticity panel counts the seven applicants
+   by level, each level's toggle filters the table to it, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
    percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, timeAgo } from './dates.js';
+import { eta, formatDate, formatDateTime, timeAgo, timeUntil } from './dates.js';
 
 // jsdom's browser languages are US English, and vitest.config.ts pins the timezone to UTC.
 const now = Date.parse('2026-10-20T12:00:00Z');
@@ -27,5 +27,23 @@ describe('formatDate and formatDateTime', () => {
   it('show the medium date, with the time for the hover title', () => {
     expect(formatDate('2026-10-20T14:30:00Z')).toBe('Oct 20, 2026');
     expect(formatDateTime('2026-10-20T14:30:00Z')).toMatch(/^Oct 20, 2026,? (at )?2:30\sPM$/);
+  });
+});
+
+describe('eta', () => {
+  it.each([
+    [4_000, '~4s'],
+    [5 * 60_000, '~5m'],
+    [4 * 3_600_000, '~4h'],
+    [86_400_000 + 300_000, '~1d'],
+  ])('%i ms from now is %s', (remaining, expected) => {
+    expect(eta(new Date(now + remaining).toISOString(), now)).toBe(expected);
+  });
+});
+
+describe('timeUntil', () => {
+  it('says the time in words for a sentence, in the browser locale', () => {
+    expect(timeUntil(new Date(now + 86_400_000).toISOString(), now, 'long')).toBe('1 day');
+    expect(timeUntil(new Date(now + 20_000).toISOString(), now, 'long')).toBe('20 seconds');
   });
 });

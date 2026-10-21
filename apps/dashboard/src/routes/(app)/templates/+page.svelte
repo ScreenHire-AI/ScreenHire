@@ -8,12 +8,15 @@
   import { z } from 'zod';
   import FileStackIcon from '@lucide/svelte/icons/file-stack';
   import PlusIcon from '@lucide/svelte/icons/plus';
-  import SearchIcon from '@lucide/svelte/icons/search';
   import { goto } from '$app/navigation';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import DateText from '#lib/components/date-text.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -22,11 +25,11 @@
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { formatDate } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { templatesPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
@@ -35,6 +38,8 @@
   // own, on the list template. A new template starts blank or as a copy of a published version, to customise.
   const queryClient = useQueryClient();
   const templates = createListHiringTemplates();
+  // The sidebar's own phone test (under md), where the primary action moves to the action bar.
+  const sidebar = Sidebar.useSidebar();
   const create = createCreateHiringTemplate(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, templatesPath) } }));
 
   const list = $derived(templates.data?.data ?? []);
@@ -89,27 +94,34 @@
 
 <TopBar crumbs={[{ label: 'Templates' }]} />
 
-<main>
-  <HeaderBand title="Templates" wide>
-    {#snippet status()}{#if templates.isSuccess}<Badge variant="count">{list.length}</Badge>{/if}{/snippet}
-    {#snippet actions()}<Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>{/snippet}
-  </HeaderBand>
+<main class={[sidebar.isMobile && 'pb-28']}>
+  <!-- The page's primary action; a phone has it in the action bar (section 8). -->
+  <HeaderBand
+    title="Templates"
+    count={templates.isSuccess ? list.length : undefined}
+    countLabel={list.length === 1 ? 'template' : 'templates'}
+    actions={sidebar.isMobile ? undefined : newTemplate}
+    wide
+  />
 
   <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6 2xl:max-w-page-wide">
     {#if templates.isError}
-      <QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} />
+      <Panel title="All templates"><QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} inset /></Panel>
     {:else}
       <Panel title="All templates" flush>
-        {#snippet actions()}
-          <label class="relative flex items-center">
-            <span class="sr-only">Search templates</span>
-            <SearchIcon aria-hidden="true" class="pointer-events-none absolute left-2.5 text-muted-foreground" />
-            <Input type="search" bind:value={search} class="w-40 pl-8" />
-          </label>
+        {#snippet tools()}
+          <SearchField bind:value={search} label="Search templates" class="ml-auto flex-[0_1_15rem]" />
         {/snippet}
         {#if templates.isPending}
-          <div aria-hidden="true" class="flex flex-col gap-3 px-4.5 py-4">
-            {#each [0, 1, 2] as row (row)}<Skeleton class="h-6 w-full" />{/each}
+          <!-- Rows of the table's shape: a name, a description and a date (E1). -->
+          <div aria-hidden="true" class="flex flex-col">
+            {#each [0, 1, 2] as row (row)}
+              <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
+                <Skeleton class="h-4 w-40" />
+                <Skeleton class="h-4 min-w-0 flex-1" />
+                <Skeleton class="h-4 w-24" />
+              </div>
+            {/each}
           </div>
           <p class="sr-only" role="status">Loading templates…</p>
         {:else if shown.length === 0}
@@ -120,9 +132,9 @@
             </Empty.Header>
             <Empty.Content>
               {#if list.length === 0}
-                <Button variant="outline" onclick={() => (creating = true)}>New template</Button>
+                <Button variant="outline" size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>
               {:else}
-                <Button variant="outline" onclick={() => (search = '')}>Clear search</Button>
+                <Button variant="outline" size="lg" onclick={() => (search = '')}>Clear search</Button>
               {/if}
             </Empty.Content>
           </Empty.Root>
@@ -131,7 +143,7 @@
           <ul class="md:hidden">
             {#each shown as template (template.id)}
               <ListItem href={`/templates/${template.id}`} title={template.name}>
-                {#snippet meta()}{formatDate(template.updatedAt ?? template.createdAt)}{/snippet}
+                {#snippet meta()}<DateText at={template.updatedAt ?? template.createdAt} />{/snippet}
                 {#snippet facts()}
                   {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
                   <Badge variant="muted" class="tabular-nums">{template.latestPublishedVersion ? `Version ${template.latestPublishedVersion}` : 'Not published'}</Badge>
@@ -155,22 +167,27 @@
                 {#each shown as template (template.id)}
                   <!-- The whole row is the link (design system section 9): the name's link covers it. -->
                   <Table.Row class="relative h-12">
-                    <Table.Cell class="px-4.5">
-                      <span class="flex items-center gap-2">
-                        <a href={`/templates/${template.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
-                          >{template.name}</a
-                        >
-                        {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
+                    <!-- A long name is cut, whole in its tooltip (F5). -->
+                    <Table.Cell class="max-w-72 px-4.5">
+                      <span class="flex min-w-0 items-center gap-2">
+                        <TruncatedText
+                          text={template.name}
+                          href={`/templates/${template.id}`}
+                          class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                        />
+                        {#if template.isSystem}<Badge variant="muted" class="shrink-0">ScreenHire</Badge>{/if}
                       </span>
                     </Table.Cell>
-                    <Table.Cell class="text-muted-foreground">
+                    <!-- The description takes the room the other columns leave and truncates, so the table fits from md
+                         up rather than scrolling sideways (F1). -->
+                    <Table.Cell class="w-full max-w-0 text-muted-foreground">
                       {#if template.description}<span class="relative z-10 block max-w-md"><TruncatedText text={template.description} /></span>{/if}
                     </Table.Cell>
                     <Table.Cell class="tabular-nums">
                       {#if template.latestPublishedVersion}Version {template.latestPublishedVersion}{:else}<span class="text-muted-foreground">Not yet</span>{/if}
                     </Table.Cell>
                     <Table.Cell class="text-muted-foreground tabular-nums">{template.draftVersion ? `Version ${template.draftVersion}` : ''}</Table.Cell>
-                    <Table.Cell class="pr-4.5 text-right text-muted-foreground tabular-nums">{formatDate(template.updatedAt ?? template.createdAt)}</Table.Cell>
+                    <Table.Cell class="pr-4.5 text-right text-muted-foreground"><span class="relative"><DateText at={template.updatedAt ?? template.createdAt} /></span></Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>
@@ -180,7 +197,15 @@
       </Panel>
     {/if}
   </div>
+
+  {#if sidebar.isMobile}
+    <ActionBar>{@render newTemplate()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet newTemplate()}
+  <Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>
+{/snippet}
 
 <Dialog.Root bind:open={creating}>
   <Dialog.Content class="sm:max-w-md">
@@ -220,11 +245,11 @@
         <Field.Error id="new-template-source-error" errors={$errors.copyFromVersionId?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
+        <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={$submitting}>Create template</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+        <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create template</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

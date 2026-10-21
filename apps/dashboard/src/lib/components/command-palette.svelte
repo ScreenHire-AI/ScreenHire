@@ -1,8 +1,11 @@
 <script lang="ts">
   import { createListApplications, createListJobs } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Command from '#lib/components/ui/command/index.js';
+  import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
+  import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
   import { getShell, sections } from '#lib/shell.js';
@@ -34,7 +37,9 @@
       {#each sections as section (section.href)}
         <Command.Item value={`Go to ${section.label}`} onSelect={() => run(() => goto(section.href))}>
           {section.label}
-          <Command.Shortcut>G {section.key.toUpperCase()}</Command.Shortcut>
+          {#if preferences.shortcutsEnabled}
+            <Command.Shortcut><KbdGroup><Kbd>G</Kbd><Kbd>{section.key.toUpperCase()}</Kbd></KbdGroup></Command.Shortcut>
+          {/if}
         </Command.Item>
       {/each}
     </Command.Group>
@@ -43,7 +48,7 @@
         {#each jobs.data.data as job (job.id)}
           <Command.Item value={`Job ${job.title} ${job.id}`} onSelect={() => run(() => goto(`/jobs/${job.id}`))}>
             {job.title}
-            <span class="ml-auto text-caption text-muted-foreground">{job.status}</span>
+            <span class="ml-auto"><StatusBadge {...jobStatus[job.status]} quiet /></span>
           </Command.Item>
         {/each}
       </Command.Group>
@@ -57,7 +62,8 @@
           >
             {application.candidateName}
             <span class="ml-auto flex min-w-0 items-center gap-2">
-              <span class="truncate text-caption text-muted-foreground">{application.jobTitle}</span>
+              <!-- An option cannot hold a tooltip, so a long title wraps rather than being cut (F5). -->
+              <span class="min-w-0 text-right text-caption break-words text-muted-foreground">{application.jobTitle}</span>
               <Badge variant="muted">{application.stage.name}</Badge>
             </span>
           </Command.Item>
@@ -70,7 +76,7 @@
       </Command.Item>
       <Command.Item value="Show keyboard shortcuts" onSelect={() => run(() => shell.openShortcuts())}>
         Show keyboard shortcuts
-        {#if preferences.shortcutsEnabled}<Command.Shortcut>?</Command.Shortcut>{/if}
+        {#if preferences.shortcutsEnabled}<Command.Shortcut><Kbd>?</Kbd></Command.Shortcut>{/if}
       </Command.Item>
       <Command.Item
         value="Single-key shortcuts"

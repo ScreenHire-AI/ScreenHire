@@ -26,9 +26,9 @@ describe('candidate table', () => {
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied']);
     expect(dataRows().map((row) => within(row).getAllByRole('cell').slice(1).map((cell) => cell.textContent?.trim()))).toEqual([
-      ['CM Casey Morgan', 'Applied', 'careers', 'Oct 20, 2026'],
-      ['JL Jordan Lee', 'Screening', 'recruiter', 'Oct 19, 2026'],
-      ['ST Sam Taylor', 'Applied', 'careers', 'Oct 17, 2026'],
+      ['CM Casey Morgan', 'Applied', 'Careers page', 'Oct 20, 2026'],
+      ['JL Jordan Lee', 'Screening', 'Recruiter', 'Oct 19, 2026'],
+      ['ST Sam Taylor', 'Applied', 'Careers page', 'Oct 17, 2026'],
     ]);
     expect(dataRows().every((row) => row.classList.contains('h-12'))).toBe(true);
     expect(within(rowOf('Jordan Lee')).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
@@ -42,14 +42,14 @@ describe('candidate table', () => {
     expect(within(rowOf('Casey Morgan')).getByRole('link', { name: 'Senior .NET Engineer' })).toBeInTheDocument();
   });
 
-  it('puts extra columns, such as the integrity ones, between Stage and Source', () => {
+  it('puts extra columns, such as the integrity ones, right after the candidate', () => {
     const level = createRawSnippet((name: () => string) => ({ render: () => `<span>Level for ${name()}</span>` }));
     const extraColumns = [
       candidateColumns.display({ id: 'authenticity', header: 'Authenticity', cell: ({ row }) => renderSnippet(level, row.original.candidateName) }),
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications, extraColumns } } });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'Stage', 'Source', 'Applied']);
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
   });
 
@@ -63,7 +63,7 @@ describe('candidate table', () => {
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'AI assistance', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'AI assistance', 'Stage', 'Source', 'Applied']);
     expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification recommended, 2 reasons')).toBeInTheDocument();
     expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some indicators, 1 reason')).toBeInTheDocument();
     expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();

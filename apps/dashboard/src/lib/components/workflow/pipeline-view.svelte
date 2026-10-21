@@ -56,8 +56,9 @@
   {/if}
 {/snippet}
 
-{#snippet automationsButton(stageId: string | null, name: string)}
-  <Button variant="outline" onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
+<!-- 36px in a stage's row, 32px in a panel header (section 5). -->
+{#snippet automationsButton(stageId: string | null, name: string, size: 'default' | 'lg')}
+  <Button variant="outline" {size} onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
 {/snippet}
 
 <div class="flex flex-wrap items-start gap-5">
@@ -93,7 +94,7 @@
                   onchange={(event) => (stage.slaDays = event.currentTarget.value ? Number(event.currentTarget.value) : null)}
                 />
               </label>
-              <div class="flex shrink-0 gap-0.5">
+              <div class="flex shrink-0 justify-end gap-0.5">
                 <!-- The first stage cannot move earlier nor the last later: the button is left out, its place kept (A3). -->
                 {#if index > 0}
                   <IconButton label={`Move ${stage.name} earlier`} onclick={() => (workflow.stages = moveItem(workflow.stages, index, -1))}><ArrowUpIcon /></IconButton>
@@ -106,15 +107,15 @@
             </div>
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
             {@render summaries(stage.id)}
-            <div>{@render automationsButton(stage.id, stage.name)}</div>
+            <div>{@render automationsButton(stage.id, stage.name, 'lg')}</div>
           </div>
         </li>
       {/each}
     </ol>
   </Panel>
 
-  <Panel title="Whole workflow" count={inLane(null).length} class="max-w-95 flex-[1_1_320px]">
-    {#snippet actions()}{@render automationsButton(null, 'the whole workflow')}{/snippet}
+  <Panel title="Whole workflow" count={inLane(null).length} class="flex-[1_1_320px]">
+    {#snippet actions()}{@render automationsButton(null, 'the whole workflow', 'default')}{/snippet}
     <div class="flex flex-col gap-2">
       {@render summaries(null)}
       {#if inLane(null).length === 0}<p class="text-muted-foreground">None yet.</p>{/if}

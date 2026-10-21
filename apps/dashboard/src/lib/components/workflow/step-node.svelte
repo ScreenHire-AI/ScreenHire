@@ -19,7 +19,8 @@
     'flex w-[200px] flex-col gap-0.5 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
     data.kind === 'stage' ? 'border-foreground/40' : 'border-border',
     data.invalid ? 'border-status-verify-mark' : '',
-    data.disabled ? 'opacity-60' : '',
+    // An automation that is off keeps full-contrast text (X1): a dashed edge and ", off" in its label say so.
+    data.disabled ? 'border-dashed' : '',
   ]}
 >
   <span class="text-caption text-muted-foreground">{kindLabel[data.kind]}{data.disabled ? ', off' : ''}</span>

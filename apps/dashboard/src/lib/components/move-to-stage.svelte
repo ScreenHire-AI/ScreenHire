@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import type { WorkflowStage } from '@screenhire/api-client';
   import { buttonVariants, type ButtonSize, type ButtonVariant } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -40,7 +41,7 @@
     aria-label={compact ? `Move ${candidateName} to another stage` : `Move to stage, ${candidateName}`}
     class={cn(buttonVariants({ variant, size: compact ? 'xs' : (size ?? 'sm') }), className)}
   >
-    {compact ? 'Move' : 'Move to stage'}
+    <ArrowRightIcon aria-hidden="true" />{compact ? 'Move' : 'Move to stage'}
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="w-52">
     <DropdownMenu.Label class="text-caption text-muted-foreground">Move to</DropdownMenu.Label>

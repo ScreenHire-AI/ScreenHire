@@ -91,7 +91,14 @@
         <ul
           aria-label={`${column.stage.name} stage`}
           class="flex min-h-24 flex-1 flex-col gap-2 px-2 pb-2"
-          use:dndzone={{ items: column.cards, type: 'pipeline', flipDurationMs: 150, dropTargetClasses: ['outline-2', 'outline-ring/50'] }}
+          use:dndzone={{
+            items: column.cards,
+            type: 'pipeline',
+            flipDurationMs: 150,
+            dropTargetClasses: ['outline-2', 'outline-ring/50'],
+            // The card in hand is the raised layer (design system section 6).
+            transformDraggedElement: (element) => element?.classList.add('shadow-raised'),
+          }}
           onconsider={(event) => onconsider(column.stage.id, event)}
           onfinalize={(event) => onfinalize(column.stage, event)}
         >
@@ -102,7 +109,7 @@
             <li
               data-card-id={card.id}
               aria-label={`${card.candidateName}, ${column.stage.name}`}
-              class="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 outline-offset-2"
+              class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 outline-offset-2"
               onkeydown={(event) => onkeydown(card, event)}
             >
               <span class="flex min-w-0 items-center gap-2">
@@ -131,9 +138,10 @@
                   <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
                 {/if}
               </span>
-              <span class="flex items-center gap-2">
+              <!-- Wraps by content in a narrow column (F2); Move keeps to the right edge. -->
+              <span class="flex flex-wrap items-center gap-2">
                 <Badge variant="muted">{sourceLabel(card.source)}</Badge>
-                <span class="min-w-0 truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
+                <span class="shrink-0 text-caption whitespace-nowrap text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
                 <span class="ml-auto shrink-0">
                   <MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
                 </span>

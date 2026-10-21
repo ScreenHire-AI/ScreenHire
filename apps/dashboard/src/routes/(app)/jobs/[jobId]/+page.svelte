@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import SendIcon from '@lucide/svelte/icons/send';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
@@ -7,6 +8,7 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import DistributionPanel from '#lib/components/distribution-panel.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -54,6 +56,7 @@
   const stages = $derived(detail?.workflow.stages ?? []);
   const all = $derived(applications.data?.data ?? []);
   const boardCount = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings).length : 0);
+  const publishable = $derived(detail?.status === 'Draft' && boardCount > 0);
 
   // Set from the overview's legend or the pipeline's filter menu, through the pipeline's setIntegrityFilter.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
@@ -89,7 +92,7 @@
   back
 />
 
-<main class="flex flex-col">
+<main class={['flex flex-col', sidebar.isMobile && publishable && 'pb-28']}>
   <!-- A failed refetch keeps the job on screen; the error replaces it only when there is nothing to show. -->
   {#if job.isError && !detail}
     <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
@@ -100,7 +103,7 @@
             <Empty.Header>
               <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
             </Empty.Header>
-            <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>
+            <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
           </Empty.Root>
         {:else}
           <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset />
@@ -117,21 +120,15 @@
     </div>
     <div aria-hidden="true" class="mx-auto flex w-full max-w-page flex-wrap items-start gap-5 px-4 py-6 md:px-6">
       <Skeleton class="h-80 min-w-0 flex-[999_1_520px] rounded-panel" />
-      <Skeleton class="h-48 min-w-0 max-w-95 flex-[1_1_320px] rounded-panel" />
+      <Skeleton class="h-48 min-w-0 flex-[1_1_320px] rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}
     <HeaderBand title={detail.title}>
       {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
       {#snippet actions()}
-        {#if detail.status === 'Draft' && boardCount > 0}
-          <!-- The one primary action; on a phone it sits in a bar at the bottom of the screen (section 8). -->
-          <div class="max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-20 max-md:border-t max-md:border-border max-md:bg-card max-md:px-4 max-md:py-3">
-            <Button size="lg" class="max-md:w-full" disabled={publish.isPending} onclick={publishEverywhere}>
-              <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
-            </Button>
-          </div>
-        {/if}
+        <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
+        {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
         {#if !sidebar.isMobile}
           {#if detail.status !== 'Closed'}
             <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
@@ -183,9 +180,17 @@
     </HeaderBand>
 
     <!-- The detail template (section 7): a main column and a side column, in a 1280px container (S6). -->
-    <div class={['mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6', detail.status === 'Draft' && 'max-md:pb-24']}>
+    <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
       {#if applications.isSuccess && all.length > 0}
         <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
+      {:else if applications.isPending}
+        <!-- The overview's shape while the applications load, so the panels below do not jump (E1). -->
+        <Panel title="Authenticity" aria-hidden="true">
+          <div class="flex flex-col gap-3">
+            <div class="flex gap-2"><Skeleton class="h-9 w-32" /><Skeleton class="h-9 w-40" /><Skeleton class="h-9 w-48" /></div>
+            <Skeleton class="h-2 w-full rounded-full" />
+          </div>
+        </Panel>
       {/if}
 
       <div class="flex flex-wrap items-start gap-5">
@@ -205,7 +210,7 @@
           />
         </div>
 
-        <div class="flex min-w-0 max-w-95 flex-[1_1_320px] flex-col gap-5">
+        <div class="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
           {#if view === 'table' && active}
             {@render candidatePanel(active)}
           {/if}
@@ -232,9 +237,19 @@
       </div>
     </div>
 
+    {#if sidebar.isMobile && publishable}
+      <ActionBar>{@render publishButton()}</ActionBar>
+    {/if}
+
     <CloseJobDialog jobId={detail.id} bind:open={confirmClose} />
   {/if}
 </main>
+
+{#snippet publishButton()}
+  <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
+    <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
+  </Button>
+{/snippet}
 
 {#snippet candidatePanel(application: ApplicationSummary)}
   <Panel title="Selected candidate">
@@ -253,11 +268,12 @@
     </SummaryList>
     {#snippet footer()}
       <div class="flex flex-wrap gap-2">
-        <Button href={`/applications/${application.id}`} variant="outline">Open application</Button>
+        <Button href={`/applications/${application.id}`} variant="outline" size="lg">Open application</Button>
         <MoveToStage
           candidateName={application.candidateName}
           currentStageId={application.stage.id}
           {stages}
+          size="lg"
           disabled={moves.pending}
           onmove={(stage) => moves.move(application, stage)}
         />

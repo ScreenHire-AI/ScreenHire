@@ -1,6 +1,6 @@
 {
   "applicant": "bot",
-  "rulesetVersion": "2026-10-21.1",
+  "rulesetVersion": "2026-10-21.2",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [
@@ -12,7 +12,7 @@
       "NET_DATACENTER_IP"
     ],
     "appliedRules": [],
-    "summary": "6 observations from network, identity and automation checks back each other up: hidden field filled in; completed faster than a person could; browser automation detected; throwaway email address; phone number is not a valid number; sent from a hosting provider's network.",
+    "summary": "6 observations from network, identity and automation checks back each other up.",
     "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
     "signals": [
       {

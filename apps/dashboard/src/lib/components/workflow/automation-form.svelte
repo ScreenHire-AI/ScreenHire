@@ -200,7 +200,7 @@
       id={`${uid}-conditions-errors`}
       messages={[...errorsAt(errors, `${path}.conditions`), ...errorsAt(errors, `${path}.conditions.match`), ...errorsAt(errors, `${path}.conditions.rules`)]}
     />
-    <div><Button variant="outline" onclick={addRule}>Add condition</Button></div>
+    <div><Button variant="outline" size="lg" onclick={addRule}>Add condition</Button></div>
   </fieldset>
 
   <fieldset class="flex flex-col gap-2">
@@ -260,7 +260,7 @@
         </li>
       {/each}
     </ol>
-    <div><Button variant="outline" onclick={() => (automation.actions = [...automation.actions, newAction('AddTag')])}>Add action</Button></div>
+    <div><Button variant="outline" size="lg" onclick={() => (automation.actions = [...automation.actions, newAction('AddTag')])}>Add action</Button></div>
   </fieldset>
 
   {#if rejects}

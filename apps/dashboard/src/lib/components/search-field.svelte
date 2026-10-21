@@ -9,7 +9,7 @@
 
 <label
   class={cn(
-    'flex h-8 min-w-0 items-center gap-2 rounded-lg border border-input bg-card px-2.5 text-muted-foreground focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 pointer-coarse:h-11',
+    'flex h-8 min-w-0 items-center gap-2 rounded-lg border border-input bg-card px-2.5 text-muted-foreground focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring pointer-coarse:h-11',
     className,
   )}
 >

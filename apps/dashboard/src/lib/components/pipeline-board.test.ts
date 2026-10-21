@@ -62,7 +62,7 @@ describe('pipeline board', () => {
       'Sam Taylor, Applied',
     ]);
     // Facts as a pill and a time, never strung together with a dot (W3).
-    expect(within(card('Casey Morgan')).getByText('careers')).toHaveAttribute('data-slot', 'badge');
+    expect(within(card('Casey Morgan')).getByText('Careers page')).toHaveAttribute('data-slot', 'badge');
     expect(card('Casey Morgan').querySelector('time')).toHaveAttribute('datetime', casey.submittedAt);
     expect(card('Casey Morgan')).not.toHaveTextContent('·');
   });

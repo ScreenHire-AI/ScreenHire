@@ -160,8 +160,9 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   Every action is audit-logged. No "reject" button sits in the integrity panel.
 
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
-  level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as a pill; a job overview
-  with a numeric legend (each entry filters the table) and an `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
+  level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as a pill; a job's
+  Authenticity panel with its applicant count, a toggle per level with its count (each filters the table) and an
+  `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
   page. The panel shows each assessment's summary, suggested next step (one quiet line for a calm result), reasons
   (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
@@ -342,11 +343,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-21.1`)
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-21.2`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |

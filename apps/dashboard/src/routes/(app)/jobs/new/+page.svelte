@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PlusIcon from '@lucide/svelte/icons/plus';
   import type { HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createCreateJob, createListHiringTemplates } from '@screenhire/api-client/svelte-query';
   import { CreateJobBody } from '@screenhire/api-client/zod';
@@ -7,6 +8,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { goto } from '$app/navigation';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -85,7 +87,7 @@
 <TopBar crumbs={[{ label: 'Jobs', href: '/' }, { label: 'New job' }]} back />
 
 <main class="flex flex-col">
-  <HeaderBand title="New job" />
+  <HeaderBand form title="New job" />
 
   <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
@@ -204,10 +206,10 @@
         {#snippet footer()}
           <div class="flex flex-wrap items-center justify-end gap-2">
             {#if $errors._errors}
-              <p role="alert" class="mr-auto text-body text-destructive">{$errors._errors[0]}</p>
+              <FailureText message={$errors._errors[0]} class="mr-auto" />
             {/if}
             <Button href="/" variant="outline" size="lg">Cancel</Button>
-            <Button type="submit" size="lg" disabled={$submitting}>Create job</Button>
+            <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create job</Button>
           </div>
         {/snippet}
       </Panel>

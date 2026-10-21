@@ -1,8 +1,10 @@
 <script lang="ts">
+  import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
   import { dismissIntegrityAssessment, DismissReason } from '@screenhire/api-client';
   import { DismissIntegrityAssessmentBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
+  import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -74,9 +76,7 @@
     <Dialog.Header>
       <Dialog.Title>Dismiss this {name} assessment?</Dialog.Title>
       <Dialog.Description>
-        The level and its evidence stay on record. Your reason and your name go in the review log{assessment?.kind === 'authenticity'
-          ? ', and the candidate leaves the "Needs review" queue.'
-          : '.'}
+        The evidence stays on record and your reason goes in the review log{assessment?.kind === 'authenticity' ? '; the candidate leaves "Needs review".' : '.'}
       </Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
@@ -85,8 +85,8 @@
         <!-- 32px rows give each radio the spacing WCAG 2.5.8 asks of a target under 24px. -->
         <div class="flex flex-col">
           {#each reasons as reason (reason)}
-            <label class="flex min-h-8 items-center gap-2.5">
-              <input type="radio" name="reason" value={reason} bind:group={$form.reason} class="size-4 accent-primary" />
+            <label class="flex min-h-8 pointer-coarse:min-h-11 items-center gap-2.5">
+              <input type="radio" name="reason" value={reason} bind:group={$form.reason} class="size-4 pointer-coarse:size-6 accent-primary" />
               {dismissReasonLabels[reason]}
             </label>
           {/each}
@@ -105,11 +105,11 @@
         <Field.Error id="dismiss-note-error" errors={$errors.note?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
+        <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={$submitting}>Dismiss with this reason</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+        <Button type="submit" size="lg" disabled={$submitting}><CircleSlashIcon aria-hidden="true" />Dismiss with this reason</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

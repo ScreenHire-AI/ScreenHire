@@ -19,8 +19,8 @@ export type CandidateTableFeatures = typeof candidateTableFeatures;
 export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSummary, any>;
 
 /**
- * Builds extra columns for the table's `extraColumns` slot, which sits between Stage and Source. The integrity columns
- * go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
+ * Builds extra columns for the table's `extraColumns` slot, which sits right after Candidate (status first, T2). The
+ * integrity columns go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
  * column that only draws something is a display column:
  *
  * ```ts

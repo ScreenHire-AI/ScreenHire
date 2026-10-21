@@ -8,24 +8,33 @@
     createPublishHiringTemplateVersion,
     createUpdateHiringTemplateVersion,
   } from '@screenhire/api-client/svelte-query';
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CheckIcon from '@lucide/svelte/icons/check';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import HistoryIcon from '@lucide/svelte/icons/history';
   import PencilIcon from '@lucide/svelte/icons/pencil';
+  import SaveIcon from '@lucide/svelte/icons/save';
+  import SendIcon from '@lucide/svelte/icons/send';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { beforeNavigate, goto } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import LeaveDialog from '#lib/components/leave-dialog.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
+  import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
@@ -57,6 +66,8 @@
     () => chosen?.version ?? 0,
   );
   const current = $derived(version.data?.data);
+  // The sidebar's own phone test (under md), where the primary action moves to the action bar.
+  const sidebar = Sidebar.useSidebar();
   const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem);
   const draftVersion = $derived(versions.find((candidate) => candidate.status === 'Draft'));
 
@@ -75,10 +86,6 @@
   let failure = $state('');
   const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending);
 
-  // Unsaved work lives only on this page: ask before leaving it.
-  beforeNavigate((navigation) => {
-    if (draft.dirty && isDraft && !confirm('Leave without saving this draft?')) navigation.cancel();
-  });
 
   async function saveDraft(): Promise<boolean> {
     if (!current || !draft.workflow) return false;
@@ -145,26 +152,28 @@
 
 <TopBar crumbs={[{ label: 'Templates', href: '/templates' }, { label: detail?.name ?? 'Template' }]} back />
 
-<main>
+<main class={[sidebar.isMobile && detail && current && 'pb-28']}>
   {#if template.isError}
     <HeaderBand title={notFound ? 'Template not found' : 'Template'} />
     <div class={workArea}>
       {#if notFound}
-        <Empty.Root class="rounded-panel border border-border bg-card">
-          <Empty.Header>
-            <Empty.Title>This template does not exist, or it belongs to another organization.</Empty.Title>
-          </Empty.Header>
-          <Empty.Content><Button href="/templates" variant="outline">Back to templates</Button></Empty.Content>
-        </Empty.Root>
+        <Panel title="Details">
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Title>This template does not exist, or it belongs to another organization.</Empty.Title>
+            </Empty.Header>
+            <Empty.Content><Button href="/templates" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to templates</Button></Empty.Content>
+          </Empty.Root>
+        </Panel>
       {:else}
-        <QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} />
+        <Panel title="Could not load the template"><QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} inset /></Panel>
       {/if}
     </div>
   {:else if !detail || !current || !draft.workflow}
     {#if version.isError}
       <HeaderBand title={detail?.name ?? 'Template'} />
       <div class={workArea}>
-        <QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} />
+        <Panel title="Could not load the version"><QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} inset /></Panel>
       </div>
     {:else}
       <div aria-hidden="true">
@@ -181,15 +190,37 @@
       <p class="sr-only" role="status">Loading the template…</p>
     {/if}
   {:else}
+    {#snippet versionItems()}
+      {#each versions.toReversed() as candidate (candidate.id)}
+        <DropdownMenu.Item onSelect={() => goto(`/templates/${detail.id}?version=${candidate.version}`)}>
+          Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
+          {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+        </DropdownMenu.Item>
+      {/each}
+    {/snippet}
+
+    {#snippet primaryAction()}
+      {#if detail.isSystem}
+        <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy to customise</Button>
+      {:else if isDraft}
+        <Button size="lg" onclick={publishDraft} disabled={busy}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
+      {:else if draftVersion}
+        <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
+      {:else}
+        <Button size="lg" onclick={startNextVersion} disabled={busy}
+          ><PencilIcon aria-hidden="true" />Edit as version {(versions.at(-1)?.version ?? 0) + 1}</Button
+        >
+      {/if}
+    {/snippet}
+
     <Tabs.Root bind:value={tab}>
       <HeaderBand title={detail.name}>
         {#snippet status()}
+          {#if current.status === 'Draft'}<StatusBadge status="neutral" label="Draft" />{/if}
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
           <span class="flex flex-wrap gap-1.5">
             <Badge variant="muted" class="tabular-nums">Version {current.version}</Badge>
-            {#if current.status === 'Draft'}
-              <Badge variant="muted">Draft</Badge>
-            {:else if current.publishedAt}
+            {#if current.status !== 'Draft' && current.publishedAt}
               <Badge variant="muted">Published&nbsp;<RelativeTime at={current.publishedAt} /></Badge>
             {/if}
             {#if detail.isSystem}<Badge variant="muted">ScreenHire template</Badge>{/if}
@@ -197,33 +228,30 @@
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
-          <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
-          {#if versions.length > 1}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
-                <HistoryIcon aria-hidden="true" />Versions
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content align="end" class="w-56">
-                {#each versions.toReversed() as candidate (candidate.id)}
-                  <DropdownMenu.Item onSelect={() => goto(`/templates/${detail.id}?version=${candidate.version}`)}>
-                    Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
-                    {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
-                  </DropdownMenu.Item>
-                {/each}
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-          {/if}
-          {#if detail.isSystem}
-            <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy to customise</Button>
-          {:else if isDraft}
-            <Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}>Save draft</Button>
-            <Button size="lg" onclick={publishDraft} disabled={busy}>Publish version {current.version}</Button>
-          {:else if draftVersion}
-            <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
+          <FailureText message={failure} />
+          {#if sidebar.isMobile}
+            <!-- A phone has the primary action in the action bar and the rest in More (section 8). -->
+            {#if isDraft || versions.length > 1}
+              <MoreMenu label="More actions">
+                {#if isDraft}<DropdownMenu.Item disabled={busy} onSelect={saveDraft}>Save draft</DropdownMenu.Item>{/if}
+                {#if versions.length > 1}
+                  {#if isDraft}<DropdownMenu.Separator />{/if}
+                  <DropdownMenu.Label class="text-caption text-muted-foreground">Versions</DropdownMenu.Label>
+                  {@render versionItems()}
+                {/if}
+              </MoreMenu>
+            {/if}
           {:else}
-            <Button size="lg" onclick={startNextVersion} disabled={busy}
-              ><PencilIcon aria-hidden="true" />Edit as version {(versions.at(-1)?.version ?? 0) + 1}</Button
-            >
+            {#if versions.length > 1}
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
+                  <HistoryIcon aria-hidden="true" />Versions
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content align="end" class="w-56">{@render versionItems()}</DropdownMenu.Content>
+              </DropdownMenu.Root>
+            {/if}
+            {#if isDraft}<Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}><SaveIcon aria-hidden="true" />Save draft</Button>{/if}
+            {@render primaryAction()}
           {/if}
         {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
@@ -236,6 +264,13 @@
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
         {/if}
       </div>
+
+      {#if sidebar.isMobile}
+        <ActionBar>{@render primaryAction()}</ActionBar>
+      {/if}
     </Tabs.Root>
   {/if}
 </main>
+
+<!-- Unsaved work lives only on this page: ask before leaving it. -->
+<LeaveDialog unsaved={draft.dirty && isDraft} title="Leave without saving this draft?" />

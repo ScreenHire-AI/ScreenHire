@@ -8,7 +8,7 @@
 @layer components {
   /* Inputs are 16px so phones do not zoom in, and at least 44px tall (design-system §4, §6). */
   .field-input {
-    @apply min-h-12 w-full rounded-xl border border-candidate-input-border bg-candidate-surface px-3.5 text-[16px] text-candidate-foreground;
+    @apply min-h-12 w-full rounded-xl border border-candidate-input-border bg-candidate-surface px-3.5 text-candidate-input text-candidate-foreground;
   }
 
   textarea.field-input {
@@ -20,7 +20,7 @@
   }
 
   .file-input {
-    @apply w-full text-[15px] file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-[10px] file:border file:border-candidate-input-border file:bg-candidate-background file:px-4 file:font-bold file:text-candidate-foreground;
+    @apply w-full text-candidate-body file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-[10px] file:border file:border-candidate-input-border file:bg-candidate-background file:px-4 file:font-bold file:text-candidate-foreground;
   }
 
   .choice {
