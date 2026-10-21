@@ -3,7 +3,7 @@
 	import { tv } from "#lib/utils.js";
 
 	export const tabsListVariants = tv({
-		base: "rounded-lg p-[3px] group-data-[orientation=horizontal]/tabs:h-8 pointer-coarse:group-data-[orientation=horizontal]/tabs:h-11 data-[variant=line]:rounded-none group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
+		base: "rounded-lg p-[3px] group-data-[orientation=horizontal]/tabs:h-8 pointer-coarse:group-data-[orientation=horizontal]/tabs:h-auto data-[variant=line]:rounded-none group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
 		variants: {
 			variant: {
 				default: "bg-muted",

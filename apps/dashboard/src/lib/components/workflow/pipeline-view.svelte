@@ -94,7 +94,7 @@
                   onchange={(event) => (stage.slaDays = event.currentTarget.value ? Number(event.currentTarget.value) : null)}
                 />
               </label>
-              <div class="flex shrink-0 gap-0.5">
+              <div class="flex shrink-0 justify-end gap-0.5">
                 <!-- The first stage cannot move earlier nor the last later: the button is left out, its place kept (A3). -->
                 {#if index > 0}
                   <IconButton label={`Move ${stage.name} earlier`} onclick={() => (workflow.stages = moveItem(workflow.stages, index, -1))}><ArrowUpIcon /></IconButton>

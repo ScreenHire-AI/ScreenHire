@@ -9,7 +9,7 @@
   // The root error page renders under the root layout only, so it brings its own bar (design system section 7).
   const notFound = $derived(page.status === 404);
   // SvelteKit's own message for an unknown address is "Not Found", which the title already says.
-  const message = $derived(notFound ? 'Nothing lives at this address.' : page.error?.message || 'Try again in a minute.');
+  const message = $derived(notFound ? 'Check the address, or go back to your jobs.' : page.error?.message || 'Try again in a minute.');
 </script>
 
 <svelte:head>

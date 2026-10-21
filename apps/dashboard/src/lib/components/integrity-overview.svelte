@@ -38,9 +38,10 @@
 
 <Panel title="Authenticity" count={overview.total}>
   <div class="flex flex-col gap-3">
-    <!-- One line that scrolls inside the panel rather than wrapping (F5). -->
-    <div class="-m-1 overflow-x-auto p-1">
-      <div role="group" aria-label="Authenticity levels" class="flex w-max gap-1">
+    <!-- One line that scrolls inside the panel rather than wrapping (F5); in a narrow panel the levels stack, so the one
+         that needs attention is never out of sight (section 11, Toggle). -->
+    <div class="@container -m-1 overflow-x-auto p-1">
+      <div role="group" aria-label="Authenticity levels" class="grid justify-items-start gap-1 @lg:flex @lg:w-max">
         {#each entries as entry (entry.id)}
           <Toggle size="lg" bind:pressed={() => filter.authenticity === entry.id, () => toggle(entry.id)}>
             <StatusMark shape={entry.view.shape} tone={entry.view.tone} />

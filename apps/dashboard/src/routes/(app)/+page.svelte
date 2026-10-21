@@ -174,48 +174,51 @@
           {/each}
         </ul>
       {:else}
-        <Table.Root aria-label="Jobs">
-          <Table.Header>
-            <Table.Row class="bg-muted hover:bg-muted">
-              <Table.Head class="px-4 text-caption text-muted-foreground">Status</Table.Head>
-              <Table.Head class="text-caption text-muted-foreground">Title</Table.Head>
-              <Table.Head class="text-caption text-muted-foreground">Location</Table.Head>
-              <Table.Head class="text-caption text-muted-foreground">Type</Table.Head>
-              <Table.Head class="text-right text-caption text-muted-foreground">Published</Table.Head>
-              <Table.Head class="w-14 px-4"><span class="sr-only">Actions</span></Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {#each shown as job (job.id)}
-              <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                   controls sit above it. -->
-              <Table.Row class="relative h-12 border-border-subtle hover:bg-muted">
-                <Table.Cell class="px-4"><StatusBadge {...jobStatus[job.status]} quiet /></Table.Cell>
-                <!-- The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5). -->
-                <Table.Cell class="w-full max-w-0">
-                  <span class="flex min-w-0 items-center gap-2">
-                    <TruncatedText
-                      text={job.title}
-                      href={`/jobs/${job.id}`}
-                      class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
-                    />
-                    {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
-                  </span>
-                </Table.Cell>
-                <Table.Cell class="max-w-60 text-muted-foreground">
-                  <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
-                </Table.Cell>
-                <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
-                <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
-                <Table.Cell class="px-4 text-right">
-                  {#if job.status !== 'Closed'}
-                    <span class="relative inline-flex">{@render rowMenu(job)}</span>
-                  {/if}
-                </Table.Cell>
+        <!-- Location gives way before the title in a narrow panel: the title is the row's name (F5). -->
+        <div class="@container/jobs">
+          <Table.Root aria-label="Jobs">
+            <Table.Header>
+              <Table.Row class="bg-muted hover:bg-muted">
+                <Table.Head class="px-4 text-caption text-muted-foreground">Status</Table.Head>
+                <Table.Head class="text-caption text-muted-foreground">Title</Table.Head>
+                <Table.Head class="text-caption text-muted-foreground">Location</Table.Head>
+                <Table.Head class="text-caption text-muted-foreground">Type</Table.Head>
+                <Table.Head class="text-right text-caption text-muted-foreground">Published</Table.Head>
+                <Table.Head class="w-14 px-4"><span class="sr-only">Actions</span></Table.Head>
               </Table.Row>
-            {/each}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {#each shown as job (job.id)}
+                <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
+                     controls sit above it. -->
+                <Table.Row class="relative h-12 border-border-subtle hover:bg-muted">
+                  <Table.Cell class="px-4"><StatusBadge {...jobStatus[job.status]} quiet /></Table.Cell>
+                  <!-- The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5). -->
+                  <Table.Cell class="w-full max-w-0">
+                    <span class="flex min-w-0 items-center gap-2">
+                      <TruncatedText
+                        text={job.title}
+                        href={`/jobs/${job.id}`}
+                        class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                      />
+                      {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell class="max-w-40 text-muted-foreground @4xl/jobs:max-w-60">
+                    <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
+                  </Table.Cell>
+                  <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
+                  <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
+                  <Table.Cell class="px-4 text-right">
+                    {#if job.status !== 'Closed'}
+                      <span class="relative inline-flex">{@render rowMenu(job)}</span>
+                    {/if}
+                  </Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        </div>
       {/if}
     </Panel>
   </div>

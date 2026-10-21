@@ -202,7 +202,7 @@
       </Button>
     {/snippet}
     {#snippet facts()}
-      <Fact label="Source"><code class="font-mono text-code">docs/design/design-system.md</code></Fact>
+      <Fact label="Source"><code class="block min-w-0"><TruncatedText text="docs/design/design-system.md" class="font-mono text-code" /></code></Fact>
       <Fact label="Catalogue">Section 11</Fact>
     {/snippet}
   </HeaderBand>

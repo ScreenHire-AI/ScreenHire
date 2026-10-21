@@ -27,7 +27,7 @@ describe('error page', () => {
 
     expect(document.querySelector('[data-slot="brand-bar"]')).toHaveTextContent('ScreenHire');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Page not found');
-    expect(screen.getByRole('region', { name: 'Error 404' })).toHaveTextContent('Nothing lives at this address.');
+    expect(screen.getByRole('region', { name: 'Error 404' })).toHaveTextContent('Check the address, or go back to your jobs.');
     expect(screen.getByRole('link', { name: 'Back to jobs' })).toHaveAttribute('href', '/');
     await expectNoAxeViolations(document.body);
   });

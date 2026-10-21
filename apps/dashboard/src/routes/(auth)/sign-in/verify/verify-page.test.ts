@@ -29,7 +29,7 @@ describe('magic link verify page', () => {
     show();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Finish signing in');
-    expect(screen.getByRole('region', { name: 'Email link' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Email link' })).toHaveTextContent('This link signs you in on this device.');
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     await expectNoAxeViolations(document.body);
   });

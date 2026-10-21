@@ -54,7 +54,9 @@
       </Panel>
     {:else}
       <form onsubmit={signIn} aria-label="Finish signing in">
-        <Panel title="Email link" footer={confirm} />
+        <Panel title="Email link" footer={confirm}>
+          <p>This link signs you in on this device.</p>
+        </Panel>
       </form>
     {/if}
   </div>

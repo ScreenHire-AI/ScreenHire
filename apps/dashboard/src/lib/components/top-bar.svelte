@@ -48,11 +48,23 @@
     <ol class="flex min-w-0 items-center gap-1.5 text-body text-muted-foreground">
       {#each crumbs as crumb, index (index)}
         {@const last = index === crumbs.length - 1}
-        <!-- Phones show where you are; the levels above it are Back and the sidebar. Below lg the middle levels go too, so
-             the page's own name is not the one cut short. -->
-        <li class={['flex items-center gap-1.5', last ? 'min-w-0' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden']}>
+        {@const parent = index > 0 && index === crumbs.length - 2}
+        <!-- Phones show where you are; the levels above it are Back and the sidebar. Below lg the levels between the first
+             and the page's parent go too, and the parent gives way before the page's own name. -->
+        <li
+          class={[
+            'flex items-center gap-1.5',
+            last ? 'min-w-0' : parent ? 'min-w-0 shrink-2 max-md:hidden' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden',
+          ]}
+        >
           {#if index > 0}<span aria-hidden="true" class="max-md:hidden">/</span>{/if}
-          {#if crumb.href && !last}
+          {#if crumb.href && parent}
+            <TruncatedText
+              text={crumb.label}
+              href={crumb.href}
+              class="text-muted-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
+            />
+          {:else if crumb.href && !last}
             <a href={crumb.href} class="text-muted-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5">{crumb.label}</a>
           {:else}
             <span aria-current={last ? 'page' : undefined} class="min-w-0">
