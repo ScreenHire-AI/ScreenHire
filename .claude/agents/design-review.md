@@ -23,28 +23,36 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`.
    its terms. Do not use any other copy of these rules: if this file and the design system disagree, the design
    system wins.
 2. List the files to review: `git diff --name-only <range>` (plus `git status --porcelain`) filtered to
-   `apps/dashboard/src`, `apps/careers/src`, `apps/marketing/src` and `packages/ui`, or every `.svelte` and `.astro`
-   file under those for `all`. Read each in full. Careers and marketing pages are held only to the sections
-   `.claude/rules/astro-public.md` lists.
+   `apps/dashboard/src`, `apps/careers/src`, `apps/marketing/src` and `packages/ui`, or for `all` every `.svelte`,
+   `.astro`, `.css` and `.ts` file under those (root causes often sit in `app.css` or a `.ts` helper). Skip the
+   shadcn-svelte sources under `components/ui` unless the range changed them, and skip tests. Read each file in full.
+   Careers and marketing pages are held only to the sections `.claude/rules/astro-public.md` lists.
 3. Search the files for what a search can prove, then read the screens for what it cannot:
 
    | Check | Search for |
    |---|---|
-   | W1 | `text-\[[0-9.]+px\]`, `font-size:` in markup or styles |
+   | W1 | `text-\[[0-9.]+px\]`, `font-size:` in markup or styles, a pixel root size in `app.css` |
    | W2 | `uppercase`, `tracking-\[`, `font-mono` on text that is not a code, id or key cap |
-   | W3 | `·` and other separator characters between facts |
+   | W3 | `·` and other separator characters between facts in rendered text (not in `<title>` or comments) |
    | A3 | `disabled` on a control whose feature does not exist yet (a "phase" or "coming soon" hint beside it) |
+   | S1 | `<fieldset disabled>` or disabled inputs used to show read-only data |
    | K1 | `<kbd>` outside a tooltip, menu or the shortcuts dialog; a footer of shortcut hints |
    | S4 | a card or panel inside another card or panel |
-   | S6, F2 | fixed widths on content (`w-[...px]`, `width:`) where a max-width belongs |
+   | S6 | a page's content container (`<main>`) with no max-width |
+   | F2 | fixed widths on content elements (not menus, graph nodes or board columns); no `@container` where a component's layout changes with its width |
    | T5 | dates formatted by hand or with a fixed locale (`toLocaleDateString('en-GB')`, format strings) |
-   | I1 | icons from anything but `@lucide/svelte`; emoji used as icons |
+   | I1 | icons from anything but `@lucide/svelte`; text characters or emoji used as icons |
 
    Then read each changed page against the rest of the checklist: the template and header band (S1, S2), panels and
    their titles (S3), one primary action (A1), status first and quiet calm states (T1 to T4), words (W4), sizes and
    touch (F1 to F5), states (E1), access (X1).
 4. Leave G1 (integrity) to the `integrity-guardrails` agent; report it only if you see it and it was not obviously
    covered.
+5. A component the catalogue (section 11) names but the code lacks (a tooltip, a key cap, the sidebar) is one finding
+   against section 11, not one per screen that needs it.
+6. Without screenshots you cannot see F1, F3 or F4. Report what the code shows (fixed widths, a missing mobile
+   navigation, no `pointer: coarse` sizes) and list those checks as unchecked in a browser. When the caller gives you
+   screenshots or page text at named widths, check those too.
 
 ## What counts as a finding
 
