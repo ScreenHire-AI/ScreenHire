@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using ScreenHire.Application.Integrity;
 
 namespace ScreenHire.E2E;
@@ -82,6 +83,21 @@ public sealed class ResumePreviewTests(E2EFixture fixture) : BrowserTest(fixture
 
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-resume-preview-light");
+
+        // Dark (the system's choice) and a phone: the page still draws, the frame fits, and nothing scrolls sideways.
+        await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        await Page.SetViewportSizeAsync(360, 800);
+        await Page.ReloadAsync();
+        await Expect(Page.Locator("html")).ToHaveClassAsync(new Regex(@"\bdark\b"));
+        await Expect(resume.GetByText("1 page", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue();
+        (await element.BoundingBoxAsync())!.Width.Should().BeLessThan(360);
+        await ExpectNoAccessibilityViolationsAsync();
+
+        // The panel alone: a full-page capture taller than the viewport leaves the sandboxed frame unpainted.
+        var screenshot = Path.Combine(AppContext.BaseDirectory, "TestResults", "screenshots", "dashboard-resume-preview-dark-phone.png");
+        await resume.ScreenshotAsync(new() { Path = screenshot });
+        TestContext.Current.TestOutputHelper?.WriteLine($"Screenshot: {screenshot}");
     }
 
     // A new person and organization with one published job, and one applicant through the careers submission path,

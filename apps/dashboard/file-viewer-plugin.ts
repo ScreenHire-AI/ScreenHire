@@ -44,7 +44,9 @@ async function bundle(): Promise<string> {
   const chunks = outputs.flatMap((output) => ('output' in output ? output.output : [])).filter((file) => file.type === 'chunk');
   if (chunks.length !== 1) throw new Error(`The file viewer should bundle to one script, not ${chunks.length}.`);
   // `</script` would end the inline element early; `<\/script` means the same in every JavaScript context.
-  const code = chunks[0]!.code.replace(/<\/script/gi, '<\\/script');
+  // Minifying drops pdf.js's licence header; this keeps the notice with the code that ships to browsers.
+  const notice = '/*! pdf.js, Copyright Mozilla Foundation, Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0 */\n';
+  const code = notice + chunks[0]!.code.replace(/<\/script/gi, '<\\/script');
   if (code.includes('<!--')) throw new Error('The file viewer bundle contains "<!--", which an inline script cannot hold.');
   return code;
 }
@@ -62,7 +64,9 @@ export async function viewerDocument(): Promise<string> {
   return (
     '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     `<meta http-equiv="Content-Security-Policy" content="${policy}">` +
-    '<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">' +
+    // One colour scheme on both sides of the frame (the iframe element says light too): when they differ, the browser
+    // paints the frame opaque instead of letting the inset show through.
+    '<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light">' +
     `<title>File preview</title><style>${style}</style></head><body><main></main><script>${script}</script></body></html>`
   );
 }

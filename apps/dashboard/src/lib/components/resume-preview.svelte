@@ -109,7 +109,7 @@
               title={`Preview of ${file.fileName}`}
               sandbox="allow-scripts"
               srcdoc={viewer}
-              class="block w-full border-0"
+              class="block w-full border-0 [color-scheme:light]"
               style:height={`${height}px`}
             ></iframe>
           {/key}
