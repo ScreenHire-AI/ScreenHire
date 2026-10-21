@@ -142,10 +142,9 @@ public sealed class DistributionTests(AppHostFixture fixture)
         var slug = await SlugOfAsync(recruiter.OrganizationId);
         var body = PublishableJob("Versioned role");
         var jobId = (await recruiter.CreateJobAsync(body)).Id();
+        // No wait for the boards' answers to the first publish: the republish waits out any answer being saved
+        // (BoardAnswerRaceTests proves it deterministically).
         await recruiter.PublishJobAsync(jobId);
-        // The worker updates the postings as boards answer the first publish; republishing while it does is a 409 by
-        // design ("refresh and try again"), so let the first publish settle before testing the second.
-        await WaitForPostingAsync(recruiter, jobId, "sandbox", "Live");
         body["title"] = "Versioned role, renamed";
         (await recruiter.PutAsync($"/v1/jobs/{jobId}", body)).Expect(HttpStatusCode.OK);
 
