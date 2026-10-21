@@ -5,7 +5,7 @@
     "level": "NoConcerns",
     "reasonCodes": [],
     "appliedRules": [],
-    "summary": "Shown for context only: sent through a VPN, proxy or Tor. This is never a reason on its own.",
+    "summary": "Shown for context only: one observation, never a reason on its own.",
     "nextStep": "No action needed.",
     "signals": [
       {

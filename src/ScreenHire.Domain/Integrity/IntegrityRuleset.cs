@@ -171,20 +171,21 @@ public static class IntegrityRuleset
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())));
     }
 
-    // Plain-language text for each outcome. Candidate- and recruiter-facing voice: docs/design/design-system.md.
+    // Plain-language text for each outcome. Candidate- and recruiter-facing voice: docs/design/design-system.md. The
+    // summary is one line with the count and the kinds of check; the reasons list below it names each one.
     private static class Summaries
     {
         public static string Summary(
             IntegrityAssessmentKind kind, int step, List<IntegritySignal> shown, List<IntegritySignal> counted, AiPolicyContext? context)
         {
             var text = step > 0
-                ? $"{Observations(counted.Count)} from {Categories(counted)} checks back each other up: {Titles(counted)}."
+                ? $"{Observations(counted.Count)} from {Categories(counted)} checks back each other up."
                 : shown.Count == 0
                     ? kind == IntegrityAssessmentKind.Authenticity
                         ? "Nothing unusual in the checks that ran."
                         : "No signs that the content was generated or templated."
                     : shown.All(s => s.ContextOnly)
-                            ? $"Shown for context only: {Titles(shown)}. This is never a reason on its own."
+                            ? $"Shown for context only: {Observations(shown.Count).ToLowerInvariant()}, never a reason on {(shown.Count == 1 ? "its" : "their")} own."
                             : $"{Observations(shown.Count)} from {Categories(shown)} checks, with nothing from a second, independent kind of check to back {(shown.Count == 1 ? "it" : "them")} up. Shown for context only.";
             return context is { } policy ? $"{text} {PolicySentence(policy)}" : text;
         }
@@ -238,11 +239,6 @@ public static class IntegrityRuleset
             _ => "content",
         };
 
-        private static string Titles(IEnumerable<IntegritySignal> signals) =>
-            string.Join("; ", signals.Select(s => SignalCatalogue.Get(s.Code).Title).Distinct(StringComparer.Ordinal).Select(LowerFirst));
-
-        private static string LowerFirst(string text) =>
-            text.Length == 0 ? text : char.ToLowerInvariant(text[0]) + text[1..];
     }
 }
 
