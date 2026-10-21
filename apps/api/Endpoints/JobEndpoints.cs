@@ -244,7 +244,7 @@ internal static class JobEndpoints
     // every board's state and estimate. Publishing an open job whose content equals its newest version freezes nothing
     // and raises no JobPublished; it still posts to boards named in the request, or to every board if the job is on
     // none. A publish that races another publish, an edit or a close gets 409 (the job's row version, or a unique
-    // index), so a closed job stays closed.
+    // index), so a closed job stays closed. A board answer the worker is saving is not a race: the publish waits for it.
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
         Guid jobId,
         PublishJobRequest? request,
@@ -295,6 +295,9 @@ internal static class JobEndpoints
         {
             return TypedResults.Problem("A closed job cannot be republished; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        // Waits out a board answer the worker is saving, so the postings below are its latest state, never a 409.
+        await using var transaction = await PostingLocks.BeginForJobAsync(db, job.Id, boardId: null, cancellationToken);
 
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == job.OrganizationId, cancellationToken);
         if (requestedBoards is { } requested)
@@ -404,6 +407,7 @@ internal static class JobEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox, DistributionPlanner planner, Job job, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
+        await using var transaction = await PostingLocks.BeginForJobAsync(db, job.Id, boardId: null, cancellationToken);
         if (job.Close(now))
         {
             await outbox.PublishAsync(new JobClosed(job.OrganizationId, job.Id, job.ClosedAt!.Value));

@@ -106,7 +106,8 @@ from an organization stops their events when they reconnect. A connection keeps 
 - `realtimeEventSchemas` has a Zod schema per event. `parseRealtimeEvent` ignores an unknown type, which a newer API may
   send, and throws on a known type that does not match its schema.
 
-The dashboard's Vite proxy forwards `/v1` with `ws: true`, in `dev` and `preview` alike, so the hub stays same-origin
+The dashboard's Vite proxy forwards `/v1` with `ws: true` in `dev`, and the AppHost's Caddyfile does the same for the
+built dashboard (`ScreenHire:Frontends=Built`, `apps/apphost/Caddy/dashboard/Caddyfile`), so the hub stays same-origin
 and the cookie applies.
 
 ## Contract test

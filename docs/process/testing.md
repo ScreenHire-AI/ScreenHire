@@ -74,12 +74,19 @@ The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 | Mode | Starts | Used by |
 |---|---|---|
 | `Dev` (default) | `dev` scripts with hot reload | `pnpm dev` |
-| `Built` | `preview` scripts over `pnpm -r build` output: what ships | `tests/ScreenHire.E2E` |
+| `Built` | the `pnpm -r build` output served as it ships: the dashboard (with its `/v1` route to the API) and marketing from Caddy containers, careers from its own Node server (`dist/server/entry.mjs`). No Vite or Astro preview server | `tests/ScreenHire.E2E` |
 | `None` | no JS apps; API, worker and infrastructure only | `tests/ScreenHire.IntegrationTests` |
 
 It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
 board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
 and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
+
+Every resource's console log goes to `TestResults/logs/<fixture>/<resource>.log` next to the test assembly (for
+example `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/logs/E2EFixture/dashboard.log`), streamed with Aspire's
+`ResourceLoggerService` and rewritten each run. A resource that stops with an error while the tests run is kept in
+`fixture.StoppedResources`, and a failing end-to-end test prints it with its exit code and log, so a server that dies
+mid-run names itself instead of failing each test with its own symptom. Read these logs first when a test fails on a
+server that stopped answering.
 
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
@@ -136,6 +143,11 @@ Messages cross processes, so these tests wait on Wolverine's tables in Postgres,
   xUnit runs that collection on its own after the parallel tests, so no other test waits on a stopped worker. Refer
   to a collection by its type, never `[Collection(nameof(...))]`: a `[CollectionDefinition]` without a name is matched
   by type, and a string quietly makes a separate collection that runs in parallel.
+
+A test that needs the worker in the middle of something, such as saving a board's answer, plays that part itself
+rather than racing the real worker: `BoardAnswerRaceTests` holds a posting's row lock as a handler does, starts the
+request, waits until Postgres shows it blocked (`pg_blocking_pids` on the owner connection, which only observes), then
+commits. The outcome is the same on every run.
 
 What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
 
@@ -210,6 +222,14 @@ port, shared data, or ordering between tests. Never add retries, sleeps or `Skip
 through the gate. In end-to-end tests, wait on a condition (`Expect(...)`, a health check), never on time. The gate
 must pass twice in a row with no changes.
 
+### Flake history
+
+What failed the gate with no change, and the cause that was fixed, so the next flake is compared with these first.
+
+| When | Symptom | Cause and fix |
+|---|---|---|
+| 2026-10-21 | 8 of 896 failed: five end-to-end tests with `ERR_EMPTY_RESPONSE` or a missing redirect, the template builder's Validation region still "checking", the acceptance journey's sandbox board still Queued after 45 s, and a 409 on a republish | (1) The built dashboard's `vite preview` died 12 s after start with exit code 0xC0000409 (a native abort) and no message, and later runs saw `astro preview` do the same for marketing. Every failure but the 409 followed: the screenshots show "Reconnecting…", because validation and the live updates go through the dashboard's `/v1` proxy, so the worker was never slow. The cause inside Node was not found (25 isolated starts of marketing's `astro preview` and a handful of the dashboard's `vite preview` never crashed), so `Built` no longer runs a preview server: Caddy serves the static builds and careers runs its own Node server. Resource logs are now captured. (2) The API's publish and close read postings without the worker's row lock and failed their row version when a board's answer landed; they now take the lock (job-distribution.md). (3) The template builder test could also read the previous change's validation result; the Validation region now sets `aria-busy` while a check is on its way, and the test waits for it to clear. |
+
 ## Gate time
 
 Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Target: under ~8 minutes.
@@ -233,3 +253,9 @@ took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both pas
 With the MVP acceptance journey (881 .NET tests), `pnpm verify` took 3 min 55 s and 3 min 40 s over
 two consecutive runs on 2026-10-20; both passed. The end-to-end assembly, the journey included, takes about 65 s of
 that, in parallel with the integration tests (about 85 s).
+
+With the gate-stability fixes (898 .NET tests; `Built` serves the frontends without preview servers, and publish and
+close take the posting locks), `pnpm verify:test` passed five times in a row on 2026-10-21, at commit `891dd3d`, with
+the suites in parallel as the gate runs them: 109, 112, 113, 111 and 114 s wall clock. Each run: unit about 1 s,
+end-to-end 53 to 59 s, integration 1 min 46 s to 1 min 51 s, 898 passed, none failed, and no resource stopped
+(`TestResults/logs`).

@@ -19,6 +19,15 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    // The region is busy while the check of the latest change is on its way, and until then it still shows the previous
+    // change's result. Assert on the settled result, never on an earlier one that happens to match.
+    private async Task ExpectValidationAsync(string text)
+    {
+        var validation = Page.GetByRole(AriaRole.Region, new() { Name = "Validation" });
+        await Expect(validation).ToHaveAttributeAsync("aria-busy", "false");
+        await Expect(validation).ToContainTextAsync(text);
+    }
+
     [Fact]
     public async Task A_recruiter_builds_and_publishes_a_template_creates_a_job_from_it_and_simulates_an_application()
     {
@@ -38,7 +47,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await newTemplate.GetByRole(AriaRole.Button, new() { Name = "Create template" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(templateName);
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Template" })).ToContainTextAsync("Draft");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Validation" })).ToContainTextAsync("No problems found.");
+        await ExpectValidationAsync("No problems found.");
 
         // A knockout question, which the candidate preview shows as the careers page would.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questionnaire" }).ClickAsync();
@@ -71,14 +80,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Reason", Exact = true }).FillAsync("The role needs a verified identity.");
         await Expect(drawer.GetByRole(AriaRole.Article)).ToContainTextAsync(Guardrail);
         await Expect(firstAction).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Validation" })).ToContainTextAsync(Guardrail);
+        await ExpectValidationAsync(Guardrail);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-automation-guardrail-light");
 
         // Routing for review instead is allowed.
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Add a tag" });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Tag", Exact = true }).FillAsync("needs-review");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Validation" })).ToContainTextAsync("No problems found.");
+        await ExpectValidationAsync("No problems found.");
         await Expect(drawer).Not.ToContainTextAsync(Guardrail);
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();

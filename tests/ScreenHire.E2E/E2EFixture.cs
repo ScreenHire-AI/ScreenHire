@@ -7,12 +7,12 @@ namespace ScreenHire.E2E;
 /// </summary>
 public sealed class E2EFixture : AppHostFixture
 {
-    // What `pnpm -r build` leaves behind for each app's `preview` script.
+    // What `pnpm -r build` leaves behind for the AppHost to serve in Built mode.
     private static readonly string[] BuildOutputs =
     [
         "apps/marketing/dist/index.html",
         "apps/careers/dist/server/entry.mjs",
-        "apps/dashboard/.svelte-kit/output/client",
+        "apps/dashboard/build/200.html",
     ];
 
     private IPlaywright? playwright;

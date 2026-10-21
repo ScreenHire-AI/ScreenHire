@@ -6,8 +6,9 @@
 //   pnpm --filter @screenhire/marketing lighthouse / /pricing/  # just these paths
 //
 // Why not Lighthouse CI (@lhci/cli): it serves dist with its own static server and takes its URL list from config.
-// This script uses Astro's own preview server (what the end-to-end tests serve) and reads the built sitemap, so every
-// new page is measured without a list to keep in step, and it adds no second copy of Lighthouse to the tree.
+// This script uses Astro's own preview server, in process and alone on the machine (the end-to-end tests serve dist from
+// Caddy instead), and reads the built sitemap, so every new page is measured without a list to keep in step, and it
+// adds no second copy of Lighthouse to the tree.
 //
 // Browser: CHROME_PATH if set; otherwise the Chromium that `pnpm e2e:install` puts in Playwright's cache (so the gate
 // needs nothing the end-to-end tests do not already need); otherwise an installed Chrome found by chrome-launcher.

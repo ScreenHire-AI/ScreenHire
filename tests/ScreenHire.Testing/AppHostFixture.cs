@@ -1,7 +1,10 @@
+using System.Collections.Concurrent;
+using System.Globalization;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Xunit;
@@ -12,7 +15,9 @@ namespace ScreenHire.Testing;
 /// Boots the whole AppHost (requires Docker) once per test assembly. Register it with
 /// <c>[assembly: AssemblyFixture(typeof(AppHostFixture))]</c> and take it as a constructor parameter.
 /// Every run gets fresh infrastructure: no data volumes and random ports, so it never collides with a running dev
-/// stack or a sibling worktree, and Aspire removes the containers when the assembly finishes.
+/// stack or a sibling worktree, and Aspire removes the containers when the assembly finishes. Every resource's console
+/// log goes to <c>TestResults/logs/{fixture}/{resource}.log</c> next to the test assembly, and a resource that stops
+/// while the tests run is kept in <see cref="StoppedResources"/>, so a server that dies mid-run names itself.
 /// </summary>
 public class AppHostFixture : IAsyncLifetime
 {
@@ -21,7 +26,22 @@ public class AppHostFixture : IAsyncLifetime
     /// <summary>The sandbox board's acceptance and removal delay in the test stack.</summary>
     public static readonly TimeSpan SandboxDelay = TimeSpan.FromSeconds(4);
 
+    private readonly CancellationTokenSource watching = new();
+    private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
+    private Task? watcher;
     private DistributedApplication? app;
+
+    /// <summary>
+    /// Where each resource's console log is written, one <c>{resource}.log</c> per resource, in a folder per fixture type
+    /// (<c>TestResults/logs/AppHostFixture</c>), since a fixture of its own boots a second stack beside the shared one.
+    /// </summary>
+    public string LogDirectory => Path.Combine(AppContext.BaseDirectory, "TestResults", "logs", GetType().Name);
+
+    /// <summary>
+    /// Every resource that stopped with an error after it started (a crash, a non-zero exit), with its exit code and log
+    /// file. Empty while the stack is whole.
+    /// </summary>
+    public IReadOnlyCollection<string> StoppedResources => [.. stopped.Values];
 
     /// <summary>The AppHost's <c>ScreenHire:Frontends</c> mode. <c>None</c> starts only the API, worker and infrastructure.</summary>
     protected virtual string Frontends => "None";
@@ -55,6 +75,7 @@ public class AppHostFixture : IAsyncLifetime
             ],
             startup.Token);
         app = await builder.BuildAsync(startup.Token);
+        watcher = WatchResourcesAsync(app, watching.Token);
         try
         {
             await app.StartAsync(startup.Token);
@@ -70,7 +91,7 @@ public class AppHostFixture : IAsyncLifetime
 
     // A resource that fails to start (a missing build, a pnpm error) fails the run at once instead of after the timeout,
     // and a timeout names the resource that never became healthy.
-    private static async Task WaitUntilHealthyAsync(DistributedApplication app, string resource, CancellationToken cancellationToken)
+    private async Task WaitUntilHealthyAsync(DistributedApplication app, string resource, CancellationToken cancellationToken)
     {
         try
         {
@@ -81,8 +102,78 @@ public class AppHostFixture : IAsyncLifetime
         {
             throw new TimeoutException(
                 $"The AppHost resource '{resource}' was not healthy within {StartupTimeout.TotalMinutes:0} minutes. " +
-                "Check its logs in the test output.",
+                $"Check its log in {LogDirectory}.",
                 exception);
+        }
+    }
+
+    // Writes each resource instance's console log to its file as it arrives, and keeps every resource that stops with an
+    // error. Uses Aspire's own log and state streams, which carry every line the dashboard shows.
+    private async Task WatchResourcesAsync(DistributedApplication started, CancellationToken cancellationToken)
+    {
+        var directory = LogDirectory;
+        Directory.CreateDirectory(directory);
+        foreach (var old in Directory.EnumerateFiles(directory, "*.log"))
+        {
+            try
+            {
+                File.Delete(old); // the files describe this run only
+            }
+            catch (IOException)
+            {
+                // Still open in a test host left over from an earlier run. The diagnostics never fail the run.
+            }
+        }
+
+        var logs = started.Services.GetRequiredService<ResourceLoggerService>();
+        var logging = new ConcurrentDictionary<string, Task>(StringComparer.Ordinal);
+        try
+        {
+            await foreach (var update in started.ResourceNotifications.WatchAsync(cancellationToken))
+            {
+                var path = Path.Combine(directory, $"{update.Resource.Name}.log");
+                // By instance id, not by name: the log stream of a running project carries a suffix after its name.
+                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, cancellationToken), cancellationToken));
+
+                var snapshot = update.Snapshot;
+                if (snapshot.State?.Text is { } state && KnownResourceStates.TerminalStates.Contains(state)
+                    && (snapshot.ExitCode is not (null or 0) || state == KnownResourceStates.FailedToStart))
+                {
+                    stopped[update.ResourceId] =
+                        $"The AppHost resource '{update.Resource.Name}' stopped ({state}, exit code {snapshot.ExitCode?.ToString(CultureInfo.InvariantCulture) ?? "none"}) " +
+                        $"at {DateTimeOffset.UtcNow:HH:mm:ss} UTC. Its log: {path}";
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+
+        try
+        {
+            await Task.WhenAll(logging.Values);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
+    private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var file = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) { AutoFlush = true };
+            await foreach (var batch in logs.WatchAsync(resourceId).WithCancellation(cancellationToken))
+            {
+                foreach (var line in batch)
+                {
+                    await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                }
+            }
+        }
+        catch (IOException)
+        {
         }
     }
 
@@ -123,17 +214,33 @@ public class AppHostFixture : IAsyncLifetime
     public virtual async ValueTask DisposeAsync()
     {
         await DisposeAppAsync();
+        watching.Dispose();
         GC.SuppressFinalize(this);
     }
 
     // Idempotent: runs after a failed start and again if xUnit then disposes the fixture.
     private async ValueTask DisposeAppAsync()
     {
-        if (app is not null)
+        // Stop watching first: shutting the stack down is not a crash, and the streams end with the app's services.
+        // A watcher that failed still lets the stack shut down, so its containers never outlive the run.
+        await watching.CancelAsync();
+        try
         {
-            var started = app;
-            app = null;
-            await started.DisposeAsync();
+            if (watcher is not null)
+            {
+                var watched = watcher;
+                watcher = null;
+                await watched;
+            }
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                var started = app;
+                app = null;
+                await started.DisposeAsync();
+            }
         }
     }
 }
