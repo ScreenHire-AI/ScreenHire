@@ -50,6 +50,22 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         {
             await Page.SetViewportSizeAsync(width, height);
             await Page.EvaluateAsync("() => window.scrollTo(0, 0)");
+            // The sidebar switches to the rail or the sheet a frame after the resize and then slides; measure once the
+            // content has held still for 20 frames.
+            await Page.EvaluateAsync(
+                """
+                () => new Promise((resolve) => {
+                  let last = '', still = 0;
+                  const step = () => {
+                    const box = document.querySelector('[data-slot="header-band"]').getBoundingClientRect();
+                    const key = `${box.left},${box.width}`;
+                    still = key === last ? still + 1 : 0;
+                    last = key;
+                    if (still >= 20) resolve(); else requestAnimationFrame(step);
+                  };
+                  requestAnimationFrame(step);
+                })
+                """);
 
             // One column, Integrity first, then the main column's panels, then the rest of the side column.
             integrity = await BoxAsync(Region("Integrity"));
