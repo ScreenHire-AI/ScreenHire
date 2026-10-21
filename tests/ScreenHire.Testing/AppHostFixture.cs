@@ -158,7 +158,7 @@ public class AppHostFixture : IAsyncLifetime
         }
     }
 
-    // A file that cannot be written loses its log, not the run: the watcher's task is awaited when the stack is disposed.
+    // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
     private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
     {
         try

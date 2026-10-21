@@ -92,7 +92,7 @@ internal static class DistributionEndpoints
             }
             catch (DbUpdateConcurrencyException)
             {
-                // The backstop: a write that skipped the posting lock changed the posting after it was loaded. A close
+                // The backstop. A write that skipped the posting lock changed the posting after it was loaded. A close
                 // of the job takes the same lock, so this take-down waited for it and planned on the closed posting.
                 return JobEndpoints.ChangedMeanwhile();
             }
