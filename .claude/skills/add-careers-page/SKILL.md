@@ -7,7 +7,9 @@ argument-hint: [route - what it shows]
 
 Careers pages are what candidates see first, often on a phone, and what Google for Jobs indexes. They render on
 demand on Node (`output: 'server'` in `apps/careers/astro.config.mjs`) so a closed job disappears at once. Read
-`.claude/rules/astro-public.md` first. `src/pages/[organization]/jobs/[job].astro` is the reference page.
+`.claude/rules/astro-public.md` first. `src/pages/[organization]/jobs/[job].astro` is the reference page. How the page
+looks and reads follows `docs/design/design-system.md` (the sections that rule lists); check it against the review
+checklist (section 2) before you finish.
 
 **Page:** $ARGUMENTS
 

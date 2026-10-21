@@ -33,8 +33,10 @@ its dimension. Tell each to read the changed files in full, report findings as `
 
 In the same parallel batch, launch the specialists (`.claude/agents/`), each given the diff range and the brief:
 `tenant-isolation-guard` and `integrity-guardrails` always (each says `NOT APPLICABLE` when the diff does not touch
-its area), `licence-check` when `Directory.Packages.props` or a `package.json` changed, and `migration-safety` when
-`src/ScreenHire.Infrastructure/Persistence/` or `src/ScreenHire.Domain/` changed. They go deeper on the
+its area), `licence-check` when `Directory.Packages.props` or a `package.json` changed, `migration-safety` when
+`src/ScreenHire.Infrastructure/Persistence/` or `src/ScreenHire.Domain/` changed, and `design-review` when
+`apps/dashboard/`, `apps/careers/`, `apps/marketing/` or `packages/ui/` changed (it holds screens to
+`docs/design/design-system.md`, the one source of truth for UI). They go deeper on the
 non-negotiables than dimension 2; dimension 2 still covers its whole list. If an agent type is not available in
 this session, use `general-purpose` with the contents of `.claude/agents/<name>.md` as the start of its prompt.
 
@@ -54,7 +56,7 @@ this session, use `general-purpose` with the contents of `.claude/agents/<name>.
    - licence policy for every new package (ADR-0008).
 3. **Conventions and maintainability:**
    - frontend: runes only, `#lib` imports, tokens only, status shape plus colour plus label, WCAG 2.2 AA, public
-     pages at about 0 KB JS;
+     pages at about 0 KB JS; the design system's checklist is `design-review`'s, not this dimension's;
    - backend: TypedResults, one `Map*Endpoints` per area, DTO records, strict numbers, Wolverine instead of
      hosted-service loops;
    - contracts regenerated, migrations sane and named, tests at the right tier;

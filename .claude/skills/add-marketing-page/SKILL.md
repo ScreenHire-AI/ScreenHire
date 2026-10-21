@@ -7,7 +7,9 @@ argument-hint: [path - what the page is for]
 
 The marketing site is static (no adapter in `apps/marketing/astro.config.mjs`) and SEO-first. Every page goes through
 `BaseLayout`, which renders `src/components/Seo.astro` (canonical, hreflang, Open Graph, one JSON-LD `@graph`). Read
-`.claude/rules/astro-public.md` first. `src/pages/pricing.astro` is the reference page.
+`.claude/rules/astro-public.md` first. `src/pages/pricing.astro` is the reference page. How the page looks and reads
+follows `docs/design/design-system.md` (the sections that rule lists); check it against the review checklist
+(section 2) before you finish.
 
 **Page:** $ARGUMENTS
 

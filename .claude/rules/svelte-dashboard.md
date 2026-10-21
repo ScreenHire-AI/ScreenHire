@@ -44,14 +44,17 @@ new route is the `/add-dashboard-page` skill.
 
 ## UI
 
+- How a screen looks, reads and behaves is `docs/design/design-system.md`, the one source of truth: its principles,
+  review checklist (section 2), page templates (section 7) and component catalogue (section 11). This rule covers
+  only the code conventions that serve it.
 - shadcn-svelte components in `src/lib/components/ui` are our code: edit them freely, and keep ScreenHire variants
   there (the `clear`, `review`, `verify` and `ai` badge variants). Add new ones with
   `pnpm exec svelte-kit sync` then `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install` from
   `apps/dashboard`. Use `field` with superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
-- Tokens only. Colours, fonts and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
+- Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
   `text-muted-foreground`, `text-status-review`). Never a hex value, never `rgb(...)`, never a Tailwind palette
-  colour such as `text-red-600`.
-- Status is a shape mark, a colour and a text label, always all three (design-system section 2.2). Colour alone
+  colour such as `text-red-600`, never a pixel font size such as `text-[11px]`.
+- Status is a shape mark, a colour and a text label, always all three (design system section 3.2). Colour alone
   fails WCAG 1.4.1.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
   reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves
@@ -62,12 +65,13 @@ new route is the `/add-dashboard-page` skill.
 - Keyboard: Ctrl K / ⌘K opens the command palette. Single-key shortcuts (the G chords, J / K, X, V) respect
   `preferences.shortcutsEnabled` (WCAG 2.1.4: the person can turn them off), skip text fields, menus and dialogs
   (`isTypingTarget` in `#lib/shortcuts.ts`), and work only while their table or board has focus, except the G chords.
-  Every shortcut has a visible control and a visible hint.
+  Every shortcut has a visible control. Hints appear as key caps in tooltips, menus and the `?` dialog (design system
+  section 15), never in an always-on bar.
 - The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
   `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`. The
   integrity chips are `integrityColumns` (`#lib/integrity-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`) but never filters: pages filter the rows they pass in (stage, saved view,
-  `IntegrityFilter`), so the footer count and "select all" match what is shown. Saved views are the list in
+  `IntegrityFilter`), so the count and "select all" match what is shown. Saved views are the list in
   `#lib/saved-views.ts`.
 - Integrity levels are drawn from `#lib/integrity.ts` (label, shape, tone, badge variant) through `IntegrityChip`;
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
