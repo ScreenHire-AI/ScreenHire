@@ -10,6 +10,8 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { goto } from '$app/navigation';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import DateText from '#lib/components/date-text.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -28,7 +30,6 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { formatDate } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { templatesPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
@@ -135,7 +136,7 @@
           <ul class="md:hidden">
             {#each shown as template (template.id)}
               <ListItem href={`/templates/${template.id}`} title={template.name}>
-                {#snippet meta()}{formatDate(template.updatedAt ?? template.createdAt)}{/snippet}
+                {#snippet meta()}<DateText at={template.updatedAt ?? template.createdAt} />{/snippet}
                 {#snippet facts()}
                   {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
                   <Badge variant="muted" class="tabular-nums">{template.latestPublishedVersion ? `Version ${template.latestPublishedVersion}` : 'Not published'}</Badge>
@@ -176,7 +177,7 @@
                       {#if template.latestPublishedVersion}Version {template.latestPublishedVersion}{:else}<span class="text-muted-foreground">Not yet</span>{/if}
                     </Table.Cell>
                     <Table.Cell class="text-muted-foreground tabular-nums">{template.draftVersion ? `Version ${template.draftVersion}` : ''}</Table.Cell>
-                    <Table.Cell class="pr-4.5 text-right text-muted-foreground tabular-nums">{formatDate(template.updatedAt ?? template.createdAt)}</Table.Cell>
+                    <Table.Cell class="pr-4.5 text-right text-muted-foreground"><span class="relative"><DateText at={template.updatedAt ?? template.createdAt} /></span></Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>
@@ -234,7 +235,7 @@
         <Field.Error id="new-template-source-error" errors={$errors.copyFromVersionId?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
+        <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>

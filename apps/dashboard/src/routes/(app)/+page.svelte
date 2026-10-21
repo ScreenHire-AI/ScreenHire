@@ -6,8 +6,9 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
+  import DateText from '#lib/components/date-text.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import Hint from '#lib/components/hint.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -24,7 +25,6 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
-  import { formatDate, formatDateTime } from '#lib/dates.js';
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -164,8 +164,9 @@
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
               {#snippet meta()}{@render published(job)}{/snippet}
               {#snippet facts()}
-                <!-- A long location is cut to the item's width; the job page shows it in full. -->
-                <Badge variant="muted" class="max-w-full"><span class="truncate">{job.location}</span></Badge>
+                <!-- A long location is cut to the item's width, whole in its tooltip (F5). relative: above the item's
+                     link, so the tooltip opens on tap. -->
+                <Badge variant="muted" class="relative max-w-full"><TruncatedText text={job.location} /></Badge>
                 <Badge variant="muted">{employmentLabel(job.employmentType)}</Badge>
                 {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
               {/snippet}
@@ -227,8 +228,7 @@
 
 {#snippet published(job: JobSummary)}
   {#if job.publishedAt}
-    {@const at = job.publishedAt}
-    <Hint content={formatDateTime(at)}>{#snippet children({ props })}<time {...props} datetime={at}>{formatDate(at)}</time>{/snippet}</Hint>
+    <DateText at={job.publishedAt} />
   {:else}
     -
   {/if}
@@ -245,7 +245,7 @@
 {/snippet}
 
 {#snippet failureFooter()}
-  <p role="alert" class="text-body text-destructive">{failure}</p>
+  <FailureText message={failure} />
 {/snippet}
 
 <CloseJobDialog jobId={closingId} bind:open={confirmClose} />

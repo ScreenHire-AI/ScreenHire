@@ -2,6 +2,7 @@
   import type { BoardSummary, JobDetail } from '@screenhire/api-client';
   import { createCloseJobPosting, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import FailureText from '#lib/components/failure-text.svelte';
   import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -119,7 +120,7 @@
 
 {#snippet messages()}
   <div class="flex flex-col gap-1">
-    <p role="alert" class="text-body text-destructive empty:hidden">{failure || publishFailure}</p>
+    <FailureText message={failure || publishFailure} />
     <p role="status" class="text-body text-muted-foreground empty:hidden">{notice}</p>
   </div>
 {/snippet}

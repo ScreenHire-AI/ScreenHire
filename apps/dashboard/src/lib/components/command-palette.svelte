@@ -60,7 +60,8 @@
           >
             {application.candidateName}
             <span class="ml-auto flex min-w-0 items-center gap-2">
-              <span class="truncate text-caption text-muted-foreground">{application.jobTitle}</span>
+              <!-- An option cannot hold a tooltip, so a long title wraps rather than being cut (F5). -->
+              <span class="min-w-0 text-right text-caption break-words text-muted-foreground">{application.jobTitle}</span>
               <Badge variant="muted">{application.stage.name}</Badge>
             </span>
           </Command.Item>

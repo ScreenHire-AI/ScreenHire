@@ -6,6 +6,7 @@
   import LogOutIcon from '@lucide/svelte/icons/log-out';
   import MailIcon from '@lucide/svelte/icons/mail';
   import { goto } from '$app/navigation';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -120,7 +121,7 @@
 {#snippet create()}
   <div class="flex flex-wrap items-center justify-end gap-2">
     {#if $errors._errors}
-      <p role="alert" class="mr-auto text-body text-destructive">{$errors._errors[0]}</p>
+      <FailureText message={$errors._errors[0]} class="mr-auto" />
     {/if}
     <Button type="submit" size="lg" disabled={$submitting}>Create organization</Button>
   </div>

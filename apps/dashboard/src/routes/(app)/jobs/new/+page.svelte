@@ -7,6 +7,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { goto } from '$app/navigation';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -204,7 +205,7 @@
         {#snippet footer()}
           <div class="flex flex-wrap items-center justify-end gap-2">
             {#if $errors._errors}
-              <p role="alert" class="mr-auto text-body text-destructive">{$errors._errors[0]}</p>
+              <FailureText message={$errors._errors[0]} class="mr-auto" />
             {/if}
             <Button href="/" variant="outline" size="lg">Cancel</Button>
             <Button type="submit" size="lg" disabled={$submitting}>Create job</Button>

@@ -194,7 +194,12 @@
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               {#snippet child({ props })}
-                <Sidebar.MenuButton {...props} size="lg" tooltipContent={user.displayName} tooltipContentProps={tooltipFor('user')}>
+                <Sidebar.MenuButton
+                  {...props}
+                  size="lg"
+                  tooltipContent={user.organization ? `${user.displayName}, ${user.organization.name}` : user.displayName}
+                  tooltipContentProps={{ hidden: !rail && !cut.has('user') && !cut.has('user-organization') }}
+                >
                   <span
                     aria-hidden="true"
                     class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground"
@@ -202,7 +207,7 @@
                   >
                   <span class="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:sr-only">
                     <span {@attach truncation('user')} class="truncate font-semibold text-sidebar-foreground">{user.displayName}</span>
-                    <span class="truncate text-caption text-muted-foreground">{user.organization?.name}</span>
+                    <span {@attach truncation('user-organization')} class="truncate text-caption text-muted-foreground">{user.organization?.name}</span>
                   </span>
                 </Sidebar.MenuButton>
               {/snippet}
@@ -210,7 +215,7 @@
             <DropdownMenu.Content side={rail ? 'right' : 'top'} align="start" class="w-60">
               <DropdownMenu.Label class="flex flex-col gap-0.5">
                 <span class="text-caption text-muted-foreground">Signed in as</span>
-                <span class="truncate font-normal">{user.email}</span>
+                <span class="font-normal break-all">{user.email}</span>
               </DropdownMenu.Label>
               <DropdownMenu.Separator />
               <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there. The dialog opens over the

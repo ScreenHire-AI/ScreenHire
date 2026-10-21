@@ -7,7 +7,7 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { tick, type Snippet } from 'svelte';
   import { get } from 'svelte/store';
-  import Hint from '#lib/components/hint.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
@@ -16,7 +16,6 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
-  import { formatDate, formatDateTime } from '#lib/dates.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { chipOf } from '#lib/integrity.js';
@@ -220,12 +219,7 @@
 {/snippet}
 
 {#snippet appliedCell(application: ApplicationSummary)}
-  <!-- A date in the table, the exact time on hover, focus or tap (design system section 13). -->
-  <Hint content={formatDateTime(application.submittedAt)}>
-    {#snippet children({ props })}
-      <time {...props} datetime={application.submittedAt} class="text-muted-foreground tabular-nums">{formatDate(application.submittedAt)}</time>
-    {/snippet}
-  </Hint>
+  <DateText at={application.submittedAt} class="text-muted-foreground" />
 {/snippet}
 
 {#snippet moveHeader()}
@@ -258,11 +252,7 @@
       />
     {/snippet}
     {#snippet meta()}
-      <Hint content={formatDateTime(application.submittedAt)}>
-        {#snippet children({ props })}
-          <time {...props} datetime={application.submittedAt} class="tabular-nums">{formatDate(application.submittedAt)}</time>
-        {/snippet}
-      </Hint>
+      <DateText at={application.submittedAt} />
     {/snippet}
     {#snippet facts()}
       <Badge variant="muted">{application.stage.name}</Badge>

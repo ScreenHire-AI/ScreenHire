@@ -3,6 +3,7 @@
   import { DismissIntegrityAssessmentBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
+  import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -105,7 +106,7 @@
         <Field.Error id="dismiss-note-error" errors={$errors.note?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
+        <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>

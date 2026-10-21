@@ -4,6 +4,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { tick } from 'svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -132,14 +133,14 @@
 <!-- Why a provider sign-in came back here, in the first panel. -->
 {#snippet providerError()}
   {#if data.errorMessage}
-    <p role="alert" class="text-body text-destructive">{data.errorMessage}</p>
+    <FailureText message={data.errorMessage} />
   {/if}
 {/snippet}
 
 {#snippet sendLink()}
   <div class="flex flex-wrap items-center justify-end gap-2">
     {#if $errors._errors}
-      <p role="alert" class="mr-auto text-body text-destructive">{$errors._errors[0]}</p>
+      <FailureText message={$errors._errors[0]} class="mr-auto" />
     {/if}
     <Button type="submit" size="lg" disabled={$submitting}>Email me a sign-in link</Button>
   </div>

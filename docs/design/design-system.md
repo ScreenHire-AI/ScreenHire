@@ -323,6 +323,8 @@ in a development build, shows every component in each state, and its test fails 
 | Activity | Our component | Icon in a circle, event, time ago |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
+| Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
+| Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
 
 ## 12. Words

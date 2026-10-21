@@ -54,6 +54,8 @@ const panels: Record<string, string[]> = {
   Activity: ['Activity'],
   'Action bar': ['Action bar'],
   'Relative time, truncated text': ['Time and long text'],
+  'Table date': ['Time and long text'],
+  'Failure text': ['Failure text'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
 };
 

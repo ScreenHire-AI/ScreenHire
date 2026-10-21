@@ -20,7 +20,9 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
@@ -51,7 +53,7 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { formatDate, hour, day, minute } from '#lib/dates.js';
+  import { hour, day, minute } from '#lib/dates.js';
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
@@ -180,7 +182,7 @@
   </HeaderBand>
 
   <div class="overflow-x-auto">
-    <div class={['mx-auto flex flex-col gap-5 px-4 py-6', !width && 'w-full max-w-page']} style:width={width ? `${width}px` : undefined}>
+    <div class={['mx-auto flex flex-col gap-5 px-4 py-6 md:px-6', !width && 'w-full max-w-page 2xl:max-w-page-wide']} style:width={width ? `${width}px` : undefined}>
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
@@ -250,6 +252,9 @@
           </Panel>
           <Panel title="Could not load">
             <QueryError message="Could not load the timeline. Check your connection." onretry={() => {}} inset />
+          </Panel>
+          <Panel title="Failure text">
+            <FailureText message="Could not publish Senior product designer. Try again in a minute." />
           </Panel>
         </div>
       </div>
@@ -424,6 +429,7 @@
         <Panel title="Time and long text" class="flex-[1_1_320px]">
           <SummaryList>
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
+            <SummaryItem label="Date in a table"><DateText at={ago(9 * day)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>
             <SummaryItem label="Truncated link">
               <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} underlined />
@@ -492,7 +498,7 @@
                   <Table.Cell class="px-4"><a href="#table" class="font-semibold text-foreground no-underline hover:underline">{person.name}</a></Table.Cell>
                   <Table.Cell><StatusBadge status={person.status} label={person.label} quiet={person.status === 'clear'} /></Table.Cell>
                   <Table.Cell>{person.stage}</Table.Cell>
-                  <Table.Cell class="tabular-nums">{formatDate(person.at)}</Table.Cell>
+                  <Table.Cell><DateText at={person.at} /></Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>
@@ -514,7 +520,7 @@
             {#each people as person (person.id)}
               <ListItem href="#list-item" title={person.name}>
                 {#snippet status()}<StatusBadge status={person.status} label={person.label} quiet={person.status === 'clear'} />{/snippet}
-                {#snippet meta()}{formatDate(person.at)}{/snippet}
+                {#snippet meta()}<DateText at={person.at} />{/snippet}
                 {#snippet facts()}
                   <Badge variant="muted">{person.stage}</Badge>
                   <Badge variant="muted">{person.source}</Badge>
