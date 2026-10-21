@@ -8,6 +8,7 @@
   import type { ApplicationAnswer, ApplicationTimelineEntry, Question } from '@screenhire/api-client';
   import { ApiError, createGetApplication, createGetApplicationTimeline, createGetJob } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
@@ -23,6 +24,8 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { sourceName } from '#lib/format.js';
@@ -118,21 +121,24 @@
       {stages}
       variant="default"
       size="lg"
-      class={sidebar.isMobile ? 'w-full' : undefined}
       disabled={moves.pending}
       onmove={(stage) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage)}
     />
   {/if}
 {/snippet}
 
-<main class={['flex flex-col', sidebar.isMobile && detail && 'pb-20']}>
+<main class={['flex flex-col', sidebar.isMobile && detail && 'pb-28']}>
   {#if application.isError}
     {#if notFound}
-      <HeaderBand title="Application not found">
-        {#snippet details()}
-          <p>It does not exist, or it belongs to another organization. <a href="/candidates">Back to candidates</a></p>
-        {/snippet}
-      </HeaderBand>
+      <HeaderBand title="Application not found" />
+      <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
+        <div class="rounded-panel border border-border bg-card">
+          <Empty.Root>
+            <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
+            <Button href="/candidates" variant="outline" size="lg">Back to candidates</Button>
+          </Empty.Root>
+        </div>
+      </div>
     {:else}
       <HeaderBand title="Application" />
       <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
@@ -140,14 +146,14 @@
       </div>
     {/if}
   {:else if !detail}
-    <div aria-hidden="true" class="border-b border-border bg-card">
-      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
+    <div aria-hidden="true" class="@container border-b border-border bg-card">
+      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 @3xl:px-6">
         <Skeleton class="h-8 w-64 max-w-full" />
         <Skeleton class="h-4 w-80 max-w-full" />
         <Skeleton class="h-10 w-96 max-w-full" />
       </div>
     </div>
-    <div aria-hidden="true" class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
+    <div aria-hidden="true" class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 lg:flex-row-reverse">
       <Skeleton class="h-48 rounded-panel lg:basis-side" />
       <Skeleton class="h-96 flex-1 rounded-panel" />
     </div>
@@ -155,20 +161,14 @@
   {:else}
     <HeaderBand title={detail.candidate.fullName} actions={sidebar.isMobile ? undefined : moveToStage}>
       {#snippet details()}
-        <a href={`mailto:${detail.candidate.email}`} class="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-          <MailIcon aria-hidden="true" class="shrink-0" />
-          <TruncatedText text={detail.candidate.email} />
-        </a>
+        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} class="text-muted-foreground" />
         {#if detail.candidate.phone}
-          <a href={`tel:${detail.candidate.phone}`} class="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-            <PhoneIcon aria-hidden="true" class="shrink-0" />
-            <TruncatedText text={detail.candidate.phone} />
-          </a>
+          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} class="text-muted-foreground" />
         {/if}
       {/snippet}
       {#snippet facts()}
         <Fact label="Stage">{detail.stage.name}</Fact>
-        <Fact label="Job"><a href={`/jobs/${detail.jobId}`} class="block min-w-0 truncate">{detail.jobTitle}</a></Fact>
+        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} /></Fact>
         <Fact label="Applied"><RelativeTime at={detail.submittedAt} /></Fact>
         <Fact label="Source">{sourceName(detail.source)}</Fact>
       {/snippet}
@@ -242,10 +242,7 @@
     </div>
 
     {#if sidebar.isMobile && stages.length > 0}
-      <!-- Below the sheet and dialog layer (z-50), so the stage menu and dialogs cover it. -->
-      <div class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-3 pb-[max(--spacing(3),env(safe-area-inset-bottom))]">
-        {@render moveToStage()}
-      </div>
+      <ActionBar>{@render moveToStage()}</ActionBar>
     {/if}
   {/if}
 </main>

@@ -14,6 +14,7 @@
   import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
@@ -164,10 +165,8 @@
               <HeaderBand title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
                 {#snippet details()}
-                  <a href="mailto:samuel.okonkwo@example.com" class="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                    <MailIcon aria-hidden="true" class="shrink-0" /><TruncatedText text="samuel.okonkwo@example.com" />
-                  </a>
-                  <span class="flex min-w-0 items-center gap-1.5"><PhoneIcon aria-hidden="true" class="shrink-0" />+1 555 0142</span>
+                  <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} class="text-muted-foreground" />
+                  <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} class="text-muted-foreground" />
                 {/snippet}
                 {#snippet actions()}
                   <Button size="lg">Move to stage</Button>
@@ -352,6 +351,9 @@
           <SummaryList>
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>
+            <SummaryItem label="Truncated link">
+              <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} />
+            </SummaryItem>
           </SummaryList>
         </Panel>
       </div>
@@ -436,6 +438,15 @@
           <ActivityList label="Activity" items={activity} />
         </Panel>
       </div>
+
+      <Panel title="Action bar">
+        <figure class="flex flex-col gap-2">
+          <figcaption class="text-caption text-muted-foreground">A phone's primary action, fixed to the bottom of the screen; shown in place here</figcaption>
+          <div class="max-w-95 overflow-hidden rounded-lg bg-secondary pt-6">
+            <ActionBar class="static z-auto"><Button size="lg">Move to stage</Button></ActionBar>
+          </div>
+        </figure>
+      </Panel>
 
       <Panel title="Integrity chip and evidence">
         <div class="flex flex-col gap-4">

@@ -309,8 +309,9 @@ in a development build, shows every component in each state, and its test fails 
 | Sidebar | shadcn `Sidebar` | Section 8 |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Activity | Our component | Icon in a circle, event, time ago |
-| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence` | Section 16 |
+| Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
+| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
 
 ## 12. Words
 

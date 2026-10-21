@@ -47,6 +47,7 @@ const panels: Record<string, string[]> = {
   Sidebar: ['Sidebar'],
   'Table, list item': ['Table', 'List item, the table on a phone'],
   Activity: ['Activity'],
+  'Action bar': ['Action bar'],
   'Relative time, truncated text': ['Time and long text'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
 };

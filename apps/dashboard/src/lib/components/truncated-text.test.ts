@@ -1,3 +1,4 @@
+import MailIcon from '@lucide/svelte/icons/mail';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
@@ -33,6 +34,21 @@ describe('truncated text', () => {
     await fireEvent.focus(span);
     expect(tooltip()).toHaveTextContent(text);
     expect(span).toHaveAttribute('aria-describedby', tooltip()!.id);
+    await expectNoAxeViolations(document.body);
+  });
+
+  it('as a link, is one tab stop that carries the tooltip, with its icon hidden', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    const email = 'samuel.okonkwo-hartley@careers.example.com';
+    render(WithTooltips, { props: { component: TruncatedText, props: { text: email, href: `mailto:${email}`, icon: MailIcon } } });
+
+    const link = screen.getByRole('link', { name: email });
+    expect(link).toHaveAttribute('href', `mailto:${email}`);
+    expect(link).not.toHaveAttribute('tabindex');
+    expect(link.querySelectorAll('[tabindex]')).toHaveLength(0);
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    await fireEvent.focus(link);
+    expect(tooltip()).toHaveTextContent(email);
     await expectNoAxeViolations(document.body);
   });
 });
