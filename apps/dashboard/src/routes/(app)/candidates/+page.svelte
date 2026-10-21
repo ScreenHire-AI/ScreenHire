@@ -26,6 +26,8 @@
   const filtering = $derived(Boolean(view || integrityFilter.authenticity || integrityFilter.aiAssistance));
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
+  // The table has no footer (design system K1), so the count line says how many of the shown rows are ticked.
+  const selectedCount = $derived(shown.filter((application) => selectedIds.includes(application.id)).length);
 </script>
 
 <svelte:head>
@@ -43,7 +45,7 @@
       </h1>
       <p class="text-caption text-muted-foreground">
         {#if applications.isSuccess}
-          {shown.length} {shown.length === 1 ? 'application' : 'applications'}{#if view} · <a href="/candidates">show all</a>{/if}
+          {shown.length} {shown.length === 1 ? 'application' : 'applications'}{#if selectedCount > 0}, {selectedCount} selected{/if}{#if view} · <a href="/candidates">show all</a>{/if}
         {:else}&nbsp;{/if}
       </p>
     </div>
