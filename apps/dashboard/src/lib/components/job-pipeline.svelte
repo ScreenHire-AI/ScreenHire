@@ -210,7 +210,7 @@
       </div>
     {:else if pending}
       <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-18" />{/each}
+        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
       </div>
     {:else if view === 'table'}
       <ApplicationTable
