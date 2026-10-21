@@ -110,7 +110,7 @@ office days in Manchester, accounts looked after and a customer kept. The answer
 link is an `example.org` address. A data volume from before the questionnaires gets them on the next start, but the
 designer and frontend candidates in it applied without answers and stay that way. Use `/preview fresh` to see every answer.
 
-Between them every stage of both pipelines holds someone. The distribution strips show the states a local stack can
+Between them every stage of both pipelines holds someone. The Distribution panels show the states a local stack can
 reach: Live (careers page, sandbox board), Sent (feeds and the job-board API), Needs fixes (a feed that wants a longer
 description), Not posted, Removal requested and Removed. Rejected and Error need a real board's answer and do not occur
 locally.
@@ -134,8 +134,8 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
 
 ## A five-minute demo
 
-1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows what is open and what is a draft. The sidebar's
-   saved views count what needs attention: "Needs review" and "Verification recommended".
+1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, and the Status filter
+   counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification recommended".
 2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The overview bar sorts the seven applicants by
    authenticity level, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
@@ -147,14 +147,15 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
    records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
    to Robin within a second or two. Every candidate's "We received your application" email is there too, and the
    Screening and Interview emails for the designer and frontend candidates.
-4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** shows everything the posting
-   carries (salary, location, closing date, description). Press **Publish to 8 boards**. The careers page
+4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** opens the form with everything the
+   posting carries (salary, location, closing date, description). Back on the job, press **Publish to 8 boards**, the
+   page's one primary action. The careers page
    is live at once; the local sandbox board confirms in about 20 seconds; the feed boards show "Sent" with each one's
    usual delay. The job is now on http://localhost:4322/brightwater.
 5. **Apply as a candidate (60 s).** On the careers page, open the new job and apply: the notice comes first, then three
    short steps. The form works with JavaScript off too. Back in the dashboard, the application appears in the open job
    without a reload, and its chip follows once the checks finish.
-6. **Take it down (15 s).** **Close & remove everywhere** on the job page. The careers page now answers "This job has
+6. **Take it down (15 s).** On the job page, open **More actions**, choose **Close & remove everywhere** and confirm. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
 Extras if there is time: Support Engineer for a closed job and its candidates' timelines with the recruiter's notes,

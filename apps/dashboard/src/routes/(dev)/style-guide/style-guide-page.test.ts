@@ -35,6 +35,8 @@ const panels: Record<string, string[]> = {
   'Header band, Panel': ['Header band', 'Panel'],
   'Status badge': ['Status badge'],
   'Fact pill': ['Fact pill'],
+  Toggle: ['Toggle'],
+  'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
   'Summary list': ['Summary list'],

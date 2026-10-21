@@ -1,12 +1,13 @@
 import { renderSnippet } from '@tanstack/svelte-table';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
 import { applications } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/integrity-fixtures.js';
+import { stubViewport } from '../../test-support/viewport.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import ApplicationTable from './application-table.svelte';
 
@@ -16,6 +17,7 @@ const rowOf = (name: string) => screen.getByRole('link', { name }).closest('tr')
 
 afterEach(() => {
   preferences.setShortcutsEnabled(true);
+  vi.unstubAllGlobals();
 });
 
 describe('candidate table', () => {
@@ -170,5 +172,32 @@ describe('candidate table', () => {
     expect(dataRows().length).toBeGreaterThan(10);
     expect(dataRows().length).toBeLessThan(60);
     expect(screen.getByRole('table')).toHaveAttribute('aria-rowcount', '501');
+  });
+});
+
+describe('candidate table on a phone', () => {
+  it('shows each application as a list item: authenticity first, the name as the link, facts as pills', () => {
+    stubViewport(360);
+    const rows = [{ ...applications[0]!, integrity: summary({ authenticity: 'ReviewSuggested' }) }, applications[1]!];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, label: 'Candidates for Senior .NET Engineer', showJob: true } } });
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const items = within(screen.getByRole('list', { name: 'Candidates for Senior .NET Engineer' })).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
+    expect(items[0]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-level', 'Review suggested');
+    expect(items[0]).toHaveTextContent('Applied');
+    expect(items[0]).toHaveTextContent('Senior .NET Engineer');
+    expect(items[0]).toHaveTextContent('careers');
+    expect(items[0]).toHaveTextContent('Oct 20, 2026');
+    expect(items[1]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-level', 'pending');
+  });
+
+  it('says why when there is nothing to show', () => {
+    stubViewport(360);
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates yet.' } } });
+
+    expect(screen.getByText('No candidates yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 });
