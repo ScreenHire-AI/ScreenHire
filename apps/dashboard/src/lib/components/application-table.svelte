@@ -290,13 +290,15 @@
 {/snippet}
 
 {#if phone.current}
-  <ul aria-label={label}>
-    {#each rows as row (row.id)}
-      {@render listItem(row.original)}
-    {:else}
-      <li>{@render empty()}</li>
-    {/each}
-  </ul>
+  {#if rows.length === 0}
+    {@render empty()}
+  {:else}
+    <ul aria-label={label}>
+      {#each rows as row (row.id)}
+        {@render listItem(row.original)}
+      {/each}
+    </ul>
+  {/if}
 {:else}
   <!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->
   <div class="flex flex-col" {onkeydown} {onfocusin}>

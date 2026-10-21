@@ -213,3 +213,30 @@ describe('candidate table', () => {
     expect(screen.getByRole('table')).toHaveAttribute('aria-rowcount', '501');
   });
 });
+
+describe('candidate table on a phone', () => {
+  it('shows each application as a list item: authenticity first, the name as the link, facts as pills', () => {
+    stubViewport(360);
+    const rows = [{ ...applications[0]!, integrity: summary({ authenticity: 'ReviewSuggested' }) }, applications[1]!];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, label: 'Candidates for Senior .NET Engineer', showJob: true } } });
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const items = within(screen.getByRole('list', { name: 'Candidates for Senior .NET Engineer' })).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
+    expect(items[0]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-level', 'Review suggested');
+    expect(items[0]).toHaveTextContent('Applied');
+    expect(items[0]).toHaveTextContent('Senior .NET Engineer');
+    // The canvas's phone item has no source pill; the source is a column on wider screens and on the application page.
+    expect(items[0]).toHaveTextContent('Oct 20, 2026');
+    expect(items[1]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-level', 'pending');
+  });
+
+  it('says why when there is nothing to show', () => {
+    stubViewport(360);
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates yet.' } } });
+
+    expect(screen.getByText('No candidates yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+  });
+});

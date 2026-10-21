@@ -36,12 +36,11 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
         await Expect(table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }) }))
             .ToContainTextAsync("Applied");
-        // The stage filter is a menu in the pipeline panel's header, each stage with its count.
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Stage: All") }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Menuitemradio, new() { NameRegex = new("^All") }))
-            .ToContainTextAsync(Candidates.Length.ToString(CultureInfo.InvariantCulture));
-        await Page.Keyboard.PressAsync("Escape");
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync($"{Candidates.Length} applicants");
+        // The pipeline panel counts every candidate after its title.
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" }).Locator("header [data-slot='badge']"))
+            .ToHaveTextAsync(Candidates.Length.ToString(CultureInfo.InvariantCulture));
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Stage" }).GetByRole(AriaRole.Button, new() { Name = "All" }))
+            .ToHaveAttributeAsync("aria-pressed", "true");
         // J moves the cursor to the next row and shows it in the side panel.
         await table.GetByRole(AriaRole.Link, new() { Name = Candidates[0] }).FocusAsync();
         await Page.Keyboard.PressAsync("j");
@@ -93,7 +92,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Not posted to this board.");
         await ExpectNoAccessibilityViolationsAsync();
 
-        await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        // Publishing a draft is the page's one primary action, in its header band.
+        await Page.Locator("[data-slot='header-band']").GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
 
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
@@ -108,14 +108,31 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live:"); // the other boards stay up
         await Expect(distribution.GetByRole(AriaRole.Button, new() { Name = "Post to Sandbox board" })).ToBeVisibleAsync();
 
-        // Closing takes it down everywhere, after a confirmation.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
+        // Closing takes it down everywhere: a destructive item in the More menu, confirmed in a dialog (A2).
+        var band = Page.Locator("[data-slot='header-band']");
+        var more = band.GetByRole(AriaRole.Button, new() { Name = "More actions" });
+        var closeItem = Page.GetByRole(AriaRole.Menuitem, new() { Name = "Close & remove everywhere" });
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Close this job and remove it everywhere?" });
+
+        // Backing out leaves the job open and the page usable.
+        await more.ClickAsync();
+        await closeItem.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(dialog.Locator(":focus")).ToHaveCountAsync(1);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Keep it open" }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+        await Expect(more).ToBeFocusedAsync();
+        await Expect(band).ToContainTextAsync("Open");
+        await Expect(Board(Page, "careers")).ToContainTextAsync("Live:");
+
+        await more.ClickAsync();
+        await closeItem.ClickAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(Board(Page, "careers")).ToContainTextAsync("Removed:");
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("Closed");
+        await Expect(band).ToContainTextAsync("Closed");
+        await Expect(more).ToBeHiddenAsync();
 
         // The dark theme, for comparing with the design.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to dark theme" }).ClickAsync();
@@ -170,12 +187,12 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(390, 844);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(Page, scene.JobId);
-        // On a phone the table's rows are two-line list items (design system section 8).
+        // On a phone the candidate table is a list of two-line items (design system section 8).
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0] }))
             .ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" })).ToHaveCountAsync(0);
 
-        // Nothing on the page, the chips' sr-only labels included, widens it past the phone.
+        // The chips' sr-only labels sit inside their list items and must not widen the page.
         var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
         overflow.Should().Be(0, "the page never scrolls sideways (design system F1)");
     }
@@ -228,9 +245,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
                 // The pipeline's header at its fullest: a stage chosen and two rows ticked, then the longest filter label.
                 // Controls never wrap or push past the panel (F5); labels shorten instead.
                 var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
-                await pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Stage: All") }).ClickAsync();
-                await Page.GetByRole(AriaRole.Menuitemradio, new() { NameRegex = new("^Applied") }).ClickAsync();
-                await Page.Keyboard.PressAsync("Escape");
+                await pipeline.GetByRole(AriaRole.Group, new() { Name = "Stage" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Applied") }).ClickAsync();
                 await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {Candidates[0]}" }).CheckAsync();
                 await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {Candidates[1]}" }).CheckAsync();
                 await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = "Move 2 selected…" })).ToBeVisibleAsync();

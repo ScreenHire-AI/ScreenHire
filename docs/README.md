@@ -35,7 +35,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
 | Integrity | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
-| Dashboard | The Warm Grid shell, jobs and their details, candidate table and board, live updates, distribution strip, integrity chips and evidence panel, template and workflow builder | #14, #16, #17 and the acceptance task |
+| Dashboard | The Warm Grid shell, jobs and their details, candidate table and board, live updates, distribution panel, integrity chips and evidence panel, template and workflow builder | #14, #16, #17 and the acceptance task |
 | Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets | #4, #5, #6, #8 |
 
 ### Faked locally

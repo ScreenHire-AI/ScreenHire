@@ -49,7 +49,7 @@ new route is the `/add-dashboard-page` skill.
   review checklist (section 2), page templates (section 7) and component catalogue (section 11). This rule covers
   only the code conventions that serve it.
 - shadcn-svelte components in `src/lib/components/ui` are our code: edit them freely, and keep ScreenHire variants
-  there (the `clear`, `review`, `verify`, `ai`, `quiet`, `muted` and `count` badge variants). Add new ones with
+  there (the `clear`, `review`, `verify`, `ai`, `neutral`, `quiet`, `muted` and `count` badge variants). Add new ones with
   `pnpm exec svelte-kit sync` then `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install` from
   `apps/dashboard`. Use `field` with superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
 - Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,

@@ -1,44 +1,37 @@
 <script lang="ts">
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
-  import SquareKanbanIcon from '@lucide/svelte/icons/square-kanban';
-  import Table2Icon from '@lucide/svelte/icons/table-2';
-  import WorkflowIcon from '@lucide/svelte/icons/workflow';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
-  import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-  import * as Empty from '#lib/components/ui/empty/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { initials } from '#lib/format.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import {
     bulkMoveStages,
-    chipOf,
     isIntegrityFiltered,
     matchesIntegrityFilter,
     noIntegrityFilter,
     type IntegrityFilter,
   } from '#lib/integrity.js';
-  import { createMoves } from '#lib/moves.svelte.js';
+  import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
-  import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
-  // A job's candidates as a table or a board (design system section 7, the list template inside the job page), with the
-  // selected candidate beside the table. Search and filters sit in the panel header; the page filters nothing itself.
+  // A job's candidates as a table or a board, in the job page's main column (design system section 7). Search, the
+  // integrity filter and a bulk move sit in the panel header, the stage filter on a row under it. The page filters
+  // nothing itself, and shows the selected candidate (`activeId`) in its side column.
   let {
     jobTitle,
     stages,
@@ -46,7 +39,10 @@
     pending,
     error,
     onretry,
+    moves,
     integrityFilter = $bindable({ ...noIntegrityFilter }),
+    view = $bindable('table'),
+    activeId = $bindable(null),
   }: {
     jobTitle: string;
     stages: readonly WorkflowStage[];
@@ -55,16 +51,16 @@
     /** The applications query's error, or null. */
     error: unknown;
     onretry: () => unknown;
+    moves: Moves;
     /** Shared with the job's integrity overview, whose legend sets it through `setIntegrityFilter`. */
     integrityFilter?: IntegrityFilter;
+    view?: 'table' | 'board';
+    /** The keyboard cursor's row (J / K), shown by the page in its side column. */
+    activeId?: string | null;
   } = $props();
-
-  const moves = createMoves();
 
   let stageFilter = $state<string | null>(null);
   let search = $state('');
-  let view = $state<'table' | 'board'>('table');
-  let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
 
   const searched = $derived(applications.filter((application) => matchesSearch(application, search)));
@@ -73,19 +69,13 @@
   );
   const filtering = $derived(Boolean(stageFilter) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
   const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
-  const active = $derived(applications.find((application) => application.id === activeId));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
   const countIn = (stageId: string) => applications.filter((application) => application.stage.id === stageId).length;
-  const stageOptions = $derived([
-    { id: null, name: 'All', count: applications.length },
-    ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) })),
-  ]);
-  // The stage menu's tooltip says its label only where the label is cut: visually hidden in a narrow panel header, or
-  // ending in an ellipsis (F5).
-  let stageLabelCut = $state(false);
-  const watchStageLabel = watchTruncation((cut) => (stageLabelCut = cut));
-  const stageSummary = $derived(`Stage: ${stageOptions.find((option) => option.id === stageFilter)?.name ?? 'All'}`);
+  const views = [
+    { id: 'table', label: 'Table' },
+    { id: 'board', label: 'Board' },
+  ] as const;
 
   /**
    * A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
@@ -118,170 +108,90 @@
     // The ones that failed stay selected, so they can be moved again.
     selectedIds = await moves.moveAll(selected, stage);
   }
-
-  const views = [
-    { id: 'table', label: 'Table', icon: Table2Icon },
-    { id: 'board', label: 'Board', icon: SquareKanbanIcon },
-  ] as const;
 </script>
 
-<div class="flex flex-wrap items-start gap-5">
-  <Panel label="Pipeline" flush class="flex-[999_1_520px]" {onkeydown}>
-    {#snippet tools()}
-      <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
-      {#if view === 'table'}
+<!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. -->
+<Panel title="Pipeline" count={pending ? undefined : applications.length} flush {onkeydown}>
+  {#snippet tools()}
+    <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+    {#if view === 'table'}
+      <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
+      {#if selected.length > 0}
         <DropdownMenu.Root>
-          <Tooltip.Root disabled={!stageLabelCut}>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <DropdownMenu.Trigger
-                  {...props}
-                  class={cn(
-                    buttonVariants({ variant: 'outline' }),
-                    'max-w-52 min-w-0 shrink @max-3xl/panel:w-8 @max-3xl/panel:shrink-0 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11',
-                    stageFilter && 'border-primary text-primary',
-                  )}
-                >
-                  <WorkflowIcon aria-hidden="true" />
-                  <span {@attach watchStageLabel} class="min-w-0 truncate @max-3xl/panel:sr-only">{stageSummary}</span>
-                </DropdownMenu.Trigger>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Content>{stageSummary}</Tooltip.Content>
-          </Tooltip.Root>
-          <DropdownMenu.Content align="start" class="w-56">
-            <DropdownMenu.RadioGroup value={stageFilter ?? 'all'} onValueChange={(value) => (stageFilter = value === 'all' ? null : value)}>
-              {#each stageOptions as option (option.id ?? 'all')}
-                <DropdownMenu.RadioItem value={option.id ?? 'all'}>
-                  {option.name}
-                  <Badge variant="count" class="ml-auto">{option.count}</Badge>
-                </DropdownMenu.RadioItem>
-              {/each}
-            </DropdownMenu.RadioGroup>
+          <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}>Move {selected.length} selected…</DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end" class="w-52">
+            {#each moveTargets as stage (stage.id)}
+              <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
+            {/each}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
-        <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
-        {#if selected.length > 0}
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}>
-              Move {selected.length} selected…
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end" class="w-52">
-              {#each moveTargets as stage (stage.id)}
-                <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
-              {/each}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        {/if}
       {/if}
-    {/snippet}
-    {#snippet actions()}
-      <div role="group" aria-label="View" class="flex gap-0.5 rounded-lg bg-secondary p-0.5">
-        {#each views as option (option.id)}
-          {@const Icon = option.icon}
-          <Tooltip.Root>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <button
-                  {...props}
-                  type="button"
-                  aria-pressed={view === option.id}
-                  aria-keyshortcuts={preferences.shortcutsEnabled ? 'V' : undefined}
-                  onclick={() => (view = option.id)}
-                  class={[
-                    'flex h-7 items-center gap-1.5 rounded-md px-2.5 text-body pointer-coarse:h-11 @max-3xl/panel:px-1.5 pointer-coarse:@max-3xl/panel:w-11 pointer-coarse:@max-3xl/panel:justify-center',
-                    view === option.id ? 'bg-card font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground',
-                  ]}
-                >
-                  <Icon aria-hidden="true" />
-                  <span class="@max-3xl/panel:sr-only">{option.label}</span>
-                </button>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Content>
-              {option.label}
-              {#if preferences.shortcutsEnabled}<Kbd>V</Kbd>{/if}
-            </Tooltip.Content>
-          </Tooltip.Root>
+    {/if}
+  {/snippet}
+  {#snippet actions()}
+    <div role="group" aria-label="View" class="flex gap-1">
+      {#each views as option (option.id)}
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Toggle
+                {...props}
+                bind:pressed={() => view === option.id, () => (view = option.id)}
+                aria-keyshortcuts={preferences.shortcutsEnabled ? 'V' : undefined}>{option.label}</Toggle
+              >
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Content>
+            Switch view{#if preferences.shortcutsEnabled}<Kbd>V</Kbd>{/if}
+          </Tooltip.Content>
+        </Tooltip.Root>
+      {/each}
+    </div>
+  {/snippet}
+
+  {#if view === 'table'}
+    <!-- The stage filter: one line that scrolls inside the panel rather than wrapping (F5). -->
+    <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+      <div role="group" aria-label="Stage" class="flex shrink-0 gap-1">
+        {#each [{ id: null, name: 'All', count: null }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
+          <Toggle size="lg" bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
+            {option.name}
+            {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}
+          </Toggle>
         {/each}
       </div>
-    {/snippet}
-
-    {#if error}
-      <div class="p-4">
-        <QueryError message={describeError(error, 'Could not load the candidates')} {onretry} inset />
-      </div>
-    {:else if pending}
-      <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
-      </div>
-    {:else if view === 'table'}
-      <ApplicationTable
-        applications={shown}
-        label={`Candidates for ${jobTitle}`}
-        {stages}
-        {moves}
-        extraColumns={integrityColumns}
-        bind:activeId
-        bind:selectedIds
-        emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
-        onclearfilters={filtering ? clearFilters : undefined}
-      />
-    {:else if searched.length === 0}
-      <Empty.Root class="gap-3 p-6">
-        <Empty.Description>{search.trim() ? 'No candidates match this search.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
-        {#if search.trim()}<Button variant="outline" onclick={clearFilters}>Clear filters</Button>{/if}
-      </Empty.Root>
-    {:else}
-      <PipelineBoard applications={searched} {stages} {moves} />
-    {/if}
-    <p role="status" class={['px-4 py-2 text-body empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
-      {moves.announcement}
-    </p>
-  </Panel>
-
-  <!-- The panel keeps its place before a row is chosen: appearing on the first click's mousedown narrowed the table
-       under the pointer, so the mouseup missed the candidate's link and the click never opened it. Phones open the
-       candidate from its list item instead. -->
-  {#if view === 'table' && applications.length > 0}
-    <Panel title="Selected candidate" class="flex-[1_1_320px] max-md:hidden lg:max-w-95">
-      {#if active}
-        {@render selectedCandidate(active)}
-      {:else}
-        <p class="text-muted-foreground">No candidate selected</p>
-      {/if}
-    </Panel>
+    </div>
   {/if}
-</div>
 
-{#snippet selectedCandidate(application: ApplicationSummary)}
-  <div class="flex flex-col gap-4">
-    <div class="flex min-w-0 items-center gap-3">
-      <span aria-hidden="true" class="grid size-10 flex-none place-items-center rounded-full bg-secondary font-bold text-secondary-foreground"
-        >{initials(application.candidateName)}</span
-      >
-      <h3 class="min-w-0 font-display text-panel-title break-words">{application.candidateName}</h3>
+  {#if error}
+    <div class="p-4">
+      <QueryError message={describeError(error, 'Could not load the candidates')} {onretry} inset />
     </div>
-    <dl class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2">
-      <dt class="text-caption text-muted-foreground">Stage</dt>
-      <dd><Badge variant="muted">{application.stage.name}</Badge></dd>
-      <dt class="text-caption text-muted-foreground">Entered stage</dt>
-      <dd><RelativeTime at={application.stageEnteredAt} /></dd>
-      {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assistance' }] as const as row (row.kind)}
-        {@const chip = chipOf(application.integrity, row.kind)}
-        <dt class="text-caption text-muted-foreground">{row.label}</dt>
-        <dd><IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} /></dd>
-      {/each}
-    </dl>
-    <div class="flex flex-wrap gap-2">
-      <a href={`/applications/${application.id}`} class={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>Open application</a>
-      <MoveToStage
-        candidateName={application.candidateName}
-        currentStageId={application.stage.id}
-        {stages}
-        disabled={moves.pending}
-        onmove={(stage) => moves.move(application, stage)}
-      />
+  {:else if pending}
+    <div aria-hidden="true" class="flex flex-col gap-1 p-3">
+      {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
     </div>
-  </div>
-{/snippet}
+  {:else if view === 'table'}
+    <ApplicationTable
+      applications={shown}
+      label={`Candidates for ${jobTitle}`}
+      {stages}
+      {moves}
+      extraColumns={integrityColumns}
+      bind:activeId
+      bind:selectedIds
+      emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
+      onclearfilters={filtering ? clearFilters : undefined}
+    />
+  {:else if searched.length === 0}
+    <Empty.Root class="gap-3 p-6">
+      <Empty.Description>{search.trim() ? 'No candidates match this search.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
+      {#if search.trim()}<Button variant="outline" onclick={clearFilters}>Clear filters</Button>{/if}
+    </Empty.Root>
+  {:else}
+    <PipelineBoard applications={searched} {stages} {moves} />
+  {/if}
+  <p role="status" class={['px-4.5 py-2 text-body empty:hidden max-md:px-4', moves.failure ? 'text-destructive' : 'text-muted-foreground']}>
+    {moves.announcement}
+  </p>
+</Panel>

@@ -1,24 +1,20 @@
 import type { WorkflowStage } from '@screenhire/api-client';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import type { ComponentProps } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
+import type { IntegrityFilter } from '#lib/integrity.js';
 import { applications, stages } from '../../test-support/fixtures.js';
+import JobPipelineHarness from '../../test-support/job-pipeline-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
-import JobPipeline from './job-pipeline.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
 
-function renderPipeline(overrides: Partial<ComponentProps<typeof JobPipeline>> = {}) {
-  return render(WithQueryClient, {
-    props: {
-      component: JobPipeline,
-      props: { jobTitle: 'Senior .NET Engineer', stages, applications, pending: false, error: null, onretry: vi.fn(), ...overrides },
-    },
-  });
+function renderPipeline(overrides: { stages?: WorkflowStage[]; integrityFilter?: IntegrityFilter } = {}) {
+  return render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications, ...overrides } } });
 }
 
-const panelHeader = () => screen.getByRole('region', { name: 'Pipeline' }).querySelector('header')!;
+const panel = () => screen.getByRole('region', { name: 'Pipeline' });
+const panelHeader = () => panel().querySelector('header')!;
 const names = () =>
   within(screen.getByRole('table', { name: 'Candidates for Senior .NET Engineer' }))
     .getAllByRole('link')
@@ -30,14 +26,26 @@ afterEach(() => {
 });
 
 describe('job pipeline', () => {
-  it('holds search, the stage and integrity filters and the view switch in its panel header (section 7)', () => {
+  it('titles the panel with its count, and holds search, the integrity filter and the view switch in its header (section 7)', () => {
     renderPipeline();
     const header = panelHeader();
 
+    expect(within(header).getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(header.querySelector('[data-slot="badge"]')).toHaveTextContent(String(applications.length));
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
-    expect(within(header).getByRole('button', { name: /^Stage: All/ })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^Integrity: all/ })).toBeInTheDocument();
     expect(within(within(header).getByRole('group', { name: 'View' })).getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('filters by stage with a group of toggles on a row under the header, each with its count (T4)', async () => {
+    renderPipeline();
+    const group = within(panel()).getByRole('group', { name: 'Stage' });
+
+    expect(within(group).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    await fireEvent.click(within(group).getByRole('button', { name: /^Screening/ }));
+
+    expect(within(group).getByRole('button', { name: /^Screening/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(names()).toEqual(['Jordan Lee']);
   });
 
   it('narrows the table by name, and moves only the ticked rows still shown', async () => {
@@ -92,17 +100,15 @@ describe('job pipeline', () => {
     expect(within(panelHeader()).getByRole('button', { name: 'Board' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('is named by a hidden h2, and shows the selected candidate in a panel beside the table (S3)', async () => {
+  it("hands the cursor's row to the page, which shows it in its side column", async () => {
     renderPipeline();
-
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toHaveClass('sr-only');
-    const side = screen.getByRole('region', { name: 'Selected candidate' });
-    expect(side).toHaveTextContent('No candidate selected');
+    expect(screen.getByLabelText('Selected candidate')).toHaveTextContent('');
 
     const link = screen.getByRole('link', { name: 'Jordan Lee' });
     link.focus();
     await fireEvent.focusIn(link);
-    expect(within(side).getByRole('heading', { level: 3, name: 'Jordan Lee' })).toBeInTheDocument();
+
+    expect(screen.getByLabelText('Selected candidate')).toHaveTextContent('Jordan Lee');
   });
 
   it('switches to the board with V or the view switch; the board keeps its keyboard and menu moves', async () => {
@@ -112,7 +118,7 @@ describe('job pipeline', () => {
     await fireEvent.keyDown(link, { key: 'v' });
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
-    expect(within(panelHeader()).queryByRole('button', { name: /^Stage:/ })).toBeNull();
+    expect(within(panel()).queryByRole('group', { name: 'Stage' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Move Casey Morgan to another stage' })).toBeInTheDocument();
 
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Table' }));
