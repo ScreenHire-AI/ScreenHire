@@ -204,7 +204,7 @@
                       {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
                     </span>
                   </Table.Cell>
-                  <Table.Cell class="max-w-40 text-muted-foreground @4xl/jobs:max-w-60">
+                  <Table.Cell class="max-w-32 text-muted-foreground @4xl/jobs:max-w-60">
                     <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
                   </Table.Cell>
                   <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>

@@ -50,11 +50,12 @@
         {@const last = index === crumbs.length - 1}
         {@const parent = index > 0 && index === crumbs.length - 2}
         <!-- Phones show where you are; the levels above it are Back and the sidebar. Below lg the levels between the first
-             and the page's parent go too, and the parent gives way before the page's own name. -->
+             and the page's parent go too. The parent gives way before the page's own name: flex shares the shrink by
+             factor times width, and at 10000 the name's share stays under a layout unit, so it shows no ellipsis. -->
         <li
           class={[
             'flex items-center gap-1.5',
-            last ? 'min-w-0' : parent ? 'min-w-0 shrink-2 max-md:hidden' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden',
+            last ? 'min-w-0' : parent ? 'min-w-0 shrink-10000 max-md:hidden' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden',
           ]}
         >
           {#if index > 0}<span aria-hidden="true" class="max-md:hidden">/</span>{/if}
