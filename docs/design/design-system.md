@@ -130,8 +130,8 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 | Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
 |---|---|---|---|---|---|
 | No concerns, Live | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
-| Review suggested, Queued | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verification recommended | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| Review suggested, Queued, a file being scanned | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
+| Verification recommended, a file withheld by the scan | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
 
 Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
@@ -307,7 +307,7 @@ in a development build, shows every component in each state, and its test fails 
 | Sidebar | shadcn `Sidebar` | Section 8 |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Activity | Our component | Icon in a circle, event, time ago |
-| Relative time, truncated text | Our components | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
+| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence` | Section 16 |
 
 ## 12. Words

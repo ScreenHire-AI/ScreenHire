@@ -22,12 +22,15 @@ describe('file tile', () => {
   });
 
   it.each([
-    ['Pending', 'Being scanned for malware'],
-    ['Infected', 'Withheld: the malware scan found a threat'],
-  ])('says why a %s file cannot be opened, and offers no Download', async (scanStatus, message) => {
+    ['Pending', 'Scanning', 'diamond', 'Being scanned for malware'],
+    ['Infected', 'Withheld', 'square', 'The malware scan found a threat'],
+  ])('shows a %s file as a status that needs attention, and offers no Download', async (scanStatus, label, shape, detail) => {
     const { container } = renderTile({ name: 'resume.pdf', size: 1000, href: '/v1/files/1', scanStatus });
 
-    expect(screen.getByText(message)).toBeInTheDocument();
+    const badge = screen.getByText(label);
+    expect(badge).toHaveAttribute('data-slot', 'badge');
+    expect(badge.querySelector('[data-shape]')).toHaveAttribute('data-shape', shape);
+    expect(screen.getByText(detail)).toBeInTheDocument();
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.queryByText('1 kB')).toBeNull();
     await expectNoAxeViolations(container);

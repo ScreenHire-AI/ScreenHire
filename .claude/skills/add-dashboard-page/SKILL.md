@@ -66,6 +66,10 @@ Every page handles all four:
 
 ## 5. Components
 
+- Build the page from the catalogue in design system section 11: `HeaderBand` and `Fact`, `Panel`, `StatusBadge`,
+  `SummaryList`, `FileTile`, `ActivityList`, `ListItem`, `RelativeTime`, `TruncatedText` in `#lib/components`. The
+  style guide (`/style-guide` while `pnpm dev` or `/preview` runs) shows each one in every state; compare your page
+  against it.
 - Use the shadcn-svelte components in `#lib/components/ui`. To add one, from `apps/dashboard`:
 
   ```
@@ -73,10 +77,12 @@ Every page handles all four:
   pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install
   ```
 
-  Then check `git diff package.json`. If the component needs a package that is not installed, add it with
+  `--yes` still stops to ask before it overwrites a component we already have (sidebar brings button, sheet and
+  input). Add `--overwrite` instead, then `git checkout --` each existing component folder it changed, so our edits
+  stay. Then check `git diff package.json`. If the component needs a package that is not installed, add it with
   `pnpm --filter @screenhire/dashboard add -D <package>` and run the `licence-check` agent.
-- Status cells use the badge variants with a shape mark and a text label (`clear`, `review`, `verify`, `ai`). Never
-  colour alone.
+- Status cells use `StatusBadge`: a shape mark, colour and text label (`clear`, `review`, `verify`, `ai`), with
+  `quiet` for calm states in a table. Never colour alone.
 - Tokens only (`bg-card`, `text-muted-foreground`). No hex, no palette colours, no pixel font sizes.
 - Integrity data shows levels, reason codes and evidence; never a score, and no reject control.
 

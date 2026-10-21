@@ -4,7 +4,8 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 
   // A tooltip on text that is not a control: a time's exact value, a truncated name's full one. It opens on hover and
-  // keyboard focus like any tooltip, and on tap too, because a touch screen has no hover (design system F4).
+  // keyboard focus like any tooltip, and on tap too, because a touch screen has no hover (design system F4). A click only
+  // opens it, so a mouse click after hovering does not close it; leaving or blurring the text does.
   let {
     content,
     disabled = false,
@@ -23,7 +24,7 @@
   function textProps(props: Record<string, unknown>) {
     const { type, ...rest } = props;
     void type;
-    return mergeProps(rest, { tabindex: disabled ? undefined : 0, onclick: () => (open = !open) });
+    return mergeProps(rest, { tabindex: disabled ? undefined : 0, onclick: () => (open = true) });
   }
 </script>
 

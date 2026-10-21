@@ -117,7 +117,7 @@
       <label class="flex items-center gap-2">
         <span class="text-muted-foreground">Width</span>
         <select
-          class="h-9 rounded-lg border border-input bg-card px-2.5"
+          class="h-9 rounded-lg border border-input bg-card px-2.5 pointer-coarse:h-11 pointer-coarse:text-reading"
           value={String(width)}
           onchange={(event) => setWidth(Number(event.currentTarget.value))}
         >
@@ -140,7 +140,7 @@
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Detail: status, actions and facts</figcaption>
-            <div class="overflow-hidden rounded-lg border border-border-subtle bg-background">
+            <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
                 {#snippet actions()}
@@ -158,7 +158,7 @@
           </figure>
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">With tabs</figcaption>
-            <div class="overflow-hidden rounded-lg border border-border-subtle bg-background">
+            <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand title="Senior product designer">
                 {#snippet status()}<StatusBadge status="clear" label="Live" />{/snippet}
                 {#snippet actions()}<Button variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit</Button>{/snippet}
@@ -315,8 +315,8 @@
           {#each [{ label: 'Expanded', open: true }, { label: 'Icon rail', open: false }] as demo (demo.label)}
             <figure class="flex min-w-0 flex-col gap-2">
               <figcaption class="text-caption text-muted-foreground">{demo.label}; a sheet behind the menu button on phones</figcaption>
-              <!-- transform-gpu holds the sidebar, which is fixed to the window, inside this frame. -->
-              <div class="h-72 w-104 max-w-full transform-gpu overflow-hidden rounded-lg border border-border-subtle">
+              <!-- An inset frame, not a surface (S4). transform-gpu holds the sidebar, which is fixed to the window, inside this frame. -->
+              <div class="h-72 w-104 max-w-full transform-gpu overflow-hidden rounded-lg bg-secondary">
                 <Sidebar.Provider open={demo.open} class="h-full min-h-0">
                   <Sidebar.Root collapsible="icon" class="h-full">
                     <Sidebar.Content>

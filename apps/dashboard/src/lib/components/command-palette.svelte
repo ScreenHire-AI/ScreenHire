@@ -66,7 +66,7 @@
       </Command.Item>
       <Command.Item value="Show keyboard shortcuts" onSelect={() => run(() => shell.openShortcuts())}>
         Show keyboard shortcuts
-        <Command.Shortcut>?</Command.Shortcut>
+        {#if preferences.shortcutsEnabled}<Command.Shortcut>?</Command.Shortcut>{/if}
       </Command.Item>
       <Command.Item
         value="Single-key shortcuts"

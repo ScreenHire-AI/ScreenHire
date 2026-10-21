@@ -61,7 +61,7 @@
 		"data-size": size,
 		// Present only when active: Tailwind's `data-active:` variant matches the attribute, whatever its value.
 		"data-active": isActive ? "" : undefined,
-		"aria-current": isActive ? "page" : undefined,
+		"aria-current": isActive ? ("page" as const) : undefined,
 		...restProps,
 	});
 </script>

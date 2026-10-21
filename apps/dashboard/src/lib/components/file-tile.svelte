@@ -3,6 +3,7 @@
   import FileImageIcon from '@lucide/svelte/icons/file-image';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
   import type { MalwareScanStatus } from '@screenhire/api-client';
+  import type { Status } from '#lib/components/status-badge.svelte';
 
   const documents = new Set(['pdf', 'doc', 'docx', 'odt', 'rtf', 'txt']);
   const images = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic']);
@@ -12,14 +13,15 @@
     return documents.has(extension) ? FileTextIcon : images.has(extension) ? FileImageIcon : FileIcon;
   }
 
-  /** What the tile says instead of Download while the file is not safe to open. */
-  const attention: Partial<Record<MalwareScanStatus, string>> = {
-    Pending: 'Being scanned for malware',
-    Infected: 'Withheld: the malware scan found a threat',
+  /** The status the tile shows in place of Download while the file is not safe to open (section 3.2). */
+  const attention: Partial<Record<MalwareScanStatus, { status: Status; label: string; detail: string }>> = {
+    Pending: { status: 'review', label: 'Scanning', detail: 'Being scanned for malware' },
+    Infected: { status: 'verify', label: 'Withheld', detail: 'The malware scan found a threat' },
   };
 </script>
 
 <script lang="ts">
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { formatFileSize } from '#lib/format.js';
@@ -41,7 +43,7 @@
   } = $props();
 
   const Icon = $derived(iconFor(name));
-  const message = $derived(attention[scanStatus]);
+  const warning = $derived(attention[scanStatus]);
 </script>
 
 <div data-slot="file-tile" data-scan-status={scanStatus} class="flex min-w-0 items-center gap-3 rounded-lg bg-secondary p-3">
@@ -50,13 +52,15 @@
   </span>
   <div class="flex min-w-0 flex-1 flex-col">
     <TruncatedText text={name} class="font-semibold" />
-    {#if message}
-      <span class="text-caption text-muted-foreground">{message}</span>
+    {#if warning}
+      <span class="text-caption text-muted-foreground">{warning.detail}</span>
     {:else if size !== undefined}
       <span class="text-caption text-muted-foreground tabular-nums">{formatFileSize(size)}</span>
     {/if}
   </div>
-  {#if !message}
+  {#if warning}
+    <StatusBadge status={warning.status} label={warning.label} class="shrink-0" />
+  {:else}
     <Button variant="outline" {href} data-sveltekit-reload aria-label={`Download ${name}`} class="shrink-0">Download</Button>
   {/if}
 </div>
