@@ -2,6 +2,7 @@ import type { HiringWorkflow, JobDetail, JobStatus } from '@screenhire/api-clien
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId, user } from '../../../../../test-support/fixtures.js';
+import { stubViewport } from '../../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -61,6 +62,16 @@ describe('job workflow page', () => {
     expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Save workflow' })).toBeEnabled();
     expect(screen.queryByText('Job closed')).toBeNull();
+  });
+
+  it('puts Save workflow in the action bar on a phone (section 8)', async () => {
+    stubViewport(360);
+    stubApi('Open');
+    renderPage();
+
+    const save = await screen.findByRole('button', { name: 'Save workflow' });
+    expect(save.closest('[data-slot=action-bar]')).not.toBeNull();
+    expect(document.querySelector('[data-slot=header-band]')).not.toContainElement(save);
   });
 
   it('sends nothing and says so when Save is pressed with no changes', async () => {

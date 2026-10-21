@@ -132,12 +132,14 @@
     {#if notFound}
       <HeaderBand title="Application not found" />
       <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
-        <div class="rounded-panel border border-border bg-card">
+        <Panel title="Details">
           <Empty.Root>
-            <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
-            <Button href="/candidates" variant="outline" size="lg">Back to candidates</Button>
+            <Empty.Header>
+              <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
+            </Empty.Header>
+            <Empty.Content><Button href="/candidates" variant="outline" size="lg">Back to candidates</Button></Empty.Content>
           </Empty.Root>
-        </div>
+        </Panel>
       </div>
     {:else}
       <HeaderBand title="Application" />

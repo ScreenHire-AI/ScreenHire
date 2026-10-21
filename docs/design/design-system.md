@@ -44,7 +44,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 **Actions**
 
 - **A1** At most one primary (filled) button per page, sheet or dialog.
-- **A2** Destructive actions live in a menu and confirm in a dialog.
+- **A2** Destructive actions live in a menu and confirm in a dialog. Section 10 says what is not destructive: an action
+  the same screen can undo, and removing a row from an unsaved builder draft.
 - **A3** A feature that does not exist yet is hidden, not shown disabled. Disabled is only for a control this screen
   can enable (Save until the form is valid), with the reason beside it.
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.

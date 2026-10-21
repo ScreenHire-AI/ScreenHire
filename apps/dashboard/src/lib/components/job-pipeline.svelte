@@ -12,6 +12,7 @@
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
@@ -58,6 +59,9 @@
     /** The keyboard cursor's row (J / K), shown by the page in its side column. */
     activeId?: string | null;
   } = $props();
+
+  // The sidebar's own phone test (under md), where the search moves out of the header.
+  const sidebar = Sidebar.useSidebar();
 
   let stageFilter = $state<string | null>(null);
   let search = $state('');
@@ -110,10 +114,11 @@
   }
 </script>
 
-<!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. -->
+<!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. On a phone the
+     header has no room for a usable search beside the view switch, so the search takes its own row under it (F5). -->
 <Panel title="Pipeline" count={pending ? undefined : applications.length} flush {onkeydown}>
   {#snippet tools()}
-    <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+    {#if !sidebar.isMobile}{@render searchField('flex-[0_1_15rem] @max-3xl/panel:flex-1')}{/if}
     {#if view === 'table'}
       <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
       {#if selected.length > 0}
@@ -149,6 +154,9 @@
     </div>
   {/snippet}
 
+  {#if sidebar.isMobile}
+    <div class="flex border-b border-border-subtle px-4 py-2">{@render searchField('flex-1')}</div>
+  {/if}
   {#if view === 'table'}
     <!-- The stage filter: one line that scrolls inside the panel rather than wrapping (F5). -->
     <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
@@ -195,3 +203,7 @@
     {moves.announcement}
   </p>
 </Panel>
+
+{#snippet searchField(className: string)}
+  <SearchField bind:value={search} label="Search candidates" class={className} />
+{/snippet}

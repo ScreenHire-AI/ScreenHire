@@ -217,7 +217,7 @@
                    sheet, so closing it brings the person back to where they were. -->
               <DropdownMenu.Item onSelect={() => shell.openShortcuts()}>
                 Keyboard shortcuts
-                {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut>?</DropdownMenu.Shortcut>{/if}
+                {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut><Kbd>?</Kbd></DropdownMenu.Shortcut>{/if}
               </DropdownMenu.Item>
               <DropdownMenu.CheckboxItem
                 checked={preferences.shortcutsEnabled}

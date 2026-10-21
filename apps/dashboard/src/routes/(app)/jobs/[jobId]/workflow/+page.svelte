@@ -8,6 +8,7 @@
     createUpdateJobWorkflow,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -17,6 +18,7 @@
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
@@ -56,6 +58,8 @@
   const baseVersion = $derived(Number(draft.source.split(':').at(-1)));
 
   const readonly = $derived(detail?.status === 'Closed');
+  // The sidebar's own phone test (under md), where the primary action moves to the action bar.
+  const sidebar = Sidebar.useSidebar();
   let tab = $state('pipeline');
   let notice = $state('');
   let failure = $state('');
@@ -118,17 +122,19 @@
   back
 />
 
-<main>
+<main class={[sidebar.isMobile && !readonly && detail && draft.workflow && 'pb-28']}>
   {#if job.isError}
     <HeaderBand title={notFound ? 'Job not found' : 'Workflow'} />
     <div class={workArea}>
       {#if notFound}
-        <Empty.Root class="rounded-panel border border-border bg-card">
-          <Empty.Header>
-            <Empty.Title>This job does not exist, or it belongs to another organization.</Empty.Title>
-          </Empty.Header>
-          <Empty.Content><Button href="/" variant="outline">Back to jobs</Button></Empty.Content>
-        </Empty.Root>
+        <Panel title="Details">
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Title>This job does not exist, or it belongs to another organization.</Empty.Title>
+            </Empty.Header>
+            <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>
+          </Empty.Root>
+        </Panel>
       {:else}
         <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} />
       {/if}
@@ -164,9 +170,8 @@
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
           <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
-          {#if !readonly}
-            <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}>Save workflow</Button>
-          {/if}
+          <!-- The one primary action; a phone has it in the action bar (section 8). -->
+          {#if !readonly && !sidebar.isMobile}{@render saveButton()}{/if}
         {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
       </HeaderBand>
@@ -196,7 +201,14 @@
       </div>
     </Tabs.Root>
   {/if}
+  {#if sidebar.isMobile && !readonly && detail && draft.workflow}
+    <ActionBar>{@render saveButton()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet saveButton()}
+  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}>Save workflow</Button>
+{/snippet}
 
 <Dialog.Root bind:open={reviewing}>
   <Dialog.Content class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">

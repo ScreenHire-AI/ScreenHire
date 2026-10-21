@@ -5,6 +5,7 @@ import { preferences } from '#lib/preferences.svelte.js';
 import type { IntegrityFilter } from '#lib/integrity.js';
 import { applications, stages } from '../../test-support/fixtures.js';
 import JobPipelineHarness from '../../test-support/job-pipeline-harness.svelte';
+import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
@@ -23,6 +24,7 @@ const names = () =>
 
 afterEach(() => {
   preferences.setShortcutsEnabled(true);
+  vi.unstubAllGlobals();
 });
 
 describe('job pipeline', () => {
@@ -35,6 +37,16 @@ describe('job pipeline', () => {
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^Integrity: all/ })).toBeInTheDocument();
     expect(within(within(header).getByRole('group', { name: 'View' })).getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('gives the search its own row under the header on a phone, where the header has no room for it (F5)', () => {
+    stubViewport(360);
+    renderPipeline();
+
+    const search = screen.getByRole('searchbox', { name: 'Search candidates' });
+    expect(panelHeader()).not.toContainElement(search);
+    expect(panel()).toContainElement(search);
+    expect(within(panelHeader()).getByRole('group', { name: 'View' })).toBeInTheDocument();
   });
 
   it('filters by stage with a group of toggles on a row under the header, each with its count (T4)', async () => {
