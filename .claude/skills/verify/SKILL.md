@@ -45,7 +45,8 @@ Full gate: `pnpm verify`. It runs, in order and stopping at the first failure:
 
 With warm caches the full gate takes about 3.5 minutes on the owner's machine (3 min 26 s for 947 .NET tests on
 2026-10-21). Most of it is the two AppHosts and the integration tests. The first run after a dependency or
-container-image change is slower (restores and image pulls). A warm run that takes several minutes more means something is waiting on a timeout: read the output.
+container-image change is slower (restores and image pulls). A warm run that takes several minutes more means
+something is waiting on a timeout: read the output.
 
 ## Marketing performance budgets (not in the gate)
 
@@ -83,7 +84,8 @@ left hanging: each step has its own time limit (see "Reading failures").
   ordering between tests). Never add retries or sleeps.
 - **Infrastructure** (Docker still down after `pnpm docker:start`, a port in use, a container that will not start, or
   a step that ended on its own time limit: Lighthouse's "did not finish within" or "still held" (the queue behind
-  another run), the fixture's "was not healthy within 3 minutes"): report it plainly. These are not code failures and must not be "fixed" by stopping processes.
+  another run), the fixture's "was not healthy within 3 minutes"): report it plainly. These are not code failures
+  and must not be "fixed" by stopping processes.
 
 ## Report
 

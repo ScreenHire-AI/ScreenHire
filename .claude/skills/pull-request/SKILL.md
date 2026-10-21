@@ -87,5 +87,5 @@ Then, alone, as the last line: `PR: blocked`
 ## Outcome line
 
 The Testing column moves the task to Merge only when the last line reads `PR: ready to merge`. Print it only when the
-full gate (and Lighthouse, when Step 3 ran it) passed on the commit you pushed and the PR exists and is linked. `PR: blocked` keeps the task in Testing
-and notifies the owner. Write nothing after either line.
+full gate (and Lighthouse, when Step 3 ran it) passed on the commit you pushed and the PR exists and is linked.
+`PR: blocked` keeps the task in Testing and notifies the owner. Write nothing after either line.
