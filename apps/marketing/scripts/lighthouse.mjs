@@ -15,7 +15,7 @@
 // reads the built sitemap, so every new page is measured without a list to keep in step, and it adds no second copy
 // of Lighthouse to the tree.
 //
-// Browser: CHROME_PATH if set; otherwise the Chromium that `pnpm e2e:install` puts in Playwright's cache (so the gate
+// Browser: CHROME_PATH if set; otherwise the Chromium that `pnpm e2e:install` puts in Playwright's cache (so a run
 // needs nothing the end-to-end tests do not already need); otherwise an installed Chrome found by chrome-launcher.
 //
 // The script ends on its own whatever happens to its parent. A gate stopped with TaskStop on Windows leaves this
@@ -24,7 +24,7 @@
 // page has a time limit, the whole run has one, Chrome's exit is checked after the kill (with a direct kill as the
 // fallback), and the script ends with process.exit.
 import { randomUUID } from 'node:crypto';
-import { closeSync, existsSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -127,6 +127,7 @@ export async function acquireLock(path, { staleMs, waitMs, pollMs = 2_000, log =
   const deadline = Date.now() + waitMs;
   let announced = false;
   for (;;) {
+    let deleting = false;
     try {
       const fd = openSync(path, 'wx');
       try {
@@ -145,24 +146,31 @@ export async function acquireLock(path, { staleMs, waitMs, pollMs = 2_000, log =
         }
       };
     } catch (error) {
-      if (error.code !== 'EEXIST') {
+      // Windows refuses to create a file that another process is still deleting (EPERM) or holds open (EBUSY).
+      if (!['EEXIST', 'EPERM', 'EBUSY'].includes(error.code)) {
         throw error;
       }
+      deleting = error.code !== 'EEXIST';
     }
 
     let holder;
     try {
       if (Date.now() - statSync(path).mtimeMs > staleMs) {
-        rmSync(path, { force: true });
+        if (removeStaleLock(path, staleMs)) {
+          continue;
+        }
+      } else {
+        holder = JSON.parse(readFileSync(path, 'utf8'));
+      }
+    } catch (error) {
+      // Released between the calls: try again at once. Anything else (an empty file whose run died before writing
+      // it, a file Windows is still deleting) is waited for like a held lock, never retried in a tight loop.
+      if (error.code === 'ENOENT' && !deleting) {
         continue;
       }
-      holder = JSON.parse(readFileSync(path, 'utf8'));
-    } catch {
-      // Released, or not fully written yet, between the calls: try again.
-      continue;
     }
 
-    const who = `another Lighthouse run (pid ${holder.pid}, since ${holder.since})`;
+    const who = `another Lighthouse run (pid ${holder?.pid ?? 'unknown'}, since ${holder?.since ?? 'unknown'})`;
     if (Date.now() >= deadline) {
       throw new Error(`${who} still held ${path} after ${waitMs / 60_000} minutes`);
     }
@@ -171,6 +179,40 @@ export async function acquireLock(path, { staleMs, waitMs, pollMs = 2_000, log =
       announced = true;
     }
     await new Promise((resolveWait) => setTimeout(resolveWait, pollMs));
+  }
+}
+
+/**
+ * Deletes the stale lock at `path` and returns true, or returns false when another waiter is taking it over. Without
+ * the guard directory, two waiters that both saw the stale lock could both delete it, the second one deleting the lock
+ * the first had just taken. mkdir succeeds for one caller only, and the winner looks at the lock again before it
+ * deletes it. A guard left by a waiter that died inside these few lines is cleared once it is as old as a stale lock.
+ */
+function removeStaleLock(path, staleMs) {
+  const guard = `${path}.takeover`;
+  try {
+    mkdirSync(guard);
+  } catch {
+    try {
+      if (Date.now() - statSync(guard).mtimeMs > staleMs) {
+        rmSync(guard, { recursive: true, force: true });
+      }
+    } catch {
+      // Gone already.
+    }
+    return false;
+  }
+
+  try {
+    if (Date.now() - statSync(path).mtimeMs > staleMs) {
+      rmSync(path, { force: true });
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    rmSync(guard, { recursive: true, force: true });
   }
 }
 

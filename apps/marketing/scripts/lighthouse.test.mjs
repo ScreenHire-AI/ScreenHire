@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -86,6 +86,7 @@ describe('acquireLock', () => {
 
     release();
     expect(existsSync(lock)).toBe(false);
+    release();
   });
 
   it('waits while another run holds the lock, then takes it', async () => {
@@ -97,9 +98,8 @@ describe('acquireLock', () => {
       return release;
     });
 
-    await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+    await vi.waitFor(() => expect(log).toHaveBeenCalledOnce());
     expect(second).toBe(false);
-    expect(log).toHaveBeenCalledOnce();
     expect(log.mock.calls[0][0]).toContain(`pid ${process.pid}`);
 
     releaseFirst();
@@ -126,6 +126,37 @@ describe('acquireLock', () => {
       'another Lighthouse run (pid 4242, since 2026-10-21T00:00:00.000Z) still held',
     );
     expect(existsSync(lock)).toBe(true);
+  });
+
+  it('waits on an empty lock file, whose run died before writing it, without spinning', async () => {
+    writeFileSync(lock, '');
+
+    await expect(acquireLock(lock, { staleMs: 1_000, waitMs: 50, pollMs: 10, log: quiet })).rejects.toThrow(
+      'another Lighthouse run (pid unknown, since unknown) still held',
+    );
+  });
+
+  it('leaves a stale lock to the waiter that holds the takeover guard', async () => {
+    writeFileSync(lock, JSON.stringify({ pid: 4242, since: '2026-10-21T00:00:00.000Z', token: 'dead' }));
+    const past = new Date(Date.now() - 120_000);
+    utimesSync(lock, past, past);
+    mkdirSync(`${lock}.takeover`);
+
+    await expect(acquireLock(lock, { staleMs: 60_000, waitMs: 50, pollMs: 10, log: quiet })).rejects.toThrow('still held');
+    expect(JSON.parse(readFileSync(lock, 'utf8')).token).toBe('dead');
+  });
+
+  it('clears a takeover guard left by a waiter that died, then takes the stale lock', async () => {
+    writeFileSync(lock, JSON.stringify({ pid: 4242, since: '2026-10-21T00:00:00.000Z', token: 'dead' }));
+    const past = new Date(Date.now() - 120_000);
+    utimesSync(lock, past, past);
+    mkdirSync(`${lock}.takeover`);
+    utimesSync(`${lock}.takeover`, past, past);
+
+    const release = await acquireLock(lock, { staleMs: 60_000, waitMs: 1_000, pollMs: 10, log: quiet });
+    expect(JSON.parse(readFileSync(lock, 'utf8')).pid).toBe(process.pid);
+    expect(existsSync(`${lock}.takeover`)).toBe(false);
+    release();
   });
 
   it('leaves a lock that another run has taken since alone', async () => {
