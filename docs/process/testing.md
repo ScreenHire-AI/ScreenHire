@@ -227,7 +227,9 @@ Lighthouse used to be the last step of `pnpm verify`. On 2026-10-21 five gates r
 five `lighthouse.mjs` processes at about 250 MB each and fourteen `pnpm` wrappers at about 92 MB each, about 2.5 GB
 before their Chromes. Five runs also measure each other, because Lighthouse multiplies the main-thread time it
 observes by 4. So it left the gate. The Testing column runs it once per task, and only when the branch changes what
-the marketing build outputs.
+the marketing build outputs. Merge does not run it again after merging a newer `main`, so two marketing changes are
+never measured together before both land. That is a deliberate trade. Every page sits about 300 ms under the LCP
+budget, and the next marketing task's Testing run measures the combined site.
 
 `lighthouse.mjs` takes a lock file, `screenhire-lighthouse.lock` in the user's temp folder, before it starts the
 preview server. A second run waits for it, up to 10 minutes, and says so. A lock older than the 5-minute run limit
