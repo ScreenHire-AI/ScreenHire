@@ -1,6 +1,7 @@
 import type { JobDetail } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { page } from '$app/state';
 import { apiStub, applications, board, jobId, posting, stages } from '../../../../test-support/fixtures.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
@@ -59,6 +60,7 @@ async function openMoreActions() {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  page.state = {};
 });
 
 describe('job page', () => {
@@ -131,6 +133,35 @@ describe('job page', () => {
     expect(within(band).getAllByText('Closed')).not.toHaveLength(0);
     expect(within(band).queryByRole('link', { name: 'Edit details' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+  });
+
+  it('says what saving the details did, in the Distribution panel', async () => {
+    page.state = { saved: 'Saved. The careers page shows it now; publish again to update the boards.' };
+    stub(job);
+
+    const distribution = await screen.findByRole('region', { name: 'Distribution' });
+    await waitFor(() => expect(within(distribution).getByRole('status')).toHaveTextContent('Saved. The careers page shows it now'));
+  });
+
+  it('shows the failure and a retry when the job boards do not load, never "no boards"', async () => {
+    const fetchMock = stub(job, { 'GET /v1/boards': () => new Response(null, { status: 503 }) });
+
+    const distribution = await screen.findByRole('region', { name: 'Distribution' });
+    await waitFor(() => expect(within(distribution).getByRole('button', { name: /try again/i })).toBeInTheDocument());
+    expect(distribution).not.toHaveTextContent('No job boards are set up.');
+
+    fetchMock.mockImplementation(apiStub({ 'GET /v1/boards': () => Response.json(boards) }));
+    await fireEvent.click(within(distribution).getByRole('button', { name: /try again/i }));
+    // The loaded panel replaces the error one.
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Distribution' }).querySelector('[data-board=careers]')).not.toBeNull());
+  });
+
+  it('says when the job does not exist', async () => {
+    stub(job, { [`GET /v1/jobs/${jobId}`]: () => Response.json({ title: 'Not Found' }, { status: 404 }) });
+
+    expect(await screen.findByText('It does not exist, or it belongs to another organization.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Job not found');
+    expect(screen.getByRole('link', { name: 'Back to jobs' })).toHaveAttribute('href', '/');
   });
 
   it('folds the secondary actions into More on a phone', async () => {

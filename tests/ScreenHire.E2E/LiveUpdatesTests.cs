@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace ScreenHire.E2E;
 
 /// <summary>
@@ -50,7 +52,8 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Publish to every board" }).ClickAsync();
 
         await Expect(StatusOf(other, title)).ToHaveTextAsync("Open");
-        await Expect(other.GetByRole(AriaRole.Combobox, new() { Name = "Status" }).GetByRole(AriaRole.Option, new() { Name = "Open (1)" })).ToBeAttachedAsync();
+        await Expect(other.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Open") }))
+            .ToHaveTextAsync(new Regex(@"^Open\s*1$"));
 
         // Closing from the list is the row menu's destructive item, confirmed in a dialog (A2).
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Actions for {title}" }).ClickAsync();

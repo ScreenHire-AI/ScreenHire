@@ -19,6 +19,9 @@ async function dataRows() {
   return rows;
 }
 
+const statusFilter = () => screen.getByRole('group', { name: 'Status' });
+const statusToggle = (name: RegExp) => within(statusFilter()).getByRole('button', { name });
+
 async function openRowMenu(title: string) {
   const trigger = await screen.findByRole('button', { name: `Actions for ${title}` });
   // bits-ui opens a menu on pointerdown.
@@ -49,11 +52,12 @@ describe('jobs page', () => {
     renderPage();
     await dataRows();
 
-    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'Open' } });
+    await fireEvent.click(statusToggle(/^Open/));
+    expect(statusToggle(/^Open/)).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('region', { name: 'Open jobs' })).toBeInTheDocument();
     expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Senior .NET Engineer']);
 
-    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: '' } });
+    await fireEvent.click(statusToggle(/^All$/));
     await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'manchester' } });
     expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Customer Success Lead']);
 
@@ -68,8 +72,10 @@ describe('jobs page', () => {
     renderPage();
     await dataRows();
 
-    const options = within(screen.getByLabelText('Status')).getAllByRole('option').map((option) => option.textContent);
-    expect(options).toEqual(['All', 'Open (1)', 'Draft (1)', 'Closed (1)']);
+    // Each count is a count pill after its label (T4).
+    const toggles = within(statusFilter()).getAllByRole('button');
+    expect(toggles.map((toggle) => toggle.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['All', 'Open 1', 'Draft 1', 'Closed 1']);
+    expect(toggles[0]).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('says so when there are no jobs', async () => {
