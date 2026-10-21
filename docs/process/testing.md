@@ -211,15 +211,66 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 |---|---|---|
 | Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
-| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
 
 `MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
 sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
 Playwright's Chromium, then an installed Chrome. Its simulated mobile numbers were identical to within 3 ms across
-two consecutive full runs (about 90 s each), which is why it is in the gate. Run a subset with
+two consecutive full runs (about 90 s each). Run a subset with
 `pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
 paths are rewritten into Windows paths.
+
+### Why Lighthouse runs once, and one at a time
+
+Lighthouse used to be the last step of `pnpm verify`. On 2026-10-21 five gates ran it at once on one machine:
+five `lighthouse.mjs` processes at about 250 MB each and fourteen `pnpm` wrappers at about 92 MB each, about 2.5 GB
+before their Chromes. Five runs also measure each other, because Lighthouse multiplies the main-thread time it
+observes by 4. So it left the gate. The Testing column runs it once per task, and only when the branch changes what
+the marketing build outputs. Merge does not run it again after merging a newer `main`, so two marketing changes are
+never measured together before both land. That is a deliberate trade. Every page sits about 300 ms under the LCP
+budget, and the next marketing task's Testing run measures the combined site.
+
+`lighthouse.mjs` takes a lock file, `screenhire-lighthouse.lock` in the user's temp folder, before it starts the
+preview server. A second run waits for it, up to 10 minutes, and says so. A lock older than the 5-minute run limit
+plus a minute belongs to a run that is gone, and is taken over. Two runs started together on 2026-10-21 (all 15 pages
+and `/ /pricing/`) both passed. The second waited for the first and then measured the same LCP to within 3 ms.
+
+What the lock does not do: keep a sibling task's end-to-end tests off the CPU. Today every page has LCP about 1505 ms
+against the 1800 ms budget, and the network part of that is simulated from byte counts, so load moves it little.
+If a page fails by a few tens of milliseconds while other gates run, rerun it with nothing else running before you
+call it a regression. Do not add retries (flake policy).
+
+### What Kangentic's agent browser can and cannot measure
+
+We looked at whether the `kangentic_browser_*` tools could check the budgets against a running site instead of
+Lighthouse. The facts come from Kangentic's source (0.47) and one trial on 2026-10-21. The trial ran against the
+built site, with the viewport at 412 x 823, on `/pricing/`.
+
+| Budget | Agent browser | Lighthouse |
+|---|---|---|
+| 15 KB brotli JS per page | `kangentic_browser_network` lists method, URL, type, status and time to headers, with no size of any kind. Resource Timing through `kangentic_browser_eval` gives `encodedBodySize`, which is 0 for a cache revalidation (every subresource in the trial). | Counts script transfer bytes. Both are redundant: `check-dist.mjs` measures brotli bytes exactly in every build, and `MarketingTests` fails on any script but JSON-LD. |
+| CLS under 0.05 | A buffered `PerformanceObserver` for `layout-shift` works (0 in the trial). The load is always a warm-cache repeat visit, so a late font or image never shifts anything. | Cold load, on a simulated slow network. |
+| Mobile LCP under 1.8 s | 24 ms in the trial, on localhost with no throttling and a warm cache. That clears 1.8 s on any page, so it could not fail. | 1505 ms for the same page: Lantern's simulated slow 4G (150 ms RTT, 1.6 x 1024 Kbps) and 4x CPU slowdown (`mobileSlow4G` in `@paulirish/trace_engine`, `models/trace/lantern/simulation/Constants.js`), on a Moto G Power screen (412 x 823 at DPR 1.75) with its user agent (`lighthouse/core/config/constants.js`). |
+
+What the agent browser lacks, so the trial cannot stand in for the budget:
+
+- **No throttling.** Kangentic emulates neither network nor CPU throttling anywhere.
+- **No mobile emulation.** `kangentic_browser_set_viewport` sets the size only. A docked pane is set with
+  `mobile: false`, an offscreen pane is resized as a window, and the user agent stays desktop Chromium (the trial
+  saw `Windows NT 10.0 ... Kangentic/0.47.0`).
+- **No cold load.** Each task's pane keeps a persistent cache. The debugger attaches after the first load, so a
+  measured load is a repeat visit, and no tool clears or bypasses the cache.
+- **Skewed paint timing offscreen.** An offscreen pane, which is what an agent gets when the project is not on
+  screen, paints at 10 fps.
+- **Not a command.** It runs only inside an agent session, so a script like `pnpm verify` cannot call it.
+  `kangentic_browser_eval` is off by default, and only the user can turn it on, for every project at once, in
+  Kangentic's Settings.
+- **Not the build.** `/preview` serves marketing from `astro dev`, not the build. The trial needed a separate
+  preview server.
+
+It is still useful while working on a page: a quick look for layout shifts and their sources, or for a script that
+should not be there. The budget stays with Lighthouse.
 
 ## Flake policy
 
@@ -267,3 +318,6 @@ close take the posting locks), `pnpm verify:test` passed five times in a row on 
 the suites in parallel as the gate runs them: 109, 112, 113, 111 and 114 s wall clock. Each run: unit about 1 s,
 end-to-end 53 to 59 s, integration 1 min 46 s to 1 min 51 s, 898 passed, none failed, and no resource stopped
 (`TestResults/logs`).
+
+With Lighthouse out of the gate (947 .NET tests), `pnpm verify` took 3 min 26 s on 2026-10-21 and passed. The
+integration tests are the longest suite, at about 2 min 05 s, in parallel with the end-to-end tests (about 65 s).

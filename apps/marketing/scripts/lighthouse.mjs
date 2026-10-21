@@ -5,12 +5,17 @@
 //   pnpm --filter @screenhire/marketing lighthouse              # every page in the sitemap
 //   pnpm --filter @screenhire/marketing lighthouse / /pricing/  # just these paths
 //
-// Why not Lighthouse CI (@lhci/cli): it serves dist with its own static server and takes its URL list from config.
-// This script uses Astro's own preview server, in process and alone on the machine (the end-to-end tests serve dist from
-// Caddy instead), and reads the built sitemap, so every new page is measured without a list to keep in step, and it
-// adds no second copy of Lighthouse to the tree.
+// It is not part of `pnpm verify`. The Testing column (/pull-request) runs it once for a branch that changes the
+// marketing build, and every run waits for any other run on the machine to finish first (acquireLock). Lighthouse
+// multiplies the main-thread time it observes by 4, so two runs at once measure each other. The lock does not keep a
+// sibling task's tests off the CPU; docs/process/testing.md says what that means for a failure.
 //
-// Browser: CHROME_PATH if set; otherwise the Chromium that `pnpm e2e:install` puts in Playwright's cache (so the gate
+// Why not Lighthouse CI (@lhci/cli): it serves dist with its own static server and takes its URL list from config.
+// This script uses Astro's own preview server, in process (the end-to-end tests serve dist from Caddy instead), and
+// reads the built sitemap, so every new page is measured without a list to keep in step, and it adds no second copy
+// of Lighthouse to the tree.
+//
+// Browser: CHROME_PATH if set; otherwise the Chromium that `pnpm e2e:install` puts in Playwright's cache (so a run
 // needs nothing the end-to-end tests do not already need); otherwise an installed Chrome found by chrome-launcher.
 //
 // The script ends on its own whatever happens to its parent. A gate stopped with TaskStop on Windows leaves this
@@ -18,9 +23,10 @@
 // `taskkill /T /F` in a shell and only logs a failure, and a live Chrome child keeps Node's event loop running. So each
 // page has a time limit, the whole run has one, Chrome's exit is checked after the kill (with a direct kill as the
 // fallback), and the script ends with process.exit.
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeSync } from 'node:fs';
 import { createServer } from 'node:net';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preview } from 'astro';
@@ -32,6 +38,12 @@ const BUDGETS = { lcpMs: 1800, cls: 0.05, scriptBytes: 15 * 1024 };
 // Every page in the sitemap took about 90 s in all in October 2026. One page that has not returned in a minute is stuck.
 const PAGE_LIMIT_MS = 60_000;
 const RUN_LIMIT_MS = 5 * 60_000;
+
+// A run exits within RUN_LIMIT_MS of taking the lock, so a lock older than that plus a margin belongs to no run. Ten
+// minutes of waiting covers about four full runs queued ahead.
+const LOCK_PATH = join(tmpdir(), 'screenhire-lighthouse.lock');
+const LOCK_STALE_MS = RUN_LIMIT_MS + 60_000;
+const LOCK_WAIT_LIMIT_MS = 10 * 60_000;
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = fileURLToPath(new URL('../dist', import.meta.url));
@@ -103,6 +115,108 @@ export function withTimeout(promise, ms, what) {
 }
 
 /**
+ * Waits until no other Lighthouse run on the machine holds the lock file at `path`, then takes it. Returns `release`,
+ * which deletes the file only while it is still this run's.
+ *
+ * A lock file rather than a platform feature: Kangentic limits how many sessions run, not how many sit in one column,
+ * and Node has no cross-process mutex. A lock is stale by age alone (the run limit bounds every holder), never by
+ * whether its pid is alive, because Windows reuses pids (docs/process/board-pipeline.md).
+ */
+export async function acquireLock(path, { staleMs, waitMs, pollMs = 2_000, log = console.log }) {
+  const token = randomUUID();
+  const deadline = Date.now() + waitMs;
+  let announced = false;
+  for (;;) {
+    let deleting = false;
+    try {
+      const fd = openSync(path, 'wx');
+      try {
+        writeSync(fd, JSON.stringify({ pid: process.pid, since: new Date().toISOString(), token }));
+      } finally {
+        closeSync(fd);
+      }
+
+      return () => {
+        try {
+          if (JSON.parse(readFileSync(path, 'utf8')).token === token) {
+            rmSync(path, { force: true });
+          }
+        } catch {
+          // Gone already, or not ours.
+        }
+      };
+    } catch (error) {
+      // Windows refuses to create a file that another process is still deleting (EPERM) or holds open (EBUSY).
+      if (!['EEXIST', 'EPERM', 'EBUSY'].includes(error.code)) {
+        throw error;
+      }
+      deleting = error.code !== 'EEXIST';
+    }
+
+    let holder;
+    try {
+      if (Date.now() - statSync(path).mtimeMs > staleMs) {
+        if (removeStaleLock(path, staleMs)) {
+          continue;
+        }
+      } else {
+        holder = JSON.parse(readFileSync(path, 'utf8'));
+      }
+    } catch (error) {
+      // Released between the calls: try again at once. Anything else (an empty file whose run died before writing
+      // it, a file Windows is still deleting) is waited for like a held lock, never retried in a tight loop.
+      if (error.code === 'ENOENT' && !deleting) {
+        continue;
+      }
+    }
+
+    const who = `another Lighthouse run (pid ${holder?.pid ?? 'unknown'}, since ${holder?.since ?? 'unknown'})`;
+    if (Date.now() >= deadline) {
+      throw new Error(`${who} still held ${path} after ${waitMs / 60_000} minutes`);
+    }
+    if (!announced) {
+      log(`lighthouse: waiting for ${who} to finish.`);
+      announced = true;
+    }
+    await new Promise((resolveWait) => setTimeout(resolveWait, pollMs));
+  }
+}
+
+/**
+ * Deletes the stale lock at `path` and returns true, or returns false when another waiter is taking it over. Without
+ * the guard directory, two waiters that both saw the stale lock could both delete it, the second one deleting the lock
+ * the first had just taken. mkdir succeeds for one caller only, and the winner looks at the lock again before it
+ * deletes it. A guard left by a waiter that died inside these few lines is cleared once it is as old as a stale lock.
+ */
+function removeStaleLock(path, staleMs) {
+  const guard = `${path}.takeover`;
+  try {
+    mkdirSync(guard);
+  } catch {
+    try {
+      if (Date.now() - statSync(guard).mtimeMs > staleMs) {
+        rmSync(guard, { recursive: true, force: true });
+      }
+    } catch {
+      // Gone already.
+    }
+    return false;
+  }
+
+  try {
+    if (Date.now() - statSync(path).mtimeMs > staleMs) {
+      rmSync(path, { force: true });
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    rmSync(guard, { recursive: true, force: true });
+  }
+}
+
+/**
  * Stops the Chrome that chrome-launcher started and waits for it to exit. chrome-launcher's own kill only logs a
  * failure, so when Chrome is still running after `waitMs` it is killed directly (no shell). Returns whether it exited.
  */
@@ -145,6 +259,17 @@ async function main() {
     return 1;
   }
 
+  let release;
+  try {
+    release = await acquireLock(LOCK_PATH, { staleMs: LOCK_STALE_MS, waitMs: LOCK_WAIT_LIMIT_MS });
+  } catch (error) {
+    console.error(`lighthouse: ${error.message}. Report it as infrastructure (see /verify).`);
+    return 1;
+  }
+  // process.exit runs 'exit' listeners, so the run limit below frees the lock too.
+  process.on('exit', release);
+
+  // Armed only once the lock is held, so time spent queued does not count against the run.
   let chrome;
   setTimeout(() => {
     console.error(`lighthouse: the run did not finish within ${RUN_LIMIT_MS / 60_000} minutes. Report it as infrastructure (see /verify).`);
@@ -205,6 +330,7 @@ async function main() {
       console.error(`lighthouse: Chrome (pid ${chrome.pid}) did not exit after it was killed.`);
     }
     await withTimeout(server.stop(), 10_000, 'Stopping the preview server').catch((error) => console.error(`lighthouse: ${error.message}`));
+    release();
   }
 
   if (failures.length > 0) {

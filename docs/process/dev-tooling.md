@@ -24,7 +24,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, runs `doc-auditor`, fixes drifted docs and prose |
 | [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
 | [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
-| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate, push, open and link the PR |
+| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate (plus Lighthouse for a marketing change), push, open and link the PR |
 | [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | re-gate if `main` moved, squash-merge, confirm, realign |
 
 The last four are the board pipeline ([board-pipeline.md](board-pipeline.md)). Change them only in a task about the

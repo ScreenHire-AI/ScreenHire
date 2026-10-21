@@ -71,13 +71,14 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
-- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
-  marketing site's Lighthouse budgets (last) and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
-  steps `verify:dotnet`, `verify:contract`, `verify:lighthouse` and `verify:test` run alone too). It is the only CI for
-  now; see the `/verify` skill.
+- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and
+  every test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract`
+  and `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
-  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium.
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. It is not in `pnpm verify`: the
+  Testing column runs it once for a branch that changes the marketing build, and only one run measures at a time on
+  the machine (the next one waits).
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
   rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
@@ -98,7 +99,7 @@ after it.
 |---|---|---|
 | Executing | (the brief) | `Implementation: complete` when the brief is done and `pnpm verify` passes. The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
 | Code Review | `/task-review` (isolated session) | `Verdict: Ready` → Testing; numbered steps + `Verdict: Blocked` → back to Executing (at most 3 times) |
-| Testing | `/pull-request` | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
+| Testing | `/pull-request` (plus Lighthouse for a marketing change) | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
 | Merge | `/merge-pull-request` | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
 
 Unattended-run rules are in `.claude/rules/unattended-runs.md`, and the conflict playbook for integrating `main` is
