@@ -29,7 +29,7 @@
     {legend}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </legend>
-  {#if hint}<p id={`${id}-hint`} class="-mt-1 text-[13px] text-candidate-muted-foreground">{hint}</p>{/if}
+  {#if hint}<p id={`${id}-hint`} class="-mt-1 text-candidate-hint text-candidate-muted-foreground">{hint}</p>{/if}
   {#if error}<p id={`${id}-error`} class="text-sm font-semibold text-destructive">{error}</p>{/if}
   {#each options as option (option.value)}
     <label class="choice">

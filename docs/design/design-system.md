@@ -197,7 +197,8 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS). Marketing display goes up to 64px. The dashboard's
+Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
+`text-candidate-input` and `text-candidate-hint` in `packages/ui`. Marketing display goes up to 64px. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 ## 5. Space, shape and size
@@ -228,6 +229,8 @@ Atlassian's surfaces.
 
 - Every section is a panel with its title inside the panel header. Panels in a row share a top edge.
 - Shadows only on raised and overlay. No card inside a card.
+- Inside an inset, data and controls sit on `card` with a `border-subtle` edge (a quoted answer, a list of fact pills,
+  a field), so they read as values in the well, not as another layer.
 
 ## 7. Page templates
 

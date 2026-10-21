@@ -31,6 +31,10 @@
   /* The candidate pages' 15px base (section 4.3), for the dashboard's questionnaire preview. */
   --text-candidate-body: 0.9375rem;
   --text-candidate-body--line-height: 1.5;
+  /* Candidate inputs at 16px, so phones do not zoom in, and the 13px hints under them (section 4.3). Size only: the
+     controls keep their own line height. */
+  --text-candidate-input: 1rem;
+  --text-candidate-hint: 0.8125rem;
 
   /* Content widths (sections 5 and 7): `max-w-page`, `2xl:max-w-page-wide`, `max-w-form`, `basis-side`. */
   --container-page: 80rem;

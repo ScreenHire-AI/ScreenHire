@@ -108,7 +108,7 @@
     {label}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </label>
-  <p id={hintId} class="text-[13px] text-candidate-muted-foreground">{hint}</p>
+  <p id={hintId} class="text-candidate-hint text-candidate-muted-foreground">{hint}</p>
   {#if error}
     <p id={errorId} class="text-sm font-semibold text-destructive">{error}</p>
   {/if}

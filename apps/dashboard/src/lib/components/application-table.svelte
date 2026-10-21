@@ -72,6 +72,9 @@
   // padding.
   const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
   const nameColumn = 'sticky left-10 pointer-coarse:left-15';
+  // Source is an optional column (section 8): it shows only where the table has room, so a job's pipeline beside its
+  // side column fits a laptop without scrolling sideways.
+  const optionalColumn = '@max-5xl/table:hidden';
   // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
   let scrolledSideways = $state(false);
   const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
@@ -298,7 +301,7 @@
     <div
       bind:this={scrollElement}
       onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
-      class="relative max-h-[min(70vh,640px)] overflow-auto"
+      class="@container/table relative max-h-[min(70vh,640px)] overflow-auto"
     >
       <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
         <thead class="sticky top-0 z-10 bg-muted">
@@ -316,6 +319,7 @@
                     header.id === 'candidate' && scrolledSideways && nameEdge,
                     (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
                     header.id === 'move' && 'w-10',
+                    header.id === 'source' && optionalColumn,
                     (header.id === 'applied' || header.id === 'move') && 'text-right',
                   ]}
                 >
@@ -362,6 +366,7 @@
                       // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
                       (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
                       (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
+                      cell.column.id === 'source' && optionalColumn,
                     ]}
                   >
                     <FlexRender {cell} />
