@@ -1,4 +1,5 @@
 <script lang="ts">
+	import MenuIcon from '@lucide/svelte/icons/menu';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import { Button } from "#lib/components/ui/button/index.js";
 	import * as Tooltip from "#lib/components/ui/tooltip/index.js";
@@ -16,7 +17,8 @@
 	} = $props();
 
 	const sidebar = useSidebar();
-	// An icon button names its action and shows the name in a tooltip (A4). On a phone it opens the navigation sheet.
+	// An icon button names its action and shows the name in a tooltip (A4). On a phone it is the menu button that opens
+	// the navigation sheet (design system section 8).
 	const label = $derived(sidebar.isMobile ? "Open navigation" : sidebar.open ? "Collapse sidebar" : "Expand sidebar");
 </script>
 
@@ -39,7 +41,7 @@
 				}}
 				{...restProps}
 			>
-				<PanelLeftIcon class="cn-rtl-flip" />
+				{#if sidebar.isMobile}<MenuIcon />{:else}<PanelLeftIcon class="cn-rtl-flip" />{/if}
 			</Button>
 		{/snippet}
 	</Tooltip.Trigger>

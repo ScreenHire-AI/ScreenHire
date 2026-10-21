@@ -45,11 +45,12 @@ generated TanStack Query hooks; there is no `+page.ts`:
 
 - Route params come from `PageProps`; derived values with `$derived(...)`. Mutations use the generated
   `create<Operation>` hooks with `onSettled: () => invalidatePath(queryClient, jobsPath)` (`#lib/query.ts`).
-- `<svelte:head><title>Page · ScreenHire</title></svelte:head>`, the `TopBar` with the page's breadcrumbs, one `h1`,
-  and the `main` structure of the jobs page.
+- `<svelte:head><title>Page · ScreenHire</title></svelte:head>`, the `TopBar` with the page's breadcrumbs (and
+  `back` on a detail page, so phones show Back a level up the breadcrumb), one `h1`, and the `main` structure of the
+  jobs page.
 - Imports from `#lib/...` with `.js` extensions. `page` and `navigating` come from `$app/state`.
-- Add the route to `sections` in `#lib/shell.ts` if it is a top-level section: the sidebar, its G shortcut and the
-  command palette all read that list.
+- Add the route to `sections` in `#lib/shell.ts`, with its Lucide icon, if it is a top-level section: the sidebar,
+  its G shortcut and the command palette all read that list.
 
 ## 4. States
 

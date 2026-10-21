@@ -49,7 +49,7 @@ describe('integrity saved views', () => {
 
   it('"Verification recommended" holds the highest level only', () => {
     expect([clear, review, verify, pending, dismissed].filter(verificationRecommended)).toEqual([verify]);
-    expect(findSavedView('verification-recommended')!.shape).toBe('square');
+    expect(findSavedView('verification-recommended')!.mark?.shape).toBe('square');
   });
 
   it('ignores AI assistance, which is information rather than a queue', () => {
