@@ -315,8 +315,8 @@ between keys, so key values and content cannot leave the browser.
   at least 5 times. Both feed AI assistance and are accessibility-sensitive. Alone they are not shown on the
   assessment at all (`telemetry-only-alongside-another-category`); next to another category they are context, and
   reasons only when a category other than telemetry corroborates (`telemetry-never-alone`). They are never the second
-  category for the top level. Until a content analyzer exists, AI assistance has no other category, so in practice
-  behavioural signals are stored but not yet shown.
+  category for the top level. Content forensics now gives AI assistance other categories, so a behavioural signal
+  shows only when one of them corroborates it.
 - **Device check.** On the last step the module also fills `deviceFingerprint`, a SHA-256 of coarse browser traits
   (user agent, languages, screen, time zone, hardware concurrency; no canvas, audio or font probing), and
   `automationMarkers`. The API keyed-hashes the fingerprint per organization, as before. It keeps the fingerprint only
@@ -515,9 +515,8 @@ assessment, shown next to it as context; it is never a reason on its own.
   moment may miss each other, because each keeps its fingerprints only when its pipeline commits.
 - Turning the consistency check on does not reach back: applications already checked, skipped or switched off keep that
   outcome.
-- The dashboard has no integrity panel and no questionnaire editor yet. The API carries everything a panel needs
-  (§10.6), and a job asks for a LinkedIn export only through a template whose questionnaire has a `linkedin_export`
-  file question, written through the templates API.
+- The dashboard's integrity panel (§7) and questionnaire editor both exist now. A job asks for a LinkedIn export only
+  through a file question with the id `linkedin_export`.
 - PdfPig has no limit on how far a crafted PDF may expand, and the 20-second deadline abandons a slow parse without
   stopping its thread. Word files are capped per part. A real malware scanner (task 15's `IMalwareScanner` hook) should
   come first in production; extraction trusts its result.
