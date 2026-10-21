@@ -59,7 +59,7 @@ public sealed class DevelopmentDemoTests
             ApplicationForm.Validate(questions, answers).Should().BeEmpty(candidate.Applicant.Key);
             answers.Select(a => a.QuestionId).Should().BeEquivalentTo(questions.Select(q => q.Id), candidate.Applicant.Key);
             var links = questions.Where(q => q.Type == QuestionType.Url).Select(q => answers.Single(a => a.QuestionId == q.Id).Value);
-            links.Should().AllSatisfy(link => new Uri(link!).Host.Should().MatchRegex(@"(^|\.)example\.(com|org)$", candidate.Applicant.Key));
+            links.Should().AllSatisfy(link => new Uri(link!).Host.Should().MatchRegex(@"(^|\.)example\.org$", candidate.Applicant.Key));
         });
     }
 
@@ -113,8 +113,9 @@ public sealed class DevelopmentDemoTests
     {
         // One organization for all of them, in order, so a shared device, address, file or answer would show as a
         // duplicate. The harness has one job, so it asks every demo job's questions; a shared id (experience, notice
-        // period) keeps the "Software engineer" wording.
-        var harness = new IntegrityHarness([.. QuestionsByJob.Values.SelectMany(q => q).DistinctBy(q => q.Id)]);
+        // period) keeps the "Software engineer" wording, which comes first.
+        var harness = new IntegrityHarness(
+            [.. IntegrityHarness.SoftwareEngineerQuestions.Concat(QuestionsByJob.Values.SelectMany(q => q)).DistinctBy(q => q.Id)]);
 
         foreach (var candidate in DemoCandidates.All)
         {

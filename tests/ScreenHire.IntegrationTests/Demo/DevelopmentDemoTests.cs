@@ -377,14 +377,43 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         return null;
     }
 
-    // Every Brightwater job, seeded or added by the demo, asks at least one question besides the resume.
+    // Every Brightwater job, seeded or added by the demo, asks at least one question besides the resume. The questions the
+    // demo copies from the "Software engineer" template still read as the template's do on the .NET job.
     private static async Task<string?> QuestionnairesUnmetAsync(ApiSession owner)
     {
+        var dotnet = await FindJobAsync(owner, SeniorDotnetSlug);
+        if (dotnet is null)
+        {
+            return $"no job '{SeniorDotnetSlug}'";
+        }
+
+        var template = Questions(await GetAsync(owner, $"/v1/jobs/{dotnet.Value.GetProperty("id").GetGuid()}"))
+            .ToDictionary(q => q.GetProperty("id").GetString()!);
         foreach (var job in (await GetAsync(owner, "/v1/jobs")).EnumerateArray())
         {
-            if (QuestionIds(await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).All(id => id == "resume"))
+            var slug = job.GetProperty("slug").GetString();
+            var questions = Questions(await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).ToList();
+            if (questions.All(q => q.GetProperty("id").GetString() == "resume"))
             {
-                return $"'{job.GetProperty("slug").GetString()}' has no questionnaire";
+                return $"'{slug}' has no questionnaire";
+            }
+
+            foreach (var question in questions)
+            {
+                var id = question.GetProperty("id").GetString()!;
+                if (!template.TryGetValue(id, out var original))
+                {
+                    continue;
+                }
+
+                // Each job words "experience" for its own field; the bands stay the template's.
+                var (asked, expected) = id == "experience"
+                    ? (question.GetProperty("options").GetRawText(), original.GetProperty("options").GetRawText())
+                    : (question.GetRawText(), original.GetRawText());
+                if (asked != expected)
+                {
+                    return $"'{slug}' asks '{id}' differently from the \"Software engineer\" template";
+                }
             }
         }
 
@@ -430,9 +459,11 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         return null;
     }
 
+    private static JsonElement.ArrayEnumerator Questions(JsonElement jobDetail) =>
+        jobDetail.GetProperty("workflow").GetProperty("questionnaire").GetProperty("questions").EnumerateArray();
+
     private static IEnumerable<string?> QuestionIds(JsonElement jobDetail) =>
-        jobDetail.GetProperty("workflow").GetProperty("questionnaire").GetProperty("questions").EnumerateArray()
-            .Select(q => q.GetProperty("id").GetString());
+        Questions(jobDetail).Select(q => q.GetProperty("id").GetString());
 
     private static bool HasValue(JsonElement answer) =>
         (answer.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.String && value.GetString()!.Length > 0)
