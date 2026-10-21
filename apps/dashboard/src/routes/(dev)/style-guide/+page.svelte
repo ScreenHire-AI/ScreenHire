@@ -331,7 +331,7 @@
               <Empty.Title>No candidates yet</Empty.Title>
               <Empty.Description>Applications appear here once the job is live.</Empty.Description>
             </Empty.Header>
-            <Empty.Content><Button>Publish the job</Button></Empty.Content>
+            <Empty.Content><Button variant="outline">Publish the job</Button></Empty.Content>
           </Empty.Root>
         </Panel>
         <Panel title="Time and long text" class="flex-[1_1_320px] max-w-95">

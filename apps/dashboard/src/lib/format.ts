@@ -58,6 +58,7 @@ const megabytes = new Intl.NumberFormat(locales, { style: 'unit', unit: 'megabyt
 
 /** A file's size: `120 kB` up to a megabyte, then `2.4 MB`. Never `0 kB` for a file that has content. */
 export function formatFileSize(bytes: number): string {
-  const megabyte = 1024 * 1024;
-  return bytes < megabyte ? kilobytes.format(Math.ceil(bytes / 1024)) : megabytes.format(bytes / megabyte);
+  // Rounding up can reach 1,024 kB, which is a megabyte.
+  const kb = Math.ceil(bytes / 1024);
+  return kb < 1024 ? kilobytes.format(kb) : megabytes.format(bytes / (1024 * 1024));
 }

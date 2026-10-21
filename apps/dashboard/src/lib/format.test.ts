@@ -35,6 +35,7 @@ describe('formatFileSize', () => {
   it('shows kilobytes up to a megabyte, rounding up, then megabytes', () => {
     expect(formatFileSize(1)).toBe('1 kB');
     expect(formatFileSize(122_880)).toBe('120 kB');
+    expect(formatFileSize(1_047_553)).toBe('1 MB');
     expect(formatFileSize(2_558_525)).toBe('2.4 MB');
   });
 });

@@ -15,6 +15,8 @@ describe('file tile', () => {
     const download = screen.getByRole('link', { name: 'Download resume.pdf' });
     expect(download).toHaveAttribute('href', '/v1/files/1');
     expect(download).toHaveAttribute('data-sveltekit-reload');
+    // 44px on touch (F4).
+    expect(download).toHaveClass('pointer-coarse:h-11');
     // An inset inside a panel: secondary fill, no edge (section 6).
     expect(container.querySelector('[data-slot="file-tile"]')).toHaveClass('bg-secondary');
     expect(container.querySelector('[data-slot="file-tile"]')).not.toHaveClass('border');

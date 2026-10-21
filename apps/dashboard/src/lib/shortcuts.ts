@@ -70,7 +70,7 @@ export interface ShortcutGroup {
 }
 
 /** True on Apple platforms, where the command palette is ⌘K. */
-export const isApple = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const isApple = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /**
  * Every keyboard shortcut in the dashboard, for the `?` dialog (design system section 15). A new shortcut joins this
