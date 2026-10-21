@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { SignalEvidence } from '@screenhire/api-client';
+  import { locales } from '#lib/dates.js';
 
   // One piece of evidence, rendered by its kind rather than by the signal it belongs to, so a new signal needs no
   // dashboard code (docs/architecture/integrity-engine.md, section 10.1). A metric is a measurement next to its
   // reference, never a likelihood.
   let { evidence }: { evidence: SignalEvidence } = $props();
 
-  const number = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 });
+  const number = new Intl.NumberFormat(locales, { maximumFractionDigits: 1 });
   const measure = (amount: number, unit: string | null | undefined) => (unit ? `${number.format(amount)} ${unit}` : number.format(amount));
 </script>
 

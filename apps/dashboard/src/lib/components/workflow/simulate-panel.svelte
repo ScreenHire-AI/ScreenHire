@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { AnswerFact, EvaluationOutcome, HiringWorkflow, TriggerType, WorkflowSimulationResult } from '@screenhire/api-client';
   import { ApiError, createSimulateWorkflow } from '@screenhire/api-client/svelte-query';
+  import CircleIcon from '@lucide/svelte/icons/circle';
+  import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { describeError } from '#lib/query.js';
@@ -191,8 +193,8 @@
           <li aria-label={`${automation.name}: ${outcomeText[automation.outcome]}`} class="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3.5">
             <div class="flex flex-wrap items-baseline justify-between gap-2">
               <h4 class="font-bold">{automation.name}</h4>
-              <span class={['text-caption', automation.outcome === 'Matched' ? 'text-foreground' : 'text-muted-foreground']}>
-                <span aria-hidden="true">{automation.outcome === 'Matched' ? '●' : '○'}</span>
+              <span class={['inline-flex items-center gap-1 text-caption', automation.outcome === 'Matched' ? 'text-foreground' : 'text-muted-foreground']}>
+                {#if automation.outcome === 'Matched'}<CircleCheckIcon aria-hidden="true" class="size-3.5" />{:else}<CircleIcon aria-hidden="true" class="size-3.5" />{/if}
                 {outcomeText[automation.outcome]}
               </span>
             </div>

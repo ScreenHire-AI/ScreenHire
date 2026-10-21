@@ -4,7 +4,8 @@
  * first and US English is the fallback. The API sends ISO instants only.
  */
 
-const locales = [...(globalThis.navigator?.languages ?? []), 'en-US'];
+/** The browser's languages, then US English. Numbers are formatted in them too. */
+export const locales = [...(globalThis.navigator?.languages ?? []), 'en-US'];
 
 const minute = 60_000;
 const hour = 60 * minute;

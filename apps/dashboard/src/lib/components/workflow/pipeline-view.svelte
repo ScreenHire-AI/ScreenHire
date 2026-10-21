@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -41,7 +42,7 @@
       <ul class="flex flex-col gap-1 text-body">
         {#each automations as automation (automation.id)}
           <li class={['flex gap-1.5', automation.enabled === false && 'text-muted-foreground']}>
-            <span aria-hidden="true" class="text-muted-foreground">→</span>
+            <ArrowRightIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <span>{summarize(automation, workflow)}{automation.enabled === false ? ' (off)' : ''}</span>
           </li>
         {/each}

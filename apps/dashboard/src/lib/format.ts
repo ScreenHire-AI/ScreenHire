@@ -1,4 +1,5 @@
 import type { ApplicationSource, EmploymentType, JobSalary } from '@screenhire/api-client';
+import { locales } from '#lib/dates.js';
 
 const minute = 60_000;
 const hour = 60 * minute;
@@ -25,9 +26,9 @@ export const employmentLabel = (type: EmploymentType) => employmentLabels[type];
 
 const periodSuffix: Record<string, string> = { Hour: '/hr', Day: '/day', Week: '/wk', Month: '/mo', Year: '' };
 
-/** A salary range as the job header shows it: `£70K-£85K`, `from £30K`, `up to £14/hr`. */
+/** A salary range as the job header shows it, in the browser's locale: `£70K-£85K`, `from £30K`, `up to £14/hr`. */
 export function formatSalary(salary: JobSalary): string {
-  const money = new Intl.NumberFormat('en-GB', {
+  const money = new Intl.NumberFormat(locales, {
     style: 'currency',
     currency: salary.currency,
     notation: 'compact',
