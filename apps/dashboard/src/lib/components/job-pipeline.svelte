@@ -3,7 +3,6 @@
   import SquareKanbanIcon from '@lucide/svelte/icons/square-kanban';
   import Table2Icon from '@lucide/svelte/icons/table-2';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
-  import type { Attachment } from 'svelte/attachments';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
@@ -23,11 +22,19 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { initials } from '#lib/format.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
-  import { bulkMoveStages, chipOf, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import {
+    bulkMoveStages,
+    chipOf,
+    isIntegrityFiltered,
+    matchesIntegrityFilter,
+    noIntegrityFilter,
+    type IntegrityFilter,
+  } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
+  import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
   // A job's candidates as a table or a board (design system section 7, the list template inside the job page), with the
@@ -64,7 +71,7 @@
   const shown = $derived(
     searched.filter((application) => (!stageFilter || application.stage.id === stageFilter) && matchesIntegrityFilter(application, integrityFilter)),
   );
-  const filtering = $derived(Boolean(stageFilter) || Boolean(search.trim()) || Boolean(integrityFilter.authenticity || integrityFilter.aiAssistance));
+  const filtering = $derived(Boolean(stageFilter) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
   const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   const active = $derived(applications.find((application) => application.id === activeId));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
@@ -77,13 +84,7 @@
   // The stage menu's tooltip says its label only where the label is cut: visually hidden in a narrow panel header, or
   // ending in an ellipsis (F5).
   let stageLabelCut = $state(false);
-  const watchStageLabel: Attachment<HTMLElement> = (element) => {
-    const measure = () => (stageLabelCut = element.scrollWidth > element.clientWidth);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  };
+  const watchStageLabel = watchTruncation((cut) => (stageLabelCut = cut));
   const stageSummary = $derived(`Stage: ${stageOptions.find((option) => option.id === stageFilter)?.name ?? 'All'}`);
 
   /**
@@ -96,10 +97,12 @@
     view = 'table';
   }
 
+  // Keeps the view: the board's empty state clears its search here, and stays on the board.
   function clearFilters() {
     stageFilter = null;
     search = '';
-    setIntegrityFilter({ ...noIntegrityFilter });
+    integrityFilter = { ...noIntegrityFilter };
+    selectedIds = [];
   }
 
   // V switches between the table and the board while focus is in the pipeline.

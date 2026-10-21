@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { AiAssistanceLevel, AuthenticityLevel } from '@screenhire/api-client';
   import ListFilterIcon from '@lucide/svelte/icons/list-filter';
-  import type { Attachment } from 'svelte/attachments';
   import StatusMark from '#lib/components/status-mark.svelte';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -14,6 +13,7 @@
     pendingLevel,
     type IntegrityFilter,
   } from '#lib/integrity.js';
+  import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
   // Filters the candidate table by either assessment's level. The page applies it to the rows before the table sees
@@ -34,19 +34,13 @@
     ].filter(Boolean),
   );
 
-  // bits-ui radio groups take strings; "all" stands for no filter.
   // The tooltip says the label only where the label is cut: visually hidden in a narrow panel header, or ending in an
   // ellipsis (F5).
   let labelCut = $state(false);
-  const watchLabel: Attachment<HTMLElement> = (element) => {
-    const measure = () => (labelCut = element.scrollWidth > element.clientWidth);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  };
+  const watchLabel = watchTruncation((cut) => (labelCut = cut));
   const summary = $derived(`Integrity: ${active.length > 0 ? active.join(', ') : 'all'}`);
 
+  // bits-ui radio groups take strings; "all" stands for no filter.
   const authenticityValue = $derived(filter.authenticity ?? 'all');
   const aiValue = $derived(filter.aiAssistance ?? 'all');
 </script>

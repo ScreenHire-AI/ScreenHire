@@ -13,7 +13,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
-  import { matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
 
@@ -32,7 +32,7 @@
     ),
   );
   // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
-  const narrowed = $derived(Boolean(integrityFilter.authenticity || integrityFilter.aiAssistance || search.trim()));
+  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || Boolean(search.trim()));
   const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
