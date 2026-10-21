@@ -6,12 +6,20 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import FileStackIcon from '@lucide/svelte/icons/file-stack';
+  import PlusIcon from '@lucide/svelte/icons/plus';
+  import SearchIcon from '@lucide/svelte/icons/search';
   import { goto } from '$app/navigation';
+  import HeaderBand from '#lib/components/header-band.svelte';
+  import ListItem from '#lib/components/list-item.svelte';
+  import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -24,13 +32,19 @@
   import { cn } from '#lib/utils.js';
 
   // Hiring templates (workflow-engine.md §1): the system templates ScreenHire ships, read-only, and the organization's
-  // own. A new template starts blank or as a copy of a published version, to customise.
+  // own, on the list template. A new template starts blank or as a copy of a published version, to customise.
   const queryClient = useQueryClient();
   const templates = createListHiringTemplates();
   const create = createCreateHiringTemplate(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, templatesPath) } }));
 
   const list = $derived(templates.data?.data ?? []);
   const copyable = $derived(list.filter((template) => template.latestPublishedVersionId));
+
+  let search = $state('');
+  const shown = $derived.by(() => {
+    const words = search.trim().toLowerCase();
+    return words ? list.filter((template) => `${template.name} ${template.description ?? ''}`.toLowerCase().includes(words)) : list;
+  });
 
   let creating = $state(false);
 
@@ -75,62 +89,97 @@
 
 <TopBar crumbs={[{ label: 'Templates' }]} />
 
-<main class="flex flex-col gap-3.5 px-5 py-4.5">
-  <div class="flex flex-wrap items-end justify-between gap-3">
-    <div class="flex flex-col gap-1.5">
-      <h1 class="font-display text-page-title">Templates</h1>
-      <p class="max-w-2xl text-muted-foreground">
-        A template is a reusable hiring workflow: stages, screening questions and automations. Jobs copy a published
-        version and can be tailored on their own.
-      </p>
-    </div>
-    <Button onclick={() => (creating = true)}>New template</Button>
-  </div>
+<main>
+  <HeaderBand title="Templates" wide>
+    {#snippet status()}{#if templates.isSuccess}<Badge variant="count">{list.length}</Badge>{/if}{/snippet}
+    {#snippet actions()}<Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>{/snippet}
+  </HeaderBand>
 
-  {#if templates.isError}
-    <QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} />
-  {:else}
-    <section aria-label="Templates" class="overflow-hidden rounded-xl border border-border bg-card">
-      <Table.Root>
-        <Table.Header>
-          <Table.Row>
-            <Table.Head class="text-caption">Name</Table.Head>
-            <Table.Head class="text-caption">Published</Table.Head>
-            <Table.Head class="text-caption">Draft</Table.Head>
-            <Table.Head class="text-right text-caption">Updated</Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {#if templates.isPending}
-            {#each [0, 1, 2] as row (row)}
-              <Table.Row aria-hidden="true">
-                <Table.Cell colspan={4}><Skeleton class="h-5 w-full" /></Table.Cell>
-              </Table.Row>
+  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6 2xl:max-w-page-wide">
+    {#if templates.isError}
+      <QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} />
+    {:else}
+      <Panel title="All templates" flush>
+        {#snippet actions()}
+          <label class="relative flex items-center">
+            <span class="sr-only">Search templates</span>
+            <SearchIcon aria-hidden="true" class="pointer-events-none absolute left-2.5 text-muted-foreground" />
+            <Input type="search" bind:value={search} class="w-56 max-w-full pl-8" />
+          </label>
+        {/snippet}
+        {#if templates.isPending}
+          <div aria-hidden="true" class="flex flex-col gap-3 px-4.5 py-4">
+            {#each [0, 1, 2] as row (row)}<Skeleton class="h-6 w-full" />{/each}
+          </div>
+          <p class="sr-only" role="status">Loading templates…</p>
+        {:else if shown.length === 0}
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Media variant="icon"><FileStackIcon /></Empty.Media>
+              <Empty.Title>{list.length === 0 ? 'No templates yet' : 'No templates match'}</Empty.Title>
+            </Empty.Header>
+            <Empty.Content>
+              {#if list.length === 0}
+                <Button variant="outline" onclick={() => (creating = true)}>New template</Button>
+              {:else}
+                <Button variant="outline" onclick={() => (search = '')}>Clear search</Button>
+              {/if}
+            </Empty.Content>
+          </Empty.Root>
+        {:else}
+          <!-- Phones get two-line list items (design system section 8); wider screens the table. -->
+          <ul class="md:hidden">
+            {#each shown as template (template.id)}
+              <ListItem href={`/templates/${template.id}`} title={template.name}>
+                {#snippet meta()}{formatDate(template.updatedAt ?? template.createdAt)}{/snippet}
+                {#snippet facts()}
+                  {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
+                  <Badge variant="muted" class="tabular-nums">{template.latestPublishedVersion ? `Version ${template.latestPublishedVersion}` : 'Not published'}</Badge>
+                  {#if template.draftVersion}<Badge variant="muted" class="tabular-nums">Draft {template.draftVersion}</Badge>{/if}
+                {/snippet}
+              </ListItem>
             {/each}
-          {:else}
-            {#each list as template (template.id)}
-              <Table.Row>
-                <Table.Cell>
-                  <div class="flex flex-wrap items-center gap-2">
-                    <a href={`/templates/${template.id}`} class="font-semibold text-foreground no-underline hover:underline">{template.name}</a>
-                    {#if template.isSystem}<Badge variant="outline">ScreenHire</Badge>{/if}
-                  </div>
-                  {#if template.description}<p class="text-body text-muted-foreground">{template.description}</p>{/if}
-                </Table.Cell>
-                <Table.Cell class="tabular-nums">{template.latestPublishedVersion ? `v${template.latestPublishedVersion}` : 'Not yet'}</Table.Cell>
-                <Table.Cell class="text-muted-foreground tabular-nums">{template.draftVersion ? `v${template.draftVersion}` : '-'}</Table.Cell>
-                <Table.Cell class="text-right text-muted-foreground tabular-nums">{formatDate(template.updatedAt ?? template.createdAt)}</Table.Cell>
-              </Table.Row>
-            {:else}
-              <Table.Row>
-                <Table.Cell colspan={4} class="text-muted-foreground">No templates yet.</Table.Cell>
-              </Table.Row>
-            {/each}
-          {/if}
-        </Table.Body>
-      </Table.Root>
-    </section>
-  {/if}
+          </ul>
+          <div class="overflow-x-auto max-md:hidden">
+            <Table.Root>
+              <Table.Header>
+                <Table.Row class="bg-muted hover:bg-muted">
+                  <Table.Head class="px-4.5">Name</Table.Head>
+                  <Table.Head>Description</Table.Head>
+                  <Table.Head>Published</Table.Head>
+                  <Table.Head>Draft</Table.Head>
+                  <Table.Head class="pr-4.5 text-right">Updated</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each shown as template (template.id)}
+                  <!-- The whole row is the link (design system section 9): the name's link covers it. -->
+                  <Table.Row class="relative h-12">
+                    <Table.Cell class="px-4.5">
+                      <span class="flex items-center gap-2">
+                        <a href={`/templates/${template.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                          >{template.name}</a
+                        >
+                        {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
+                      </span>
+                    </Table.Cell>
+                    <Table.Cell class="text-muted-foreground">
+                      {#if template.description}<span class="relative z-10 block max-w-md"><TruncatedText text={template.description} /></span>{/if}
+                    </Table.Cell>
+                    <Table.Cell class="tabular-nums">
+                      {#if template.latestPublishedVersion}Version {template.latestPublishedVersion}{:else}<span class="text-muted-foreground">Not yet</span>{/if}
+                    </Table.Cell>
+                    <Table.Cell class="text-muted-foreground tabular-nums">{template.draftVersion ? `Version ${template.draftVersion}` : ''}</Table.Cell>
+                    <Table.Cell class="pr-4.5 text-right text-muted-foreground tabular-nums">{formatDate(template.updatedAt ?? template.createdAt)}</Table.Cell>
+                  </Table.Row>
+                {/each}
+              </Table.Body>
+            </Table.Root>
+          </div>
+        {/if}
+      </Panel>
+    {/if}
+  </div>
 </main>
 
 <Dialog.Root bind:open={creating}>

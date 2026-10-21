@@ -11,8 +11,9 @@
   // The power-user view (workflow-engine.md §4): the same workflow as a graph. A projection only: it is rebuilt from the
   // workflow on every change, nothing in it is stored, and edits go through the automation forms (Edit on a node).
   // Nothing needs dragging: the wheel or trackpad pans (panOnScroll), the controls zoom and fit, and the pipeline view
-  // shows the same workflow as a list (WCAG 2.5.7).
-  let { workflow, errors, onedit }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; onedit: (automation: number) => void } = $props();
+  // shows the same workflow as a list (WCAG 2.5.7). Without `onedit` (a version that cannot be edited) nodes have no
+  // Edit button. It fills a flush panel.
+  let { workflow, errors, onedit }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; onedit?: (automation: number) => void } = $props();
 
   const nodeTypes = { step: StepNodeView };
 
@@ -39,7 +40,7 @@
   });
 </script>
 
-<div class="h-[560px] overflow-hidden rounded-xl border border-border bg-card">
+<div class="h-[560px] overflow-hidden rounded-b-panel">
   <SvelteFlow
     bind:nodes
     bind:edges
