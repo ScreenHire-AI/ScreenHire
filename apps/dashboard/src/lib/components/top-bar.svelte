@@ -2,6 +2,7 @@
   import MoonIcon from '@lucide/svelte/icons/moon';
   import SearchIcon from '@lucide/svelte/icons/search';
   import SunIcon from '@lucide/svelte/icons/sun';
+  import { Kbd } from '#lib/components/ui/kbd/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { getShell } from '#lib/shell.js';
 
@@ -32,17 +33,17 @@
     type="button"
     onclick={() => shell.openPalette()}
     aria-keyshortcuts={isMac ? 'Meta+K' : 'Control+K'}
-    class="flex h-[34px] w-[300px] max-w-full items-center gap-2 rounded-[9px] border border-border bg-muted px-3 text-left text-muted-foreground hover:border-input"
+    class="flex h-[34px] w-[300px] pointer-coarse:h-11 max-w-full items-center gap-2 rounded-[9px] border border-border bg-muted px-3 text-left text-muted-foreground hover:border-input"
   >
     <SearchIcon class="size-4" aria-hidden="true" />
     <span class="flex-1">Search or jump to…</span>
-    <kbd class="font-mono text-code">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+    <Kbd>{isMac ? '⌘K' : 'Ctrl K'}</Kbd>
   </button>
   <button
     type="button"
     onclick={() => preferences.toggleTheme()}
     aria-label={preferences.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-    class="grid size-[34px] place-items-center rounded-[9px] border border-border bg-card text-secondary-foreground hover:bg-secondary"
+    class="grid size-[34px] place-items-center pointer-coarse:size-11 rounded-[9px] border border-border bg-card text-secondary-foreground hover:bg-secondary"
   >
     {#if preferences.theme === 'dark'}<SunIcon class="size-4" aria-hidden="true" />{:else}<MoonIcon class="size-4" aria-hidden="true" />{/if}
   </button>

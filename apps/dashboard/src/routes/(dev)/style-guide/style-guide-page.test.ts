@@ -67,6 +67,12 @@ describe('style guide', () => {
     await expectNoAxeViolations(document.body);
   });
 
+  it('has one main landmark; the sidebar demos frame their inset in a div (X1)', () => {
+    render(WithTooltips, { props: { component: Page } });
+
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+  });
+
   it('shows the sidebar expanded at 248px and as a 64px rail', () => {
     render(WithTooltips, { props: { component: Page } });
 

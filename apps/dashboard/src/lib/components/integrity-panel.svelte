@@ -12,11 +12,11 @@
   import IntegrityDismissDialog from '#lib/components/integrity-dismiss-dialog.svelte';
   import IntegrityNoteDialog from '#lib/components/integrity-note-dialog.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatDateTime, timeAgo } from '#lib/dates.js';
   import {
     aiAssistanceLevels,
     aiDeclarationLabels,
@@ -131,7 +131,7 @@
 
     {#if view.dismissal}
       <p class="text-body text-muted-foreground">
-        Dismissed by {actor(view.dismissal.actorUserId, view.dismissal.actorName)} <time datetime={view.dismissal.dismissedAt} title={formatDateTime(view.dismissal.dismissedAt)}>{timeAgo(view.dismissal.dismissedAt, Date.now())}</time>:
+        Dismissed by {actor(view.dismissal.actorUserId, view.dismissal.actorName)} <RelativeTime at={view.dismissal.dismissedAt} />:
         {dismissReasonLabels[view.dismissal.reason]}{view.dismissal.note ? `. "${view.dismissal.note}"` : '.'}
       </p>
     {:else if level.rank > 0}
@@ -141,7 +141,7 @@
         </Button>
       </div>
     {/if}
-    <p class="text-caption text-muted-foreground">Assessed <time datetime={view.assessedAt} title={formatDateTime(view.assessedAt)}>{timeAgo(view.assessedAt, Date.now())}</time> · ruleset {view.rulesetVersion}</p>
+    <p class="text-caption text-muted-foreground">Assessed <RelativeTime at={view.assessedAt} /> · ruleset {view.rulesetVersion}</p>
   </section>
 {/snippet}
 
@@ -199,7 +199,7 @@
                 <span class="font-normal text-muted-foreground">by {actor(entry.actorUserId, entry.actorName)}</span>
               </span>
               {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
-              <time datetime={entry.occurredAt} title={formatDateTime(entry.occurredAt)} class="text-caption text-muted-foreground">{timeAgo(entry.occurredAt, Date.now())}</time>
+              <RelativeTime at={entry.occurredAt} class="text-caption text-muted-foreground" />
             </li>
           {/each}
         </ol>

@@ -12,12 +12,12 @@
   import { beforeNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
-  import { formatDateTime, timeAgo } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
@@ -152,7 +152,7 @@
         <p class="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
           <span>Version {current.version}</span>
           <Badge variant={current.status === 'Draft' ? 'secondary' : 'clear'}>{current.status}</Badge>
-          {#if current.publishedAt}<span>Published <time datetime={current.publishedAt} title={formatDateTime(current.publishedAt)}>{timeAgo(current.publishedAt, Date.now())}</time></span>{/if}
+          {#if current.publishedAt}<span>Published <RelativeTime at={current.publishedAt} /></span>{/if}
           {#if detail.isSystem}<span>ScreenHire template · read-only</span>{/if}
         </p>
       </div>

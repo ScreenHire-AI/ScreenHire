@@ -380,7 +380,7 @@
                       </Sidebar.Group>
                     </Sidebar.Content>
                   </Sidebar.Root>
-                  <Sidebar.Inset class="bg-background p-3">
+                  <Sidebar.Inset element="div" class="bg-background p-3">
                     <Sidebar.Trigger />
                   </Sidebar.Inset>
                 </Sidebar.Provider>

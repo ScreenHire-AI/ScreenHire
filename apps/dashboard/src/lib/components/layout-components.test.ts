@@ -79,4 +79,12 @@ describe('list item', () => {
     expect(within(first!).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
     await expectNoAxeViolations(container);
   });
+
+  it('drops the name below a wide status badge instead of breaking it mid-word (F2, F5)', () => {
+    render(LayoutHarness, { props: { example: 'list' } });
+
+    const link = within(screen.getAllByRole('listitem')[0]!).getByRole('link', { name: 'Jordan Ellis' });
+    expect(link.parentElement).toHaveClass('flex-wrap');
+    expect(link).toHaveClass('flex-[1_1_10rem]');
+  });
 });
