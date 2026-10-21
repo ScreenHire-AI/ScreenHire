@@ -96,7 +96,7 @@
   {:else}
     <section aria-label="Candidate" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span aria-hidden="true" class="grid size-12 place-items-center rounded-full bg-secondary text-heading font-bold text-secondary-foreground"
+        <span aria-hidden="true" class="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-heading font-bold text-secondary-foreground"
           >{initials(detail.candidate.fullName)}</span
         >
         <div class="flex min-w-0 flex-col gap-1">
