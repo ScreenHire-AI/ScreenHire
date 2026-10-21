@@ -123,6 +123,7 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 | `accent-foreground` | `#2B2788` | Text on `accent` |
 | `row-selected` | `#F3F1FC` | Selected table row |
 | `destructive` | `#9A2F17` | Destructive menu items and their confirmations |
+| `scrim` | `#1C1B19` | The dimming behind dialogs and sheets, at 10% (`bg-scrim/10`) |
 
 ### 3.2 Status (shape, colour and label, always)
 
@@ -147,6 +148,7 @@ is `aria-hidden` and always has its numeric legend.
 | `row-selected` | `#2A2722` | `accent` | `#26264A`, text `#C7C8FA` |
 | `border` | `#2E2C27` | `border-subtle` | `#262420` |
 | `input` | `#3A3731` | `destructive` | `#F7957A` |
+| `scrim` | `#000000` | | |
 
 Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (mark `#F2B84B`); verify `#F7957A` on
 `#3D1A10` (mark `#F27A55`); AI `#C7C8FA` on `#26264A`. In dark mode, higher layers get lighter (section 6).
@@ -182,9 +184,9 @@ nothing sets a pixel root.
 | `caption` | 12 / 16 | Hanken 500 or 600 | Fact labels, pills, badges, table headers |
 | `code` | 12 / 16 | JetBrains Mono 400 | Ids, codes, key caps |
 
-12px is the floor. Text never shrinks on phones; only `page-title` steps down. These become Tailwind `--text-*`
-tokens in `packages/ui` (classes `text-body`, `text-caption`, ...); until they land, a W1 finding names the token a
-size should become.
+12px is the floor. Text never shrinks on phones; only `page-title` steps down, below `md`. The tokens are Tailwind
+`--text-*` tokens in `packages/ui` (`text-page-title`, `text-body`, `text-caption`, ...), each with its line height,
+weight and tracking. The family is its own class: `font-display` for the two titles, `font-mono` for `code`.
 
 ### 4.2 Rules
 
@@ -193,7 +195,8 @@ size should become.
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS). Marketing display goes up to 64px.
+Base 15px, display 30px, inputs 16px (no zoom on iOS). Marketing display goes up to 64px. The dashboard's
+questionnaire preview shows the candidate base with `text-candidate-body`.
 
 ## 5. Space, shape and size
 
@@ -206,6 +209,7 @@ Base 15px, display 30px, inputs 16px (no zoom on iOS). Marketing display goes up
 | Panel header | 56px (52px on phones), 16 to 18px side padding |
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
+| Content widths | 1280px `page`, 1536px `page-wide`, 688px `form`, 320px `side` (`max-w-page`, `basis-side`, ...) |
 
 ## 6. Layers
 
@@ -335,13 +339,13 @@ Helper text only when a label cannot say it. Copy follows `.claude/rules/writing
 | Older than 7 days | The date | Oct 3, 2026 |
 
 Always the browser's locale (US English by default), through one shared formatter on `Intl.DateTimeFormat` and
-`Intl.RelativeTimeFormat`. The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
+`Intl.RelativeTimeFormat` (`#lib/dates.ts`). The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
 
 ## 14. Icons
 
-Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Stroke set
-once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a label; decorative icons
-are `aria-hidden`. Status shapes (section 3.2) are not icons and appear only for status.
+Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Size 16 and
+stroke 1.75 are set once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a
+label; decorative icons are `aria-hidden`. Status shapes (section 3.2) are not icons and appear only for status.
 
 ## 15. Shortcuts
 

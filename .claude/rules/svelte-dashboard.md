@@ -79,3 +79,5 @@ new route is the `/add-dashboard-page` skill.
 ## Checks
 
 - `pnpm --filter @screenhire/dashboard check` runs `svelte-check --fail-on-warnings`. A warning fails the gate.
+- `src/tokens-only.test.ts` (Vitest) fails on a pixel font size, a hex colour, a colour function such as `rgb(` or a
+  Tailwind palette colour anywhere in `apps/dashboard/src`, the shadcn-svelte sources included.
