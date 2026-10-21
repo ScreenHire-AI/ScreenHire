@@ -18,7 +18,11 @@
 </script>
 
 <!-- A status region, so a screen reader hears when live updates drop and come back. -->
-<p role="status" class={['flex items-center gap-2 px-1.5 text-caption font-semibold', current.text]}>
+<!-- In the sidebar's icon rail only the mark shows; the sidebar gives it a tooltip. -->
+<p
+  role="status"
+  class={['flex h-6 items-center gap-2 px-1.5 text-caption font-semibold group-data-[collapsible=icon]:justify-center', current.text]}
+>
   <span aria-hidden="true" class={['inline-block size-2 shrink-0', current.mark]}></span>
-  <span><span class="sr-only">Live updates:</span> {current.label}</span>
+  <span class="group-data-[collapsible=icon]:sr-only"><span class="sr-only">Live updates:</span> {current.label}</span>
 </p>

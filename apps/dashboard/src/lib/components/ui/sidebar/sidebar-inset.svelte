@@ -6,20 +6,16 @@
 		ref = $bindable(null),
 		class: className,
 		children,
-		element = "main",
 		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLElement>> & {
-		/** `div` for a demo inside another page, which already has its one `main` landmark. */
-		element?: "main" | "div";
-	} = $props();
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
-<svelte:element
-	this={element}
+<!-- A div, not shadcn's main: every page renders its own main landmark inside it. -->
+<div
 	bind:this={ref}
 	data-slot="sidebar-inset"
 	class={cn("bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 relative flex w-full flex-1 flex-col", className)}
 	{...restProps}
 >
 	{@render children?.()}
-</svelte:element>
+</div>

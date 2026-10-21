@@ -80,7 +80,8 @@
 {#if !tooltipContent}
 	{@render Button({})}
 {:else}
-	<Tooltip.Root>
+	<!-- No delay: in the icon rail the tooltip is the label. -->
+	<Tooltip.Root delayDuration={0}>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}
 				{@render Button({ props })}

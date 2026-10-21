@@ -123,7 +123,7 @@
   <title>{detail?.name ?? 'Template'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Templates', href: '/templates' }, { label: detail?.name ?? 'Template' }]} />
+<TopBar crumbs={[{ label: 'Templates', href: '/templates' }, { label: detail?.name ?? 'Template' }]} back />
 
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
   {#if template.isError}
