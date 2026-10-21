@@ -99,7 +99,8 @@ numbers are made up.
 | Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
 | Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
 
-Every job asks questions, and every candidate answers each question of their job, so each candidate page shows answers.
+Every job asks questions, and every demo candidate answers each question of their job, so their pages show answers.
+The synthetic applicants keep the answers their integrity scenarios need.
 The .NET, Support Engineer and Backend Engineer (Payments) jobs ask the "Software engineer" questions through their
 template. The designer, frontend and Customer Success Lead jobs are seeded without one, so the demo adds a questionnaire
 to each, as a recruiter's workflow edit (`DemoQuestionnaires` in `apps/api/Demo`). All three ask about right to work
@@ -107,7 +108,7 @@ and the notice period. The designer job adds years of experience, a portfolio li
 job adds years of experience, Svelte use, two office days in London and a work sample link; Customer Success Lead adds
 office days in Manchester, accounts looked after and a customer kept. The answers fit each candidate's CV, and every
 link is an `example.org` address. A data volume from before the questionnaires gets them on the next start, but the
-candidates in it applied without answers and stay that way. Use `/preview fresh` to see every answer.
+designer and frontend candidates in it applied without answers and stay that way. Use `/preview fresh` to see every answer.
 
 Between them every stage of both pipelines holds someone. The distribution strips show the states a local stack can
 reach: Live (careers page, sandbox board), Sent (feeds and the job-board API), Needs fixes (a feed that wants a longer
