@@ -35,8 +35,10 @@ when its condition holds, alone, with nothing after it.
   depends on have landed.
 - **Code Review** ([`task-review`](../../.claude/skills/task-review/SKILL.md)) runs in a fresh conversation that never
   saw the implementation. It reviews three dimensions in parallel: correctness, the non-negotiables and security, and
-  conventions. It fixes what it can, commits review work as `fix(review): …`, `test(review): …` or
-  `docs(review): …`, and sends back only work that is task-sized or needs a decision.
+  conventions. A dashboard change also gets a visual pass: screenshots at 1440, 768 and 390px from a `/preview` stack
+  it stops again, judged by the `design-review` agent. It fixes what it can, commits review work as
+  `fix(review): …`, `test(review): …` or `docs(review): …`, and sends back only work that is task-sized or needs a
+  decision.
 - **Testing** ([`pull-request`](../../.claude/skills/pull-request/SKILL.md)) commits, merges `origin/main` into the
   branch, runs the full gate with up to three fix rounds, pushes to a public `<type>/<slug>` branch, and opens a PR
   linked to the card. It never merges.

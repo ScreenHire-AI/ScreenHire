@@ -180,6 +180,22 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
 
+    [Fact]
+    public async Task The_job_page_fits_a_phone_without_scrolling_sideways()
+    {
+        var scene = await SceneAsync(publish: false);
+        await Page.SetViewportSizeAsync(390, 844);
+        await SignInAsync(Page, scene.Email);
+        await GoToJobAsync(Page, scene.JobId);
+        // On a phone the candidate table is a list of two-line items (design system section 8).
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0] }))
+            .ToBeVisibleAsync();
+
+        // The chips' sr-only labels sit inside their list items and must not widen the page.
+        var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+        overflow.Should().Be(0, "the page never scrolls sideways (design system F1)");
+    }
+
     private sealed record Scene(string Email, string Slug, Guid JobId, string Title);
 
     // A new person and organization with one job (published or a draft) and an application per name in Candidates,

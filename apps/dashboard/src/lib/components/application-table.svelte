@@ -149,23 +149,29 @@
 </script>
 
 {#snippet selectHeader()}
-  <input
-    type="checkbox"
-    class="size-4 accent-primary"
-    aria-label="Select all candidates"
-    checked={allSelected}
-    onchange={toggleAll}
-  />
+  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
+  <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+    <input
+      type="checkbox"
+      class="size-4 accent-primary"
+      aria-label="Select all candidates"
+      checked={allSelected}
+      onchange={toggleAll}
+    />
+  </label>
 {/snippet}
 
 {#snippet selectCell(application: ApplicationSummary)}
-  <input
-    type="checkbox"
-    class="size-4 accent-primary"
-    aria-label={`Select ${application.candidateName}`}
-    checked={selectedIds.includes(application.id)}
-    onchange={() => toggle(application.id)}
-  />
+  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
+  <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+    <input
+      type="checkbox"
+      class="size-4 accent-primary"
+      aria-label={`Select ${application.candidateName}`}
+      checked={selectedIds.includes(application.id)}
+      onchange={() => toggle(application.id)}
+    />
+  </label>
 {/snippet}
 
 {#snippet candidateCell(application: ApplicationSummary)}
@@ -190,9 +196,12 @@
 {/snippet}
 
 {#snippet appliedCell(application: ApplicationSummary)}
-  <time datetime={application.submittedAt} title={formatDateTime(application.submittedAt)} class="text-muted-foreground tabular-nums"
-    >{formatDate(application.submittedAt)}</time
-  >
+  <!-- A date in the table, the exact time on hover, focus or tap (design system section 13). -->
+  <Hint content={formatDateTime(application.submittedAt)}>
+    {#snippet children({ props })}
+      <time {...props} datetime={application.submittedAt} class="text-muted-foreground tabular-nums">{formatDate(application.submittedAt)}</time>
+    {/snippet}
+  </Hint>
 {/snippet}
 
 {#snippet moveHeader()}
@@ -237,7 +246,9 @@
 {:else}
   <!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->
   <div class="flex flex-col" {onkeydown} {onfocusin}>
-    <div bind:this={scrollElement} class="max-h-[min(70vh,640px)] overflow-auto">
+    <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
+         instead of the page scrolling sideways on a phone (F1). -->
+    <div bind:this={scrollElement} class="relative max-h-[min(70vh,640px)] overflow-auto">
       <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
         <thead class="sticky top-0 z-10 bg-card">
           {#each table.getHeaderGroups() as group (group.id)}
