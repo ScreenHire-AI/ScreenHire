@@ -26,9 +26,9 @@ describe('candidate table', () => {
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied']);
     expect(dataRows().map((row) => within(row).getAllByRole('cell').slice(1).map((cell) => cell.textContent?.trim()))).toEqual([
-      ['CM Casey Morgan', 'Applied', 'careers', 'Oct 20, 2026'],
-      ['JL Jordan Lee', 'Screening', 'recruiter', 'Oct 19, 2026'],
-      ['ST Sam Taylor', 'Applied', 'careers', 'Oct 17, 2026'],
+      ['CM Casey Morgan', 'Applied', 'Careers page', 'Oct 20, 2026'],
+      ['JL Jordan Lee', 'Screening', 'Recruiter', 'Oct 19, 2026'],
+      ['ST Sam Taylor', 'Applied', 'Careers page', 'Oct 17, 2026'],
     ]);
     expect(dataRows().every((row) => row.classList.contains('h-12'))).toBe(true);
     expect(within(rowOf('Jordan Lee')).getByText('Screening')).toHaveAttribute('data-slot', 'badge');

@@ -85,7 +85,7 @@
 <TopBar crumbs={[{ label: 'Jobs', href: '/' }, { label: 'New job' }]} back />
 
 <main class="flex flex-col">
-  <HeaderBand title="New job" />
+  <HeaderBand form title="New job" />
 
   <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">

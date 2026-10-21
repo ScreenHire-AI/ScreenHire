@@ -41,7 +41,7 @@
 </svelte:head>
 
 <main class="flex flex-col">
-  <HeaderBand title={broken ? "This link doesn't work" : 'Finish signing in'} bind:heading />
+  <HeaderBand form title={broken ? "This link doesn't work" : 'Finish signing in'} bind:heading />
 
   <!-- The form template (section 7): one 688px column, actions at the end. -->
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">

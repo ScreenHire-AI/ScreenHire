@@ -35,7 +35,7 @@
 
 <Tabs.Content value="pipeline">
   <div class="flex flex-wrap items-start gap-5">
-    <Panel title="Stages" count={workflow.stages.length} footer={ends.length > 0 ? endStages : undefined} class="max-w-95 flex-[1_1_320px]">
+    <Panel title="Stages" count={workflow.stages.length} footer={ends.length > 0 ? endStages : undefined} class="flex-[1_1_320px]">
       <StepLine items={steps} label="Stages in order" key={(stage) => stage.id}>
         {#snippet children(stage)}
           <span class="font-semibold break-words">{stage.name}</span>
@@ -108,7 +108,7 @@
         {/if}
       </Panel>
     </div>
-    <Panel title="Candidate preview" class="max-w-95 flex-[1_1_320px] lg:sticky lg:top-4">
+    <Panel title="Candidate preview" class="flex-[1_1_320px] lg:sticky lg:top-4">
       <QuestionnairePreview {questions} />
     </Panel>
   </div>

@@ -60,14 +60,14 @@
 </svelte:head>
 
 <main class="flex flex-col">
-  <HeaderBand title={sentTo ? 'Check your email' : 'Sign in'} bind:heading />
+  <HeaderBand form title={sentTo ? 'Check your email' : 'Sign in'} bind:heading />
 
   <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
   <div class="mx-auto flex w-full max-w-form flex-col gap-5 px-4 py-6 md:px-6">
     {#if sentTo}
       <Panel title="Email link" footer={anotherAddress}>
         <div class="flex flex-col gap-2" role="status">
-          <p>We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.</p>
+          <p class="break-words">We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.</p>
           <p class="text-muted-foreground">Nothing there? Check spam, or ask for a new link.</p>
         </div>
       </Panel>

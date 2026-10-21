@@ -113,7 +113,7 @@
     </ol>
   </Panel>
 
-  <Panel title="Whole workflow" count={inLane(null).length} class="max-w-95 flex-[1_1_320px]">
+  <Panel title="Whole workflow" count={inLane(null).length} class="flex-[1_1_320px]">
     {#snippet actions()}{@render automationsButton(null, 'the whole workflow')}{/snippet}
     <div class="flex flex-col gap-2">
       {@render summaries(null)}

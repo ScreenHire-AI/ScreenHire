@@ -175,7 +175,7 @@
     </form>
   </Panel>
 
-  <Panel title="What would happen" aria-live="polite" class="max-w-95 flex-[1_1_320px]">
+  <Panel title="What would happen" aria-live="polite" class="flex-[1_1_320px]">
     {#if failure}
       <div role="alert">
         <p class="flex items-baseline gap-1.5 font-semibold text-status-verify"><ProblemMark />{failure.message}</p>

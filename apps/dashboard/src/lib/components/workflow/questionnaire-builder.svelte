@@ -191,7 +191,7 @@
     </Panel>
   </div>
 
-  <Panel title="Candidate preview" class="max-w-95 flex-[1_1_320px] lg:sticky lg:top-4">
+  <Panel title="Candidate preview" class="flex-[1_1_320px] lg:sticky lg:top-4">
     <QuestionnairePreview {questions} />
   </Panel>
 </div>

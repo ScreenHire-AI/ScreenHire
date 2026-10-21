@@ -4,6 +4,7 @@
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Hint from '#lib/components/hint.svelte';
@@ -93,12 +94,15 @@
 
 <TopBar crumbs={[{ label: 'Jobs' }]} />
 
-<main class="flex flex-col">
-  <HeaderBand title="Jobs" count={jobs.isSuccess ? all.length : undefined} countLabel={all.length === 1 ? 'job' : 'jobs'} wide>
-    {#snippet actions()}
-      <Button href="/jobs/new" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
-    {/snippet}
-  </HeaderBand>
+<main class={['flex flex-col', sidebar.isMobile && 'pb-28']}>
+  <!-- The page's primary action; a phone has it in the action bar (section 8). -->
+  <HeaderBand
+    title="Jobs"
+    count={jobs.isSuccess ? all.length : undefined}
+    countLabel={all.length === 1 ? 'job' : 'jobs'}
+    actions={sidebar.isMobile ? undefined : newJob}
+    wide
+  />
 
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
@@ -211,7 +215,15 @@
       {/if}
     </Panel>
   </div>
+
+  {#if sidebar.isMobile}
+    <ActionBar>{@render newJob()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet newJob()}
+  <Button href="/jobs/new" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
+{/snippet}
 
 {#snippet published(job: JobSummary)}
   {#if job.publishedAt}

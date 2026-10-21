@@ -9,6 +9,7 @@
   import FileStackIcon from '@lucide/svelte/icons/file-stack';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { goto } from '$app/navigation';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -22,6 +23,7 @@
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
@@ -35,6 +37,8 @@
   // own, on the list template. A new template starts blank or as a copy of a published version, to customise.
   const queryClient = useQueryClient();
   const templates = createListHiringTemplates();
+  // The sidebar's own phone test (under md), where the primary action moves to the action bar.
+  const sidebar = Sidebar.useSidebar();
   const create = createCreateHiringTemplate(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, templatesPath) } }));
 
   const list = $derived(templates.data?.data ?? []);
@@ -89,10 +93,15 @@
 
 <TopBar crumbs={[{ label: 'Templates' }]} />
 
-<main>
-  <HeaderBand title="Templates" count={templates.isSuccess ? list.length : undefined} countLabel={list.length === 1 ? 'template' : 'templates'} wide>
-    {#snippet actions()}<Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>{/snippet}
-  </HeaderBand>
+<main class={[sidebar.isMobile && 'pb-28']}>
+  <!-- The page's primary action; a phone has it in the action bar (section 8). -->
+  <HeaderBand
+    title="Templates"
+    count={templates.isSuccess ? list.length : undefined}
+    countLabel={list.length === 1 ? 'template' : 'templates'}
+    actions={sidebar.isMobile ? undefined : newTemplate}
+    wide
+  />
 
   <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6 2xl:max-w-page-wide">
     {#if templates.isError}
@@ -158,7 +167,9 @@
                         {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
                       </span>
                     </Table.Cell>
-                    <Table.Cell class="text-muted-foreground">
+                    <!-- The description takes the room the other columns leave and truncates, so the table fits from md
+                         up rather than scrolling sideways (F1). -->
+                    <Table.Cell class="w-full max-w-0 text-muted-foreground">
                       {#if template.description}<span class="relative z-10 block max-w-md"><TruncatedText text={template.description} /></span>{/if}
                     </Table.Cell>
                     <Table.Cell class="tabular-nums">
@@ -175,7 +186,15 @@
       </Panel>
     {/if}
   </div>
+
+  {#if sidebar.isMobile}
+    <ActionBar>{@render newTemplate()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet newTemplate()}
+  <Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>
+{/snippet}
 
 <Dialog.Root bind:open={creating}>
   <Dialog.Content class="sm:max-w-md">

@@ -119,7 +119,7 @@
     </div>
     <div aria-hidden="true" class="mx-auto flex w-full max-w-page flex-wrap items-start gap-5 px-4 py-6 md:px-6">
       <Skeleton class="h-80 min-w-0 flex-[999_1_520px] rounded-panel" />
-      <Skeleton class="h-48 min-w-0 max-w-95 flex-[1_1_320px] rounded-panel" />
+      <Skeleton class="h-48 min-w-0 flex-[1_1_320px] rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}
@@ -201,7 +201,7 @@
           />
         </div>
 
-        <div class="flex min-w-0 max-w-95 flex-[1_1_320px] flex-col gap-5">
+        <div class="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
           {#if view === 'table' && active}
             {@render candidatePanel(active)}
           {/if}

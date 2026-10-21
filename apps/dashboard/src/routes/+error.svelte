@@ -18,7 +18,7 @@
 <div class="flex min-h-screen flex-col">
   <BrandBar />
   <main class="flex flex-col">
-    <HeaderBand title={notFound ? 'Page not found' : 'Something went wrong'} />
+    <HeaderBand form title={notFound ? 'Page not found' : 'Something went wrong'} />
 
     <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
       <Panel title={`Error ${page.status}`} footer={back}>

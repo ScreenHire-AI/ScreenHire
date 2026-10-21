@@ -38,9 +38,9 @@ export function formatSalary(salary: JobSalary): string {
   return '';
 }
 
-const sourceLabels: Record<ApplicationSource, string> = { CareersSite: 'careers', Recruiter: 'recruiter' };
+const sourceLabels: Record<ApplicationSource, string> = { CareersSite: 'Careers page', Recruiter: 'Recruiter' };
 
-/** Where an application came from, as the mono source column shows it. */
+/** Where an application came from, as a table's Source column shows it. */
 export const sourceLabel = (source: ApplicationSource) => sourceLabels[source];
 
 const sourceNames: Record<ApplicationSource, string> = { CareersSite: 'Careers page', Recruiter: 'Added by a recruiter' };

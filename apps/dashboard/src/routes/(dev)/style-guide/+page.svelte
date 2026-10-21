@@ -241,7 +241,7 @@
           <p>The body. The title sits inside a fixed-height header, with an optional count and actions on the right.</p>
           {#snippet footer()}<p class="text-caption text-muted-foreground">An optional footer inset</p>{/snippet}
         </Panel>
-        <div class="flex flex-[1_1_320px] flex-col gap-5 max-w-95">
+        <div class="flex flex-[1_1_320px] flex-col gap-5">
           <Panel title="Loading">
             <div class="flex flex-col gap-2" aria-hidden="true">
               <Skeleton class="h-4 w-3/4" />
@@ -356,7 +356,7 @@
             <SummaryItem label="Salary">$120,000 to $145,000 a year</SummaryItem>
           </SummaryList>
         </Panel>
-        <Panel title="File tile" class="flex-[1_1_320px] max-w-95">
+        <Panel title="File tile" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-3">
             <FileTile {applicationId} file={files.clean}>
               {#snippet facts()}<Badge variant="muted" class="tabular-nums">2 pages</Badge>{/snippet}
@@ -421,7 +421,7 @@
             <Empty.Content><Button variant="outline">Publish the job</Button></Empty.Content>
           </Empty.Root>
         </Panel>
-        <Panel title="Time and long text" class="flex-[1_1_320px] max-w-95">
+        <Panel title="Time and long text" class="flex-[1_1_320px]">
           <SummaryList>
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>

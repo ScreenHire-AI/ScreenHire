@@ -59,7 +59,7 @@
 </svelte:head>
 
 <main class="flex flex-col">
-  <HeaderBand title="Set up your organization">
+  <HeaderBand form title="Set up your organization">
     {#snippet details()}
       {#if data.user?.email}
         <span class="flex min-w-0 items-center gap-1.5">
@@ -108,7 +108,7 @@
               aria-invalid={$errors.slug ? 'true' : undefined}
               aria-describedby={$errors.slug ? 'slug-hint slug-error' : 'slug-hint'}
             />
-            <Field.Description id="slug-hint">Lower-case letters, numbers and hyphens. Candidates see it in your careers page links.</Field.Description>
+            <Field.Description id="slug-hint">Lower-case letters, numbers and hyphens.</Field.Description>
             <Field.Error id="slug-error" errors={$errors.slug?.map((message) => ({ message }))} />
           </Field.Field>
         </div>

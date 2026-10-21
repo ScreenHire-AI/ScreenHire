@@ -244,7 +244,8 @@ takes the focus.
 
 - **Header band:** a white strip under the top bar. Title first, status badge beside it, actions on the right, then
   a labelled facts row (label 12px above value 14px, thin rules between) or tabs on its bottom edge. One muted line
-  under the title may hold a person's contact details, each an icon and its value, with no labels.
+  under the title may hold a person's contact details, each an icon and its value, with no labels. On a form page
+  the band's contents line up with the 688px column.
 - **Panel:** header (title, optional count, actions on the right), body, optional footer inset.
 - **Columns:** from `lg`, the main column takes the room the 320px side column leaves, gap 20px. Below `lg` they
   stack in one column in priority order, status first. The status panel comes first in the page's order and sits at
