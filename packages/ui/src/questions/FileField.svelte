@@ -104,13 +104,13 @@
 </script>
 
 <div class="flex flex-col gap-1.5">
-  <label for={inputId} class="text-sm font-bold">
+  <label for={inputId} class="text-candidate-body font-bold">
     {label}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </label>
   <p id={hintId} class="text-candidate-hint text-candidate-muted-foreground">{hint}</p>
   {#if error}
-    <p id={errorId} class="text-sm font-semibold text-destructive">{error}</p>
+    <p id={errorId} class="text-candidate-body font-semibold text-destructive">{error}</p>
   {/if}
   <div class="rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3">
     <input
@@ -127,7 +127,7 @@
       class="file-input"
     />
   </div>
-  <p id={statusId} aria-live="polite" class="text-sm font-semibold">
+  <p id={statusId} aria-live="polite" class="text-candidate-body font-semibold">
     {#if uploading}
       Uploading...
     {:else if current}

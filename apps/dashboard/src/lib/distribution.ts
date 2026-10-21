@@ -1,5 +1,5 @@
 import type { BoardSummary, JobPostingStatus, JobStatus } from '@screenhire/api-client';
-import { eta } from '#lib/format.js';
+import { eta, timeUntil } from '#lib/dates.js';
 
 /** A status mark's shape (design-system section 2.2): circle done, diamond waiting, square needs a person, ring none. */
 export type MarkShape = 'circle' | 'diamond' | 'square' | 'ring';
@@ -31,7 +31,7 @@ function etaOf(expectedBy: string | null, now: number): string | null {
 function estimateSentence(expectedBy: string | null, now: number, what: string): string {
   if (!expectedBy) return ` The board gives no estimate for when it ${what}.`;
   return Date.parse(expectedBy) > now
-    ? ` Expected in ${eta(expectedBy, now).slice(1)}.`
+    ? ` Expected in ${timeUntil(expectedBy, now, 'long')}.`
     : ` The board's estimate has passed; we keep checking.`;
 }
 

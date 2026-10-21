@@ -9,6 +9,7 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import { formatDateTime } from '#lib/dates.js';
   import { boardAction, boardRows, describePosting, type BoardAction } from '#lib/distribution.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -109,7 +110,15 @@
                 </span>
               {/snippet}
             </Hint>
-            {#if view.eta}<Badge variant="muted">{view.eta}</Badge>{/if}
+            <!-- The estimate's exact time is in its tooltip (T5). -->
+            {#if view.eta && row.posting?.expectedBy}
+              {@const expected = row.posting.expectedBy}
+              <Hint content={formatDateTime(expected)}>
+                {#snippet children({ props })}
+                  <span {...props} class="inline-flex rounded-full"><Badge variant="muted">{view.eta}</Badge></span>
+                {/snippet}
+              </Hint>
+            {/if}
           </div>
           <span class="sr-only">{view.detail}</span>
         </li>

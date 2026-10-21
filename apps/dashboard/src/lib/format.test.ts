@@ -1,18 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eta, fileSize, formatSalary, initials } from './format.js';
-
-const now = Date.parse('2026-10-20T12:00:00Z');
-
-describe('eta', () => {
-  it.each([
-    [4_000, '~4s'],
-    [5 * 60_000, '~5m'],
-    [4 * 3_600_000, '~4h'],
-    [86_400_000 + 300_000, '~1d'],
-  ])('%i ms from now is %s', (remaining, expected) => {
-    expect(eta(new Date(now + remaining).toISOString(), now)).toBe(expected);
-  });
-});
+import { fileSize, formatSalary, initials } from './format.js';
 
 describe('formatSalary', () => {
   // The compact suffix's case comes from the runtime's locale data: "K" in Chromium, "k" in some Node builds.

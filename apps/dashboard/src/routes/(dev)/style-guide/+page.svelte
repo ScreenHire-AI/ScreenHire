@@ -515,12 +515,12 @@
         </div>
       </Panel>
 
-      <Panel label="Search field" flush>
+      <Panel title="Search field" flush>
         {#snippet tools()}
-          <SearchField label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <SearchField label="Search candidates" class="ml-auto flex-[0_1_15rem]" />
           <Badge variant="muted">2 selected</Badge>
         {/snippet}
-        <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its search and filters in the header, in place of a title.</p>
+        <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its title, then its search and filters, in the header.</p>
       </Panel>
 
       <div class="flex flex-wrap items-start gap-5">
