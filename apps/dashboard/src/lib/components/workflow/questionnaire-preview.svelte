@@ -13,8 +13,8 @@
 </script>
 
 <!-- The candidate theme: the careers site's background, ink and 15px base. Native controls only, as on the real page. -->
-<div class="candidate-preview flex flex-col gap-4 rounded-xl border border-candidate-border bg-candidate-background p-4 text-[15px] text-candidate-foreground">
-  <p class="font-mono text-[11px] text-candidate-chip-foreground uppercase">Your details</p>
+<div class="candidate-preview flex flex-col gap-4 rounded-xl border border-candidate-border bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
+  <p class="text-caption text-candidate-chip-foreground">Your details</p>
   <TextField name="preview-fullName" label="Full name" required autocomplete="off" bind:value={fullName} />
   <TextField name="preview-email" label="Email" type="email" required autocomplete="off" bind:value={email} />
   <TextField name="preview-phone" label="Phone" type="tel" autocomplete="off" bind:value={phone} />

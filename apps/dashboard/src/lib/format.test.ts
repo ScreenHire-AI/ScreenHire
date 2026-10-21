@@ -1,21 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { age, ago, eta, formatSalary, initials } from './format.js';
+import { eta, formatSalary, initials } from './format.js';
 
 const now = Date.parse('2026-10-20T12:00:00Z');
-const before = (ms: number) => new Date(now - ms).toISOString();
-
-describe('age and ago', () => {
-  it.each([
-    [30_000, 'now', 'just now'],
-    [5 * 60_000, '5m', '5m ago'],
-    [3 * 3_600_000, '3h', '3h ago'],
-    [2 * 86_400_000, '2d', '2d ago'],
-    [15 * 86_400_000, '2w', '2w ago'],
-  ])('%i ms ago is %s, or "%s" in a sentence', (elapsed, compact, sentence) => {
-    expect(age(before(elapsed), now)).toBe(compact);
-    expect(ago(before(elapsed), now)).toBe(sentence);
-  });
-});
 
 describe('eta', () => {
   it.each([

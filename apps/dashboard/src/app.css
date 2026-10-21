@@ -12,13 +12,11 @@
 
   html {
     font-family: var(--sh-font-body);
-    font-size: 13.5px;
-    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-body text-foreground;
   }
 
   :focus-visible {

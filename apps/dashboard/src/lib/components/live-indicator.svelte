@@ -18,7 +18,7 @@
 </script>
 
 <!-- A status region, so a screen reader hears when live updates drop and come back. -->
-<p role="status" class={['flex items-center gap-2 px-1.5 font-mono text-[11px] font-semibold uppercase', current.text]}>
+<p role="status" class={['flex items-center gap-2 px-1.5 text-caption font-semibold', current.text]}>
   <span aria-hidden="true" class={['inline-block size-2 shrink-0', current.mark]}></span>
   <span><span class="sr-only">Live updates:</span> {current.label}</span>
 </p>

@@ -11,7 +11,8 @@
   import { dndzone, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
   import { goto } from '$app/navigation';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
-  import { age, initials, sourceLabel } from '#lib/format.js';
+  import { formatDateTime, timeAgo } from '#lib/dates.js';
+  import { initials, sourceLabel } from '#lib/format.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
 
@@ -81,9 +82,9 @@
   <div class="flex min-w-max gap-3 p-3">
     {#each columns as column (column.stage.id)}
       <section aria-labelledby={`stage-${column.stage.id}`} class="flex w-60 flex-col rounded-lg bg-secondary">
-        <h3 id={`stage-${column.stage.id}`} class="flex items-center justify-between px-3 pt-2.5 pb-1.5 text-[13px] font-bold">
+        <h3 id={`stage-${column.stage.id}`} class="flex items-center justify-between px-3 pt-2.5 pb-1.5 text-body font-bold">
           {column.stage.name}
-          <span class="font-mono text-[11px] font-medium text-muted-foreground">{column.cards.filter((card) => !card.isDndShadowItem).length}</span>
+          <span class="text-caption text-muted-foreground tabular-nums">{column.cards.filter((card) => !card.isDndShadowItem).length}</span>
         </h3>
         <ul
           aria-label={`${column.stage.name} stage`}
@@ -103,7 +104,7 @@
               <span class="flex items-center gap-2">
                 <span
                   aria-hidden="true"
-                  class="grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground"
+                  class="grid size-6 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
                   >{initials(card.candidateName)}</span
                 >
                 <a href={`/applications/${card.id}`} tabindex="-1" class="truncate font-bold text-foreground no-underline hover:underline"
@@ -111,7 +112,7 @@
                 >
               </span>
               <span class="flex items-center justify-between gap-2">
-                <span class="font-mono text-[11px] text-muted-foreground">{sourceLabel(card.source)} · {age(card.submittedAt, now)}</span>
+                <span class="text-caption text-muted-foreground">{sourceLabel(card.source)} · <time datetime={card.submittedAt} title={formatDateTime(card.submittedAt)}>{timeAgo(card.submittedAt, now)}</time></span>
                 <MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
               </span>
             </li>

@@ -189,7 +189,7 @@
       {/if}
 
       <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm font-medium">Salary <span class="font-normal text-muted-foreground">(optional)</span></legend>
+        <legend class="mb-1 text-body font-medium">Salary <span class="font-normal text-muted-foreground">(optional)</span></legend>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_6rem_8rem]">
           <Field.Field data-invalid={$errors.salaryMin ? true : undefined}>
             <Field.Label for="job-salary-min">From</Field.Label>
@@ -230,7 +230,7 @@
       </Field.Field>
 
       {#if $errors._errors}
-        <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
       {/if}
       <div class="flex justify-end gap-2">
         <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Sheet.Close>

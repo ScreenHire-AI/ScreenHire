@@ -104,10 +104,10 @@
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
   {#if job.isError}
     {#if notFound}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Job not found</h1>
+      <h1 class="font-display text-page-title">Job not found</h1>
       <p class="text-muted-foreground">This job does not exist, or it belongs to another organization. <a href="/">Back to jobs</a></p>
     {:else}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Workflow</h1>
+      <h1 class="font-display text-page-title">Workflow</h1>
       <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} />
     {/if}
   {:else if !detail || !draft.workflow}
@@ -119,8 +119,8 @@
   {:else}
     <section aria-label="Job workflow" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex min-w-0 flex-col gap-1.5">
-        <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">Workflow: {detail.title}</h1>
-        <p class="font-mono text-[11.5px] text-muted-foreground uppercase">
+        <h1 class="font-display text-page-title">Workflow: {detail.title}</h1>
+        <p class="text-caption text-muted-foreground">
           Workflow version {detail.workflowVersion}
           {#if detail.template}· from {detail.template.templateName} v{detail.template.version}{:else}· not from a template{/if}
         </p>
@@ -134,7 +134,7 @@
       <section aria-labelledby="update-heading" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-3.5 py-3">
         <div>
           <h2 id="update-heading" class="font-bold">Template update available</h2>
-          <p class="text-[13px] text-muted-foreground">
+          <p class="text-body text-muted-foreground">
             {detail.template.templateName} has version {detail.template.latestPublishedVersion}; this job uses version
             {detail.template.version}. Nothing changes until you apply it.
           </p>
@@ -144,14 +144,14 @@
     {/if}
 
     {#if draft.outdated}
-      <div role="alert" class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px]">
+      <div role="alert" class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-body">
         <p>Someone else saved this job's workflow (now version {detail.workflowVersion}). Your changes here are not saved, and saving them would be refused.</p>
         <Button variant="outline" size="sm" onclick={() => draft.discardForNewer()}>Discard mine and load theirs</Button>
       </div>
     {/if}
-    <p role="status" class="text-[13px] empty:hidden">{status}</p>
-    <p role="alert" class="text-[13px] font-semibold text-destructive empty:hidden">{failure}</p>
-    {#if readonly}<p class="text-[13px] text-muted-foreground">This job is closed, so its workflow can no longer change.</p>{/if}
+    <p role="status" class="text-body empty:hidden">{status}</p>
+    <p role="alert" class="text-body font-semibold text-destructive empty:hidden">{failure}</p>
+    {#if readonly}<p class="text-body text-muted-foreground">This job is closed, so its workflow can no longer change.</p>{/if}
 
     <WorkflowEditor
       bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
@@ -176,20 +176,20 @@
     {:else if diff.isError}
       <QueryError message={describeError(diff.error, 'Could not load the differences')} onretry={() => diff.refetch()} />
     {:else if update}
-      <ul aria-label="Differences" class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border text-[13px]">
+      <ul aria-label="Differences" class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border text-body">
         {#each update.changes as change, index (index)}
           <li class="flex flex-col gap-0.5 px-3 py-2">
-            <span><span class="font-semibold">{changeWords[change.kind]}</span> <code class="font-mono text-[12px]">{change.path}</code></span>
-            {#if change.before !== null}<span class="font-mono text-[11.5px] break-all text-muted-foreground">Before: {change.before}</span>{/if}
-            {#if change.after !== null}<span class="font-mono text-[11.5px] break-all">After: {change.after}</span>{/if}
+            <span><span class="font-semibold">{changeWords[change.kind]}</span> <code class="font-mono text-code">{change.path}</code></span>
+            {#if change.before !== null}<span class="break-all text-muted-foreground">Before: <code class="font-mono text-code">{change.before}</code></span>{/if}
+            {#if change.after !== null}<span class="break-all">After: <code class="font-mono text-code">{change.after}</code></span>{/if}
           </li>
         {:else}
           <li class="px-3 py-2 text-muted-foreground">No differences in the workflow.</li>
         {/each}
       </ul>
     {/if}
-    {#if draft.dirty}<p class="text-[13px] font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
-    <p role="alert" class="text-[13px] font-semibold text-destructive empty:hidden">{applyFailure}</p>
+    {#if draft.dirty}<p class="text-body font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
+    <p role="alert" class="text-body font-semibold text-destructive empty:hidden">{applyFailure}</p>
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep this workflow</Dialog.Close>
       <Button onclick={applyUpdate} disabled={apply.isPending || !update}>Apply update</Button>

@@ -43,7 +43,7 @@
       <h3 id="questions-heading" class={kickerClass}>Screening questions</h3>
       <FieldErrors id="questions-errors" messages={[...errorsAt(errors, 'questionnaire'), ...errorsAt(errors, 'questionnaire.questions')]} />
       {#if questions.length === 0}
-        <p class="text-[13px] text-muted-foreground">No questions yet. Every form still asks for a resume.</p>
+        <p class="text-body text-muted-foreground">No questions yet. Every form still asks for a resume.</p>
       {/if}
       <ol class="flex flex-col gap-2.5">
         {#each questions as question, index (question.id)}
@@ -52,7 +52,7 @@
           <li aria-label={`Question ${index + 1}: ${question.label}`} class="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5">
             <div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_auto]">
               <label class={labelClass}>
-                <span>Question <span class="font-mono text-[11px] font-normal text-muted-foreground">answers.{question.id}</span></span>
+                <span>Question <span class="font-mono text-code font-normal text-muted-foreground">answers.{question.id}</span></span>
                 <Input bind:value={question.label} maxlength={300} aria-invalid={questionErrors.length > 0 || undefined} />
               </label>
               <label class={labelClass}>
@@ -82,7 +82,7 @@
                 Help text (optional)
                 <Input bind:value={() => question.helpText ?? '', (value) => (question.helpText = value || null)} maxlength={500} />
               </label>
-              <label class="flex items-center gap-2 self-end pb-1.5 text-[13px] font-semibold">
+              <label class="flex items-center gap-2 self-end pb-1.5 text-body font-semibold">
                 <input type="checkbox" class={checkboxClass} bind:checked={() => question.required ?? false, (on) => (question.required = on)} />
                 Required
               </label>
@@ -118,7 +118,7 @@
               </fieldset>
             {:else if question.type === 'YesNo'}
               <div class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-muted/40 p-2.5">
-                <label class="flex items-center gap-2 text-[13px] font-semibold">
+                <label class="flex items-center gap-2 text-body font-semibold">
                   <input
                     type="checkbox"
                     class={checkboxClass}
@@ -126,7 +126,7 @@
                   />
                   Knockout question
                 </label>
-                <p class="text-[12.5px] text-muted-foreground">
+                <p class="text-body text-muted-foreground">
                   A knockout is an objective eligibility check only, such as the right to work or a required licence. Never use
                   one for AI use or for needing an accommodation: that would screen people out for exactly what ScreenHire
                   protects. A knockout answer only queues the application for a person to review unless an automation opts in
@@ -199,7 +199,7 @@
 
   <section aria-labelledby="preview-heading" class="flex flex-col gap-2 lg:sticky lg:top-4">
     <h3 id="preview-heading" class={kickerClass}>Candidate preview</h3>
-    <p class="text-[12.5px] text-muted-foreground">
+    <p class="text-body text-muted-foreground">
       The careers apply page renders these same components. Try the answers here; nothing is sent.
     </p>
     <QuestionnairePreview {questions} />

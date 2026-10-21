@@ -7,7 +7,8 @@
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatDateTime, initials, sourceLabel } from '#lib/format.js';
+  import { formatDateTime, timeAgo } from '#lib/dates.js';
+  import { initials, sourceLabel } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { describeError } from '#lib/query.js';
   import type { PageProps } from './$types';
@@ -83,10 +84,10 @@
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
   {#if application.isError}
     {#if notFound}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Application not found</h1>
+      <h1 class="font-display text-page-title">Application not found</h1>
       <p class="text-muted-foreground">It does not exist, or it belongs to another organization. <a href="/candidates">Back to candidates</a></p>
     {:else}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Application</h1>
+      <h1 class="font-display text-page-title">Application</h1>
       <QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} />
     {/if}
   {:else if !detail}
@@ -98,16 +99,16 @@
   {:else}
     <section aria-label="Candidate" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span aria-hidden="true" class="grid size-12 place-items-center rounded-full bg-secondary text-base font-bold text-secondary-foreground"
+        <span aria-hidden="true" class="grid size-12 place-items-center rounded-full bg-secondary text-heading font-bold text-secondary-foreground"
           >{initials(detail.candidate.fullName)}</span
         >
         <div class="flex min-w-0 flex-col gap-1">
-          <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">{detail.candidate.fullName}</h1>
-          <ul aria-label="Application details" class="flex flex-wrap gap-x-3.5 gap-y-1 font-mono text-[11.5px] text-muted-foreground">
+          <h1 class="font-display text-page-title">{detail.candidate.fullName}</h1>
+          <ul aria-label="Application details" class="flex flex-wrap gap-x-3.5 gap-y-1 text-caption text-muted-foreground">
             <li><a href={`mailto:${detail.candidate.email}`}>{detail.candidate.email}</a></li>
             {#if detail.candidate.phone}<li>{detail.candidate.phone}</li>{/if}
-            <li class="uppercase">{detail.stage.name} stage</li>
-            <li class="uppercase">Applied {formatDateTime(detail.submittedAt)} via {sourceLabel(detail.source)}</li>
+            <li>{detail.stage.name} stage</li>
+            <li>Applied <time datetime={detail.submittedAt} title={formatDateTime(detail.submittedAt)}>{timeAgo(detail.submittedAt, Date.now())}</time> via {sourceLabel(detail.source)}</li>
           </ul>
         </div>
       </div>
@@ -121,17 +122,17 @@
         />
       {/if}
     </section>
-    <p role="status" class={['text-[12.5px] empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>{moves.announcement}</p>
+    <p role="status" class={['text-body empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>{moves.announcement}</p>
 
     <div class="flex flex-wrap items-start gap-3.5">
       <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-3.5">
         <section aria-labelledby="resume-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="resume-heading" class="mb-2 text-sm font-bold">Resume</h2>
+          <h2 id="resume-heading" class="mb-2 text-heading">Resume</h2>
           {#if resume}
             {#if resume.scanStatus === 'Clean' || resume.scanStatus === 'NotScanned'}
               <!-- A full navigation, not the client router: the API redirects to a short-lived link that downloads the file. -->
               <a href={getDownloadApplicationFileUrl(detail.id, resume.id)} data-sveltekit-reload class="font-semibold">Download {resume.fileName}</a>
-              <span class="font-mono text-[11px] text-muted-foreground">{Math.ceil(resume.sizeBytes / 1024)} KB</span>
+              <span class="text-caption text-muted-foreground tabular-nums">{Math.ceil(resume.sizeBytes / 1024)} KB</span>
             {:else}
               <p class="text-muted-foreground">{resume.fileName}: {fileStatus[resume.scanStatus]}.</p>
             {/if}
@@ -141,7 +142,7 @@
         </section>
 
         <section aria-labelledby="answers-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="answers-heading" class="mb-2 text-sm font-bold">Answers</h2>
+          <h2 id="answers-heading" class="mb-2 text-heading">Answers</h2>
           {#if detail.answers.filter((answer) => answer.questionId !== 'resume').length === 0}
             <p class="text-muted-foreground">No questionnaire answers.</p>
           {:else}
@@ -167,7 +168,7 @@
         </section>
 
         <section aria-labelledby="declarations-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="declarations-heading" class="mb-2 text-sm font-bold">Declarations</h2>
+          <h2 id="declarations-heading" class="mb-2 text-heading">Declarations</h2>
           <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
             <dt class="text-muted-foreground">AI use</dt>
             <dd>
@@ -185,7 +186,7 @@
         <IntegrityPanel applicationId={detail.id} />
 
         <section aria-labelledby="timeline-heading" class="flex min-w-0 flex-col rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="timeline-heading" class="mb-2 text-sm font-bold">Timeline</h2>
+          <h2 id="timeline-heading" class="mb-2 text-heading">Timeline</h2>
           {#if timeline.isError}
             <QueryError message={describeError(timeline.error, 'Could not load the timeline')} onretry={() => timeline.refetch()} />
           {:else if !timeline.data}
@@ -196,7 +197,7 @@
                 <li class="flex flex-col gap-0.5">
                   <span class="font-semibold">{describeEvent(entry)} <span class="font-normal text-muted-foreground">{actor(entry)}</span></span>
                   {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
-                  <time datetime={entry.occurredAt} class="font-mono text-[11px] text-muted-foreground">{formatDateTime(entry.occurredAt)}</time>
+                  <time datetime={entry.occurredAt} title={formatDateTime(entry.occurredAt)} class="text-caption text-muted-foreground">{timeAgo(entry.occurredAt, Date.now())}</time>
                 </li>
               {/each}
             </ol>

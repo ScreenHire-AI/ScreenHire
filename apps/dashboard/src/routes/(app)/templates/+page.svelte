@@ -18,7 +18,7 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { formatShortDate } from '#lib/format.js';
+  import { formatDate } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { templatesPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
@@ -78,7 +78,7 @@
 <main class="flex flex-col gap-3.5 px-5 py-4.5">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div class="flex flex-col gap-1.5">
-      <h1 class="font-display text-[30px] leading-tight font-bold tracking-[-0.02em]">Templates</h1>
+      <h1 class="font-display text-page-title">Templates</h1>
       <p class="max-w-2xl text-muted-foreground">
         A template is a reusable hiring workflow: stages, screening questions and automations. Jobs copy a published
         version and can be tailored on their own.
@@ -94,10 +94,10 @@
       <Table.Root>
         <Table.Header>
           <Table.Row>
-            <Table.Head class="font-mono text-[10.5px] tracking-[0.06em] uppercase">Name</Table.Head>
-            <Table.Head class="font-mono text-[10.5px] tracking-[0.06em] uppercase">Published</Table.Head>
-            <Table.Head class="font-mono text-[10.5px] tracking-[0.06em] uppercase">Draft</Table.Head>
-            <Table.Head class="text-right font-mono text-[10.5px] tracking-[0.06em] uppercase">Updated</Table.Head>
+            <Table.Head class="text-caption">Name</Table.Head>
+            <Table.Head class="text-caption">Published</Table.Head>
+            <Table.Head class="text-caption">Draft</Table.Head>
+            <Table.Head class="text-right text-caption">Updated</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -115,11 +115,11 @@
                     <a href={`/templates/${template.id}`} class="font-semibold text-foreground no-underline hover:underline">{template.name}</a>
                     {#if template.isSystem}<Badge variant="outline">ScreenHire</Badge>{/if}
                   </div>
-                  {#if template.description}<p class="text-[12.5px] text-muted-foreground">{template.description}</p>{/if}
+                  {#if template.description}<p class="text-body text-muted-foreground">{template.description}</p>{/if}
                 </Table.Cell>
-                <Table.Cell class="font-mono text-xs">{template.latestPublishedVersion ? `v${template.latestPublishedVersion}` : 'Not yet'}</Table.Cell>
-                <Table.Cell class="font-mono text-xs text-muted-foreground">{template.draftVersion ? `v${template.draftVersion}` : '-'}</Table.Cell>
-                <Table.Cell class="text-right font-mono text-xs text-muted-foreground">{formatShortDate(template.updatedAt ?? template.createdAt)}</Table.Cell>
+                <Table.Cell class="tabular-nums">{template.latestPublishedVersion ? `v${template.latestPublishedVersion}` : 'Not yet'}</Table.Cell>
+                <Table.Cell class="text-muted-foreground tabular-nums">{template.draftVersion ? `v${template.draftVersion}` : '-'}</Table.Cell>
+                <Table.Cell class="text-right text-muted-foreground tabular-nums">{formatDate(template.updatedAt ?? template.createdAt)}</Table.Cell>
               </Table.Row>
             {:else}
               <Table.Row>
@@ -171,7 +171,7 @@
         <Field.Error id="new-template-source-error" errors={$errors.copyFromVersionId?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+        <p role="alert" class="text-body text-destructive">{$errors._errors[0]}</p>
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>

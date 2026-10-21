@@ -35,7 +35,7 @@
 <section aria-labelledby="integrity-overview-heading" class="flex flex-col gap-2.5 rounded-xl border border-border bg-card px-4 py-3.5">
   <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
     <h2 id="integrity-overview-heading" class="flex items-baseline gap-2 font-normal">
-      <span class="font-display text-[28px] leading-none font-bold tabular-nums">{overview.total}</span>
+      <span class="font-display text-page-title tabular-nums">{overview.total}</span>
       <span class="text-muted-foreground">{overview.total === 1 ? 'applicant' : 'applicants'} · authenticity</span>
     </h2>
     <ul aria-label="Authenticity levels" class="flex flex-wrap gap-x-1 gap-y-1">
@@ -58,7 +58,7 @@
       {/each}
     </ul>
     {#if overview.dismissed > 0}
-      <span class="font-mono text-[11px] text-muted-foreground uppercase">{overview.dismissed} dismissed after review</span>
+      <span class="text-caption text-muted-foreground">{overview.dismissed} dismissed after review</span>
     {/if}
   </div>
   <div aria-hidden="true" class="flex h-2 gap-0.5 overflow-hidden rounded-full bg-secondary">

@@ -11,6 +11,10 @@
   --sh-font-body: "Hanken Grotesk Variable", system-ui, sans-serif;
   --sh-font-data: "JetBrains Mono Variable", ui-monospace, monospace;
 
+  /* The page title is the one size that steps down on phones; theme.css maps it to `text-page-title`. */
+  --sh-page-title-size: 1.5rem;
+  --sh-page-title-leading: 1.875rem;
+
   /* Recruiter app — light */
   --background: #f7f5f0;
   --foreground: #1c1b19;
@@ -32,6 +36,7 @@
   --input: #ddd7cc;
   --ring: #4338ca;
   --row-selected: #f3f1fc;
+  --scrim: #1c1b19;
 
   --sidebar: #fbfaf6;
   --sidebar-foreground: #3a3630;
@@ -71,6 +76,13 @@
   --candidate-brand-ui: #c2462f;
 }
 
+@media (width >= 48rem) {
+  :root {
+    --sh-page-title-size: 1.75rem;
+    --sh-page-title-leading: 2.125rem;
+  }
+}
+
 .dark {
   --background: #141311;
   --foreground: #edeae4;
@@ -92,6 +104,7 @@
   --input: #3a3731;
   --ring: #9b9cf8;
   --row-selected: #2a2722;
+  --scrim: #000000;
 
   --sidebar: #181714;
   --sidebar-foreground: #cfcac1;

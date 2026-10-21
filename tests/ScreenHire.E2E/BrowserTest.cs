@@ -13,6 +13,10 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     // WCAG 2.2 level A and AA (CLAUDE.md, Frontend rules); axe's best-practice rules are advisory, so not enforced here.
     private static readonly List<string> WcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
+    // The dashboard formats dates in the browser's locale (design system section 13); pin it so tests read the same text
+    // on every machine.
+    private const string Locale = "en-US";
+
     private IBrowserContext? context;
     private bool javaScriptEnabled = true;
 
@@ -22,7 +26,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        context = await fixture.Browser.NewContextAsync();
+        context = await fixture.Browser.NewContextAsync(new() { Locale = Locale });
         Page = await context.NewPageAsync();
     }
 
@@ -78,7 +82,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
             await context.DisposeAsync();
         }
 
-        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false });
+        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false, Locale = Locale });
         Page = await context.NewPageAsync();
         javaScriptEnabled = false;
     }

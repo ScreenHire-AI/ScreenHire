@@ -75,7 +75,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await ExpectNoAccessibilityViolationsAsync();
         await details.GetByRole(AriaRole.Button, new() { Name = "Save details" }).ClickAsync();
         await Expect(details).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("£70k-£90k");
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync(new Regex("£70[Kk]-£90[Kk]")); // "K" or "k", by the browser's locale
 
         // Each board's answer reaches this page as a live event, so check the connection first: a lost one fails here
         // with its own name, not as a board that seems to stay Queued.

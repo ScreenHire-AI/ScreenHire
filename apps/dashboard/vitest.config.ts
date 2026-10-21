@@ -14,6 +14,8 @@ export default mergeConfig(
       environment: 'jsdom',
       include: ['src/**/*.test.ts'],
       setupFiles: ['./vitest.setup.ts'],
+      // Vitest turns CSS imports into empty strings; the tokens-only check reads stylesheets with `?raw` and needs the text.
+      css: { include: [/\.css\?raw$/] },
     },
   }),
 );

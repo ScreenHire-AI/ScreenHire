@@ -12,7 +12,7 @@ export type MarkTone = 'clear' | 'review' | 'verify' | 'neutral' | 'primary' | '
 export interface PostingView {
   shape: MarkShape;
   tone: MarkTone;
-  /** The mono state, upper case, with the board's estimate when there is one: `LIVE`, `QUEUED · ~20S`. */
+  /** The state, with the board's estimate when there is one: `Live`, `Queued · ~20s`. */
   label: string;
   /** The same in a sentence, for screen readers and the tooltip, including what is still uncertain. */
   detail: string;
@@ -23,7 +23,7 @@ export type BoardAction = 'post' | 'retry' | 'takeDown' | null;
 
 function withEta(label: string, expectedBy: string | null, now: number): string {
   if (!expectedBy) return label;
-  return Date.parse(expectedBy) > now ? `${label} · ${eta(expectedBy, now).toUpperCase()}` : `${label} · OVERDUE`;
+  return Date.parse(expectedBy) > now ? `${label} · ${eta(expectedBy, now)}` : `${label} · overdue`;
 }
 
 function estimateSentence(expectedBy: string | null, now: number, what: string): string {
@@ -40,18 +40,18 @@ function estimateSentence(expectedBy: string | null, now: number, what: string):
  */
 export function describePosting(posting: JobPostingStatus | undefined, now: number): PostingView {
   if (!posting) {
-    return { shape: 'ring', tone: 'neutral', label: 'NOT POSTED', detail: 'Not posted to this board.' };
+    return { shape: 'ring', tone: 'neutral', label: 'Not posted', detail: 'Not posted to this board.' };
   }
 
   const { state, expectedBy, confirmsLive, confirmsRemoval } = posting;
   switch (state) {
     case 'Live':
-      return { shape: 'circle', tone: 'clear', label: 'LIVE', detail: 'Live: the board confirmed the job shows.' };
+      return { shape: 'circle', tone: 'clear', label: 'Live', detail: 'Live: the board confirmed the job shows.' };
     case 'Queued':
       return {
         shape: 'diamond',
         tone: 'review',
-        label: withEta('QUEUED', expectedBy, now),
+        label: withEta('Queued', expectedBy, now),
         detail: `Queued: waiting to be sent to the board.${estimateSentence(expectedBy, now, 'takes it')}`,
       };
     case 'Submitted':
@@ -59,13 +59,13 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
         ? {
             shape: 'diamond',
             tone: 'review',
-            label: withEta('SUBMITTED', expectedBy, now),
+            label: withEta('Submitted', expectedBy, now),
             detail: `Submitted: the board took it and has not confirmed it shows yet.${estimateSentence(expectedBy, now, 'shows it')}`,
           }
         : {
             shape: 'diamond',
             tone: 'review',
-            label: withEta('SENT', expectedBy, now),
+            label: withEta('Sent', expectedBy, now),
             detail: `Sent: this board never confirms when a job shows.${estimateSentence(expectedBy, now, 'picks it up')}`,
           };
     case 'Closing':
@@ -73,36 +73,36 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
         ? {
             shape: 'diamond',
             tone: 'review',
-            label: withEta('REMOVING', expectedBy, now),
+            label: withEta('Removing', expectedBy, now),
             detail: `Removing: the board has not confirmed the job is gone yet.${estimateSentence(expectedBy, now, 'removes it')}`,
           }
         : {
             shape: 'diamond',
             tone: 'review',
-            label: withEta('REMOVAL REQUESTED', expectedBy, now),
+            label: withEta('Removal requested', expectedBy, now),
             detail: `Removal requested: this board never confirms removal, so the job may still show until it refreshes.${estimateSentence(expectedBy, now, 'refreshes')}`,
           };
     case 'Closed':
-      return { shape: 'ring', tone: 'neutral', label: 'REMOVED', detail: 'Removed: the board confirmed the job is gone, or it never reached the board.' };
+      return { shape: 'ring', tone: 'neutral', label: 'Removed', detail: 'Removed: the board confirmed the job is gone, or it never reached the board.' };
     case 'Rejected':
       return {
         shape: 'square',
         tone: 'verify',
-        label: 'REJECTED',
+        label: 'Rejected',
         detail: `Rejected by the board${posting.lastError ? `: ${posting.lastError}` : '.'}`,
       };
     case 'Error':
       return {
         shape: 'square',
         tone: 'verify',
-        label: 'ERROR',
+        label: 'Error',
         detail: `The board did not answer${posting.lastError ? `: ${posting.lastError}` : '.'} Retry to send it again.`,
       };
     case 'Draft':
       return {
         shape: 'square',
         tone: 'verify',
-        label: 'NEEDS FIXES',
+        label: 'Needs fixes',
         detail: `Not sent: ${posting.issues.length > 0 ? posting.issues.join(' ') : 'the board found problems with the job.'}`,
       };
   }

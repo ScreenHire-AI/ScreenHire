@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
-import { applications, now } from '../../test-support/fixtures.js';
+import { applications } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/integrity-fixtures.js';
 import ApplicationTable from './application-table.svelte';
 
@@ -18,21 +18,21 @@ afterEach(() => {
 });
 
 describe('candidate table', () => {
-  it('shows a 40 px row per application with its stage, source and age, newest first', () => {
-    render(ApplicationTable, { props: { applications, now } });
+  it('shows a 40 px row per application with its stage, source and date, newest first', () => {
+    render(ApplicationTable, { props: { applications } });
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied']);
     expect(dataRows().map((row) => within(row).getAllByRole('cell').slice(1).map((cell) => cell.textContent?.trim()))).toEqual([
-      ['CM Casey Morgan', 'Applied', 'careers', '2h'],
-      ['JL Jordan Lee', 'Screening', 'recruiter', '1d'],
-      ['ST Sam Taylor', 'Applied', 'careers', '3d'],
+      ['CM Casey Morgan', 'Applied', 'careers', 'Oct 20, 2026'],
+      ['JL Jordan Lee', 'Screening', 'recruiter', 'Oct 19, 2026'],
+      ['ST Sam Taylor', 'Applied', 'careers', 'Oct 17, 2026'],
     ]);
     expect(dataRows().every((row) => row.classList.contains('h-10'))).toBe(true);
     expect(screen.getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
   });
 
   it('adds the job column for the table across jobs', () => {
-    render(ApplicationTable, { props: { applications, now, showJob: true } });
+    render(ApplicationTable, { props: { applications, showJob: true } });
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Job', 'Stage', 'Source', 'Applied']);
     expect(within(rowOf('Casey Morgan')).getByRole('link', { name: 'Senior .NET Engineer' })).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('candidate table', () => {
     const extraColumns = [
       candidateColumns.display({ id: 'authenticity', header: 'Authenticity', cell: ({ row }) => renderSnippet(level, row.original.candidateName) }),
     ];
-    render(ApplicationTable, { props: { applications, now, extraColumns } });
+    render(ApplicationTable, { props: { applications, extraColumns } });
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Authenticity', 'Source', 'Applied']);
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('candidate table', () => {
       { ...applications[1]!, integrity: null },
       { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
     ];
-    render(ApplicationTable, { props: { applications: rows, now, extraColumns: integrityColumns } });
+    render(ApplicationTable, { props: { applications: rows, extraColumns: integrityColumns } });
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
@@ -79,7 +79,7 @@ describe('candidate table', () => {
   });
 
   it('moves the cursor with J and K, focusing and tinting the row', async () => {
-    render(ApplicationTable, { props: { applications, now } });
+    render(ApplicationTable, { props: { applications } });
     const first = screen.getByRole('link', { name: 'Casey Morgan' });
     first.focus();
     await fireEvent.focusIn(first);
@@ -95,7 +95,7 @@ describe('candidate table', () => {
   });
 
   it('selects the cursor row with X, and its checkbox shows it', async () => {
-    render(ApplicationTable, { props: { applications, now } });
+    render(ApplicationTable, { props: { applications } });
     const link = screen.getByRole('link', { name: 'Jordan Lee' });
     link.focus();
     await fireEvent.focusIn(link);
@@ -110,7 +110,7 @@ describe('candidate table', () => {
   });
 
   it('selects every row from the header checkbox', async () => {
-    render(ApplicationTable, { props: { applications, now } });
+    render(ApplicationTable, { props: { applications } });
 
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select all candidates' }));
 
@@ -119,7 +119,7 @@ describe('candidate table', () => {
 
   it('ignores single-key shortcuts when they are turned off, and hides their hints', async () => {
     preferences.setShortcutsEnabled(false);
-    render(ApplicationTable, { props: { applications, now } });
+    render(ApplicationTable, { props: { applications } });
     const first = screen.getByRole('link', { name: 'Casey Morgan' });
     first.focus();
 
@@ -130,7 +130,7 @@ describe('candidate table', () => {
   });
 
   it('says so when there is nothing to show', () => {
-    render(ApplicationTable, { props: { applications: [], now, emptyText: 'No candidates in this stage.' } });
+    render(ApplicationTable, { props: { applications: [], emptyText: 'No candidates in this stage.' } });
 
     expect(screen.getByRole('cell')).toHaveTextContent('No candidates in this stage.');
   });
@@ -141,7 +141,7 @@ describe('candidate table', () => {
       id: `01a157d4-0000-7000-8000-${index.toString().padStart(12, '0')}`,
       candidateName: `Candidate ${index}`,
     }));
-    render(ApplicationTable, { props: { applications: many, now } });
+    render(ApplicationTable, { props: { applications: many } });
 
     expect(dataRows().length).toBeGreaterThan(10);
     expect(dataRows().length).toBeLessThan(60);

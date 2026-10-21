@@ -71,7 +71,7 @@
   <div class="flex flex-wrap items-stretch">
     <h2
       id="distribution-heading"
-      class="flex items-center border-r border-border-subtle px-3 py-2 font-mono text-[10.5px] font-medium tracking-[0.08em] text-muted-foreground uppercase"
+      class="flex items-center border-r border-border-subtle px-3 py-2 text-caption text-muted-foreground"
     >
       Distribution
     </h2>
@@ -88,8 +88,9 @@
           <span class="font-semibold">{row.name}</span>
           <span
             aria-hidden="true"
+            data-state
             class={[
-              'font-mono text-[11px]',
+              'text-caption',
               view.tone === 'clear' && 'text-status-clear',
               view.tone === 'review' && 'text-status-review',
               view.tone === 'verify' && 'text-status-verify',

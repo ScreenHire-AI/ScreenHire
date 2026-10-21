@@ -16,7 +16,8 @@
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { age, ago, employmentLabel, formatSalary, formatShortDate, initials, sourceLabel } from '#lib/format.js';
+  import { formatDateTime, timeAgo } from '#lib/dates.js';
+  import { employmentLabel, formatSalary, initials, sourceLabel } from '#lib/format.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import { bulkMoveStages, chipOf, isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
@@ -66,8 +67,8 @@
     const parts = [detail.location, employmentLabel(detail.employmentType)];
     if (detail.salary) parts.push(formatSalary(detail.salary));
     if (applications.isSuccess) parts.push(`${all.length} ${all.length === 1 ? 'applicant' : 'applicants'}`);
-    if (detail.status === 'Open' && detail.publishedAt) parts.push(`Opened ${ago(detail.publishedAt, Date.now())}`);
-    else if (detail.status === 'Closed' && detail.closedAt) parts.push(`Closed ${formatShortDate(detail.closedAt)}`);
+    if (detail.status === 'Open' && detail.publishedAt) parts.push(`Opened ${timeAgo(detail.publishedAt, Date.now())}`);
+    else if (detail.status === 'Closed' && detail.closedAt) parts.push(`Closed ${timeAgo(detail.closedAt, Date.now())}`);
     else parts.push(detail.status);
     return parts.filter(Boolean);
   });
@@ -116,10 +117,10 @@
 <main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
   {#if job.isError}
     {#if notFound}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Job not found</h1>
+      <h1 class="font-display text-page-title">Job not found</h1>
       <p class="text-muted-foreground">This job does not exist, or it belongs to another organization. <a href="/">Back to jobs</a></p>
     {:else}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Job</h1>
+      <h1 class="font-display text-page-title">Job</h1>
       <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} />
     {/if}
   {:else if !detail}
@@ -132,8 +133,8 @@
   {:else}
     <section aria-label="Job" class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex min-w-0 flex-col gap-1.5">
-        <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">{detail.title}</h1>
-        <ul aria-label="Job details" class="flex flex-wrap gap-x-3.5 gap-y-1 font-mono text-[11.5px] text-muted-foreground uppercase">
+        <h1 class="font-display text-page-title">{detail.title}</h1>
+        <ul aria-label="Job details" class="flex flex-wrap gap-x-3.5 gap-y-1 text-caption text-muted-foreground">
           {#each meta as part (part)}<li>{part}</li>{/each}
         </ul>
       </div>
@@ -152,7 +153,7 @@
       </div>
     </section>
 
-    <p role="status" class="text-[12.5px] text-muted-foreground empty:hidden">{saved}</p>
+    <p role="status" class="text-body text-muted-foreground empty:hidden">{saved}</p>
     <JobDetailsSheet job={detail} bind:open={editing} onsaved={(message) => (saved = message)} />
 
     <DistributionStrip job={detail} boards={boards.data?.data ?? []} />
@@ -184,7 +185,7 @@
                   ]}
                 >
                   {option.name}
-                  <span class="font-mono text-[11px] font-medium text-muted-foreground tabular-nums">{option.count}</span>
+                  <span class="text-caption text-muted-foreground tabular-nums">{option.count}</span>
                 </button>
               {/each}
             </div>
@@ -245,12 +246,12 @@
           </ApplicationTable>
         {:else}
           <PipelineBoard applications={all} {stages} {moves} />
-          <p class="border-t border-border-subtle bg-muted px-3 py-2 font-mono text-[11px] text-muted-foreground">
+          <p class="border-t border-border-subtle bg-muted px-3 py-2 text-caption text-muted-foreground">
             <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move a card · <kbd>Space</kbd> pick up · <kbd>Enter</kbd> open
             {#if preferences.shortcutsEnabled}· <kbd>V</kbd> table view{/if}
           </p>
         {/if}
-        <p role="status" class={['px-3 py-1.5 text-[12.5px] empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
+        <p role="status" class={['px-3 py-1.5 text-body empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
           {moves.announcement}
         </p>
       </section>
@@ -262,7 +263,7 @@
           {@render panel(active)}
         {:else}
           <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-xl border border-border bg-card">
-            <p class="px-4 py-3.5 text-[13px] text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
+            <p class="px-4 py-3.5 text-body text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
           </aside>
         {/if}
       {/if}
@@ -277,20 +278,20 @@
         >{initials(application.candidateName)}</span
       >
       <div class="flex min-w-0 flex-col">
-        <h2 class="font-display text-[19px] font-bold">{application.candidateName}</h2>
-        <span class="text-[12.5px] text-muted-foreground">
-          Applied {ago(application.submittedAt, Date.now())} via {sourceLabel(application.source)}
+        <h2 class="font-display text-panel-title">{application.candidateName}</h2>
+        <span class="text-body text-muted-foreground">
+          Applied <time datetime={application.submittedAt} title={formatDateTime(application.submittedAt)}>{timeAgo(application.submittedAt, Date.now())}</time> via {sourceLabel(application.source)}
         </span>
       </div>
     </div>
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-b border-border-subtle px-4 py-3.5">
-      <dt class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Stage</dt>
+      <dt class="text-caption text-muted-foreground">Stage</dt>
       <dd>{application.stage.name}</dd>
-      <dt class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">In stage</dt>
-      <dd>{age(application.stageEnteredAt, Date.now())}</dd>
+      <dt class="text-caption text-muted-foreground">Entered stage</dt>
+      <dd><time datetime={application.stageEnteredAt} title={formatDateTime(application.stageEnteredAt)}>{timeAgo(application.stageEnteredAt, Date.now())}</time></dd>
       {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assist' }] as const as row (row.kind)}
         {@const chip = chipOf(application.integrity, row.kind)}
-        <dt class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">{row.label}</dt>
+        <dt class="text-caption text-muted-foreground">{row.label}</dt>
         <dd><IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} /></dd>
       {/each}
     </dl>

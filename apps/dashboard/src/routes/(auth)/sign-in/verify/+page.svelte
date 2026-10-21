@@ -39,13 +39,13 @@
 
 {#if !token || failed}
   <div class="flex flex-col gap-3">
-    <h1 bind:this={failedHeading} tabindex="-1" class="font-display text-[22px] leading-tight font-bold">This link doesn't work</h1>
+    <h1 bind:this={failedHeading} tabindex="-1" class="font-display text-page-title">This link doesn't work</h1>
     <p role="alert">This sign-in link has expired or has already been used. Each link works once, for 15 minutes.</p>
     <Button href="/sign-in" size="lg">Get a new link</Button>
   </div>
 {:else}
   <form class="flex flex-col gap-3" onsubmit={signIn}>
-    <h1 class="font-display text-[22px] leading-tight font-bold">Finish signing in</h1>
+    <h1 class="font-display text-page-title">Finish signing in</h1>
     <p class="text-muted-foreground">You opened a sign-in link for ScreenHire.</p>
     <Button type="submit" size="lg" disabled={submitting}>Sign in</Button>
   </form>

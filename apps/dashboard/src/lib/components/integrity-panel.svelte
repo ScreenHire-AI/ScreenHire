@@ -16,7 +16,7 @@
   import StatusMark from '#lib/components/status-mark.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatDateTime } from '#lib/format.js';
+  import { formatDateTime, timeAgo } from '#lib/dates.js';
   import {
     aiAssistanceLevels,
     aiDeclarationLabels,
@@ -71,7 +71,7 @@
 
 {#snippet signalItem(signal: IntegritySignalView)}
   <li class="flex flex-col gap-1 px-3 py-2.5" data-signal={signal.code}>
-    <span class="font-mono text-[10.5px] tracking-[0.02em] text-muted-foreground">{signal.code}</span>
+    <span class="font-mono text-code text-muted-foreground">{signal.code}</span>
     <span class="font-semibold">{signal.title}</span>
     <p class="text-secondary-foreground">{signal.explanation}</p>
     {#if signal.evidence.length > 0}
@@ -81,7 +81,7 @@
     {/if}
     {#each signal.counterEvidence as counter, index (index)}
       <div class="mt-0.5 flex flex-col gap-1" data-counter-evidence>
-        <p class="flex items-start gap-2 text-[12.5px] text-status-clear">
+        <p class="flex items-start gap-2 text-body text-status-clear">
           <StatusMark shape="circle" tone="clear" class="mt-1.5 size-[7px]" />
           <span><span class="font-bold">Counter-evidence</span> · {counter.explanation}</span>
         </p>
@@ -96,7 +96,7 @@
   {@const context = view.signals.filter((signal) => !signal.countsTowardLevel)}
   <section aria-labelledby={`${kind}-heading`} data-assessment={kind} class="flex flex-col gap-2.5 border-b border-border-subtle px-4 py-3.5">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h3 id={`${kind}-heading`} class="text-sm font-bold">
+      <h3 id={`${kind}-heading`} class="text-heading">
         {assessmentNames[kind]}
         {#if kind === 'aiAssistance'}<span class="font-medium text-muted-foreground">· informational</span>{/if}
       </h3>
@@ -109,7 +109,7 @@
     </p>
 
     {#if reasons.length > 0}
-      <h4 class="font-mono text-[10.5px] font-medium tracking-[0.08em] text-muted-foreground uppercase">
+      <h4 class="text-caption text-muted-foreground">
         Reasons · {reasons.length}
       </h4>
       <ul class="flex flex-col divide-y divide-border-subtle overflow-hidden rounded-[10px] border border-border-subtle bg-muted">
@@ -117,21 +117,21 @@
       </ul>
     {/if}
     {#if context.length > 0}
-      <h4 class="font-mono text-[10.5px] font-medium tracking-[0.08em] text-muted-foreground uppercase">Context, not counted toward the level</h4>
+      <h4 class="text-caption text-muted-foreground">Context, not counted toward the level</h4>
       <ul class="flex flex-col divide-y divide-border-subtle overflow-hidden rounded-[10px] border border-border-subtle bg-muted">
         {#each context as signal (signal.id)}{@render signalItem(signal)}{/each}
       </ul>
     {/if}
 
     {#if 'policy' in view}
-      <p class="font-mono text-[11px] tracking-[0.04em] text-muted-foreground uppercase">
+      <p class="text-caption text-muted-foreground">
         Job policy: {aiPolicyLabels[view.policy]} · Declared AI use: {aiDeclarationLabels[view.declaration]}
       </p>
     {/if}
 
     {#if view.dismissal}
-      <p class="text-[12.5px] text-muted-foreground">
-        Dismissed by {actor(view.dismissal.actorUserId, view.dismissal.actorName)} on {formatDateTime(view.dismissal.dismissedAt)}:
+      <p class="text-body text-muted-foreground">
+        Dismissed by {actor(view.dismissal.actorUserId, view.dismissal.actorName)} <time datetime={view.dismissal.dismissedAt} title={formatDateTime(view.dismissal.dismissedAt)}>{timeAgo(view.dismissal.dismissedAt, Date.now())}</time>:
         {dismissReasonLabels[view.dismissal.reason]}{view.dismissal.note ? `. "${view.dismissal.note}"` : '.'}
       </p>
     {:else if level.rank > 0}
@@ -141,12 +141,12 @@
         </Button>
       </div>
     {/if}
-    <p class="font-mono text-[10.5px] text-muted-foreground">Assessed {formatDateTime(view.assessedAt)} · ruleset {view.rulesetVersion}</p>
+    <p class="text-caption text-muted-foreground">Assessed <time datetime={view.assessedAt} title={formatDateTime(view.assessedAt)}>{timeAgo(view.assessedAt, Date.now())}</time> · ruleset {view.rulesetVersion}</p>
   </section>
 {/snippet}
 
 <section aria-labelledby="integrity-heading" class="flex min-w-0 flex-col rounded-xl border border-border bg-card">
-  <h2 id="integrity-heading" class="border-b border-border-subtle px-4 py-3 text-sm font-bold">Integrity</h2>
+  <h2 id="integrity-heading" class="border-b border-border-subtle px-4 py-3 text-heading">Integrity</h2>
 
   <!-- A failed background refetch keeps the evidence on screen, under the error. -->
   {#if integrity.isError}
@@ -179,15 +179,15 @@
         <Button disabled aria-describedby="request-verification-hint">Request verification</Button>
         <Button variant="ghost" class="font-bold text-primary" onclick={() => (noteOpen = true)}>Add note</Button>
       </div>
-      <p id="request-verification-hint" class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
-        <span class="rounded-sm bg-secondary px-1.5 py-px font-mono text-[10.5px] tracking-[0.06em] text-secondary-foreground uppercase">Phase 2</span>
+      <p id="request-verification-hint" class="flex items-center gap-2 text-body text-muted-foreground">
+        <span class="rounded-sm bg-secondary px-1.5 py-px text-caption text-secondary-foreground">Phase 2</span>
         {detail.requestVerification.reason ?? 'Identity verification is not available yet.'}
       </p>
-      <p role="status" class="text-[12.5px] text-muted-foreground empty:hidden">{announcement}</p>
+      <p role="status" class="text-body text-muted-foreground empty:hidden">{announcement}</p>
     </div>
 
     <section aria-labelledby="review-log-heading" class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3.5">
-      <h3 id="review-log-heading" class="text-sm font-bold">Review log</h3>
+      <h3 id="review-log-heading" class="text-heading">Review log</h3>
       {#if detail.reviewLog.length === 0}
         <p class="text-muted-foreground">No review actions yet.</p>
       {:else}
@@ -199,7 +199,7 @@
                 <span class="font-normal text-muted-foreground">by {actor(entry.actorUserId, entry.actorName)}</span>
               </span>
               {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
-              <time datetime={entry.occurredAt} class="font-mono text-[11px] text-muted-foreground">{formatDateTime(entry.occurredAt)}</time>
+              <time datetime={entry.occurredAt} title={formatDateTime(entry.occurredAt)} class="text-caption text-muted-foreground">{timeAgo(entry.occurredAt, Date.now())}</time>
             </li>
           {/each}
         </ol>
@@ -207,7 +207,7 @@
     </section>
   {/if}
 
-  <p class="px-4 py-3 text-[12px] text-muted-foreground">No automated decision has been made. Every action is logged.</p>
+  <p class="px-4 py-3 text-caption text-muted-foreground">No automated decision has been made. Every action is logged.</p>
 </section>
 
 <IntegrityDismissDialog bind:open={dismissOpen} {applicationId} assessment={dismissing} ondone={done} />
