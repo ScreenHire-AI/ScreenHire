@@ -17,10 +17,10 @@
   };
   // An ancestor's overflow clips an element only from the element's containing block up: an absolute element
   // (an sr-only label in a table cell) escapes a scroll container that sits below its positioned ancestor and
-  // widens the page.
+  // widens the page. A fixed element (a closed sheet, a toast) never widens it.
   const clipped = (el) => {
     const position = getComputedStyle(el).position;
-    if (position === 'fixed') return false;
+    if (position === 'fixed') return true;
     let containingBlock = position === 'absolute' ? el.offsetParent : null;
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       if (containingBlock && p !== containingBlock) continue;
@@ -43,9 +43,13 @@
     return false;
   };
   const all = [...document.body.querySelectorAll('*')].filter(visible);
+  // sr-only controls (1px boxes) are not targets anyone taps.
   const targets = all.filter((el) =>
-    el.matches('a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=checkbox], [role=switch], [role=menuitem], [role=option]'),
+    el.matches('a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=checkbox], [role=switch], [role=menuitem], [role=option]') &&
+    el.clientWidth > 1,
   );
+  // A wrapping label is an input's hit area, so its size is the target's size.
+  const hitBox = (el) => (el.matches('input') && el.closest('label') ? el.closest('label') : el).getBoundingClientRect();
   const main = document.querySelector('main');
   const mainStyle = main && getComputedStyle(main);
 
@@ -65,9 +69,9 @@
     pastRightEdge: all
       .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 1 && !clipped(el))
       .slice(0, 10)
-      .map((el) => ({ el: describe(el), class: el.className.toString().slice(0, 80), position: getComputedStyle(el).position, right: Math.round(el.getBoundingClientRect().right) })),
+      .map((el) => ({ el: describe(el), class: (el.getAttribute('class') ?? '').slice(0, 80), position: getComputedStyle(el).position, right: Math.round(el.getBoundingClientRect().right) })),
     smallestTargets: targets
-      .map((el) => ({ el: describe(el), w: Math.round(el.getBoundingClientRect().width), h: Math.round(el.getBoundingClientRect().height) }))
+      .map((el) => ({ el: describe(el), w: Math.round(hitBox(el).width), h: Math.round(hitBox(el).height) }))
       .sort((a, b) => Math.min(a.w, a.h) - Math.min(b.w, b.h))
       .slice(0, 12),
     wrappedControls: targets

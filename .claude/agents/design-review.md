@@ -53,9 +53,10 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
 5. A component the catalogue (section 11) names but the code lacks (a tooltip, a key cap, the sidebar) is one finding
    against section 11, not one per screen that needs it.
 6. Visual notes, when the caller gives them, hold for each page and width: the URL, screenshot paths, the JSON from
-   `.claude/skills/task-review/visual-probe.js` and what the caller saw. Read every screenshot (Read shows images)
-   before you write a finding, not a sample of them, and hold each page at each width to the checklist, the ones code cannot show first: navigation and actions for
-   the size (F3, section 8), layers and shadows (S5, section 6), panels sharing a top edge and nesting (S3, S4),
+   `.claude/skills/task-review/visual-probe.js` and what the caller saw. Open every screenshot with Read (it shows
+   images) before you write a finding. Not a sample, and not the notes in place of the images. Hold each page at
+   each width to the checklist, starting with the checks code cannot show. These are navigation and actions for the
+   size (F3, section 8), layers and shadows (S5, section 6), panels sharing a top edge and nesting (S3, S4),
    wrapping and truncation (F5), sideways scrolling (F1), type sizes (W1) and target sizes (F4). Apply the limits
    from the design system to the probe's raw numbers:
    - `page.scrollWidth` above `page.clientWidth` means the page scrolls sideways; `pastRightEdge` names what pushes
@@ -88,5 +89,5 @@ A preference with no checklist id behind it is not a finding. If the change need
 ## Report
 
 Your final message is the findings, most severe first, grouped by file. If there are none, write `NO FINDINGS` and
-list the checks you ran. With visual notes, end with the pages and widths you looked at and any screenshot you
-could not read.
+list the checks you ran. With visual notes, end with every screenshot path you opened with Read, by page and width,
+and any you could not read with the error.
