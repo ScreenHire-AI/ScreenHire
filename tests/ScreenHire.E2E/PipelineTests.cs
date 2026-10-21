@@ -187,7 +187,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
         await SignInAsync(Page, scene.Email);
 
-        foreach (var width in new[] { 1440, 768, 390, 360 })
+        foreach (var width in new[] { 1920, 1440, 1024, 768, 390, 360 })
         {
             await Page.SetViewportSizeAsync(width, width < 768 ? 844 : DesignHeight);
             await Page.GotoAsync(DashboardUrl("/candidates"));
@@ -222,8 +222,39 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
             await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0], Exact = true }))
                 .ToBeVisibleAsync();
             (await PageOverflowAsync(Page)).Should().Be(0, $"the job page never scrolls sideways at {width}px (F1)");
+
+            if (width == 1440)
+            {
+                // The pipeline's header at its fullest: a stage chosen and two rows ticked, then the longest filter label.
+                // Controls never wrap or push past the panel (F5); labels shorten instead.
+                var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
+                await pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Stage: All") }).ClickAsync();
+                await Page.GetByRole(AriaRole.Menuitemradio, new() { NameRegex = new("^Applied") }).ClickAsync();
+                await Page.Keyboard.PressAsync("Escape");
+                await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {Candidates[0]}" }).CheckAsync();
+                await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {Candidates[1]}" }).CheckAsync();
+                await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = "Move 2 selected…" })).ToBeVisibleAsync();
+                (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits a stage and a selection");
+
+                await pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity:") }).ClickAsync();
+                await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Verification recommended" }).ClickAsync();
+                await Page.Keyboard.PressAsync("Escape");
+                await Expect(pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity: Verification recommended") })).ToBeVisibleAsync();
+                (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits the longest filter label");
+            }
         }
     }
+
+    // How far the panel header's controls reach past its right edge, in pixels.
+    private static Task<int> HeaderOverflowAsync(ILocator panel) =>
+        panel.Locator("header").EvaluateAsync<int>(
+            """
+            header => {
+              const right = header.getBoundingClientRect().right;
+              const reach = Math.max(...[...header.querySelectorAll('button, label, a')].map((control) => control.getBoundingClientRect().right));
+              return Math.max(0, Math.ceil(reach - right));
+            }
+            """);
 
     private static Task<int> PageOverflowAsync(IPage page) =>
         page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");

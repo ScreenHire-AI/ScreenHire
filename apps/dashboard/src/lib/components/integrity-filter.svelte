@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AiAssistanceLevel, AuthenticityLevel } from '@screenhire/api-client';
   import ListFilterIcon from '@lucide/svelte/icons/list-filter';
+  import type { Attachment } from 'svelte/attachments';
   import StatusMark from '#lib/components/status-mark.svelte';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -34,8 +35,16 @@
   );
 
   // bits-ui radio groups take strings; "all" stands for no filter.
-  // The label is visually hidden in a narrow panel header; only then does the tooltip say it.
-  let labelWidth = $state(0);
+  // The tooltip says the label only where the label is cut: visually hidden in a narrow panel header, or ending in an
+  // ellipsis (F5).
+  let labelCut = $state(false);
+  const watchLabel: Attachment<HTMLElement> = (element) => {
+    const measure = () => (labelCut = element.scrollWidth > element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  };
   const summary = $derived(`Integrity: ${active.length > 0 ? active.join(', ') : 'all'}`);
 
   const authenticityValue = $derived(filter.authenticity ?? 'all');
@@ -43,15 +52,15 @@
 </script>
 
 <DropdownMenu.Root>
-  <Tooltip.Root disabled={labelWidth > 1}>
+  <Tooltip.Root disabled={!labelCut}>
     <Tooltip.Trigger>
       {#snippet child({ props })}
         <DropdownMenu.Trigger
           {...props}
-          class={cn(buttonVariants({ variant: 'outline' }), 'min-w-0 @max-3xl/panel:w-8 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11', active.length > 0 && 'border-primary text-primary')}
+          class={cn(buttonVariants({ variant: 'outline' }), 'max-w-72 min-w-0 shrink @max-3xl/panel:w-8 @max-3xl/panel:shrink-0 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11', active.length > 0 && 'border-primary text-primary')}
         >
           <ListFilterIcon aria-hidden="true" />
-          <span bind:clientWidth={labelWidth} class="max-w-56 truncate @max-3xl/panel:sr-only">{summary}</span>
+          <span {@attach watchLabel} class="min-w-0 truncate @max-3xl/panel:sr-only">{summary}</span>
         </DropdownMenu.Trigger>
       {/snippet}
     </Tooltip.Trigger>

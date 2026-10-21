@@ -3,6 +3,7 @@
   import SquareKanbanIcon from '@lucide/svelte/icons/square-kanban';
   import Table2Icon from '@lucide/svelte/icons/table-2';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
+  import type { Attachment } from 'svelte/attachments';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
@@ -72,8 +73,16 @@
     { id: null, name: 'All', count: applications.length },
     ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) })),
   ]);
-  // The stage menu's label is visually hidden in a narrow panel header; only then does its tooltip say it.
-  let stageLabelWidth = $state(0);
+  // The stage menu's tooltip says its label only where the label is cut: visually hidden in a narrow panel header, or
+  // ending in an ellipsis (F5).
+  let stageLabelCut = $state(false);
+  const watchStageLabel: Attachment<HTMLElement> = (element) => {
+    const measure = () => (stageLabelCut = element.scrollWidth > element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  };
   const stageSummary = $derived(`Stage: ${stageOptions.find((option) => option.id === stageFilter)?.name ?? 'All'}`);
 
   /**
@@ -118,19 +127,19 @@
       <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
       {#if view === 'table'}
         <DropdownMenu.Root>
-          <Tooltip.Root disabled={stageLabelWidth > 1}>
+          <Tooltip.Root disabled={!stageLabelCut}>
             <Tooltip.Trigger>
               {#snippet child({ props })}
                 <DropdownMenu.Trigger
                   {...props}
                   class={cn(
                     buttonVariants({ variant: 'outline' }),
-                    'min-w-0 @max-3xl/panel:w-8 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11',
+                    'max-w-52 min-w-0 shrink @max-3xl/panel:w-8 @max-3xl/panel:shrink-0 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11',
                     stageFilter && 'border-primary text-primary',
                   )}
                 >
                   <WorkflowIcon aria-hidden="true" />
-                  <span bind:clientWidth={stageLabelWidth} class="max-w-40 truncate @max-3xl/panel:sr-only">{stageSummary}</span>
+                  <span {@attach watchStageLabel} class="min-w-0 truncate @max-3xl/panel:sr-only">{stageSummary}</span>
                 </DropdownMenu.Trigger>
               {/snippet}
             </Tooltip.Trigger>
