@@ -131,7 +131,7 @@
   {#if application.isError}
     {#if notFound}
       <HeaderBand title="Application not found" />
-      <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
+      <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
         <Panel title="Details">
           <Empty.Root>
             <Empty.Header>
@@ -143,19 +143,19 @@
       </div>
     {:else}
       <HeaderBand title="Application" />
-      <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
+      <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
         <QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} />
       </div>
     {/if}
   {:else if !detail}
     <div aria-hidden="true" class="@container border-b border-border bg-card">
-      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 @3xl:px-6">
+      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
         <Skeleton class="h-8 w-64 max-w-full" />
         <Skeleton class="h-4 w-80 max-w-full" />
         <Skeleton class="h-10 w-96 max-w-full" />
       </div>
     </div>
-    <div aria-hidden="true" class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 lg:flex-row-reverse">
+    <div aria-hidden="true" class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
       <Skeleton class="h-48 rounded-panel lg:basis-side" />
       <Skeleton class="h-96 flex-1 rounded-panel" />
     </div>
@@ -176,7 +176,7 @@
       {/snippet}
     </HeaderBand>
 
-    <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 @3xl:py-6">
+    <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
       <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it; a failure shows. -->
       <p role="status" class={moves.failure ? 'rounded-panel border border-border bg-card px-4 py-3 text-status-verify' : 'sr-only'}>{moves.announcement}</p>
 

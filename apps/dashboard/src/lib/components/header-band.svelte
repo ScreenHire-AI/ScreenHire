@@ -42,7 +42,7 @@
 </script>
 
 <div data-slot="header-band" class="@container border-b border-border bg-card">
-  <div class={['mx-auto flex w-full flex-col gap-4 px-4 pt-5 @3xl:px-6', form ? 'max-w-form' : 'max-w-page', wide && '2xl:max-w-page-wide', !tabs && 'pb-5']}>
+  <div class={['mx-auto flex w-full flex-col gap-4 px-4 pt-5 md:px-6', form ? 'max-w-form' : 'max-w-page', wide && '2xl:max-w-page-wide', !tabs && 'pb-5']}>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
       <div class="flex min-w-0 flex-[1_1_16rem] flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
