@@ -143,7 +143,7 @@
           <Button variant="outline" class="h-[34px] font-semibold" onclick={() => ((saved = ''), (editing = true))}>Edit details</Button>
         {/if}
         <a href={`/jobs/${detail.id}/workflow`} class={cn(buttonVariants({ variant: 'outline' }), 'h-[34px] font-semibold')}>
-          Workflow{#if detail.template?.updateAvailable}<span class="text-primary"> · update available</span>{/if}
+          Workflow{#if detail.template?.updateAvailable}<span class="text-primary">, update available</span>{/if}
         </a>
         {#if detail.status === 'Open'}
           <Button variant="outline" class="h-[34px] border-destructive/40 font-semibold text-destructive" onclick={() => (confirmClose = true)}
@@ -225,7 +225,7 @@
 
         {#if applications.isError}
           <div class="p-3">
-            <QueryError message={describeError(applications.error, 'Could not load the candidates')} onretry={() => applications.refetch()} />
+            <QueryError message={describeError(applications.error, 'Could not load the candidates')} onretry={() => applications.refetch()} inset />
           </div>
         {:else if applications.isPending}
           <div aria-hidden="true" class="flex flex-col gap-1 p-3">
@@ -241,15 +241,9 @@
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
-          >
-            {#snippet hints()}<span><kbd>V</kbd> board view</span>{/snippet}
-          </ApplicationTable>
+          />
         {:else}
           <PipelineBoard applications={all} {stages} {moves} />
-          <p class="border-t border-border-subtle bg-muted px-3 py-2 text-caption text-muted-foreground">
-            <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move a card · <kbd>Space</kbd> pick up · <kbd>Enter</kbd> open
-            {#if preferences.shortcutsEnabled}· <kbd>V</kbd> table view{/if}
-          </p>
         {/if}
         <p role="status" class={['px-3 py-1.5 text-body empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
           {moves.announcement}

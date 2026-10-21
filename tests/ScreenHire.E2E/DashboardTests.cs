@@ -21,6 +21,17 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
     }
 
     [Fact]
+    public async Task Style_guide_is_a_development_page_only()
+    {
+        // The end-to-end tests serve the production build, where the style guide's load answers 404.
+        await GoToAsync("dashboard", "/style-guide");
+
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/style-guide"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Page not found");
+        await Expect(Page.GetByText("Error 404")).ToBeVisibleAsync();
+    }
+
+    [Fact]
     public async Task Signed_out_deep_link_is_remembered_for_after_sign_in()
     {
         await GoToAsync("dashboard", "/?status=open");

@@ -11,3 +11,17 @@ class NoResizeObserver {
 globalThis.ResizeObserver ??= NoResizeObserver;
 Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 640 });
 Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 1024 });
+
+// jsdom has no media queries. The sidebar asks whether the window is phone-sized (Svelte's MediaQuery); answer "no",
+// so it renders as on a desktop.
+globalThis.matchMedia ??= (query: string) =>
+  ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    dispatchEvent: () => false,
+  }) as MediaQueryList;

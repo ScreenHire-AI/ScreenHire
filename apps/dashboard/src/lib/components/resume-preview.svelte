@@ -96,7 +96,7 @@
 
   {#if previewable}
     {#if outcome === 'unavailable'}
-      <QueryError message="Could not load the preview." onretry={() => attempt++} />
+      <QueryError message="Could not load the preview." onretry={() => attempt++} inset />
     {:else if outcome === 'unreadable'}
       <Empty.Root class="p-4"><Empty.Description>Preview unavailable for this file.</Empty.Description></Empty.Root>
     {:else}

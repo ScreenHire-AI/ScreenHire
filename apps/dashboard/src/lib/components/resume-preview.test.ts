@@ -1,6 +1,7 @@
 import type { ApplicationFileSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { expectNoAxeViolations } from '../../test-support/axe.js';
 import ResumePreview from './resume-preview.svelte';
 
 // The real viewer (pdf.js in a sandboxed document) is built by file-viewer-plugin.ts and checked in
@@ -136,5 +137,23 @@ describe('resume preview', () => {
     expect(screen.queryByText('No preview for this file type.')).not.toBeInTheDocument();
     expect(document.querySelector('iframe')).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('passes axe in the states that need no frame, and its load error is an inset, not a card in a card', async () => {
+    const withheld = render(ResumePreview, { props: { applicationId, file: resume({ scanStatus: 'Infected' }) } });
+    await expectNoAxeViolations(withheld.container);
+    withheld.unmount();
+
+    const noPreview = render(ResumePreview, { props: { applicationId, file: resume({ fileName: 'resume.docx', contentType: 'application/msword' }) } });
+    await expectNoAxeViolations(noPreview.container);
+    noPreview.unmount();
+
+    serveFile(409);
+    const failed = render(ResumePreview, { props: { applicationId, file: resume() } });
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveAttribute('data-slot', 'query-error');
+    expect(alert).toHaveClass('bg-secondary');
+    expect(alert).not.toHaveClass('border');
+    await expectNoAxeViolations(failed.container);
   });
 });

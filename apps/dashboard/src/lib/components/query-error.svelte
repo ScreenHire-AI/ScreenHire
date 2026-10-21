@@ -2,11 +2,19 @@
   import StatusMark from '#lib/components/status-mark.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
 
-  // A request that failed: what went wrong, in a sentence, and a way to try again. Never the raw response.
-  let { message, onretry }: { message: string; onretry: () => unknown } = $props();
+  // A request that failed: what went wrong, in a sentence, and a way to try again. Never the raw response. On the page it
+  // is its own surface; inside a panel, sheet or dialog it is an inset, so it is never a card inside a card (S4).
+  let { message, onretry, inset = false }: { message: string; onretry: () => unknown; inset?: boolean } = $props();
 </script>
 
-<div role="alert" class="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+<div
+  role="alert"
+  data-slot="query-error"
+  class={[
+    'flex flex-wrap items-center gap-3 px-4 py-3',
+    inset ? 'rounded-lg bg-secondary' : 'rounded-panel border border-border bg-card',
+  ]}
+>
   <StatusMark shape="square" tone="verify" />
   <p class="flex-1 text-status-verify">{message}</p>
   <Button variant="outline" size="sm" onclick={() => onretry()}>Try again</Button>

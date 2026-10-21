@@ -4,6 +4,7 @@
   import '#lib/preferences.svelte.js';
   import { setLucideProps } from '@lucide/svelte/context';
   import type { Snippet } from 'svelte';
+  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 
   let { children }: { children: Snippet } = $props();
 
@@ -11,4 +12,7 @@
   setLucideProps({ size: 16, strokeWidth: 1.75 });
 </script>
 
-{@render children()}
+<!-- Every tooltip needs a provider; one here lets any page use them. -->
+<Tooltip.Provider>
+  {@render children()}
+</Tooltip.Provider>

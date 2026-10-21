@@ -130,8 +130,8 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 | Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
 |---|---|---|---|---|---|
 | No concerns, Live | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
-| Review suggested, Queued | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verification recommended | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| Review suggested, Queued, a file being scanned | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
+| Verification recommended, a file withheld by the scan | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
 
 Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
@@ -287,12 +287,13 @@ Features that do not exist yet are hidden (A3).
 ## 11. Components
 
 The catalogue. A screen is built from these; a new pattern joins this table before a second screen uses it. Code lives
-in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edit).
+in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edit). The style guide page, `/style-guide`
+in a development build, shows every component in each state, and its test fails when a row here has no example.
 
 | Component | Built on | Rules |
 |---|---|---|
-| Header band, Panel | Our components | Section 7 |
-| Status badge | shadcn `Badge` (`clear`, `review`, `verify`, `ai`) | Mark, colour, label (T1) |
+| Header band, Panel | Our components (`HeaderBand` with `Fact` for the facts row, `Panel`) | Section 7 |
+| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
 | Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
@@ -306,6 +307,7 @@ in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edi
 | Sidebar | shadcn `Sidebar` | Section 8 |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Activity | Our component | Icon in a circle, event, time ago |
+| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence` | Section 16 |
 
 ## 12. Words
@@ -349,9 +351,10 @@ label; decorative icons are `aria-hidden`. Status shapes (section 3.2) are not i
 
 ## 15. Shortcuts
 
-Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog. Hints appear as `Kbd` key caps in tooltips
-and menus, never as an always-on bar. Single-key shortcuts (the G chords, J and K, X, V) can be turned off (WCAG
-2.1.4), skip text fields, menus and dialogs, and work only while their table or board has focus, except the G chords.
+Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog, and so does its command in the palette.
+Hints appear as `Kbd` key caps in tooltips and menus, never as an always-on bar. Single-key shortcuts (the G chords, J
+and K, X, V and `?`) can be turned off (WCAG 2.1.4), skip text fields, menus and dialogs, and work only while their
+table or board has focus, except the G chords and `?`.
 
 ## 16. Integrity UI
 
