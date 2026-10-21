@@ -124,21 +124,21 @@ describe('application page', () => {
     const rows = within(answers)
       .getAllByRole('term')
       .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
-    expect(rows).toEqual([
-      ['Do you have the right to work in the UK?', 'Yes'],
-      ['Years of experience', '3 to 5 years'],
-      ['Portfolio', 'portfolio.pdf: Withheld: malware found.'],
-      ['Why this role?', 'Small teams.\nReal problems.'],
-    ]);
+    expect(rows.map(([label]) => label)).toEqual(['Do you have the right to work in the UK?', 'Years of experience', 'Portfolio', 'Why this role?']);
+    expect(rows[0]![1]).toBe('Yes');
+    expect(rows[1]![1]).toBe('3 to 5 years');
+    expect(rows[3]![1]).toBe('Small teams.\nReal problems.');
+    // A file answer is a file tile; one the scan withheld says why and offers no download.
+    expect(rows[2]![1]).toMatch(/portfolio\.pdf.*Withheld: malware found/);
     expect(within(answers).queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('tells the timeline newest first, saying who made each change', async () => {
+  it('tells the activity newest first, saying who made each change', async () => {
     renderPage();
-    const region = await screen.findByRole('region', { name: 'Timeline' });
+    const region = await screen.findByRole('region', { name: 'Activity' });
 
     await within(region).findByText(/Moved from Screening to Interview/);
-    expect(within(region).getAllByRole('listitem').map((item) => item.firstElementChild?.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+    expect(within(region).getAllByRole('listitem').map((item) => item.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'Moved from Screening to Interview by you',
       'Tagged "fast-track" by an automation',
       'Moved from Applied to Screening by a teammate',
@@ -148,12 +148,31 @@ describe('application page', () => {
     expect(within(region).getByText('"Strong portfolio."')).toBeInTheDocument();
   });
 
-  it('shows the integrity panel beside the timeline, waiting for the checks', async () => {
+  it('shows the integrity panel first, waiting for the checks', async () => {
     renderPage();
     const panel = await screen.findByRole('region', { name: 'Integrity' });
 
     await within(panel).findByText(/Checks are still running/);
     expect(panel).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    // First in the page's order, so one column (tablet and phone) starts with it.
+    const panels = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
+    expect(panels).toEqual(['Integrity', 'Resume', 'Answers', 'Declarations', 'Review log', 'Activity']);
+  });
+
+  it('puts the contact details under the name and the facts in the header band', async () => {
+    renderPage();
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
+    const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
+
+    expect(within(band).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
+    const facts = within(band)
+      .getAllByRole('term')
+      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
+    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Source']);
+    expect(facts[0]![1]).toBe('Screening');
+    expect(facts[3]![1]).toBe('Careers page');
+    expect(within(band).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
+    expect(await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeInTheDocument();
   });
 
   it("shows the candidate's declarations", async () => {

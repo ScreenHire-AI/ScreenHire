@@ -4,12 +4,14 @@ import { expectNoAxeViolations } from '../../test-support/axe.js';
 import LayoutHarness from '../../test-support/layout-harness.svelte';
 
 describe('header band', () => {
-  it('holds the page h1 with its status beside it, the actions, and a labelled facts row', async () => {
+  it('holds the page h1 with its status beside it, details under it, the actions, and a labelled facts row', async () => {
     const { container } = render(LayoutHarness, { props: { example: 'band' } });
 
     const title = screen.getByRole('heading', { level: 1, name: 'Jordan Ellis' });
     // Status comes first in its group: right after the title (T2).
     expect(title.nextElementSibling).toHaveTextContent('Review suggested');
+    // Details sit on their own line under the title and its status.
+    expect(title.parentElement!.nextElementSibling).toContainElement(screen.getByRole('link', { name: 'jordan.ellis@example.com' }));
     expect(screen.getByRole('button', { name: 'Move to stage' })).toBeInTheDocument();
 
     const facts = container.querySelector('dl')!;

@@ -87,11 +87,12 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(authenticity.Locator("[data-signal='NET_DATACENTER_IP']")).ToContainTextAsync("Example Cloud Hosting (AS64497)");
         await Expect(authenticity.Locator("[data-signal='AUTO_WEBDRIVER'] [data-evidence-kind='List']")).ToContainTextAsync("webdriver");
         await Expect(authenticity.Locator("[data-signal='AUTO_SUBMIT_VELOCITY'] [data-evidence-kind='Metric']")).ToContainTextAsync("Plausible minimum for this form");
-        var ai = panel.GetByRole(AriaRole.Region, new() { Name = "AI assistance · informational" });
+        var ai = panel.GetByRole(AriaRole.Region, new() { Name = "AI assistance", Exact = true });
         await Expect(ai).ToContainTextAsync("AI assistance: Not indicated");
-        await Expect(ai).ToContainTextAsync("Job policy: Allowed with disclosure · Declared AI use: No");
-        await Expect(panel.GetByRole(AriaRole.Button, new() { Name = "Request verification" })).ToBeDisabledAsync();
-        await Expect(panel).ToContainTextAsync("Phase 2");
+        await Expect(ai).ToContainTextAsync("Job policy: Allowed with disclosure");
+        // A feature that does not exist yet is hidden, not shown disabled (design system A3).
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Request verification", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
+        await Expect(panel).Not.ToContainTextAsync("Phase 2");
         await Expect(panel.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("reject", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
         await Expect(panel).ToContainTextAsync("No automated decision has been made. Every action is logged.");
         (await panel.TextContentAsync()).Should().NotContain("%", "integrity output has no percentage (ADR-0004)");
@@ -107,7 +108,7 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Dismiss with this reason" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
 
-        var log = panel.GetByRole(AriaRole.Region, new() { Name = "Review log" });
+        var log = Page.GetByRole(AriaRole.Region, new() { Name = "Review log" });
         await Expect(log).ToContainTextAsync("Dismissed authenticity: Verified outside ScreenHire by you");
         await Expect(log).ToContainTextAsync("\"Video call on Monday; ID checked.\"");
         await Expect(authenticity).ToContainTextAsync("Authenticity: Verification recommended, dismissed after review");

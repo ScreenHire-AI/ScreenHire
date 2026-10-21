@@ -3,9 +3,11 @@
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
+  import MailIcon from '@lucide/svelte/icons/mail';
   import MessageSquareIcon from '@lucide/svelte/icons/message-square';
   import MoonIcon from '@lucide/svelte/icons/moon';
   import PencilIcon from '@lucide/svelte/icons/pencil';
+  import PhoneIcon from '@lucide/svelte/icons/phone';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SunIcon from '@lucide/svelte/icons/sun';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
@@ -157,12 +159,17 @@
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Detail: status, actions and facts</figcaption>
+            <figcaption class="text-caption text-muted-foreground">Detail: status, details, actions and facts</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
+                {#snippet details()}
+                  <a href="mailto:samuel.okonkwo@example.com" class="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                    <MailIcon aria-hidden="true" class="shrink-0" /><TruncatedText text="samuel.okonkwo@example.com" />
+                  </a>
+                  <span class="flex min-w-0 items-center gap-1.5"><PhoneIcon aria-hidden="true" class="shrink-0" />+1 555 0142</span>
+                {/snippet}
                 {#snippet actions()}
-                  <Button variant="outline" size="lg">Add note</Button>
                   <Button size="lg">Move to stage</Button>
                 {/snippet}
                 {#snippet facts()}

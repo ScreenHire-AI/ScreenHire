@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { WorkflowStage } from '@screenhire/api-client';
-  import { buttonVariants } from '#lib/components/ui/button/index.js';
+  import { buttonVariants, type ButtonSize, type ButtonVariant } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { cn } from '#lib/utils.js';
 
@@ -11,6 +11,9 @@
     stages,
     disabled = false,
     compact = false,
+    variant = 'outline',
+    size,
+    class: className,
     onmove,
   }: {
     candidateName: string;
@@ -19,6 +22,11 @@
     disabled?: boolean;
     /** A short "Move" trigger for table rows and cards. */
     compact?: boolean;
+    /** A detail page's primary action is filled. */
+    variant?: ButtonVariant;
+    /** The trigger's size when not compact; `sm` by default. */
+    size?: ButtonSize;
+    class?: string;
     onmove: (stage: WorkflowStage) => void;
   } = $props();
 </script>
@@ -30,7 +38,7 @@
   <DropdownMenu.Trigger
     {disabled}
     aria-label={compact ? `Move ${candidateName} to another stage` : `Move to stage, ${candidateName}`}
-    class={cn(buttonVariants({ variant: 'outline', size: compact ? 'xs' : 'sm' }))}
+    class={cn(buttonVariants({ variant, size: compact ? 'xs' : (size ?? 'sm') }), className)}
   >
     {compact ? 'Move' : 'Move to stage'}
   </DropdownMenu.Trigger>

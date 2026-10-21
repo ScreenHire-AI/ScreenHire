@@ -22,6 +22,7 @@
     {#if example === 'band'}
       <HeaderBand title="Jordan Ellis">
         {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
+        {#snippet details()}<a href="mailto:jordan.ellis@example.com">jordan.ellis@example.com</a>{/snippet}
         {#snippet actions()}
           <Button variant="outline">Add note</Button>
           <Button>Move to stage</Button>

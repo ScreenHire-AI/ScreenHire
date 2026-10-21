@@ -163,12 +163,13 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   and filterable from an "Integrity" menu; a job overview with a numeric legend (each entry filters the table) and an
   `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
-  page. The panel shows each assessment's summary, suggested next step, reasons (signals that count toward the level)
-  and context signals with their evidence drawn by kind (§10.1) and counter-evidence, the AI policy and the
-  candidate's declaration, any dismissal, and the review log. Its actions are *Dismiss with a reason* (per assessment
-  above the lowest level) and *Add note*; *Request verification* is shown disabled with the API's phase 2 reason. The
-  footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed` refetches the chips,
-  overview and panel live. AI chips use one colour and a ring mark, so they read as information; "Not indicated" is
+  page. The panel shows each assessment's summary, suggested next step (one quiet line for a calm result), reasons
+  (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
+  counter-evidence, the job's AI policy and any dismissal. The candidate's AI declaration is in the page's Declarations
+  panel, not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
+  log panel beside it lists every dismissal and note and holds *Add note*. *Request verification* is hidden until
+  phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
+  `IntegrityAssessed` refetches the chips, overview and panel live. AI chips use one colour and a ring mark, so they read as information; "Not indicated" is
   neutral. While an integrity filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a
   new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a filtered "select all" must not become
   rejection driven by integrity signals. Moving one candidate stays a person's decision about that candidate.

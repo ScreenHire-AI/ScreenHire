@@ -131,7 +131,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(genuinePanel).ToContainTextAsync("Suggested next step: No action needed.");
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {genuine.FullName}", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Timeline" })).ToContainTextAsync("Moved from Applied to Screening by you");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");
 
         // The template's automation emails the candidate, through the outbox, the worker and Mailpit.
         var sent = await Fixture.Mailpit.WaitForMessagesAsync(genuineEmail, 1, Ct);

@@ -1,16 +1,31 @@
 <script lang="ts">
-  import { getDownloadApplicationFileUrl, type ApplicationAnswer, type ApplicationTimelineEntry, type Question } from '@screenhire/api-client';
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import InboxIcon from '@lucide/svelte/icons/inbox';
+  import MailIcon from '@lucide/svelte/icons/mail';
+  import PhoneIcon from '@lucide/svelte/icons/phone';
+  import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
+  import TagIcon from '@lucide/svelte/icons/tag';
+  import type { ApplicationAnswer, ApplicationTimelineEntry, Question } from '@screenhire/api-client';
   import { ApiError, createGetApplication, createGetApplicationTimeline, createGetJob } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
+  import Fact from '#lib/components/fact.svelte';
+  import FileTile from '#lib/components/file-tile.svelte';
+  import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
+  import ReviewLog from '#lib/components/review-log.svelte';
+  import SummaryItem from '#lib/components/summary-item.svelte';
+  import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatDateTime, timeAgo } from '#lib/dates.js';
-  import { canDownload, withheldReason } from '#lib/files.js';
-  import { initials, sourceLabel } from '#lib/format.js';
+  import { sourceName } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { describeError } from '#lib/query.js';
   import type { PageProps } from './$types';
@@ -27,6 +42,8 @@
     () => ({ query: { enabled: Boolean(detail) } }),
   );
   const moves = createMoves();
+  // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
+  const sidebar = Sidebar.useSidebar();
 
   const workflow = $derived(job.data?.data.workflow);
   const stages = $derived(workflow?.stages ?? []);
@@ -34,6 +51,7 @@
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const fileById = $derived(new Map((detail?.files ?? []).map((file) => [file.uploadId, file])));
   const resume = $derived(detail?.files.find((file) => file.questionId === 'resume'));
+  const answers = $derived(detail?.answers.filter((answer) => answer.questionId !== 'resume') ?? []);
 
   function answerText(answer: ApplicationAnswer, question: Question | undefined): string {
     const values = answer.values ?? (answer.value ? [answer.value] : []);
@@ -51,17 +69,30 @@
       case 'TagAdded':
         return `Tagged "${entry.tag}"`;
       case 'IntegrityAssessed':
-        // Levels and evidence are the integrity panel's to show; the timeline records only that the checks ran.
+        // Levels and evidence are the integrity panel's to show; the activity records only that the checks ran.
         return 'Integrity checks ran';
     }
   }
 
-  function actor(entry: ApplicationTimelineEntry): string {
+  const eventIcons = { Submitted: InboxIcon, StageChanged: ArrowRightIcon, TagAdded: TagIcon, IntegrityAssessed: ScanSearchIcon };
+
+  function actor(entry: ApplicationTimelineEntry): string | undefined {
     if (entry.automationRunId) return 'by an automation';
     if (entry.actorUserId === page.data.user?.id) return 'by you';
     if (entry.actorUserId) return 'by a teammate';
-    return '';
+    return undefined;
   }
+
+  const activity = $derived<Activity[]>(
+    (timeline.data?.data ?? []).toReversed().map((entry) => ({
+      id: entry.id,
+      icon: eventIcons[entry.type],
+      event: describeEvent(entry),
+      actor: actor(entry),
+      note: entry.note ?? undefined,
+      at: entry.occurredAt,
+    })),
+  );
 
   const notFound = $derived(application.error instanceof ApiError && application.error.status === 404);
 </script>
@@ -79,123 +110,142 @@
   back
 />
 
-<main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
+{#snippet moveToStage()}
+  {#if detail && stages.length > 0}
+    <MoveToStage
+      candidateName={detail.candidate.fullName}
+      currentStageId={detail.stage.id}
+      {stages}
+      variant="default"
+      size="lg"
+      class={sidebar.isMobile ? 'w-full' : undefined}
+      disabled={moves.pending}
+      onmove={(stage) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage)}
+    />
+  {/if}
+{/snippet}
+
+<main class={['flex flex-col', sidebar.isMobile && detail && 'pb-20']}>
   {#if application.isError}
     {#if notFound}
-      <h1 class="font-display text-page-title">Application not found</h1>
-      <p class="text-muted-foreground">It does not exist, or it belongs to another organization. <a href="/candidates">Back to candidates</a></p>
+      <HeaderBand title="Application not found">
+        {#snippet details()}
+          <p>It does not exist, or it belongs to another organization. <a href="/candidates">Back to candidates</a></p>
+        {/snippet}
+      </HeaderBand>
     {:else}
-      <h1 class="font-display text-page-title">Application</h1>
-      <QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} />
+      <HeaderBand title="Application" />
+      <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
+        <QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} />
+      </div>
     {/if}
   {:else if !detail}
-    <div aria-hidden="true" class="flex flex-col gap-2">
-      <Skeleton class="h-10 w-72" />
-      <Skeleton class="h-4 w-96" />
+    <div aria-hidden="true" class="border-b border-border bg-card">
+      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
+        <Skeleton class="h-8 w-64 max-w-full" />
+        <Skeleton class="h-4 w-80 max-w-full" />
+        <Skeleton class="h-10 w-96 max-w-full" />
+      </div>
+    </div>
+    <div aria-hidden="true" class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
+      <Skeleton class="h-48 rounded-panel lg:basis-side" />
+      <Skeleton class="h-96 flex-1 rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
-    <section aria-label="Candidate" class="flex flex-wrap items-start justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <span aria-hidden="true" class="grid size-12 place-items-center rounded-full bg-secondary text-heading font-bold text-secondary-foreground"
-          >{initials(detail.candidate.fullName)}</span
-        >
-        <div class="flex min-w-0 flex-col gap-1">
-          <h1 class="font-display text-page-title">{detail.candidate.fullName}</h1>
-          <ul aria-label="Application details" class="flex flex-wrap gap-x-3.5 gap-y-1 text-caption text-muted-foreground">
-            <li><a href={`mailto:${detail.candidate.email}`}>{detail.candidate.email}</a></li>
-            {#if detail.candidate.phone}<li>{detail.candidate.phone}</li>{/if}
-            <li>{detail.stage.name} stage</li>
-            <li>Applied <time datetime={detail.submittedAt} title={formatDateTime(detail.submittedAt)}>{timeAgo(detail.submittedAt, Date.now())}</time> via {sourceLabel(detail.source)}</li>
-          </ul>
+    <HeaderBand title={detail.candidate.fullName} actions={sidebar.isMobile ? undefined : moveToStage}>
+      {#snippet details()}
+        <a href={`mailto:${detail.candidate.email}`} class="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+          <MailIcon aria-hidden="true" class="shrink-0" />
+          <TruncatedText text={detail.candidate.email} />
+        </a>
+        {#if detail.candidate.phone}
+          <a href={`tel:${detail.candidate.phone}`} class="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+            <PhoneIcon aria-hidden="true" class="shrink-0" />
+            <TruncatedText text={detail.candidate.phone} />
+          </a>
+        {/if}
+      {/snippet}
+      {#snippet facts()}
+        <Fact label="Stage">{detail.stage.name}</Fact>
+        <Fact label="Job"><a href={`/jobs/${detail.jobId}`} class="block min-w-0 truncate">{detail.jobTitle}</a></Fact>
+        <Fact label="Applied"><RelativeTime at={detail.submittedAt} /></Fact>
+        <Fact label="Source">{sourceName(detail.source)}</Fact>
+      {/snippet}
+    </HeaderBand>
+
+    <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 @3xl:py-6">
+      <p role="status" class={['rounded-panel border border-border bg-card px-4 py-3 empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>{moves.announcement}</p>
+
+      <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
+           top of the side column, and the main column spans both of the side column's rows. -->
+      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-side)] lg:grid-rows-[auto_1fr] lg:items-start">
+        <div class="min-w-0 lg:col-start-2 lg:row-start-1">
+          <IntegrityPanel applicationId={detail.id} />
+        </div>
+
+        <div class="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+          <Panel title="Resume">
+            {#if resume}
+              <ResumePreview applicationId={detail.id} file={resume} />
+            {:else}
+              <p class="text-muted-foreground">No resume was uploaded.</p>
+            {/if}
+          </Panel>
+
+          <Panel title="Answers">
+            {#if answers.length === 0}
+              <p class="text-muted-foreground">No questionnaire answers.</p>
+            {:else}
+              <SummaryList>
+                {#each answers as answer (answer.questionId)}
+                  {@const question = questions.get(answer.questionId)}
+                  {@const file = question?.type === 'File' && answer.value ? fileById.get(answer.value) : undefined}
+                  <SummaryItem label={question?.label ?? answer.questionId}>
+                    {#if file}
+                      <FileTile applicationId={detail.id} {file} />
+                    {:else}
+                      <span class="whitespace-pre-line">{answerText(answer, question)}</span>
+                    {/if}
+                  </SummaryItem>
+                {/each}
+              </SummaryList>
+            {/if}
+          </Panel>
+
+          <Panel title="Declarations">
+            <SummaryList>
+              <SummaryItem label="AI use">
+                {detail.aiUseDeclaration === 'Used' ? 'Used AI' : detail.aiUseDeclaration === 'DidNotUse' ? 'Did not use AI' : 'Not asked or not answered'}{detail.aiUseDetails
+                  ? `: ${detail.aiUseDetails}`
+                  : ''}
+              </SummaryItem>
+              <SummaryItem label="Adjustments">{detail.accommodationRequested ? 'Asked for adjustments to the process' : 'None requested'}</SummaryItem>
+            </SummaryList>
+          </Panel>
+        </div>
+
+        <div class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-2">
+          <ReviewLog applicationId={detail.id} />
+
+          <Panel title="Activity">
+            {#if timeline.isError}
+              <QueryError message={describeError(timeline.error, 'Could not load the activity')} onretry={() => timeline.refetch()} inset />
+            {:else if !timeline.data}
+              <Skeleton aria-hidden="true" class="h-16 w-full" />
+            {:else}
+              <ActivityList label="Events" items={activity} />
+            {/if}
+          </Panel>
         </div>
       </div>
-      {#if stages.length > 0}
-        <MoveToStage
-          candidateName={detail.candidate.fullName}
-          currentStageId={detail.stage.id}
-          {stages}
-          disabled={moves.pending}
-          onmove={(stage) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage)}
-        />
-      {/if}
-    </section>
-    <p role="status" class={['text-body empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>{moves.announcement}</p>
-
-    <div class="flex flex-wrap items-start gap-3.5">
-      <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-3.5">
-        <section aria-labelledby="resume-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="resume-heading" class="mb-2 text-heading">Resume</h2>
-          {#if resume}
-            <ResumePreview applicationId={detail.id} file={resume} />
-          {:else}
-            <p class="text-muted-foreground">No resume was uploaded.</p>
-          {/if}
-        </section>
-
-        <section aria-labelledby="answers-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="answers-heading" class="mb-2 text-heading">Answers</h2>
-          {#if detail.answers.filter((answer) => answer.questionId !== 'resume').length === 0}
-            <p class="text-muted-foreground">No questionnaire answers.</p>
-          {:else}
-            <dl class="flex flex-col divide-y divide-border-subtle">
-              {#each detail.answers.filter((answer) => answer.questionId !== 'resume') as answer (answer.questionId)}
-                {@const question = questions.get(answer.questionId)}
-                {@const file = question?.type === 'File' && answer.value ? fileById.get(answer.value) : undefined}
-                <div class="flex flex-col gap-0.5 py-2">
-                  <dt class="font-semibold">{question?.label ?? answer.questionId}</dt>
-                  <dd class="whitespace-pre-line text-secondary-foreground">
-                    {#if file && canDownload(file)}
-                      <a href={getDownloadApplicationFileUrl(detail.id, file.id)} data-sveltekit-reload>Download {file.fileName}</a>
-                    {:else if file}
-                      {file.fileName}: {withheldReason(file)?.label}.
-                    {:else}
-                      {answerText(answer, question)}
-                    {/if}
-                  </dd>
-                </div>
-              {/each}
-            </dl>
-          {/if}
-        </section>
-
-        <section aria-labelledby="declarations-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="declarations-heading" class="mb-2 text-heading">Declarations</h2>
-          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
-            <dt class="text-muted-foreground">AI use</dt>
-            <dd>
-              {detail.aiUseDeclaration === 'Used' ? 'Used AI' : detail.aiUseDeclaration === 'DidNotUse' ? 'Did not use AI' : 'Not asked or not answered'}{detail.aiUseDetails
-                ? `: ${detail.aiUseDetails}`
-                : ''}
-            </dd>
-            <dt class="text-muted-foreground">Adjustments</dt>
-            <dd>{detail.accommodationRequested ? 'Asked for adjustments to the process' : 'None requested'}</dd>
-          </dl>
-        </section>
-      </div>
-
-      <div class="flex min-w-0 flex-[1_1_360px] flex-col gap-3.5">
-        <IntegrityPanel applicationId={detail.id} />
-
-        <section aria-labelledby="timeline-heading" class="flex min-w-0 flex-col rounded-xl border border-border bg-card px-4 py-3.5">
-          <h2 id="timeline-heading" class="mb-2 text-heading">Timeline</h2>
-          {#if timeline.isError}
-            <QueryError message={describeError(timeline.error, 'Could not load the timeline')} onretry={() => timeline.refetch()} inset />
-          {:else if !timeline.data}
-            <Skeleton class="h-16 w-full" />
-          {:else}
-            <ol class="flex flex-col gap-3 border-l border-border pl-4">
-              {#each timeline.data.data.toReversed() as entry (entry.id)}
-                <li class="flex flex-col gap-0.5">
-                  <span class="font-semibold">{describeEvent(entry)} <span class="font-normal text-muted-foreground">{actor(entry)}</span></span>
-                  {#if entry.note}<span class="text-secondary-foreground">"{entry.note}"</span>{/if}
-                  <time datetime={entry.occurredAt} title={formatDateTime(entry.occurredAt)} class="text-caption text-muted-foreground">{timeAgo(entry.occurredAt, Date.now())}</time>
-                </li>
-              {/each}
-            </ol>
-          {/if}
-        </section>
-      </div>
     </div>
+
+    {#if sidebar.isMobile && stages.length > 0}
+      <!-- Below the sheet and dialog layer (z-50), so the stage menu and dialogs cover it. -->
+      <div class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-3 pb-[max(--spacing(3),env(safe-area-inset-bottom))]">
+        {@render moveToStage()}
+      </div>
+    {/if}
   {/if}
 </main>
