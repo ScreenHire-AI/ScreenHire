@@ -79,6 +79,46 @@ The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHir
 `pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run
 once on 2026-10-20, after the test harness landed.
 
+## Worktree installs: pnpm's global virtual store was tried and not adopted
+
+Every worktree runs `pnpm install --frozen-lockfile` as Kangentic's post-worktree script. On 2026-10-21 we measured
+pnpm's [global virtual store](https://pnpm.io/global-virtual-store) (`enableGlobalVirtualStore: true` in
+`pnpm-workspace.yaml`) and a bump to pnpm 10.34.7, the latest 10.x, as ways to make that faster. Neither shipped.
+
+Method: one worktree on Windows 11 with a warm store, 667 packages, every `node_modules` deleted with Node's
+`fs.promises.rm` before each run, one uncounted warm-up per configuration. The install column is pnpm's "Done in".
+
+| Configuration | Runs | Install | Delete `node_modules` |
+|---|---|---|---|
+| pnpm 10.5.0 (what `main` pins) | 6 | 22.0 to 26.4 s, median 23.9 s | 21 to 25 s |
+| pnpm 10.34.7 | 6 | 26.0 to 34.8 s, median 27.7 s | 19 to 29 s |
+| pnpm 10.34.7 with the global store, first install (fills `<store>\links`) | 1 | 24.0 s | 21 s |
+| pnpm 10.34.7 with the global store, `links` already filled | 3 | 33.7 to 35.1 s, median 34.0 s | 0.3 s |
+
+The board's own run of the same install for this worktree took 25.6 s on 10.5.0. Run back to back, 10.5.0 took 22.0
+to 24.0 s and 10.34.7 took 26.0 to 26.7 s.
+
+Why neither shipped:
+
+- The store made installs slower, not faster. pnpm still spent about 32 s in its linking step when all 667 entries
+  in `links` already existed, with or without `verify-store-integrity`. Only the delete got faster.
+- It is unsafe with Kangentic's cleanup. Git for Windows 2.51 `git worktree remove --force` follows a junction inside
+  an untracked folder and deletes every file in the junction's target. Kangentic's Done cleanup removes the root
+  `node_modules`, then runs that command on a worktree that still has `apps/*/node_modules` and
+  `packages/*/node_modules`. With the store on, those hold junctions into the shared `<pnpm store path>\links`, so
+  finishing one task would empty packages that every other worktree uses. Today the same junctions point inside the
+  worktree being deleted, so the behaviour does no harm. Node's `fs.rm` and `fs.rmSync` (Node 24, and Kangentic's
+  Electron 44), Git Bash `rm -rf`, and `Remove-Item -Recurse -Force` in PowerShell 5.1 and 7 all removed the
+  junctions without following them.
+- Turning the store on over an existing `node_modules` makes pnpm purge it, and without a TTY that aborts with
+  `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` unless `confirmModulesPurge: false` is set.
+- pnpm 10.34.7 alone was about 4 s slower per install, so the bump buys nothing here.
+- Builds, tests and the Vite dev servers were not checked with the store on, because it had already failed on speed
+  and safety.
+
+Worth another try once Kangentic deletes every `node_modules` in a worktree before it calls `git worktree remove`,
+and a pnpm release reuses filled `links` entries without linking every package again.
+
 ## Adding to this
 
 Follow [`skill-authoring`](../../.claude/rules/skill-authoring.md): run every command once, word not-yet-merged
