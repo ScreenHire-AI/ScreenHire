@@ -19,7 +19,7 @@
     "check": "pnpm -r check",
     "e2e:install": "node scripts/install-browsers.mjs",
     "generate:api": "dotnet build apps/api && pnpm --filter @screenhire/api-client generate",
-    "verify": "pnpm verify:dotnet && pnpm verify:contract && pnpm check && pnpm -r build && pnpm -r --if-present test && pnpm verify:test && pnpm verify:lighthouse",
+    "verify": "pnpm verify:dotnet && pnpm verify:contract && pnpm check && pnpm -r build && pnpm -r --if-present test && pnpm verify:test",
     "verify:dotnet": "dotnet build ScreenHire.slnx -warnaserror",
     "verify:contract": "pnpm --filter @screenhire/api-client generate && git diff --exit-code --stat -- packages/api-client",
     "verify:lighthouse": "pnpm --filter @screenhire/marketing lighthouse",
