@@ -190,7 +190,7 @@
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Detail: status, details, actions and facts</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
-              <HeaderBand title="Samuel Okonkwo-Hartley">
+              <HeaderBand level={3} title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
                 {#snippet details()}
                   <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined class="text-muted-foreground" />
@@ -211,7 +211,7 @@
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">With tabs</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
-              <HeaderBand title="Senior product designer">
+              <HeaderBand level={3} title="Senior product designer">
                 {#snippet status()}<StatusBadge status="clear" label="Live" />{/snippet}
                 {#snippet actions()}<Button variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit</Button>{/snippet}
                 {#snippet tabs()}

@@ -160,12 +160,15 @@
                 {#each shown as template (template.id)}
                   <!-- The whole row is the link (design system section 9): the name's link covers it. -->
                   <Table.Row class="relative h-12">
-                    <Table.Cell class="px-4.5">
-                      <span class="flex items-center gap-2">
-                        <a href={`/templates/${template.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
-                          >{template.name}</a
-                        >
-                        {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
+                    <!-- A long name is cut, whole in its tooltip (F5). -->
+                    <Table.Cell class="max-w-72 px-4.5">
+                      <span class="flex min-w-0 items-center gap-2">
+                        <TruncatedText
+                          text={template.name}
+                          href={`/templates/${template.id}`}
+                          class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                        />
+                        {#if template.isSystem}<Badge variant="muted" class="shrink-0">ScreenHire</Badge>{/if}
                       </span>
                     </Table.Cell>
                     <!-- The description takes the room the other columns leave and truncates, so the table fits from md

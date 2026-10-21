@@ -169,14 +169,14 @@
   {:else}
     <HeaderBand title={detail.candidate.fullName} actions={bandActions}>
       {#snippet details()}
-        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground" />
+        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
         {#if detail.candidate.phone}
-          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="text-muted-foreground" />
+          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
         {/if}
       {/snippet}
       {#snippet facts()}
         <Fact label="Stage">{detail.stage.name}</Fact>
-        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></Fact>
+        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" /></Fact>
         <Fact label="Applied"><RelativeTime at={detail.submittedAt} /></Fact>
         <Fact label="Source">{sourceName(detail.source)}</Fact>
       {/snippet}

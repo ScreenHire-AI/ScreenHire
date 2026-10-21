@@ -48,11 +48,12 @@
     <ol class="flex min-w-0 items-center gap-1.5 text-body text-muted-foreground">
       {#each crumbs as crumb, index (index)}
         {@const last = index === crumbs.length - 1}
-        <!-- Phones show where you are; the levels above it are Back and the sidebar. -->
-        <li class={['flex items-center gap-1.5', last ? 'min-w-0' : 'shrink-0 max-md:hidden']}>
+        <!-- Phones show where you are; the levels above it are Back and the sidebar. Below lg the middle levels go too, so
+             the page's own name is not the one cut short. -->
+        <li class={['flex items-center gap-1.5', last ? 'min-w-0' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden']}>
           {#if index > 0}<span aria-hidden="true" class="max-md:hidden">/</span>{/if}
           {#if crumb.href && !last}
-            <a href={crumb.href} class="text-muted-foreground no-underline hover:underline">{crumb.label}</a>
+            <a href={crumb.href} class="text-muted-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5">{crumb.label}</a>
           {:else}
             <span aria-current={last ? 'page' : undefined} class="min-w-0">
               <TruncatedText text={crumb.label} class="font-bold text-foreground" />

@@ -191,12 +191,15 @@
                    controls sit above it. -->
               <Table.Row class="relative h-12 border-border-subtle hover:bg-muted">
                 <Table.Cell class="px-4"><StatusBadge {...jobStatus[job.status]} quiet /></Table.Cell>
-                <Table.Cell class="whitespace-normal">
-                  <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <a href={`/jobs/${job.id}`} class="font-semibold break-words text-foreground no-underline after:absolute after:inset-0 hover:underline"
-                      >{job.title}</a
-                    >
-                    {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
+                <!-- The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5). -->
+                <Table.Cell class="w-full max-w-0">
+                  <span class="flex min-w-0 items-center gap-2">
+                    <TruncatedText
+                      text={job.title}
+                      href={`/jobs/${job.id}`}
+                      class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                    />
+                    {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
                   </span>
                 </Table.Cell>
                 <Table.Cell class="max-w-60 text-muted-foreground">
