@@ -38,7 +38,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   background.
 - **S4** Panels in a row share a top edge. No card inside a card.
 - **S5** Insets only inside a surface. Shadows only on raised and overlay layers.
-- **S6** Content is at most 1280px wide (lists may reach 1536px at 2xl). Content has a max-width, never a width.
+- **S6** Each page's content container has a max-width of 1280px (lists may reach 1536px at 2xl). Content elements
+  get a max-width, never a fixed width.
 
 **Actions**
 
@@ -61,7 +62,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 
 **Status, counts and time**
 
-- **T1** Status is a badge: shape mark, colour and label, always all three. Status colours mean status only.
+- **T1** Status is a badge: shape mark, colour and label, always all three, except AI assistance, which is
+  information and has no mark (section 3.2). Status colours mean status only.
 - **T2** Status comes first in its group: beside the title, or first in the row.
 - **T3** In lists and tables, calm states are quiet (mark and muted text). Only states that need attention get a
   filled badge.
@@ -97,39 +99,39 @@ Authors check their screens against this list, and the `design-review` agent rep
 
 ## 3. Colour
 
-Semantic names are the API; raw values live only in `packages/ui` and reach components as Tailwind classes. Colours
-did not change in v0.2.
+Semantic names are the API; raw values live only in `packages/ui` (`tokens.css`, mapped in `theme.css`) and reach
+components as Tailwind classes. The token column is the name in code: `background` is `bg-background`,
+`muted-foreground` is `text-muted-foreground`. Colours did not change in v0.2.
 
 ### 3.1 Recruiter app, light (default)
 
 | Token | Value | Use |
 |---|---|---|
-| `bg` | `#F7F5F0` | Page (paper) |
-| `bg-sidebar` | `#FBFAF6` | Sidebar |
-| `surface` | `#FFFFFF` | Header band, panels, tables |
-| `surface-sunken` | `#FBFAF7` | Panel footers, table header rows |
-| `surface-segment` | `#F4F1EB` | Insets, muted pills, counts |
+| `background` | `#F7F5F0` | Page (paper) |
+| `sidebar` | `#FBFAF6` | Sidebar |
+| `card` | `#FFFFFF` | Header band, panels, tables |
+| `muted` | `#FBFAF7` | Panel footers, table header rows |
+| `secondary` | `#F4F1EB` | Insets, muted pills, counts |
 | `border` | `#E6E1D8` | Surface edges |
 | `border-subtle` | `#EFEBE4` | Rows and inner rules |
-| `border-strong` | `#DDD7CC` | Buttons, inputs, pill edges |
-| `text` | `#1C1B19` | Primary text |
-| `text-secondary` | `#3A3630` | Secondary text, navigation |
-| `text-muted` | `#5F5A52` | Labels, captions (5.3:1 on `bg`) |
-| `primary` | `#4338CA` | The primary button, links, focus ring |
-| `primary-hover` | `#3730A3` | |
-| `primary-soft` | `#EEEBFB` | The selected item only (active navigation) |
-| `primary-soft-text` | `#2B2788` | Text on `primary-soft` |
+| `input` | `#DDD7CC` | Buttons, inputs, pill edges |
+| `foreground` | `#1C1B19` | Primary text |
+| `sidebar-foreground` | `#3A3630` | Secondary text, navigation (a general token for it is still to add) |
+| `muted-foreground` | `#5F5A52` | Labels, captions (5.3:1 on `background`) |
+| `primary` | `#4338CA` | The primary button, links, focus ring (`ring`) |
+| `accent` | `#EEEBFB` | The selected item only (active navigation) |
+| `accent-foreground` | `#2B2788` | Text on `accent` |
 | `row-selected` | `#F3F1FC` | Selected table row |
-| `danger-text` / `danger-border` | `#9A2F17` / `#E3B8A8` | Destructive menu items and their confirmations |
+| `destructive` | `#9A2F17` | Destructive menu items and their confirmations |
 
 ### 3.2 Status (shape, colour and label, always)
 
-| Meaning | Mark | Text | Soft bg | Mark colour |
-|---|---|---|---|---|
-| No concerns, Live | circle | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
-| Review suggested, Queued | diamond | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verification recommended | square | `#9A2F17` | `#F9E0D6` | `#B4461F` |
-| AI assistance (information) | none | `#2B2788` | `#ECEBFA` | none |
+| Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
+|---|---|---|---|---|---|
+| No concerns, Live | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| Review suggested, Queued | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
+| Verification recommended | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
 
 Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
 is `aria-hidden` and always has its numeric legend.
@@ -138,13 +140,13 @@ is `aria-hidden` and always has its numeric legend.
 
 | Token | Value | Token | Value |
 |---|---|---|---|
-| `bg` | `#141311` | `text` | `#EDEAE4` |
-| `bg-sidebar` | `#181714` | `text-secondary` | `#CFCAC1` |
-| `surface` | `#1C1B18` | `text-muted` | `#A39E95` |
-| `surface-sunken` | `#181714` | `primary` | `#9B9CF8` (text on it `#15132E`) |
-| `row-selected` | `#2A2722` | `primary-soft` | `#26264A`, text `#C7C8FA` |
+| `background` | `#141311` | `foreground` | `#EDEAE4` |
+| `sidebar` | `#181714` | `sidebar-foreground` | `#CFCAC1` |
+| `card` | `#1C1B18` | `muted-foreground` | `#A39E95` |
+| `muted` | `#181714` | `primary` | `#9B9CF8` (text on it `#15132E`) |
+| `row-selected` | `#2A2722` | `accent` | `#26264A`, text `#C7C8FA` |
 | `border` | `#2E2C27` | `border-subtle` | `#262420` |
-| `border-strong` | `#3A3731` | `danger-text` | `#F7957A` |
+| `input` | `#3A3731` | `destructive` | `#F7957A` |
 
 Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (mark `#F2B84B`); verify `#F7957A` on
 `#3D1A10` (mark `#F27A55`); AI `#C7C8FA` on `#26264A`. In dark mode, higher layers get lighter (section 6).
@@ -153,14 +155,14 @@ Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (
 
 | Token | Light | Dark |
 |---|---|---|
-| `c-bg` | `#FBF6EE` | `#1A1714` |
-| `c-surface` | `#FFFFFF` | `#23201C` |
-| `c-border` / `c-input-border` | `#EDE3D3` / `#D9CCB8` | `#332E28` / `#4A443B` |
-| `c-text` / `c-text-muted` | `#231F1A` / `#6A5D4D` | `#F2EDE6` / `#B3ABA0` |
-| `c-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
-| `c-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
+| `candidate-background` | `#FBF6EE` | `#1A1714` |
+| `candidate-surface` | `#FFFFFF` | `#23201C` |
+| `candidate-border` / `candidate-input-border` | `#EDE3D3` / `#D9CCB8` | `#332E28` / `#4A443B` |
+| `candidate-foreground` / `candidate-muted-foreground` | `#231F1A` / `#6A5D4D` | `#F2EDE6` / `#B3ABA0` |
+| `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
+| `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
 
-On tenant careers pages, `c-cta` and the header mark take the employer brand tokens (section 18).
+On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens (section 18).
 
 ## 4. Type
 
@@ -180,7 +182,9 @@ nothing sets a pixel root.
 | `caption` | 12 / 16 | Hanken 500 or 600 | Fact labels, pills, badges, table headers |
 | `code` | 12 / 16 | JetBrains Mono 400 | Ids, codes, key caps |
 
-12px is the floor. Text never shrinks on phones; only `page-title` steps down.
+12px is the floor. Text never shrinks on phones; only `page-title` steps down. These become Tailwind `--text-*`
+tokens in `packages/ui` (classes `text-body`, `text-caption`, ...); until they land, a W1 finding names the token a
+size should become.
 
 ### 4.2 Rules
 
@@ -210,9 +214,9 @@ Atlassian's surfaces.
 
 | Layer | What lives there | Looks like |
 |---|---|---|
-| Page | Layout only. Nothing readable sits on it. | `bg` |
-| Surface | Header band, panels, tables, sidebar, top bar | `surface`, 1px `border`, no shadow |
-| Inset | A well inside a surface: resume preview, suggested next step, board column | `surface-segment`, no edge |
+| Page | Layout only. Nothing readable sits on it. | `background` |
+| Surface | Header band, panels, tables, sidebar, top bar | `card`, 1px `border`, no shadow |
+| Inset | A well inside a surface: resume preview, board column | `secondary`, no edge |
 | Raised | The one thing in hand: a dragged card, a toolbar stuck while scrolling | surface, edge, `0 4px 12px rgb(28 27 25 / .14)` |
 | Overlay | Menus, popovers, tooltips, sheets, dialogs, toasts | surface, edge, `0 16px 48px rgb(28 27 25 / .18)`; dialogs dim the page |
 
@@ -270,9 +274,9 @@ Forward and back slide (200ms); everything honours `prefers-reduced-motion`.
 | Emphasis | Looks like | Use |
 |---|---|---|
 | Primary | Filled `primary` | One per page, sheet or dialog. It moves the work forward. |
-| Secondary | White, `border-strong` edge | Supporting actions, and Cancel |
+| Secondary | White, `input` edge | Supporting actions, and Cancel |
 | Quiet | Text or icon button | Row actions. Every icon button has a tooltip and an `aria-label`. |
-| Destructive | `danger-text` item in a menu | Never the page's main action. Confirmed in a dialog. |
+| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. |
 
 Features that do not exist yet are hidden (A3).
 
@@ -285,7 +289,7 @@ in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edi
 |---|---|---|
 | Header band, Panel | Our components | Section 7 |
 | Status badge | shadcn `Badge` (`clear`, `review`, `verify`, `ai`) | Mark, colour, label (T1) |
-| Fact pill | `Badge` muted variant | `surface-segment` fill, `border-strong` edge, 12px; only on white surfaces |
+| Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
 | Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
@@ -309,7 +313,7 @@ Keep it simple: say less, and say it once.
 | Say it once | "Download resume" inside the Resume panel | Download |
 | Labels, not instructions | "Enter the candidate's email address" | Email |
 | Hide what cannot be used | A disabled "Request verification (phase 2)" | Nothing, until it works |
-| One line, or none | "No action needed." under a "No concerns" badge in a list | The badge |
+| One line, or none | "This candidate is currently in the Screening stage." | A Screening pill |
 
 Helper text only when a label cannot say it. Copy follows `.claude/rules/writing-style.md`.
 
