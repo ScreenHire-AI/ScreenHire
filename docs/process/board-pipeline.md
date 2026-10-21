@@ -98,7 +98,7 @@ All four notifications leave the task where it is, with its worktree and session
 |---|---|---|
 | **Blocked on a dependency: #N title** | Executing found that a task this one waits for is not on `origin/main` (its PR is unmerged, or its code is missing). The agent wrote nothing on a guess. | Get the dependency to Done first: check its own column and notifications. Then tell this task's agent to `git fetch origin main`, merge it, and carry on with the brief. |
 | **Review blocked: #N title** | Code Review sent the task back 3 times and still finds blocking work, so the review loop is exhausted. | Read the numbered steps. Either do them yourself in the worktree and move the card to Testing, or settle the disputed decision in the brief and send the task back to Executing by hand. By now Executing's "On to Code Review" row has used all 4 runs (the first entry plus 3 returns), so `Findings: applied` will not move it again: move the card to Code Review yourself when the work is done. |
-| **Testing blocked: #N title** | `/pull-request` could not finish. Common causes: the gate is still red after 3 fix rounds, `gh` is not authenticated, a merge conflict needs a product decision, Docker is down, or Playwright's Chromium is not installed (`pnpm e2e:install`). | Fix the named cause (for example `gh auth login`, start Docker, or decide the conflict), then ask the agent to run `/pull-request` again. It reuses the existing PR and branch. |
+| **Testing blocked: #N title** | `/pull-request` could not finish. Common causes: the gate is still red after 3 fix rounds, `gh` is not authenticated, a merge conflict needs a product decision, Docker is down and `pnpm docker:start` could not start it, or Playwright's Chromium is not installed (`pnpm e2e:install`). | Fix the named cause (for example `gh auth login`, `pnpm docker:start`, or decide the conflict), then ask the agent to run `/pull-request` again. It reuses the existing PR and branch. |
 | **Merge blocked: #N title** | `/merge-pull-request` could not land the PR. Common causes: the re-gate failed after `main` moved, `main` moved more than 3 times during the merge, uncommitted files were found before the realign, or `gh` failed. | Fix the cause, then ask the agent to run `/merge-pull-request` again (if the PR is already merged, see [Troubleshooting](#troubleshooting) instead). Do not merge the PR on GitHub by hand and leave the card: Done is what removes the worktree and starts the dependents. If you did merge by hand, move the card to Done yourself. |
 
 If a root checkout fast-forward fails during Merge, the task still reaches Done. The final message reports it
@@ -113,11 +113,66 @@ After pausing the workflow, check this first. Run the commands in the task's wor
 |---|---|---|
 | Executing | Blocked on a dependency | The dependency's card. If it is not in Done, the problem is there: unblock that task first. If it is in Done, run `git fetch origin main` and `git log --oneline origin/main -- <a file the dependency adds>`. A result means the dependency did land: tell this task's agent to merge `origin/main` and carry on. An empty result means its card reached Done without its code on `main` (moved by hand, or a bad merge), so check the dependency's PR with `gh pr view <pr> --json state,mergeCommit`. |
 | Code Review | Review blocked | Whether the numbered steps repeat from one return to the next (earlier verdicts are in the Executing session, in the "Code Review sent this back" messages). The same step three times is a disagreement between the brief and the reviewer, not unfinished code, so settle it in the brief. Different steps each time mean the work is still moving: do the remaining steps yourself. |
-| Testing | Testing blocked | The environment, before the code: `gh auth status` and `docker info`. Either one failing explains the block on its own. If both pass, read the last message for the first failing gate step, or for a merge conflict that needs a decision. |
+| Testing | Testing blocked | The environment, before the code: `gh auth status` and `docker info` (if Docker is down, `pnpm docker:start`). Either one failing explains the block on its own. If both pass, read the last message for the first failing gate step, or for a merge conflict that needs a decision. |
 | Merge | Merge blocked | `git status`, then `gh pr view <pr> --json state,mergeCommit`. Uncommitted files stop the realign, and Done deletes the worktree, so commit them or move them out first; never discard them. A PR that is already `MERGED` means the block came after the merge: ask the agent to carry on from "Confirm it landed" in [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md), not to re-run the whole skill. An open PR means it stopped before or during the merge (re-gate, `main` moving, `gh`): read the reason in the last message. A closed, unmerged PR needs reopening first. |
 
 No notification at all, but an idle agent? That is the [silent stall](#the-silent-stall): read the last line of its
 final message.
+
+## Processes on the dev machine
+
+The board runs on one Windows machine with Kangentic, every task's agent and their commands. Three things on it outlive
+or reach past the task that started them.
+
+### Aspire's teardown can kill unrelated processes
+
+Aspire 13.6 ships DCP 0.26.5, which stops each executable it started with `dcp stop-process-tree`. It builds that tree
+from recorded parent PIDs and checks only the root's start time, not that each child started after its parent.
+Windows reuses PIDs. So a process whose launcher has exited still records the old PID as its parent, and when Windows
+gives that PID to a process inside a tree DCP stops, DCP signals it, waits about 6 s and force-kills it, with
+everything under it. That is the likely cause of the two times Kangentic's terminal died with every tab seconds after
+a test teardown (2026-10-20 and 2026-10-21; inferred, not caught in the act).
+
+There is no launch route around it. On the owner's machine on 2026-10-21, Windows Terminal recorded a parent PID that
+a newer `grep.exe` held, and `explorer.exe` itself recorded a parent that no longer existed (its sign-in launcher
+exits). DCP walks descendants recursively, so a terminal opened from Explorer is exposed through Explorer, along with
+everything else on the desktop. Microsoft's CI hit the same walk with `winlogon.exe` and `csrss.exe`
+([microsoft/aspire#20567](https://github.com/microsoft/aspire/issues/20567)).
+
+What reduces it: `AppHostFixture` stops the app's own processes by identity before Aspire disposes the stack
+(`Process.Kill(entireProcessTree: true)` follows only children that started after their parent), so DCP has no app
+tree left to walk. Measured with DCP's debug log on 2026-10-21:
+
+| Teardown | Processes DCP walked without the pre-stop | With it |
+|---|---|---|
+| One integration test class (API and worker) | 7 (two `stop-process-tree` runs, two `docker events` watchers) | 2 |
+| The end-to-end suite (API, worker, careers) | 11 (three `stop-process-tree` runs, DCP's tunnel server and two `docker events` watchers) | 3 |
+
+DCP still walks its own watchers after its controller exits, and these still use DCP's stop: the integration tests
+that stop the worker and restart the API mid-run, `/preview stop`, Ctrl+C on `pnpm dev`, and a test host that dies.
+To see the walks, set `DCP_DIAGNOSTICS_LOG_LEVEL=debug` and `DCP_DIAGNOSTICS_LOG_FOLDER` before a test run and search
+the logs for `Stopping process tree`.
+
+The fix is upstream: DCP 0.27.0 skips a child born before its parent
+([microsoft/dcp#274](https://github.com/microsoft/dcp/issues/274),
+[microsoft/dcp#278](https://github.com/microsoft/dcp/pull/278)). No stable Aspire carries it yet: 13.6.2 still ships
+DCP 0.26.5, and only Aspire 17 (in preview) moves to 0.27. [microsoft/aspire#20579](https://github.com/microsoft/aspire/issues/20579) is open on the 13.6.x
+milestone with no backport yet. When the pinned Aspire ships DCP 0.27.0 or
+later (`dcp version` in `~/.aspire/versions/<version>/dcp/`), delete the fixture's pre-stop and this section.
+
+### Docker Desktop belongs to the machine, not to a task
+
+A process started from a task's shell carries the task's `KANGENTIC_TASK_ID` and works in its worktree, so Done keeps
+it running and cannot delete the folder. `pnpm docker:start` (`scripts/start-docker.mjs`) starts Docker Desktop with
+the tag removed and Docker's own folder as its working directory, then waits up to 3 minutes for the engine. Agents
+use it whenever `docker info` fails, and the process guard refuses every other way of launching Docker Desktop.
+
+### A gate stopped with TaskStop keeps running
+
+On Windows TaskStop ends the Bash tool's shell but not the Git Bash `sh.exe` it started, so `pnpm verify` and its whole
+tree keep running, out of the session's reach and holding the worktree folder at Done. Agents let a running gate
+finish and run it again after further edits (`/verify`). Each step ends on its own: Lighthouse runs last in the gate,
+with a limit of 60 s per page and 5 minutes for the run, checks that its Chrome exited, and ends with `process.exit`.
 
 ## Where the rules live
 
@@ -128,7 +183,7 @@ final message.
 | Column skills | [`task-review`](../../.claude/skills/task-review/SKILL.md), [`pull-request`](../../.claude/skills/pull-request/SKILL.md), [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) |
 | Conflict playbook for integrating `main` (merge, not rebase; regenerate lockfile, API client and migrations) | [`.claude/rules/integration-conflicts.md`](../../.claude/rules/integration-conflicts.md) |
 | Unattended-run rules (never wait for a person, stay local, start from what is merged) | [`.claude/rules/unattended-runs.md`](../../.claude/rules/unattended-runs.md) |
-| Process guard: refuses killing processes by name, port or tree, stopping a PID started outside this worktree, Docker prunes and sub-command removals, and stopping services, WSL or the machine | [`scripts/guard-processes.mjs`](../../scripts/guard-processes.mjs), wired as a `PreToolUse` hook in [`.claude/settings.json`](../../.claude/settings.json) |
+| Process guard: refuses killing processes by name, port or tree, stopping a PID started outside this worktree, Docker prunes and sub-command removals, stopping services, WSL or the machine, and launching Docker Desktop directly (use `pnpm docker:start`) | [`scripts/guard-processes.mjs`](../../scripts/guard-processes.mjs), wired as a `PreToolUse` hook in [`.claude/settings.json`](../../.claude/settings.json) |
 | Auto-mode allowances for the pipeline (push to the task branch, `gh pr merge`, local builds) | `autoMode` in [`.claude/settings.json`](../../.claude/settings.json) |
 
 Agents may not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, the guard or the pipeline skills unless

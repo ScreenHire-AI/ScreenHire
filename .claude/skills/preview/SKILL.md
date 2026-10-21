@@ -27,7 +27,8 @@ terminal); wait with `aspire wait`, never a curl loop; stop with `aspire stop`, 
 
 ## 1. Prerequisites
 
-1. `docker info --format '{{.ServerVersion}}'`. If it fails, Docker Desktop is not running: report that and stop.
+1. `docker info --format '{{.ServerVersion}}'`. If it fails, run `pnpm docker:start` (it starts Docker Desktop
+   outside this task and waits for the engine). Report and stop only if that fails. Never start Docker Desktop yourself.
 2. `pnpm install --frozen-lockfile` and `dotnet tool restore`. Both return in seconds when nothing changed.
 3. `dotnet dev-certs https --check --trust`. If it finds no trusted certificate, carry on: the Aspire dashboard warns in
    the browser. Report `dotnet dev-certs https --trust` as an action for a person (trusting needs a confirmation dialog).

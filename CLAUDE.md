@@ -26,8 +26,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 
 ## Commands
 
-- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs) and
-  `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
+- First run: Docker running (`pnpm docker:start` starts Docker Desktop when the engine is down and waits for it;
+  never launch Docker Desktop from a task's shell, the guard refuses it), then `pnpm install` at the repo root
+  (Aspire does **not** run installs) and `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
@@ -51,12 +52,14 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
-  name after checking their Aspire labels.
+  name after checking their Aspire labels. Never TaskStop a running `pnpm verify`: on Windows its tree keeps running.
+  Aspire's teardown on Windows can also kill an unrelated process whose launcher has exited; see "Processes on the
+  dev machine" in [`docs/process/board-pipeline.md`](docs/process/board-pipeline.md).
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
   `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
-  end-to-end; the last two boot the AppHost, so Docker must be running, and the end-to-end tests serve the
-  `pnpm -r build` output).
+  end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
+  tests serve the `pnpm -r build` output).
 - **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
@@ -69,7 +72,7 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
 - **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
-  marketing site's Lighthouse budgets and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
+  marketing site's Lighthouse budgets (last) and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
   steps `verify:dotnet`, `verify:contract`, `verify:lighthouse` and `verify:test` run alone too). It is the only CI for
   now; see the `/verify` skill.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken

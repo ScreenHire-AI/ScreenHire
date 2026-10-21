@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
@@ -23,11 +25,18 @@ public class AppHostFixture : IAsyncLifetime
 {
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
 
+    // Aspire's KnownProperties.Executable.Pid, which is internal.
+    private const string ExecutablePidProperty = "executable.pid";
+
+    // How far a process's start time may lie from the start Aspire reported for it and still be the same process.
+    private static readonly TimeSpan ProcessIdentityTolerance = TimeSpan.FromSeconds(5);
+
     /// <summary>The sandbox board's acceptance and removal delay in the test stack.</summary>
     public static readonly TimeSpan SandboxDelay = TimeSpan.FromSeconds(4);
 
     private readonly CancellationTokenSource watching = new();
     private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
     private Task? watcher;
     private DistributedApplication? app;
 
@@ -136,6 +145,7 @@ public class AppHostFixture : IAsyncLifetime
                 _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, cancellationToken), cancellationToken));
 
                 var snapshot = update.Snapshot;
+                RecordProcess(update.ResourceId, snapshot);
                 if (snapshot.State?.Text is { } state && KnownResourceStates.TerminalStates.Contains(state)
                     && (snapshot.ExitCode is not (null or 0) || state == KnownResourceStates.FailedToStart))
                 {
@@ -156,6 +166,61 @@ public class AppHostFixture : IAsyncLifetime
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
+    }
+
+    // Keeps the process of every running executable resource (projects and JS apps; containers have none), so the
+    // teardown can stop it by identity. See StopOwnProcesses.
+    private void RecordProcess(string resourceId, CustomResourceSnapshot snapshot)
+    {
+        var pid = snapshot.Properties.FirstOrDefault(property => property.Name == ExecutablePidProperty)?.Value;
+        if (snapshot.State?.Text == KnownResourceStates.Running && snapshot.StartTimeStamp is { } started
+            && int.TryParse(Convert.ToString(pid, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, out var id))
+        {
+            processes[resourceId] = new OwnProcess(id, started.ToUniversalTime());
+        }
+        else if (snapshot.State?.Text is { } state && KnownResourceStates.TerminalStates.Contains(state))
+        {
+            processes.TryRemove(resourceId, out _);
+        }
+    }
+
+    // Aspire's DCP 0.26 stops an executable with `dcp stop-process-tree`, which counts every process whose recorded
+    // parent PID matches a PID in the tree as a descendant, without checking that it started after that parent. Windows
+    // reuses PIDs, so an older, unrelated process whose launcher has exited (Explorer, a terminal, with everything under
+    // them) can be force-killed with the stack. Process.Kill(entireProcessTree: true) only follows children that started
+    // after their parent, so the fixture stops the app's own processes that way first, and DCP has no app process tree
+    // left to walk. DCP still stops its own `docker events` watchers with the same walk; that part only the upstream fix
+    // removes (DCP 0.27, https://github.com/microsoft/dcp/pull/278). Delete this once the pinned Aspire ships it.
+    // docs/process/board-pipeline.md, "Processes on the dev machine", has the measurements.
+    private void StopOwnProcesses()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        foreach (var (pid, startedUtc) in processes.Values)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                // The identity check DCP makes for its root: a PID handed to another process since is left alone.
+                if ((process.StartTime.ToUniversalTime() - startedUtc).Duration() > ProcessIdentityTolerance)
+                {
+                    continue;
+                }
+
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(TimeSpan.FromSeconds(10));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
+                or AggregateException)
+            {
+                // Already gone, or not ours to read. Kill throws AggregateException when part of the tree would not stop.
+            }
+        }
+
+        processes.Clear();
     }
 
     // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
@@ -239,8 +304,17 @@ public class AppHostFixture : IAsyncLifetime
             {
                 var started = app;
                 app = null;
-                await started.DisposeAsync();
+                try
+                {
+                    StopOwnProcesses();
+                }
+                finally
+                {
+                    await started.DisposeAsync();
+                }
             }
         }
     }
+
+    private sealed record OwnProcess(int Pid, DateTime StartedUtc);
 }

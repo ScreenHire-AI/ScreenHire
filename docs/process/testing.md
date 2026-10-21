@@ -12,6 +12,8 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
 
+When Docker is down, `pnpm docker:start` starts Docker Desktop and waits for the engine.
+
 Pick the lowest tier that can catch the bug. A rule in the domain gets a unit test even when an integration test also
 covers the endpoint. End-to-end tests prove that the pieces connect and render; they do not enumerate edge cases.
 
@@ -87,6 +89,10 @@ example `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/logs/E2EFixture/dash
 `fixture.StoppedResources`, and a failing end-to-end test prints it with its exit code and log, so a server that dies
 mid-run names itself instead of failing each test with its own symptom. Read these logs first when a test fails on a
 server that stopped answering.
+
+On Windows the fixture stops the stack's own processes (API, worker, careers) by identity before Aspire disposes the
+stack, because DCP 0.26's stop can kill unrelated processes through a reused parent PID. What that covers, what it
+does not and the measurements are in [Processes on the dev machine](board-pipeline.md#processes-on-the-dev-machine).
 
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
