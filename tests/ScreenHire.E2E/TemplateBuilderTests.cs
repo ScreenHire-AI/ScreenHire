@@ -266,7 +266,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Copy to customise" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer (copy)");
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" })).ToBeVisibleAsync();
+        // A phone has the primary action in the action bar and the rest in More (design system section 8).
+        await Expect(Page.Locator("[data-slot='action-bar']").GetByRole(AriaRole.Button, new() { Name = "Publish version 1" })).ToBeVisibleAsync();
+        await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Save draft" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
         await ExpectValidationAsync("No problems found");
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
