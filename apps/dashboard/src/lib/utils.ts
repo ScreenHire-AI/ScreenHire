@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
+import { createTV } from 'tailwind-variants';
 
 /**
  * The type scale's `--text-*` names in @screenhire/ui. tailwind-merge reads an unknown `text-*` class as a colour, so
@@ -7,7 +8,11 @@ import { extendTailwindMerge } from 'tailwind-merge';
  */
 export const typeScale = ['page-title', 'panel-title', 'heading', 'body', 'reading', 'caption', 'code', 'candidate-body'];
 
-const twMerge = extendTailwindMerge({ extend: { theme: { text: typeScale } } });
+const twMergeConfig = { extend: { theme: { text: typeScale } } };
+const twMerge = extendTailwindMerge(twMergeConfig);
+
+/** tailwind-variants' `tv`, merging with the same configuration as `cn()`. Components import it from here. */
+export const tv = createTV({ twMergeConfig });
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
