@@ -165,7 +165,7 @@
             </select>
           </label>
         </div>
-        <label class="flex items-center gap-2 font-semibold">
+        <label class="flex items-center gap-2 pointer-coarse:min-h-11 font-semibold">
           <input type="checkbox" class={checkboxClass} bind:checked={accommodation} />
           The candidate asked for an accommodation (timing facts are off)
         </label>

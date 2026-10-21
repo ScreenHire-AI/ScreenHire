@@ -80,7 +80,7 @@
                   Help text (optional)
                   <Input bind:value={() => question.helpText ?? '', (value) => (question.helpText = value || null)} maxlength={500} />
                 </label>
-                <label class="flex items-center gap-2 self-end pb-1.5 font-semibold">
+                <label class="flex items-center gap-2 pointer-coarse:min-h-11 self-end pb-1.5 font-semibold">
                   <input type="checkbox" class={checkboxClass} bind:checked={() => question.required ?? false, (on) => (question.required = on)} />
                   Required
                 </label>
@@ -112,7 +112,7 @@
                 </fieldset>
               {:else if question.type === 'YesNo'}
                 <div class={insetClass}>
-                  <label class="flex items-center gap-2 font-semibold">
+                  <label class="flex items-center gap-2 pointer-coarse:min-h-11 font-semibold">
                     <input
                       type="checkbox"
                       class={checkboxClass}

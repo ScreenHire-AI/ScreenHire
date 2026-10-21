@@ -91,7 +91,7 @@
       Name
       <Input bind:value={automation.name} maxlength={120} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
     </label>
-    <label class="flex items-center gap-2 self-end pb-1.5 text-body font-semibold">
+    <label class="flex items-center gap-2 pointer-coarse:min-h-11 self-end pb-1.5 text-body font-semibold">
       <input type="checkbox" class={checkboxClass} bind:checked={() => automation.enabled !== false, (on) => (automation.enabled = on)} />
       On
     </label>
@@ -182,7 +182,7 @@
                   <Input bind:value={rule.value} maxlength={200} />
                 </label>
               {/if}
-              <label class="flex items-center gap-1.5 pb-1.5 text-body font-semibold">
+              <label class="flex items-center gap-1.5 pointer-coarse:min-h-11 pb-1.5 text-body font-semibold">
                 <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
                 Not
               </label>
@@ -270,7 +270,7 @@
 
   {#if rejects}
     <div class={insetClass}>
-      <label class="flex items-center gap-2 text-body font-semibold">
+      <label class="flex items-center gap-2 pointer-coarse:min-h-11 text-body font-semibold">
         <input type="checkbox" class={checkboxClass} bind:checked={() => automation.allowAutoReject ?? false, (on) => (automation.allowAutoReject = on)} />
         Reject without a person reviewing first
       </label>
