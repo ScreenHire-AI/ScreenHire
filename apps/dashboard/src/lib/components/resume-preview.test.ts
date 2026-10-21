@@ -29,7 +29,9 @@ describe('resume preview', () => {
     const { container } = render(ResumePreview, { props: { name: 'resume.pdf', pages: undefined } });
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading the preview of resume.pdf');
-    expect(container.querySelector('[data-slot="skeleton"]')).toHaveClass('aspect-[17/22]');
+    // A card-coloured page on the inset, as the loaded page will be; the skeleton's own fill would not show on it.
+    expect(container.querySelector('[data-slot="skeleton"]')).toHaveClass('aspect-[17/22]', 'bg-card');
+    expect(container.querySelector('[data-slot="skeleton"]')).not.toHaveClass('bg-muted');
     await expectNoAxeViolations(container);
   });
 

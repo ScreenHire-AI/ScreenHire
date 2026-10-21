@@ -30,7 +30,7 @@
 
 <div data-slot="resume-preview" class="flex min-w-0 flex-col gap-3 rounded-lg bg-secondary p-3">
   {#if pages === undefined}
-    <Skeleton aria-hidden="true" class="mx-auto aspect-[17/22] w-full max-w-2xl rounded-md" />
+    <Skeleton aria-hidden="true" class="mx-auto aspect-[17/22] w-full max-w-2xl rounded-md bg-card" />
     <p role="status" class="sr-only">Loading the preview of {name}</p>
   {:else if !pages || pages.length === 0}
     <p class="text-muted-foreground">No preview for this file.</p>
