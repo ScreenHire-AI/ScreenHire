@@ -6,13 +6,32 @@
 //
 // Allowed: stopping a single PID whose command line or executable path lies inside the current working tree, and
 // removing a container by exact name. Everything else is denied with a reason that points at the safe route.
+//
+// It also refuses launching Docker Desktop directly. Started from a task's shell, Docker inherits the task's
+// KANGENTIC_TASK_ID and the worktree as its working directory, so Kangentic's Done cleanup keeps it and cannot delete
+// the worktree. `pnpm docker:start` (scripts/start-docker.mjs) starts it without either. Read-only commands that name
+// it (Test-Path, Get-Process) still run.
 import { spawnSync } from 'node:child_process';
+
+const SAFE_ROUTE =
+  'Stop only what you started: use TaskStop for a background command (except the gate, `pnpm verify`: let it finish, ' +
+  'see /verify), let Aspire tests dispose their own app, or stop a single PID after confirming its command line ' +
+  'points inside this working tree. Remove containers by exact name after checking their Aspire labels. See ' +
+  'CLAUDE.md ("Never stop processes by name, port or process tree").';
+
+const DOCKER_ROUTE =
+  'Run `pnpm docker:start`: it starts Docker Desktop outside this task (no task tag, Docker\'s own folder as working ' +
+  'directory) and waits for the engine. If it fails, report Docker as infrastructure.';
+
+// A path to Docker Desktop's executable: quoted, or with escaped spaces as Git Bash writes it.
+const DOCKER_EXE = String.raw`(?:['"][^'"\n]*Docker Desktop\.exe['"]|(?:[^\s'";|&]|\\ )*Docker\\ Desktop\.exe)`;
 
 const DENY = [
   [/\btaskkill\b[^\n]*\s(\/{1,2}|-)(t|im|fi)\b/i, 'taskkill by image name, filter or process tree'],
   [/\b(pkill|killall|fuser|kill-port)\b/i, 'killing processes by name or port'],
   [/\bStop-Process\b[^\n]*-(Name|ProcessName|InputObject)\b/i, 'Stop-Process by name'],
-  [/\|\s*(Stop-Process|kill)\b/i, 'piping processes into Stop-Process'],
+  // A grep alternation (`\|kill`, `\|stop-process-tree`) is not a pipe: skip an escaped bar and a hyphenated word.
+  [/(?<!\\)\|\s*(Stop-Process|kill)(?![\w-])/i, 'piping processes into Stop-Process'],
   [/\b(Invoke-CimMethod|wmic)\b[^\n]*\b(Terminate|delete)\b/i, 'terminating processes through WMI'],
   [/\.Kill\(\)/, 'calling .Kill() on processes'],
   [/\bdocker\s+(system|container|volume|image|network|builder)\s+prune\b/i, 'pruning Docker objects'],
@@ -20,20 +39,29 @@ const DENY = [
   [/\b(shutdown(\.exe)?\s|Restart-Computer|Stop-Computer|Stop-Service|Restart-Service)\b/i, 'stopping services or the machine'],
   [/\bnet\s+stop\b/i, 'stopping services'],
   [/\bwsl(\.exe)?\s+--(shutdown|terminate)\b/i, 'stopping WSL (Docker Desktop runs on it)'],
+  // Launching Docker Desktop. Each entry is one launch form; naming it in a read-only command matches none of them.
+  [/\b(Start-Process|saps)\b[^\n]*Docker[ _-]?Desktop/i, 'starting Docker Desktop with Start-Process', DOCKER_ROUTE],
+  [
+    new RegExp(String.raw`(^|[;|&(]|\n)\s*(?:[&.]\s*)?${DOCKER_EXE}`, 'i'),
+    'running Docker Desktop.exe directly',
+    DOCKER_ROUTE,
+  ],
+  [
+    // The path is the launcher's argument, after any switches (`/c`, `-Path`) and `start`'s empty title.
+    new RegExp(String.raw`(?<![\w-])(?:start|Invoke-Item|ii|explorer(?:\.exe)?)(?:\s+(?:[/-]+\w+|""|''))*\s+${DOCKER_EXE}`, 'i'),
+    'opening Docker Desktop.exe',
+    DOCKER_ROUTE,
+  ],
+  [/\bdocker(\.exe)?\s+desktop\s+(start|restart)\b/i, 'docker desktop start or restart', DOCKER_ROUTE],
 ];
 
-const SAFE_ROUTE =
-  'Stop only what you started: use TaskStop for a background command, let Aspire tests dispose their own app, or stop ' +
-  'a single PID after confirming its command line points inside this working tree. Remove containers by exact name ' +
-  'after checking their Aspire labels. See CLAUDE.md ("Never stop processes by name, port or process tree").';
-
-function deny(reason) {
+function deny(reason, route = SAFE_ROUTE) {
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
         permissionDecision: 'deny',
-        permissionDecisionReason: `${reason} is blocked on this machine. ${SAFE_ROUTE}`,
+        permissionDecisionReason: `${reason} is blocked on this machine. ${route}`,
       },
     }),
   );
@@ -88,9 +116,9 @@ process.stdin.on('end', () => {
   const command = data.tool_input?.command;
   if (typeof command !== 'string') return;
 
-  for (const [pattern, label] of DENY) {
+  for (const [pattern, label, route] of DENY) {
     if (pattern.test(command)) {
-      deny(`${label[0].toUpperCase()}${label.slice(1)}`);
+      deny(`${label[0].toUpperCase()}${label.slice(1)}`, route);
       return;
     }
   }
