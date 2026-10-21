@@ -96,8 +96,15 @@ another job's, is simply not found.
 Reviewers download a file the same way, without the bytes passing through the API.
 `GET /v1/applications/{applicationId}/files/{fileId}` redirects to a read-only SAS URL for that one blob, valid for
 `ScreenHire:Apply:DownloadLinkLifetime` (5 minutes). The link sets `Content-Disposition: attachment` with the
-candidate's file name, so storage serves the document as a download and never renders it. A file whose scan is
-`Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
+candidate's file name, so storage serves the document as a download and never renders it on the storage origin. A
+file whose scan is `Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
+
+The dashboard's resume preview reads a PDF through the same route: it fetches the redirect target (storage's CORS rule
+allows `GET`) and hands the bytes to a viewer in an `<iframe sandbox="allow-scripts" srcdoc>`. The frame has an opaque
+origin, so nothing in it can reach the dashboard's cookies, DOM or API, and its document allows only its own script and
+stylesheet by hash (`default-src 'none'`). The viewer is pdf.js, bundled into that one script by
+`apps/dashboard/file-viewer-plugin.ts`; it draws pages to canvases, keeps their text for screen readers, and sends back
+only its height and page count. Other file types are offered as downloads only.
 
 ## 4. Submission
 
@@ -145,8 +152,8 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
 
 ## 7. Owner actions before production
 
-- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts, and a
-  lifecycle rule that deletes unclaimed uploads (blobs with no application) after a day. Development does the first two
+- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts and `GET`
+  from the dashboard host (the resume preview), and a lifecycle rule that deletes unclaimed uploads (blobs with no application) after a day. Development does the first two
   at startup (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
 - Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
 - Behind a CDN or load balancer, set Astro's `security.allowedDomains` to the careers hosts when building

@@ -28,7 +28,8 @@ new route is the `/add-dashboard-page` skill.
   `@screenhire/api-client/svelte-query`: `createListJobs()`, `createGetJob(() => params.jobId)`,
   `createMoveApplication(...)`. Their query functions throw `ApiError` on a status outside 2xx, so `query.isError` and
   `query.error.status` are the error state; `describeError` in `#lib/query.ts` words it. `query.data` is the response
-  (`query.data.data` is the body). Never hand-write a `fetch` or a query key.
+  (`query.data.data` is the body). Never hand-write a `fetch` or a query key. The one exception is a file's bytes,
+  which the generated client cannot read: the resume preview fetches the generated download URL itself.
 - The `(app)` shell owns the one `QueryClient` (`#lib/query.ts`) and clears it on sign-out. Component tests render a
   page inside `src/test-support/with-query-client.svelte` and stub `fetch`.
 - The root `+layout.ts` load (the auth guard) is the one SvelteKit `load` that calls the API, with the plain fetch

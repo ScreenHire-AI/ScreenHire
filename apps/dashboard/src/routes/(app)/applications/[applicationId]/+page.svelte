@@ -5,9 +5,11 @@
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import ResumePreview from '#lib/components/resume-preview.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { formatDateTime, timeAgo } from '#lib/dates.js';
+  import { canDownload } from '#lib/files.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { describeError } from '#lib/query.js';
@@ -129,13 +131,7 @@
         <section aria-labelledby="resume-heading" class="rounded-xl border border-border bg-card px-4 py-3.5">
           <h2 id="resume-heading" class="mb-2 text-heading">Resume</h2>
           {#if resume}
-            {#if resume.scanStatus === 'Clean' || resume.scanStatus === 'NotScanned'}
-              <!-- A full navigation, not the client router: the API redirects to a short-lived link that downloads the file. -->
-              <a href={getDownloadApplicationFileUrl(detail.id, resume.id)} data-sveltekit-reload class="font-semibold">Download {resume.fileName}</a>
-              <span class="text-caption text-muted-foreground tabular-nums">{Math.ceil(resume.sizeBytes / 1024)} KB</span>
-            {:else}
-              <p class="text-muted-foreground">{resume.fileName}: {fileStatus[resume.scanStatus]}.</p>
-            {/if}
+            <ResumePreview applicationId={detail.id} file={resume} />
           {:else}
             <p class="text-muted-foreground">No resume was uploaded.</p>
           {/if}
@@ -153,7 +149,7 @@
                 <div class="flex flex-col gap-0.5 py-2">
                   <dt class="font-semibold">{question?.label ?? answer.questionId}</dt>
                   <dd class="whitespace-pre-line text-secondary-foreground">
-                    {#if file && (file.scanStatus === 'Clean' || file.scanStatus === 'NotScanned')}
+                    {#if file && canDownload(file)}
                       <a href={getDownloadApplicationFileUrl(detail.id, file.id)} data-sveltekit-reload>Download {file.fileName}</a>
                     {:else if file}
                       {file.fileName}: {fileStatus[file.scanStatus]}.
