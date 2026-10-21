@@ -5,7 +5,8 @@
  */
 
 :root {
-  --radius: 0.625rem;
+  /* Section 5: 8px buttons and inputs; the theme derives 6px (`rounded-md`, key caps) and 12px (`rounded-xl`). */
+  --radius: 0.5rem;
 
   --sh-font-display: "Bricolage Grotesque Variable", "Hanken Grotesk Variable", system-ui, sans-serif;
   --sh-font-body: "Hanken Grotesk Variable", system-ui, sans-serif;
