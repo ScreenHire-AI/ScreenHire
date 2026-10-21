@@ -85,8 +85,8 @@ public sealed class IntegrityRulesetTests
 
         authenticity.Level.Should().Be(nameof(AuthenticityLevel.ReviewSuggested));
         authenticity.ReasonCodes.Should().BeEquivalentTo([SignalCatalogue.DatacenterIp, SignalCatalogue.DisposableEmail]);
-        authenticity.Summary.Should().StartWith("2 observations from network and identity checks back each other up: ")
-            .And.Contain("sent from a hosting provider's network").And.Contain("throwaway email address");
+        authenticity.Summary.Should().Be("2 observations from network and identity checks back each other up.",
+            "the summary is one line; the reasons list names each signal");
         authenticity.NextStep.Should().StartWith("Read the evidence before the first screen.");
     }
 

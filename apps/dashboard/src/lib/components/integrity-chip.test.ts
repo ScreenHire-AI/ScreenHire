@@ -22,7 +22,7 @@ const authenticity: [string, LevelView, string, string, string][] = [
 ];
 
 const ai: [string, LevelView, string, string][] = [
-  ['NotIndicated', aiAssistanceLevels.NotIndicated, 'border-border', 'Not indicated'],
+  ['NotIndicated', aiAssistanceLevels.NotIndicated, 'bg-secondary', 'Not indicated'],
   ['SomeIndicators', aiAssistanceLevels.SomeIndicators, 'bg-status-ai-soft', 'Some indicators'],
   ['StrongIndicators', aiAssistanceLevels.StrongIndicators, 'bg-status-ai-soft', 'Strong indicators'],
 ];

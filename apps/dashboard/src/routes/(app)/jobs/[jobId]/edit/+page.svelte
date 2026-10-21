@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import { ApiError, createGetJob } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -30,7 +31,7 @@
 <TopBar crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: jobHref }, { label: 'Edit details' }]} back />
 
 <main class="flex flex-col">
-  <HeaderBand title="Edit job details" />
+  <HeaderBand form title="Edit job details" />
 
   <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
@@ -42,7 +43,7 @@
             <Empty.Header>
               <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
             </Empty.Header>
-            <Empty.Content><Button href="/" variant="outline" size="lg">Back to jobs</Button></Empty.Content>
+            <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
           </Empty.Root>
         {:else}
           <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset />
@@ -62,7 +63,7 @@
             <Empty.Title>This job is closed</Empty.Title>
             <Empty.Description>A closed job is no longer posted, so its details stay as they were.</Empty.Description>
           </Empty.Header>
-          <Empty.Content><Button href={jobHref} variant="outline" size="lg">Back to the job</Button></Empty.Content>
+          <Empty.Content><Button href={jobHref} variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to the job</Button></Empty.Content>
         </Empty.Root>
       </Panel>
     {:else}

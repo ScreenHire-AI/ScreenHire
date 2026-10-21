@@ -7,7 +7,7 @@
 
   // A section of a page (design system section 7, S3): the title inside a fixed-height header with an optional count
   // and actions, the body, and an optional footer inset. Panel titles are h2. A list's table panel holds its search and
-  // filters in the header instead of a title; its `label` names it with a visually hidden h2.
+  // filters in the header after its title. `label` names a panel that cannot show a title with a visually hidden h2.
   let {
     title,
     label,

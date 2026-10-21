@@ -2,6 +2,7 @@
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import CircleXIcon from '@lucide/svelte/icons/circle-x';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
@@ -14,18 +15,23 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import type { ApplicationFileSummary, SignalEvidence as Evidence } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
+  import BrandBar from '#lib/components/brand-bar.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
+  import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -40,9 +46,12 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Field from '#lib/components/ui/field/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -50,7 +59,7 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { formatDate, hour, day, minute } from '#lib/dates.js';
+  import { hour, day, minute } from '#lib/dates.js';
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
@@ -75,6 +84,12 @@
   }
 
   let shortcutsOpen = $state(false);
+  let confirmOpen = $state(false);
+  const demoStages: WorkflowStage[] = [
+    { id: 'applied', name: 'Applied', kind: 'Applied' },
+    { id: 'screening', name: 'Screening', kind: 'Screening' },
+    { id: 'interview', name: 'Interview', kind: 'Interview' },
+  ];
 
   const toggleOptions = [
     { id: 'all', label: 'All', count: null },
@@ -155,6 +170,20 @@
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
 
+<!-- The confirm dialog's shape, as CloseJobDialog and LeaveDialog draw it (section 9). -->
+<Dialog.Root bind:open={confirmOpen}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
+      <Dialog.Description>The careers page stops taking applications and every board is asked to remove the job, for good.</Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Dialog.Close class={buttonVariants({ variant: 'outline', size: 'lg' })}>Keep it open</Dialog.Close>
+      <Button variant="destructive" size="lg" onclick={() => (confirmOpen = false)}><CircleXIcon aria-hidden="true" />Close &amp; remove everywhere</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
 <main class="flex min-h-screen flex-col">
   <HeaderBand title="Style guide" wide>
     {#snippet actions()}
@@ -173,26 +202,26 @@
       </Button>
     {/snippet}
     {#snippet facts()}
-      <Fact label="Source"><code class="font-mono text-code">docs/design/design-system.md</code></Fact>
+      <Fact label="Source"><code class="block min-w-0"><TruncatedText text="docs/design/design-system.md" class="font-mono text-code" /></code></Fact>
       <Fact label="Catalogue">Section 11</Fact>
     {/snippet}
   </HeaderBand>
 
   <div class="overflow-x-auto">
-    <div class={['mx-auto flex flex-col gap-5 px-4 py-6', !width && 'w-full max-w-page']} style:width={width ? `${width}px` : undefined}>
+    <div class={['mx-auto flex flex-col gap-5 px-4 py-6 md:px-6', !width && 'w-full max-w-page 2xl:max-w-page-wide']} style:width={width ? `${width}px` : undefined}>
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Detail: status, details, actions and facts</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
-              <HeaderBand title="Samuel Okonkwo-Hartley">
+              <HeaderBand level={3} title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
                 {#snippet details()}
                   <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined class="text-muted-foreground" />
                   <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined class="text-muted-foreground" />
                 {/snippet}
                 {#snippet actions()}
-                  <Button size="lg">Move to stage</Button>
+                  <Button variant="outline" size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
                 {/snippet}
                 {#snippet facts()}
                   <Fact label="Job">Senior product designer</Fact>
@@ -206,7 +235,7 @@
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">With tabs</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
-              <HeaderBand title="Senior product designer">
+              <HeaderBand level={3} title="Senior product designer">
                 {#snippet status()}<StatusBadge status="clear" label="Live" />{/snippet}
                 {#snippet actions()}<Button variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit</Button>{/snippet}
                 {#snippet tabs()}
@@ -240,7 +269,7 @@
           <p>The body. The title sits inside a fixed-height header, with an optional count and actions on the right.</p>
           {#snippet footer()}<p class="text-caption text-muted-foreground">An optional footer inset</p>{/snippet}
         </Panel>
-        <div class="flex flex-[1_1_320px] flex-col gap-5 max-w-95">
+        <div class="flex flex-[1_1_320px] flex-col gap-5">
           <Panel title="Loading">
             <div class="flex flex-col gap-2" aria-hidden="true">
               <Skeleton class="h-4 w-3/4" />
@@ -249,6 +278,16 @@
           </Panel>
           <Panel title="Could not load">
             <QueryError message="Could not load the timeline. Check your connection." onretry={() => {}} inset />
+          </Panel>
+          <Panel title="Form field">
+            <Field.Field data-invalid>
+              <Field.Label for="style-guide-email">Email</Field.Label>
+              <Input id="style-guide-email" type="email" value="samuel.okonkwo" aria-invalid="true" aria-describedby="style-guide-email-error" />
+              <Field.Error id="style-guide-email-error" errors={[{ message: 'Enter an email address, such as name@example.com.' }]} />
+            </Field.Field>
+          </Panel>
+          <Panel title="Failure text">
+            <FailureText message="Could not publish Senior product designer. Try again in a minute." />
           </Panel>
         </div>
       </div>
@@ -355,7 +394,7 @@
             <SummaryItem label="Salary">$120,000 to $145,000 a year</SummaryItem>
           </SummaryList>
         </Panel>
-        <Panel title="File tile" class="flex-[1_1_320px] max-w-95">
+        <Panel title="File tile" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-3">
             <FileTile {applicationId} file={files.clean}>
               {#snippet facts()}<Badge variant="muted" class="tabular-nums">2 pages</Badge>{/snippet}
@@ -410,6 +449,20 @@
       </div>
 
       <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Move to stage" class="flex-[1_1_320px]">
+          <MoveToStage candidateName="Samuel Okonkwo-Hartley" currentStageId="screening" stages={demoStages} variant="outline" size="lg" onmove={() => {}} />
+        </Panel>
+        <Panel title="Confirm dialog" class="flex-[1_1_320px]">
+          <Button variant="outline" onclick={() => (confirmOpen = true)}>Close the job</Button>
+        </Panel>
+        <Panel title="Live indicator" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-1">
+            {#each ['connected', 'reconnecting', 'disconnected'] as const as status (status)}<LiveIndicator {status} />{/each}
+          </div>
+        </Panel>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">
           <Empty.Root>
             <Empty.Header>
@@ -420,9 +473,10 @@
             <Empty.Content><Button variant="outline">Publish the job</Button></Empty.Content>
           </Empty.Root>
         </Panel>
-        <Panel title="Time and long text" class="flex-[1_1_320px] max-w-95">
+        <Panel title="Time and long text" class="flex-[1_1_320px]">
           <SummaryList>
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
+            <SummaryItem label="Date in a table"><DateText at={ago(9 * day)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>
             <SummaryItem label="Truncated link">
               <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} underlined />
@@ -467,6 +521,13 @@
         </div>
       </Panel>
 
+      <Panel title="Brand bar">
+        <figure class="flex flex-col gap-2">
+          <figcaption class="text-caption text-muted-foreground">Sign-in, onboarding and error pages, outside the app shell</figcaption>
+          <div class="overflow-hidden rounded-lg bg-secondary"><BrandBar /></div>
+        </figure>
+      </Panel>
+
       <Panel title="Table" count={people.length} flush>
         <div class="overflow-x-auto">
           <Table.Root>
@@ -484,7 +545,7 @@
                   <Table.Cell class="px-4"><a href="#table" class="font-semibold text-foreground no-underline hover:underline">{person.name}</a></Table.Cell>
                   <Table.Cell><StatusBadge status={person.status} label={person.label} quiet={person.status === 'clear'} /></Table.Cell>
                   <Table.Cell>{person.stage}</Table.Cell>
-                  <Table.Cell class="tabular-nums">{formatDate(person.at)}</Table.Cell>
+                  <Table.Cell><DateText at={person.at} /></Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>
@@ -492,12 +553,12 @@
         </div>
       </Panel>
 
-      <Panel label="Search field" flush>
+      <Panel title="Search field" flush>
         {#snippet tools()}
-          <SearchField label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <SearchField label="Search candidates" class="ml-auto flex-[0_1_15rem]" />
           <Badge variant="muted">2 selected</Badge>
         {/snippet}
-        <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its search and filters in the header, in place of a title.</p>
+        <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its title, then its search and filters, in the header.</p>
       </Panel>
 
       <div class="flex flex-wrap items-start gap-5">
@@ -506,7 +567,7 @@
             {#each people as person (person.id)}
               <ListItem href="#list-item" title={person.name}>
                 {#snippet status()}<StatusBadge status={person.status} label={person.label} quiet={person.status === 'clear'} />{/snippet}
-                {#snippet meta()}{formatDate(person.at)}{/snippet}
+                {#snippet meta()}<DateText at={person.at} />{/snippet}
                 {#snippet facts()}
                   <Badge variant="muted">{person.stage}</Badge>
                   <Badge variant="muted">{person.source}</Badge>
@@ -524,7 +585,7 @@
         <figure class="flex flex-col gap-2">
           <figcaption class="text-caption text-muted-foreground">A phone's primary action, fixed to the bottom of the screen; shown in place here</figcaption>
           <div class="max-w-95 overflow-hidden rounded-lg bg-secondary pt-6">
-            <ActionBar class="static z-auto"><Button size="lg">Move to stage</Button></ActionBar>
+            <ActionBar class="static z-auto"><Button size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button></ActionBar>
           </div>
         </figure>
       </Panel>

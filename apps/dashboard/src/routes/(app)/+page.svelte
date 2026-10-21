@@ -1,17 +1,19 @@
 <script lang="ts">
   import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
   import PlusIcon from '@lucide/svelte/icons/plus';
-  import SearchIcon from '@lucide/svelte/icons/search';
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
+  import DateText from '#lib/components/date-text.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import Hint from '#lib/components/hint.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -19,12 +21,10 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
-  import * as InputGroup from '#lib/components/ui/input-group/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
-  import { formatDate, formatDateTime } from '#lib/dates.js';
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -94,24 +94,21 @@
 
 <TopBar crumbs={[{ label: 'Jobs' }]} />
 
-<main class="flex flex-col">
-  <HeaderBand title="Jobs" wide>
-    {#snippet status()}
-      {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
-    {/snippet}
-    {#snippet actions()}
-      <Button href="/jobs/new" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
-    {/snippet}
-  </HeaderBand>
+<main class={['flex flex-col', sidebar.isMobile && 'pb-28']}>
+  <!-- The page's primary action; a phone has it in the action bar (section 8). -->
+  <HeaderBand
+    title="Jobs"
+    count={jobs.isSuccess ? all.length : undefined}
+    countLabel={all.length === 1 ? 'job' : 'jobs'}
+    actions={sidebar.isMobile ? undefined : newJob}
+    wide
+  />
 
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
-      {#snippet actions()}
-        <InputGroup.Root class="w-48">
-          <InputGroup.Addon><SearchIcon aria-hidden="true" /></InputGroup.Addon>
-          <InputGroup.Input type="search" aria-label="Search jobs" bind:value={search} />
-        </InputGroup.Root>
+      {#snippet tools()}
+        <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
       {/snippet}
 
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). -->
@@ -167,8 +164,9 @@
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
               {#snippet meta()}{@render published(job)}{/snippet}
               {#snippet facts()}
-                <!-- A long location is cut to the item's width; the job page shows it in full. -->
-                <Badge variant="muted" class="max-w-full"><span class="truncate">{job.location}</span></Badge>
+                <!-- A long location is cut to the item's width, whole in its tooltip (F5). relative: above the item's
+                     link, so the tooltip opens on tap. -->
+                <Badge variant="muted" class="relative max-w-full"><TruncatedText text={job.location} /></Badge>
                 <Badge variant="muted">{employmentLabel(job.employmentType)}</Badge>
                 {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
               {/snippet}
@@ -176,54 +174,67 @@
           {/each}
         </ul>
       {:else}
-        <Table.Root aria-label="Jobs">
-          <Table.Header>
-            <Table.Row class="bg-muted hover:bg-muted">
-              <Table.Head class="px-4 text-caption text-muted-foreground">Status</Table.Head>
-              <Table.Head class="text-caption text-muted-foreground">Title</Table.Head>
-              <Table.Head class="text-caption text-muted-foreground">Location</Table.Head>
-              <Table.Head class="text-caption text-muted-foreground">Type</Table.Head>
-              <Table.Head class="text-right text-caption text-muted-foreground">Published</Table.Head>
-              <Table.Head class="w-14 px-4"><span class="sr-only">Actions</span></Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {#each shown as job (job.id)}
-              <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                   controls sit above it. -->
-              <Table.Row class="relative h-12 border-border-subtle hover:bg-muted">
-                <Table.Cell class="px-4"><StatusBadge {...jobStatus[job.status]} quiet /></Table.Cell>
-                <Table.Cell class="whitespace-normal">
-                  <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <a href={`/jobs/${job.id}`} class="font-semibold break-words text-foreground no-underline after:absolute after:inset-0 hover:underline"
-                      >{job.title}</a
-                    >
-                    {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
-                  </span>
-                </Table.Cell>
-                <Table.Cell class="max-w-60 text-muted-foreground">
-                  <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
-                </Table.Cell>
-                <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
-                <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
-                <Table.Cell class="px-4 text-right">
-                  {#if job.status !== 'Closed'}
-                    <span class="relative inline-flex">{@render rowMenu(job)}</span>
-                  {/if}
-                </Table.Cell>
+        <!-- Location gives way before the title in a narrow panel: the title is the row's name (F5). -->
+        <div class="@container/jobs">
+          <Table.Root aria-label="Jobs">
+            <Table.Header>
+              <Table.Row class="bg-muted hover:bg-muted">
+                <Table.Head class="px-4 text-caption text-muted-foreground">Status</Table.Head>
+                <Table.Head class="text-caption text-muted-foreground">Title</Table.Head>
+                <Table.Head class="text-caption text-muted-foreground">Location</Table.Head>
+                <Table.Head class="text-caption text-muted-foreground">Type</Table.Head>
+                <Table.Head class="text-right text-caption text-muted-foreground">Published</Table.Head>
+                <Table.Head class="w-14 px-4"><span class="sr-only">Actions</span></Table.Head>
               </Table.Row>
-            {/each}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {#each shown as job (job.id)}
+                <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
+                     controls sit above it. -->
+                <Table.Row class="relative h-12 border-border-subtle hover:bg-muted">
+                  <Table.Cell class="px-4"><StatusBadge {...jobStatus[job.status]} quiet /></Table.Cell>
+                  <!-- The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5). -->
+                  <Table.Cell class="w-full max-w-0">
+                    <span class="flex min-w-0 items-center gap-2">
+                      <TruncatedText
+                        text={job.title}
+                        href={`/jobs/${job.id}`}
+                        class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                      />
+                      {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell class="max-w-32 text-muted-foreground @4xl/jobs:max-w-60">
+                    <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
+                  </Table.Cell>
+                  <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
+                  <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
+                  <Table.Cell class="px-4 text-right">
+                    {#if job.status !== 'Closed'}
+                      <span class="relative inline-flex">{@render rowMenu(job)}</span>
+                    {/if}
+                  </Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        </div>
       {/if}
     </Panel>
   </div>
+
+  {#if sidebar.isMobile}
+    <ActionBar>{@render newJob()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet newJob()}
+  <Button href="/jobs/new" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
+{/snippet}
 
 {#snippet published(job: JobSummary)}
   {#if job.publishedAt}
-    {@const at = job.publishedAt}
-    <Hint content={formatDateTime(at)}>{#snippet children({ props })}<time {...props} datetime={at}>{formatDate(at)}</time>{/snippet}</Hint>
+    <DateText at={job.publishedAt} />
   {:else}
     -
   {/if}
@@ -240,7 +251,7 @@
 {/snippet}
 
 {#snippet failureFooter()}
-  <p role="alert" class="text-body text-destructive">{failure}</p>
+  <FailureText message={failure} />
 {/snippet}
 
 <CloseJobDialog jobId={closingId} bind:open={confirmClose} />

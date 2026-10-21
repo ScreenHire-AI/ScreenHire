@@ -1,4 +1,8 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+  import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
+  import SaveIcon from '@lucide/svelte/icons/save';
   import type { WorkflowChangeKind } from '@screenhire/api-client';
   import {
     ApiError,
@@ -8,18 +12,22 @@
     createUpdateJobWorkflow,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { beforeNavigate } from '$app/navigation';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import LeaveDialog from '#lib/components/leave-dialog.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import ProblemMark from '#lib/components/workflow/problem-mark.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
@@ -56,15 +64,17 @@
   const baseVersion = $derived(Number(draft.source.split(':').at(-1)));
 
   const readonly = $derived(detail?.status === 'Closed');
+  // The sidebar's own phone test (under md), where the primary action moves to the action bar.
+  const sidebar = Sidebar.useSidebar();
   let tab = $state('pipeline');
   let notice = $state('');
   let failure = $state('');
   let reviewing = $state(false);
+  // "Discard mine" waits for its confirmation, which opens once the menu has closed.
+  let discardChosen = false;
+  let confirmDiscard = $state(false);
   let applyFailure = $state('');
 
-  beforeNavigate((navigation) => {
-    if (draft.dirty && !readonly && !confirm("Leave without saving this job's workflow?")) navigation.cancel();
-  });
 
   async function saveWorkflow() {
     if (!detail || !draft.workflow) return;
@@ -121,19 +131,21 @@
   back
 />
 
-<main>
+<main class={[sidebar.isMobile && !readonly && detail && draft.workflow && 'pb-28']}>
   {#if job.isError}
     <HeaderBand title={notFound ? 'Job not found' : 'Workflow'} />
     <div class={workArea}>
       {#if notFound}
-        <Empty.Root class="rounded-panel border border-border bg-card">
-          <Empty.Header>
-            <Empty.Title>This job does not exist, or it belongs to another organization.</Empty.Title>
-          </Empty.Header>
-          <Empty.Content><Button href="/" variant="outline">Back to jobs</Button></Empty.Content>
-        </Empty.Root>
+        <Panel title="Details">
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Title>This job does not exist, or it belongs to another organization.</Empty.Title>
+            </Empty.Header>
+            <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
+          </Empty.Root>
+        </Panel>
       {:else}
-        <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} />
+        <Panel title="Could not load the job"><QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset /></Panel>
       {/if}
     </div>
   {:else if !detail || !draft.workflow}
@@ -166,10 +178,9 @@
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
-          <p role="alert" class="inline-flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if failure}<ProblemMark />{failure}{/if}</p>
-          {#if !readonly}
-            <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}>Save workflow</Button>
-          {/if}
+          <FailureText message={failure} />
+          <!-- The one primary action; a phone has it in the action bar (section 8). -->
+          {#if !readonly && !sidebar.isMobile}{@render saveButton()}{/if}
         {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
       </HeaderBand>
@@ -177,7 +188,19 @@
       <div class={workArea}>
         {#if draft.outdated}
           <Panel title="Someone else saved this workflow" role="alert">
-            {#snippet actions()}<Button variant="outline" onclick={() => draft.discardForNewer()}>Discard mine and load theirs</Button>{/snippet}
+            <!-- Discarding the unsaved draft cannot be undone, so it lives in a menu and confirms (A2). -->
+            {#snippet actions()}
+              <MoreMenu
+                label="More actions"
+                size="icon"
+                onclosed={() => {
+                  if (discardChosen) confirmDiscard = true;
+                  discardChosen = false;
+                }}
+              >
+                <DropdownMenu.Item variant="destructive" onSelect={() => (discardChosen = true)}>Discard mine and load theirs</DropdownMenu.Item>
+              </MoreMenu>
+            {/snippet}
             <p>It is now version {detail.workflowVersion}. Your changes here are not saved, and saving them would be refused.</p>
           </Panel>
         {/if}
@@ -199,23 +222,27 @@
       </div>
     </Tabs.Root>
   {/if}
+  {#if sidebar.isMobile && !readonly && detail && draft.workflow}
+    <ActionBar>{@render saveButton()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet saveButton()}
+  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save workflow</Button>
+{/snippet}
 
 <Dialog.Root bind:open={reviewing}>
   <Dialog.Content class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
     <Dialog.Header>
       <Dialog.Title>Apply version {update?.latestVersion ?? ''} of {detail?.template?.templateName ?? 'the template'}?</Dialog.Title>
-      <Dialog.Description>
-        Applying replaces this job's workflow with the template's, including any changes made to this job alone. These
-        are all the differences. Candidates already here stay where they are.
-      </Dialog.Description>
+      <Dialog.Description>This replaces the job's workflow with the template's, including changes made to this job alone.</Dialog.Description>
     </Dialog.Header>
     {#if diff.isPending}
       <Skeleton class="h-24 w-full" />
     {:else if diff.isError}
       <QueryError message={describeError(diff.error, 'Could not load the differences')} onretry={() => diff.refetch()} inset />
     {:else if update}
-      <ul aria-label="Differences" class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border text-body">
+      <ul aria-label="Differences" class="flex flex-col divide-y divide-border rounded-lg bg-secondary text-body">
         {#each update.changes as change, index (index)}
           <li class="flex flex-col gap-0.5 px-3 py-2">
             <span><span class="font-semibold">{changeWords[change.kind]}</span> <code class="font-mono text-code">{change.path}</code></span>
@@ -228,10 +255,32 @@
       </ul>
     {/if}
     {#if draft.dirty}<p class="text-body font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
-    <p role="alert" class="flex items-center gap-1.5 font-semibold text-status-verify empty:hidden">{#if applyFailure}<ProblemMark />{applyFailure}{/if}</p>
+    <FailureText message={applyFailure} />
     <Dialog.Footer>
-      <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep this workflow</Dialog.Close>
-      <Button onclick={applyUpdate} disabled={apply.isPending || !update}>Apply update</Button>
+      <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep this workflow</Dialog.Close>
+      <Button size="lg" onclick={applyUpdate} disabled={apply.isPending || !update}><RefreshCwIcon aria-hidden="true" />Apply update</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
+
+<Dialog.Root bind:open={confirmDiscard}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Discard your changes and load version {detail?.workflowVersion ?? ''}?</Dialog.Title>
+      <Dialog.Description>Your unsaved changes to this workflow are lost.</Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep my changes</Dialog.Close>
+      <Button
+        variant="destructive"
+        size="lg"
+        onclick={() => {
+          draft.discardForNewer();
+          confirmDiscard = false;
+        }}><RotateCcwIcon aria-hidden="true" />Discard and load</Button
+      >
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
+<LeaveDialog unsaved={draft.dirty && !readonly} title="Leave without saving this job's workflow?" />

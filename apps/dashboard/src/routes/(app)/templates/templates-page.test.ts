@@ -2,6 +2,7 @@ import type { HiringTemplateSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, user } from '../../../test-support/fixtures.js';
+import { stubViewport } from '../../../test-support/viewport.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -48,6 +49,17 @@ describe('templates page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
     expect(screen.getAllByText('Retail associate').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Engineering loop').length).toBeGreaterThan(0);
+  });
+
+  it('puts New template in the action bar on a phone', async () => {
+    stubViewport(360);
+    stubTemplates([template('t-1', 'Engineering loop', null)]);
+    renderPage();
+    await screen.findAllByText('Engineering loop');
+
+    const buttons = screen.getAllByRole('button', { name: 'New template' });
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]!.closest('[data-slot=action-bar]')).not.toBeNull();
   });
 
   it('offers a new template when there are none', async () => {

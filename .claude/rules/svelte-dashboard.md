@@ -73,7 +73,7 @@ new route is the `/add-dashboard-page` skill.
   section 15), never in an always-on bar. A new shortcut joins `shortcutGroups` in `#lib/shortcuts.ts`, which the `?`
   dialog lists.
 - The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
-  `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`. The
+  `extraColumns`, right after Candidate (status first, T2); build them with `candidateColumns` from `#lib/candidate-table.ts`. The
   integrity chips are `integrityColumns` (`#lib/integrity-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`) but never filters: pages filter the rows they pass in (stage, saved view,
   `IntegrityFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are

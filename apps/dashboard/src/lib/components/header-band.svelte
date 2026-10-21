@@ -14,6 +14,9 @@
     facts,
     tabs,
     wide = false,
+    form = false,
+    level = 1,
+    heading = $bindable(),
   }: {
     title: string;
     /** A list page's count, as a count pill after the title (T4). */
@@ -32,15 +35,23 @@
     tabs?: Snippet;
     /** A list page's wider content at 2xl (S6). */
     wide?: boolean;
+    /** A form page's band, its title in line with the 688px column (section 7). */
+    form?: boolean;
+    /** The title's heading level: 1, the page's one h1, except for a demo of the band inside a panel. */
+    level?: 1 | 3;
+    /** The h1, for a page that moves focus to its title when the title changes in place (WCAG 2.4.3). */
+    heading?: HTMLHeadingElement;
   } = $props();
 </script>
 
 <div data-slot="header-band" class="@container border-b border-border bg-card">
-  <div class={['mx-auto flex w-full max-w-page flex-col gap-4 px-4 pt-5 @3xl:px-6', wide && '2xl:max-w-page-wide', !tabs && 'pb-5']}>
+  <div class={['mx-auto flex w-full flex-col gap-4 px-4 pt-5 md:px-6', form ? 'max-w-form' : 'max-w-page', wide && '2xl:max-w-page-wide', !tabs && 'pb-5']}>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
       <div class="flex min-w-0 flex-[1_1_16rem] flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 class="min-w-0 font-display text-page-title break-words">{title}</h1>
+          <svelte:element this={`h${level}`} bind:this={heading} tabindex="-1" class="min-w-0 font-display text-page-title break-words"
+            >{title}</svelte:element
+          >
           {#if count !== undefined}
             <Badge variant="count">{count}{#if countLabel}<span class="sr-only">&nbsp;{countLabel}</span>{/if}</Badge>
           {/if}

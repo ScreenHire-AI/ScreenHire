@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import MailIcon from '@lucide/svelte/icons/mail';
@@ -11,6 +12,7 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import Fact from '#lib/components/fact.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
@@ -127,56 +129,64 @@
   {/if}
 {/snippet}
 
+{#snippet bandActions()}
+  <FailureText message={moves.failure ? moves.announcement : ''} />
+  {#if !sidebar.isMobile}{@render moveToStage()}{/if}
+{/snippet}
+
 <main class={['flex flex-col', sidebar.isMobile && detail && stages.length > 0 && 'pb-28']}>
   {#if application.isError}
     {#if notFound}
       <HeaderBand title="Application not found" />
-      <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
-        <div class="rounded-panel border border-border bg-card">
+      <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
+        <Panel title="Details">
           <Empty.Root>
-            <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
-            <Button href="/candidates" variant="outline" size="lg">Back to candidates</Button>
+            <Empty.Header>
+              <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
+            </Empty.Header>
+            <Empty.Content><Button href="/candidates" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to candidates</Button></Empty.Content>
           </Empty.Root>
-        </div>
+        </Panel>
       </div>
     {:else}
       <HeaderBand title="Application" />
-      <div class="@container mx-auto w-full max-w-page px-4 py-5 @3xl:px-6">
-        <QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} />
+      <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
+        <Panel title="Could not load the application"><QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} inset /></Panel>
       </div>
     {/if}
   {:else if !detail}
     <div aria-hidden="true" class="@container border-b border-border bg-card">
-      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 @3xl:px-6">
+      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
         <Skeleton class="h-8 w-64 max-w-full" />
         <Skeleton class="h-4 w-80 max-w-full" />
         <Skeleton class="h-10 w-96 max-w-full" />
       </div>
     </div>
-    <div aria-hidden="true" class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 lg:flex-row-reverse">
+    <div aria-hidden="true" class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
       <Skeleton class="h-48 rounded-panel lg:basis-side" />
       <Skeleton class="h-96 flex-1 rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
-    <HeaderBand title={detail.candidate.fullName} actions={sidebar.isMobile ? undefined : moveToStage}>
+    <HeaderBand title={detail.candidate.fullName} actions={bandActions}>
       {#snippet details()}
-        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground" />
+        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
         {#if detail.candidate.phone}
-          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="text-muted-foreground" />
+          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
         {/if}
       {/snippet}
       {#snippet facts()}
         <Fact label="Stage">{detail.stage.name}</Fact>
-        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></Fact>
+        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" /></Fact>
         <Fact label="Applied"><RelativeTime at={detail.submittedAt} /></Fact>
         <Fact label="Source">{sourceName(detail.source)}</Fact>
       {/snippet}
     </HeaderBand>
 
-    <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 @3xl:py-6">
-      <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it; a failure shows. -->
-      <p role="status" class={moves.failure ? 'rounded-panel border border-border bg-card px-4 py-3 text-status-verify' : 'sr-only'}>{moves.announcement}</p>
+    <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
+      <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it. A failure shows in the
+           header band, beside Move to stage. -->
+      <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
 
       <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
            top of the side column, and the main column spans both of the side column's rows. -->

@@ -44,7 +44,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 **Actions**
 
 - **A1** At most one primary (filled) button per page, sheet or dialog.
-- **A2** Destructive actions live in a menu and confirm in a dialog.
+- **A2** Destructive actions live in a menu and confirm in a dialog. Section 10 says what is not destructive: an action
+  the same screen can undo, and removing a row from an unsaved builder draft.
 - **A3** A feature that does not exist yet is hidden, not shown disabled. Disabled is only for a control this screen
   can enable (Save until the form is valid), with the reason beside it.
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
@@ -196,7 +197,8 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS). Marketing display goes up to 64px. The dashboard's
+Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
+`text-candidate-input` and `text-candidate-hint` in `packages/ui`. Marketing display goes up to 64px. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 ## 5. Space, shape and size
@@ -227,20 +229,27 @@ Atlassian's surfaces.
 
 - Every section is a panel with its title inside the panel header. Panels in a row share a top edge.
 - Shadows only on raised and overlay. No card inside a card.
+- Inside an inset, data and controls sit on `card` with a `border-subtle` edge (a quoted answer, a list of fact pills,
+  a field), so they read as values in the well, not as another layer.
 
 ## 7. Page templates
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates | Header band (title, count, page actions); one table panel whose header holds search and filters |
+| List | Candidates, jobs, templates | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
 | Detail | A candidate, a job | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
 | Form | Creating or editing a record | One column, 688px wide, labels above fields, actions at the end |
 | Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
 
+Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
+bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,
+takes the focus.
+
 - **Header band:** a white strip under the top bar. Title first, status badge beside it, actions on the right, then
   a labelled facts row (label 12px above value 14px, thin rules between) or tabs on its bottom edge. One muted line
-  under the title may hold a person's contact details, each an icon and its value, with no labels.
+  under the title may hold a person's contact details, each an icon and its value, with no labels. On a form page
+  the band's contents line up with the 688px column.
 - **Panel:** header (title, optional count, actions on the right), body, optional footer inset.
 - **Columns:** from `lg`, the main column takes the room the 320px side column leaves, gap 20px. Below `lg` they
   stack in one column in priority order, status first. The status panel comes first in the page's order and sits at
@@ -283,7 +292,7 @@ Forward and back slide (200ms); everything honours `prefers-reduced-motion`.
 | Primary | Filled `primary` | One per page, sheet or dialog. It moves the work forward. |
 | Secondary | White, `input` edge | Supporting actions, and Cancel |
 | Quiet | Text or icon button | Row actions. Every icon button has a tooltip and an `aria-label`. |
-| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. An action the same screen can undo (taking a job down from one board, which Post puts back) is not destructive. |
+| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. An action the same screen can undo (taking a job down from one board, which Post puts back) is not destructive, and neither is removing a row from an unsaved builder draft (a stage, a question, a condition): nothing changes until Save, and leaving asks first. |
 
 Features that do not exist yet are hidden (A3).
 
@@ -299,7 +308,7 @@ in a development build, shows every component in each state, and its test fails 
 | Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
-| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5) |
+| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
@@ -311,11 +320,18 @@ in a development build, shows every component in each state, and its test fails 
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8 |
+| Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, time ago |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
+| Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
+| Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the verify mark and colour (T1) |
+| Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked |
+| Confirm dialog | shadcn `Dialog` (`CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2) |
+| Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
+| Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
 
 ## 12. Words

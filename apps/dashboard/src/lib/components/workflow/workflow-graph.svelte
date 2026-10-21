@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
-  import { Background, Controls, SvelteFlow, type Edge } from '@xyflow/svelte';
+  import { Background, SvelteFlow, type Edge } from '@xyflow/svelte';
   import { untrack } from 'svelte';
   import '@xyflow/svelte/dist/style.css';
   import { preferences } from '#lib/preferences.svelte.js';
   import { errorsUnder } from '#lib/workflow.js';
   import { toGraph, type StepNode } from '#lib/workflow-graph.js';
+  import GraphControls from './graph-controls.svelte';
   import StepNodeView from './step-node.svelte';
 
   // The power-user view (workflow-engine.md §4): the same workflow as a graph. A projection only: it is rebuilt from the
@@ -56,6 +57,6 @@
     minZoom={0.3}
   >
     <Background />
-    <Controls showLock={false} />
+    <GraphControls />
   </SvelteFlow>
 </div>

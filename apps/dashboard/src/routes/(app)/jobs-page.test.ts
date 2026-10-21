@@ -110,6 +110,10 @@ describe('jobs page', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    // The primary action sits in the action bar, not the header band (section 8).
+    const newJob = screen.getByRole('link', { name: 'New job' });
+    expect(newJob.closest('[data-slot=action-bar]')).not.toBeNull();
+    expect(document.querySelector('[data-slot=header-band] a[href="/jobs/new"]')).toBeNull();
   });
 });
 

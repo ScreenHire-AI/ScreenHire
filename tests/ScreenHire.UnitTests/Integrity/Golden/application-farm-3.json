@@ -1,6 +1,6 @@
 {
   "applicant": "application-farm-3",
-  "rulesetVersion": "2026-10-21.1",
+  "rulesetVersion": "2026-10-21.2",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [
@@ -11,7 +11,7 @@
       "NET_GEO_CLAIM_MISMATCH"
     ],
     "appliedRules": [],
-    "summary": "5 observations from network, identity, automation and content checks back each other up: completed faster than a person could; details contradict each other; shares details with other applicants; sent from a hosting provider's network; network location differs from the location the candidate gave.",
+    "summary": "5 observations from network, identity, automation and content checks back each other up.",
     "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
     "signals": [
       {

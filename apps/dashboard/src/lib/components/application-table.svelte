@@ -7,7 +7,7 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { tick, type Snippet } from 'svelte';
   import { get } from 'svelte/store';
-  import Hint from '#lib/components/hint.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
@@ -16,7 +16,6 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
-  import { formatDate, formatDateTime } from '#lib/dates.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { chipOf } from '#lib/integrity.js';
@@ -44,7 +43,7 @@
     /** With `moves`: the job's stages, for each row's "Move" menu. */
     stages?: readonly WorkflowStage[];
     moves?: Moves;
-    /** Columns between Stage and Source: the slot the integrity columns fill (#lib/candidate-table.ts). */
+    /** Columns right after Candidate (status first, T2): the slot the integrity columns fill (#lib/candidate-table.ts). */
     extraColumns?: readonly CandidateColumn[];
     /** The keyboard cursor's row (J / K), tinted; the job page shows it in its side panel. */
     activeId?: string | null;
@@ -58,9 +57,10 @@
   const columns = $derived<CandidateColumn[]>([
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
     { id: 'candidate', header: 'Candidate', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
+    // Status first, right after the name (T2): the integrity columns, then the facts.
+    ...extraColumns,
     ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
     { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false, cell: ({ row }) => renderSnippet(stageCell, row.original) },
-    ...extraColumns,
     { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     { id: 'applied', header: 'Applied', cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
@@ -73,6 +73,9 @@
   // padding.
   const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
   const nameColumn = 'sticky left-10 pointer-coarse:left-15';
+  // Source is an optional column (section 8): it shows only where the table has room, so a job's pipeline beside its
+  // side column fits a laptop without scrolling sideways.
+  const optionalColumn = '@max-5xl/table:hidden';
   // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
   let scrolledSideways = $state(false);
   const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
@@ -220,12 +223,7 @@
 {/snippet}
 
 {#snippet appliedCell(application: ApplicationSummary)}
-  <!-- A date in the table, the exact time on hover, focus or tap (design system section 13). -->
-  <Hint content={formatDateTime(application.submittedAt)}>
-    {#snippet children({ props })}
-      <time {...props} datetime={application.submittedAt} class="text-muted-foreground tabular-nums">{formatDate(application.submittedAt)}</time>
-    {/snippet}
-  </Hint>
+  <DateText at={application.submittedAt} class="text-muted-foreground" />
 {/snippet}
 
 {#snippet moveHeader()}
@@ -258,11 +256,7 @@
       />
     {/snippet}
     {#snippet meta()}
-      <Hint content={formatDateTime(application.submittedAt)}>
-        {#snippet children({ props })}
-          <time {...props} datetime={application.submittedAt} class="tabular-nums">{formatDate(application.submittedAt)}</time>
-        {/snippet}
-      </Hint>
+      <DateText at={application.submittedAt} />
     {/snippet}
     {#snippet facts()}
       <Badge variant="muted">{application.stage.name}</Badge>
@@ -284,7 +278,7 @@
   <Empty.Root class="gap-3 p-6">
     <Empty.Description>{emptyText}</Empty.Description>
     {#if onclearfilters}
-      <Button variant="outline" onclick={onclearfilters}>Clear filters</Button>
+      <Button variant="outline" size="lg" onclick={onclearfilters}>Clear filters</Button>
     {/if}
   </Empty.Root>
 {/snippet}
@@ -308,7 +302,7 @@
     <div
       bind:this={scrollElement}
       onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
-      class="relative max-h-[min(70vh,640px)] overflow-auto"
+      class="@container/table relative max-h-[min(70vh,640px)] overflow-auto"
     >
       <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
         <thead class="sticky top-0 z-10 bg-muted">
@@ -326,6 +320,7 @@
                     header.id === 'candidate' && scrolledSideways && nameEdge,
                     (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
                     header.id === 'move' && 'w-10',
+                    header.id === 'source' && optionalColumn,
                     (header.id === 'applied' || header.id === 'move') && 'text-right',
                   ]}
                 >
@@ -372,6 +367,7 @@
                       // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
                       (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
                       (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
+                      cell.column.id === 'source' && optionalColumn,
                     ]}
                   >
                     <FlexRender {cell} />

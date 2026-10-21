@@ -85,10 +85,8 @@
       >
         <DropdownMenu.RadioItem value="all">Any level</DropdownMenu.RadioItem>
         {#each aiOptions as option (option.id)}
-          <DropdownMenu.RadioItem value={option.id}>
-            <StatusMark shape={option.view.shape} tone={option.view.tone} />
-            {option.view.label}
-          </DropdownMenu.RadioItem>
+          <!-- AI assistance is information, so its levels carry no status mark (section 3.2). -->
+          <DropdownMenu.RadioItem value={option.id}>{option.view.label}</DropdownMenu.RadioItem>
         {/each}
       </DropdownMenu.RadioGroup>
     </DropdownMenu.Group>

@@ -103,6 +103,7 @@
                   <div>
                     <Button
                       variant="outline"
+                      size="lg"
                       onclick={() => {
                         const label = `Option ${(question.options?.length ?? 0) + 1}`;
                         question.options = [...(question.options ?? []), { id: idFrom(label, (question.options ?? []).map((o) => o.id), 'option'), label }];
@@ -179,19 +180,19 @@
       </ol>
       {#snippet footer()}
         <div class="flex flex-wrap items-end gap-2">
-          <label class={[labelClass, 'w-56 max-w-full']}>
+          <label class={[labelClass, 'max-w-56 flex-[1_1_14rem]']}>
             New question's answer type
             <select class={cn(selectClass, 'bg-card')} bind:value={addType}>
               {#each questionTypes as type (type)}<option value={type}>{questionTypeLabels[type]}</option>{/each}
             </select>
           </label>
-          <Button variant="outline" onclick={() => setQuestions([...questions, newQuestion(workflow, addType)])}><PlusIcon aria-hidden="true" />Add question</Button>
+          <Button variant="outline" size="lg" onclick={() => setQuestions([...questions, newQuestion(workflow, addType)])}><PlusIcon aria-hidden="true" />Add question</Button>
         </div>
       {/snippet}
     </Panel>
   </div>
 
-  <Panel title="Candidate preview" class="max-w-95 flex-[1_1_320px] lg:sticky lg:top-4">
+  <Panel title="Candidate preview" class="flex-[1_1_320px] lg:sticky lg:top-4">
     <QuestionnairePreview {questions} />
   </Panel>
 </div>

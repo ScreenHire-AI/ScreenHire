@@ -2,6 +2,7 @@ import type { ApplicationFileSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import WithTooltips from '../../test-support/with-tooltips.svelte';
 import ResumePreview from './resume-preview.svelte';
 
 // The real viewer (pdf.js in a sandboxed document) is built by file-viewer-plugin.ts and checked in
@@ -37,13 +38,14 @@ const fromFrame = (data: unknown, source: Window | null = frame().contentWindow)
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('resume preview', () => {
   it('shows a PDF in a sandboxed frame that gets the bytes and reports its page count', async () => {
     const fetch = serveFile();
     const file = resume({ scanStatus: 'Clean' });
-    render(ResumePreview, { props: { applicationId, file } });
+    render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file } } });
 
     expect(screen.getByText('avery-example-resume.pdf')).toBeInTheDocument();
     expect(screen.getByText('48 kB')).toBeInTheDocument();
@@ -80,7 +82,7 @@ describe('resume preview', () => {
 
   it('says so when the frame cannot read the file', async () => {
     serveFile();
-    render(ResumePreview, { props: { applicationId, file: resume() } });
+    render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume() } } });
     await waitFor(() => expect(frame()).toBeInTheDocument());
 
     fromFrame({ type: 'failed' });
@@ -92,7 +94,7 @@ describe('resume preview', () => {
 
   it('offers to try again when the file does not load', async () => {
     const fetch = serveFile(409);
-    render(ResumePreview, { props: { applicationId, file: resume() } });
+    render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume() } } });
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the preview.');
     await fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -105,7 +107,7 @@ describe('resume preview', () => {
       fileName: 'avery-example-resume.docx',
       contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
-    render(ResumePreview, { props: { applicationId, file } });
+    render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file } } });
 
     expect(screen.getByText('No preview for this file type.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Download avery-example-resume.docx' })).toHaveAttribute('href', downloadUrl(file.id));
@@ -115,10 +117,11 @@ describe('resume preview', () => {
 
   it('holds the whole file name in a tooltip that opens on focus, for a name cut short', async () => {
     serveFile();
-    render(ResumePreview, { props: { applicationId, file: resume({ scanStatus: 'Infected' }) } });
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume({ scanStatus: 'Infected' }) } } });
 
-    const name = screen.getByText('avery-example-resume.pdf');
-    expect(name).toHaveAttribute('tabindex', '0');
+    const name = await screen.findByText('avery-example-resume.pdf');
+    await waitFor(() => expect(name).toHaveAttribute('tabindex', '0'));
     name.focus();
     // jsdom has no layout, so the positioned tooltip stays invisible here; its state and text are what count.
     await waitFor(() => expect(name).toHaveAttribute('data-state', expect.stringMatching(/open/)));
@@ -130,7 +133,7 @@ describe('resume preview', () => {
     ['Infected', 'Withheld: malware found'],
   ] as const)('shows neither a preview nor Download for a %s file, and says why', (scanStatus, reason) => {
     const fetch = serveFile();
-    render(ResumePreview, { props: { applicationId, file: resume({ scanStatus }) } });
+    render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume({ scanStatus }) } } });
 
     expect(screen.getByText(reason)).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
@@ -140,16 +143,16 @@ describe('resume preview', () => {
   });
 
   it('passes axe in the states that need no frame, and its load error is an inset, not a card in a card', async () => {
-    const withheld = render(ResumePreview, { props: { applicationId, file: resume({ scanStatus: 'Infected' }) } });
+    const withheld = render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume({ scanStatus: 'Infected' }) } } });
     await expectNoAxeViolations(withheld.container);
     withheld.unmount();
 
-    const noPreview = render(ResumePreview, { props: { applicationId, file: resume({ fileName: 'resume.docx', contentType: 'application/msword' }) } });
+    const noPreview = render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume({ fileName: 'resume.docx', contentType: 'application/msword' }) } } });
     await expectNoAxeViolations(noPreview.container);
     noPreview.unmount();
 
     serveFile(409);
-    const failed = render(ResumePreview, { props: { applicationId, file: resume() } });
+    const failed = render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume() } } });
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveAttribute('data-slot', 'query-error');
     expect(alert).toHaveClass('bg-secondary');

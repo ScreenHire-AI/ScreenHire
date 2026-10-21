@@ -2,12 +2,14 @@
   import type { BoardSummary, JobDetail } from '@screenhire/api-client';
   import { createCloseJobPosting, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import FailureText from '#lib/components/failure-text.svelte';
   import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import { formatDateTime } from '#lib/dates.js';
   import { boardAction, boardRows, describePosting, type BoardAction } from '#lib/distribution.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -108,7 +110,15 @@
                 </span>
               {/snippet}
             </Hint>
-            {#if view.eta}<Badge variant="muted">{view.eta}</Badge>{/if}
+            <!-- The estimate's exact time is in its tooltip (T5). -->
+            {#if view.eta && row.posting?.expectedBy}
+              {@const expected = row.posting.expectedBy}
+              <Hint content={formatDateTime(expected)}>
+                {#snippet children({ props })}
+                  <span {...props} class="inline-flex rounded-full"><Badge variant="muted">{view.eta}</Badge></span>
+                {/snippet}
+              </Hint>
+            {/if}
           </div>
           <span class="sr-only">{view.detail}</span>
         </li>
@@ -119,7 +129,7 @@
 
 {#snippet messages()}
   <div class="flex flex-col gap-1">
-    <p role="alert" class="text-body text-destructive empty:hidden">{failure || publishFailure}</p>
+    <FailureText message={failure || publishFailure} />
     <p role="status" class="text-body text-muted-foreground empty:hidden">{notice}</p>
   </div>
 {/snippet}

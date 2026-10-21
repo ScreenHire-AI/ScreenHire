@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SaveIcon from '@lucide/svelte/icons/save';
   import type { HttpValidationProblemDetails, JobDetail } from '@screenhire/api-client';
   import { ApiError, createUpdateJob } from '@screenhire/api-client/svelte-query';
   import { UpdateJobBody } from '@screenhire/api-client/zod';
@@ -7,6 +8,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -222,10 +224,10 @@
     {#snippet footer()}
       <div class="flex flex-wrap items-center justify-end gap-2">
         {#if $errors._errors}
-          <p role="alert" class="mr-auto text-body text-destructive">{$errors._errors[0]}</p>
+          <FailureText message={$errors._errors[0]} class="mr-auto" />
         {/if}
         <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
-        <Button type="submit" size="lg" disabled={$submitting}>Save details</Button>
+        <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save details</Button>
       </div>
     {/snippet}
   </Panel>

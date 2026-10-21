@@ -48,11 +48,18 @@ const panels: Record<string, string[]> = {
   'Empty state': ['Empty state'],
   'Shortcuts dialog': ['Shortcuts dialog'],
   Sidebar: ['Sidebar'],
+  'Brand bar': ['Brand bar'],
   'Table, list item': ['Table', 'List item, the table on a phone'],
   'Search field': ['Search field'],
   Activity: ['Activity'],
   'Action bar': ['Action bar'],
   'Relative time, truncated text': ['Time and long text'],
+  'Table date': ['Time and long text'],
+  'Failure text': ['Failure text'],
+  'Form field': ['Form field'],
+  'Move to stage': ['Move to stage'],
+  'Confirm dialog': ['Confirm dialog'],
+  'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
 };
 

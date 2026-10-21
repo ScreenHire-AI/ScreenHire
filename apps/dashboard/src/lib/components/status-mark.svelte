@@ -21,7 +21,7 @@
 <script lang="ts">
   import { cn } from '#lib/utils.js';
 
-  // The shape half of "shape + colour + label" (design-system section 2.2). Decorative: the label next to it carries
+  // The shape half of "shape + colour + label" (design-system section 3.2). Decorative: the label next to it carries
   // the meaning, so it is hidden from assistive technology.
   let { shape, tone, class: className = 'size-2' }: { shape: MarkShape; tone: MarkTone; class?: string } = $props();
 </script>
