@@ -125,7 +125,10 @@
 
       {#if providers.length === 0 && !magicLink}
         <Panel title="Sign-in methods">
-          <FailureText message="Sign-in is not set up on this server yet." />
+          <div class="flex flex-col gap-3">
+            {@render providerError()}
+            <FailureText message="Sign-in is not set up on this server yet." />
+          </div>
         </Panel>
       {/if}
     {/if}

@@ -73,6 +73,14 @@ describe('sign-in page', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent("We couldn't sign you in with that provider.");
   });
+
+  it('says why a provider sign-in came back when no sign-in method is left to offer', () => {
+    show(data({ methods: { providers: [], magicLinkEnabled: false }, errorMessage: "We couldn't sign you in with that provider." }));
+
+    const panel = screen.getByRole('region', { name: 'Sign-in methods' });
+    expect(panel).toHaveTextContent("We couldn't sign you in with that provider.");
+    expect(panel).toHaveTextContent('Sign-in is not set up on this server yet.');
+  });
 });
 
 describe('sign-in page load', () => {
