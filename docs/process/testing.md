@@ -253,3 +253,9 @@ took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both pas
 With the MVP acceptance journey (881 .NET tests), `pnpm verify` took 3 min 55 s and 3 min 40 s over
 two consecutive runs on 2026-10-20; both passed. The end-to-end assembly, the journey included, takes about 65 s of
 that, in parallel with the integration tests (about 85 s).
+
+With the gate-stability fixes (898 .NET tests; `Built` serves the frontends without preview servers, and publish and
+close take the posting locks), `pnpm verify:test` passed five times in a row on 2026-10-21, at commit `891dd3d`, with
+the suites in parallel as the gate runs them: 109, 112, 113, 111 and 114 s wall clock. Each run: unit about 1 s,
+end-to-end 53 to 59 s, integration 1 min 46 s to 1 min 51 s, 898 passed, none failed, and no resource stopped
+(`TestResults/logs`).
