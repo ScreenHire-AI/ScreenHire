@@ -36,7 +36,9 @@ In the same parallel batch, launch the specialists (`.claude/agents/`), each giv
 its area), `licence-check` when `Directory.Packages.props` or a `package.json` changed, `migration-safety` when
 `src/ScreenHire.Infrastructure/Persistence/` or `src/ScreenHire.Domain/` changed, and `design-review` when
 `apps/dashboard/`, `apps/careers/`, `apps/marketing/` or `packages/ui/` changed (it holds screens to
-`docs/design/design-system.md`, the one source of truth for UI). They go deeper on the
+`docs/design/design-system.md`, the one source of truth for UI). When `apps/dashboard/` changed, hold
+`design-review` back from the batch and start it at the end of "Look at dashboard changes" below, with what you
+saw in its prompt. They go deeper on the
 non-negotiables than dimension 2; dimension 2 still covers its whole list. If an agent type is not available in
 this session, use `general-purpose` with the contents of `.claude/agents/<name>.md` as the start of its prompt.
 
@@ -63,6 +65,40 @@ this session, use `general-purpose` with the contents of `.claude/agents/<name>.
    - docs and CLAUDE.md updated when behaviour or commands changed;
    - no dead code, no duplicated helpers.
 
+### Look at dashboard changes
+
+Only when the diff touches `apps/dashboard/`. Do this while the batch above runs. The design-review agent cannot
+drive a browser, so you take the screenshots and measurements and it judges them.
+
+1. Run `/preview` (the Skill tool). It starts the stack and signs in as Avery Quinn in the task's browser pane. If
+   Docker is not running, the stack does not come up or the `kangentic_browser_*` tools are missing, skip to step 5
+   without notes and add a row to the findings table: "visual pass not run", with the reason. That alone is never a
+   reason for `Verdict: Blocked`.
+2. Pick the pages, at most six:
+   - `/style-guide`, always;
+   - each changed route under `apps/dashboard/src/routes/`, as its URL without the `(group)` folders. Fill
+     `[jobId]` from `kangentic_browser_query_all` on `a[href^="/jobs/"]` (with `includeHtml`) on `/`, and
+     `[applicationId]` from `a[href^="/applications/"]` on that job's page. Leave `(auth)` routes to the code review:
+     the signed-in pane redirects away from them;
+   - when no route changed (only `src/lib/`, `app.css` or a layout), `/` and the "Senior .NET Engineer" job page.
+3. For each page, `kangentic_browser_navigate` to it and `kangentic_browser_wait` for `h1` (repeat the wait once if
+   it fails with a driver error mid-navigation). Then at 1440x900, 768x1024 and 390x844:
+   1. `kangentic_browser_set_viewport` with that width and height;
+   2. `kangentic_browser_screenshot`. Its result names the saved image (`source: ...`); keep that path. If the image
+      is blank, take it again: the first paint after a navigation can lag;
+   3. `kangentic_browser_eval` with the full text of [`visual-probe.js`](visual-probe.js) on the first width of each
+      page load, and `visualProbe()` on the others. It returns raw measurements as JSON. If eval is refused (a
+      Kangentic setting, Agent Browser > Allow eval), go on with screenshots alone and say so in the notes.
+
+   Where the change sits below the first screen, `kangentic_browser_scroll` to it and take one more screenshot.
+4. Write notes for each page and width: the URL, the width, the screenshot paths, the probe's JSON, and what you see.
+   Describe the navigation at that size, the layers, whether panels in a row share a top edge, text or controls that
+   wrap or are cut off, and anything that scrolls sideways. Describe; leave the judging to the agent.
+5. Start `design-review` with the diff range, the brief and the notes. It reads the screenshots itself.
+6. Put the pane back: `kangentic_browser_set_viewport` with `reset: true`, then `kangentic_browser_close_pane`. Run
+   `/preview stop` and its confirmation steps now, before any build in section 3: a running stack holds the API's
+   and worker's build output.
+
 ## 3. Verify and fix
 
 1. Check every finding yourself against the code. Drop the ones that do not hold and list them as refuted.
@@ -79,9 +115,12 @@ Send work back (Blocked) only when:
 
 ## 4. Report
 
-1. A findings table: file:line, severity, finding, and resolution (fixed / refuted / sent back).
+1. A findings table: file:line, severity, finding, and resolution (fixed / refuted / sent back). A visual finding
+   also names its page and width.
 2. The changes and tests you committed.
-3. The closing block, which must be the last thing in the message:
+3. If you started the stack and it still runs (you started it again to check a fix), run `/preview stop` and its
+   confirmation steps now. No outcome line while it runs.
+4. The closing block, which must be the last thing in the message:
    - All clear: the line `Verdict: Ready`.
    - Otherwise: numbered steps the implementer must do, each concrete and checkable, then the line
      `Verdict: Blocked`.
