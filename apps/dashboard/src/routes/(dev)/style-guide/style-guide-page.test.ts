@@ -29,8 +29,7 @@ const panels: Record<string, string[]> = {
   'Step marker': ['Step marker'],
   'Summary list': ['Summary list'],
   'File tile': ['File tile'],
-  // Not built yet: showing a file inline needs an API that serves it for isolated display (see section 11).
-  'Resume preview': [],
+  'Resume preview': ['Resume preview'],
   'Key cap': ['Key cap and tooltip'],
   Tooltip: ['Key cap and tooltip'],
   'Empty state': ['Empty state'],
