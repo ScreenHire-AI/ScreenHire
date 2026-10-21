@@ -13,7 +13,8 @@
 // docs/process/board-pipeline.md ("Processes on the dev machine") describes.
 //
 // Exits 0 once `docker info` answers, at once when it already does. Exits 1 if the engine does not answer within
-// three minutes, if Docker Desktop is not installed where expected, or on a platform other than Windows.
+// three minutes, if Docker Desktop is not installed where expected, if the docker CLI is not on PATH, or on a platform
+// other than Windows.
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
