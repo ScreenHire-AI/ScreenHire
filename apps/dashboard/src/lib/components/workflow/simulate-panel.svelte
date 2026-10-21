@@ -1,8 +1,6 @@
 <script lang="ts">
   import type { AnswerFact, EvaluationOutcome, HiringWorkflow, TriggerType, WorkflowSimulationResult } from '@screenhire/api-client';
   import { ApiError, createSimulateWorkflow } from '@screenhire/api-client/svelte-query';
-  import CircleIcon from '@lucide/svelte/icons/circle';
-  import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -179,7 +177,7 @@
   <Panel title="What would happen" aria-live="polite" class="max-w-95 flex-[1_1_320px]">
     {#if failure}
       <div role="alert">
-        <p class="font-semibold text-destructive">{failure.message}</p>
+        <p class="font-semibold text-status-verify">{failure.message}</p>
         {#if failure.problems.length > 0}
           <ul class="mt-1.5 flex list-disc flex-col gap-0.5 pl-5">{#each failure.problems as problem (problem)}<li>{problem}</li>{/each}</ul>
         {/if}
@@ -194,10 +192,7 @@
           <li aria-label={`${automation.name}: ${outcomeText[automation.outcome]}`} class={['flex flex-col gap-1.5', rowClass]}>
             <div class="flex flex-wrap items-baseline justify-between gap-2">
               <h3 class="font-semibold">{automation.name}</h3>
-              <span class={['inline-flex items-center gap-1 text-caption', automation.outcome === 'Matched' ? 'text-foreground' : 'text-muted-foreground']}>
-                {#if automation.outcome === 'Matched'}<CircleCheckIcon aria-hidden="true" />{:else}<CircleIcon aria-hidden="true" />{/if}
-                {outcomeText[automation.outcome]}
-              </span>
+              <span class={automation.outcome === 'Matched' ? 'font-semibold' : 'text-muted-foreground'}>{outcomeText[automation.outcome]}</span>
             </div>
             {#if automation.reason}<p class="text-muted-foreground">{automation.reason}</p>{/if}
             {#if automation.rules.length > 0}

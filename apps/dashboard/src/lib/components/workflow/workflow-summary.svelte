@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import Panel from '#lib/components/panel.svelte';
+  import StepLine from '#lib/components/step-line.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
@@ -31,26 +32,18 @@
 <Tabs.Content value="pipeline">
   <div class="flex flex-wrap items-start gap-5">
     <Panel title="Stages" count={workflow.stages.length} footer={ends.length > 0 ? endStages : undefined} class="max-w-95 flex-[1_1_320px]">
-      <ol aria-label="Stages in order" class="flex flex-col">
-        {#each steps as stage, index (stage.id)}
-          <li class="relative flex gap-3 pb-5 last:pb-0">
-            {#if index < steps.length - 1}
-              <span aria-hidden="true" class="absolute top-7 bottom-0 left-3.5 w-px bg-border"></span>
-            {/if}
-            <StepMarker>{index + 1}</StepMarker>
-            <div class="flex min-w-0 flex-col gap-1.5 pt-1">
-              <span class="font-semibold break-words">{stage.name}</span>
-              <!-- A kind that only repeats the stage's name is said once (W4). -->
-              {#if stageKindLabels[stage.kind] !== stage.name || stage.slaDays}
-                <span class="flex flex-wrap gap-1.5">
-                  {#if stageKindLabels[stage.kind] !== stage.name}<Badge variant="muted">{stageKindLabels[stage.kind]}</Badge>{/if}
-                  {#if stage.slaDays}<Badge variant="muted" class="tabular-nums">{days(stage.slaDays)}</Badge>{/if}
-                </span>
-              {/if}
-            </div>
-          </li>
-        {/each}
-      </ol>
+      <StepLine items={steps} label="Stages in order" key={(stage) => stage.id}>
+        {#snippet children(stage)}
+          <span class="font-semibold break-words">{stage.name}</span>
+          <!-- A kind that only repeats the stage's name is said once (W4). -->
+          {#if stageKindLabels[stage.kind] !== stage.name || stage.slaDays}
+            <span class="flex flex-wrap gap-1.5">
+              {#if stageKindLabels[stage.kind] !== stage.name}<Badge variant="muted">{stageKindLabels[stage.kind]}</Badge>{/if}
+              {#if stage.slaDays}<Badge variant="muted" class="tabular-nums">{days(stage.slaDays)}</Badge>{/if}
+            </span>
+          {/if}
+        {/snippet}
+      </StepLine>
     </Panel>
 
     <Panel title="Automations" count={workflow.automations.length} class="flex-[999_1_520px]">

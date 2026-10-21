@@ -33,7 +33,7 @@
         <select class={selectClass} aria-label="AI use while applying" aria-describedby="ai-use-note" bind:value={workflow.integrityPolicy.aiUse}>
           {#each Object.entries(aiUseLabels) as [policy, label] (policy)}<option value={policy}>{label}</option>{/each}
         </select>
-        <p id="ai-use-note" class="text-muted-foreground">Candidates see this before they start. What they declare is never a fact an automation can use.</p>
+        <p id="ai-use-note" class="text-muted-foreground">Candidates see this before they start. No automation uses what they declare.</p>
       </div>
     </Panel>
 
@@ -121,9 +121,8 @@
                     Knockout question
                   </label>
                   <p class="text-muted-foreground">
-                    A knockout is an objective eligibility check only, such as the right to work or a required licence. Never use
-                    one for AI use or for needing an accommodation. A knockout answer queues the application for a person to
-                    review, unless an automation opts in to rejecting.
+                    A knockout is an objective eligibility check only, such as the right to work. Never use one for AI use or an
+                    accommodation.
                   </p>
                   {#if question.knockout}
                     <div class="grid gap-2 @md:grid-cols-[10rem_minmax(0,1fr)]">

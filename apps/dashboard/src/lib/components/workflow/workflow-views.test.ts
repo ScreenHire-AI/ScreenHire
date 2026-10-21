@@ -76,7 +76,7 @@ describe('read-only workflow', () => {
       '1 Applied',
       '2 Phone screen Screening 3-day limit',
     ]);
-    const footer = stages.lastElementChild!;
+    const footer = stages.lastElementChild as HTMLElement;
     expect(footer).toHaveTextContent('End stages');
     expect(within(footer).getByText('Hired')).toHaveAttribute('data-slot', 'badge');
     expect(within(footer).getByText('Not progressing')).toHaveAttribute('data-slot', 'badge');

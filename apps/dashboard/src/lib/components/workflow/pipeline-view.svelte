@@ -50,7 +50,7 @@
     </ul>
   {/if}
   {#if problems > 0}
-    <p class="inline-flex items-center gap-1.5 font-semibold text-destructive">
+    <p class="inline-flex items-center gap-1.5 font-semibold text-status-verify">
       <ProblemMark />{problems} {problems === 1 ? 'problem' : 'problems'} to fix
     </p>
   {/if}

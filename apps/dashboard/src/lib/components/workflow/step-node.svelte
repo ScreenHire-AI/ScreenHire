@@ -18,7 +18,7 @@
   class={[
     'flex w-[200px] flex-col gap-0.5 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
     data.kind === 'stage' ? 'border-foreground/40' : 'border-border',
-    data.invalid ? 'border-destructive' : '',
+    data.invalid ? 'border-status-verify-mark' : '',
     data.disabled ? 'opacity-60' : '',
   ]}
 >
@@ -26,7 +26,7 @@
   <span class="leading-snug font-semibold">{data.title}</span>
   {#if data.detail}<span class="line-clamp-2 text-muted-foreground">{data.detail}</span>{/if}
   {#if data.invalid}
-    <span class="inline-flex items-center gap-1.5 font-semibold text-destructive"><ProblemMark />Needs a fix</span>
+    <span class="inline-flex items-center gap-1.5 font-semibold text-status-verify"><ProblemMark />Needs a fix</span>
   {/if}
   {#if data.kind === 'trigger' && data.automation !== null && edit}
     <button
