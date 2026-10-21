@@ -43,7 +43,7 @@
       </h1>
       <p class="text-caption text-muted-foreground">
         {#if applications.isSuccess}
-          {shown.length} {shown.length === 1 ? 'application' : 'applications'}{#if view} · <a href="/candidates" class="normal-case">show all</a>{/if}
+          {shown.length} {shown.length === 1 ? 'application' : 'applications'}{#if view} · <a href="/candidates">show all</a>{/if}
         {:else}&nbsp;{/if}
       </p>
     </div>

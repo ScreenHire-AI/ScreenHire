@@ -71,7 +71,7 @@
   >
     <a href="/" class="flex items-center gap-2.5 px-1.5 py-1 text-foreground no-underline">
       <span class="grid size-7 place-items-center rounded-lg bg-foreground font-display font-extrabold text-background">S</span>
-      <span class="font-display text-heading font-bold tracking-tight">ScreenHire</span>
+      <span class="font-display text-heading font-bold">ScreenHire</span>
     </a>
 
     {#if user?.organization}
@@ -133,13 +133,13 @@
               href={`/candidates?view=${view.id}`}
               aria-current={currentView === view.id ? 'page' : undefined}
               class={[
-                'flex h-8 items-center justify-between rounded-md px-2.5 text-sidebar-foreground no-underline hover:bg-secondary',
+                'flex h-8 items-center justify-between gap-2 rounded-md px-2.5 text-sidebar-foreground no-underline hover:bg-secondary',
                 currentView === view.id && 'bg-sidebar-accent font-bold text-sidebar-accent-foreground',
               ]}
             >
-              <span class="flex items-center gap-2">
+              <span class="flex min-w-0 items-center gap-2">
                 <StatusMark shape={view.shape} tone={view.tone} />
-                {view.label}
+                <span class="truncate">{view.label}</span>
               </span>
               <span class="text-caption tabular-nums">{viewCounts[view.id] ?? ''}</span>
             </a>

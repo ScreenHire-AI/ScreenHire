@@ -1,5 +1,13 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+/**
+ * The type scale's `--text-*` names in @screenhire/ui. tailwind-merge reads an unknown `text-*` class as a colour, so
+ * without them `cn('text-caption text-muted-foreground')` would drop the size. A test keeps this list in step.
+ */
+export const typeScale = ['page-title', 'panel-title', 'heading', 'body', 'reading', 'caption', 'code', 'candidate-body'];
+
+const twMerge = extendTailwindMerge({ extend: { theme: { text: typeScale } } });
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));

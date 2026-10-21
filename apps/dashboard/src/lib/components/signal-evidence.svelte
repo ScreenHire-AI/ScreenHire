@@ -47,7 +47,7 @@
     <p class="text-muted-foreground">{evidence.label}</p>
     <ul class="flex flex-wrap gap-1">
       {#each evidence.items ?? [] as item, index (index)}
-        <li class="rounded-sm bg-secondary px-1.5 py-px font-mono text-code text-secondary-foreground">{item}</li>
+        <li class="rounded-sm bg-secondary px-1.5 py-px text-caption text-secondary-foreground">{item}</li>
       {/each}
     </ul>
   {:else}
