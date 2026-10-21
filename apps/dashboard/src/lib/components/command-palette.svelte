@@ -37,7 +37,9 @@
       {#each sections as section (section.href)}
         <Command.Item value={`Go to ${section.label}`} onSelect={() => run(() => goto(section.href))}>
           {section.label}
-          <Command.Shortcut><KbdGroup><Kbd>G</Kbd><Kbd>{section.key.toUpperCase()}</Kbd></KbdGroup></Command.Shortcut>
+          {#if preferences.shortcutsEnabled}
+            <Command.Shortcut><KbdGroup><Kbd>G</Kbd><Kbd>{section.key.toUpperCase()}</Kbd></KbdGroup></Command.Shortcut>
+          {/if}
         </Command.Item>
       {/each}
     </Command.Group>

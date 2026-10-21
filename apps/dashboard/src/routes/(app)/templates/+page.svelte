@@ -113,8 +113,15 @@
           <SearchField bind:value={search} label="Search templates" class="ml-auto flex-[0_1_15rem]" />
         {/snippet}
         {#if templates.isPending}
-          <div aria-hidden="true" class="flex flex-col gap-3 px-4.5 py-4">
-            {#each [0, 1, 2] as row (row)}<Skeleton class="h-6 w-full" />{/each}
+          <!-- Rows of the table's shape: a name, a description and a date (E1). -->
+          <div aria-hidden="true" class="flex flex-col">
+            {#each [0, 1, 2] as row (row)}
+              <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
+                <Skeleton class="h-4 w-40" />
+                <Skeleton class="h-4 min-w-0 flex-1" />
+                <Skeleton class="h-4 w-24" />
+              </div>
+            {/each}
           </div>
           <p class="sr-only" role="status">Loading templates…</p>
         {:else if shown.length === 0}

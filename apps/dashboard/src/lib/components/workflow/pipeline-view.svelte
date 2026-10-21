@@ -56,8 +56,9 @@
   {/if}
 {/snippet}
 
-{#snippet automationsButton(stageId: string | null, name: string)}
-  <Button variant="outline" size="lg" onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
+<!-- 36px in a stage's row, 32px in a panel header (section 5). -->
+{#snippet automationsButton(stageId: string | null, name: string, size: 'default' | 'lg')}
+  <Button variant="outline" {size} onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
 {/snippet}
 
 <div class="flex flex-wrap items-start gap-5">
@@ -106,7 +107,7 @@
             </div>
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
             {@render summaries(stage.id)}
-            <div>{@render automationsButton(stage.id, stage.name)}</div>
+            <div>{@render automationsButton(stage.id, stage.name, 'lg')}</div>
           </div>
         </li>
       {/each}
@@ -114,7 +115,7 @@
   </Panel>
 
   <Panel title="Whole workflow" count={inLane(null).length} class="flex-[1_1_320px]">
-    {#snippet actions()}{@render automationsButton(null, 'the whole workflow')}{/snippet}
+    {#snippet actions()}{@render automationsButton(null, 'the whole workflow', 'default')}{/snippet}
     <div class="flex flex-col gap-2">
       {@render summaries(null)}
       {#if inLane(null).length === 0}<p class="text-muted-foreground">None yet.</p>{/if}

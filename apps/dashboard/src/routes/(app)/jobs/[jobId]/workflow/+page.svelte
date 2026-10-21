@@ -242,7 +242,7 @@
     {:else if diff.isError}
       <QueryError message={describeError(diff.error, 'Could not load the differences')} onretry={() => diff.refetch()} inset />
     {:else if update}
-      <ul aria-label="Differences" class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border text-body">
+      <ul aria-label="Differences" class="flex flex-col divide-y divide-border rounded-lg bg-secondary text-body">
         {#each update.changes as change, index (index)}
           <li class="flex flex-col gap-0.5 px-3 py-2">
             <span><span class="font-semibold">{changeWords[change.kind]}</span> <code class="font-mono text-code">{change.path}</code></span>

@@ -39,7 +39,7 @@ export const authenticityLevels: Record<AuthenticityLevel, LevelView> = {
 // AI assistance is information, not a status, so its chips share one colour and the ring mark, and the words carry the
 // level. "Not indicated" is quiet, so a column of them does not draw the eye.
 export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
-  NotIndicated: { label: 'Not indicated', short: 'None', shape: 'ring', tone: 'neutral', variant: 'outline', rank: 0 },
+  NotIndicated: { label: 'Not indicated', short: 'None', shape: 'ring', tone: 'neutral', variant: 'neutral', rank: 0 },
   SomeIndicators: { label: 'Some indicators', short: 'Some', shape: 'ring', tone: 'ai', variant: 'ai', rank: 1 },
   StrongIndicators: { label: 'Strong indicators', short: 'Strong', shape: 'ring', tone: 'ai', variant: 'ai', rank: 2 },
 };
@@ -49,7 +49,7 @@ export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'Verification
 export const aiAssistanceOrder = ['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const satisfies readonly AiAssistanceLevel[];
 
 /** An application whose checks have not finished: the API sends no integrity summary yet. */
-export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Pending', shape: 'ring', tone: 'neutral', variant: 'outline', rank: -1 };
+export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Pending', shape: 'ring', tone: 'neutral', variant: 'neutral', rank: -1 };
 
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
 
