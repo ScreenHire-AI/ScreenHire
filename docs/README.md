@@ -17,7 +17,8 @@ configuration everywhere (ADR-0003).
 
 ## MVP status
 
-Snapshot 2026-10-20, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task). The whole product runs on
+Snapshot 2026-10-21, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task) and the "Design system
+v0.2" workflow (PRs #22 to #33). The whole product runs on
 one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in `pnpm verify`
 (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template, publish to the
 careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their levels and
@@ -35,8 +36,9 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
 | Integrity | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
-| Dashboard | The Warm Grid shell, jobs and their details, candidate table and board, live updates, distribution panel, integrity chips and evidence panel, template and workflow builder | #14, #16, #17 and the acceptance task |
-| Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets | #4, #5, #6, #8 |
+| Dashboard | Every page on [design system v0.2](design/design-system.md) (ADR-0010): the shell with a sidebar, an icon rail and a phone sheet; jobs and their forms; the candidates list and job pipeline; the candidate page with an inline resume preview; templates and the workflow builder; live updates; integrity badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33 |
+| Demo data | The local demo fills every screen, with a questionnaire on every seeded job and answers for every candidate | #20, #23 |
+| Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets, a visual design pass at three widths in `/task-review` | #4, #5, #6, #8, #22, #28 |
 
 ### Faked locally
 
@@ -76,7 +78,7 @@ brackets.
   `IIpIntelligence` (#13). Set `ScreenHire:Integrity:DeviceHashKey` (32+ characters) in production (#13). Refresh the
   embedded disposable-domain list from time to time (#13).
 - **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
-  dashboard host (the resume preview, #27), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
+  dashboard host (the resume preview, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
   malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
 - **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
   its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred

@@ -3,18 +3,20 @@
 What comes after the MVP, in order. What is already built is in the [MVP status](README.md#mvp-status). Snapshot
 2026-10-21; each item names the doc that designs it. Board workflows carry the detail.
 
-## In flight
+## Done since the MVP
 
-| Work | Workflow | Notes |
+| Work | Workflow | PRs |
 |---|---|---|
-| Design system v0.2 in the dashboard | "Design system v0.2" | Gate stability first, then the foundation, components and every page ([design system](design/design-system.md), ADR-0010) |
+| Design system v0.2 in the dashboard: gate stability, demo questionnaires and answers, the foundation, components and a style guide, the app shell, an inline resume preview, every page, and a visual design pass in `/task-review` ([design system](design/design-system.md), ADR-0010) | "Design system v0.2" | #22 to #33 |
+
+Nothing is in flight. Items 1 and 2 below are saved as board workflows and wait for the owner to start them.
 
 ## Next
 
 | # | Work | Workflow | Why now |
 |---|---|---|---|
 | 1 | Team members and invites, API keys for integrators, webhook subscriptions (backend only) | "Platform: team, API access and webhooks" | Every member is an Owner today and nobody can invite a colleague; the public API is a headline feature but every route needs a browser session ([sign-in and tenancy](architecture/sign-in-and-tenancy.md), [workflow engine](architecture/workflow-engine.md) §5) |
-| 2 | Settings and team screens, notes, tags, tasks, scorecards, editable email templates, manual and bulk email | "Team, collaboration and communication" | The basics a hiring team uses daily. Starts after the design system and platform workflows, on the new components |
+| 2 | Settings and team screens, notes, tags, tasks, scorecards, editable email templates, manual and bulk email | "Team, collaboration and communication" | The basics a hiring team uses daily. Starts after the platform workflow, on the design system's components |
 | 3 | Workflow builder: an editable xyflow graph, firing the "questionnaire completed" and "reviewer decision" triggers, the send-questionnaire action, a Run button for manual automations, acting on stage SLAs | not yet planned | The graph is read-only today and two triggers can be chosen but never fire ([workflow engine](architecture/workflow-engine.md) §8) |
 | 4 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
 | 5 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
