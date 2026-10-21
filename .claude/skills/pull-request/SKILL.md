@@ -35,7 +35,12 @@ conflict needs a decision you cannot make, abort the merge, explain it, and end 
 
 Run the full gate as `/verify` describes (`pnpm verify`, in the background, waiting for the notification).
 
-If it fails, fix and run it again, up to **three rounds**:
+Then the marketing budgets, once per task and only here. If
+`git diff --quiet origin/<base>...HEAD -- apps/marketing packages/ui pnpm-lock.yaml` exits non-zero, run
+`pnpm verify:lighthouse` in the background against the build the gate just made. It may first wait for another
+task's run (`/verify`, "Marketing performance budgets"). A budget failure is a gate failure.
+
+If either fails, fix and run both again, up to **three rounds**:
 - Diagnose from the output. Fix the code or the test, whichever the brief says is wrong.
 - Commit each round: `fix(test): ...`.
 - For a flaky test, fix the cause, never add a retry.
@@ -59,7 +64,8 @@ After three failed rounds, go to Step 6b.
    - `## How`: the approach and the trade-offs worth a reviewer's attention.
    - `## Decisions`: choices made without a person, with the alternative each time; `None` if there were none.
    - `## Owner actions`: anything only a person can do (accounts, keys, legal); `None` if there is nothing.
-   - `## Tests`: the gate result with per-suite counts, and the tests this task added.
+   - `## Tests`: the gate result with per-suite counts, the Lighthouse result ("N pages within budget", or "not run:
+     no marketing change"), and the tests this task added.
    - The footer `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 2. `gh pr create --base <base> --head <type>/<slug> --title "<conventional title>" --body-file .kangentic/PR_BODY.tmp`.
    If the PR already exists, `gh pr edit` it with the new body instead.
@@ -81,5 +87,5 @@ Then, alone, as the last line: `PR: blocked`
 ## Outcome line
 
 The Testing column moves the task to Merge only when the last line reads `PR: ready to merge`. Print it only when the
-full gate passed on the commit you pushed and the PR exists and is linked. `PR: blocked` keeps the task in Testing
+full gate (and Lighthouse, when Step 3 ran it) passed on the commit you pushed and the PR exists and is linked. `PR: blocked` keeps the task in Testing
 and notifies the owner. Write nothing after either line.

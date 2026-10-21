@@ -28,7 +28,7 @@ task, and every task that waits on it, until morning.
 - Do not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, `scripts/guard-processes.mjs` or the
   pipeline skills (`task-review`, `pull-request`, `merge-pull-request`, `verify`) unless the task is about them.
 - Processes: never stop anything by name, port or process tree (the guard hook refuses it). Run long commands with
-  `run_in_background` and stop them with TaskStop, except the gate: let a running `pnpm verify` finish (about 3
+  `run_in_background` and stop them with TaskStop, except the gate: let a running `pnpm verify` finish (about 3.5
   minutes) and run it again after further edits. On Windows TaskStop ends the Bash tool's shell and leaves
   `pnpm verify` and its whole tree running, out of reach and holding the worktree folder (`/verify` has the details).
 - Docker down: run `pnpm docker:start`, and report infrastructure only if it fails. Never launch Docker Desktop

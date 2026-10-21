@@ -41,7 +41,9 @@ when its condition holds, alone, with nothing after it.
   decision.
 - **Testing** ([`pull-request`](../../.claude/skills/pull-request/SKILL.md)) commits, merges `origin/main` into the
   branch, runs the full gate with up to three fix rounds, pushes to a public `<type>/<slug>` branch, and opens a PR
-  linked to the card. It never merges.
+  linked to the card. It never merges. When the branch changes the marketing build, Testing also runs the Lighthouse
+  budgets (`pnpm verify:lighthouse`). Only this column runs them, and only one run measures at a time on the machine
+  ([testing.md](testing.md#why-lighthouse-runs-once-and-one-at-a-time)).
 - **Merge** ([`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md)) re-integrates `main` and re-runs
   the gate if `main` moved, squash-merges the PR, confirms the merge commit is on `origin/main`, resets the worktree to
   `origin/main`, and fast-forwards the root checkout when it is on `main`.
@@ -171,15 +173,16 @@ use it whenever `docker info` fails, and the process guard refuses every other w
 
 On Windows TaskStop ends the Bash tool's shell but not the Git Bash `sh.exe` it started, so `pnpm verify` and its whole
 tree keep running, out of the session's reach and holding the worktree folder at Done. Agents let a running gate
-finish and run it again after further edits (`/verify`). Each step ends on its own: Lighthouse runs last in the gate,
-with a limit of 60 s per page and 5 minutes for the run, checks that its Chrome exited, and ends with `process.exit`.
+finish and run it again after further edits (`/verify`). Each step ends on its own. Lighthouse, which Testing runs
+after the gate, has a limit of 60 s per page and 5 minutes for the run, checks that its Chrome exited, and ends with
+`process.exit`.
 
 ## Where the rules live
 
 | What | Where |
 |---|---|
 | Columns, automations, outcome lines, models | [`kangentic.json`](../../kangentic.json) |
-| The gate (`/verify`): what runs, in what order, how to read failures | [`.claude/skills/verify/SKILL.md`](../../.claude/skills/verify/SKILL.md); scripts `verify`, `verify:dotnet`, `verify:contract`, `verify:test` in [`package.json`](../../package.json) |
+| The gate (`/verify`): what runs, in what order, how to read failures | [`.claude/skills/verify/SKILL.md`](../../.claude/skills/verify/SKILL.md); scripts `verify`, `verify:dotnet`, `verify:contract`, `verify:test` in [`package.json`](../../package.json); `verify:lighthouse` there too, run by Testing only |
 | Column skills | [`task-review`](../../.claude/skills/task-review/SKILL.md), [`pull-request`](../../.claude/skills/pull-request/SKILL.md), [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) |
 | Conflict playbook for integrating `main` (merge, not rebase; regenerate lockfile, API client and migrations) | [`.claude/rules/integration-conflicts.md`](../../.claude/rules/integration-conflicts.md) |
 | Unattended-run rules (never wait for a person, stay local, start from what is merged) | [`.claude/rules/unattended-runs.md`](../../.claude/rules/unattended-runs.md) |
