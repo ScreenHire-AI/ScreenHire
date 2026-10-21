@@ -7,6 +7,37 @@
   --font-display: var(--sh-font-display);
   --font-mono: var(--sh-font-data);
 
+  /* Dashboard type scale (docs/design/design-system.md section 4.1): `text-body`, `text-caption`, ... Family is a
+     separate class: `font-display` for titles, `font-mono` for codes. */
+  --text-page-title: var(--sh-page-title-size);
+  --text-page-title--line-height: var(--sh-page-title-leading);
+  --text-page-title--font-weight: 700;
+  --text-page-title--letter-spacing: -0.02em;
+  --text-panel-title: 1.25rem;
+  --text-panel-title--line-height: 1.75rem;
+  --text-panel-title--font-weight: 650;
+  --text-heading: 1rem;
+  --text-heading--line-height: 1.5rem;
+  --text-heading--font-weight: 600;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+  --text-reading: 1rem;
+  --text-reading--line-height: 1.625rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 500;
+  --text-code: 0.75rem;
+  --text-code--line-height: 1rem;
+  /* The candidate pages' 15px base (section 4.3), for the dashboard's questionnaire preview. */
+  --text-candidate-body: 0.9375rem;
+  --text-candidate-body--line-height: 1.5;
+
+  /* Content widths (sections 5 and 7): `max-w-page`, `2xl:max-w-page-wide`, `max-w-form`, `basis-side`. */
+  --container-page: 80rem;
+  --container-page-wide: 96rem;
+  --container-form: 43rem;
+  --container-side: 20rem;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -32,6 +63,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-row-selected: var(--row-selected);
+  --color-scrim: var(--scrim);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
