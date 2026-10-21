@@ -51,6 +51,30 @@ describe('job pipeline', () => {
     expect(within(panelHeader()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
   });
 
+  it('says why the table is empty and offers to clear the filters (E1)', async () => {
+    renderPipeline();
+
+    await fireEvent.input(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'nobody' } });
+
+    expect(screen.getByText('No candidates match these filters.')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' })).toHaveValue('');
+    expect(names()).toEqual(applications.map((application) => application.candidateName));
+  });
+
+  it('is named by a hidden h2, and shows the selected candidate in a panel beside the table (S3)', async () => {
+    renderPipeline();
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toHaveClass('sr-only');
+    const side = screen.getByRole('region', { name: 'Selected candidate' });
+    expect(side).toHaveTextContent('Choose a candidate');
+
+    const link = screen.getByRole('link', { name: 'Jordan Lee' });
+    link.focus();
+    await fireEvent.focusIn(link);
+    expect(within(side).getByRole('heading', { level: 3, name: 'Jordan Lee' })).toBeInTheDocument();
+  });
+
   it('switches to the board with V or the view switch; the board keeps its keyboard and menu moves', async () => {
     renderPipeline();
     const link = screen.getByRole('link', { name: 'Casey Morgan' });

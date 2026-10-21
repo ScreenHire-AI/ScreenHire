@@ -19,7 +19,7 @@
   import { Kbd } from '#lib/components/ui/kbd/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { initials, sourceLabel } from '#lib/format.js';
+  import { initials } from '#lib/format.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import { bulkMoveStages, chipOf, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
@@ -72,6 +72,8 @@
     { id: null, name: 'All', count: applications.length },
     ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) })),
   ]);
+  // The stage menu's label is visually hidden in a narrow panel header; only then does its tooltip say it.
+  let stageLabelWidth = $state(0);
   const stageSummary = $derived(`Stage: ${stageOptions.find((option) => option.id === stageFilter)?.name ?? 'All'}`);
 
   /**
@@ -82,6 +84,12 @@
     integrityFilter = next;
     selectedIds = [];
     view = 'table';
+  }
+
+  function clearFilters() {
+    stageFilter = null;
+    search = '';
+    setIntegrityFilter({ ...noIntegrityFilter });
   }
 
   // V switches between the table and the board while focus is in the pipeline.
@@ -105,24 +113,24 @@
 </script>
 
 <div class="flex flex-wrap items-start gap-5">
-  <Panel aria-label="Pipeline" flush class="flex-[999_1_520px]" {onkeydown}>
+  <Panel label="Pipeline" flush class="flex-[999_1_520px]" {onkeydown}>
     {#snippet tools()}
-      <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-2xl/panel:flex-1" />
+      <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
       {#if view === 'table'}
         <DropdownMenu.Root>
-          <Tooltip.Root>
+          <Tooltip.Root disabled={stageLabelWidth > 1}>
             <Tooltip.Trigger>
               {#snippet child({ props })}
                 <DropdownMenu.Trigger
                   {...props}
                   class={cn(
                     buttonVariants({ variant: 'outline' }),
-                    'min-w-0 @max-2xl/panel:w-8 @max-2xl/panel:px-0 pointer-coarse:@max-2xl/panel:w-11',
+                    'min-w-0 @max-3xl/panel:w-8 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11',
                     stageFilter && 'border-primary text-primary',
                   )}
                 >
                   <WorkflowIcon aria-hidden="true" />
-                  <span class="max-w-40 truncate @max-2xl/panel:sr-only">{stageSummary}</span>
+                  <span bind:clientWidth={stageLabelWidth} class="max-w-40 truncate @max-3xl/panel:sr-only">{stageSummary}</span>
                 </DropdownMenu.Trigger>
               {/snippet}
             </Tooltip.Trigger>
@@ -168,12 +176,12 @@
                   aria-keyshortcuts={preferences.shortcutsEnabled ? 'V' : undefined}
                   onclick={() => (view = option.id)}
                   class={[
-                    'flex h-7 items-center gap-1.5 rounded-md px-2.5 text-body pointer-coarse:h-10 @max-2xl/panel:px-1.5 pointer-coarse:@max-2xl/panel:w-10 pointer-coarse:@max-2xl/panel:justify-center',
+                    'flex h-7 items-center gap-1.5 rounded-md px-2.5 text-body pointer-coarse:h-11 @max-3xl/panel:px-1.5 pointer-coarse:@max-3xl/panel:w-11 pointer-coarse:@max-3xl/panel:justify-center',
                     view === option.id ? 'bg-card font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground',
                   ]}
                 >
                   <Icon aria-hidden="true" />
-                  <span class="@max-2xl/panel:sr-only">{option.label}</span>
+                  <span class="@max-3xl/panel:sr-only">{option.label}</span>
                 </button>
               {/snippet}
             </Tooltip.Trigger>
@@ -192,7 +200,7 @@
       </div>
     {:else if pending}
       <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-11 w-full" />{/each}
+        {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-16" />{/each}
       </div>
     {:else if view === 'table'}
       <ApplicationTable
@@ -204,6 +212,7 @@
         bind:activeId
         bind:selectedIds
         emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
+        onclearfilters={filtering ? clearFilters : undefined}
       />
     {:else}
       <PipelineBoard applications={searched} {stages} {moves} />
@@ -217,30 +226,25 @@
        under the pointer, so the mouseup missed the candidate's link and the click never opened it. Phones open the
        candidate from its list item instead. -->
   {#if view === 'table' && applications.length > 0}
-    {#if active}
-      {@render panel(active)}
-    {:else}
-      <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-panel border border-border bg-card max-md:hidden lg:max-w-95">
-        <p class="px-4.5 py-4 text-body text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
-      </aside>
-    {/if}
+    <Panel title="Selected candidate" class="flex-[1_1_320px] max-md:hidden lg:max-w-95">
+      {#if active}
+        {@render selectedCandidate(active)}
+      {:else}
+        <p class="text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
+      {/if}
+    </Panel>
   {/if}
 </div>
 
-{#snippet panel(application: ApplicationSummary)}
-  <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-panel border border-border bg-card max-md:hidden lg:max-w-95">
-    <div class="flex items-center gap-3 border-b border-border-subtle px-4.5 py-4">
+{#snippet selectedCandidate(application: ApplicationSummary)}
+  <div class="flex flex-col gap-4">
+    <div class="flex min-w-0 items-center gap-3">
       <span aria-hidden="true" class="grid size-10 flex-none place-items-center rounded-full bg-secondary font-bold text-secondary-foreground"
         >{initials(application.candidateName)}</span
       >
-      <div class="flex min-w-0 flex-col">
-        <h2 class="font-display text-panel-title">{application.candidateName}</h2>
-        <span class="text-body text-muted-foreground">
-          Applied <RelativeTime at={application.submittedAt} /> via {sourceLabel(application.source)}
-        </span>
-      </div>
+      <h3 class="min-w-0 font-display text-panel-title break-words">{application.candidateName}</h3>
     </div>
-    <dl class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 border-b border-border-subtle px-4.5 py-4">
+    <dl class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2">
       <dt class="text-caption text-muted-foreground">Stage</dt>
       <dd><Badge variant="muted">{application.stage.name}</Badge></dd>
       <dt class="text-caption text-muted-foreground">Entered stage</dt>
@@ -251,7 +255,7 @@
         <dd><IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} /></dd>
       {/each}
     </dl>
-    <div class="flex flex-wrap gap-2 px-4.5 py-4">
+    <div class="flex flex-wrap gap-2">
       <a href={`/applications/${application.id}`} class={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>Open application</a>
       <MoveToStage
         candidateName={application.candidateName}
@@ -261,5 +265,5 @@
         onmove={(stage) => moves.move(application, stage)}
       />
     </div>
-  </aside>
+  </div>
 {/snippet}

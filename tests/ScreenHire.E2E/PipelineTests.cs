@@ -45,7 +45,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         // J moves the cursor to the next row and shows it in the side panel.
         await table.GetByRole(AriaRole.Link, new() { Name = Candidates[0] }).FocusAsync();
         await Page.Keyboard.PressAsync("j");
-        await Expect(Page.GetByRole(AriaRole.Complementary, new() { Name = "Selected candidate" })).ToContainTextAsync(Candidates[1]);
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Selected candidate" })).ToContainTextAsync(Candidates[1]);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-table-light");
 

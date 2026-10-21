@@ -7,9 +7,10 @@
 
   // A section of a page (design system section 7, S3): the title inside a fixed-height header with an optional count
   // and actions, the body, and an optional footer inset. Panel titles are h2. A list's table panel holds its search and
-  // filters in the header instead of a title; give it an `aria-label`.
+  // filters in the header instead of a title; its `label` names it with a visually hidden h2.
   let {
     title,
+    label,
     count,
     tools,
     actions,
@@ -20,6 +21,8 @@
     ...restProps
   }: HTMLAttributes<HTMLElement> & {
     title?: string;
+    /** A panel with no visible title: its name, as a visually hidden h2. */
+    label?: string;
     /** Shown as a count pill after the title (T4). */
     count?: number;
     /** A list's search and filters, on the header's left after any title. Containers query it as `@container/panel`. */
@@ -35,15 +38,17 @@
 </script>
 
 <section
-  aria-labelledby={title ? id : undefined}
+  aria-labelledby={title || label ? id : undefined}
   data-slot="panel"
   class={cn('flex min-w-0 flex-col rounded-panel border border-border bg-card', className)}
   {...restProps}
 >
   <!-- The header height follows the screen size (section 5), not the panel's width, so panels in a row line up. -->
-  <header class="@container/panel flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 max-md:h-13 max-md:px-4">
+  <header class="@container/panel relative flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 max-md:h-13 max-md:px-4">
     {#if title}
       <h2 {id} class="flex min-w-0 text-heading"><TruncatedText text={title} /></h2>
+    {:else if label}
+      <h2 {id} class="sr-only">{label}</h2>
     {/if}
     {#if count !== undefined}
       <Badge variant="count">{count}</Badge>

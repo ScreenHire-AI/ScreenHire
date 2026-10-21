@@ -34,6 +34,8 @@
   );
 
   // bits-ui radio groups take strings; "all" stands for no filter.
+  // The label is visually hidden in a narrow panel header; only then does the tooltip say it.
+  let labelWidth = $state(0);
   const summary = $derived(`Integrity: ${active.length > 0 ? active.join(', ') : 'all'}`);
 
   const authenticityValue = $derived(filter.authenticity ?? 'all');
@@ -41,15 +43,15 @@
 </script>
 
 <DropdownMenu.Root>
-  <Tooltip.Root>
+  <Tooltip.Root disabled={labelWidth > 1}>
     <Tooltip.Trigger>
       {#snippet child({ props })}
         <DropdownMenu.Trigger
           {...props}
-          class={cn(buttonVariants({ variant: 'outline' }), 'min-w-0 @max-2xl/panel:w-8 @max-2xl/panel:px-0 pointer-coarse:@max-2xl/panel:w-11', active.length > 0 && 'border-primary text-primary')}
+          class={cn(buttonVariants({ variant: 'outline' }), 'min-w-0 @max-3xl/panel:w-8 @max-3xl/panel:px-0 pointer-coarse:@max-3xl/panel:w-11', active.length > 0 && 'border-primary text-primary')}
         >
           <ListFilterIcon aria-hidden="true" />
-          <span class="max-w-56 truncate @max-2xl/panel:sr-only">{summary}</span>
+          <span bind:clientWidth={labelWidth} class="max-w-56 truncate @max-3xl/panel:sr-only">{summary}</span>
         </DropdownMenu.Trigger>
       {/snippet}
     </Tooltip.Trigger>

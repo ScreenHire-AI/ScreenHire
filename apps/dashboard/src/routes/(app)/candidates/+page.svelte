@@ -31,7 +31,9 @@
         (!view || view.matches(application, clock.now)) && matchesIntegrityFilter(application, integrityFilter) && matchesSearch(application, search, true),
     ),
   );
-  const filtering = $derived(Boolean(view || integrityFilter.authenticity || integrityFilter.aiAssistance || search.trim()));
+  // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
+  const narrowed = $derived(Boolean(integrityFilter.authenticity || integrityFilter.aiAssistance || search.trim()));
+  const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
   // The table has no footer (design system K1), so a pill in the panel header says how many of the shown rows are ticked.
@@ -54,9 +56,9 @@
 
   <div class="@container">
     <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 @3xl:px-6 2xl:max-w-page-wide">
-      <Panel aria-label="Applications" flush>
+      <Panel label="Applications" flush>
         {#snippet tools()}
-          <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-2xl/panel:flex-1" />
+          <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
           {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
         {/snippet}
@@ -66,7 +68,7 @@
           </div>
         {:else if applications.isPending}
           <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-            {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-11 w-full" />{/each}
+            {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full max-md:h-16" />{/each}
           </div>
         {:else}
           <ApplicationTable
@@ -76,6 +78,7 @@
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
+            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter })) : undefined}
           />
         {/if}
       </Panel>

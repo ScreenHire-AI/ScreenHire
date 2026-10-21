@@ -13,6 +13,8 @@
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
   import { formatDate, formatDateTime } from '#lib/dates.js';
   import { initials, sourceLabel } from '#lib/format.js';
@@ -32,6 +34,7 @@
     activeId = $bindable(null),
     selectedIds = $bindable([]),
     emptyText = 'No candidates yet.',
+    onclearfilters,
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -48,6 +51,8 @@
     /** Rows ticked with X or their checkbox. */
     selectedIds?: string[];
     emptyText?: string;
+    /** While the page filters the rows: the empty state's one action (E1). */
+    onclearfilters?: () => void;
   } = $props();
 
   const columns = $derived<CandidateColumn[]>([
@@ -186,14 +191,17 @@
       class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
       >{initials(application.candidateName)}</span
     >
-    <a data-row-link href={`/applications/${application.id}`} class="font-bold text-foreground no-underline hover:underline"
-      >{application.candidateName}</a
-    >
+    <TruncatedText
+      data-row-link
+      href={`/applications/${application.id}`}
+      text={application.candidateName}
+      class="max-w-56 font-bold text-foreground no-underline hover:underline"
+    />
   </span>
 {/snippet}
 
 {#snippet jobCell(application: ApplicationSummary)}
-  <a href={`/jobs/${application.jobId}`} class="text-secondary-foreground no-underline hover:underline">{application.jobTitle}</a>
+  <TruncatedText href={`/jobs/${application.jobId}`} text={application.jobTitle} class="max-w-64 text-secondary-foreground no-underline hover:underline" />
 {/snippet}
 
 {#snippet stageCell(application: ApplicationSummary)}
@@ -265,12 +273,21 @@
   </ListItem>
 {/snippet}
 
+{#snippet empty()}
+  <Empty.Root class="gap-3 p-6">
+    <Empty.Description>{emptyText}</Empty.Description>
+    {#if onclearfilters}
+      <Button variant="outline" onclick={onclearfilters}>Clear filters</Button>
+    {/if}
+  </Empty.Root>
+{/snippet}
+
 {#if phone.current}
   <ul aria-label={label}>
     {#each rows as row (row.id)}
       {@render listItem(row.original)}
     {:else}
-      <li class="px-4 py-3 text-muted-foreground">{emptyText}</li>
+      <li>{@render empty()}</li>
     {/each}
   </ul>
 {:else}
@@ -290,8 +307,8 @@
                   scope="col"
                   aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                   class={[
-                    'h-11 border-b border-border px-3 py-0 text-caption whitespace-nowrap text-muted-foreground',
-                    header.id === 'select' && selectColumn,
+                    'h-11 border-b border-border py-0 text-caption whitespace-nowrap text-muted-foreground',
+                    header.id === 'select' ? selectColumn : 'px-3',
                     header.id === 'candidate' && nameColumn,
                     (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
                     header.id === 'move' && 'w-10',
@@ -303,7 +320,7 @@
                     <button
                       type="button"
                       onclick={header.column.getToggleSortingHandler()}
-                      class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground"
+                      class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground pointer-coarse:h-11"
                     >
                       <FlexRender {header} />
                       {#if sorted === 'desc'}
@@ -334,8 +351,8 @@
                 {#each row.getAllCells() as cell (cell.id)}
                   <td
                     class={[
-                      'border-b border-border-subtle px-3 py-0 whitespace-nowrap',
-                      cell.column.id === 'select' && selectColumn,
+                      'border-b border-border-subtle py-0 whitespace-nowrap',
+                      cell.column.id === 'select' ? selectColumn : 'px-3',
                       cell.column.id === 'candidate' && nameColumn,
                       // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
                       (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
@@ -348,7 +365,7 @@
               </tr>
             {/if}
           {:else}
-            <tr><td colspan={columns.length} class="px-3 py-3 text-muted-foreground">{emptyText}</td></tr>
+            <tr><td colspan={columns.length} class="p-0">{@render empty()}</td></tr>
           {/each}
           {#if paddingBottom > 0}
             <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingBottom}px`} class="p-0"></td></tr>
