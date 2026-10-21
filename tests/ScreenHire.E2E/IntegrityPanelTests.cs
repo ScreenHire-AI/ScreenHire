@@ -90,6 +90,7 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         var ai = panel.GetByRole(AriaRole.Region, new() { Name = "AI assistance", Exact = true });
         await Expect(ai).ToContainTextAsync("AI assistance: Not indicated");
         await Expect(ai).ToContainTextAsync("Job policy: Allowed with disclosure");
+        await Expect(ai).Not.ToContainTextAsync("Declared AI use", new() { Timeout = 0 });
         // A feature that does not exist yet is hidden, not shown disabled (design system A3).
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Request verification", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
         await Expect(panel).Not.ToContainTextAsync("Phase 2");

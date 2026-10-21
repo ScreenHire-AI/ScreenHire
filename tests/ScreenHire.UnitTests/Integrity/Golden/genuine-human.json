@@ -1,6 +1,6 @@
 {
   "applicant": "genuine-human",
-  "rulesetVersion": "2026-10-20.4",
+  "rulesetVersion": "2026-10-21.1",
   "authenticity": {
     "level": "NoConcerns",
     "reasonCodes": [],
@@ -13,7 +13,7 @@
     "level": "NotIndicated",
     "reasonCodes": [],
     "appliedRules": [],
-    "summary": "No signs that the content was generated or templated. This job allows AI help when disclosed. Declared AI use: no.",
+    "summary": "No signs that the content was generated or templated. This job allows AI help when disclosed.",
     "nextStep": "No action needed.",
     "policyContext": "NotDisclosed",
     "signals": []

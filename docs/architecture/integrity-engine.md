@@ -341,11 +341,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.4`)
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-21.1`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -364,8 +364,9 @@ categories, and only when the level is raised; other signals are still shown, as
 
 The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
 (`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the summary
-and the next step only. The summary states the policy and the declaration side by side ("Declared AI use: no."), and
-the next step is the same whatever the candidate declared, so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
+and the next step only. The summary states the job's policy and not the declaration, which the application page shows
+in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
+so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
 number that grades the candidate.
 
 Changing a weight, threshold or rule means a new `IntegrityRuleset.Version`. Assessments store the version they were

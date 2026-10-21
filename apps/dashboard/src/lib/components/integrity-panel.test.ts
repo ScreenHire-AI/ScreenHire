@@ -73,8 +73,9 @@ describe('integrity panel', () => {
     const ai = await screen.findByRole('region', { name: 'AI assistance' });
     expect(within(ai).getByRole('heading', { level: 3 })).toHaveTextContent('AI assistance');
     expect(ai).toHaveTextContent('Informational');
-    // The declaration has its own place on the page, in Declarations, so the policy line stands alone (section 16).
-    expect(within(ai).getByText(/^Job policy:/)).toHaveTextContent(/^Job policy: Allowed with disclosure$/);
+    expect(ai).toHaveTextContent('Job policy: Allowed with disclosure');
+    // The declaration has its own place on the page, in Declarations (section 16).
+    expect(ai).not.toHaveTextContent(/Declared AI use/);
     expect(ai.querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-evidence-kind="TextComparison"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-slot="badge"]')!.className).not.toMatch(/status-(review|verify)/);

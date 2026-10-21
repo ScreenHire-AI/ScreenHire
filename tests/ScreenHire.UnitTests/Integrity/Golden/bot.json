@@ -1,6 +1,6 @@
 {
   "applicant": "bot",
-  "rulesetVersion": "2026-10-20.4",
+  "rulesetVersion": "2026-10-21.1",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [
@@ -174,7 +174,7 @@
     "appliedRules": [
       "two-independent-categories"
     ],
-    "summary": "2 observations from document checks, with nothing from a second, independent kind of check to back them up. Shown for context only. This job allows AI help when disclosed. Declared AI use: not answered.",
+    "summary": "2 observations from document checks, with nothing from a second, independent kind of check to back them up. Shown for context only. This job allows AI help when disclosed.",
     "nextStep": "No action needed.",
     "policyContext": "NotDisclosed",
     "signals": [
