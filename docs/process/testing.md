@@ -88,6 +88,10 @@ example `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/logs/E2EFixture/dash
 mid-run names itself instead of failing each test with its own symptom. Read these logs first when a test fails on a
 server that stopped answering.
 
+On Windows the fixture stops the stack's own processes (API, worker, careers) by identity before Aspire disposes the
+stack, because DCP 0.26's stop can kill unrelated processes through a reused parent PID. What that covers, what it
+does not and the measurements are in [Processes on the dev machine](board-pipeline.md#processes-on-the-dev-machine).
+
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
 Brightwater. With the demo on (`DevelopmentDemoFixture`, `pnpm dev`), `/health` also waits for the demo's data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
