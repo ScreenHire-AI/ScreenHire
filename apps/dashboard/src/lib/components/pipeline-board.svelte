@@ -138,7 +138,8 @@
                   <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
                 {/if}
               </span>
-              <span class="flex items-center gap-2">
+              <!-- Wraps by content in a narrow column (F2); Move keeps to the right edge. -->
+              <span class="flex flex-wrap items-center gap-2">
                 <Badge variant="muted">{sourceLabel(card.source)}</Badge>
                 <span class="shrink-0 text-caption whitespace-nowrap text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
                 <span class="ml-auto shrink-0">
