@@ -4,10 +4,12 @@
   import * as Command from '#lib/components/ui/command/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { sections } from '#lib/shell.js';
+  import { getShell, sections } from '#lib/shell.js';
 
   // Ctrl K / ⌘K: jump to a section, a job or a candidate, or run an action. Lists load when it opens.
   let { open = $bindable(false) }: { open?: boolean } = $props();
+
+  const shell = getShell();
 
   const jobs = createListJobs(() => ({ query: { enabled: open } }));
   const applications = createListApplications(() => ({ query: { enabled: open } }));
@@ -62,8 +64,12 @@
       <Command.Item value="Switch theme" onSelect={() => run(() => preferences.toggleTheme())}>
         Switch to {preferences.theme === 'dark' ? 'light' : 'dark'} theme
       </Command.Item>
+      <Command.Item value="Show keyboard shortcuts" onSelect={() => run(() => shell.openShortcuts())}>
+        Show keyboard shortcuts
+        <Command.Shortcut>?</Command.Shortcut>
+      </Command.Item>
       <Command.Item
-        value="Keyboard shortcuts"
+        value="Single-key shortcuts"
         onSelect={() => run(() => preferences.setShortcutsEnabled(!preferences.shortcutsEnabled))}
       >
         Turn single-key shortcuts {preferences.shortcutsEnabled ? 'off' : 'on'}

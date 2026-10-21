@@ -287,18 +287,19 @@ Features that do not exist yet are hidden (A3).
 ## 11. Components
 
 The catalogue. A screen is built from these; a new pattern joins this table before a second screen uses it. Code lives
-in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edit).
+in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edit). The style guide page, `/style-guide`
+in a development build, shows every component in each state, and its test fails when a row here has no example.
 
 | Component | Built on | Rules |
 |---|---|---|
 | Header band, Panel | Our components | Section 7 |
-| Status badge | shadcn `Badge` (`clear`, `review`, `verify`, `ai`) | Mark, colour, label (T1) |
+| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
 | Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
 | File tile | Our component | Type icon, name, Download; scan status only when a file needs attention |
-| Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated |
+| Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated. Not built yet: it needs an API that serves the file for isolated display |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
@@ -306,6 +307,7 @@ in `apps/dashboard/src/lib/components` (shadcn-svelte under `ui/` is ours to edi
 | Sidebar | shadcn `Sidebar` | Section 8 |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Activity | Our component | Icon in a circle, event, time ago |
+| Relative time, truncated text | Our components | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5) |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence` | Section 16 |
 
 ## 12. Words
@@ -349,9 +351,10 @@ label; decorative icons are `aria-hidden`. Status shapes (section 3.2) are not i
 
 ## 15. Shortcuts
 
-Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog. Hints appear as `Kbd` key caps in tooltips
-and menus, never as an always-on bar. Single-key shortcuts (the G chords, J and K, X, V) can be turned off (WCAG
-2.1.4), skip text fields, menus and dialogs, and work only while their table or board has focus, except the G chords.
+Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog, and so does its command in the palette.
+Hints appear as `Kbd` key caps in tooltips and menus, never as an always-on bar. Single-key shortcuts (the G chords, J
+and K, X, V and `?`) can be turned off (WCAG 2.1.4), skip text fields, menus and dialogs, and work only while their
+table or board has focus, except the G chords and `?`.
 
 ## 16. Integrity UI
 

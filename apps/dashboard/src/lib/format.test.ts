@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eta, formatSalary, initials } from './format.js';
+import { eta, formatFileSize, formatSalary, initials } from './format.js';
 
 const now = Date.parse('2026-10-20T12:00:00Z');
 
@@ -28,5 +28,13 @@ describe('initials', () => {
     expect(initials('Casey Morgan')).toBe('CM');
     expect(initials('Riley')).toBe('R');
     expect(initials('Ana María de la Cruz')).toBe('AM');
+  });
+});
+
+describe('formatFileSize', () => {
+  it('shows kilobytes up to a megabyte, rounding up, then megabytes', () => {
+    expect(formatFileSize(1)).toBe('1 kB');
+    expect(formatFileSize(122_880)).toBe('120 kB');
+    expect(formatFileSize(2_558_525)).toBe('2.4 MB');
   });
 });

@@ -8,7 +8,10 @@ import { createTV } from 'tailwind-variants';
  */
 export const typeScale = ['page-title', 'panel-title', 'heading', 'body', 'reading', 'caption', 'code', 'candidate-body'];
 
-const twMergeConfig = { extend: { theme: { text: typeScale } } };
+/** The named radii in @screenhire/ui beyond Tailwind's own (`rounded-panel`, `rounded-step`), for the same reason. */
+export const radii = ['panel', 'step'];
+
+const twMergeConfig = { extend: { theme: { text: typeScale, radius: radii } } };
 const twMerge = extendTailwindMerge(twMergeConfig);
 
 /** tailwind-variants' `tv`, merging with the same configuration as `cn()`. Components import it from here. */

@@ -8,6 +8,7 @@
   import { clock } from '#lib/clock.svelte.js';
   import CommandPalette from '#lib/components/command-palette.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
+  import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { initials } from '#lib/format.js';
@@ -33,7 +34,8 @@
   });
 
   let paletteOpen = $state(false);
-  setShell({ openPalette: () => (paletteOpen = true) });
+  let shortcutsOpen = $state(false);
+  setShell({ openPalette: () => (paletteOpen = true), openShortcuts: () => (shortcutsOpen = true) });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
 
@@ -189,3 +191,4 @@
 </div>
 
 <CommandPalette bind:open={paletteOpen} />
+<ShortcutsDialog bind:open={shortcutsOpen} />

@@ -4,6 +4,8 @@ import { getContext, setContext } from 'svelte';
 export interface Shell {
   /** Opens the command palette (Ctrl K / ⌘K). */
   openPalette(): void;
+  /** Opens the keyboard shortcuts dialog (`?`). */
+  openShortcuts(): void;
 }
 
 const key = Symbol('shell');

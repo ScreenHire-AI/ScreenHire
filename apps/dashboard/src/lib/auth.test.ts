@@ -21,6 +21,12 @@ describe('auth guard', () => {
     expect(guardRedirect(null, null, url('/no-such-page'))).toBe('/sign-in?returnUrl=%2Fno-such-page');
   });
 
+  it('lets everyone reach the style guide, whose own load hides it outside development', () => {
+    for (const user of [null, newcomer, member]) {
+      expect(guardRedirect('/(dev)/style-guide', user, url('/style-guide'))).toBeNull();
+    }
+  });
+
   it('lets signed-out visitors use the sign-in pages', () => {
     expect(guardRedirect('/(auth)/sign-in', null, url('/sign-in'))).toBeNull();
     expect(guardRedirect('/(auth)/sign-in/verify', null, url('/sign-in/verify#token=abc'))).toBeNull();

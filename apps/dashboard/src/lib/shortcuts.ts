@@ -52,3 +52,65 @@ export function createChordHandler(
     return key === 'g';
   };
 }
+
+/** One shortcut as the `?` dialog lists it. */
+export interface Shortcut {
+  /** What it does, as a label: "Go to Jobs". */
+  label: string;
+  /** The key caps, pressed together (`Ctrl`, `K`) or one after the other when `sequence` is set (`G`, `J`). */
+  keys: readonly string[];
+  sequence?: boolean;
+  /** A single-key shortcut, which the person can turn off (WCAG 2.1.4). */
+  singleKey: boolean;
+}
+
+export interface ShortcutGroup {
+  label: string;
+  shortcuts: readonly Shortcut[];
+}
+
+/** True on Apple platforms, where the command palette is ⌘K. */
+export const isApple = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/**
+ * Every keyboard shortcut in the dashboard, for the `?` dialog (design system section 15). A new shortcut joins this
+ * list in the change that adds it.
+ */
+export function shortcutGroups(
+  sections: readonly { label: string; key: string }[],
+  apple: boolean = isApple(),
+): readonly ShortcutGroup[] {
+  return [
+    {
+      label: 'Anywhere',
+      shortcuts: [
+        { label: 'Open the command palette', keys: apple ? ['⌘', 'K'] : ['Ctrl', 'K'], singleKey: false },
+        { label: 'Show keyboard shortcuts', keys: ['?'], singleKey: true },
+        ...sections.map((section) => ({
+          label: `Go to ${section.label}`,
+          keys: ['G', section.key.toUpperCase()],
+          sequence: true,
+          singleKey: true,
+        })),
+      ],
+    },
+    {
+      label: 'Candidate table',
+      shortcuts: [
+        { label: 'Next candidate', keys: ['J'], singleKey: true },
+        { label: 'Previous candidate', keys: ['K'], singleKey: true },
+        { label: 'Select the candidate', keys: ['X'], singleKey: true },
+        { label: 'Open the candidate', keys: ['Enter'], singleKey: false },
+      ],
+    },
+    {
+      label: 'Job pipeline',
+      shortcuts: [
+        { label: 'Switch between table and board', keys: ['V'], singleKey: true },
+        { label: 'Move a card to the next stage', keys: ['Shift', '→'], singleKey: false },
+        { label: 'Move a card to the previous stage', keys: ['Shift', '←'], singleKey: false },
+        { label: 'Open a card', keys: ['Enter'], singleKey: false },
+      ],
+    },
+  ];
+}
