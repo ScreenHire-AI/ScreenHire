@@ -8,8 +8,11 @@ import type {
   IntegritySummary,
   StageKind,
 } from '@screenhire/api-client';
+import type { QueryClient } from '@tanstack/svelte-query';
 import type { BadgeVariant } from '#lib/components/ui/badge/index.js';
 import type { MarkShape, MarkTone } from '#lib/distribution.js';
+import { invalidatePath } from '#lib/query.js';
+import { applicationsPath, jobsPath } from '#lib/realtime.js';
 
 /**
  * How the dashboard shows one integrity level (docs/architecture/integrity-engine.md, design-system section 2.2):
@@ -152,3 +155,17 @@ export const dismissReasonLabels: Record<DismissReason, string> = {
   FalsePositive: 'The observations do not apply',
   Other: 'Other reason',
 };
+
+/**
+ * After a dismissal or a note: they change the integrity panel, the review log, the list chips (dismissed) and the
+ * "Needs review" counts, and no live event announces them.
+ */
+export function refetchAfterReview(queryClient: QueryClient): Promise<unknown> {
+  return Promise.all([invalidatePath(queryClient, applicationsPath), invalidatePath(queryClient, jobsPath)]);
+}
+
+/** Who took a review action, as the integrity panel and the review log name them: "you", or their name. */
+export function reviewerName(userId: string, name: string | null, currentUserId: string | undefined): string {
+  if (userId === currentUserId) return 'you';
+  return name ?? 'a teammate';
+}

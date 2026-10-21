@@ -19,11 +19,12 @@
     assessmentNames,
     authenticityLevels,
     dismissReasonLabels,
+    refetchAfterReview,
+    reviewerName,
     type AssessmentKind,
     type LevelView,
   } from '#lib/integrity.js';
-  import { describeError, invalidatePath } from '#lib/query.js';
-  import { applicationsPath, jobsPath } from '#lib/realtime.js';
+  import { describeError } from '#lib/query.js';
 
   // The integrity evidence panel (ADR-0004, docs/architecture/integrity-engine.md section 7): what was observed, why it
   // matters, what argues against it and a suggested next step. It decides nothing. A dismissal is a person's and goes in
@@ -44,16 +45,9 @@
     dismissOpen = true;
   }
 
-  // A dismissal changes this panel, the review log, the list chips (dismissed) and the "Needs review" counts, and no
-  // live event announces it, so refetch them here.
   async function done(message: string) {
     announcement = message;
-    await Promise.all([invalidatePath(queryClient, applicationsPath), invalidatePath(queryClient, jobsPath)]);
-  }
-
-  function actor(userId: string, name: string | null): string {
-    if (userId === page.data.user?.id) return 'you';
-    return name ?? 'a teammate';
+    await refetchAfterReview(queryClient);
   }
 </script>
 
@@ -117,7 +111,7 @@
 
     {#if view.dismissal}
       <p class="text-muted-foreground">
-        Dismissed by {actor(view.dismissal.actorUserId, view.dismissal.actorName)} <RelativeTime at={view.dismissal.dismissedAt} class="inline" />:
+        Dismissed by {reviewerName(view.dismissal.actorUserId, view.dismissal.actorName, page.data.user?.id)} <RelativeTime at={view.dismissal.dismissedAt} class="inline" />:
         {dismissReasonLabels[view.dismissal.reason]}{view.dismissal.note ? `. "${view.dismissal.note}"` : '.'}
       </p>
     {:else if level.rank > 0}

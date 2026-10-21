@@ -47,6 +47,9 @@ describe('truncated text', () => {
     expect(link).not.toHaveAttribute('tabindex');
     expect(link.querySelectorAll('[tabindex]')).toHaveLength(0);
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    // A link outside a list of names underlines at rest (A5), and only its text does.
+    expect(screen.getByText(email)).toHaveClass('underline');
+    expect(link).not.toHaveClass('no-underline');
     await fireEvent.focus(link);
     expect(tooltip()).toHaveTextContent(email);
     await expectNoAxeViolations(document.body);

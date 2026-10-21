@@ -24,7 +24,9 @@ describe('signal evidence', () => {
 
     const figure = screen.getByText('Answer to "Why this role?"').closest('figure')!;
     const sides = figure.querySelectorAll('.grid > div');
-    expect(figure.querySelector('.grid')).toHaveClass('sm:grid-cols-2');
+    // Side by side once the evidence itself has room, not the window: the panel may sit in the 320px side column (F2).
+    expect(figure).toHaveClass('@container');
+    expect(figure.querySelector('.grid')).toHaveClass('@sm:grid-cols-2');
     expect([...sides].map((side) => side.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'This application I thrive in fast-paced environments.',
       'Another application this week I thrive in fast paced environments!',

@@ -127,7 +127,7 @@
   {/if}
 {/snippet}
 
-<main class={['flex flex-col', sidebar.isMobile && detail && 'pb-28']}>
+<main class={['flex flex-col', sidebar.isMobile && detail && stages.length > 0 && 'pb-28']}>
   {#if application.isError}
     {#if notFound}
       <HeaderBand title="Application not found" />
@@ -175,7 +175,8 @@
     </HeaderBand>
 
     <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 @3xl:px-6 @3xl:py-6">
-      <p role="status" class={['rounded-panel border border-border bg-card px-4 py-3 empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>{moves.announcement}</p>
+      <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it; a failure shows. -->
+      <p role="status" class={moves.failure ? 'rounded-panel border border-border bg-card px-4 py-3 text-status-verify' : 'sr-only'}>{moves.announcement}</p>
 
       <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
            top of the side column, and the main column spans both of the side column's rows. -->
@@ -231,10 +232,8 @@
           <Panel title="Activity">
             {#if timeline.isError}
               <QueryError message={describeError(timeline.error, 'Could not load the activity')} onretry={() => timeline.refetch()} inset />
-            {:else if !timeline.data}
-              <Skeleton aria-hidden="true" class="h-16 w-full" />
             {:else}
-              <ActivityList label="Events" items={activity} />
+              <ActivityList label="Events" items={timeline.data && activity} />
             {/if}
           </Panel>
         </div>

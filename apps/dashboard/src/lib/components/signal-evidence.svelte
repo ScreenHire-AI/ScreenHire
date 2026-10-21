@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SignalEvidence } from '@screenhire/api-client';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { locales } from '#lib/dates.js';
 
   // One piece of evidence, rendered by its kind rather than by the signal it belongs to, so a new signal needs no
@@ -21,9 +22,9 @@
       {#if evidence.source}<p class="text-caption text-muted-foreground">{evidence.source}</p>{/if}
     </figure>
   {:else if evidence.kind === 'TextComparison'}
-    <figure class="flex flex-col gap-1">
+    <figure class="@container flex flex-col gap-1">
       <figcaption class="text-muted-foreground">{evidence.label}</figcaption>
-      <div class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+      <div class="grid grid-cols-1 gap-1.5 @sm:grid-cols-2">
         {#each [evidence.left, evidence.right] as side, index (index)}
           {#if side}
             <div class="flex min-w-0 flex-col gap-0.5 rounded-md border border-border-subtle bg-card px-2.5 py-1.5">
@@ -44,9 +45,10 @@
     </p>
   {:else if evidence.kind === 'List'}
     <p class="text-muted-foreground">{evidence.label}</p>
-    <ul class="flex flex-wrap gap-1">
+    <!-- Fact pills sit on white (section 11), so the list gets a white well like a quote's. -->
+    <ul class="flex flex-wrap gap-1 rounded-md border border-border-subtle bg-card px-2.5 py-1.5">
       {#each evidence.items ?? [] as item, index (index)}
-        <li class="rounded-sm bg-secondary px-1.5 py-px text-caption text-secondary-foreground">{item}</li>
+        <li><Badge variant="muted">{item}</Badge></li>
       {/each}
     </ul>
   {:else}

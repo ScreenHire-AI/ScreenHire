@@ -33,9 +33,10 @@
   {#snippet children({ props })}
     {#if href}
       <!-- A link already takes focus: the hint's tab stop is not needed. -->
-      <a {...props} tabindex={undefined} {href} class={cn('flex min-w-0 items-center gap-1.5 no-underline hover:underline', className)}>
+      <!-- Not a name in a list, so it underlines at rest (A5); the icon stays plain. -->
+      <a {...props} tabindex={undefined} {href} class={cn('flex min-w-0 items-center gap-1.5', className)}>
         {#if Icon}<Icon aria-hidden="true" class="shrink-0" />{/if}
-        <span bind:this={element} class="min-w-0 truncate">{text}</span>
+        <span bind:this={element} class="min-w-0 truncate underline underline-offset-2">{text}</span>
       </a>
     {:else}
       <span {...props} bind:this={element} class={cn('block min-w-0 truncate', className)}>{text}</span>

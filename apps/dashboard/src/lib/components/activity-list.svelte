@@ -18,27 +18,43 @@
 
 <script lang="ts">
   import RelativeTime from '#lib/components/relative-time.svelte';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
 
-  // Events on a record, newest first (design system section 11): an icon in a circle, the event, and time ago.
-  let { items, label }: { items: readonly Activity[]; label: string } = $props();
+  // Events on a record, newest first (design system section 11): an icon in a circle, the event, and time ago. While
+  // `items` is undefined (still loading) it shows skeleton rows of the same shape (E1).
+  let { items, label }: { items: readonly Activity[] | undefined; label: string } = $props();
 </script>
 
-<ol aria-label={label} class="flex flex-col">
-  {#each items as item (item.id)}
-    <li
-      class="relative flex gap-3 pb-4 last:pb-0 not-last:before:absolute not-last:before:top-8 not-last:before:bottom-1 not-last:before:left-3.5 not-last:before:w-px not-last:before:bg-border-subtle"
-    >
-      <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
-        <item.icon />
-      </span>
-      <div class="flex min-w-0 flex-col gap-0.5 pt-1">
-        <p class="break-words">
-          <span class="font-semibold">{item.event}</span>
-          {#if item.actor}<span class="text-muted-foreground">{item.actor}</span>{/if}
-        </p>
-        {#if item.note}<p class="break-words">"{item.note}"</p>{/if}
-        <RelativeTime at={item.at} class="text-caption text-muted-foreground" />
+{#if items === undefined}
+  <div aria-hidden="true" data-activity-skeleton class="flex flex-col gap-4">
+    {#each [0, 1] as row (row)}
+      <div class="flex gap-3">
+        <Skeleton class="size-7 shrink-0 rounded-full" />
+        <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+          <Skeleton class="h-4 w-3/4" />
+          <Skeleton class="h-3 w-16" />
+        </div>
       </div>
-    </li>
-  {/each}
-</ol>
+    {/each}
+  </div>
+{:else}
+  <ol aria-label={label} class="flex flex-col">
+    {#each items as item (item.id)}
+      <li
+        class="relative flex gap-3 pb-4 last:pb-0 not-last:before:absolute not-last:before:top-8 not-last:before:bottom-1 not-last:before:left-3.5 not-last:before:w-px not-last:before:bg-border-subtle"
+      >
+        <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
+          <item.icon />
+        </span>
+        <div class="flex min-w-0 flex-col gap-0.5 pt-1">
+          <p class="break-words">
+            <span class="font-semibold">{item.event}</span>
+            {#if item.actor}<span class="text-muted-foreground">{item.actor}</span>{/if}
+          </p>
+          {#if item.note}<p class="break-words">"{item.note}"</p>{/if}
+          <RelativeTime at={item.at} class="text-caption text-muted-foreground" />
+        </div>
+      </li>
+    {/each}
+  </ol>
+{/if}
