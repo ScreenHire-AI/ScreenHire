@@ -7,6 +7,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import { matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
@@ -26,7 +27,7 @@
   const filtering = $derived(Boolean(view || integrityFilter.authenticity || integrityFilter.aiAssistance));
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
-  // The table has no footer (design system K1), so the count line says how many of the shown rows are ticked.
+  // The table has no footer (design system K1), so a pill beside the count says how many of the shown rows are ticked.
   const selectedCount = $derived(shown.filter((application) => selectedIds.includes(application.id)).length);
 </script>
 
@@ -43,10 +44,12 @@
         {#if view?.mark}<StatusMark shape={view.mark.shape} tone={view.mark.tone} class="size-2.5" />{/if}
         {view?.label ?? 'Candidates'}
       </h1>
-      <p class="text-caption text-muted-foreground">
+      <p class="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-muted-foreground">
         {#if applications.isSuccess}
-          {shown.length} {shown.length === 1 ? 'application' : 'applications'}{#if selectedCount > 0}, {selectedCount} selected{/if}{#if view} · <a href="/candidates">show all</a>{/if}
-        {:else}&nbsp;{/if}
+          <span>{shown.length} {shown.length === 1 ? 'application' : 'applications'}</span>
+          {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
+          {#if view}<a href="/candidates">Show all</a>{/if}
+        {/if}
       </p>
     </div>
     <IntegrityFilterMenu bind:filter={integrityFilter} />

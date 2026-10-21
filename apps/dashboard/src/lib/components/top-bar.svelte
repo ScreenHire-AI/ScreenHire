@@ -71,7 +71,7 @@
           type="button"
           onclick={() => shell.openPalette()}
           aria-keyshortcuts={isMac ? 'Meta+K' : 'Control+K'}
-          class="flex size-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-muted-foreground hover:border-input pointer-coarse:size-11 md:w-full md:max-w-75 md:flex-[0_1_300px] md:justify-start md:px-3 md:pointer-coarse:h-11"
+          class="flex size-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-muted-foreground hover:border-input pointer-coarse:size-11 md:flex-[0_1_300px] md:justify-start md:px-3 md:pointer-coarse:h-11"
         >
           <SearchIcon aria-hidden="true" />
           <span class="max-md:sr-only md:flex-1 md:truncate md:text-left">Search</span>

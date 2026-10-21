@@ -99,7 +99,8 @@
   <title>Workflow: {detail?.title ?? 'Job'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: `/jobs/${params.jobId}` }, { label: 'Workflow' }]}
+<TopBar
+  crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: `/jobs/${params.jobId}` }, { label: 'Workflow' }]}
   back
 />
 

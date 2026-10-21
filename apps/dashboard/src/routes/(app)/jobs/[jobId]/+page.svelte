@@ -112,7 +112,8 @@
   <title>{detail?.title ?? 'Job'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Jobs', href: '/' }, ...(detail?.department ? [{ label: detail.department }] : []), { label: detail?.title ?? 'Job' }]}
+<TopBar
+  crumbs={[{ label: 'Jobs', href: '/' }, ...(detail?.department ? [{ label: detail.department }] : []), { label: detail?.title ?? 'Job' }]}
   back
 />
 

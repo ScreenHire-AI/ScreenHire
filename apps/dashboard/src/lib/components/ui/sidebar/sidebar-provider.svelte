@@ -17,9 +17,10 @@
 		onOpenChange?: (open: boolean) => void;
 	} = $props();
 
-	// The shell keeps the open state through onOpenChange (no cookie), and there is no Ctrl B toggle: section 15 of the
-	// design system lists every shortcut. No tooltip provider here: the root layout's serves the whole app, and the rail's
-	// labels set their own delay (sidebar-menu-button.svelte).
+	// The (app) layout drives the open state from the window width (full at lg, the rail below it), so there is no cookie
+	// and no Ctrl B toggle: section 15 of the design system lists every shortcut.
+	// No tooltip provider here either. The root layout's serves the whole app, and the rail's labels set their own delay
+	// (sidebar-menu-button.svelte).
 	setSidebar({
 		open: () => open,
 		setOpen: (value: boolean) => {

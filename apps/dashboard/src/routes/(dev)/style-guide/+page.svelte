@@ -100,7 +100,6 @@
     source: 'Question 2',
   };
 
-
   // Files as the API describes them. None of these exists: a download from this page fails, which the preview shows.
   const applicationId = '00000000-0000-7000-8000-000000000000';
   const file = (n: number, fileName: string, contentType: string, scanStatus: ApplicationFileSummary['scanStatus'], sizeBytes: number): ApplicationFileSummary => ({

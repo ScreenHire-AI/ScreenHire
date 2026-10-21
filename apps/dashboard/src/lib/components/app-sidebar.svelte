@@ -38,6 +38,10 @@
 
   // A link in the phone sheet closes it, so the page it opens is not hidden behind the sheet.
   const closeSheet = () => sidebar.setOpenMobile(false);
+  // Widening past phone size unmounts the sheet; it stays shut when the window narrows again.
+  $effect(() => {
+    if (!sidebar.isMobile && sidebar.openMobile) closeSheet();
+  });
 
   // A menu button's tooltip is its label: shown in the rail, and wherever the label is cut with an ellipsis (F5).
   const cut = new SvelteSet<string>();
@@ -64,6 +68,7 @@
     </a>
 
     {#if user?.organization}
+      {@const organization = user.organization}
       <!-- Workspace switcher: every workspace the person belongs to. Today that is one organization per account. -->
       <Sidebar.Menu>
         <Sidebar.MenuItem>
@@ -73,17 +78,17 @@
                 <Sidebar.MenuButton
                   {...props}
                   size="lg"
-                  tooltipContent={user.organization!.name}
+                  tooltipContent={organization.name}
                   tooltipContentProps={tooltipFor('workspace')}
                   class="border border-border bg-card"
                 >
                   <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-md bg-secondary text-caption font-semibold text-secondary-foreground"
-                    >{initials(user.organization!.name)}</span
+                    >{initials(organization.name)}</span
                   >
                   <span
                     {@attach truncation('workspace')}
                     class="min-w-0 flex-1 truncate font-semibold text-foreground group-data-[collapsible=icon]:sr-only"
-                    ><span class="sr-only">Workspace: </span>{user.organization!.name}</span
+                    ><span class="sr-only">Workspace: </span>{organization.name}</span
                   >
                   <ChevronsUpDownIcon class="text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden="true" />
                 </Sidebar.MenuButton>
@@ -91,11 +96,11 @@
             </DropdownMenu.Trigger>
             <DropdownMenu.Content side={rail ? 'right' : 'bottom'} align="start" class="w-60">
               <DropdownMenu.Label class="text-caption text-muted-foreground">Workspaces</DropdownMenu.Label>
-              <DropdownMenu.RadioGroup value={user.organization.id}>
-                <DropdownMenu.RadioItem value={user.organization.id}>
+              <DropdownMenu.RadioGroup value={organization.id}>
+                <DropdownMenu.RadioItem value={organization.id}>
                   <span class="flex flex-col">
-                    <span class="font-semibold">{user.organization.name}</span>
-                    <span class="text-caption text-muted-foreground">{user.organization.role}</span>
+                    <span class="font-semibold">{organization.name}</span>
+                    <span class="text-caption text-muted-foreground">{organization.role}</span>
                   </span>
                 </DropdownMenu.RadioItem>
               </DropdownMenu.RadioGroup>
@@ -208,8 +213,13 @@
                 <span class="truncate font-normal">{user.email}</span>
               </DropdownMenu.Label>
               <DropdownMenu.Separator />
-              <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there. -->
-              <DropdownMenu.Item onSelect={() => shell.openShortcuts()}>
+              <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there, and gives way to the dialog. -->
+              <DropdownMenu.Item
+                onSelect={() => {
+                  closeSheet();
+                  shell.openShortcuts();
+                }}
+              >
                 Keyboard shortcuts
                 {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut>?</DropdownMenu.Shortcut>{/if}
               </DropdownMenu.Item>
