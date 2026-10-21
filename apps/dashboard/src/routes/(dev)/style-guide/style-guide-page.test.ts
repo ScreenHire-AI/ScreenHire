@@ -35,6 +35,8 @@ const panels: Record<string, string[]> = {
   'Header band, Panel': ['Header band', 'Panel'],
   'Status badge': ['Status badge'],
   'Fact pill': ['Fact pill'],
+  Toggle: ['Toggle'],
+  'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
   'Icon button': ['Icon button'],
@@ -66,6 +68,12 @@ describe('style guide', () => {
     render(WithTooltips, { props: { component: Page } });
 
     await expectNoAxeViolations(document.body);
+  });
+
+  it('has one main landmark; the sidebar demos frame their inset in a div (X1)', () => {
+    render(WithTooltips, { props: { component: Page } });
+
+    expect(screen.getAllByRole('main')).toHaveLength(1);
   });
 
   it('shows the sidebar expanded at 248px and as a 64px rail', () => {

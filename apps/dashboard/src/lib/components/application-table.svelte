@@ -7,10 +7,16 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { tick, type Snippet } from 'svelte';
   import { get } from 'svelte/store';
+  import Hint from '#lib/components/hint.svelte';
+  import IntegrityChip from '#lib/components/integrity-chip.svelte';
+  import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
   import { formatDate, formatDateTime } from '#lib/dates.js';
   import { initials, sourceLabel } from '#lib/format.js';
+  import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
+  import { chipOf } from '#lib/integrity.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
@@ -53,6 +59,10 @@
     { id: 'applied', header: 'Applied', cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
+
+  // Rows become two-line list items on phones (design system section 8): authenticity first, the name as the link,
+  // facts as pills. Selection, J / K and the per-row Move are wide-screen tools; a phone moves from the application page.
+  const phone = new IsMobile();
 
   const table = createTable({
     features: candidateTableFeatures,
@@ -139,23 +149,29 @@
 </script>
 
 {#snippet selectHeader()}
-  <input
-    type="checkbox"
-    class="size-4 accent-primary"
-    aria-label="Select all candidates"
-    checked={allSelected}
-    onchange={toggleAll}
-  />
+  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
+  <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+    <input
+      type="checkbox"
+      class="size-4 accent-primary"
+      aria-label="Select all candidates"
+      checked={allSelected}
+      onchange={toggleAll}
+    />
+  </label>
 {/snippet}
 
 {#snippet selectCell(application: ApplicationSummary)}
-  <input
-    type="checkbox"
-    class="size-4 accent-primary"
-    aria-label={`Select ${application.candidateName}`}
-    checked={selectedIds.includes(application.id)}
-    onchange={() => toggle(application.id)}
-  />
+  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
+  <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+    <input
+      type="checkbox"
+      class="size-4 accent-primary"
+      aria-label={`Select ${application.candidateName}`}
+      checked={selectedIds.includes(application.id)}
+      onchange={() => toggle(application.id)}
+    />
+  </label>
 {/snippet}
 
 {#snippet candidateCell(application: ApplicationSummary)}
@@ -180,9 +196,12 @@
 {/snippet}
 
 {#snippet appliedCell(application: ApplicationSummary)}
-  <time datetime={application.submittedAt} title={formatDateTime(application.submittedAt)} class="text-muted-foreground tabular-nums"
-    >{formatDate(application.submittedAt)}</time
-  >
+  <!-- A date in the table, the exact time on hover, focus or tap (design system section 13). -->
+  <Hint content={formatDateTime(application.submittedAt)}>
+    {#snippet children({ props })}
+      <time {...props} datetime={application.submittedAt} class="text-muted-foreground tabular-nums">{formatDate(application.submittedAt)}</time>
+    {/snippet}
+  </Hint>
 {/snippet}
 
 {#snippet moveHeader()}
@@ -201,80 +220,107 @@
   {/if}
 {/snippet}
 
-<!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->
-<div class="flex flex-col" {onkeydown} {onfocusin}>
-  <div bind:this={scrollElement} class="max-h-[min(70vh,640px)] overflow-auto">
-    <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
-      <thead class="sticky top-0 z-10 bg-card">
-        {#each table.getHeaderGroups() as group (group.id)}
-          <tr>
-            {#each group.headers as header (header.id)}
-              {@const sorted = header.column.getCanSort() ? header.column.getIsSorted() : false}
-              <th
-                scope="col"
-                aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
-                class={[
-                  'border-b border-border-subtle px-3 py-2 text-caption whitespace-nowrap text-muted-foreground',
-                  (header.id === 'select' || header.id === 'move') && 'w-10',
-                  (header.id === 'applied' || header.id === 'move') && 'text-right',
-                ]}
-              >
-                {#if header.isPlaceholder}{:else if header.column.getCanSort()}
-                  <!-- Each press cycles the sort (the column says which way comes first), then back to the API's order. aria-sort on the header tells screen readers which way it is sorted. -->
-                  <button
-                    type="button"
-                    onclick={header.column.getToggleSortingHandler()}
-                    class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground"
-                  >
-                    <FlexRender {header} />
-                    {#if sorted === 'desc'}
-                      <ArrowDownIcon aria-hidden="true" class="size-3" />
-                    {:else if sorted === 'asc'}
-                      <ArrowUpIcon aria-hidden="true" class="size-3" />
-                    {:else}
-                      <ChevronsUpDownIcon aria-hidden="true" class="size-3 opacity-60" />
-                    {/if}
-                  </button>
-                {:else}
-                  <FlexRender {header} />
-                {/if}
-              </th>
-            {/each}
-          </tr>
-        {/each}
-      </thead>
-      <tbody>
-        {#if paddingTop > 0}
-          <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingTop}px`} class="p-0"></td></tr>
-        {/if}
-        {#each items as item (item.key)}
-          {@const row = rows[item.index]}
-          {#if row}
-            {@const tinted = row.id === activeId || selectedIds.includes(row.id)}
-            <tr
-              data-row-id={row.id}
-              aria-rowindex={item.index + 2}
-              class={['h-10', tinted ? 'bg-row-selected' : 'hover:bg-muted']}
-            >
-              {#each row.getAllCells() as cell (cell.id)}
-                <td
+{#if phone.current}
+  {#if applications.length === 0}
+    <p class="px-4 py-3 text-muted-foreground">{emptyText}</p>
+  {:else}
+    <ul aria-label={label}>
+      {#each applications as application (application.id)}
+        {@const chip = chipOf(application.integrity, 'authenticity')}
+        <ListItem href={`/applications/${application.id}`} title={application.candidateName}>
+          {#snippet status()}
+            <IntegrityChip kind="authenticity" level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} compact />
+          {/snippet}
+          {#snippet meta()}
+            <Hint content={formatDateTime(application.submittedAt)}>{#snippet children({ props })}<time {...props} datetime={application.submittedAt}>{formatDate(application.submittedAt)}</time>{/snippet}</Hint>
+          {/snippet}
+          {#snippet facts()}
+            <Badge variant="muted">{application.stage.name}</Badge>
+            {#if showJob}<Badge variant="muted" class="max-w-full"><span class="truncate">{application.jobTitle}</span></Badge>{/if}
+            <Badge variant="muted">{sourceLabel(application.source)}</Badge>
+          {/snippet}
+        </ListItem>
+      {/each}
+    </ul>
+  {/if}
+{:else}
+  <!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->
+  <div class="flex flex-col" {onkeydown} {onfocusin}>
+    <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
+         instead of the page scrolling sideways on a phone (F1). -->
+    <div bind:this={scrollElement} class="relative max-h-[min(70vh,640px)] overflow-auto">
+      <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
+        <thead class="sticky top-0 z-10 bg-card">
+          {#each table.getHeaderGroups() as group (group.id)}
+            <tr>
+              {#each group.headers as header (header.id)}
+                {@const sorted = header.column.getCanSort() ? header.column.getIsSorted() : false}
+                <th
+                  scope="col"
+                  aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                   class={[
-                    'border-b border-border-subtle px-3 py-0 whitespace-nowrap',
-                    (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
+                    'border-b border-border-subtle px-3 py-2 text-caption whitespace-nowrap text-muted-foreground',
+                    (header.id === 'select' || header.id === 'move') && 'w-10',
+                    (header.id === 'applied' || header.id === 'move') && 'text-right',
                   ]}
                 >
-                  <FlexRender {cell} />
-                </td>
+                  {#if header.isPlaceholder}{:else if header.column.getCanSort()}
+                    <!-- Each press cycles the sort (the column says which way comes first), then back to the API's order. aria-sort on the header tells screen readers which way it is sorted. -->
+                    <button
+                      type="button"
+                      onclick={header.column.getToggleSortingHandler()}
+                      class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground"
+                    >
+                      <FlexRender {header} />
+                      {#if sorted === 'desc'}
+                        <ArrowDownIcon aria-hidden="true" class="size-3" />
+                      {:else if sorted === 'asc'}
+                        <ArrowUpIcon aria-hidden="true" class="size-3" />
+                      {:else}
+                        <ChevronsUpDownIcon aria-hidden="true" class="size-3 opacity-60" />
+                      {/if}
+                    </button>
+                  {:else}
+                    <FlexRender {header} />
+                  {/if}
+                </th>
               {/each}
             </tr>
+          {/each}
+        </thead>
+        <tbody>
+          {#if paddingTop > 0}
+            <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingTop}px`} class="p-0"></td></tr>
           {/if}
-        {:else}
-          <tr><td colspan={columns.length} class="px-3 py-3 text-muted-foreground">{emptyText}</td></tr>
-        {/each}
-        {#if paddingBottom > 0}
-          <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingBottom}px`} class="p-0"></td></tr>
-        {/if}
-      </tbody>
-    </table>
+          {#each items as item (item.key)}
+            {@const row = rows[item.index]}
+            {#if row}
+              {@const tinted = row.id === activeId || selectedIds.includes(row.id)}
+              <tr
+                data-row-id={row.id}
+                aria-rowindex={item.index + 2}
+                class={['h-10', tinted ? 'bg-row-selected' : 'hover:bg-muted']}
+              >
+                {#each row.getAllCells() as cell (cell.id)}
+                  <td
+                    class={[
+                      'border-b border-border-subtle px-3 py-0 whitespace-nowrap',
+                      (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
+                    ]}
+                  >
+                    <FlexRender {cell} />
+                  </td>
+                {/each}
+              </tr>
+            {/if}
+          {:else}
+            <tr><td colspan={columns.length} class="px-3 py-3 text-muted-foreground">{emptyText}</td></tr>
+          {/each}
+          {#if paddingBottom > 0}
+            <tr aria-hidden="true"><td colspan={columns.length} style:height={`${paddingBottom}px`} class="p-0"></td></tr>
+          {/if}
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
+{/if}

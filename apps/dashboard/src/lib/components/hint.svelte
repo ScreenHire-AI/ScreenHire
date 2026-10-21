@@ -33,6 +33,6 @@
     {#snippet child({ props })}
       {@render children({ props: textProps(props) })}
     {/snippet}
-  </Tooltip.Trigger>
-  <Tooltip.Content>{content}</Tooltip.Content>
+  </Tooltip.Trigger><!-- No space before the content: it would render as a trailing space after the text.
+  --><Tooltip.Content>{content}</Tooltip.Content>
 </Tooltip.Root>

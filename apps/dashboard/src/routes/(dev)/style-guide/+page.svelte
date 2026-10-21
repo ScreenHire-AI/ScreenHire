@@ -22,6 +22,7 @@
   import IconButton from '#lib/components/icon-button.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -36,12 +37,14 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
@@ -69,6 +72,14 @@
 
   let shortcutsOpen = $state(false);
 
+  const toggleOptions = [
+    { id: 'all', label: 'All', count: null },
+    { id: 'applied', label: 'Applied', count: 12 },
+    { id: 'screening', label: 'Screening', count: 5 },
+    { id: 'interview', label: 'Interview', count: 2 },
+  ];
+  let toggleChoice = $state('all');
+
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
 
@@ -77,6 +88,7 @@
     { status: 'review', label: 'Review suggested' },
     { status: 'verify', label: 'Verification recommended' },
     { status: 'ai', label: 'Some indicators' },
+    { status: 'neutral', label: 'Draft' },
   ];
 
   const steps: Step[] = [
@@ -247,6 +259,7 @@
             <div class="flex flex-wrap gap-4">
               <StatusBadge status="clear" label="No concerns" quiet />
               <StatusBadge status="clear" label="Live" quiet />
+              <StatusBadge status="neutral" label="Closed" quiet />
             </div>
           </figure>
         </div>
@@ -265,6 +278,35 @@
             <span class="flex items-center gap-1.5">Candidates <Badge variant="count">24</Badge></span>
             <span class="flex items-center gap-1.5">Open jobs <Badge variant="count">3</Badge></span>
             <span class="flex items-center gap-1.5">New today <Badge variant="count">128</Badge></span>
+          </div>
+        </Panel>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Toggle" class="flex-[999_1_520px]">
+          <div class="flex flex-col gap-4">
+            <div role="group" aria-label="Stage" class="flex gap-1 overflow-x-auto">
+              {#each toggleOptions as option (option.id)}
+                <Toggle bind:pressed={() => toggleChoice === option.id, () => (toggleChoice = option.id)}>
+                  {option.label}
+                  {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}
+                </Toggle>
+              {/each}
+            </div>
+            <div role="group" aria-label="View" class="flex gap-1">
+              <Toggle pressed>Table</Toggle>
+              <Toggle>Board</Toggle>
+            </div>
+          </div>
+        </Panel>
+        <Panel title="More menu" class="flex-[1_1_320px]">
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
+            <MoreMenu label="More actions">
+              <DropdownMenu.Item>Duplicate</DropdownMenu.Item>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item variant="destructive">Close &amp; remove everywhere</DropdownMenu.Item>
+            </MoreMenu>
           </div>
         </Panel>
       </div>

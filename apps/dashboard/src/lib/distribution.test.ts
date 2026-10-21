@@ -6,29 +6,28 @@ import { boardAction, boardRows, describePosting } from './distribution.js';
 const later = (ms: number) => new Date(now + ms).toISOString();
 
 describe('describePosting', () => {
-  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string][] = [
-    ['Live', {}, 'Live', 'circle'],
-    ['Queued', { expectedBy: later(20_000) }, 'Queued · ~20s', 'diamond'],
-    ['Submitted', { expectedBy: later(90_000) }, 'Submitted · ~2m', 'diamond'],
-    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent · ~1d', 'diamond'],
-    ['Submitted', { confirmsLive: false }, 'Sent', 'diamond'],
-    ['Closing', { expectedBy: later(30_000) }, 'Removing · ~30s', 'diamond'],
-    ['Closing', { confirmsRemoval: false }, 'Removal requested', 'diamond'],
-    ['Closed', {}, 'Removed', 'ring'],
-    ['Rejected', { lastError: 'Title too long.' }, 'Rejected', 'square'],
-    ['Error', {}, 'Error', 'square'],
-    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', 'square'],
+  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string | null, string][] = [
+    ['Live', {}, 'Live', null, 'clear'],
+    ['Queued', { expectedBy: later(20_000) }, 'Queued', '~20s', 'review'],
+    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', '~2m', 'review'],
+    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', '~1d', 'review'],
+    ['Submitted', { confirmsLive: false }, 'Sent', null, 'review'],
+    ['Closing', { expectedBy: later(30_000) }, 'Removing', '~30s', 'review'],
+    ['Closing', { confirmsRemoval: false }, 'Removal requested', null, 'review'],
+    ['Closed', {}, 'Removed', null, 'neutral'],
+    ['Rejected', { lastError: 'Title too long.' }, 'Rejected', null, 'verify'],
+    ['Error', {}, 'Error', null, 'verify'],
+    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', null, 'verify'],
   ];
 
-  it.each(cases)('%s %o reads %s with a %s mark', (state, overrides, label, shape) => {
+  it.each(cases)('%s %o reads %s, estimate %s, as a %s status', (state, overrides, label, eta, status) => {
     const view = describePosting(posting('board', 'Board', { state, ...overrides }), now);
 
-    expect(view.label).toBe(label);
-    expect(view.shape).toBe(shape);
+    expect(view).toMatchObject({ label, eta, status });
   });
 
   it('says an estimate has passed instead of counting below zero', () => {
-    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).label).toBe('Queued · overdue');
+    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).eta).toBe('Overdue');
   });
 
   it("explains a refusal with the board's reason and fixes with the board's issues", () => {
@@ -37,7 +36,7 @@ describe('describePosting', () => {
   });
 
   it('reads "not posted" for a board the job is not on', () => {
-    expect(describePosting(undefined, now)).toMatchObject({ label: 'Not posted', shape: 'ring' });
+    expect(describePosting(undefined, now)).toMatchObject({ label: 'Not posted', status: 'neutral' });
   });
 });
 
