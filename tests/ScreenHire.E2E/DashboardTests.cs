@@ -14,7 +14,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await GoToAsync("dashboard", "/");
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/sign-in"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Sign in to ScreenHire");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Sign in");
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" })).ToBeVisibleAsync();
         await Expect(Page.GetByLabel("Work email")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();

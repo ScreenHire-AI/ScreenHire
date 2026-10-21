@@ -19,6 +19,7 @@
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
+  import BrandBar from '#lib/components/brand-bar.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -465,6 +466,13 @@
             </figure>
           {/each}
         </div>
+      </Panel>
+
+      <Panel title="Brand bar">
+        <figure class="flex flex-col gap-2">
+          <figcaption class="text-caption text-muted-foreground">Sign-in, onboarding and error pages, outside the app shell</figcaption>
+          <div class="overflow-hidden rounded-lg bg-secondary"><BrandBar /></div>
+        </figure>
       </Panel>
 
       <Panel title="Table" count={people.length} flush>

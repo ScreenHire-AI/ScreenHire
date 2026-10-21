@@ -238,6 +238,10 @@ Atlassian's surfaces.
 | Form | Creating or editing a record | One column, 688px wide, labels above fields, actions at the end |
 | Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
 
+Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
+bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,
+takes the focus.
+
 - **Header band:** a white strip under the top bar. Title first, status badge beside it, actions on the right, then
   a labelled facts row (label 12px above value 14px, thin rules between) or tabs on its bottom edge. One muted line
   under the title may hold a person's contact details, each an icon and its value, with no labels.
@@ -311,6 +315,7 @@ in a development build, shows every component in each state, and its test fails 
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8 |
+| Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, time ago |

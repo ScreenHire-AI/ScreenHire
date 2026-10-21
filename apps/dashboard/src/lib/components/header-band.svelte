@@ -14,6 +14,7 @@
     facts,
     tabs,
     wide = false,
+    heading = $bindable(),
   }: {
     title: string;
     /** A list page's count, as a count pill after the title (T4). */
@@ -32,6 +33,8 @@
     tabs?: Snippet;
     /** A list page's wider content at 2xl (S6). */
     wide?: boolean;
+    /** The h1, for a page that moves focus to its title when the title changes in place (WCAG 2.4.3). */
+    heading?: HTMLHeadingElement;
   } = $props();
 </script>
 
@@ -40,7 +43,7 @@
     <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
       <div class="flex min-w-0 flex-[1_1_16rem] flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 class="min-w-0 font-display text-page-title break-words">{title}</h1>
+          <h1 bind:this={heading} tabindex="-1" class="min-w-0 font-display text-page-title break-words">{title}</h1>
           {#if count !== undefined}
             <Badge variant="count">{count}{#if countLabel}<span class="sr-only">&nbsp;{countLabel}</span>{/if}</Badge>
           {/if}

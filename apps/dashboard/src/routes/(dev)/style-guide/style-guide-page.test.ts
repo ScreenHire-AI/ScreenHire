@@ -48,6 +48,7 @@ const panels: Record<string, string[]> = {
   'Empty state': ['Empty state'],
   'Shortcuts dialog': ['Shortcuts dialog'],
   Sidebar: ['Sidebar'],
+  'Brand bar': ['Brand bar'],
   'Table, list item': ['Table', 'List item, the table on a phone'],
   'Search field': ['Search field'],
   Activity: ['Activity'],
