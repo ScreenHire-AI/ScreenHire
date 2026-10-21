@@ -1,7 +1,6 @@
 <script lang="ts">
   import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
   import PlusIcon from '@lucide/svelte/icons/plus';
-  import SearchIcon from '@lucide/svelte/icons/search';
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -12,6 +11,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -19,7 +19,6 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
-  import * as InputGroup from '#lib/components/ui/input-group/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
@@ -95,10 +94,7 @@
 <TopBar crumbs={[{ label: 'Jobs' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Jobs" wide>
-    {#snippet status()}
-      {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
-    {/snippet}
+  <HeaderBand title="Jobs" count={jobs.isSuccess ? all.length : undefined} countLabel={all.length === 1 ? 'job' : 'jobs'} wide>
     {#snippet actions()}
       <Button href="/jobs/new" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
     {/snippet}
@@ -107,11 +103,8 @@
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
-      {#snippet actions()}
-        <InputGroup.Root class="w-48">
-          <InputGroup.Addon><SearchIcon aria-hidden="true" /></InputGroup.Addon>
-          <InputGroup.Input type="search" aria-label="Search jobs" bind:value={search} />
-        </InputGroup.Root>
+      {#snippet tools()}
+        <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
       {/snippet}
 
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). -->

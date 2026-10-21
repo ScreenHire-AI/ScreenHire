@@ -5,9 +5,9 @@
   import FileTextIcon from '@lucide/svelte/icons/file-text';
   import type { Snippet } from 'svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
-  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { withheldReason } from '#lib/files.js';
   import { fileSize } from '#lib/format.js';
 
@@ -22,16 +22,7 @@
   <div class="flex min-w-0 flex-[1_1_12rem] items-center gap-2">
     <Icon aria-hidden="true" class="shrink-0 text-muted-foreground" />
     <!-- The name may be cut short; the tooltip holds it whole, on hover, focus or tap. -->
-    <Tooltip.Provider>
-      <Tooltip.Root>
-        <Tooltip.Trigger>
-          {#snippet child({ props })}
-            <span {...props} class="min-w-0 truncate rounded-sm font-semibold">{file.fileName}</span>
-          {/snippet}
-        </Tooltip.Trigger>
-        <Tooltip.Content>{file.fileName}</Tooltip.Content>
-      </Tooltip.Root>
-    </Tooltip.Provider>
+    <TruncatedText text={file.fileName} class="font-semibold" />
   </div>
   <div class="flex flex-wrap items-center gap-2">
     {@render facts?.()}

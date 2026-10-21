@@ -287,7 +287,7 @@ Forward and back slide (200ms); everything honours `prefers-reduced-motion`.
 | Primary | Filled `primary` | One per page, sheet or dialog. It moves the work forward. |
 | Secondary | White, `input` edge | Supporting actions, and Cancel |
 | Quiet | Text or icon button | Row actions. Every icon button has a tooltip and an `aria-label`. |
-| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. An action the same screen can undo (taking a job down from one board, which Post puts back) is not destructive. |
+| Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. An action the same screen can undo (taking a job down from one board, which Post puts back) is not destructive, and neither is removing a row from an unsaved builder draft (a stage, a question, a condition): nothing changes until Save, and leaving asks first. |
 
 Features that do not exist yet are hidden (A3).
 

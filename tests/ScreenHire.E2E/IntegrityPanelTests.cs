@@ -58,18 +58,18 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: Not indicated");
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the chips updated in place");
 
-        var legend = Page.GetByRole(AriaRole.List, new() { Name = "Authenticity levels" });
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "1 No concerns" })).ToBeVisibleAsync();
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "3 Verification recommended" })).ToBeVisibleAsync();
+        var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity levels" });
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 1" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification recommended 3" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-integrity-job-light");
 
         // The legend filters the table to one level, and a second press shows everyone again.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
-        await legend.GetByRole(AriaRole.Button, new() { Name = "3 Verification recommended" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification recommended 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(3);
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName })).ToHaveCountAsync(0);
-        await legend.GetByRole(AriaRole.Button, new() { Name = "3 Verification recommended" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification recommended 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(4);
 
         // The bot's evidence panel: reasons, evidence, the next step and the AI policy, and nothing that decides.

@@ -8,12 +8,12 @@
   import { z } from 'zod';
   import FileStackIcon from '@lucide/svelte/icons/file-stack';
   import PlusIcon from '@lucide/svelte/icons/plus';
-  import SearchIcon from '@lucide/svelte/icons/search';
   import { goto } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -90,8 +90,7 @@
 <TopBar crumbs={[{ label: 'Templates' }]} />
 
 <main>
-  <HeaderBand title="Templates" wide>
-    {#snippet status()}{#if templates.isSuccess}<Badge variant="count">{list.length}</Badge>{/if}{/snippet}
+  <HeaderBand title="Templates" count={templates.isSuccess ? list.length : undefined} countLabel={list.length === 1 ? 'template' : 'templates'} wide>
     {#snippet actions()}<Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />New template</Button>{/snippet}
   </HeaderBand>
 
@@ -100,12 +99,8 @@
       <QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} />
     {:else}
       <Panel title="All templates" flush>
-        {#snippet actions()}
-          <label class="relative flex items-center">
-            <span class="sr-only">Search templates</span>
-            <SearchIcon aria-hidden="true" class="pointer-events-none absolute left-2.5 text-muted-foreground" />
-            <Input type="search" bind:value={search} class="w-40 pl-8" />
-          </label>
+        {#snippet tools()}
+          <SearchField bind:value={search} label="Search templates" class="ml-auto flex-[0_1_15rem]" />
         {/snippet}
         {#if templates.isPending}
           <div aria-hidden="true" class="flex flex-col gap-3 px-4.5 py-4">

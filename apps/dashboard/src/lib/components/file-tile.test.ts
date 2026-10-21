@@ -2,6 +2,7 @@ import type { ApplicationFileSummary } from '@screenhire/api-client';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import WithTooltips from '../../test-support/with-tooltips.svelte';
 import FileTile from './file-tile.svelte';
 
 const applicationId = '0198a3c4-0000-7000-8000-000000000001';
@@ -22,7 +23,7 @@ function file(overrides: Partial<ApplicationFileSummary> = {}): ApplicationFileS
 
 describe('file tile', () => {
   it('shows the name, the size as a fact pill and Download, which loads the file outside the client router', async () => {
-    const { container } = render(FileTile, { props: { applicationId, file: file() } });
+    const { container } = render(WithTooltips, { props: { component: FileTile, props: { applicationId, file: file() } } });
 
     expect(screen.getByText('resume.pdf')).toBeInTheDocument();
     expect(screen.getByText('122 kB')).toHaveAttribute('data-slot', 'badge');
@@ -35,7 +36,7 @@ describe('file tile', () => {
   });
 
   it('has nothing to say about a file nobody scanned', () => {
-    render(FileTile, { props: { applicationId, file: file({ scanStatus: 'NotScanned' }) } });
+    render(WithTooltips, { props: { component: FileTile, props: { applicationId, file: file({ scanStatus: 'NotScanned' }) } } });
 
     expect(screen.queryByText(/scan|withheld/i)).toBeNull();
     expect(screen.getByRole('link', { name: 'Download resume.pdf' })).toBeInTheDocument();
@@ -45,7 +46,7 @@ describe('file tile', () => {
     ['Pending', 'Being scanned for malware', 'diamond', 'bg-status-review-soft'],
     ['Infected', 'Withheld: malware found', 'square', 'bg-status-verify-soft'],
   ] as const)('shows a %s file as a status that needs attention, and offers no Download', async (scanStatus, label, shape, fill) => {
-    const { container } = render(FileTile, { props: { applicationId, file: file({ scanStatus }) } });
+    const { container } = render(WithTooltips, { props: { component: FileTile, props: { applicationId, file: file({ scanStatus }) } } });
 
     const badge = screen.getByText(label).closest('[data-slot="badge"]')!;
     // Mark, colour and label (T1).

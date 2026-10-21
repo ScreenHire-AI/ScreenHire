@@ -85,8 +85,8 @@
         <!-- 32px rows give each radio the spacing WCAG 2.5.8 asks of a target under 24px. -->
         <div class="flex flex-col">
           {#each reasons as reason (reason)}
-            <label class="flex min-h-8 items-center gap-2.5">
-              <input type="radio" name="reason" value={reason} bind:group={$form.reason} class="size-4 accent-primary" />
+            <label class="flex min-h-8 pointer-coarse:min-h-11 items-center gap-2.5">
+              <input type="radio" name="reason" value={reason} bind:group={$form.reason} class="size-4 pointer-coarse:size-6 accent-primary" />
               {dismissReasonLabels[reason]}
             </label>
           {/each}

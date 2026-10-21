@@ -8,8 +8,8 @@
     createUpdateJobWorkflow,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { beforeNavigate } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -62,9 +62,6 @@
   let reviewing = $state(false);
   let applyFailure = $state('');
 
-  beforeNavigate((navigation) => {
-    if (draft.dirty && !readonly && !confirm("Leave without saving this job's workflow?")) navigation.cancel();
-  });
 
   async function saveWorkflow() {
     if (!detail || !draft.workflow) return;
@@ -235,3 +232,5 @@
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
+
+<LeaveDialog unsaved={draft.dirty && !readonly} title="Leave without saving this job's workflow?" />

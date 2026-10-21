@@ -13,11 +13,13 @@
   import HistoryIcon from '@lucide/svelte/icons/history';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { beforeNavigate, goto } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -75,10 +77,6 @@
   let failure = $state('');
   const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending);
 
-  // Unsaved work lives only on this page: ask before leaving it.
-  beforeNavigate((navigation) => {
-    if (draft.dirty && isDraft && !confirm('Leave without saving this draft?')) navigation.cancel();
-  });
 
   async function saveDraft(): Promise<boolean> {
     if (!current || !draft.workflow) return false;
@@ -184,12 +182,11 @@
     <Tabs.Root bind:value={tab}>
       <HeaderBand title={detail.name}>
         {#snippet status()}
+          {#if current.status === 'Draft'}<StatusBadge status="neutral" label="Draft" />{/if}
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
           <span class="flex flex-wrap gap-1.5">
             <Badge variant="muted" class="tabular-nums">Version {current.version}</Badge>
-            {#if current.status === 'Draft'}
-              <Badge variant="muted">Draft</Badge>
-            {:else if current.publishedAt}
+            {#if current.status !== 'Draft' && current.publishedAt}
               <Badge variant="muted">Published&nbsp;<RelativeTime at={current.publishedAt} /></Badge>
             {/if}
             {#if detail.isSystem}<Badge variant="muted">ScreenHire template</Badge>{/if}
@@ -239,3 +236,6 @@
     </Tabs.Root>
   {/if}
 </main>
+
+<!-- Unsaved work lives only on this page: ask before leaving it. -->
+<LeaveDialog unsaved={draft.dirty && isDraft} title="Leave without saving this draft?" />

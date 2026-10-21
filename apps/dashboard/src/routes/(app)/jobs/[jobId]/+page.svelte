@@ -7,6 +7,7 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import DistributionPanel from '#lib/components/distribution-panel.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -54,6 +55,7 @@
   const stages = $derived(detail?.workflow.stages ?? []);
   const all = $derived(applications.data?.data ?? []);
   const boardCount = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings).length : 0);
+  const publishable = $derived(detail?.status === 'Draft' && boardCount > 0);
 
   // Set from the overview's legend or the pipeline's filter menu, through the pipeline's setIntegrityFilter.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
@@ -89,7 +91,7 @@
   back
 />
 
-<main class="flex flex-col">
+<main class={['flex flex-col', sidebar.isMobile && publishable && 'pb-28']}>
   <!-- A failed refetch keeps the job on screen; the error replaces it only when there is nothing to show. -->
   {#if job.isError && !detail}
     <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
@@ -124,14 +126,8 @@
     <HeaderBand title={detail.title}>
       {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
       {#snippet actions()}
-        {#if detail.status === 'Draft' && boardCount > 0}
-          <!-- The one primary action; on a phone it sits in a bar at the bottom of the screen (section 8). -->
-          <div class="max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-20 max-md:border-t max-md:border-border max-md:bg-card max-md:px-4 max-md:py-3">
-            <Button size="lg" class="max-md:w-full" disabled={publish.isPending} onclick={publishEverywhere}>
-              <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
-            </Button>
-          </div>
-        {/if}
+        <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
+        {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
         {#if !sidebar.isMobile}
           {#if detail.status !== 'Closed'}
             <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
@@ -183,7 +179,7 @@
     </HeaderBand>
 
     <!-- The detail template (section 7): a main column and a side column, in a 1280px container (S6). -->
-    <div class={['mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6', detail.status === 'Draft' && 'max-md:pb-24']}>
+    <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
       {#if applications.isSuccess && all.length > 0}
         <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
       {/if}
@@ -232,9 +228,19 @@
       </div>
     </div>
 
+    {#if sidebar.isMobile && publishable}
+      <ActionBar>{@render publishButton()}</ActionBar>
+    {/if}
+
     <CloseJobDialog jobId={detail.id} bind:open={confirmClose} />
   {/if}
 </main>
+
+{#snippet publishButton()}
+  <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
+    <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
+  </Button>
+{/snippet}
 
 {#snippet candidatePanel(application: ApplicationSummary)}
   <Panel title="Selected candidate">

@@ -1,10 +1,14 @@
 <script lang="ts">
   import type { ApplicationSummary, AuthenticityLevel } from '@screenhire/api-client';
+  import Panel from '#lib/components/panel.svelte';
   import StatusMark from '#lib/components/status-mark.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { authenticityLevels, authenticityOrder, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
 
-  // A job's authenticity at a glance (design-system section 1): a numeric legend, each entry a toggle that filters the
-  // candidate table, and a stacked bar. The bar is decoration for sighted readers; the legend carries the numbers.
+  // A job's authenticity at a glance (design-system section 1): a panel with the applicant count, a numeric legend whose
+  // entries are toggles that filter the candidate table, and a stacked bar. The bar is decoration for sighted readers;
+  // the legend carries the numbers.
   let {
     applications,
     filter = $bindable(),
@@ -32,38 +36,27 @@
   }
 </script>
 
-<section aria-labelledby="integrity-overview-heading" class="flex flex-col gap-2.5 rounded-xl border border-border bg-card px-4 py-3.5">
-  <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
-    <h2 id="integrity-overview-heading" class="flex items-baseline gap-2 font-normal">
-      <span class="font-display text-page-title tabular-nums">{overview.total}</span>
-      <span class="text-muted-foreground">{overview.total === 1 ? 'applicant' : 'applicants'} · authenticity</span>
-    </h2>
-    <ul aria-label="Authenticity levels" class="flex flex-wrap gap-x-1 gap-y-1">
-      {#each entries as entry (entry.id)}
-        <li>
-          <button
-            type="button"
-            aria-pressed={filter.authenticity === entry.id}
-            onclick={() => toggle(entry.id)}
-            class={[
-              'flex h-7 items-center gap-[7px] rounded-md px-2 hover:bg-secondary',
-              filter.authenticity === entry.id && 'bg-secondary ring-1 ring-input',
-            ]}
-          >
-            <StatusMark shape={entry.view.shape} tone={entry.view.tone} class="size-[9px]" />
-            <span class="font-bold tabular-nums">{entry.count}</span>
+<Panel title="Authenticity" count={overview.total}>
+  <div class="flex flex-col gap-3">
+    <!-- One line that scrolls inside the panel rather than wrapping (F5). -->
+    <div class="-m-1 overflow-x-auto p-1">
+      <div role="group" aria-label="Authenticity levels" class="flex w-max gap-1">
+        {#each entries as entry (entry.id)}
+          <Toggle size="lg" bind:pressed={() => filter.authenticity === entry.id, () => toggle(entry.id)}>
+            <StatusMark shape={entry.view.shape} tone={entry.view.tone} />
             {entry.view.label}
-          </button>
-        </li>
+            <Badge variant="count">{entry.count}</Badge>
+          </Toggle>
+        {/each}
+      </div>
+    </div>
+    <div aria-hidden="true" class="flex h-2 gap-0.5 overflow-hidden rounded-full bg-secondary">
+      {#each entries as entry (entry.id)}
+        {#if entry.count > 0}<span data-bar={entry.id} class={bars[entry.id]} style:flex-grow={entry.count}></span>{/if}
       {/each}
-    </ul>
+    </div>
     {#if overview.dismissed > 0}
-      <span class="text-caption text-muted-foreground">{overview.dismissed} dismissed after review</span>
+      <p class="text-caption text-muted-foreground">{overview.dismissed} dismissed after review</p>
     {/if}
   </div>
-  <div aria-hidden="true" class="flex h-2 gap-0.5 overflow-hidden rounded-full bg-secondary">
-    {#each entries as entry (entry.id)}
-      {#if entry.count > 0}<span data-bar={entry.id} class={bars[entry.id]} style:flex-grow={entry.count}></span>{/if}
-    {/each}
-  </div>
-</section>
+</Panel>
