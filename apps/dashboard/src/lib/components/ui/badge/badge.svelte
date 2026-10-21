@@ -18,6 +18,8 @@
 				review: "bg-status-review-soft font-bold text-status-review",
 				verify: "bg-status-verify-soft font-bold text-status-verify",
 				ai: "bg-status-ai-soft font-bold text-status-ai",
+				// Not started or ended (a draft, a closed job): a ring mark on a muted fill (section 3.2).
+				neutral: "bg-secondary font-bold text-muted-foreground",
 				// A calm status in a list or table: its mark and muted text, no fill (T3).
 				quiet: "px-0 text-muted-foreground",
 				// A fact pill (section 11).

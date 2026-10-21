@@ -133,6 +133,7 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 | Review suggested, Queued, a file being scanned | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verification recommended, a file withheld by the scan | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
+| Not started or ended: a draft, a closed job, a board the job is not on | ring | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
 is `aria-hidden` and always has its numeric legend.
@@ -293,9 +294,11 @@ in a development build, shows every component in each state, and its test fails 
 | Component | Built on | Rules |
 |---|---|---|
 | Header band, Panel | Our components (`HeaderBand` with `Fact` for the facts row, `Panel`) | Section 7 |
-| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
+| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
+| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5) |
+| More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | Our component | 28px square, radius 7, white with an edge, joined by a line |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
 | File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention |

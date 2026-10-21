@@ -10,20 +10,22 @@ export type MarkShape = 'circle' | 'diamond' | 'square' | 'ring';
 export type MarkTone = 'clear' | 'review' | 'verify' | 'neutral' | 'primary' | 'ai';
 
 export interface PostingView {
-  shape: MarkShape;
-  tone: MarkTone;
-  /** The state, with the board's estimate when there is one: `Live`, `Queued · ~20s`. */
+  /** The state's status badge meaning (design-system section 3.2), which also picks its mark. */
+  status: 'clear' | 'review' | 'verify' | 'neutral';
+  /** The state: `Live`, `Queued`. */
   label: string;
-  /** The same in a sentence, for screen readers and the tooltip, including what is still uncertain. */
+  /** The board's estimate, for a fact pill: `~20s`, `Overdue`; null when the board gives none. */
+  eta: string | null;
+  /** The state in a sentence, for screen readers and the tooltip, including what is still uncertain. */
   detail: string;
 }
 
 /** What the person can do on one board now. Closing the whole job is the header's job, not a board's. */
 export type BoardAction = 'post' | 'retry' | 'takeDown' | null;
 
-function withEta(label: string, expectedBy: string | null, now: number): string {
-  if (!expectedBy) return label;
-  return Date.parse(expectedBy) > now ? `${label} · ${eta(expectedBy, now)}` : `${label} · overdue`;
+function etaOf(expectedBy: string | null, now: number): string | null {
+  if (!expectedBy) return null;
+  return Date.parse(expectedBy) > now ? eta(expectedBy, now) : 'Overdue';
 }
 
 function estimateSentence(expectedBy: string | null, now: number, what: string): string {
@@ -34,75 +36,75 @@ function estimateSentence(expectedBy: string | null, now: number, what: string):
 }
 
 /**
- * How one board's posting reads in the distribution strip. It never claims more than the board confirms: a board that
+ * How one board's posting reads in the Distribution panel. It never claims more than the board confirms: a board that
  * does not report back stays "sent" after a publish and "removal requested" after a close, never "live" or "removed"
  * (docs/architecture/job-distribution.md, "What each state means").
  */
 export function describePosting(posting: JobPostingStatus | undefined, now: number): PostingView {
   if (!posting) {
-    return { shape: 'ring', tone: 'neutral', label: 'Not posted', detail: 'Not posted to this board.' };
+    return { status: 'neutral', label: 'Not posted', eta: null, detail: 'Not posted to this board.' };
   }
 
   const { state, expectedBy, confirmsLive, confirmsRemoval } = posting;
   switch (state) {
     case 'Live':
-      return { shape: 'circle', tone: 'clear', label: 'Live', detail: 'Live: the board confirmed the job shows.' };
+      return { status: 'clear', label: 'Live', eta: null, detail: 'Live: the board confirmed the job shows.' };
     case 'Queued':
       return {
-        shape: 'diamond',
-        tone: 'review',
-        label: withEta('Queued', expectedBy, now),
+        status: 'review',
+        label: 'Queued',
+        eta: etaOf(expectedBy, now),
         detail: `Queued: waiting to be sent to the board.${estimateSentence(expectedBy, now, 'takes it')}`,
       };
     case 'Submitted':
       return confirmsLive
         ? {
-            shape: 'diamond',
-            tone: 'review',
-            label: withEta('Submitted', expectedBy, now),
+            status: 'review',
+            label: 'Submitted',
+        eta: etaOf(expectedBy, now),
             detail: `Submitted: the board took it and has not confirmed it shows yet.${estimateSentence(expectedBy, now, 'shows it')}`,
           }
         : {
-            shape: 'diamond',
-            tone: 'review',
-            label: withEta('Sent', expectedBy, now),
+            status: 'review',
+            label: 'Sent',
+        eta: etaOf(expectedBy, now),
             detail: `Sent: this board never confirms when a job shows.${estimateSentence(expectedBy, now, 'picks it up')}`,
           };
     case 'Closing':
       return confirmsRemoval
         ? {
-            shape: 'diamond',
-            tone: 'review',
-            label: withEta('Removing', expectedBy, now),
+            status: 'review',
+            label: 'Removing',
+        eta: etaOf(expectedBy, now),
             detail: `Removing: the board has not confirmed the job is gone yet.${estimateSentence(expectedBy, now, 'removes it')}`,
           }
         : {
-            shape: 'diamond',
-            tone: 'review',
-            label: withEta('Removal requested', expectedBy, now),
+            status: 'review',
+            label: 'Removal requested',
+        eta: etaOf(expectedBy, now),
             detail: `Removal requested: this board never confirms removal, so the job may still show until it refreshes.${estimateSentence(expectedBy, now, 'refreshes')}`,
           };
     case 'Closed':
-      return { shape: 'ring', tone: 'neutral', label: 'Removed', detail: 'Removed: the board confirmed the job is gone, or it never reached the board.' };
+      return { status: 'neutral', label: 'Removed', eta: null, detail: 'Removed: the board confirmed the job is gone, or it never reached the board.' };
     case 'Rejected':
       return {
-        shape: 'square',
-        tone: 'verify',
+        status: 'verify',
         label: 'Rejected',
+        eta: null,
         detail: `Rejected by the board${posting.lastError ? `: ${posting.lastError}` : '.'}`,
       };
     case 'Error':
       return {
-        shape: 'square',
-        tone: 'verify',
+        status: 'verify',
         label: 'Error',
+        eta: null,
         detail: `The board did not answer${posting.lastError ? `: ${posting.lastError}` : '.'} Retry to send it again.`,
       };
     case 'Draft':
       return {
-        shape: 'square',
-        tone: 'verify',
+        status: 'verify',
         label: 'Needs fixes',
+        eta: null,
         detail: `Not sent: ${posting.issues.length > 0 ? posting.issues.join(' ') : 'the board found problems with the job.'}`,
       };
   }

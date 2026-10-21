@@ -1,12 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobs } from '../../test-support/fixtures.js';
+import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-// Creating a job opens it; superforms needs the rest of the module (beforeNavigate).
-const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
-vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));
+const closed = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-000000000003', title: 'Support Engineer', status: 'Closed' as const };
 
 const cellTexts = (row: HTMLElement) => within(row).getAllByRole('cell').map((cell) => cell.textContent?.trim());
 
@@ -15,9 +14,16 @@ function renderPage() {
 }
 
 async function dataRows() {
-  await screen.findByRole('link', { name: jobs[0]!.title });
-  const [, ...rows] = screen.getAllByRole('row');
+  const table = await screen.findByRole('table', { name: 'Jobs' });
+  const [, ...rows] = within(table).getAllByRole('row');
   return rows;
+}
+
+async function openRowMenu(title: string) {
+  const trigger = await screen.findByRole('button', { name: `Actions for ${title}` });
+  // bits-ui opens a menu on pointerdown.
+  await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+  return screen.findByRole('menu');
 }
 
 afterEach(() => {
@@ -25,38 +31,60 @@ afterEach(() => {
 });
 
 describe('jobs page', () => {
-  it('shows a row per job with its location, status and publish date, linking to the job', async () => {
+  it('shows a row per job, status first, with its location, type and publish date, linking to the job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
     renderPage();
 
     expect((await dataRows()).map(cellTexts)).toEqual([
-      ['Customer Success Lead', 'Manchester, UK', 'Draft', '-', 'Publish'],
-      ['Senior .NET Engineer', 'Remote (GB, IE)', 'Open', 'Oct 18, 2026', 'Close'],
+      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '-', ''],
+      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');
+    expect(screen.getByRole('link', { name: 'New job' })).toHaveAttribute('href', '/jobs/new');
   });
 
-  it('counts all jobs and open jobs', async () => {
-    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+  it('filters by status and by a search of title, department and location', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
     renderPage();
+    await dataRows();
 
-    expect(await screen.findByText('2 jobs · 1 open')).toBeInTheDocument();
+    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'Open' } });
+    expect(screen.getByRole('region', { name: 'Open jobs' })).toBeInTheDocument();
+    expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Senior .NET Engineer']);
+
+    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: '' } });
+    await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'manchester' } });
+    expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Customer Success Lead']);
+
+    await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'nothing like this' } });
+    expect(screen.getByText('No jobs match')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(await dataRows()).toHaveLength(3);
+  });
+
+  it('counts each status in its filter', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
+    renderPage();
+    await dataRows();
+
+    const options = within(screen.getByLabelText('Status')).getAllByRole('option').map((option) => option.textContent);
+    expect(options).toEqual(['All', 'Open (1)', 'Draft (1)', 'Closed (1)']);
   });
 
   it('says so when there are no jobs', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([]) })));
     renderPage();
 
-    expect(await screen.findByRole('cell')).toHaveTextContent('No jobs yet.');
+    expect(await screen.findByText('No jobs yet')).toBeInTheDocument();
   });
 
-  it('offers no action on a closed job', async () => {
-    const closed = { ...jobs[1]!, status: 'Closed' as const };
+  it('offers no actions on a closed job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([closed]) })));
     renderPage();
 
-    await screen.findByText('1 jobs · 0 open');
-    expect(screen.queryByRole('button', { name: /Close|Publish/ })).not.toBeInTheDocument();
+    await dataRows();
+    expect(screen.queryByRole('button', { name: /^Actions for/ })).not.toBeInTheDocument();
   });
 
   it('shows the failure and a way to try again when the list does not load', async () => {
@@ -66,29 +94,51 @@ describe('jobs page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load jobs (HTTP 503).');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
+
+  it('shows each job as a list item on a phone', async () => {
+    stubViewport(360);
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    renderPage();
+
+    const list = await screen.findByRole('list', { name: 'Jobs' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(list).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
 });
 
 describe('jobs page actions', () => {
-  it.each([
-    ['Publish Customer Success Lead', `/v1/jobs/${jobs[0]!.id}/publish`],
-    ['Close Senior .NET Engineer', `/v1/jobs/${jobs[1]!.id}/close`],
-  ])('%s posts to the API and refetches the list', async (button, url) => {
-    const fetchMock = vi.fn(
-      apiStub({
-        'GET /v1/jobs': () => Response.json(jobs),
-        [`POST ${url}`]: () => Response.json({}),
-      }),
-    );
+  it('publishes a draft from its row menu and refetches the list', async () => {
+    const url = `/v1/jobs/${jobs[0]!.id}/publish`;
+    const fetchMock = vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), [`POST ${url}`]: () => Response.json({}) }));
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
 
-    await fireEvent.click(await screen.findByRole('button', { name: button }));
+    const menu = await openRowMenu('Customer Success Lead');
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Publish to every board' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' })));
     await waitFor(() => expect(fetchMock.mock.calls.filter(([request]) => request === '/v1/jobs')).toHaveLength(2));
   });
 
-  it("says so with the API's reason when it refuses", async () => {
+  it('closes an open job only after the confirmation', async () => {
+    const url = `/v1/jobs/${jobs[1]!.id}/close`;
+    const fetchMock = vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), [`POST ${url}`]: () => Response.json({}) }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderPage();
+
+    const menu = await openRowMenu('Senior .NET Engineer');
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Close & remove everywhere' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Close this job and remove it everywhere?' });
+    expect(fetchMock).not.toHaveBeenCalledWith(url, expect.anything());
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close & remove everywhere' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' })));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it("says so with the API's reason when publishing is refused", async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(
@@ -101,111 +151,9 @@ describe('jobs page actions', () => {
     );
     renderPage();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Publish Customer Success Lead' }));
+    const menu = await openRowMenu('Customer Success Lead');
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Publish to every board' }));
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Adzuna needs a longer description.'));
-  });
-
-  it('says so when the request never reaches the API, and lets the person try again', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        apiStub({
-          'GET /v1/jobs': () => Response.json(jobs),
-          [`POST /v1/jobs/${jobs[1]!.id}/close`]: () => Promise.reject(new TypeError('Failed to fetch')),
-        }),
-      ),
-    );
-    renderPage();
-    const close = await screen.findByRole('button', { name: 'Close Senior .NET Engineer' });
-
-    await fireEvent.click(close);
-
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Could not close Senior .NET Engineer. Check your connection and try again.'),
-    );
-    expect(close).toBeEnabled();
-  });
-});
-
-describe('new job dialog', () => {
-  const created = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-0000000000f1', status: 'Draft' as const };
-
-  function stubCreate() {
-    const bodies: unknown[] = [];
-    const fetchMock = vi.fn(
-      apiStub({
-        'GET /v1/jobs': () => Response.json(jobs),
-        'GET /v1/templates': () => Response.json([]),
-        'POST /v1/jobs': (init) => {
-          bodies.push(JSON.parse(String(init?.body)));
-          return Response.json(created, { status: 201 });
-        },
-      }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    return { bodies, fetchMock };
-  }
-
-  async function openDialog() {
-    renderPage();
-    await fireEvent.click(await screen.findByRole('button', { name: 'New job' }));
-    return screen.findByRole('dialog', { name: 'New job' });
-  }
-
-  it('creates a remote job with the countries candidates can work from and a description, then opens it', async () => {
-    const { bodies } = stubCreate();
-    const dialog = await openDialog();
-
-    await fireEvent.input(within(dialog).getByLabelText('Title'), { target: { value: 'Platform Engineer' } });
-    await fireEvent.change(within(dialog).getByLabelText('Workplace'), { target: { value: 'Remote' } });
-    await fireEvent.input(await within(dialog).findByLabelText('Countries candidates can work from'), { target: { value: 'gb, ie' } });
-    await fireEvent.input(within(dialog).getByLabelText('Description'), { target: { value: 'Run the platform.\n\nRemote in the UK & Ireland.' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create job' }));
-
-    await waitFor(() => expect(navigation.goto).toHaveBeenCalledWith(`/jobs/${created.id}`));
-    expect(bodies).toEqual([
-      {
-        title: 'Platform Engineer',
-        templateVersionId: null,
-        workplaceType: 'Remote',
-        applicantLocationRequirements: ['GB', 'IE'],
-        locations: null,
-        description: '<p>Run the platform.</p><p>Remote in the UK &amp; Ireland.</p>',
-      },
-    ]);
-  });
-
-  it('creates an on-site job with its city and country', async () => {
-    const { bodies } = stubCreate();
-    const dialog = await openDialog();
-
-    await fireEvent.input(within(dialog).getByLabelText('Title'), { target: { value: 'Warehouse lead' } });
-    await fireEvent.change(within(dialog).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
-    await fireEvent.input(await within(dialog).findByLabelText('City'), { target: { value: 'Leeds' } });
-    await fireEvent.input(within(dialog).getByLabelText('Country'), { target: { value: 'gb' } });
-    await fireEvent.input(within(dialog).getByLabelText('Description'), { target: { value: 'Lead the night shift.' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create job' }));
-
-    await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toMatchObject({ workplaceType: 'Onsite', applicantLocationRequirements: null, locations: [{ city: 'Leeds', region: null, country: 'GB' }] });
-  });
-
-  it('asks where the work happens, and for a description when no template brings one, before sending anything', async () => {
-    const { fetchMock } = stubCreate();
-    const dialog = await openDialog();
-
-    await fireEvent.input(within(dialog).getByLabelText('Title'), { target: { value: 'Platform Engineer' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create job' }));
-
-    expect(await within(dialog).findByText('Choose where the work happens.')).toBeInTheDocument();
-    expect(within(dialog).getByText('Describe the job, or choose a template that has a description.')).toBeInTheDocument();
-
-    await fireEvent.change(within(dialog).getByLabelText('Workplace'), { target: { value: 'Remote' } });
-    await fireEvent.input(await within(dialog).findByLabelText('Countries candidates can work from'), { target: { value: 'United Kingdom' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create job' }));
-
-    expect(await within(dialog).findByText('Use two-letter country codes, such as GB.')).toBeInTheDocument();
-    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Adzuna needs a longer description.');
   });
 });
