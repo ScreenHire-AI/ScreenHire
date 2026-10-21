@@ -122,7 +122,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         // A job from the template, then a sample application through the job's copy of the workflow.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Jobs") }).ClickAsync();
-        await Page.GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
+        // The header band's New job; a list with no jobs offers it in its empty state too.
+        await Page.Locator("[data-slot='header-band']").GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
         var newJob = Page.GetByRole(AriaRole.Form, new() { Name = "New job" });
         await newJob.GetByLabel("Title").FillAsync("Warehouse associate, nights");
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
@@ -178,8 +179,13 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ReadAsync(await session.PostAsync($"/v1/templates/{templateId}/versions/2/publish", new { }, Ct), HttpStatusCode.OK);
 
         await SignInAsync(email);
-        await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Template update available" })).ToBeVisibleAsync();
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Template update available" }).ClickAsync();
+        // The jobs list marks the job with a pill, and the job's facts say so beside the template's version.
+        var row = Page.GetByRole(AriaRole.Table, new() { Name = "Jobs" }).GetByRole(AriaRole.Row).Filter(new() { HasText = "Retail assistant, weekends" });
+        await Expect(row).ToContainTextAsync("Template update");
+        await row.GetByRole(AriaRole.Link, new() { Name = "Retail assistant, weekends" }).ClickAsync();
+        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Retail assistant v1");
+        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Update available");
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Workflow" }).ClickAsync();
         var update = Page.GetByRole(AriaRole.Region, new() { Name = "Template update available" });
         await Expect(update).ToContainTextAsync("Retail assistant has version 2; this job uses version 1.");
         await update.GetByRole(AriaRole.Button, new() { Name = "Review update" }).ClickAsync();

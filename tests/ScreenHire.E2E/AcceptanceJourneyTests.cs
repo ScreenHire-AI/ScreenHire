@@ -55,7 +55,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var templateName = await ArrangeTemplateWithStageEmailAsync(recruiter);
 
         // 2. A job from the template, published to every board.
-        await Page.GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
+        // The header band's New job; a list with no jobs offers it in its empty state too.
+        await Page.Locator("[data-slot='header-band']").GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
         var newJob = Page.GetByRole(AriaRole.Form, new() { Name = "New job" });
         await newJob.GetByLabel("Title").FillAsync(JobTitle);
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });

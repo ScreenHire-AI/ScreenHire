@@ -98,6 +98,8 @@ describe('job page', () => {
 
     await fireEvent.click(within(await openMoreActions()).getByRole('menuitem', { name: 'Close & remove everywhere' }));
     let dialog = await screen.findByRole('dialog');
+    // The dialog takes focus once the menu has closed (the end-to-end test checks it goes back to the button after).
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Keep it open' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(fetchMock).not.toHaveBeenCalledWith(close, expect.anything());

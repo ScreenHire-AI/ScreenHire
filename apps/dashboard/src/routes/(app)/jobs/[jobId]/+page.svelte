@@ -71,6 +71,8 @@
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
   let confirmClose = $state(false);
+  // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
+  let closeChosen = false;
   let publishFailure = $state('');
 
   const shown = $derived(
@@ -181,7 +183,13 @@
         {/if}
         <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
         {#if sidebar.isMobile || detail.status === 'Open'}
-          <MoreMenu label="More actions">
+          <MoreMenu
+            label="More actions"
+            onclosed={() => {
+              if (closeChosen) confirmClose = true;
+              closeChosen = false;
+            }}
+          >
             {#if sidebar.isMobile}
               {#if detail.status !== 'Closed'}
                 <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/edit`)}><PencilIcon aria-hidden="true" />Edit details</DropdownMenu.Item>
@@ -190,7 +198,7 @@
             {/if}
             {#if detail.status === 'Open'}
               {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
-              <DropdownMenu.Item variant="destructive" onSelect={() => (confirmClose = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
+              <DropdownMenu.Item variant="destructive" onSelect={() => (closeChosen = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
             {/if}
           </MoreMenu>
         {/if}
@@ -253,7 +261,7 @@
               <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
                 <div role="group" aria-label="Stage" class="flex shrink-0 gap-1">
                   {#each [{ id: null, name: 'All', count: null }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
-                    <Toggle bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
+                    <Toggle size="lg" bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
                       {option.name}
                       {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}
                     </Toggle>

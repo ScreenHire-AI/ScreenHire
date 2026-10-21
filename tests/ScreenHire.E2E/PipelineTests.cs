@@ -121,6 +121,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(dialog.Locator(":focus")).ToHaveCountAsync(1);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Keep it open" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
+        await Expect(more).ToBeFocusedAsync();
         await Expect(band).ToContainTextAsync("Open");
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live:");
 

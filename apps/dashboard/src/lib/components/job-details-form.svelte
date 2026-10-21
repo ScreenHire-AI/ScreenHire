@@ -215,7 +215,7 @@
       <Field.Field data-invalid={$errors.description ? true : undefined}>
         <Field.Label for="job-description">Description</Field.Label>
         <Textarea id="job-description" name="description" rows={10} bind:value={$form.description} aria-invalid={$errors.description ? 'true' : undefined} aria-describedby={describedBy('job-description-error', $errors.description, 'job-description-hint')} />
-        <Field.Description id="job-description-hint">A blank line starts a paragraph; "- " starts a list item. Editing turns headings into paragraphs.</Field.Description>
+        <Field.Description id="job-description-hint">A blank line starts a paragraph. "- " starts a list item.</Field.Description>
         <Field.Error id="job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
       </Field.Field>
 

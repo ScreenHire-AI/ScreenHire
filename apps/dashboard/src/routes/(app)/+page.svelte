@@ -55,8 +55,9 @@
 
   let busyJobId = $state<string | null>(null);
   let failure = $state('');
-  // The job whose "Close & remove everywhere" waits for its confirmation.
+  // The job whose "Close & remove everywhere" waits for its confirmation, which opens once its row menu has closed.
   let closingId = $state<string | null>(null);
+  let closeChosen = false;
   let confirmClose = $state(false);
 
   async function publishJob(job: JobSummary) {
@@ -73,7 +74,12 @@
 
   function askToClose(job: JobSummary) {
     closingId = job.id;
-    confirmClose = true;
+    closeChosen = true;
+  }
+
+  function onMenuClosed() {
+    if (closeChosen) confirmClose = true;
+    closeChosen = false;
   }
 
   function clearFilters() {
@@ -191,9 +197,7 @@
                   <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
                 </Table.Cell>
                 <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
-                <Table.Cell class="text-right text-muted-foreground tabular-nums">
-                  <span class="relative">{@render published(job)}</span>
-                </Table.Cell>
+                <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
                 <Table.Cell class="px-4 text-right">
                   {#if job.status !== 'Closed'}
                     <span class="relative inline-flex">{@render rowMenu(job)}</span>
@@ -211,16 +215,14 @@
 {#snippet published(job: JobSummary)}
   {#if job.publishedAt}
     {@const at = job.publishedAt}
-    <Hint content={formatDateTime(at)}>
-      {#snippet children({ props })}<time {...props} datetime={at}>{formatDate(at)}</time>{/snippet}
-    </Hint>
+    <Hint content={formatDateTime(at)}>{#snippet children({ props })}<time {...props} datetime={at}>{formatDate(at)}</time>{/snippet}</Hint>
   {:else}
     -
   {/if}
 {/snippet}
 
 {#snippet rowMenu(job: JobSummary)}
-  <MoreMenu label={`Actions for ${job.title}`} size="icon" quiet>
+  <MoreMenu label={`Actions for ${job.title}`} size="icon" quiet onclosed={onMenuClosed}>
     {#if job.status === 'Draft'}
       <DropdownMenu.Item disabled={busyJobId === job.id} onSelect={() => publishJob(job)}>Publish to every board</DropdownMenu.Item>
     {:else}

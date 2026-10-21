@@ -133,7 +133,7 @@
               aria-invalid={$errors.workplaceType ? 'true' : undefined}
               aria-describedby={describedBy('new-job-workplace-error', $errors.workplaceType)}
             >
-              <option value="">Choose where the work happens</option>
+              <option value="">Select</option>
               {#each workplaceOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
             </select>
             <Field.Error id="new-job-workplace-error" errors={$errors.workplaceType?.map((message) => ({ message }))} />
