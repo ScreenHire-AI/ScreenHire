@@ -31,6 +31,8 @@ namespace ScreenHire.Api.Demo;
 /// candidate when they apply and when they reach Screening or Interview.</item>
 /// <item>The same emails on the three open jobs' workflows, as a recruiter would add them, so moving a candidate there
 /// sends an email to Mailpit.</item>
+/// <item>A questionnaire on each seeded job that has none (<see cref="DemoQuestionnaires"/>): the designer, frontend and
+/// Customer Success Lead jobs. The .NET job asks the "Software engineer" questions already.</item>
 /// <item>A draft job from the template, "Backend Engineer (Payments)", left on no board for a person to publish during the demo.</item>
 /// <item>The open jobs posted to boards through the same publish as the dashboard's: the .NET and designer jobs to every
 /// board, the frontend job to the careers page and the sandbox board only.</item>
@@ -38,7 +40,8 @@ namespace ScreenHire.Api.Demo;
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
-/// <item>The people in <see cref="DemoCandidates"/> apply to their jobs and are moved through their stages, with notes.</item>
+/// <item>The people in <see cref="DemoCandidates"/> apply to their jobs, answering every question of their job, and are
+/// moved through their stages, with notes.</item>
 /// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.
 /// It stays open until all its candidates have applied, so a start that failed one leaves it for the next start.</item>
 /// </list>
@@ -126,6 +129,11 @@ internal sealed partial class DevelopmentDemo(
         foreach (var (slug, _) in OpenJobs)
         {
             await TryAsync(() => SeedJobEmailsAsync(slug, stoppingToken), stoppingToken);
+        }
+
+        foreach (var (slug, questionnaire) in DemoQuestionnaires.All)
+        {
+            await TryAsync(() => SeedQuestionnaireAsync(slug, questionnaire, stoppingToken), stoppingToken);
         }
 
         if (templateVersion is { } published)
@@ -273,6 +281,41 @@ internal sealed partial class DevelopmentDemo(
 
         // The same stages, plus automations: no application can sit in a stage the edit drops.
         job.ReviseWorkflow(job.Workflow with { Automations = [.. job.Workflow.Automations, .. missing] }, step.Now);
+        await step.Outbox.PublishAsync(new JobWorkflowChanged(job.OrganizationId, job.Id, job.WorkflowVersion, step.Now));
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+    }
+
+    // The questions the job lacks, added as a recruiter's edit of its workflow, before anyone applies to it.
+    private async Task SeedQuestionnaireAsync(string slug, Questionnaire questionnaire, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        {
+            return;
+        }
+
+        var job = await step.Outbox.DbContext.Jobs.SingleOrDefaultAsync(j => j.Slug == slug, cancellationToken);
+        if (job is null || job.Status == JobStatus.Closed)
+        {
+            return;
+        }
+
+        var questions = job.Workflow.Questionnaire.Questions;
+        var missing = questionnaire.Questions.Where(question => questions.All(q => q.Id != question.Id)).ToList();
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
+        // The same stages, plus questions: the dashboard's workflow edit validates the same way.
+        var workflow = job.Workflow with { Questionnaire = new Questionnaire([.. questions, .. missing]) };
+        var problems = DefinitionValidator.Validate(workflow);
+        if (problems.Count > 0)
+        {
+            throw new InvalidOperationException($"The demo questionnaire for '{slug}' is not valid: {string.Join("; ", problems.Select(p => p.Message))}");
+        }
+
+        job.ReviseWorkflow(workflow, step.Now);
         await step.Outbox.PublishAsync(new JobWorkflowChanged(job.OrganizationId, job.Id, job.WorkflowVersion, step.Now));
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }

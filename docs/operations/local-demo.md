@@ -93,11 +93,21 @@ numbers are made up.
 | Job | Status | Boards | What is in it |
 |---|---|---|---|
 | Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note |
-| Senior Product Designer | Open | Every board | Three candidates in Applied, Screening and Interview |
-| Frontend Engineer (Svelte) | Open | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note) |
+| Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview |
+| Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note) |
 | Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Three candidates who went through the stages: one Hired, one Rejected and one Withdrawn, each with the recruiter's notes. Its careers page answers "This job has closed" |
 | Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
-| Customer Success Lead | Draft | None | No template, an on-site job in Manchester |
+| Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
+
+Every job asks questions, and every candidate answers each question of their job, so each candidate page shows answers.
+The .NET, Support Engineer and Backend Engineer (Payments) jobs ask the "Software engineer" questions through their
+template. The designer, frontend and Customer Success Lead jobs are seeded without one, so the demo adds a questionnaire
+to each, as a recruiter's workflow edit (`DemoQuestionnaires` in `apps/api/Demo`). All three ask about right to work
+and the notice period. The designer job adds years of experience, a portfolio link and a research story; the frontend
+job adds years of experience, Svelte use, two office days in London and a work sample link; Customer Success Lead adds
+office days in Manchester, accounts looked after and a customer kept. The answers fit each candidate's CV, and every
+link is an `example.org` address. A data volume from before the questionnaires gets them on the next start, but the
+candidates in it applied without answers and stay that way. Use `/preview fresh` to see every answer.
 
 Between them every stage of both pipelines holds someone. The distribution strips show the states a local stack can
 reach: Live (careers page, sandbox board), Sent (feeds and the job-board API), Needs fixes (a feed that wants a longer
