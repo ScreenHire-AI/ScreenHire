@@ -198,6 +198,9 @@ internal static class TeamEndpoints
         var role = request.Role!.Value;
         var email = MagicLinks.NormalizeEmail(request.Email);
 
+        // Under the member lock, so two invitations to one address at once cannot both stay open.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await Invitations.LockMembersAsync(db, organizationId, cancellationToken);
         var actorRole = await InOrganization(db, tenant).AsNoTracking()
             .Where(m => m.UserId == userId)
             .Select(m => m.Role)
@@ -238,10 +241,16 @@ internal static class TeamEndpoints
             ExpiresAt = now + lifetime,
         };
 
-        // One open invitation per address: a new one replaces the earlier ones, whose links stop working.
+        // One open invitation per address: a new one replaces the earlier ones, whose links stop working. Replacing is
+        // revoking, so an Admin cannot replace an invitation to become an Owner, as RevokeInvitation refuses it too.
         var earlier = await db.OrganizationInvitations
             .Where(i => i.Email == email && i.AcceptedAt == null && i.RevokedAt == null && i.ExpiresAt > now)
             .ToListAsync(cancellationToken);
+        if (earlier.Any(i => !TeamPolicy.MayAssign(actorRole, i.Role)))
+        {
+            return OwnersOnly("Only an owner can replace an invitation to become an owner.");
+        }
+
         foreach (var replaced in earlier.Where(i => i.Revoke(now)))
         {
             db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.InvitationRevoked, replaced, userId, now));
@@ -250,6 +259,7 @@ internal static class TeamEndpoints
         db.OrganizationInvitations.Add(invitation);
         db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.Invited, invitation, userId, now));
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         var organizationName = await db.Organizations.AsNoTracking()
             .Where(o => o.Id == organizationId).Select(o => o.Name).SingleAsync(cancellationToken);

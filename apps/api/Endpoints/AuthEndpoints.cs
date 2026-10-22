@@ -11,6 +11,7 @@ using Npgsql;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Realtime;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Persistence;
@@ -195,10 +196,11 @@ internal static class AuthEndpoints
             .ToListAsync(cancellationToken));
 
     // Remembered on the user (ApplicationUser.ActiveOrganizationId), so it holds on every device until they switch again.
-    // Not a member is 404, like any other organization's id.
+    // Not a member is 404, like any other organization's id. Their live-update connections into the previous organization
+    // close, on every device, so each reconnects into the one its next request reads.
     private static async Task<Results<Ok<CurrentUser>, NotFound, UnauthorizedHttpResult>> SwitchOrganization(
         SwitchOrganizationRequest request, HttpContext context, UserManager<ApplicationUser> users, TenantContext tenant,
-        ScreenHireDbContext db, CancellationToken cancellationToken)
+        ScreenHireDbContext db, RealtimeConnections connections, CancellationToken cancellationToken)
     {
         if (await users.GetUserAsync(context.User) is not { } user)
         {
@@ -210,9 +212,15 @@ internal static class AuthEndpoints
             return TypedResults.NotFound();
         }
 
+        var previous = tenant.OrganizationId;
         await db.Users.Where(u => u.Id == user.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(u => u.ActiveOrganizationId, request.OrganizationId), cancellationToken);
         tenant.SetOrganization(request.OrganizationId);
+        if (previous is { } left && left != request.OrganizationId)
+        {
+            connections.Close(user.Id, left);
+        }
+
         return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
     }
 

@@ -23,16 +23,12 @@ internal sealed class RealtimeConnections
     public void Remove(string connectionId) => connections.TryRemove(connectionId, out _);
 
     /// <summary>Closes every connection <paramref name="userId"/> opened into <paramref name="organizationId"/>.</summary>
-    public int Close(Guid userId, Guid organizationId)
+    public void Close(Guid userId, Guid organizationId)
     {
-        var closed = 0;
         foreach (var entry in connections.Values.Where(e => e.UserId == userId && e.OrganizationId == organizationId))
         {
             entry.Context.Abort();
-            closed++;
         }
-
-        return closed;
     }
 
     private sealed record Entry(HubCallerContext Context, Guid UserId, Guid OrganizationId);

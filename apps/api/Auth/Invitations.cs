@@ -41,8 +41,8 @@ internal static class Invitations
     }
 
     /// <summary>
-    /// Serializes changes to one organization's members for the rest of the transaction: role changes, removals and
-    /// joins. Two Owners demoting each other at once would otherwise both see the other as the remaining Owner. The key
+    /// Serializes changes to one organization's members for the rest of the transaction: role changes, removals,
+    /// invitations and joins. Two Owners demoting each other at once would otherwise both see the other as the remaining Owner. The key
     /// is prefixed, so it never shares a lock with onboarding's per-user one.
     /// </summary>
     public static Task LockMembersAsync(ScreenHireDbContext db, Guid organizationId, CancellationToken cancellationToken)
