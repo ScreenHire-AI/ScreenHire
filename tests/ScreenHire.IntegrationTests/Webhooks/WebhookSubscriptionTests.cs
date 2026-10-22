@@ -114,8 +114,11 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
 
         attempts.Select(a => a.Body).Distinct().Should().ContainSingle("every attempt sends the same body");
         attempts.Select(a => a.Header("ScreenHire-Delivery-Id")).Distinct().Should().ContainSingle("the attempts are one delivery");
-        (attempts[1].ReceivedAt - attempts[0].ReceivedAt).Should().BeGreaterThanOrEqualTo(AppHostFixture.WebhookRetryDelays[0]);
-        (attempts[2].ReceivedAt - attempts[1].ReceivedAt).Should().BeGreaterThanOrEqualTo(AppHostFixture.WebhookRetryDelays[1]);
+        // The worker schedules the next attempt from the time it stamped before sending, and the receiver stamps on
+        // arrival, so a slow first connection can make the measured gap a little shorter than the delay.
+        var slack = TimeSpan.FromMilliseconds(250);
+        (attempts[1].ReceivedAt - attempts[0].ReceivedAt).Should().BeGreaterThanOrEqualTo(AppHostFixture.WebhookRetryDelays[0] - slack);
+        (attempts[2].ReceivedAt - attempts[1].ReceivedAt).Should().BeGreaterThanOrEqualTo(AppHostFixture.WebhookRetryDelays[1] - slack);
 
         var log = await WaitForDeliveriesAsync(recruiter, endpointId, d => d.Any(e => e.Status == "Succeeded"), "the delivery to succeed");
         var delivery = log.Single();
