@@ -171,10 +171,12 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
   `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,
   unique index or upsert).
 - Sign-in and tenancy (`docs/architecture/sign-in-and-tenancy.md`): every route needs a signed-in user unless it
-  calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Tenant-owned entities
-  implement `ITenantOwned` and get a row-level security policy in their migration. The API and worker connect as
-  `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic
-  OIDC providers appear only when their client id and secret are in user secrets.
+  calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Hiring API groups (jobs,
+  applications, candidates, templates) use `.AllowApiKeys()`, which also accepts an organization API key (ADR-0011);
+  nothing else does. Tenant-owned entities implement `ITenantOwned` and get a row-level security policy in their
+  migration. The API and worker connect as `screenhire_app` (bound by RLS); handlers never filter by organization
+  themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user
+  secrets.
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
   settings need it. The DbContext is registered without EF's retrying execution strategy (`DisableRetry`), which
   refuses the outbox's transaction.

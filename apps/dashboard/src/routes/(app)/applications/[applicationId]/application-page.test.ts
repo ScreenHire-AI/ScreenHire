@@ -74,6 +74,7 @@ const entry = (overrides: Partial<ApplicationTimelineEntry>): ApplicationTimelin
   note: null,
   tag: null,
   automationRunId: null,
+  actorApiKeyId: null,
   ...overrides,
 });
 

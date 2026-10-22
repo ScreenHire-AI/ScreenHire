@@ -46,27 +46,18 @@ public sealed class ApiSession : IDisposable
         SendAsync(HttpMethod.Put, path, body, cancellationToken);
 
     /// <summary>Sends a DELETE with the antiforgery header, fetching a token first if this session has none.</summary>
-    public async Task<HttpResponseMessage> DeleteAsync(string path, CancellationToken cancellationToken)
-    {
-        await EnsureAntiforgeryTokenAsync(cancellationToken);
-        using var request = new HttpRequestMessage(HttpMethod.Delete, path);
-        request.Headers.Add(AntiforgeryHeader, AntiforgeryToken());
-        return await Client.SendAsync(request, cancellationToken);
-    }
+    public Task<HttpResponseMessage> DeleteAsync(string path, CancellationToken cancellationToken) =>
+        SendAsync<object?>(HttpMethod.Delete, path, null, cancellationToken);
 
-    private async Task EnsureAntiforgeryTokenAsync(CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> SendAsync<T>(
+        HttpMethod method, string path, T body, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? headers = null)
     {
         if (AntiforgeryToken() is null)
         {
             (await Client.GetAsync("/v1/auth/providers", cancellationToken)).EnsureSuccessStatusCode();
         }
-    }
 
-    private async Task<HttpResponseMessage> SendAsync<T>(
-        HttpMethod method, string path, T body, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? headers = null)
-    {
-        await EnsureAntiforgeryTokenAsync(cancellationToken);
-        using var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) };
+        using var request = new HttpRequestMessage(method, path) { Content = body is null ? null : JsonContent.Create(body) };
         request.Headers.Add(AntiforgeryHeader, AntiforgeryToken());
         foreach (var (name, value) in headers ?? new Dictionary<string, string>())
         {

@@ -182,13 +182,17 @@ nothing.
   The message is stored durably and released by the durability agent.
 - **Recurring:** `opts.Schedules.ScheduleRecurring<T>("cron")` in `ScheduleRecurringMessages`, worker only. Times are
   UTC. The example is `ReportOpenJobs` every five minutes, which replaced the scaffold's heartbeat loop. The integrity
-  engine's retention sweep, `PurgeExpiredIntegrityData`, runs daily and fans out one tenant message per organization.
+  engine's retention sweep, `PurgeExpiredIntegrityData`, runs daily and fans out one tenant message per organization;
+  `PurgeExpiredWebhookDeliveries` does the same for webhook delivery logs.
   A schedule faster than every five seconds is refused.
 - **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
   `ReconcileJobPosting` for the time the board gave, as a cascading message (`OutgoingMessages.Schedule`). Two
   recurring messages back it up: `ReconcileJobPostings` every five minutes and `DispatchIndexingNotifications` every
   minute. Both walk the organizations and hand each organization's work to an `ITenantMessage`, which runs as that
   organization.
+- **Webhook subscriptions** (workflow-engine.md §5) schedule their own retries. A failed attempt records itself on its
+  delivery row and returns the next `DeliverWebhook` as a scheduled cascading message. Throwing into the error policy
+  instead would roll back the attempt it should record. The delays come from `ScreenHire:Webhooks:RetryDelays`.
 
 ## Telemetry
 
@@ -208,6 +212,7 @@ counter in process; no test reads them back from the dashboard.
 | `RecurringMessageTests` | `ReportOpenJobs` is registered every five minutes, tracked durably, and its handler runs when triggered |
 | `Automations/AutomationEmailTests` | the workflow engine through the running stack: entering a stage sends the configured email (read back from Mailpit), and replaying the same `ApplicationMoved` sends nothing twice |
 | `Automations/TimeElapsedTests` | entering a stage schedules a durable timer; the timer runs its automation when it fires, and a timer from a stage entry the application has left does nothing |
+| `Webhooks/WebhookSubscriptionTests` | webhook subscriptions through the running stack, with a receiver on loopback (`WebhookReceiver`): signed deliveries with ids only, secret rotation, retries with backoff, replay, automatic disabling and re-enabling, tenant isolation, URL and event validation |
 | `Automations/WorkflowEngineTests` | validate and simulate; a manual run's tag and rejection-review task; two automations moving an application back and forth stopped as a loop; and, in a private schema with no retries, a dead-lettered action reaching the automation issues list |
 
 Real-time delivery has its own tests (realtime.md). `MessagingHost` starts those private-schema hosts, and a publisher

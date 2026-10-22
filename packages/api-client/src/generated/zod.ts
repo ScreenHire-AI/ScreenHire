@@ -91,15 +91,6 @@ export const GetCurrentUserResponse = zod.object({
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
-export const ListMyOrganizationsResponseItem = zod.object({
-  "id": zod.uuid(),
-  "name": zod.string(),
-  "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])
-}).describe('The organization the signed-in user works in, and their role there.')
-export const ListMyOrganizationsResponse = zod.array(ListMyOrganizationsResponseItem)
-
-
 export const ChallengeProviderParams = zod.object({
   "provider": zod.string()
 })
@@ -131,40 +122,6 @@ export const CompleteOnboardingBody = zod.object({
 }).describe('Creates the signed-in user\'s organization, with them as its Owner.')
 
 export const CompleteOnboardingResponse = zod.object({
-  "id": zod.uuid(),
-  "email": zod.string(),
-  "displayName": zod.string(),
-  "organization": zod.union([zod.null(),zod.object({
-  "id": zod.uuid(),
-  "name": zod.string(),
-  "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])
-}).describe('The organization the signed-in user works in, and their role there.')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding).')
-
-
-export const AcceptInvitationBody = zod.object({
-  "token": zod.string()
-}).describe('Accepts the invitation whose token an emailed link carries, signing in as the invited address.')
-
-export const AcceptInvitationResponse = zod.object({
-  "id": zod.uuid(),
-  "email": zod.string(),
-  "displayName": zod.string(),
-  "organization": zod.union([zod.null(),zod.object({
-  "id": zod.uuid(),
-  "name": zod.string(),
-  "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])
-}).describe('The organization the signed-in user works in, and their role there.')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding).')
-
-
-export const SwitchOrganizationBody = zod.object({
-  "organizationId": zod.uuid()
-}).describe('Makes another of the signed-in user\'s organizations the one they work in.')
-
-export const SwitchOrganizationResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
@@ -2516,7 +2473,8 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "toStageId": zod.string().nullable(),
   "note": zod.string().nullable(),
   "tag": zod.string().nullable(),
-  "automationRunId": zod.uuid().nullable()
+  "automationRunId": zod.uuid().nullable(),
+  "actorApiKeyId": zod.uuid().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -3401,84 +3359,70 @@ export const UpdateOrganizationIntegritySettingsResponse = zod.object({
 }).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month.')
 
 
-export const ListTeamMembersResponseItem = zod.object({
+export const ListApiKeysResponseItem = zod.object({
   "id": zod.uuid(),
-  "userId": zod.uuid(),
-  "email": zod.string(),
-  "displayName": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
-  "joinedAt": zod.iso.datetime({"offset":true})
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.')
-export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
-
-
-export const ListInvitationsResponseItem = zod.object({
-  "id": zod.uuid(),
-  "email": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
-  "expiresAt": zod.iso.datetime({"offset":true})
-}).describe('An invitation nobody has accepted, revoked or let expire yet.')
-export const ListInvitationsResponse = zod.array(ListInvitationsResponseItem)
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+export const ListApiKeysResponse = zod.array(ListApiKeysResponseItem)
 
 
-export const CreateInvitationBody = zod.object({
-  "email": zod.string(),
-  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])])
-}).describe('Invites a person by email to join the organization with a role.')
+export const CreateApiKeyBody = zod.object({
+  "name": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullish()
+}).describe('Creates a key. `scopes` is `["Read"]` or `["Read", "Write"]`. `permitsPerMinute` lowers the\r\nkey\'s rate limit below the deployment\'s; null uses the deployment\'s.')
 
-export const CreateInvitationResponse = zod.object({
+export const CreateApiKeyResponse = zod.object({
+  "key": zod.object({
   "id": zod.uuid(),
-  "email": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
-  "expiresAt": zod.iso.datetime({"offset":true})
-}).describe('An invitation nobody has accepted, revoked or let expire yet.')
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.'),
+  "token": zod.string()
+}).describe('A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`.')
 
 
-export const ListMembershipLogResponseItem = zod.object({
+export const GetApiKeyParams = zod.object({
+  "keyId": zod.uuid()
+})
+
+export const GetApiKeyResponse = zod.object({
   "id": zod.uuid(),
-  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed']),
-  "actorUserId": zod.uuid(),
-  "memberUserId": zod.uuid().nullable(),
-  "invitationId": zod.uuid().nullable(),
-  "previousRole": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])]),
-  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])]),
-  "occurredAt": zod.iso.datetime({"offset":true})
-}).describe('One entry in the organization\'s membership log. `actorUserId` made the change; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet). `previousRole` and `role` are set where the kind has them.')
-export const ListMembershipLogResponse = zod.array(ListMembershipLogResponseItem)
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
 
 
-export const ChangeMemberRoleParams = zod.object({
-  "memberId": zod.uuid()
+export const RevokeApiKeyParams = zod.object({
+  "keyId": zod.uuid()
 })
 
-export const ChangeMemberRoleBody = zod.object({
-  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer'])])
-}).describe('Gives a member another role.')
-
-export const ChangeMemberRoleResponse = zod.object({
+export const RevokeApiKeyResponse = zod.object({
   "id": zod.uuid(),
-  "userId": zod.uuid(),
-  "email": zod.string(),
-  "displayName": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
-  "joinedAt": zod.iso.datetime({"offset":true})
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.')
-
-
-export const RemoveMemberParams = zod.object({
-  "memberId": zod.uuid()
-})
-
-export const RemoveMemberResponse = zod.void()
-
-
-export const RevokeInvitationParams = zod.object({
-  "invitationId": zod.uuid()
-})
-
-export const RevokeInvitationResponse = zod.void()
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
 
 
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -3770,6 +3714,172 @@ export const RunManualAutomationResponse = zod.object({
   "automationId": zod.string(),
   "eventId": zod.uuid()
 }).describe('A manual automation was queued. `eventId` keys its run: find it in the application\'s automation runs.')
+
+
+export const ListWebhookEventTypesResponseItem = zod.string()
+export const ListWebhookEventTypesResponse = zod.array(ListWebhookEventTypesResponseItem)
+
+
+export const ListWebhookEndpointsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+export const ListWebhookEndpointsResponse = zod.array(ListWebhookEndpointsResponseItem)
+
+
+export const CreateWebhookEndpointBody = zod.object({
+  "url": zod.string(),
+  "events": zod.array(zod.string()),
+  "description": zod.string().nullish()
+}).describe('A new webhook endpoint: where to post, and which events (`GET /v1/webhooks/event-types` lists them).')
+
+export const CreateWebhookEndpointResponse = zod.object({
+  "endpoint": zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
+  "signingSecret": zod.string()
+}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
+
+
+export const GetWebhookEndpointParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const GetWebhookEndpointResponse = zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+
+
+export const UpdateWebhookEndpointParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const UpdateWebhookEndpointBody = zod.object({
+  "url": zod.string(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean().nullish(),
+  "description": zod.string().nullish()
+}).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\r\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\r\nbe replayed.')
+
+export const UpdateWebhookEndpointResponse = zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+
+
+export const DeleteWebhookEndpointParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const DeleteWebhookEndpointResponse = zod.void()
+
+
+export const RotateWebhookSecretParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const RotateWebhookSecretResponse = zod.object({
+  "endpoint": zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
+  "signingSecret": zod.string()
+}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
+
+
+export const ListWebhookDeliveriesParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const ListWebhookDeliveriesQueryParams = zod.object({
+  "limit": zod.int().optional()
+})
+
+export const ListWebhookDeliveriesResponseItem = zod.object({
+  "id": zod.uuid(),
+  "eventId": zod.uuid(),
+  "eventType": zod.string(),
+  "status": zod.enum(['Pending', 'Succeeded', 'Failed', 'Skipped']),
+  "attempts": zod.int(),
+  "lastStatusCode": zod.int().nullable(),
+  "lastError": zod.string().nullable(),
+  "replayOfId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "nextAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "payload": zod.string()
+}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+export const ListWebhookDeliveriesResponse = zod.array(ListWebhookDeliveriesResponseItem)
+
+
+export const ReplayWebhookDeliveryParams = zod.object({
+  "endpointId": zod.uuid(),
+  "deliveryId": zod.uuid()
+})
+
+export const ReplayWebhookDeliveryResponse = zod.object({
+  "id": zod.uuid(),
+  "eventId": zod.uuid(),
+  "eventType": zod.string(),
+  "status": zod.enum(['Pending', 'Succeeded', 'Failed', 'Skipped']),
+  "attempts": zod.int(),
+  "lastStatusCode": zod.int().nullable(),
+  "lastError": zod.string().nullable(),
+  "replayOfId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "nextAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "payload": zod.string()
+}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
 
 
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()

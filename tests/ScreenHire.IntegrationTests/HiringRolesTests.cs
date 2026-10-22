@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// Roles on the hiring routes (<c>RequireHiringRole</c>) and organization settings (<c>RequireOrganizationAdmin</c>): a
+/// Roles on the hiring routes (<c>RequireHiringRole</c>) and organization settings and webhooks (<c>RequireOrganizationAdmin</c>): a
 /// Viewer of an organization sees its jobs, templates and applications but changes none of them, and gets 403 with a
 /// problem body on every write.
 /// </summary>
@@ -39,6 +39,11 @@ public sealed class HiringRolesTests(AppHostFixture fixture)
             await viewer.PutAsync($"/v1/templates/{templateId}", new JsonObject { ["name"] = "Renamed" }),
             await viewer.PutAsync($"/v1/templates/{templateId}/versions/1", new JsonObject { ["definition"] = Samples.Definition() }),
             await viewer.PostAsync($"/v1/templates/{templateId}/versions/1/publish"),
+            await viewer.PostAsync("/v1/webhooks", new JsonObject
+            {
+                ["url"] = "https://hooks.example.com/in",
+                ["events"] = new JsonArray("job.published"),
+            }),
             await viewer.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#000000" }),
         ];
 

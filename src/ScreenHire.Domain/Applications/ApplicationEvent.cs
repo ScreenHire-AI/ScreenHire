@@ -18,7 +18,9 @@ public sealed class ApplicationEvent : ITenantOwned
 
     public required ApplicationEventData Data { get; init; }
 
-    /// <summary>The signed-in user who caused it, or null for the candidate or the system.</summary>
+    /// <summary>
+    /// The signed-in user who caused it, or null for the candidate, the system or an API key (<see cref="ApplicationEventData.ApiKeyId"/>).
+    /// </summary>
     public Guid? ActorUserId { get; init; }
 
     public DateTimeOffset OccurredAt { get; init; }
@@ -43,6 +45,7 @@ public enum ApplicationEventType
 /// follows it to find which automations led to a move (depth limit and cycle detection).
 /// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.IntegrityAssessed"/>,
 /// the levels as they stood after the assessment; automation conditions read them as integrity facts.
+/// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -52,4 +55,5 @@ public sealed record ApplicationEventData(
     Guid? AutomationRunId = null,
     string? AuthenticityLevel = null,
     string? AiAssistanceLevel = null,
-    string? RulesetVersion = null);
+    string? RulesetVersion = null,
+    Guid? ApiKeyId = null);
