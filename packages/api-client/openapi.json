@@ -142,7 +142,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/meta": {
@@ -360,7 +365,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/auth/sign-out": {
@@ -817,7 +827,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -878,7 +896,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}": {
@@ -915,7 +941,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -990,7 +1024,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/publish": {
@@ -1073,7 +1115,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/close": {
@@ -1130,7 +1180,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/versions": {
@@ -1170,7 +1228,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/versions/{version}": {
@@ -1216,7 +1282,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/workflow/template-diff": {
@@ -1253,7 +1327,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/workflow": {
@@ -1330,7 +1412,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/workflow/apply-template-update": {
@@ -1407,7 +1497,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/templates": {
@@ -1433,7 +1531,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -1484,7 +1590,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/templates/{templateId}": {
@@ -1521,7 +1635,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -1596,7 +1718,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/templates/{templateId}/versions": {
@@ -1673,7 +1803,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/templates/{templateId}/versions/{version}": {
@@ -1719,7 +1857,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -1803,7 +1949,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/templates/{templateId}/versions/{version}/publish": {
@@ -1879,7 +2033,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/applications": {
@@ -1919,7 +2081,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -1994,7 +2164,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/applications": {
@@ -2020,7 +2198,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}": {
@@ -2057,7 +2243,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/move": {
@@ -2134,7 +2328,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/timeline": {
@@ -2174,7 +2376,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/files/{fileId}": {
@@ -2220,7 +2430,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/candidates": {
@@ -2246,7 +2464,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/candidates/{candidateId}": {
@@ -2283,7 +2509,15 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/integrity": {
@@ -2320,7 +2554,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/dismiss": {
@@ -2406,7 +2645,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/integrity/notes": {
@@ -2473,7 +2717,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/integrity/request-verification": {
@@ -2510,7 +2759,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/boards": {
@@ -2536,7 +2790,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/postings": {
@@ -2576,7 +2835,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/jobs/{jobId}/postings/{boardId}/close": {
@@ -2641,7 +2905,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/public/boards/{organizationSlug}": {
@@ -2783,7 +3052,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -2837,7 +3111,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/organization/integrity-settings": {
@@ -2860,7 +3139,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -2911,7 +3195,213 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/api-keys": {
+      "get": {
+        "tags": [
+          "API keys"
+        ],
+        "operationId": "ListApiKeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeySummary"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "API keys"
+        ],
+        "operationId": "CreateApiKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/api-keys/{keyId}": {
+      "get": {
+        "tags": [
+          "API keys"
+        ],
+        "operationId": "GetApiKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeySummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/api-keys/{keyId}/revoke": {
+      "post": {
+        "tags": [
+          "API keys"
+        ],
+        "operationId": "RevokeApiKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeySummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/workflows/validate": {
@@ -2944,7 +3434,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/workflows/simulate": {
@@ -2987,7 +3482,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/automation-runs": {
@@ -3027,7 +3527,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/tasks": {
@@ -3067,7 +3572,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/applications/{applicationId}/automations/{automationId}/run": {
@@ -3139,7 +3649,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/schemas/hiring-template-definition.json": {
@@ -3343,6 +3858,70 @@
           }
         },
         "description": "A candidate's answer to one question. A multiple-choice answer has one value per chosen option."
+      },
+      "ApiKeyScope": {
+        "enum": [
+          "Read",
+          "Write"
+        ],
+        "description": "What an API key may do on the hiring API."
+      },
+      "ApiKeySummary": {
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "scopes",
+          "permitsPerMinute",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyScope"
+            }
+          },
+          "permitsPerMinute": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key's first characters. `permitsPerMinute` is null for the deployment's default.\r\n`lastUsedAt` is accurate to about a minute."
       },
       "ApiMeta": {
         "required": [
@@ -4620,6 +5199,32 @@
         },
         "description": "Something that argues against a signal, in plain language, with optional evidence of its own."
       },
+      "CreateApiKeyRequest": {
+        "required": [
+          "name",
+          "scopes"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyScope"
+            }
+          },
+          "permitsPerMinute": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`. `permitsPerMinute` lowers the\r\nkey's rate limit below the deployment's; null uses the deployment's."
+      },
       "CreateApplicationRequest": {
         "required": [
           "candidate"
@@ -4644,6 +5249,22 @@
           }
         },
         "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site's."
+      },
+      "CreatedApiKey": {
+        "required": [
+          "key",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ApiKeySummary"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "description": "A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`."
       },
       "CreateHiringTemplateRequest": {
         "required": [
@@ -8053,6 +8674,20 @@
           "Remote"
         ]
       }
+    },
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "description": "The dashboard's session, from signing in. Changes also need the X-XSRF-TOKEN header.",
+        "name": "sh.session",
+        "in": "cookie"
+      },
+      "apiKey": {
+        "type": "http",
+        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates.",
+        "scheme": "bearer",
+        "bearerFormat": "shk_..."
+      }
     }
   },
   "tags": [
@@ -8094,6 +8729,9 @@
     },
     {
       "name": "Organization"
+    },
+    {
+      "name": "API keys"
     },
     {
       "name": "Workflows"

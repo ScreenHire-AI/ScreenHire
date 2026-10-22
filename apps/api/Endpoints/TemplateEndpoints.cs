@@ -24,7 +24,7 @@ internal static class TemplateEndpoints
 
     public static IEndpointRouteBuilder MapTemplateEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/templates").WithTags("Hiring templates").RequireAuthorization();
+        var group = app.MapGroup("/v1/templates").WithTags("Hiring templates").AllowApiKeys();
 
         group.MapGet("/", ListTemplates).WithName("ListHiringTemplates").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateTemplate).WithName("CreateHiringTemplate")

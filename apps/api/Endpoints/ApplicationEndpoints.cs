@@ -23,7 +23,7 @@ internal static class ApplicationEndpoints
 {
     public static IEndpointRouteBuilder MapApplicationEndpoints(this IEndpointRouteBuilder app)
     {
-        var jobs = app.MapGroup("/v1/jobs/{jobId:guid}/applications").WithTags("Applications").RequireAuthorization();
+        var jobs = app.MapGroup("/v1/jobs/{jobId:guid}/applications").WithTags("Applications").AllowApiKeys();
         jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").Produces(StatusCodes.Status401Unauthorized);
         jobs.MapPost("/", CreateApplication).WithName("CreateApplication")
             .RequireAntiforgeryToken()
@@ -31,7 +31,7 @@ internal static class ApplicationEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
-        var applications = app.MapGroup("/v1/applications").WithTags("Applications").RequireAuthorization();
+        var applications = app.MapGroup("/v1/applications").WithTags("Applications").AllowApiKeys();
         applications.MapGet("/", ListApplications).WithName("ListApplications").Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication")
@@ -45,7 +45,7 @@ internal static class ApplicationEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
-        var candidates = app.MapGroup("/v1/candidates").WithTags("Candidates").RequireAuthorization();
+        var candidates = app.MapGroup("/v1/candidates").WithTags("Candidates").AllowApiKeys();
         candidates.MapGet("/", ListCandidates).WithName("ListCandidates").Produces(StatusCodes.Status401Unauthorized);
         candidates.MapGet("/{candidateId:guid}", GetCandidate).WithName("GetCandidate").Produces(StatusCodes.Status401Unauthorized);
 

@@ -6,6 +6,7 @@
  */
 import type {
   AddIntegrityNoteRequest,
+  ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
   ApplicationIntegrity,
@@ -19,10 +20,12 @@ import type {
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
+  CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreatedApiKey,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
@@ -3286,6 +3289,215 @@ return apiFetch<updateOrganizationIntegritySettingsResponse>(getUpdateOrganizati
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateIntegritySettingsRequest)
+  }
+);}
+
+
+
+export type listApiKeysResponse200 = {
+  data: ApiKeySummary[]
+  status: 200
+}
+
+export type listApiKeysResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApiKeysResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listApiKeysResponseSuccess = (listApiKeysResponse200) & {
+  headers: Headers;
+};
+export type listApiKeysResponseError = (listApiKeysResponse401 | listApiKeysResponse403) & {
+  headers: Headers;
+};
+
+export type listApiKeysResponse = (listApiKeysResponseSuccess | listApiKeysResponseError)
+
+export const getListApiKeysUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys`
+}
+
+export const listApiKeys = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listApiKeysResponse> => {
+
+  return apiFetch<listApiKeysResponse>(getListApiKeysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createApiKeyResponse201 = {
+  data: CreatedApiKey
+  status: 201
+}
+
+export type createApiKeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createApiKeyResponseSuccess = (createApiKeyResponse201) & {
+  headers: Headers;
+};
+export type createApiKeyResponseError = (createApiKeyResponse400 | createApiKeyResponse401 | createApiKeyResponse403) & {
+  headers: Headers;
+};
+
+export type createApiKeyResponse = (createApiKeyResponseSuccess | createApiKeyResponseError)
+
+export const getCreateApiKeyUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys`
+}
+
+export const createApiKey = async (createApiKeyRequest: CreateApiKeyRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createApiKeyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createApiKeyResponse>(getCreateApiKeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createApiKeyRequest)
+  }
+);}
+
+
+
+export type getApiKeyResponse200 = {
+  data: ApiKeySummary
+  status: 200
+}
+
+export type getApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeyResponseSuccess = (getApiKeyResponse200) & {
+  headers: Headers;
+};
+export type getApiKeyResponseError = (getApiKeyResponse401 | getApiKeyResponse403 | getApiKeyResponse404) & {
+  headers: Headers;
+};
+
+export type getApiKeyResponse = (getApiKeyResponseSuccess | getApiKeyResponseError)
+
+export const getGetApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/v1/organization/api-keys/${keyId}`
+}
+
+export const getApiKey = async (keyId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApiKeyResponse> => {
+
+  return apiFetch<getApiKeyResponse>(getGetApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type revokeApiKeyResponse200 = {
+  data: ApiKeySummary
+  status: 200
+}
+
+export type revokeApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeApiKeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeApiKeyResponseSuccess = (revokeApiKeyResponse200) & {
+  headers: Headers;
+};
+export type revokeApiKeyResponseError = (revokeApiKeyResponse401 | revokeApiKeyResponse403 | revokeApiKeyResponse404) & {
+  headers: Headers;
+};
+
+export type revokeApiKeyResponse = (revokeApiKeyResponseSuccess | revokeApiKeyResponseError)
+
+export const getRevokeApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/v1/organization/api-keys/${keyId}/revoke`
+}
+
+export const revokeApiKey = async (keyId: string, options?: Parameters<typeof apiFetch>[1]): Promise<revokeApiKeyResponse> => {
+
+  return apiFetch<revokeApiKeyResponse>(getRevokeApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 

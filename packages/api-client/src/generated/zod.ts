@@ -3358,6 +3358,72 @@ export const UpdateOrganizationIntegritySettingsResponse = zod.object({
 }).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month.')
 
 
+export const ListApiKeysResponseItem = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+export const ListApiKeysResponse = zod.array(ListApiKeysResponseItem)
+
+
+export const CreateApiKeyBody = zod.object({
+  "name": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullish()
+}).describe('Creates a key. `scopes` is `["Read"]` or `["Read", "Write"]`. `permitsPerMinute` lowers the\r\nkey\'s rate limit below the deployment\'s; null uses the deployment\'s.')
+
+export const CreateApiKeyResponse = zod.object({
+  "key": zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.'),
+  "token": zod.string()
+}).describe('A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`.')
+
+
+export const GetApiKeyParams = zod.object({
+  "keyId": zod.uuid()
+})
+
+export const GetApiKeyResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+
+
+export const RevokeApiKeyParams = zod.object({
+  "keyId": zod.uuid()
+})
+
+export const RevokeApiKeyResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "prefix": zod.string(),
+  "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
+  "permitsPerMinute": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+
+
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const validateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;

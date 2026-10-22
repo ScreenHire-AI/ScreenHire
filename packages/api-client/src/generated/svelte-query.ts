@@ -22,6 +22,7 @@ import type {
 
 import type {
   AddIntegrityNoteRequest,
+  ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
   ApplicationIntegrity,
@@ -35,10 +36,12 @@ import type {
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
+  CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreatedApiKey,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
@@ -6147,6 +6150,401 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUpdateOrganizationIntegritySettingsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listApiKeysResponse200 = {
+  data: ApiKeySummary[]
+  status: 200
+}
+
+export type listApiKeysResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApiKeysResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listApiKeysResponseSuccess = (listApiKeysResponse200) & {
+  headers: Headers;
+};
+export type listApiKeysResponseError = (listApiKeysResponse401 | listApiKeysResponse403) & {
+  headers: Headers;
+};
+
+export const getListApiKeysUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys`
+}
+
+export const listApiKeys = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApiKeysResponseSuccess> => {
+
+  return apiQueryFetch<listApiKeysResponseSuccess>(getListApiKeysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApiKeysQueryKey = () => {
+    return [
+    'v1','organization','api-keys'
+    ] as const;
+    }
+
+
+export const getListApiKeysQueryOptions = <TData = Awaited<ReturnType<typeof listApiKeys>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApiKeys>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApiKeysQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApiKeys>>> = ({ signal }) => listApiKeys({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listApiKeys>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListApiKeysQueryResult = NonNullable<Awaited<ReturnType<typeof listApiKeys>>>
+export type ListApiKeysQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListApiKeys<TData = Awaited<ReturnType<typeof listApiKeys>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApiKeys>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListApiKeysQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createApiKeyResponse201 = {
+  data: CreatedApiKey
+  status: 201
+}
+
+export type createApiKeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createApiKeyResponseSuccess = (createApiKeyResponse201) & {
+  headers: Headers;
+};
+export type createApiKeyResponseError = (createApiKeyResponse400 | createApiKeyResponse401 | createApiKeyResponse403) & {
+  headers: Headers;
+};
+
+export const getCreateApiKeyUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys`
+}
+
+export const createApiKey = async (createApiKeyRequest: CreateApiKeyRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createApiKeyResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createApiKeyResponseSuccess>(getCreateApiKeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createApiKeyRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateApiKeyMutationKey = () => ['createApiKey'] as const;
+
+export const getCreateApiKeyMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createApiKey>>, TError,CreateApiKeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createApiKey>>, TError,CreateApiKeyMutationVariables, TContext> => {
+
+const mutationKey = getCreateApiKeyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApiKey>>, CreateApiKeyMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createApiKey(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateApiKeyMutationResult = NonNullable<Awaited<ReturnType<typeof createApiKey>>>
+    export type CreateApiKeyMutationBody = CreateApiKeyRequest
+    export type CreateApiKeyMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateApiKeyMutationVariables = {data: CreateApiKeyRequest}
+
+    export const createCreateApiKey = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createApiKey>>, TError,CreateApiKeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createApiKey>>,
+        TError,
+        CreateApiKeyMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateApiKeyMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getApiKeyResponse200 = {
+  data: ApiKeySummary
+  status: 200
+}
+
+export type getApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeyResponseSuccess = (getApiKeyResponse200) & {
+  headers: Headers;
+};
+export type getApiKeyResponseError = (getApiKeyResponse401 | getApiKeyResponse403 | getApiKeyResponse404) & {
+  headers: Headers;
+};
+
+export const getGetApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/v1/organization/api-keys/${keyId}`
+}
+
+export const getApiKey = async (keyId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApiKeyResponseSuccess> => {
+
+  return apiQueryFetch<getApiKeyResponseSuccess>(getGetApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiKeyQueryKey = (keyId: string,) => {
+    return [
+    'v1','organization','api-keys',keyId
+    ] as const;
+    }
+
+
+export const getGetApiKeyQueryOptions = <TData = Awaited<ReturnType<typeof getApiKey>>, TError = ErrorType<void | ProblemDetails>>(keyId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApiKey>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiKeyQueryKey(keyId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiKey>>> = ({ signal }) => getApiKey(keyId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: keyId !== null && keyId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApiKey>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiKeyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiKey>>>
+export type GetApiKeyQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createGetApiKey<TData = Awaited<ReturnType<typeof getApiKey>>, TError = ErrorType<void | ProblemDetails>>(
+ keyId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApiKey>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetApiKeyQueryOptions(keyId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type revokeApiKeyResponse200 = {
+  data: ApiKeySummary
+  status: 200
+}
+
+export type revokeApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeApiKeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeApiKeyResponseSuccess = (revokeApiKeyResponse200) & {
+  headers: Headers;
+};
+export type revokeApiKeyResponseError = (revokeApiKeyResponse401 | revokeApiKeyResponse403 | revokeApiKeyResponse404) & {
+  headers: Headers;
+};
+
+export const getRevokeApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/v1/organization/api-keys/${keyId}/revoke`
+}
+
+export const revokeApiKey = async (keyId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<revokeApiKeyResponseSuccess> => {
+
+  return apiQueryFetch<revokeApiKeyResponseSuccess>(getRevokeApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeApiKeyMutationKey = () => ['revokeApiKey'] as const;
+
+export const getRevokeApiKeyMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof revokeApiKey>>, TError,RevokeApiKeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof revokeApiKey>>, TError,RevokeApiKeyMutationVariables, TContext> => {
+
+const mutationKey = getRevokeApiKeyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeApiKey>>, RevokeApiKeyMutationVariables> = (props) => {
+          const {keyId} = props ?? {};
+
+          return  revokeApiKey(keyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeApiKeyMutationResult = NonNullable<Awaited<ReturnType<typeof revokeApiKey>>>
+
+    export type RevokeApiKeyMutationError = ErrorType<void | ProblemDetails>
+    export type RevokeApiKeyMutationVariables = {keyId: string}
+
+    export const createRevokeApiKey = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof revokeApiKey>>, TError,RevokeApiKeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof revokeApiKey>>,
+        TError,
+        RevokeApiKeyMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRevokeApiKeyMutationOptions(options?.()) }), queryClient);
     }
 
 export type validateWorkflowResponse200 = {
