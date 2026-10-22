@@ -90,8 +90,8 @@ The migration `GrantAppRoleApiMessagingAccess` creates `wolverine_api` and grant
 Group names always start with the organization, so no group a client can join spans two tenants. Removing someone
 from an organization closes their connections into it at once: `RealtimeConnections` lists this process's
 connections by user and organization, and the remove route aborts theirs. A connection keeps the groups it joined at
-connect, so a client that switches organizations (`POST /v1/auth/switch-organization`) must reconnect to follow the new
-one.
+connect, so switching organizations (`POST /v1/auth/switch-organization`) aborts the user's connections into the one
+they left, on every device, and each client reconnects into the new one.
 
 ## Client: `packages/realtime`
 

@@ -91,7 +91,8 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 `OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. A user can
 belong to several organizations and works in one at a time: the one in `users.active_organization_id` while they are
 still a member of it, otherwise the first one they joined. Joining by invitation and `POST /v1/auth/switch-organization`
-set it. It is per user, not per session, so it follows them to every device. Onboarding creates the organization and the
+set it. It is per user, not per session, so it follows them to every device, and switching closes their live-update
+connections into the organization they left (`docs/architecture/realtime.md`). Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain.
@@ -129,7 +130,8 @@ SHA-256 hash of the token is stored, an invitation expires after `ScreenHire:Aut
 conditional UPDATE uses it up, and the link opens the dashboard's `/invitations/accept#invitation=...` page, so the
 token stays out of server logs and the person confirms with a button. The page is open whoever is signed in
 (`guardRedirect` in `apps/dashboard/src/lib/auth.ts`), because accepting signs in as the invited address. A new invitation to the same address revokes the open
-one. The token is the organization's id followed by 256 random bits (`apps/api/Auth/Invitations.cs`). Accepting reads
+one, under the same advisory lock as role changes, so two at once still leave one open. Replacing is revoking, so an
+Admin cannot replace an invitation to become an Owner (403). The token is the organization's id followed by 256 random bits (`apps/api/Auth/Invitations.cs`). Accepting reads
 the id, makes that organization the tenant, and looks for the hash inside it. The id only says where to look; the
 hash match is what authorizes. Accepting signs in as the user with the invited address, whoever the browser was signed
 in as, and creates that user if needed, because following the link proves the address. The membership, the log entry
