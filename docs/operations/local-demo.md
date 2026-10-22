@@ -88,7 +88,8 @@ The Email link panel's **Email me a sign-in link** works too: the link arrives i
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
 Team invitations have an API but no screen yet: `POST /v1/organization/invitations` as Avery sends the invitation to
-Mailpit. Its link opens `/invitations/accept` on the dashboard, a page the team screens will add.
+Mailpit. Its link points at `/invitations/accept` on the dashboard, which has no page yet. To accept one now, send the `invitation` value from the link's fragment as `token` to
+`POST /v1/auth/invitations/accept`.
 
 ## What the demo data is
 
