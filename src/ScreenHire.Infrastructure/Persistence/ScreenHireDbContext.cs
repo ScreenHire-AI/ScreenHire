@@ -10,6 +10,7 @@ using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -94,6 +95,10 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<ConsistencyCheck> ConsistencyChecks => Set<ConsistencyCheck>();
 
     public DbSet<IntegritySettings> IntegritySettings => Set<IntegritySettings>();
+
+    public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
+
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,

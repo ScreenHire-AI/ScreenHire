@@ -33,6 +33,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Sign-in and tenancy | Email links, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7 |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
+| Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling | the webhook subscriptions task |
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
 | Integrity | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
@@ -66,7 +67,7 @@ brackets.
   (#7, #18). List the reverse proxies and the careers servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
 - **Email.** Choose the production provider behind `IEmailSender`, and set `ScreenHire:Email:From` and the worker's
   SMTP connection; without them automations skip email (#7, #10). Set a production `ScreenHire:Webhooks:SigningKey`
-  (#10).
+  for the API and the worker (#10, the webhook subscriptions task).
 - **LLM.** Set `ScreenHire:Integrity:Llm:Provider=Anthropic` and the `anthropic-api-key` secret, then replace the
   hand-written recordings with live ones; add the provider to the sub-processor list and DPA before a real tenant turns
   the check on (#15).

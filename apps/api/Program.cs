@@ -7,6 +7,7 @@ using ScreenHire.Api.Demo;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
+using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
@@ -45,6 +46,9 @@ builder.Services.Configure<ExceptionHandlerOptions>(options => options.StatusCod
 builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes());
 builder.Services.AddHiringValidation();
 builder.AddJobDistribution();
+// Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
+// worker applies (docs/architecture/workflow-engine.md section 5).
+builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -81,6 +85,7 @@ app.MapOrganizationEndpoints();
 app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
+app.MapWebhookEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 

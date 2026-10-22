@@ -81,7 +81,10 @@ The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 
 It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
 board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
-and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
+and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account. For
+webhooks ([workflow-engine.md](../architecture/workflow-engine.md) §5) it sets `Webhooks:AllowLoopback`, so the worker
+may post to a `WebhookReceiver` (a Kestrel server on `127.0.0.1` that a test starts), and shortens the retry delays
+(`AppHostFixture.WebhookRetryDelays`, 1 s and 3 s) and the disable limit (two failed deliveries).
 
 Every resource's console log goes to `TestResults/logs/<fixture>/<resource>.log` next to the test assembly (for
 example `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/logs/E2EFixture/dashboard.log`), streamed with Aspire's

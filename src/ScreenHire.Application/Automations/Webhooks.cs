@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -23,6 +24,25 @@ public interface IWebhookSender
 
     /// <summary>Posts <paramref name="payload"/> and returns the status code; throws when the receiver does not accept it.</summary>
     Task<int> PostAsync(Uri url, string idempotencyKey, WebhookPayload payload, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Posts one subscription delivery, signed with <see cref="WebhookRequest.SigningSecret"/>. Never throws for the
+    /// receiver's sake (a refusal, a timeout, an address it may not reach): the result says what happened, so the caller
+    /// can record the attempt and schedule the next.
+    /// </summary>
+    Task<WebhookResponse> DeliverAsync(WebhookRequest request, CancellationToken cancellationToken);
+}
+
+/// <summary>One subscription delivery: the exact body, the secret it is signed with, and the extra headers.</summary>
+public sealed record WebhookRequest(Uri Url, string SigningSecret, string Body, DateTimeOffset SentAt, IReadOnlyDictionary<string, string> Headers);
+
+/// <summary>
+/// What a receiver did with a delivery. <see cref="Error"/> is in our words (a status code, a timeout, a refused
+/// address) and never quotes the receiver's response or an exception message.
+/// </summary>
+public sealed record WebhookResponse(int? StatusCode, string? Error)
+{
+    public bool Succeeded => Error is null;
 }
 
 /// <summary><c>ScreenHire:Webhooks</c>.</summary>
@@ -33,11 +53,40 @@ public sealed class WebhookOptions
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// The platform key each organization's signing key is derived from (<see cref="WebhookSignature.OrganizationKey"/>).
-    /// It never leaves the worker. The AppHost generates one locally; production sets its own secret. Without one,
-    /// CallWebhook actions fail with an issue rather than send something unverifiable.
+    /// The platform key each organization's signing key and each endpoint's secret are derived from
+    /// (<see cref="WebhookSignature.OrganizationKey"/>, <see cref="WebhookSignature.EndpointSecret"/>). The worker holds
+    /// it to sign, and the API holds it to show an endpoint's secret once; no response or log carries it. The AppHost
+    /// generates one locally; production sets its own secret. Without one, CallWebhook actions fail with an issue rather
+    /// than send something unverifiable, and subscription deliveries are skipped.
     /// </summary>
     public string? SigningKey { get; set; }
+
+    /// <summary>
+    /// Lets webhooks reach loopback addresses (127.0.0.0/8, ::1), so a receiver on the same machine works. The local
+    /// stack and the tests turn it on; production never does. Private and link-local ranges stay refused either way. It
+    /// is checked on the resolved address at connect time, like the public-address rule.
+    /// </summary>
+    public bool AllowLoopback { get; set; }
+
+    /// <summary>
+    /// How long a subscription delivery waits before each retry; one attempt more than there are delays. Null means
+    /// <see cref="DefaultRetryDelays"/>: about 21 hours of retries in all.
+    /// </summary>
+    public TimeSpan[]? RetryDelays { get; set; }
+
+    /// <summary>Deliveries in a row that fail every attempt before the endpoint is disabled.</summary>
+    public int DisableAfterFailedDeliveries { get; set; } = 5;
+
+    /// <summary>How long a finished delivery stays in its endpoint's log (the daily PurgeExpiredWebhookDeliveries sweep).</summary>
+    public TimeSpan DeliveryRetention { get; set; } = TimeSpan.FromDays(30);
+
+    public static IReadOnlyList<TimeSpan> DefaultRetryDelays { get; } =
+    [
+        TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromHours(2), TimeSpan.FromHours(6),
+        TimeSpan.FromHours(12),
+    ];
+
+    public IReadOnlyList<TimeSpan> EffectiveRetryDelays => RetryDelays ?? DefaultRetryDelays;
 }
 
 /// <summary>
@@ -52,22 +101,36 @@ public static class WebhookSignature
     /// <summary>
     /// The key one organization's deliveries are signed with, and the one its receivers are given: hex HMAC-SHA256 of
     /// <c>webhook-signing:{organizationId}</c> under the platform key. A receiver holding one organization's key cannot
-    /// sign a delivery that another organization's receiver would accept, and the platform key stays in the worker.
+    /// sign a delivery that another organization's receiver would accept. The platform key itself is never handed out.
     /// </summary>
     public static string OrganizationKey(string platformKey, Guid organizationId)
     {
         ArgumentException.ThrowIfNullOrEmpty(platformKey);
         var mac = HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(platformKey),
-            Encoding.UTF8.GetBytes($"webhook-signing:{organizationId.ToString("D", System.Globalization.CultureInfo.InvariantCulture)}"));
+            Encoding.UTF8.GetBytes($"webhook-signing:{organizationId.ToString("D", CultureInfo.InvariantCulture)}"));
         return Convert.ToHexStringLower(mac);
+    }
+
+    /// <summary>
+    /// One subscription endpoint's secret, as its integrator is given it: <c>whsec_</c> and the hex HMAC-SHA256 of
+    /// <c>webhook-endpoint:{endpointId}:{version}</c> under the platform key. Nothing secret is stored: the database keeps
+    /// only the version, and rotating bumps it. Changing the platform key changes every endpoint's secret.
+    /// </summary>
+    public static string EndpointSecret(string platformKey, Guid endpointId, int version)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(platformKey);
+        var mac = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(platformKey),
+            Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"webhook-endpoint:{endpointId:D}:{version}")));
+        return $"whsec_{Convert.ToHexStringLower(mac)}";
     }
 
     public static string Create(string key, DateTimeOffset sentAt, string body)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(body);
-        var timestamp = sentAt.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var timestamp = sentAt.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
         var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes($"{timestamp}.{body}"));
         return $"t={timestamp},v1={Convert.ToHexStringLower(mac)}";
     }
@@ -109,6 +172,55 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
         return (int)response.StatusCode;
     }
 
+    public async Task<WebhookResponse> DeliverAsync(WebhookRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        using var message = new HttpRequestMessage(HttpMethod.Post, request.Url)
+        {
+            Content = new StringContent(request.Body, Encoding.UTF8, "application/json"),
+        };
+        message.Headers.Add(WebhookSignature.Header, WebhookSignature.Create(request.SigningSecret, request.SentAt, request.Body));
+        foreach (var (name, value) in request.Headers)
+        {
+            message.Headers.Add(name, value);
+        }
+
+        try
+        {
+            // Headers only: the receiver's body is never read, stored or logged.
+            using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            var status = (int)response.StatusCode;
+            return new WebhookResponse(
+                status, response.IsSuccessStatusCode ? null : string.Create(CultureInfo.InvariantCulture, $"The receiver answered HTTP {status}."));
+        }
+        catch (HttpRequestException exception) when (IsRefusedAddress(exception))
+        {
+            return new WebhookResponse(null, "The URL does not resolve to an address webhooks may reach.");
+        }
+        catch (HttpRequestException exception)
+        {
+            return new WebhookResponse(null, $"Could not reach the receiver ({exception.HttpRequestError}).");
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new WebhookResponse(
+                null, string.Create(CultureInfo.InvariantCulture, $"The receiver did not answer within {client.Timeout.TotalSeconds:0} seconds."));
+        }
+    }
+
+    private static bool IsRefusedAddress(Exception exception)
+    {
+        for (var inner = exception; inner is not null; inner = inner.InnerException)
+        {
+            if (inner is WebhookAddressRefusedException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void Dispose() => client.Dispose();
 
     /// <summary>The client's handler: refuses to connect to a non-public address.</summary>
@@ -123,9 +235,10 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
             UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
             {
+                var allowLoopback = options.Value.AllowLoopback;
                 var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken);
-                var address = addresses.FirstOrDefault(WebhookAddresses.IsPublic)
-                    ?? throw new HttpRequestException($"Webhook host {context.DnsEndPoint.Host} does not resolve to a public address.");
+                var address = addresses.FirstOrDefault(a => WebhookAddresses.MayReach(a, allowLoopback))
+                    ?? throw new WebhookAddressRefusedException(context.DnsEndPoint.Host);
                 var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
                 try
                 {
@@ -142,9 +255,19 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
     }
 }
 
-/// <summary>Which addresses a webhook may reach: public unicast only.</summary>
+/// <summary>A webhook host resolved only to addresses webhooks may not reach (<see cref="WebhookAddresses"/>).</summary>
+public sealed class WebhookAddressRefusedException(string host)
+    : HttpRequestException($"Webhook host {host} does not resolve to a public address.");
+
+/// <summary>Which addresses a webhook may reach: public unicast only, plus loopback when the local stack allows it.</summary>
 public static class WebhookAddresses
 {
+    public static bool MayReach(IPAddress address, bool allowLoopback)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+        return IsPublic(address) || (allowLoopback && IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address));
+    }
+
     public static bool IsPublic(IPAddress address)
     {
         ArgumentNullException.ThrowIfNull(address);

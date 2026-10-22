@@ -3716,6 +3716,172 @@ export const RunManualAutomationResponse = zod.object({
 }).describe('A manual automation was queued. `eventId` keys its run: find it in the application\'s automation runs.')
 
 
+export const ListWebhookEventTypesResponseItem = zod.string()
+export const ListWebhookEventTypesResponse = zod.array(ListWebhookEventTypesResponseItem)
+
+
+export const ListWebhookEndpointsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+export const ListWebhookEndpointsResponse = zod.array(ListWebhookEndpointsResponseItem)
+
+
+export const CreateWebhookEndpointBody = zod.object({
+  "url": zod.string(),
+  "events": zod.array(zod.string()),
+  "description": zod.string().nullish()
+}).describe('A new webhook endpoint: where to post, and which events (`GET /v1/webhooks/event-types` lists them).')
+
+export const CreateWebhookEndpointResponse = zod.object({
+  "endpoint": zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
+  "signingSecret": zod.string()
+}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
+
+
+export const GetWebhookEndpointParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const GetWebhookEndpointResponse = zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+
+
+export const UpdateWebhookEndpointParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const UpdateWebhookEndpointBody = zod.object({
+  "url": zod.string(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean().nullish(),
+  "description": zod.string().nullish()
+}).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\r\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\r\nbe replayed.')
+
+export const UpdateWebhookEndpointResponse = zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+
+
+export const DeleteWebhookEndpointParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const DeleteWebhookEndpointResponse = zod.void()
+
+
+export const RotateWebhookSecretParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const RotateWebhookSecretResponse = zod.object({
+  "endpoint": zod.object({
+  "id": zod.uuid(),
+  "url": zod.string(),
+  "description": zod.string().nullable(),
+  "events": zod.array(zod.string()),
+  "enabled": zod.boolean(),
+  "consecutiveFailures": zod.int(),
+  "disabledAt": zod.iso.datetime({"offset":true}).nullable(),
+  "disabledReason": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "secretRotatedAt": zod.iso.datetime({"offset":true})
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
+  "signingSecret": zod.string()
+}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
+
+
+export const ListWebhookDeliveriesParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const ListWebhookDeliveriesQueryParams = zod.object({
+  "limit": zod.int().optional()
+})
+
+export const ListWebhookDeliveriesResponseItem = zod.object({
+  "id": zod.uuid(),
+  "eventId": zod.uuid(),
+  "eventType": zod.string(),
+  "status": zod.enum(['Pending', 'Succeeded', 'Failed', 'Skipped']),
+  "attempts": zod.int(),
+  "lastStatusCode": zod.int().nullable(),
+  "lastError": zod.string().nullable(),
+  "replayOfId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "nextAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "payload": zod.string()
+}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+export const ListWebhookDeliveriesResponse = zod.array(ListWebhookDeliveriesResponseItem)
+
+
+export const ReplayWebhookDeliveryParams = zod.object({
+  "endpointId": zod.uuid(),
+  "deliveryId": zod.uuid()
+})
+
+export const ReplayWebhookDeliveryResponse = zod.object({
+  "id": zod.uuid(),
+  "eventId": zod.uuid(),
+  "eventType": zod.string(),
+  "status": zod.enum(['Pending', 'Succeeded', 'Failed', 'Skipped']),
+  "attempts": zod.int(),
+  "lastStatusCode": zod.int().nullable(),
+  "lastError": zod.string().nullable(),
+  "replayOfId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "nextAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "payload": zod.string()
+}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+
+
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()
 
 

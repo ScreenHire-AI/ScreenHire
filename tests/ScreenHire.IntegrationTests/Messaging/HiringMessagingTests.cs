@@ -17,7 +17,7 @@ public sealed class HiringMessagingTests(AppHostFixture fixture)
         await recruiter.PublishJobAsync(job.Id());
         var versionId = (await recruiter.GetAsync($"/v1/jobs/{job.Id()}/versions")).Text("0.id");
 
-        await AssertHandledOnceAsync(versionId, "the worker to handle JobPublished");
+        await AssertHandledOnceAsync(versionId, "the worker to handle JobPublished", ".JobPublished");
     }
 
     [Fact]
@@ -26,13 +26,14 @@ public sealed class HiringMessagingTests(AppHostFixture fixture)
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Messaging close"));
 
-        // A draft was never published, so JobClosed is the only message that carries the job's id.
+        // A draft was never published, so JobClosed is the only event that carries the job's id (its webhook fan-out
+        // carries it too, hence the type).
         await recruiter.CloseJobAsync(job.Id());
-        await AssertHandledOnceAsync(job.Text("id"), "the worker to handle JobClosed");
+        await AssertHandledOnceAsync(job.Text("id"), "the worker to handle JobClosed", ".JobClosed");
         await recruiter.CloseJobAsync(job.Id());
 
         var store = await WolverineStore.ForAppHostAsync(fixture, TestContext.Current.CancellationToken);
-        (await store.CountIncomingAsync(job.Text("id"), TestContext.Current.CancellationToken)).Should().Be(1);
+        (await store.CountIncomingAsync(job.Text("id"), TestContext.Current.CancellationToken, ".JobClosed")).Should().Be(1);
         (await store.CountOutgoingAsync(job.Text("id"), TestContext.Current.CancellationToken)).Should().Be(0);
     }
 
@@ -69,14 +70,17 @@ public sealed class HiringMessagingTests(AppHostFixture fixture)
         await AssertHandledOnceAsync(versionId.ToString(), "the worker to handle HiringTemplateVersionPublished");
     }
 
-    private async Task AssertHandledOnceAsync(string needle, string because)
+    // messageType narrows the count to the event when the worker's own follow-up messages carry the same id, such as a
+    // job event's webhook fan-out (FanOutWebhook).
+    private async Task AssertHandledOnceAsync(string needle, string because, string? messageType = null)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var store = await WolverineStore.ForAppHostAsync(fixture, cancellationToken);
 
-        await WolverineStore.WaitUntilAsync(async () => await store.CountHandledAsync(needle, cancellationToken) == 1, because, cancellationToken);
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(needle, cancellationToken, messageType) == 1, because, cancellationToken);
 
-        (await store.CountIncomingAsync(needle, cancellationToken)).Should().Be(1, "the event is delivered to the worker exactly once");
+        (await store.CountIncomingAsync(needle, cancellationToken, messageType)).Should().Be(1, "the event is delivered to the worker exactly once");
         (await store.CountOutgoingAsync(needle, cancellationToken)).Should().Be(0, "the outbox is flushed");
         (await store.GetDeadLettersAsync(needle, cancellationToken)).Should().BeEmpty("the handler found the row as the event's tenant");
     }
