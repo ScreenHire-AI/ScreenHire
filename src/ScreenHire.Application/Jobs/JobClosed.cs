@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Application.Jobs;
@@ -14,11 +15,11 @@ public sealed record JobClosed(Guid OrganizationId, Guid JobId, DateTimeOffset C
 
 /// <summary>
 /// Runs in the worker once per <see cref="JobClosed"/>: reads the job back as its organization and records that the
-/// worker saw it. Teardown runs in the close transaction, not here.
+/// worker saw it, and raises the <c>job.closed</c> webhook event. Teardown runs in the close transaction, not here.
 /// </summary>
 public static partial class JobClosedHandler
 {
-    public static async Task Handle(JobClosed message, ScreenHireDbContext db, ILogger<JobClosed> logger, CancellationToken cancellationToken)
+    public static async Task<FanOutWebhook> Handle(JobClosed message, ScreenHireDbContext db, ILogger<JobClosed> logger, CancellationToken cancellationToken)
     {
         if (!await db.Jobs.AsNoTracking().AnyAsync(j => j.Id == message.JobId, cancellationToken))
         {
@@ -26,6 +27,7 @@ public static partial class JobClosedHandler
         }
 
         LogJobClosed(logger, message.JobId, message.OrganizationId);
+        return WebhookEvents.From(message);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Job {JobId} closed for organization {OrganizationId}")]

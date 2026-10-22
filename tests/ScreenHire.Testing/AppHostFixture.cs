@@ -34,6 +34,12 @@ public class AppHostFixture : IAsyncLifetime
     /// <summary>The sandbox board's acceptance and removal delay in the test stack.</summary>
     public static readonly TimeSpan SandboxDelay = TimeSpan.FromSeconds(4);
 
+    /// <summary>The waits before a webhook delivery's second and third attempts in the test stack.</summary>
+    public static readonly TimeSpan[] WebhookRetryDelays = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(3)];
+
+    /// <summary>Failed deliveries in a row that disable a webhook endpoint in the test stack.</summary>
+    public const int WebhookDisableAfterFailedDeliveries = 2;
+
     private readonly CancellationTokenSource watching = new();
     private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
@@ -80,6 +86,12 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Distribution:Sandbox:AcceptanceDelay={SandboxDelay}",
                 $"--ScreenHire:Distribution:Sandbox:RemovalDelay={SandboxDelay}",
                 "--ScreenHire:Distribution:GoogleIndexing:Mode=Local",
+                // Webhooks: the tests' receivers listen on loopback (WebhookReceiver), and retries and automatic
+                // disabling are short enough to watch: three attempts a delivery, two failed deliveries to disable.
+                "--ScreenHire:Webhooks:AllowLoopback=true",
+                $"--ScreenHire:Webhooks:RetryDelays:0={WebhookRetryDelays[0]}",
+                $"--ScreenHire:Webhooks:RetryDelays:1={WebhookRetryDelays[1]}",
+                $"--ScreenHire:Webhooks:DisableAfterFailedDeliveries={WebhookDisableAfterFailedDeliveries}",
                 .. ExtraArguments,
             ],
             startup.Token);

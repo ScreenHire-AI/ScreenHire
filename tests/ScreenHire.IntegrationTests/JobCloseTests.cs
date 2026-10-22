@@ -30,16 +30,16 @@ public sealed class JobCloseTests(AppHostFixture fixture)
         var stored = await LoadJobAsync(job, cancellationToken);
         stored.Status.Should().Be(JobStatus.Closed);
         stored.ClosedAt.Should().NotBeNull();
-        // No worker handler wants JobClosed yet; the worker queue still delivers it once and marks it handled.
+        // The worker queue delivers JobClosed once and marks it handled. By type: its webhook fan-out carries the id too.
         await WolverineStore.WaitUntilAsync(
-            async () => await store.CountHandledAsync(jobId, cancellationToken) == 1, "JobClosed to reach the worker", cancellationToken);
+            async () => await store.CountHandledAsync(jobId, cancellationToken, ".JobClosed") == 1, "JobClosed to reach the worker", cancellationToken);
 
         using var again = await CloseAsync(session, job.Id, cancellationToken);
 
         again.StatusCode.Should().Be(HttpStatusCode.OK, "closing a closed job changes nothing");
         (await LoadJobAsync(job, cancellationToken)).ClosedAt.Should().Be(stored.ClosedAt);
         (await store.CountQueuedAsync("worker", jobId, cancellationToken)).Should().Be(0);
-        (await store.CountIncomingAsync(jobId, cancellationToken)).Should().Be(1, "the second close raised no event");
+        (await store.CountIncomingAsync(jobId, cancellationToken, ".JobClosed")).Should().Be(1, "the second close raised no event");
     }
 
     [Fact]
