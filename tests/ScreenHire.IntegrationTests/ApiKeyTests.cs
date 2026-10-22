@@ -69,8 +69,12 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
             ["applications"] = await key.GetAsync("/v1/applications"),
             ["candidate"] = await key.GetAsync($"/v1/candidates/{session.Id("0.candidateId")}"),
         };
+        var sessionTimeline = (await owner.GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK);
+        var keyTimeline = (await key.GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK);
 
         session.At("0.integrity").ValueKind.Should().Be(JsonValueKind.Object, "the reviewer sees the assessment");
+        Types(sessionTimeline).Should().Contain("IntegrityAssessed");
+        Types(keyTimeline).Should().NotContain("IntegrityAssessed", "a key does not learn that an assessment ran").And.Contain("Submitted");
         lists["job applications"].Expect(HttpStatusCode.OK).At("0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
         lists["applications"].Expect(HttpStatusCode.OK).At("0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
         lists["candidate"].Expect(HttpStatusCode.OK).At("applications.0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
@@ -281,6 +285,8 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         Schemes(document.At("paths./v1/auth/onboarding.post")).Should().Equal("session");
         Schemes(document.At("paths./v1/organization/api-keys.post")).Should().Equal("session");
     }
+
+    private static List<string?> Types(ApiResult timeline) => [.. timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString())];
 
     private static List<string> Schemes(JsonElement operation) =>
         [.. operation.GetProperty("security").EnumerateArray().SelectMany(r => r.EnumerateObject().Select(p => p.Name))];
