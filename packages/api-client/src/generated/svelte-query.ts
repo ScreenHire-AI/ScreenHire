@@ -36,6 +36,7 @@ import type {
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
+  ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateHiringTemplateRequest,
@@ -43,12 +44,15 @@ import type {
   CreateJobRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
+  CurrentOrganization,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
   HttpValidationProblemDetails,
+  InvitationAcceptance,
+  InvitationRequest,
   JobBoardInfo,
   JobBoardJob,
   JobBoardJobList,
@@ -63,10 +67,12 @@ import type {
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
+  MembershipLogEntry,
   MoveApplicationRequest,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationIntegritySettings,
+  PendingInvitation,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -78,6 +84,8 @@ import type {
   SandboxBoardListing,
   SignInMethods,
   SimulateWorkflowRequest,
+  SwitchOrganizationRequest,
+  TeamMember,
   TelemetrySnapshotInput,
   UpdateBrandingRequest,
   UpdateHiringTemplateRequest,
@@ -651,6 +659,94 @@ export function createGetCurrentUser<TData = Awaited<ReturnType<typeof getCurren
 
 
 
+export type listMyOrganizationsResponse200 = {
+  data: CurrentOrganization[]
+  status: 200
+}
+
+export type listMyOrganizationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listMyOrganizationsResponseSuccess = (listMyOrganizationsResponse200) & {
+  headers: Headers;
+};
+export type listMyOrganizationsResponseError = (listMyOrganizationsResponse401) & {
+  headers: Headers;
+};
+
+export const getListMyOrganizationsUrl = () => {
+
+
+
+
+  return `/v1/auth/organizations`
+}
+
+export const listMyOrganizations = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listMyOrganizationsResponseSuccess> => {
+
+  return apiQueryFetch<listMyOrganizationsResponseSuccess>(getListMyOrganizationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyOrganizationsQueryKey = () => {
+    return [
+    'v1','auth','organizations'
+    ] as const;
+    }
+
+
+export const getListMyOrganizationsQueryOptions = <TData = Awaited<ReturnType<typeof listMyOrganizations>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listMyOrganizations>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyOrganizationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyOrganizations>>> = ({ signal }) => listMyOrganizations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listMyOrganizations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMyOrganizationsQueryResult = NonNullable<Awaited<ReturnType<typeof listMyOrganizations>>>
+export type ListMyOrganizationsQueryError = ErrorType<void>
+
+
+
+export function createListMyOrganizations<TData = Awaited<ReturnType<typeof listMyOrganizations>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listMyOrganizations>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListMyOrganizationsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
 export type challengeProviderResponse404 = {
   data: void
   status: 404
@@ -1062,6 +1158,209 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getCompleteOnboardingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type acceptInvitationResponse200 = {
+  data: CurrentUser
+  status: 200
+}
+
+export type acceptInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type acceptInvitationResponseSuccess = (acceptInvitationResponse200) & {
+  headers: Headers;
+};
+export type acceptInvitationResponseError = (acceptInvitationResponse400) & {
+  headers: Headers;
+};
+
+export const getAcceptInvitationUrl = () => {
+
+
+
+
+  return `/v1/auth/invitations/accept`
+}
+
+export const acceptInvitation = async (invitationAcceptance: InvitationAcceptance, options?: Parameters<typeof apiQueryFetch>[1]): Promise<acceptInvitationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<acceptInvitationResponseSuccess>(getAcceptInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationAcceptance)
+  }
+);}
+
+
+
+
+
+export const getAcceptInvitationMutationKey = () => ['acceptInvitation'] as const;
+
+export const getAcceptInvitationMutationOptions = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof acceptInvitation>>, TError,AcceptInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof acceptInvitation>>, TError,AcceptInvitationMutationVariables, TContext> => {
+
+const mutationKey = getAcceptInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptInvitation>>, AcceptInvitationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  acceptInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof acceptInvitation>>>
+    export type AcceptInvitationMutationBody = InvitationAcceptance
+    export type AcceptInvitationMutationError = ErrorType<HttpValidationProblemDetails>
+    export type AcceptInvitationMutationVariables = {data: InvitationAcceptance}
+
+    export const createAcceptInvitation = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof acceptInvitation>>, TError,AcceptInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof acceptInvitation>>,
+        TError,
+        AcceptInvitationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAcceptInvitationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type switchOrganizationResponse200 = {
+  data: CurrentUser
+  status: 200
+}
+
+export type switchOrganizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type switchOrganizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type switchOrganizationResponseSuccess = (switchOrganizationResponse200) & {
+  headers: Headers;
+};
+export type switchOrganizationResponseError = (switchOrganizationResponse401 | switchOrganizationResponse404) & {
+  headers: Headers;
+};
+
+export const getSwitchOrganizationUrl = () => {
+
+
+
+
+  return `/v1/auth/switch-organization`
+}
+
+export const switchOrganization = async (switchOrganizationRequest: SwitchOrganizationRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<switchOrganizationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<switchOrganizationResponseSuccess>(getSwitchOrganizationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(switchOrganizationRequest)
+  }
+);}
+
+
+
+
+
+export const getSwitchOrganizationMutationKey = () => ['switchOrganization'] as const;
+
+export const getSwitchOrganizationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof switchOrganization>>, TError,SwitchOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof switchOrganization>>, TError,SwitchOrganizationMutationVariables, TContext> => {
+
+const mutationKey = getSwitchOrganizationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof switchOrganization>>, SwitchOrganizationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  switchOrganization(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SwitchOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof switchOrganization>>>
+    export type SwitchOrganizationMutationBody = SwitchOrganizationRequest
+    export type SwitchOrganizationMutationError = ErrorType<void>
+    export type SwitchOrganizationMutationVariables = {data: SwitchOrganizationRequest}
+
+    export const createSwitchOrganization = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof switchOrganization>>, TError,SwitchOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof switchOrganization>>,
+        TError,
+        SwitchOrganizationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSwitchOrganizationMutationOptions(options?.()) }), queryClient);
     }
 
 export type signOutResponse204 = {
@@ -6296,6 +6595,714 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUpdateOrganizationIntegritySettingsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listTeamMembersResponse200 = {
+  data: TeamMember[]
+  status: 200
+}
+
+export type listTeamMembersResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTeamMembersResponseSuccess = (listTeamMembersResponse200) & {
+  headers: Headers;
+};
+export type listTeamMembersResponseError = (listTeamMembersResponse401) & {
+  headers: Headers;
+};
+
+export const getListTeamMembersUrl = () => {
+
+
+
+
+  return `/v1/organization/members`
+}
+
+export const listTeamMembers = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listTeamMembersResponseSuccess> => {
+
+  return apiQueryFetch<listTeamMembersResponseSuccess>(getListTeamMembersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTeamMembersQueryKey = () => {
+    return [
+    'v1','organization','members'
+    ] as const;
+    }
+
+
+export const getListTeamMembersQueryOptions = <TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTeamMembersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeamMembers>>> = ({ signal }) => listTeamMembers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTeamMembersQueryResult = NonNullable<Awaited<ReturnType<typeof listTeamMembers>>>
+export type ListTeamMembersQueryError = ErrorType<void>
+
+
+
+export function createListTeamMembers<TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListTeamMembersQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listInvitationsResponse200 = {
+  data: PendingInvitation[]
+  status: 200
+}
+
+export type listInvitationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listInvitationsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listInvitationsResponseSuccess = (listInvitationsResponse200) & {
+  headers: Headers;
+};
+export type listInvitationsResponseError = (listInvitationsResponse401 | listInvitationsResponse403) & {
+  headers: Headers;
+};
+
+export const getListInvitationsUrl = () => {
+
+
+
+
+  return `/v1/organization/invitations`
+}
+
+export const listInvitations = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listInvitationsResponseSuccess> => {
+
+  return apiQueryFetch<listInvitationsResponseSuccess>(getListInvitationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListInvitationsQueryKey = () => {
+    return [
+    'v1','organization','invitations'
+    ] as const;
+    }
+
+
+export const getListInvitationsQueryOptions = <TData = Awaited<ReturnType<typeof listInvitations>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListInvitationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listInvitations>>> = ({ signal }) => listInvitations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListInvitationsQueryResult = NonNullable<Awaited<ReturnType<typeof listInvitations>>>
+export type ListInvitationsQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListInvitations<TData = Awaited<ReturnType<typeof listInvitations>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listInvitations>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListInvitationsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createInvitationResponse201 = {
+  data: PendingInvitation
+  status: 201
+}
+
+export type createInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createInvitationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createInvitationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createInvitationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createInvitationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createInvitationResponseSuccess = (createInvitationResponse201) & {
+  headers: Headers;
+};
+export type createInvitationResponseError = (createInvitationResponse400 | createInvitationResponse401 | createInvitationResponse403 | createInvitationResponse404 | createInvitationResponse409) & {
+  headers: Headers;
+};
+
+export const getCreateInvitationUrl = () => {
+
+
+
+
+  return `/v1/organization/invitations`
+}
+
+export const createInvitation = async (invitationRequest: InvitationRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createInvitationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createInvitationResponseSuccess>(getCreateInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateInvitationMutationKey = () => ['createInvitation'] as const;
+
+export const getCreateInvitationMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError,CreateInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError,CreateInvitationMutationVariables, TContext> => {
+
+const mutationKey = getCreateInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInvitation>>, CreateInvitationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createInvitation>>>
+    export type CreateInvitationMutationBody = InvitationRequest
+    export type CreateInvitationMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateInvitationMutationVariables = {data: InvitationRequest}
+
+    export const createCreateInvitation = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError,CreateInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createInvitation>>,
+        TError,
+        CreateInvitationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateInvitationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listMembershipLogResponse200 = {
+  data: MembershipLogEntry[]
+  status: 200
+}
+
+export type listMembershipLogResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listMembershipLogResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listMembershipLogResponseSuccess = (listMembershipLogResponse200) & {
+  headers: Headers;
+};
+export type listMembershipLogResponseError = (listMembershipLogResponse401 | listMembershipLogResponse403) & {
+  headers: Headers;
+};
+
+export const getListMembershipLogUrl = () => {
+
+
+
+
+  return `/v1/organization/membership-log`
+}
+
+export const listMembershipLog = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listMembershipLogResponseSuccess> => {
+
+  return apiQueryFetch<listMembershipLogResponseSuccess>(getListMembershipLogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMembershipLogQueryKey = () => {
+    return [
+    'v1','organization','membership-log'
+    ] as const;
+    }
+
+
+export const getListMembershipLogQueryOptions = <TData = Awaited<ReturnType<typeof listMembershipLog>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listMembershipLog>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMembershipLogQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMembershipLog>>> = ({ signal }) => listMembershipLog({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listMembershipLog>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMembershipLogQueryResult = NonNullable<Awaited<ReturnType<typeof listMembershipLog>>>
+export type ListMembershipLogQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListMembershipLog<TData = Awaited<ReturnType<typeof listMembershipLog>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listMembershipLog>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListMembershipLogQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type changeMemberRoleResponse200 = {
+  data: TeamMember
+  status: 200
+}
+
+export type changeMemberRoleResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeMemberRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeMemberRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeMemberRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeMemberRoleResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type changeMemberRoleResponseSuccess = (changeMemberRoleResponse200) & {
+  headers: Headers;
+};
+export type changeMemberRoleResponseError = (changeMemberRoleResponse400 | changeMemberRoleResponse401 | changeMemberRoleResponse403 | changeMemberRoleResponse404 | changeMemberRoleResponse409) & {
+  headers: Headers;
+};
+
+export const getChangeMemberRoleUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}/role`
+}
+
+export const changeMemberRole = async (memberId: string,
+    changeMemberRoleRequest: ChangeMemberRoleRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<changeMemberRoleResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<changeMemberRoleResponseSuccess>(getChangeMemberRoleUrl(memberId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeMemberRoleRequest)
+  }
+);}
+
+
+
+
+
+export const getChangeMemberRoleMutationKey = () => ['changeMemberRole'] as const;
+
+export const getChangeMemberRoleMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof changeMemberRole>>, TError,ChangeMemberRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof changeMemberRole>>, TError,ChangeMemberRoleMutationVariables, TContext> => {
+
+const mutationKey = getChangeMemberRoleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeMemberRole>>, ChangeMemberRoleMutationVariables> = (props) => {
+          const {memberId,data} = props ?? {};
+
+          return  changeMemberRole(memberId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeMemberRoleMutationResult = NonNullable<Awaited<ReturnType<typeof changeMemberRole>>>
+    export type ChangeMemberRoleMutationBody = ChangeMemberRoleRequest
+    export type ChangeMemberRoleMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type ChangeMemberRoleMutationVariables = {memberId: string;data: ChangeMemberRoleRequest}
+
+    export const createChangeMemberRole = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof changeMemberRole>>, TError,ChangeMemberRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof changeMemberRole>>,
+        TError,
+        ChangeMemberRoleMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getChangeMemberRoleMutationOptions(options?.()) }), queryClient);
+    }
+
+export type removeMemberResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removeMemberResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeMemberResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeMemberResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removeMemberResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removeMemberResponseSuccess = (removeMemberResponse204) & {
+  headers: Headers;
+};
+export type removeMemberResponseError = (removeMemberResponse401 | removeMemberResponse403 | removeMemberResponse404 | removeMemberResponse409) & {
+  headers: Headers;
+};
+
+export const getRemoveMemberUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}`
+}
+
+export const removeMember = async (memberId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<removeMemberResponseSuccess> => {
+
+  return apiQueryFetch<removeMemberResponseSuccess>(getRemoveMemberUrl(memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveMemberMutationKey = () => ['removeMember'] as const;
+
+export const getRemoveMemberMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeMember>>, TError,RemoveMemberMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof removeMember>>, TError,RemoveMemberMutationVariables, TContext> => {
+
+const mutationKey = getRemoveMemberMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeMember>>, RemoveMemberMutationVariables> = (props) => {
+          const {memberId} = props ?? {};
+
+          return  removeMember(memberId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeMember>>>
+
+    export type RemoveMemberMutationError = ErrorType<void | ProblemDetails>
+    export type RemoveMemberMutationVariables = {memberId: string}
+
+    export const createRemoveMember = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeMember>>, TError,RemoveMemberMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof removeMember>>,
+        TError,
+        RemoveMemberMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRemoveMemberMutationOptions(options?.()) }), queryClient);
+    }
+
+export type revokeInvitationResponse204 = {
+  data: void
+  status: 204
+}
+
+export type revokeInvitationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeInvitationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeInvitationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeInvitationResponseSuccess = (revokeInvitationResponse204) & {
+  headers: Headers;
+};
+export type revokeInvitationResponseError = (revokeInvitationResponse401 | revokeInvitationResponse403 | revokeInvitationResponse404) & {
+  headers: Headers;
+};
+
+export const getRevokeInvitationUrl = (invitationId: string,) => {
+
+
+
+
+  return `/v1/organization/invitations/${invitationId}`
+}
+
+export const revokeInvitation = async (invitationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<revokeInvitationResponseSuccess> => {
+
+  return apiQueryFetch<revokeInvitationResponseSuccess>(getRevokeInvitationUrl(invitationId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeInvitationMutationKey = () => ['revokeInvitation'] as const;
+
+export const getRevokeInvitationMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof revokeInvitation>>, TError,RevokeInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof revokeInvitation>>, TError,RevokeInvitationMutationVariables, TContext> => {
+
+const mutationKey = getRevokeInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeInvitation>>, RevokeInvitationMutationVariables> = (props) => {
+          const {invitationId} = props ?? {};
+
+          return  revokeInvitation(invitationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeInvitation>>>
+
+    export type RevokeInvitationMutationError = ErrorType<void | ProblemDetails>
+    export type RevokeInvitationMutationVariables = {invitationId: string}
+
+    export const createRevokeInvitation = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof revokeInvitation>>, TError,RevokeInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof revokeInvitation>>,
+        TError,
+        RevokeInvitationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRevokeInvitationMutationOptions(options?.()) }), queryClient);
     }
 
 export type listApiKeysResponse200 = {
