@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +54,7 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<List<ApplicationSummary>>, NotFound>> ListJobApplications(
-        Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid jobId, ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
         if (job is null)
@@ -66,19 +67,20 @@ internal static class ApplicationEndpoints
             .OrderByDescending(a => a.SubmittedAt)
             .Join(db.Candidates, a => a.CandidateId, c => c.Id, (a, c) => new { Application = a, Candidate = c })
             .ToListAsync(cancellationToken);
-        var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
+        var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id))).ToList());
     }
 
     // Every application in the organization, newest first: the dashboard's candidates table across jobs.
-    private static async Task<List<ApplicationSummary>> ListApplications(ScreenHireDbContext db, CancellationToken cancellationToken)
+    private static async Task<List<ApplicationSummary>> ListApplications(
+        ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var rows = await db.Applications.AsNoTracking()
             .OrderByDescending(a => a.SubmittedAt)
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new { x.Application, x.Job, Candidate = c })
             .ToListAsync(cancellationToken);
-        var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
+        var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         return [.. rows.Select(r => r.Application.ToSummary(r.Job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id)))];
     }
 
@@ -232,7 +234,7 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<CandidateDetail>, NotFound>> GetCandidate(
-        Guid candidateId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid candidateId, ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var candidate = await db.Candidates.AsNoTracking().SingleOrDefaultAsync(c => c.Id == candidateId, cancellationToken);
         if (candidate is null)
@@ -245,11 +247,17 @@ internal static class ApplicationEndpoints
             .OrderByDescending(a => a.SubmittedAt)
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .ToListAsync(cancellationToken);
-        var integrity = await IntegrityReads.SummariesAsync(db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
+        var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
             [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id)))]));
     }
+
+    // Integrity output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:
+    // an integrator's system could reject on it, which ScreenHire's own automations may not (ADR-0011).
+    private static async Task<Dictionary<Guid, IntegritySummary>> IntegritySummariesAsync(
+        ClaimsPrincipal user, ScreenHireDbContext db, IReadOnlyCollection<Guid> applicationIds, CancellationToken cancellationToken) =>
+        user.IsApiKey() ? [] : await IntegrityReads.SummariesAsync(db, applicationIds, cancellationToken);
 
     private static async Task<List<ApplicationFile>> FilesOfAsync(ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken) =>
         await db.ApplicationFiles.AsNoTracking()

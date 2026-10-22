@@ -100,6 +100,8 @@ manage keys in a session; there is no screen yet.
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
   onboarding, key management, organization settings, integrity review, automations, distribution and the hub.
+- **No integrity output.** Application and candidate reads send a key `integrity: null` (ADR-0011): levels and
+  reason codes are for the person reviewing (ADR-0004), not for another system to reject on.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no actor.
 - **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequireHiringRole` where a person needs

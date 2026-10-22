@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ScreenHire.Application.Integrity;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -31,11 +32,13 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         })).Expect(HttpStatusCode.Created);
         var moved = (await key.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" }))
             .Expect(HttpStatusCode.OK);
+        var timeline = (await key.GetAsync($"/v1/applications/{application.Id()}/timeline")).Expect(HttpStatusCode.OK);
         var candidates = (await key.GetAsync("/v1/candidates")).Expect(HttpStatusCode.OK);
         var templates = (await key.GetAsync("/v1/templates")).Expect(HttpStatusCode.OK);
 
         jobs.Body.EnumerateArray().Select(j => j.GetProperty("id").GetGuid()).Should().Equal(job.Id());
         moved.Text("stage.id").Should().Be("screening");
+        timeline.At($"{timeline.Count() - 1}.actorUserId").ValueKind.Should().Be(JsonValueKind.Null, "a key acts for no person");
         candidates.Count().Should().Be(1);
         templates.Count().Should().Be(2, "the system templates");
         (await owner.GetAsync($"/v1/jobs/{added.Id()}")).Expect(HttpStatusCode.OK).Text("title").Should().Be("Added by the API");
@@ -46,6 +49,29 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         listed.At("0.lastUsedAt").ValueKind.Should().Be(JsonValueKind.String, "the key has been used");
         listed.Body.GetRawText().Should().NotContain(token, "the key is shown once, when it is created");
         listed.At("0").TryGetProperty("token", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_key_never_receives_integrity_levels_which_stay_with_the_person_reviewing()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, owner);
+        var applicationId = await IntegritySupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        await IntegritySupport.AssessedAsync(owner, applicationId);
+        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "Export", ["Read"])).Text("token"));
+
+        var session = (await owner.GetAsync($"/v1/jobs/{jobId}/applications")).Expect(HttpStatusCode.OK);
+        var lists = new Dictionary<string, ApiResult>
+        {
+            ["job applications"] = await key.GetAsync($"/v1/jobs/{jobId}/applications"),
+            ["applications"] = await key.GetAsync("/v1/applications"),
+            ["candidate"] = await key.GetAsync($"/v1/candidates/{session.Id("0.candidateId")}"),
+        };
+
+        session.At("0.integrity").ValueKind.Should().Be(JsonValueKind.Object, "the reviewer sees the assessment");
+        lists["job applications"].Expect(HttpStatusCode.OK).At("0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
+        lists["applications"].Expect(HttpStatusCode.OK).At("0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
+        lists["candidate"].Expect(HttpStatusCode.OK).At("applications.0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]

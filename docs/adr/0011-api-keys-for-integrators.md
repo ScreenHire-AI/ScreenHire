@@ -35,7 +35,9 @@ per-app scopes. ScreenHire has no marketplace and no third-party apps yet.
 3. **Keys work on the hiring API only**: jobs, applications, candidates and templates, behind one authorization
    policy. Sign-in, onboarding, key management, organization settings, integrity review, automations, distribution
    and the real-time hub stay session-only. Integrity review needs a named person; the others can open to keys one
-   area at a time.
+   area at a time. Application and candidate reads give a key no integrity levels (`integrity` is null): the evidence
+   is for the person reviewing (ADR-0004), and an integrator's system could reject on it, which ScreenHire's own
+   automations may not.
 4. **Two scopes**, `Read` and `Write`; `Write` includes reading and a key always has `Read`. Writes by a key record no
    acting user, like the system.
 5. **A per-key rate limit** with ASP.NET Core's rate limiter: a fixed window per key, the deployment's
