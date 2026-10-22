@@ -96,7 +96,13 @@ public static partial class DeliverWebhookHandler
             return outgoing; // done already, deleted, or a duplicate of an attempt that ran
         }
 
-        var endpoint = await db.WebhookEndpoints.AsNoTracking().SingleAsync(e => e.Id == delivery.EndpointId, cancellationToken);
+        // Null when the endpoint was deleted since: its deliveries go with it, so there is nothing to record either.
+        var endpoint = await db.WebhookEndpoints.AsNoTracking().SingleOrDefaultAsync(e => e.Id == delivery.EndpointId, cancellationToken);
+        if (endpoint is null)
+        {
+            return outgoing;
+        }
+
         var now = time.GetUtcNow();
         if (!endpoint.Enabled)
         {

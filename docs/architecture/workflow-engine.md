@@ -150,8 +150,11 @@ its first attempt.
 
 The body is `{"id", "type", "occurredAt", "organizationId", "data"}`: ids and facts, never names, emails, resume text,
 answers or integrity evidence. An integrator reads anything else through the API with its own credentials.
-`integrity.assessed` carries the categorical levels only (ADR-0004); like the levels in the dashboard, they are for
-routing a review, and never a reason to reject. The event `id` comes from the domain event's own key (a version 8 UUID
+`integrity.assessed` carries the categorical levels only (ADR-0004), the same output the dashboard shows. It is a
+notification for routing a review. ScreenHire never acts on it, and the rule that integrity signals never drive
+rejection binds ScreenHire's own code. An integrator that rejects automatically on this event goes against the
+product's guidance, and that decision is the customer's responsibility under GDPR Art. 22, NYC LL144 and the other
+rules in docs/research/legal.md. The integrator docs and terms must say so. The event `id` comes from the domain event's own key (a version 8 UUID
 from SHA-256 of the type and that key), so a redelivered domain event gives the same id and the unique index on
 (endpoint, event) for first deliveries adds nothing twice.
 
@@ -178,6 +181,10 @@ deleted meanwhile takes its deliveries with it, and later attempts find nothing 
 same statement turns the endpoint off and records `disabledAt` and `disabledReason`, which the API returns. A disabled
 endpoint gets no new deliveries, and its pending attempts end as `Skipped`. Turning it back on (`PUT` with
 `enabled: true`) clears the reason and the count; skipped and failed deliveries can then be replayed.
+
+**Retention.** `PurgeExpiredWebhookDeliveries` runs daily at 03:37 UTC and fans out one
+`PurgeOrganizationWebhookDeliveries` per organization, which deletes deliveries that finished more than
+`DeliveryRetention` (30 days) ago. Pending deliveries stay until they finish.
 
 `CallWebhook`, the automation action, is separate and unchanged: it posts to one URL with the organization's derived
 key (section 8).

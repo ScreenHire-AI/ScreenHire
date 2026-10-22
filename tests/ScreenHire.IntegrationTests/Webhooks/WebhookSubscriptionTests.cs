@@ -1,6 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.DependencyInjection;
+using ScreenHire.Application.Webhooks;
 using ScreenHire.IntegrationTests.Messaging;
+using Wolverine;
 
 namespace ScreenHire.IntegrationTests.Webhooks;
 
@@ -240,6 +243,29 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
         (await first.DeleteAsync($"/v1/webhooks/{firstEndpoint}")).Expect(HttpStatusCode.NoContent);
         (await first.GetAsync($"/v1/webhooks/{firstEndpoint}")).Expect(HttpStatusCode.NotFound);
         (await first.GetAsync($"/v1/webhooks/{firstEndpoint}/deliveries")).Expect(HttpStatusCode.NotFound);
+    }
+
+    // The daily sweep fans out one message per organization; the test sends one organization's message with a cutoff in
+    // the future, so its finished delivery is past retention, and the other organization's log is untouched.
+    [Fact]
+    public async Task The_retention_sweep_removes_finished_deliveries_of_its_organization_only()
+    {
+        using var first = await fixture.SignedInWithOrganizationAsync();
+        using var second = await fixture.SignedInWithOrganizationAsync();
+        await using var receiver = await WebhookReceiver.StartAsync(Ct);
+        var firstEndpoint = (await CreateEndpointAsync(first, receiver, "job.published")).Id("endpoint.id");
+        var secondEndpoint = (await CreateEndpointAsync(second, receiver, "job.published")).Id("endpoint.id");
+        await PublishNewJobAsync(first, "Purged");
+        await PublishNewJobAsync(second, "Kept");
+        await WaitForDeliveriesAsync(first, firstEndpoint, d => d.Any(e => e.Status == "Succeeded"), "the first organization's delivery");
+        await WaitForDeliveriesAsync(second, secondEndpoint, d => d.Any(e => e.Status == "Succeeded"), "the second organization's delivery");
+
+        await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        await publisher.Services.GetRequiredService<IMessageBus>()
+            .PublishAsync(new PurgeOrganizationWebhookDeliveries(first.OrganizationId, DateTimeOffset.UtcNow.AddDays(1)));
+
+        await WaitForDeliveriesAsync(first, firstEndpoint, d => d.Count == 0, "the purge");
+        (await DeliveriesAsync(second, secondEndpoint)).Should().ContainSingle();
     }
 
     [Fact]

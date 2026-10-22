@@ -3,8 +3,10 @@ using System.Text.Json;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Automations;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Webhooks;
 
 namespace ScreenHire.UnitTests.Webhooks;
@@ -64,6 +66,22 @@ public sealed class WebhookSubscriptionTests
         root.GetProperty("organizationId").GetGuid().Should().Be(organizationId);
         root.GetProperty("data").EnumerateObject().Select(p => p.Name).Should().Equal("applicationId", "jobId", "fromStageId", "toStageId");
         raised.OrganizationId.Should().Be(organizationId);
+    }
+
+    // Evidence, not verdicts (ADR-0004): two categorical levels and the ruleset, never a score or the evidence itself.
+    [Fact]
+    public void Integrity_assessed_carries_the_levels_and_the_ruleset_and_nothing_else()
+    {
+        var raised = WebhookEvents.From(new IntegrityAssessed(
+            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), AuthenticityLevel.ReviewSuggested, AiAssistanceLevel.SomeIndicators, "2026.10.1",
+            Guid.CreateVersion7(), Now));
+
+        using var body = JsonDocument.Parse(raised.Body);
+        var data = body.RootElement.GetProperty("data");
+        data.EnumerateObject().Select(p => p.Name).Should().Equal("applicationId", "jobId", "authenticity", "aiAssistance", "rulesetVersion");
+        data.EnumerateObject().Should().NotContain(p => p.Value.ValueKind == JsonValueKind.Number);
+        data.GetProperty("authenticity").GetString().Should().Be(nameof(AuthenticityLevel.ReviewSuggested));
+        data.GetProperty("aiAssistance").GetString().Should().Be(nameof(AiAssistanceLevel.SomeIndicators));
     }
 
     [Theory]

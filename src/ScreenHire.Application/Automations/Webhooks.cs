@@ -75,6 +75,9 @@ public sealed class WebhookOptions
     /// <summary>Deliveries in a row that fail every attempt before the endpoint is disabled.</summary>
     public int DisableAfterFailedDeliveries { get; set; } = 5;
 
+    /// <summary>How long a finished delivery stays in its endpoint's log (the daily PurgeExpiredWebhookDeliveries sweep).</summary>
+    public TimeSpan DeliveryRetention { get; set; } = TimeSpan.FromDays(30);
+
     public static IReadOnlyList<TimeSpan> DefaultRetryDelays { get; } =
     [
         TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromHours(2), TimeSpan.FromHours(6),
