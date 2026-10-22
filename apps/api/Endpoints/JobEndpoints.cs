@@ -25,7 +25,7 @@ internal static class JobEndpoints
 {
     public static IEndpointRouteBuilder MapJobEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/jobs").WithTags("Jobs").RequireAuthorization();
+        var group = app.MapGroup("/v1/jobs").WithTags("Jobs").AllowApiKeys();
 
         // 401 comes from the authentication middleware, so the handlers' signatures cannot declare it.
         group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);

@@ -112,6 +112,7 @@ brackets.
 | [0008](adr/0008-dotnet-building-blocks.md) | .NET building blocks (Wolverine, Identity, Aspire, Orval, RLS) under licence policy | Accepted |
 | [0009](adr/0009-design-system-warm-grid.md) | "Warm Grid" design direction; shadcn-svelte (dashboard) + daisyUI CSS-only (public pages); one token source | Accepted, amended by 0010 |
 | [0010](adr/0010-design-system-v0-2.md) | Design system v0.2: simple and approachable; layers, page templates, fluid sizes, words | Accepted |
+| [0011](adr/0011-api-keys-for-integrators.md) | Organization API keys on the hiring API now; OAuth client credentials (OpenIddict) later | Accepted |
 
 ## Architecture
 

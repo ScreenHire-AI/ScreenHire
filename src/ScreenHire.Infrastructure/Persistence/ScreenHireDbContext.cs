@@ -42,6 +42,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
 
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+
     public DbSet<Job> Jobs => Set<Job>();
 
     public DbSet<JobVersion> JobVersions => Set<JobVersion>();

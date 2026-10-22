@@ -18,6 +18,7 @@ builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
+builder.AddScreenHireApiKeys();
 builder.AddScreenHireApply();
 
 // Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
@@ -42,7 +43,7 @@ builder.Services.AddProblemDetails();
 // limit) is the caller's mistake: answer with its own status. Minimal APIs throw these in Development rather than answer.
 builder.Services.Configure<ExceptionHandlerOptions>(options => options.StatusCodeSelector = exception =>
     exception is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError);
-builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi));
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes());
 builder.Services.AddHiringValidation();
 builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
@@ -61,8 +62,10 @@ app.UseForwardedHeaders(); // first: the rate limiter partitions on the client a
 app.UseExceptionHandler();
 app.UseCors();
 app.UseAuthentication();
-app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
+// After authorization: on the hiring API it authenticates an API key in place of the cookie (ApiKeyAuthentication), so
+// only then is the request's user final.
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseRateLimiter();
 
 app.MapDefaultEndpoints();
@@ -79,6 +82,7 @@ app.MapIntegrityEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
+app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
 app.MapWebhookEndpoints();

@@ -38,7 +38,8 @@ internal static class ApplicationSubmission
         CancellationToken cancellationToken,
         SubmissionSession? session = null,
         IntegrityOptions? integrity = null,
-        TelemetryBinding? telemetry = null)
+        TelemetryBinding? telemetry = null,
+        Guid? actorApiKeyId = null)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
@@ -55,7 +56,7 @@ internal static class ApplicationSubmission
 
         var (application, submitted) = JobApplication.Submit(
             job, candidate, declarations.AccommodationRequested, declarations.AiUseDeclaration, declarations.AiUseDetails,
-            now, actorUserId, intake);
+            now, actorUserId, intake, actorApiKeyId);
         db.Applications.Add(application);
         db.ApplicationEvents.Add(submitted);
         if (session is not null && application.Source == ApplicationSource.CareersSite)

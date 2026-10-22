@@ -337,6 +337,36 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         failure.ConstraintName.Should().Contain("candidates");
     }
 
+    [Fact]
+    public async Task An_api_key_is_invisible_to_another_tenant_and_never_deleted()
+    {
+        var owner = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var key = new ApiKey
+        {
+            OrganizationId = owner.Id,
+            Name = "ATS sync",
+            Prefix = "shk_1a2b3c4d",
+            SecretHash = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
+            Scopes = [ApiKeyScope.Read],
+            CreatedAt = Now,
+        };
+        await using (var db = await ContextAsync(owner.Id))
+        {
+            db.ApiKeys.Add(key);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var rename = "UPDATE api_keys SET name = 'Renamed' WHERE id = @id";
+        var renamedByOther = await ExecuteAsync(other.Id, rename, ("id", key.Id));
+        var renamedByOwner = await ExecuteAsync(owner.Id, rename, ("id", key.Id));
+        var delete = () => ExecuteAsync(owner.Id, "DELETE FROM api_keys WHERE id = @id", ("id", key.Id));
+
+        renamedByOther.Should().Be(0, "row-level security hides the key from another organization");
+        renamedByOwner.Should().Be(1);
+        (await delete.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
     private async Task<ScreenHireDbContext> ContextAsync(Guid organizationId)
     {
         var tenant = new TenantContext();
