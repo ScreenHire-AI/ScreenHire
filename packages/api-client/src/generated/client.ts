@@ -6,6 +6,7 @@
  */
 import type {
   AddIntegrityNoteRequest,
+  ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
   ApplicationIntegrity,
@@ -19,11 +20,13 @@ import type {
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
+  CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
   CreateWebhookEndpointRequest,
+  CreatedApiKey,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
@@ -995,10 +998,15 @@ export type listJobsResponse401 = {
   status: 401
 }
 
+export type listJobsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type listJobsResponseSuccess = (listJobsResponse200) & {
   headers: Headers;
 };
-export type listJobsResponseError = (listJobsResponse401) & {
+export type listJobsResponseError = (listJobsResponse401 | listJobsResponse429) & {
   headers: Headers;
 };
 
@@ -1050,10 +1058,15 @@ export type createJobResponse409 = {
   status: 409
 }
 
+export type createJobResponse429 = {
+  data: void
+  status: 429
+}
+
 export type createJobResponseSuccess = (createJobResponse201) & {
   headers: Headers;
 };
-export type createJobResponseError = (createJobResponse400 | createJobResponse401 | createJobResponse403 | createJobResponse409) & {
+export type createJobResponseError = (createJobResponse400 | createJobResponse401 | createJobResponse403 | createJobResponse409 | createJobResponse429) & {
   headers: Headers;
 };
 
@@ -1109,10 +1122,15 @@ export type getJobResponse404 = {
   status: 404
 }
 
+export type getJobResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getJobResponseSuccess = (getJobResponse200) & {
   headers: Headers;
 };
-export type getJobResponseError = (getJobResponse401 | getJobResponse404) & {
+export type getJobResponseError = (getJobResponse401 | getJobResponse404 | getJobResponse429) & {
   headers: Headers;
 };
 
@@ -1169,10 +1187,15 @@ export type updateJobResponse409 = {
   status: 409
 }
 
+export type updateJobResponse429 = {
+  data: void
+  status: 429
+}
+
 export type updateJobResponseSuccess = (updateJobResponse200) & {
   headers: Headers;
 };
-export type updateJobResponseError = (updateJobResponse400 | updateJobResponse401 | updateJobResponse403 | updateJobResponse404 | updateJobResponse409) & {
+export type updateJobResponseError = (updateJobResponse400 | updateJobResponse401 | updateJobResponse403 | updateJobResponse404 | updateJobResponse409 | updateJobResponse429) & {
   headers: Headers;
 };
 
@@ -1244,10 +1267,15 @@ export type publishJobResponse409 = {
   status: 409
 }
 
+export type publishJobResponse429 = {
+  data: void
+  status: 429
+}
+
 export type publishJobResponseSuccess = (publishJobResponse200) & {
   headers: Headers;
 };
-export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409) & {
+export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409 | publishJobResponse429) & {
   headers: Headers;
 };
 
@@ -1314,10 +1342,15 @@ export type closeJobResponse409 = {
   status: 409
 }
 
+export type closeJobResponse429 = {
+  data: void
+  status: 429
+}
+
 export type closeJobResponseSuccess = (closeJobResponse200) & {
   headers: Headers;
 };
-export type closeJobResponseError = (closeJobResponse401 | closeJobResponse403 | closeJobResponse404 | closeJobResponse409) & {
+export type closeJobResponseError = (closeJobResponse401 | closeJobResponse403 | closeJobResponse404 | closeJobResponse409 | closeJobResponse429) & {
   headers: Headers;
 };
 
@@ -1359,10 +1392,15 @@ export type listJobVersionsResponse404 = {
   status: 404
 }
 
+export type listJobVersionsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type listJobVersionsResponseSuccess = (listJobVersionsResponse200) & {
   headers: Headers;
 };
-export type listJobVersionsResponseError = (listJobVersionsResponse401 | listJobVersionsResponse404) & {
+export type listJobVersionsResponseError = (listJobVersionsResponse401 | listJobVersionsResponse404 | listJobVersionsResponse429) & {
   headers: Headers;
 };
 
@@ -1404,10 +1442,15 @@ export type getJobVersionResponse404 = {
   status: 404
 }
 
+export type getJobVersionResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getJobVersionResponseSuccess = (getJobVersionResponse200) & {
   headers: Headers;
 };
-export type getJobVersionResponseError = (getJobVersionResponse401 | getJobVersionResponse404) & {
+export type getJobVersionResponseError = (getJobVersionResponse401 | getJobVersionResponse404 | getJobVersionResponse429) & {
   headers: Headers;
 };
 
@@ -1451,10 +1494,15 @@ export type getJobTemplateDiffResponse404 = {
   status: 404
 }
 
+export type getJobTemplateDiffResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getJobTemplateDiffResponseSuccess = (getJobTemplateDiffResponse200) & {
   headers: Headers;
 };
-export type getJobTemplateDiffResponseError = (getJobTemplateDiffResponse401 | getJobTemplateDiffResponse404) & {
+export type getJobTemplateDiffResponseError = (getJobTemplateDiffResponse401 | getJobTemplateDiffResponse404 | getJobTemplateDiffResponse429) & {
   headers: Headers;
 };
 
@@ -1511,10 +1559,15 @@ export type updateJobWorkflowResponse409 = {
   status: 409
 }
 
+export type updateJobWorkflowResponse429 = {
+  data: void
+  status: 429
+}
+
 export type updateJobWorkflowResponseSuccess = (updateJobWorkflowResponse200) & {
   headers: Headers;
 };
-export type updateJobWorkflowResponseError = (updateJobWorkflowResponse400 | updateJobWorkflowResponse401 | updateJobWorkflowResponse403 | updateJobWorkflowResponse404 | updateJobWorkflowResponse409) & {
+export type updateJobWorkflowResponseError = (updateJobWorkflowResponse400 | updateJobWorkflowResponse401 | updateJobWorkflowResponse403 | updateJobWorkflowResponse404 | updateJobWorkflowResponse409 | updateJobWorkflowResponse429) & {
   headers: Headers;
 };
 
@@ -1586,10 +1639,15 @@ export type applyJobTemplateUpdateResponse409 = {
   status: 409
 }
 
+export type applyJobTemplateUpdateResponse429 = {
+  data: void
+  status: 429
+}
+
 export type applyJobTemplateUpdateResponseSuccess = (applyJobTemplateUpdateResponse200) & {
   headers: Headers;
 };
-export type applyJobTemplateUpdateResponseError = (applyJobTemplateUpdateResponse400 | applyJobTemplateUpdateResponse401 | applyJobTemplateUpdateResponse403 | applyJobTemplateUpdateResponse404 | applyJobTemplateUpdateResponse409) & {
+export type applyJobTemplateUpdateResponseError = (applyJobTemplateUpdateResponse400 | applyJobTemplateUpdateResponse401 | applyJobTemplateUpdateResponse403 | applyJobTemplateUpdateResponse404 | applyJobTemplateUpdateResponse409 | applyJobTemplateUpdateResponse429) & {
   headers: Headers;
 };
 
@@ -1641,10 +1699,15 @@ export type listHiringTemplatesResponse401 = {
   status: 401
 }
 
+export type listHiringTemplatesResponse429 = {
+  data: void
+  status: 429
+}
+
 export type listHiringTemplatesResponseSuccess = (listHiringTemplatesResponse200) & {
   headers: Headers;
 };
-export type listHiringTemplatesResponseError = (listHiringTemplatesResponse401) & {
+export type listHiringTemplatesResponseError = (listHiringTemplatesResponse401 | listHiringTemplatesResponse429) & {
   headers: Headers;
 };
 
@@ -1691,10 +1754,15 @@ export type createHiringTemplateResponse403 = {
   status: 403
 }
 
+export type createHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
 export type createHiringTemplateResponseSuccess = (createHiringTemplateResponse201) & {
   headers: Headers;
 };
-export type createHiringTemplateResponseError = (createHiringTemplateResponse400 | createHiringTemplateResponse401 | createHiringTemplateResponse403) & {
+export type createHiringTemplateResponseError = (createHiringTemplateResponse400 | createHiringTemplateResponse401 | createHiringTemplateResponse403 | createHiringTemplateResponse429) & {
   headers: Headers;
 };
 
@@ -1750,10 +1818,15 @@ export type getHiringTemplateResponse404 = {
   status: 404
 }
 
+export type getHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringTemplateResponseSuccess = (getHiringTemplateResponse200) & {
   headers: Headers;
 };
-export type getHiringTemplateResponseError = (getHiringTemplateResponse401 | getHiringTemplateResponse404) & {
+export type getHiringTemplateResponseError = (getHiringTemplateResponse401 | getHiringTemplateResponse404 | getHiringTemplateResponse429) & {
   headers: Headers;
 };
 
@@ -1810,10 +1883,15 @@ export type updateHiringTemplateResponse409 = {
   status: 409
 }
 
+export type updateHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
 export type updateHiringTemplateResponseSuccess = (updateHiringTemplateResponse200) & {
   headers: Headers;
 };
-export type updateHiringTemplateResponseError = (updateHiringTemplateResponse400 | updateHiringTemplateResponse401 | updateHiringTemplateResponse403 | updateHiringTemplateResponse404 | updateHiringTemplateResponse409) & {
+export type updateHiringTemplateResponseError = (updateHiringTemplateResponse400 | updateHiringTemplateResponse401 | updateHiringTemplateResponse403 | updateHiringTemplateResponse404 | updateHiringTemplateResponse409 | updateHiringTemplateResponse429) & {
   headers: Headers;
 };
 
@@ -1885,10 +1963,15 @@ export type createHiringTemplateVersionResponse409 = {
   status: 409
 }
 
+export type createHiringTemplateVersionResponse429 = {
+  data: void
+  status: 429
+}
+
 export type createHiringTemplateVersionResponseSuccess = (createHiringTemplateVersionResponse201) & {
   headers: Headers;
 };
-export type createHiringTemplateVersionResponseError = (createHiringTemplateVersionResponse400 | createHiringTemplateVersionResponse401 | createHiringTemplateVersionResponse403 | createHiringTemplateVersionResponse404 | createHiringTemplateVersionResponse409) & {
+export type createHiringTemplateVersionResponseError = (createHiringTemplateVersionResponse400 | createHiringTemplateVersionResponse401 | createHiringTemplateVersionResponse403 | createHiringTemplateVersionResponse404 | createHiringTemplateVersionResponse409 | createHiringTemplateVersionResponse429) & {
   headers: Headers;
 };
 
@@ -1945,10 +2028,15 @@ export type getHiringTemplateVersionResponse404 = {
   status: 404
 }
 
+export type getHiringTemplateVersionResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringTemplateVersionResponseSuccess = (getHiringTemplateVersionResponse200) & {
   headers: Headers;
 };
-export type getHiringTemplateVersionResponseError = (getHiringTemplateVersionResponse401 | getHiringTemplateVersionResponse404) & {
+export type getHiringTemplateVersionResponseError = (getHiringTemplateVersionResponse401 | getHiringTemplateVersionResponse404 | getHiringTemplateVersionResponse429) & {
   headers: Headers;
 };
 
@@ -2007,10 +2095,15 @@ export type updateHiringTemplateVersionResponse409 = {
   status: 409
 }
 
+export type updateHiringTemplateVersionResponse429 = {
+  data: void
+  status: 429
+}
+
 export type updateHiringTemplateVersionResponseSuccess = (updateHiringTemplateVersionResponse200) & {
   headers: Headers;
 };
-export type updateHiringTemplateVersionResponseError = (updateHiringTemplateVersionResponse400 | updateHiringTemplateVersionResponse401 | updateHiringTemplateVersionResponse403 | updateHiringTemplateVersionResponse404 | updateHiringTemplateVersionResponse409) & {
+export type updateHiringTemplateVersionResponseError = (updateHiringTemplateVersionResponse400 | updateHiringTemplateVersionResponse401 | updateHiringTemplateVersionResponse403 | updateHiringTemplateVersionResponse404 | updateHiringTemplateVersionResponse409 | updateHiringTemplateVersionResponse429) & {
   headers: Headers;
 };
 
@@ -2084,10 +2177,15 @@ export type publishHiringTemplateVersionResponse409 = {
   status: 409
 }
 
+export type publishHiringTemplateVersionResponse429 = {
+  data: void
+  status: 429
+}
+
 export type publishHiringTemplateVersionResponseSuccess = (publishHiringTemplateVersionResponse200) & {
   headers: Headers;
 };
-export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse400 | publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse403 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409) & {
+export type publishHiringTemplateVersionResponseError = (publishHiringTemplateVersionResponse400 | publishHiringTemplateVersionResponse401 | publishHiringTemplateVersionResponse403 | publishHiringTemplateVersionResponse404 | publishHiringTemplateVersionResponse409 | publishHiringTemplateVersionResponse429) & {
   headers: Headers;
 };
 
@@ -2131,10 +2229,15 @@ export type listJobApplicationsResponse404 = {
   status: 404
 }
 
+export type listJobApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type listJobApplicationsResponseSuccess = (listJobApplicationsResponse200) & {
   headers: Headers;
 };
-export type listJobApplicationsResponseError = (listJobApplicationsResponse401 | listJobApplicationsResponse404) & {
+export type listJobApplicationsResponseError = (listJobApplicationsResponse401 | listJobApplicationsResponse404 | listJobApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -2191,10 +2294,15 @@ export type createApplicationResponse409 = {
   status: 409
 }
 
+export type createApplicationResponse429 = {
+  data: void
+  status: 429
+}
+
 export type createApplicationResponseSuccess = (createApplicationResponse201) & {
   headers: Headers;
 };
-export type createApplicationResponseError = (createApplicationResponse400 | createApplicationResponse401 | createApplicationResponse403 | createApplicationResponse404 | createApplicationResponse409) & {
+export type createApplicationResponseError = (createApplicationResponse400 | createApplicationResponse401 | createApplicationResponse403 | createApplicationResponse404 | createApplicationResponse409 | createApplicationResponse429) & {
   headers: Headers;
 };
 
@@ -2246,10 +2354,15 @@ export type listApplicationsResponse401 = {
   status: 401
 }
 
+export type listApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type listApplicationsResponseSuccess = (listApplicationsResponse200) & {
   headers: Headers;
 };
-export type listApplicationsResponseError = (listApplicationsResponse401) & {
+export type listApplicationsResponseError = (listApplicationsResponse401 | listApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -2291,10 +2404,15 @@ export type getApplicationResponse404 = {
   status: 404
 }
 
+export type getApplicationResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getApplicationResponseSuccess = (getApplicationResponse200) & {
   headers: Headers;
 };
-export type getApplicationResponseError = (getApplicationResponse401 | getApplicationResponse404) & {
+export type getApplicationResponseError = (getApplicationResponse401 | getApplicationResponse404 | getApplicationResponse429) & {
   headers: Headers;
 };
 
@@ -2351,10 +2469,15 @@ export type moveApplicationResponse409 = {
   status: 409
 }
 
+export type moveApplicationResponse429 = {
+  data: void
+  status: 429
+}
+
 export type moveApplicationResponseSuccess = (moveApplicationResponse200) & {
   headers: Headers;
 };
-export type moveApplicationResponseError = (moveApplicationResponse400 | moveApplicationResponse401 | moveApplicationResponse403 | moveApplicationResponse404 | moveApplicationResponse409) & {
+export type moveApplicationResponseError = (moveApplicationResponse400 | moveApplicationResponse401 | moveApplicationResponse403 | moveApplicationResponse404 | moveApplicationResponse409 | moveApplicationResponse429) & {
   headers: Headers;
 };
 
@@ -2411,10 +2534,15 @@ export type getApplicationTimelineResponse404 = {
   status: 404
 }
 
+export type getApplicationTimelineResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getApplicationTimelineResponseSuccess = (getApplicationTimelineResponse200) & {
   headers: Headers;
 };
-export type getApplicationTimelineResponseError = (getApplicationTimelineResponse401 | getApplicationTimelineResponse404) & {
+export type getApplicationTimelineResponseError = (getApplicationTimelineResponse401 | getApplicationTimelineResponse404 | getApplicationTimelineResponse429) & {
   headers: Headers;
 };
 
@@ -2456,8 +2584,13 @@ export type downloadApplicationFileResponse409 = {
   status: 409
 }
 
+export type downloadApplicationFileResponse429 = {
+  data: void
+  status: 429
+}
+
 ;
-export type downloadApplicationFileResponseError = (downloadApplicationFileResponse401 | downloadApplicationFileResponse404 | downloadApplicationFileResponse409) & {
+export type downloadApplicationFileResponseError = (downloadApplicationFileResponse401 | downloadApplicationFileResponse404 | downloadApplicationFileResponse409 | downloadApplicationFileResponse429) & {
   headers: Headers;
 };
 
@@ -2496,10 +2629,15 @@ export type listCandidatesResponse401 = {
   status: 401
 }
 
+export type listCandidatesResponse429 = {
+  data: void
+  status: 429
+}
+
 export type listCandidatesResponseSuccess = (listCandidatesResponse200) & {
   headers: Headers;
 };
-export type listCandidatesResponseError = (listCandidatesResponse401) & {
+export type listCandidatesResponseError = (listCandidatesResponse401 | listCandidatesResponse429) & {
   headers: Headers;
 };
 
@@ -2541,10 +2679,15 @@ export type getCandidateResponse404 = {
   status: 404
 }
 
+export type getCandidateResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getCandidateResponseSuccess = (getCandidateResponse200) & {
   headers: Headers;
 };
-export type getCandidateResponseError = (getCandidateResponse401 | getCandidateResponse404) & {
+export type getCandidateResponseError = (getCandidateResponse401 | getCandidateResponse404 | getCandidateResponse429) & {
   headers: Headers;
 };
 
@@ -3292,6 +3435,215 @@ return apiFetch<updateOrganizationIntegritySettingsResponse>(getUpdateOrganizati
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateIntegritySettingsRequest)
+  }
+);}
+
+
+
+export type listApiKeysResponse200 = {
+  data: ApiKeySummary[]
+  status: 200
+}
+
+export type listApiKeysResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApiKeysResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listApiKeysResponseSuccess = (listApiKeysResponse200) & {
+  headers: Headers;
+};
+export type listApiKeysResponseError = (listApiKeysResponse401 | listApiKeysResponse403) & {
+  headers: Headers;
+};
+
+export type listApiKeysResponse = (listApiKeysResponseSuccess | listApiKeysResponseError)
+
+export const getListApiKeysUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys`
+}
+
+export const listApiKeys = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listApiKeysResponse> => {
+
+  return apiFetch<listApiKeysResponse>(getListApiKeysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createApiKeyResponse201 = {
+  data: CreatedApiKey
+  status: 201
+}
+
+export type createApiKeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createApiKeyResponseSuccess = (createApiKeyResponse201) & {
+  headers: Headers;
+};
+export type createApiKeyResponseError = (createApiKeyResponse400 | createApiKeyResponse401 | createApiKeyResponse403) & {
+  headers: Headers;
+};
+
+export type createApiKeyResponse = (createApiKeyResponseSuccess | createApiKeyResponseError)
+
+export const getCreateApiKeyUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys`
+}
+
+export const createApiKey = async (createApiKeyRequest: CreateApiKeyRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createApiKeyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createApiKeyResponse>(getCreateApiKeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createApiKeyRequest)
+  }
+);}
+
+
+
+export type getApiKeyResponse200 = {
+  data: ApiKeySummary
+  status: 200
+}
+
+export type getApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeyResponseSuccess = (getApiKeyResponse200) & {
+  headers: Headers;
+};
+export type getApiKeyResponseError = (getApiKeyResponse401 | getApiKeyResponse403 | getApiKeyResponse404) & {
+  headers: Headers;
+};
+
+export type getApiKeyResponse = (getApiKeyResponseSuccess | getApiKeyResponseError)
+
+export const getGetApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/v1/organization/api-keys/${keyId}`
+}
+
+export const getApiKey = async (keyId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApiKeyResponse> => {
+
+  return apiFetch<getApiKeyResponse>(getGetApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type revokeApiKeyResponse200 = {
+  data: ApiKeySummary
+  status: 200
+}
+
+export type revokeApiKeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeApiKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeApiKeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeApiKeyResponseSuccess = (revokeApiKeyResponse200) & {
+  headers: Headers;
+};
+export type revokeApiKeyResponseError = (revokeApiKeyResponse401 | revokeApiKeyResponse403 | revokeApiKeyResponse404) & {
+  headers: Headers;
+};
+
+export type revokeApiKeyResponse = (revokeApiKeyResponseSuccess | revokeApiKeyResponseError)
+
+export const getRevokeApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/v1/organization/api-keys/${keyId}/revoke`
+}
+
+export const revokeApiKey = async (keyId: string, options?: Parameters<typeof apiFetch>[1]): Promise<revokeApiKeyResponse> => {
+
+  return apiFetch<revokeApiKeyResponse>(getRevokeApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 

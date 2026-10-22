@@ -3764,7 +3764,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/webhooks": {
@@ -3800,7 +3805,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -3851,7 +3861,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/webhooks/{endpointId}": {
@@ -3898,7 +3913,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -3963,7 +3983,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -4001,7 +4026,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/webhooks/{endpointId}/rotate-secret": {
@@ -4048,7 +4078,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/webhooks/{endpointId}/deliveries": {
@@ -4116,7 +4151,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/webhooks/{endpointId}/deliveries/{deliveryId}/replay": {
@@ -4172,7 +4212,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     },
     "/v1/schemas/hiring-template-definition.json": {
