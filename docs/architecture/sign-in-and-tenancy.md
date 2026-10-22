@@ -101,7 +101,10 @@ applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs
 write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its careers branding)
 call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
 takes effect on the member's next request. An open real-time connection keeps the groups it joined until it reconnects
-(`docs/architecture/realtime.md`).
+(`docs/architecture/realtime.md`), and at most until the session cookie it opened with expires
+(`CloseOnAuthenticationExpiration`). Until then a removed member's open tab can still receive the organization's
+events, which carry ids, stages and levels but no names; ending it at once needs connection tracking across API
+replicas, which is not built.
 
 ### Team members and invitations
 

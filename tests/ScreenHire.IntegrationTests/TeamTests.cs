@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -113,6 +114,36 @@ public sealed class TeamTests(AppHostFixture fixture)
         pending.Text("0.role").Should().Be("Recruiter");
         // A replacement revokes and invites in one save, at one instant, so only the multiset is stable.
         (await LogKindsAsync(owner)).Should().BeEquivalentTo(["Invited", "InvitationRevoked", "Invited", "InvitationRevoked", "Invited"]);
+    }
+
+    [Fact]
+    public async Task A_token_that_names_another_organization_is_refused()
+    {
+        // The token's first 16 bytes only say which organization to look in; the secret must match a row there.
+        using var a = await fixture.SignedInWithOrganizationAsync();
+        using var b = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("forged");
+        (await a.PostAsync("/v1/organization/invitations", Invite(email, "Owner"))).Expect(HttpStatusCode.Created);
+        var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
+        var bytes = Base64Url.DecodeFromChars(token);
+        b.OrganizationId.TryWriteBytes(bytes.AsSpan(0, 16));
+        var forged = Base64Url.EncodeToString(bytes);
+        Guid.NewGuid().TryWriteBytes(bytes.AsSpan(0, 16));
+        var nowhere = Base64Url.EncodeToString(bytes);
+
+        using var invitee = new ApiSession(fixture);
+        using var forgedResponse = await invitee.PostAsync("/v1/auth/invitations/accept", new { token = forged }, Ct);
+        using var nowhereResponse = await invitee.PostAsync("/v1/auth/invitations/accept", new { token = nowhere }, Ct);
+
+        var forgedBody = await forgedResponse.Content.ReadAsStringAsync(Ct);
+        var nowhereBody = await nowhereResponse.Content.ReadAsStringAsync(Ct);
+        await ExpectRefusedAsync(forgedResponse);
+        await ExpectRefusedAsync(nowhereResponse);
+        JsonDocument.Parse(forgedBody).RootElement.GetProperty("errors").GetRawText()
+            .Should().Be(JsonDocument.Parse(nowhereBody).RootElement.GetProperty("errors").GetRawText(), "an unknown organization looks like a wrong secret");
+        (await invitee.CurrentUserAsync(Ct)).Should().BeNull();
+        (await a.GetAsync("/v1/organization/members")).Count().Should().Be(1);
+        (await b.GetAsync("/v1/organization/members")).Count().Should().Be(1);
     }
 
     [Fact]

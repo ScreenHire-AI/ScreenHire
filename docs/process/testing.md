@@ -127,7 +127,11 @@ There is no reset between tests and no Respawn. Instead:
   `SignInWithDevSsoAsync(username)` (the mock provider's login form). `ApiSession.NewEmail()` gives each test its own
   address and account; `OnboardAsync()` gives it its own organization. End-to-end tests click through the sign-in
   pages; `fixture.Mailpit` reads the emailed link. The seeded Brightwater Owner (`avery@brightwater.example.com`, Dev
-  SSO user `brightwater-owner`) is read-only like its organization: sign in as them, change nothing.
+  SSO user `brightwater-owner`) and Recruiter (`jordan@brightwater.example.com`, `brightwater-recruiter`) are
+  read-only like their organization: sign in as them, change nothing. A test that needs a member with another role
+  invites one through the API: `fixture.InviteAndJoinAsync(owner, "Viewer")` (`TeamTestSupport`) reads the invitation
+  with `Mailpit.WaitForInvitationTokenAsync` and accepts it in a new session. Invitation links carry `#invitation=`,
+  so they never pass for a sign-in link.
 - **Careers applicants.** `fixture.ApplyAsync(slug, jobId, applicant, ct)` (`SyntheticApplications` in
   `tests/ScreenHire.Testing`) submits one of the synthetic applicants (`SyntheticApplicants`) to a published job the
   way the careers server does, with its address, session and resume, so the integrity engine assesses it. Integration

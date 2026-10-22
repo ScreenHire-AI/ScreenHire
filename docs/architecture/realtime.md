@@ -88,7 +88,8 @@ The migration `GrantAppRoleApiMessagingAccess` creates `wolverine_api` and grant
 - **One direction.** The hub has no methods that change data. Changes stay REST, with antiforgery.
 
 Group names always start with the organization, so no group a client can join spans two tenants. Removing someone
-from an organization stops their events when they reconnect. A connection keeps the groups it joined at connect.
+from an organization stops their events when they reconnect. A connection keeps the groups it joined at connect, so
+a client that switches organizations (`POST /v1/auth/switch-organization`) must reconnect to follow the new one.
 
 ## Client: `packages/realtime`
 
