@@ -99,6 +99,18 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
         var delivered = await receiver.WaitForEventAsync("job.published", second, Ct);
         delivered.IsSignedWith(after).Should().BeTrue();
         delivered.IsSignedWith(before).Should().BeFalse("the old secret stops at once");
+
+        // Replacing the settings without "enabled" keeps the endpoint on; the newly subscribed job.closed then arrives.
+        var replaced = (await recruiter.PutAsync($"/v1/webhooks/{endpointId}", new JsonObject
+        {
+            ["url"] = receiver.Url.ToString(),
+            ["events"] = new JsonArray("job.published", "job.closed"),
+        })).Expect(HttpStatusCode.OK);
+        replaced.At("enabled").GetBoolean().Should().BeTrue("a body without enabled leaves it as it was");
+        await recruiter.CloseJobAsync(second);
+        var closed = await receiver.WaitForEventAsync("job.closed", second, Ct);
+        closed.IsSignedWith(after).Should().BeTrue();
+        closed.Json.GetProperty("data").GetProperty("jobId").GetGuid().Should().Be(second);
     }
 
     [Fact]
@@ -114,8 +126,8 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
 
         attempts.Select(a => a.Body).Distinct().Should().ContainSingle("every attempt sends the same body");
         attempts.Select(a => a.Header("ScreenHire-Delivery-Id")).Distinct().Should().ContainSingle("the attempts are one delivery");
-        // The worker schedules the next attempt from the time it stamped before sending, and the receiver stamps on
-        // arrival, so a slow first connection can make the measured gap a little shorter than the delay.
+        // The worker counts each delay from the receiver's answer, after the receiver stamps the arrival. The slack
+        // covers timer and clock granularity between the worker's scheduler and this process.
         var slack = TimeSpan.FromMilliseconds(250);
         (attempts[1].ReceivedAt - attempts[0].ReceivedAt).Should().BeGreaterThanOrEqualTo(AppHostFixture.WebhookRetryDelays[0] - slack);
         (attempts[2].ReceivedAt - attempts[1].ReceivedAt).Should().BeGreaterThanOrEqualTo(AppHostFixture.WebhookRetryDelays[1] - slack);
@@ -153,6 +165,12 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
 
         var log = await WaitForDeliveriesAsync(recruiter, endpointId, d => d.Count(e => e.Status == "Succeeded") == 2, "the replay to succeed");
         log[0].ReplayOfId.Should().Be(delivery.Id, "newest first");
+
+        // One chain of retries per event at a time: while a replay still has attempts left, another is refused.
+        receiver.RespondWith(500);
+        (await recruiter.PostAsync($"/v1/webhooks/{endpointId}/deliveries/{delivery.Id}/replay")).Expect(HttpStatusCode.Accepted);
+        (await recruiter.PostAsync($"/v1/webhooks/{endpointId}/deliveries/{delivery.Id}/replay")).Expect(HttpStatusCode.Conflict);
+        await WaitForDeliveriesAsync(recruiter, endpointId, d => d.Count(e => e.Status == "Succeeded") == 3, "the retried replay to succeed");
         (await recruiter.PostAsync($"/v1/webhooks/{endpointId}/deliveries/{Guid.NewGuid()}/replay")).Expect(HttpStatusCode.NotFound);
     }
 
