@@ -39,9 +39,11 @@ per-app scopes. ScreenHire has no marketplace and no third-party apps yet.
    is for the person reviewing (ADR-0004), and an integrator's system could reject on it, which ScreenHire's own
    automations may not.
 4. **Two scopes**, `Read` and `Write`; `Write` includes reading and a key always has `Read`. Writes by a key record no
-   acting user, like the system.
+   acting user. The application timeline records the key instead (`actorApiKeyId`).
 5. **A per-key rate limit** with ASP.NET Core's rate limiter: a fixed window per key, the deployment's
-   `ScreenHire:ApiKeys:PermitsPerMinute` by default, lowerable per key.
+   `ScreenHire:ApiKeys:PermitsPerMinute` by default, lowerable per key. Failed attempts count per client address
+   (`ScreenHire:ApiKeys:FailedAttemptsPerMinute`, default 30) inside the authentication handler, because the rate
+   limiter middleware runs after authorization has already answered 401.
 6. **OAuth client credentials later**, through OpenIddict, when third-party apps arrive. Keys stay for an
    organization's own scripts.
 
@@ -53,11 +55,11 @@ per-app scopes. ScreenHire has no marketplace and no third-party apps yet.
   without the secret.
 - The rate limit counts per API instance. A second replica doubles a key's budget until the limiter moves to a shared
   store.
-- Audit entries for key writes have no person. Recording the key as the actor is a later change to the event model.
+- The application timeline names the key that submitted or moved an application. Template versions record no creator
+  or publisher for a key: they keep only a user id, and adding a key column there is a migration for a rare path.
 - A key belongs to the organization, not to its creator: it keeps working after that person leaves. Removing a member
   does not exist yet; when it does, the flow should offer to revoke the keys they created.
-- Failed key attempts are not rate limited. A malformed key is refused before any query and a well-formed wrong one
-  costs one indexed lookup, and the 256-bit secret cannot be guessed. A per-IP limit on failures is a later addition
-  if the load shows up.
+- An address that runs out of failed attempts gets 429 for every key, a good one too, until the minute is up. An
+  attacker behind the same address as an integrator can slow that integrator down for a minute at a time.
 - There are no screens yet; the routes are in the OpenAPI document and the generated client for the settings page that
   comes later.

@@ -72,10 +72,11 @@ public sealed class JobApplication : ITenantOwned
     /// </summary>
     /// <remarks>
     /// <paramref name="intake"/> says how the application arrived; leave it null for one a recruiter added by hand.
+    /// <paramref name="actorApiKeyId"/> is the API key that added it, if one did.
     /// </remarks>
     public static (JobApplication Application, ApplicationEvent Submitted) Submit(
         Job job, Candidate candidate, bool accommodationRequested, AiUseDeclaration aiUseDeclaration, string? aiUseDetails,
-        DateTimeOffset now, Guid? actorUserId, ApplicationIntake? intake = null)
+        DateTimeOffset now, Guid? actorUserId, ApplicationIntake? intake = null, Guid? actorApiKeyId = null)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(candidate);
@@ -110,14 +111,17 @@ public sealed class JobApplication : ITenantOwned
             BotCheck = intake.BotCheck,
         };
 
-        return (application, application.NewEvent(ApplicationEventType.Submitted, new ApplicationEventData(ToStageId: firstStage.Id), now, actorUserId));
+        return (application, application.NewEvent(
+            ApplicationEventType.Submitted, new ApplicationEventData(ToStageId: firstStage.Id, ApiKeyId: actorApiKeyId), now, actorUserId));
     }
 
     /// <summary>
     /// Moves the application to <paramref name="target"/>, a stage of its job's workflow, and returns the timeline event.
-    /// Moving to the stage it is already in changes nothing and returns null.
+    /// Moving to the stage it is already in changes nothing and returns null. <paramref name="actorApiKeyId"/> is the API
+    /// key that moved it, if one did.
     /// </summary>
-    public ApplicationEvent? MoveTo(WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null)
+    public ApplicationEvent? MoveTo(
+        WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null, Guid? actorApiKeyId = null)
     {
         ArgumentNullException.ThrowIfNull(target);
         if (target.Id == CurrentStageId)
@@ -130,7 +134,8 @@ public sealed class JobApplication : ITenantOwned
         StageEnteredAt = now;
         return NewEvent(
             ApplicationEventType.StageChanged,
-            new ApplicationEventData(from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId),
+            new ApplicationEventData(
+                from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId, ApiKeyId: actorApiKeyId),
             now,
             actorUserId);
     }

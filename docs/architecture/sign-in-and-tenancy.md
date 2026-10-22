@@ -103,13 +103,16 @@ manage keys in a session; there is no screen yet.
 - **No integrity output.** Application and candidate reads send a key `integrity: null` (ADR-0011): levels and
   reason codes are for the person reviewing (ADR-0004), not for another system to reject on.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
-  authorization because the hiring policy replaces the request's user there). Writes by a key record no actor.
+  authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
+  application timeline records the key as `actorApiKeyId`.
 - **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequireHiringRole` where a person needs
   a writing role, and a read-only key gets 403 "Read-only key".
 - **Antiforgery** is skipped for a request the key scheme authenticated: it carries no cookie to forge with.
 - **Rate limit.** The `api-key` rate-limiter policy on the hiring groups gives each key a fixed window per minute of
   `ScreenHire:ApiKeys:PermitsPerMinute` (default 600), or the lower `permitsPerMinute` set on the key, and answers 429
-  beyond it. Sessions pass unlimited. The count is per API instance.
+  beyond it. Sessions pass unlimited. Failed attempts count per client address: beyond
+  `ScreenHire:ApiKeys:FailedAttemptsPerMinute` (default 30) the address gets 429 with `Retry-After` for every key until
+  the minute is up, without a database lookup. Both counts are per API instance.
 - **OpenAPI** declares two security schemes, `session` (the cookie) on every signed-in route and `apiKey` (HTTP
   bearer) as the alternative on the hiring API (`apps/api/Auth/SecuritySchemes.cs`), so Scalar and the generated
   client show them.

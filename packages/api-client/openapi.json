@@ -4378,6 +4378,13 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "actorApiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."

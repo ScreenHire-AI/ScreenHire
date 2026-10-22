@@ -13,4 +13,11 @@ public sealed class ApiKeyOptions
     /// </summary>
     [Range(1, 100_000)]
     public int PermitsPerMinute { get; set; } = 600;
+
+    /// <summary>
+    /// Failed key attempts per minute per client address. Beyond it the address gets 429 for every key until the minute
+    /// is up. Counted per API instance.
+    /// </summary>
+    [Range(1, 10_000)]
+    public int FailedAttemptsPerMinute { get; set; } = 30;
 }

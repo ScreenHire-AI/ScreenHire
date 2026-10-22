@@ -68,7 +68,10 @@ public sealed record ApplicationFileSummary(
     Guid Id, string QuestionId, Guid UploadId, string FileName, string ContentType, long SizeBytes, MalwareScanStatus ScanStatus, DateTimeOffset UploadedAt);
 
 /// <summary>One entry of an application's timeline, oldest first. Members that do not apply to the type are null.</summary>
-/// <remarks><c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did.</remarks>
+/// <remarks>
+/// <c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did.
+/// <c>actorApiKeyId</c>: The organization API key that made the change (ADR-0011); null otherwise.
+/// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
     ApplicationEventType Type,
@@ -78,7 +81,8 @@ public sealed record ApplicationTimelineEntry(
     string? ToStageId,
     string? Note,
     string? Tag,
-    Guid? AutomationRunId);
+    Guid? AutomationRunId,
+    Guid? ActorApiKeyId = null);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
@@ -123,7 +127,7 @@ internal static class ApplicationMappings
 
     public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry) =>
         new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note,
-            entry.Data.Tag, entry.Data.AutomationRunId);
+            entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId);
 }
 
 internal sealed class CreateApplicationRequestValidator : AbstractValidator<CreateApplicationRequest>

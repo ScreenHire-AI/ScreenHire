@@ -39,6 +39,8 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         jobs.Body.EnumerateArray().Select(j => j.GetProperty("id").GetGuid()).Should().Equal(job.Id());
         moved.Text("stage.id").Should().Be("screening");
         timeline.At($"{timeline.Count() - 1}.actorUserId").ValueKind.Should().Be(JsonValueKind.Null, "a key acts for no person");
+        timeline.Body.EnumerateArray().Select(e => e.GetProperty("actorApiKeyId").GetGuid())
+            .Should().AllBeEquivalentTo(created.Id("key.id"), "the timeline records which key added and moved the application");
         candidates.Count().Should().Be(1);
         templates.Count().Should().Be(2, "the system templates");
         (await owner.GetAsync($"/v1/jobs/{added.Id()}")).Expect(HttpStatusCode.OK).Text("title").Should().Be("Added by the API");
@@ -172,6 +174,33 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Too_many_failed_attempts_from_one_address_get_429_for_every_key_from_it()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var token = (await CreateKeyAsync(owner, "Good", ["Read"])).Text("token");
+        // An address of its own (the API believes X-Forwarded-For from loopback), so other tests keep their budget.
+        var address = $"198.51.100.{Random.Shared.Next(1, 255)}";
+        using var guesser = new KeyClient(fixture, "shk_not-a-key", address);
+        using var goodFromThere = new KeyClient(fixture, token, address);
+        using var goodFromElsewhere = new KeyClient(fixture, token);
+
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 30; i++)
+        {
+            statuses.Add((await guesser.GetAsync("/v1/jobs")).Status);
+        }
+
+        using var blocked = await guesser.SendAsync(HttpMethod.Get, "/v1/jobs");
+        var good = await goodFromThere.GetAsync("/v1/jobs");
+
+        statuses.Should().AllBeEquivalentTo(HttpStatusCode.Unauthorized);
+        blocked.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        blocked.Headers.RetryAfter.Should().NotBeNull();
+        good.Status.Should().Be(HttpStatusCode.TooManyRequests, "the address is out of attempts for every key");
+        (await goodFromElsewhere.GetAsync("/v1/jobs")).Status.Should().Be(HttpStatusCode.OK, "other addresses are not slowed");
+    }
+
+    [Fact]
     public async Task A_key_never_reaches_sign_in_onboarding_key_management_or_routes_outside_the_hiring_api()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -272,13 +301,17 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     {
         private readonly HttpClient client;
 
-        public KeyClient(AppHostFixture fixture, string token)
+        public KeyClient(AppHostFixture fixture, string token, string? forwardedFor = null)
         {
             client = new HttpClient(new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false })
             {
                 BaseAddress = fixture.GetEndpoint("api"),
             };
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            if (forwardedFor is not null)
+            {
+                client.DefaultRequestHeaders.Add("X-Forwarded-For", forwardedFor);
+            }
         }
 
         private static CancellationToken Ct => TestContext.Current.CancellationToken;

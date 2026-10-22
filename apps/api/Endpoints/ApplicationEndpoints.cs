@@ -92,6 +92,7 @@ internal static class ApplicationEndpoints
         IValidator<CreateApplicationRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -115,7 +116,7 @@ internal static class ApplicationEndpoints
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, request.Candidate,
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
-            ApplicationIntake.Recruiter, [], time.GetUtcNow(), tenant.UserId, cancellationToken);
+            ApplicationIntake.Recruiter, [], time.GetUtcNow(), tenant.UserId, cancellationToken, actorApiKeyId: user.ApiKeyId());
         if (submitted is not { } created)
         {
             return TypedResults.Problem("This candidate already applied to this job.", statusCode: StatusCodes.Status409Conflict);
@@ -146,6 +147,7 @@ internal static class ApplicationEndpoints
         IValidator<MoveApplicationRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -171,7 +173,7 @@ internal static class ApplicationEndpoints
 
         var from = application.CurrentStageId;
         var now = time.GetUtcNow();
-        if (application.MoveTo(target, now, tenant.UserId, request.Note) is { } moved)
+        if (application.MoveTo(target, now, tenant.UserId, request.Note, actorApiKeyId: user.ApiKeyId()) is { } moved)
         {
             db.ApplicationEvents.Add(moved);
             await outbox.PublishAsync(new ApplicationMoved(

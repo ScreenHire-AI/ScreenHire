@@ -76,6 +76,7 @@ internal static class ApiKeyAuthentication
                     })
                 : RateLimitPartition.GetNoLimiter("session")));
 
+        services.AddSingleton<FailedAttempts>();
         services.AddSingleton<IValidator<CreateApiKeyRequest>, CreateApiKeyRequestValidator>();
         return builder;
     }
@@ -95,15 +96,46 @@ internal static class ApiKeyAuthentication
     public static Guid? ApiKeyOrganizationId(this ClaimsPrincipal user) =>
         user.IsApiKey() && Guid.TryParse(user.FindFirstValue(OrganizationClaim), out var id) ? id : null;
 
+    /// <summary>The API key of the request, for the audit trail, or null for anything else.</summary>
+    public static Guid? ApiKeyId(this ClaimsPrincipal user) =>
+        user.IsApiKey() && Guid.TryParse(user.FindFirstValue(KeyIdClaim), out var id) ? id : null;
+
     public static bool HasApiKeyScope(this ClaimsPrincipal user, ApiKeyScope scope) =>
         user.IsApiKey() && ApiKey.Allows(
             user.FindAll(ScopeClaim).Select(c => Enum.TryParse<ApiKeyScope>(c.Value, out var s) ? s : (ApiKeyScope?)null).OfType<ApiKeyScope>(),
             scope);
 
     /// <summary>
+    /// Failed key attempts per client address, <c>ScreenHire:ApiKeys:FailedAttemptsPerMinute</c> in a fixed one-minute
+    /// window. An address that runs out gets 429 for every key until the window ends, without a database lookup.
+    /// </summary>
+    /// <remarks>
+    /// The rate limiter middleware cannot do this: it runs after authorization, which has already answered 401 to a
+    /// failed key. So the handler holds the limiter itself.
+    /// </remarks>
+    private sealed class FailedAttempts : IDisposable
+    {
+        private readonly PartitionedRateLimiter<string> limiter;
+
+        public FailedAttempts(IOptions<ApiKeyOptions> options) =>
+            limiter = PartitionedRateLimiter.Create<string, string>(address => RateLimitPartition.GetFixedWindowLimiter(
+                address,
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = options.Value.FailedAttemptsPerMinute, Window = TimeSpan.FromMinutes(1) }));
+
+        public bool Exhausted(string address) => limiter.GetStatistics(address) is { CurrentAvailablePermits: <= 0 };
+
+        public void Record(string address)
+        {
+            using var lease = limiter.AttemptAcquire(address);
+        }
+
+        public void Dispose() => limiter.Dispose();
+    }
+
+    /// <summary>
     /// Authenticates <c>Authorization: Bearer shk_...</c>. A request without the header is no result; a malformed,
-    /// unknown or revoked key fails, which the hiring API answers with 401. The key never reaches a log: failure messages
-    /// name the reason only.
+    /// unknown or revoked key fails, which the hiring API answers with 401, and counts against the client address
+    /// (<see cref="FailedAttempts"/>). The key never reaches a log: failure messages name the reason only.
     /// </summary>
     private sealed class ApiKeyAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -111,27 +143,49 @@ internal static class ApiKeyAuthentication
         UrlEncoder encoder,
         IServiceScopeFactory scopes,
         IOptions<ApiKeyOptions> keyOptions,
+        FailedAttempts failures,
         TimeProvider time)
         : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
     {
         // last_used_at is written at most once a minute per key, not on every request.
         private static readonly TimeSpan LastUsedResolution = TimeSpan.FromMinutes(1);
 
+        private bool tooManyFailures;
+
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            if (Request.Headers.Authorization.Count == 0)
+            {
+                return AuthenticateResult.NoResult();
+            }
+
+            // UseForwardedHeaders has already put the client's address here.
+            var address = Context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (failures.Exhausted(address))
+            {
+                tooManyFailures = true;
+                return AuthenticateResult.Fail("Too many failed API key attempts from this address.");
+            }
+
+            AuthenticateResult Failed(string reason)
+            {
+                failures.Record(address);
+                return AuthenticateResult.Fail(reason);
+            }
+
             if (!AuthenticationHeaderValue.TryParse(Request.Headers.Authorization.ToString(), out var header))
             {
-                return Request.Headers.Authorization.Count == 0 ? AuthenticateResult.NoResult() : AuthenticateResult.Fail("Malformed Authorization header.");
+                return Failed("Malformed Authorization header.");
             }
 
             if (!"Bearer".Equals(header.Scheme, StringComparison.OrdinalIgnoreCase) || header.Parameter is not { } token)
             {
-                return AuthenticateResult.Fail("Only Bearer API keys are accepted.");
+                return Failed("Only Bearer API keys are accepted.");
             }
 
             if (!ApiKeyTokens.TryReadOrganization(token, out var organizationId))
             {
-                return AuthenticateResult.Fail("Not a ScreenHire API key.");
+                return Failed("Not a ScreenHire API key.");
             }
 
             // In a scope of its own, so the request's tenant is set only from a key that authenticated
@@ -146,7 +200,7 @@ internal static class ApiKeyAuthentication
                 .SingleOrDefaultAsync(Context.RequestAborted);
             if (key is null || key.OrganizationId != organizationId || key.RevokedAt is not null)
             {
-                return AuthenticateResult.Fail("Unknown or revoked API key.");
+                return Failed("Unknown or revoked API key.");
             }
 
             var now = time.GetUtcNow();
@@ -172,6 +226,13 @@ internal static class ApiKeyAuthentication
 
         protected override Task HandleChallengeAsync(AuthenticationProperties properties)
         {
+            if (tooManyFailures)
+            {
+                Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                Response.Headers.RetryAfter = "60";
+                return Task.CompletedTask;
+            }
+
             Response.StatusCode = StatusCodes.Status401Unauthorized;
             Response.Headers.WWWAuthenticate = "Bearer";
             return Task.CompletedTask;
