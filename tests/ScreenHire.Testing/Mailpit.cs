@@ -43,13 +43,36 @@ public sealed partial class Mailpit(Uri baseAddress)
     /// <c>#invitation=</c>, not <c>#token=</c>, so they never pass for a sign-in link.
     /// </summary>
     public async Task<string> WaitForInvitationTokenAsync(string address, CancellationToken cancellationToken) =>
-        InvitationToken().Match((await WaitForInvitationLinkAsync(address, cancellationToken)).ToString()).Groups["token"].Value;
+        (await WaitForInvitationAsync(address, cancellationToken)).Groups["token"].Value;
 
     /// <summary>The link the newest invitation email to <paramref name="address"/> carries: the dashboard's accept page.</summary>
-    public async Task<Uri> WaitForInvitationLinkAsync(string address, CancellationToken cancellationToken)
+    public async Task<Uri> WaitForInvitationLinkAsync(string address, CancellationToken cancellationToken) =>
+        new((await WaitForInvitationAsync(address, cancellationToken)).Value);
+
+    // Skips the address's other email (a sign-in link), so an invitation that arrives second is still found.
+    private async Task<Match> WaitForInvitationAsync(string address, CancellationToken cancellationToken)
     {
-        var messages = await WaitForMessagesAsync(address, 1, cancellationToken);
-        return new Uri(messages.Select(message => InvitationToken().Match(message.Text)).First(match => match.Success).Value);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(Timeout);
+        while (true)
+        {
+            var invitation = (await MessagesAsync(address, cancellationToken))
+                .Select(message => InvitationToken().Match(message.Text))
+                .FirstOrDefault(match => match.Success);
+            if (invitation is not null)
+            {
+                return invitation;
+            }
+
+            try
+            {
+                await Task.Delay(PollInterval, deadline.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"Mailpit received no invitation email for the test address within {Timeout.TotalSeconds:0} s.");
+            }
+        }
     }
 
     /// <summary>Waits until at least <paramref name="count"/> emails have reached <paramref name="address"/>, then returns them all.</summary>

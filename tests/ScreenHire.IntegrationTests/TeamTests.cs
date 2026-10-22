@@ -69,6 +69,36 @@ public sealed class TeamTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Two_clicks_at_once_accept_an_invitation_once()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("double");
+        (await owner.PostAsync("/v1/organization/invitations", Invite(email, "Viewer"))).Expect(HttpStatusCode.Created);
+        var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
+        using var first = new ApiSession(fixture);
+        using var second = new ApiSession(fixture);
+
+        var responses = await Task.WhenAll(
+            first.PostAsync("/v1/auth/invitations/accept", new { token }, Ct),
+            second.PostAsync("/v1/auth/invitations/accept", new { token }, Ct));
+
+        try
+        {
+            responses.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.BadRequest]);
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        (await owner.GetAsync("/v1/organization/members")).Count().Should().Be(2);
+        (await LogKindsAsync(owner)).Count(kind => kind == "Joined").Should().Be(1);
+    }
+
+    [Fact]
     public async Task An_expired_invitation_is_refused()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -115,6 +145,20 @@ public sealed class TeamTests(AppHostFixture fixture)
         pending.Text("0.role").Should().Be("Recruiter");
         // A replacement revokes and invites in one save, at one instant, so only the multiset is stable.
         (await LogKindsAsync(owner)).Should().BeEquivalentTo(["Invited", "InvitationRevoked", "Invited", "InvitationRevoked", "Invited"]);
+    }
+
+    [Fact]
+    public async Task Two_invitations_to_one_address_at_once_leave_one_open()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("twice");
+
+        var results = await Task.WhenAll(
+            owner.PostAsync("/v1/organization/invitations", Invite(email, "Viewer")),
+            owner.PostAsync("/v1/organization/invitations", Invite(email, "Recruiter")));
+
+        results.Select(r => r.Status).Should().AllBeEquivalentTo(HttpStatusCode.Created);
+        (await owner.GetAsync("/v1/organization/invitations")).Count().Should().Be(1, "the later invitation replaces the earlier one");
     }
 
     [Fact]
@@ -226,6 +270,24 @@ public sealed class TeamTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Two_owners_demoting_each_other_at_once_leave_one_owner()
+    {
+        using var first = await fixture.SignedInWithOrganizationAsync();
+        using var second = await fixture.InviteAndJoinAsync(first, "Owner");
+        var firstMemberId = await first.MemberIdAsync(first.UserId);
+        var secondMemberId = await first.MemberIdAsync(second.UserId);
+
+        var results = await Task.WhenAll(
+            first.PutAsync($"/v1/organization/members/{secondMemberId}/role", Role("Admin")),
+            second.PutAsync($"/v1/organization/members/{firstMemberId}/role", Role("Admin")));
+
+        // The one that runs second is no longer an Owner by then, so it may not change an Owner's role.
+        results.Select(r => r.Status).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Forbidden]);
+        (await first.GetAsync("/v1/organization/members")).Body.EnumerateArray()
+            .Count(m => m.GetProperty("role").GetString() == "Owner").Should().Be(1);
+    }
+
+    [Fact]
     public async Task An_admin_manages_the_team_but_not_its_owners()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -234,6 +296,15 @@ public sealed class TeamTests(AppHostFixture fixture)
 
         (await admin.PostAsync("/v1/organization/invitations", Invite(ApiSession.NewEmail("owner"), "Owner"))).Expect(HttpStatusCode.Forbidden)
             .Text("title").Should().Be("Owners only");
+
+        // Replacing an invitation revokes it, so an Admin cannot replace the Owner's invitation to become an Owner.
+        var ownerInvitee = ApiSession.NewEmail("future-owner");
+        var ownerInvitationId = (await owner.PostAsync("/v1/organization/invitations", Invite(ownerInvitee, "Owner")))
+            .Expect(HttpStatusCode.Created).Id();
+        (await admin.PostAsync("/v1/organization/invitations", Invite(ownerInvitee, "Viewer"))).Expect(HttpStatusCode.Forbidden)
+            .Text("title").Should().Be("Owners only");
+        (await owner.GetAsync("/v1/organization/invitations")).Body.EnumerateArray()
+            .Should().ContainSingle(i => i.GetProperty("id").GetGuid() == ownerInvitationId);
         (await admin.PutAsync($"/v1/organization/members/{ownerMemberId}/role", Role("Viewer"))).Expect(HttpStatusCode.Forbidden);
         (await admin.DeleteAsync($"/v1/organization/members/{ownerMemberId}")).Expect(HttpStatusCode.Forbidden);
 
@@ -336,6 +407,26 @@ public sealed class TeamTests(AppHostFixture fixture)
         (await a.PostAsync("/v1/auth/switch-organization", new JsonObject { ["organizationId"] = stranger.OrganizationId }))
             .Expect(HttpStatusCode.NotFound);
         (await a.Session.CurrentUserAsync(Ct))!.Value.GetProperty("organization").GetProperty("id").GetGuid().Should().Be(a.OrganizationId);
+    }
+
+    [Fact]
+    public async Task Switching_organization_closes_live_updates_into_the_one_left()
+    {
+        using var a = await fixture.SignedInWithOrganizationAsync();
+        using var b = await fixture.SignedInWithOrganizationAsync();
+        var aEmail = (await a.Session.CurrentUserAsync(Ct))!.Value.GetProperty("email").GetString()!;
+        (await b.PostAsync("/v1/organization/invitations", Invite(aEmail, "Recruiter"))).Expect(HttpStatusCode.Created);
+        await a.Session.AcceptInvitationAsync(await fixture.Mailpit.WaitForInvitationTokenAsync(aEmail, Ct), Ct);
+        await using var inB = await EventsConnection.ConnectAsync(a.Session, Ct);
+        await using var bOwnerEvents = await EventsConnection.ConnectAsync(b.Session, Ct);
+
+        (await a.PostAsync("/v1/auth/switch-organization", new JsonObject { ["organizationId"] = a.OrganizationId })).Expect(HttpStatusCode.OK);
+
+        await inB.Closed.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        var job = await b.CreateJobAsync(Samples.RemoteJob("After the switch"));
+        await b.PublishJobAsync(job.Id());
+        await bOwnerEvents.WaitForAsync("JobPublished", "jobId", job.Id(), Ct);
+        inB.Received.Should().BeEmpty("the connection into B closed when its user switched to A");
     }
 
     [Fact]
