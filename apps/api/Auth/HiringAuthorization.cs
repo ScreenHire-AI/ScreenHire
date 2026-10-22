@@ -9,7 +9,8 @@ namespace ScreenHire.Api.Auth;
 /// For every route that changes hiring data (jobs, templates, applications): the signed-in user must belong to an
 /// organization with a role that may change it. Viewers read; Owners, Admins and Recruiters also write. Anyone else
 /// gets 403 with a problem body. The role is read per request, like the membership itself
-/// (<see cref="TenantResolutionMiddleware"/>), so a role change takes effect on the next request.
+/// (<see cref="TenantResolutionMiddleware"/>), so a role change takes effect on the next request. An API key has no role:
+/// it is judged by its scope instead (ADR-0011).
 /// </summary>
 /// <remarks>
 /// An endpoint filter rather than an authorization policy: a failed policy ends in the cookie handler's bare 403

@@ -81,9 +81,13 @@ internal static class ApiKeyAuthentication
         return builder;
     }
 
-    /// <summary>Opens a route group to API keys: the <see cref="HiringApiPolicy"/> and the per-key rate limit.</summary>
+    /// <summary>
+    /// Opens a route group to API keys: the <see cref="HiringApiPolicy"/> and the per-key rate limit, whose 429 the OpenAPI
+    /// document declares on every route of the group.
+    /// </summary>
     public static RouteGroupBuilder AllowApiKeys(this RouteGroupBuilder group) =>
-        group.RequireAuthorization(HiringApiPolicy).RequireRateLimiting(RateLimitPolicy);
+        group.RequireAuthorization(HiringApiPolicy).RequireRateLimiting(RateLimitPolicy)
+            .WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status429TooManyRequests, typeof(void))); // Produces() is for one route only
 
     /// <summary>
     /// Whether <paramref name="user"/> was authenticated by an API key. Decided by the identity's authentication type,
@@ -212,7 +216,9 @@ internal static class ApiKeyAuthentication
                     .ExecuteUpdateAsync(set => set.SetProperty(k => k.LastUsedAt, now), Context.RequestAborted);
             }
 
-            var permits = key.PermitsPerMinute ?? keyOptions.Value.PermitsPerMinute;
+            // The deployment's limit is also the most any key gets, including one created before it was lowered.
+            var most = keyOptions.Value.PermitsPerMinute;
+            var permits = Math.Min(key.PermitsPerMinute ?? most, most);
             List<Claim> claims =
             [
                 new(KeyIdClaim, key.Id.ToString()),

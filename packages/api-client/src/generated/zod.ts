@@ -2474,7 +2474,7 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "note": zod.string().nullable(),
   "tag": zod.string().nullable(),
   "automationRunId": zod.uuid().nullable(),
-  "actorApiKeyId": zod.uuid().nullish()
+  "actorApiKeyId": zod.uuid().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 

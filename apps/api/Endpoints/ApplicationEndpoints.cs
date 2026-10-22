@@ -192,15 +192,18 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<List<ApplicationTimelineEntry>>, NotFound>> GetApplicationTimeline(
-        Guid applicationId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid applicationId, ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))
         {
             return TypedResults.NotFound();
         }
 
+        // A key sees no integrity assessments here either: not even that one ran, or when (IntegritySummariesAsync).
+        var withIntegrity = !user.IsApiKey();
         var events = await db.ApplicationEvents.AsNoTracking()
             .Where(e => e.ApplicationId == applicationId)
+            .Where(e => withIntegrity || e.Type != ApplicationEventType.IntegrityAssessed)
             .OrderBy(e => e.OccurredAt)
             .ThenBy(e => e.Id)
             .ToListAsync(cancellationToken);

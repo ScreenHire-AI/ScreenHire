@@ -73,9 +73,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 columns: new[] { "organization_id", "created_at" });
 
             migrationBuilder.CreateIndex(
-                name: "ix_api_keys_secret_hash",
+                name: "ix_api_keys_organization_id_secret_hash",
                 table: "api_keys",
-                column: "secret_hash",
+                columns: new[] { "organization_id", "secret_hash" },
                 unique: true);
 
             migrationBuilder.Sql(EnableRowLevelSecurity);

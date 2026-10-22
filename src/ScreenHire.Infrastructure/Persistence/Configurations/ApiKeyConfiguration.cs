@@ -17,8 +17,9 @@ internal sealed class ApiKeyConfiguration : IEntityTypeConfiguration<ApiKey>
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(k => k.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(k => k.CreatedByUserId).OnDelete(DeleteBehavior.SetNull);
-        // Authentication finds a key by its hash, with the organization from the key as the tenant.
-        builder.HasIndex(k => k.SecretHash).IsUnique();
+        // Authentication finds a key by its hash, with the organization from the key as the tenant, so the query filter
+        // adds the organization to the lookup.
+        builder.HasIndex(k => new { k.OrganizationId, k.SecretHash }).IsUnique();
         builder.HasIndex(k => new { k.OrganizationId, k.CreatedAt });
     }
 }

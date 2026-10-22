@@ -1961,12 +1961,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedByUserId")
                         .HasDatabaseName("ix_api_keys_created_by_user_id");
 
-                    b.HasIndex("SecretHash")
-                        .IsUnique()
-                        .HasDatabaseName("ix_api_keys_secret_hash");
-
                     b.HasIndex("OrganizationId", "CreatedAt")
                         .HasDatabaseName("ix_api_keys_organization_id_created_at");
+
+                    b.HasIndex("OrganizationId", "SecretHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_api_keys_organization_id_secret_hash");
 
                     b.ToTable("api_keys", (string)null);
                 });

@@ -44,7 +44,10 @@ internal sealed class CreateApiKeyRequestValidator : AbstractValidator<CreateApi
     {
         RuleFor(r => r.Name).Cascade(CascadeMode.Stop).NotEmpty().Must(name => name.Trim().Length > 0).WithMessage("Give the key a name.")
             .MaximumLength(ApiKey.MaxNameLength);
+        // JSON numbers bind to enums as well as names, so a number that names no scope is refused here.
         RuleFor(r => r.Scopes).Cascade(CascadeMode.Stop).NotNull()
+            .Must(scopes => scopes.All(Enum.IsDefined))
+            .WithMessage("Scopes are Read and Write.")
             .Must(scopes => scopes.Contains(ApiKeyScope.Read))
             .WithMessage("A key needs the Read scope.")
             .Must(scopes => scopes.Distinct().Count() == scopes.Count)
