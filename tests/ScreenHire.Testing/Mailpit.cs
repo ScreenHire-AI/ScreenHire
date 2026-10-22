@@ -42,10 +42,14 @@ public sealed partial class Mailpit(Uri baseAddress)
     /// The token from the newest invitation email to <paramref name="address"/>. Invitation links carry
     /// <c>#invitation=</c>, not <c>#token=</c>, so they never pass for a sign-in link.
     /// </summary>
-    public async Task<string> WaitForInvitationTokenAsync(string address, CancellationToken cancellationToken)
+    public async Task<string> WaitForInvitationTokenAsync(string address, CancellationToken cancellationToken) =>
+        InvitationToken().Match((await WaitForInvitationLinkAsync(address, cancellationToken)).ToString()).Groups["token"].Value;
+
+    /// <summary>The link the newest invitation email to <paramref name="address"/> carries: the dashboard's accept page.</summary>
+    public async Task<Uri> WaitForInvitationLinkAsync(string address, CancellationToken cancellationToken)
     {
         var messages = await WaitForMessagesAsync(address, 1, cancellationToken);
-        return messages.Select(message => InvitationToken().Match(message.Text)).First(match => match.Success).Groups["token"].Value;
+        return new Uri(messages.Select(message => InvitationToken().Match(message.Text)).First(match => match.Success).Value);
     }
 
     /// <summary>Waits until at least <paramref name="count"/> emails have reached <paramref name="address"/>, then returns them all.</summary>

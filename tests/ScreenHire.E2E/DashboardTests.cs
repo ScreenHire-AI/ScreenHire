@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
@@ -95,6 +96,36 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         await ExpectBrightwaterJobsAsync();
+    }
+
+    [Fact]
+    public async Task An_emailed_invitation_signs_the_invitee_in_to_the_team()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var owner = new ApiSession(Fixture);
+        await owner.SignInWithMagicLinkAsync(ApiSession.NewEmail("owner"), cancellationToken);
+        await owner.OnboardAsync(cancellationToken);
+        var invitee = ApiSession.NewEmail("invitee");
+        using (var invited = await owner.PostAsync("/v1/organization/invitations", new { email = invitee, role = "Recruiter" }, cancellationToken))
+        {
+            invited.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        var link = await Fixture.Mailpit.WaitForInvitationLinkAsync(invitee, cancellationToken);
+        link.GetLeftPart(UriPartial.Authority).Should().Be(Fixture.GetEndpoint("dashboard").GetLeftPart(UriPartial.Authority));
+        await Page.GotoAsync(link.ToString());
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Join your team");
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = invitee })).ToBeVisibleAsync();
+
+        // The link works once: opening it again explains that instead of signing anyone in.
+        await Page.GotoAsync(link.ToString());
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("This invitation doesn't work");
     }
 
     private async Task ExpectBrightwaterJobsAsync()

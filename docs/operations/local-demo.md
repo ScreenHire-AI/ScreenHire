@@ -87,9 +87,9 @@ a user. No password anywhere.
 The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
-Team invitations have an API but no screen yet: `POST /v1/organization/invitations` as Avery sends the invitation to
-Mailpit. Its link points at `/invitations/accept` on the dashboard, which has no page yet. To accept one now, send the `invitation` value from the link's fragment as `token` to
-`POST /v1/auth/invitations/accept`.
+Team management has an API but no screen yet: `POST /v1/organization/invitations` as Avery (the Scalar API reference
+works) sends the invitation to Mailpit. Its link opens the dashboard's **Join your team** page, and **Accept
+invitation** signs the invitee in to Brightwater with the invited role.
 
 ## What the demo data is
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Realtime;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
@@ -136,9 +137,10 @@ internal static class TeamEndpoints
     }
 
     // Removing a member ends their access on their next request (Memberships.ResolveTenantAsync reads the membership
-    // every time). An open real-time connection keeps its groups until it reconnects (docs/architecture/realtime.md).
+    // every time) and closes their open live-update connections into this organization at once.
     private static async Task<Results<NoContent, NotFound, Conflict<ProblemDetails>, ProblemHttpResult>> RemoveMember(
-        Guid memberId, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+        Guid memberId, ScreenHireDbContext db, ITenantContext tenant, RealtimeConnections connections, TimeProvider time,
+        CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, tenant.OrganizationId!.Value, cancellationToken);
@@ -170,6 +172,7 @@ internal static class TeamEndpoints
         });
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        connections.Close(member.UserId, member.OrganizationId);
         return TypedResults.NoContent();
     }
 

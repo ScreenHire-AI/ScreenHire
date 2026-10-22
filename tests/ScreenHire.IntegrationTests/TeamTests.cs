@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Infrastructure.Tenancy;
+using ScreenHire.IntegrationTests.Realtime;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -185,6 +186,24 @@ public sealed class TeamTests(AppHostFixture fixture)
         (await owner.GetAsync("/v1/organization/members")).Count().Should().Be(1);
         (await owner.DeleteAsync($"/v1/organization/members/{memberId}")).Expect(HttpStatusCode.NotFound);
         (await LogKindsAsync(owner)).First().Should().Be("Removed");
+    }
+
+    [Fact]
+    public async Task Removing_a_member_closes_their_open_live_updates_and_no_one_elses()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        await using var recruiterEvents = await EventsConnection.ConnectAsync(recruiter.Session, Ct);
+        await using var ownerEvents = await EventsConnection.ConnectAsync(owner.Session, Ct);
+        var memberId = await owner.MemberIdAsync(recruiter.UserId);
+
+        (await owner.DeleteAsync($"/v1/organization/members/{memberId}")).Expect(HttpStatusCode.NoContent);
+
+        await recruiterEvents.Closed.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("After removal"));
+        await owner.PublishJobAsync(job.Id());
+        await ownerEvents.WaitForAsync("JobPublished", "jobId", job.Id(), Ct);
+        recruiterEvents.Received.Should().BeEmpty("the removed member's connection closed before the job was published");
     }
 
     [Fact]

@@ -100,11 +100,8 @@ Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes h
 applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
 write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its careers branding)
 call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
-takes effect on the member's next request. An open real-time connection keeps the groups it joined until it reconnects
-(`docs/architecture/realtime.md`), and at most until the session cookie it opened with expires
-(`CloseOnAuthenticationExpiration`). Until then a removed member's open tab can still receive the organization's
-events, which carry ids, stages and levels but no names; ending it at once needs connection tracking across API
-replicas, which is not built.
+takes effect on the member's next request. Removing a member also closes their open real-time connections into the
+organization at once (`RealtimeConnections`, `docs/architecture/realtime.md`).
 
 ### Team members and invitations
 
@@ -129,8 +126,9 @@ organization itself, because the filter and the `own_memberships` policy also sh
 
 **Invitations** (`organization_invitations`, tenant-owned with row-level security) work like sign-in links: only the
 SHA-256 hash of the token is stored, an invitation expires after `ScreenHire:Auth:Invitation:Lifetime` (7 days), one
-conditional UPDATE uses it up, and the link opens `/invitations/accept#invitation=...` on the dashboard, so the token
-stays out of server logs and the person confirms with a button. A new invitation to the same address revokes the open
+conditional UPDATE uses it up, and the link opens the dashboard's `/invitations/accept#invitation=...` page, so the
+token stays out of server logs and the person confirms with a button. The page is open whoever is signed in
+(`guardRedirect` in `apps/dashboard/src/lib/auth.ts`), because accepting signs in as the invited address. A new invitation to the same address revokes the open
 one. The token is the organization's id followed by 256 random bits (`apps/api/Auth/Invitations.cs`). Accepting reads
 the id, makes that organization the tenant, and looks for the hash inside it. The id only says where to look; the
 hash match is what authorizes. Accepting signs in as the user with the invited address, whoever the browser was signed
