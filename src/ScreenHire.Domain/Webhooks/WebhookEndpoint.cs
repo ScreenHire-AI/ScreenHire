@@ -48,8 +48,6 @@ public sealed class WebhookEndpoint : ITenantOwned
 
     public DateTimeOffset SecretRotatedAt { get; private set; }
 
-    public bool Receives(string eventType) => Enabled && Events.Contains(eventType);
-
     /// <summary>Turns the endpoint on or off by hand. Turning it on clears an automatic disable and its failure count.</summary>
     public void SetEnabled(bool enabled, DateTimeOffset now)
     {

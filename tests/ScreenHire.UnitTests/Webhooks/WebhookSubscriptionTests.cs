@@ -135,11 +135,10 @@ public sealed class WebhookSubscriptionTests
         endpoint.ConsecutiveFailures = 5;
         endpoint.DisabledReason = "Disabled automatically";
 
-        endpoint.Receives("job.published").Should().BeFalse();
+        endpoint.Enabled.Should().BeFalse();
         endpoint.SetEnabled(true, Now.AddHours(1));
 
-        endpoint.Receives("job.published").Should().BeTrue();
-        endpoint.Receives("job.closed").Should().BeFalse();
+        endpoint.Enabled.Should().BeTrue();
         endpoint.ConsecutiveFailures.Should().Be(0);
         endpoint.DisabledReason.Should().BeNull();
         endpoint.DisabledAt.Should().BeNull();

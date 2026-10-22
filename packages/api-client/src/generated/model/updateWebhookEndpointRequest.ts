@@ -6,13 +6,15 @@
  */
 
 /**
- * Replaces an endpoint's settings. Turning bool UpdateWebhookEndpointRequest.Enabled back on clears an automatic disable and its failure
- * count; deliveries skipped while it was off stay skipped and can be replayed.
+ * Replaces an endpoint's settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it
+ * back on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can
+ * be replayed.
  */
 export interface UpdateWebhookEndpointRequest {
   url: string;
   events: string[];
-  enabled: boolean;
+  /** @nullable */
+  enabled?: boolean | null;
   /** @nullable */
   description?: string | null;
 }

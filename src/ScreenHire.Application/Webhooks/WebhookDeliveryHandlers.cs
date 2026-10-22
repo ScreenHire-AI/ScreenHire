@@ -89,7 +89,8 @@ public static partial class DeliverWebhookHandler
         CancellationToken cancellationToken)
     {
         var outgoing = new OutgoingMessages();
-        // A delivery goes with its endpoint, so a missing one was deleted with it: nothing to send.
+        // A delivery goes with its endpoint, so a missing one was deleted with it: nothing to send. A delete that lands
+        // while an attempt is in flight fails this handler's save; the retry policy runs it again and it ends here.
         var delivery = await db.WebhookDeliveries.SingleOrDefaultAsync(d => d.Id == message.DeliveryId, cancellationToken);
         if (delivery is null || delivery.Status != WebhookDeliveryStatus.Pending || delivery.Attempts != message.Attempt - 1)
         {
@@ -133,8 +134,9 @@ public static partial class DeliverWebhookHandler
                 }),
             cancellationToken);
 
+        // The wait runs from the receiver's answer, not from the send: a receiver that times out still gets the full delay.
         var delays = settings.EffectiveRetryDelays;
-        DateTimeOffset? nextAt = response.Succeeded || message.Attempt > delays.Count ? null : now + delays[message.Attempt - 1];
+        DateTimeOffset? nextAt = response.Succeeded || message.Attempt > delays.Count ? null : time.GetUtcNow() + delays[message.Attempt - 1];
         delivery.RecordAttempt(now, response.StatusCode, response.Error, nextAt);
         LogAttempt(logger, delivery.Id, message.Attempt, endpoint.Id, delivery.Status, response.StatusCode);
 

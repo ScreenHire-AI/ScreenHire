@@ -53,9 +53,11 @@ public sealed class WebhookOptions
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// The platform key each organization's signing key is derived from (<see cref="WebhookSignature.OrganizationKey"/>).
-    /// It never leaves the worker. The AppHost generates one locally; production sets its own secret. Without one,
-    /// CallWebhook actions fail with an issue rather than send something unverifiable.
+    /// The platform key each organization's signing key and each endpoint's secret are derived from
+    /// (<see cref="WebhookSignature.OrganizationKey"/>, <see cref="WebhookSignature.EndpointSecret"/>). The worker holds
+    /// it to sign, and the API holds it to show an endpoint's secret once; no response or log carries it. The AppHost
+    /// generates one locally; production sets its own secret. Without one, CallWebhook actions fail with an issue rather
+    /// than send something unverifiable, and subscription deliveries are skipped.
     /// </summary>
     public string? SigningKey { get; set; }
 
@@ -99,14 +101,14 @@ public static class WebhookSignature
     /// <summary>
     /// The key one organization's deliveries are signed with, and the one its receivers are given: hex HMAC-SHA256 of
     /// <c>webhook-signing:{organizationId}</c> under the platform key. A receiver holding one organization's key cannot
-    /// sign a delivery that another organization's receiver would accept, and the platform key stays in the worker.
+    /// sign a delivery that another organization's receiver would accept. The platform key itself is never handed out.
     /// </summary>
     public static string OrganizationKey(string platformKey, Guid organizationId)
     {
         ArgumentException.ThrowIfNullOrEmpty(platformKey);
         var mac = HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(platformKey),
-            Encoding.UTF8.GetBytes($"webhook-signing:{organizationId.ToString("D", System.Globalization.CultureInfo.InvariantCulture)}"));
+            Encoding.UTF8.GetBytes($"webhook-signing:{organizationId.ToString("D", CultureInfo.InvariantCulture)}"));
         return Convert.ToHexStringLower(mac);
     }
 
@@ -120,7 +122,7 @@ public static class WebhookSignature
         ArgumentException.ThrowIfNullOrEmpty(platformKey);
         var mac = HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(platformKey),
-            Encoding.UTF8.GetBytes(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"webhook-endpoint:{endpointId:D}:{version}")));
+            Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"webhook-endpoint:{endpointId:D}:{version}")));
         return $"whsec_{Convert.ToHexStringLower(mac)}";
     }
 
@@ -128,7 +130,7 @@ public static class WebhookSignature
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(body);
-        var timestamp = sentAt.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var timestamp = sentAt.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
         var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes($"{timestamp}.{body}"));
         return $"t={timestamp},v1={Convert.ToHexStringLower(mac)}";
     }

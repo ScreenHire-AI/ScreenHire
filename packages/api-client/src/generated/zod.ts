@@ -3719,9 +3719,9 @@ export const UpdateWebhookEndpointParams = zod.object({
 export const UpdateWebhookEndpointBody = zod.object({
   "url": zod.string(),
   "events": zod.array(zod.string()),
-  "enabled": zod.boolean(),
+  "enabled": zod.boolean().nullish(),
   "description": zod.string().nullish()
-}).describe('Replaces an endpoint\'s settings. Turning bool UpdateWebhookEndpointRequest.Enabled back on clears an automatic disable and its failure\r\ncount; deliveries skipped while it was off stay skipped and can be replayed.')
+}).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\r\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\r\nbe replayed.')
 
 export const UpdateWebhookEndpointResponse = zod.object({
   "id": zod.uuid(),

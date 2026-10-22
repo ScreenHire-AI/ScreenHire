@@ -96,8 +96,9 @@ internal static class WebhookEndpoints
 
         if (await db.WebhookEndpoints.CountAsync(cancellationToken) >= MaxEndpoints)
         {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "url", $"An organization has at most {MaxEndpoints} webhook endpoints. Delete one first."));
+            return TypedResults.Problem(
+                title: "Too many endpoints", detail: $"An organization has at most {MaxEndpoints} webhook endpoints. Delete one first.",
+                statusCode: StatusCodes.Status409Conflict);
         }
 
         var endpoint = WebhookEndpoint.Create(tenant.OrganizationId!.Value, request.Url, Blank(request.Description), request.Events, time.GetUtcNow());
@@ -130,7 +131,11 @@ internal static class WebhookEndpoints
         endpoint.Description = Blank(request.Description);
         endpoint.Events = [.. request.Events.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
         endpoint.UpdatedAt = now;
-        endpoint.SetEnabled(request.Enabled, now);
+        if (request.Enabled is { } enabled)
+        {
+            endpoint.SetEnabled(enabled, now);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(endpoint.ToEntry());
     }
@@ -203,10 +208,12 @@ internal static class WebhookEndpoints
                 title: "Endpoint disabled", detail: "Turn the endpoint back on before replaying to it.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        if (original.Status == WebhookDeliveryStatus.Pending)
+        // The original or an earlier replay of the same event still has attempts left: one chain of retries at a time.
+        if (await db.WebhookDeliveries.AnyAsync(
+            d => d.EndpointId == endpointId && d.EventId == original.EventId && d.Status == WebhookDeliveryStatus.Pending, cancellationToken))
         {
             return TypedResults.Problem(
-                title: "Still delivering", detail: "This delivery has attempts left. Replay it once it has finished.",
+                title: "Still delivering", detail: "This event has a delivery with attempts left. Replay it once that has finished.",
                 statusCode: StatusCodes.Status409Conflict);
         }
 

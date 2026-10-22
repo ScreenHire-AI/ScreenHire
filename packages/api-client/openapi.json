@@ -8317,8 +8317,7 @@
       "UpdateWebhookEndpointRequest": {
         "required": [
           "url",
-          "events",
-          "enabled"
+          "events"
         ],
         "type": "object",
         "properties": {
@@ -8332,7 +8331,10 @@
             }
           },
           "enabled": {
-            "type": "boolean"
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "description": {
             "type": [
@@ -8341,7 +8343,7 @@
             ]
           }
         },
-        "description": "Replaces an endpoint's settings. Turning bool UpdateWebhookEndpointRequest.Enabled back on clears an automatic disable and its failure\r\ncount; deliveries skipped while it was off stay skipped and can be replayed."
+        "description": "Replaces an endpoint's settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\r\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\r\nbe replayed."
       },
       "UploadedFile": {
         "required": [

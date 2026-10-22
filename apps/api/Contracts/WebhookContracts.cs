@@ -8,10 +8,11 @@ namespace ScreenHire.Api.Contracts;
 public sealed record CreateWebhookEndpointRequest(string Url, IReadOnlyList<string> Events, string? Description = null);
 
 /// <summary>
-/// Replaces an endpoint's settings. Turning <see cref="Enabled"/> back on clears an automatic disable and its failure
-/// count; deliveries skipped while it was off stay skipped and can be replayed.
+/// Replaces an endpoint's settings. A body without <c>enabled</c> keeps the endpoint on or off as it is. Turning it
+/// back on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can
+/// be replayed.
 /// </summary>
-public sealed record UpdateWebhookEndpointRequest(string Url, IReadOnlyList<string> Events, bool Enabled, string? Description = null);
+public sealed record UpdateWebhookEndpointRequest(string Url, IReadOnlyList<string> Events, bool? Enabled = null, string? Description = null);
 
 /// <summary>
 /// One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.
