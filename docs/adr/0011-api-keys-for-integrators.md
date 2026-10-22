@@ -52,5 +52,10 @@ per-app scopes. ScreenHire has no marketplace and no third-party apps yet.
 - The rate limit counts per API instance. A second replica doubles a key's budget until the limiter moves to a shared
   store.
 - Audit entries for key writes have no person. Recording the key as the actor is a later change to the event model.
+- A key belongs to the organization, not to its creator: it keeps working after that person leaves. Removing a member
+  does not exist yet; when it does, the flow should offer to revoke the keys they created.
+- Failed key attempts are not rate limited. A malformed key is refused before any query and a well-formed wrong one
+  costs one indexed lookup, and the 256-bit secret cannot be guessed. A per-IP limit on failures is a later addition
+  if the load shows up.
 - There are no screens yet; the routes are in the OpenAPI document and the generated client for the settings page that
   comes later.
