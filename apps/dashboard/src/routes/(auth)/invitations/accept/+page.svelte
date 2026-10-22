@@ -1,5 +1,5 @@
 <script lang="ts">
-  import LogInIcon from '@lucide/svelte/icons/log-in';
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import { acceptInvitation } from '@screenhire/api-client';
   import { tick } from 'svelte';
@@ -70,6 +70,6 @@
 
 {#snippet home()}
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button href="/" size="lg"><LogInIcon aria-hidden="true" />Go to ScreenHire</Button>
+    <Button href="/" size="lg"><ArrowRightIcon aria-hidden="true" />Go to ScreenHire</Button>
   </div>
 {/snippet}

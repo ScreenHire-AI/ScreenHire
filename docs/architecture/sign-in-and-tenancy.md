@@ -139,8 +139,10 @@ and the active organization are written in one transaction. The email goes out i
 like a sign-in link, so the token never sits in the outbox's message table. Inviting counts against the per-IP auth
 rate limit.
 
-**The membership log** (`membership_events`) records every invitation, revocation, join, role change and removal with
-who did it, who it was about and the roles before and after. It is append-only for audit: `screenhire_app` has no
+**The membership log** (`membership_events`) records every invitation, revocation, join by invitation, role change and
+removal with who did it, who it was about and the roles before and after. Two membership facts have no entry: the
+founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
+already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
 record.
 

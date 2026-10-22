@@ -16,6 +16,8 @@ internal sealed class OrganizationInvitationConfiguration : IEntityTypeConfigura
         // Accepting looks the invitation up by its hash, inside the organization the token names.
         builder.HasIndex(i => new { i.OrganizationId, i.TokenHash }).IsUnique();
         // The open invitations list, and a new invitation revoking the address's earlier ones.
+        // Not a unique partial index on open invitations: an expired one keeps accepted_at and revoked_at null, so a
+        // re-invite after expiry would collide with it. CreateInvitation keeps one open per address under the member lock.
         builder.HasIndex(i => new { i.OrganizationId, i.Email });
     }
 }

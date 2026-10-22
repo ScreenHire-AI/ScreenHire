@@ -89,7 +89,30 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
+DELETE {{api}}/v1/organization/members/00000000-0000-0000-0000-000000000000
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+GET {{api}}/v1/organization/invitations
+
+###
+
+DELETE {{api}}/v1/organization/invitations/00000000-0000-0000-0000-000000000000
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
 GET {{api}}/v1/organization/membership-log
+
+###
+
+# The token comes from the emailed link's #invitation= fragment.
+POST {{api}}/v1/auth/invitations/accept
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "token": "paste-the-token-here" }
 
 ###
 
