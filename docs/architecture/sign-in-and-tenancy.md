@@ -12,7 +12,8 @@ their account. ASP.NET Core Identity is the user store (`ApplicationUser`, table
 
 The dashboard calls the API same-origin through its `/v1` path (the Vite proxy locally), so cookies are host-only on
 `ScreenHire:Domains:AppHost` and need no CORS. Every route requires a signed-in user unless it calls
-`.AllowAnonymous()` (a fallback authorization policy in `apps/api/Auth/AuthenticationSetup.cs`).
+`.AllowAnonymous()` (a fallback authorization policy in `apps/api/Auth/AuthenticationSetup.cs`). The hiring API also accepts an
+organization API key in place of the session ("API keys" below).
 
 | Route | What it does |
 |---|---|
