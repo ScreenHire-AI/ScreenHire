@@ -43,8 +43,9 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
 - Every route requires a signed-in user (a fallback policy) unless it calls `.AllowAnonymous()`. Public routes do;
   dashboard groups also say `.RequireAuthorization()`, for the reader. Hiring API groups say `.AllowApiKeys()`
   instead, which also accepts an organization API key (ADR-0011). Cookie-authenticated mutations add
-  `.RequireAntiforgeryToken()`; it lets key requests through. Details: `docs/architecture/sign-in-and-tenancy.md`
-  and `/add-endpoint`.
+  `.RequireAntiforgeryToken()`; it lets key requests through. `TenantResolutionMiddleware` sets the tenant after
+  authorization, so an authorization policy never sees `ITenantContext`; check the tenant or role in an endpoint
+  filter (`RequireHiringRole`). Details: `docs/architecture/sign-in-and-tenancy.md` and `/add-endpoint`.
 - After any endpoint or contract change: `pnpm generate:api`, then commit `openapi.json` and `src/generated`.
 
 ## Data
