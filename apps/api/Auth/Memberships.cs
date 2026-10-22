@@ -12,7 +12,7 @@ namespace ScreenHire.Api.Auth;
 internal static class Memberships
 {
     /// <summary>
-    /// Sets the user from <paramref name="user"/>'s claims, then their organization, and returns that organization; null
+    /// Sets the user from <paramref name="user"/>'s claims, then their active organization, and returns it; null
     /// when nobody is signed in or the user has not joined one yet. The membership is read every time rather than kept in
     /// the cookie, so removing someone from an organization takes effect on their next request or connection.
     /// </summary>
@@ -26,11 +26,12 @@ internal static class Memberships
 
         tenant.SetUser(userId);
 
-        // With only the user set, the filter and row-level security show just this user's own memberships.
-        // One organization per user in the dashboard for now: the first one joined.
+        // With only the user set, the filter and row-level security show just this user's own memberships. The
+        // organization they last switched to comes first while they still belong to it; otherwise the first one joined.
         var organizationId = await db.OrganizationMembers.AsNoTracking()
             .Where(m => m.UserId == userId)
-            .OrderBy(m => m.CreatedAt)
+            .OrderByDescending(m => db.Users.Any(u => u.Id == userId && u.ActiveOrganizationId == m.OrganizationId))
+            .ThenBy(m => m.CreatedAt)
             .Select(m => (Guid?)m.OrganizationId)
             .FirstOrDefaultAsync(cancellationToken);
         if (organizationId is { } id)

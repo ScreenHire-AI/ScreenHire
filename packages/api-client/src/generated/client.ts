@@ -19,16 +19,20 @@ import type {
   CandidateDetail,
   CandidateSummary,
   ChallengeProviderParams,
+  ChangeMemberRoleRequest,
   CreateApplicationRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CurrentOrganization,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
   HttpValidationProblemDetails,
+  InvitationAcceptance,
+  InvitationRequest,
   JobBoardInfo,
   JobBoardJob,
   JobBoardJobList,
@@ -42,10 +46,12 @@ import type {
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
+  MembershipLogEntry,
   MoveApplicationRequest,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationIntegritySettings,
+  PendingInvitation,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -57,6 +63,8 @@ import type {
   SandboxBoardListing,
   SignInMethods,
   SimulateWorkflowRequest,
+  SwitchOrganizationRequest,
+  TeamMember,
   TelemetrySnapshotInput,
   UpdateBrandingRequest,
   UpdateHiringTemplateRequest,
@@ -336,6 +344,46 @@ export const getCurrentUser = async ( options?: Parameters<typeof apiFetch>[1]):
 
 
 
+export type listMyOrganizationsResponse200 = {
+  data: CurrentOrganization[]
+  status: 200
+}
+
+export type listMyOrganizationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listMyOrganizationsResponseSuccess = (listMyOrganizationsResponse200) & {
+  headers: Headers;
+};
+export type listMyOrganizationsResponseError = (listMyOrganizationsResponse401) & {
+  headers: Headers;
+};
+
+export type listMyOrganizationsResponse = (listMyOrganizationsResponseSuccess | listMyOrganizationsResponseError)
+
+export const getListMyOrganizationsUrl = () => {
+
+
+
+
+  return `/v1/auth/organizations`
+}
+
+export const listMyOrganizations = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listMyOrganizationsResponse> => {
+
+  return apiFetch<listMyOrganizationsResponse>(getListMyOrganizationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type challengeProviderResponse404 = {
   data: void
   status: 404
@@ -555,6 +603,119 @@ return apiFetch<completeOnboardingResponse>(getCompleteOnboardingUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(onboardingRequest)
+  }
+);}
+
+
+
+export type acceptInvitationResponse200 = {
+  data: CurrentUser
+  status: 200
+}
+
+export type acceptInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type acceptInvitationResponseSuccess = (acceptInvitationResponse200) & {
+  headers: Headers;
+};
+export type acceptInvitationResponseError = (acceptInvitationResponse400) & {
+  headers: Headers;
+};
+
+export type acceptInvitationResponse = (acceptInvitationResponseSuccess | acceptInvitationResponseError)
+
+export const getAcceptInvitationUrl = () => {
+
+
+
+
+  return `/v1/auth/invitations/accept`
+}
+
+export const acceptInvitation = async (invitationAcceptance: InvitationAcceptance, options?: Parameters<typeof apiFetch>[1]): Promise<acceptInvitationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<acceptInvitationResponse>(getAcceptInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationAcceptance)
+  }
+);}
+
+
+
+export type switchOrganizationResponse200 = {
+  data: CurrentUser
+  status: 200
+}
+
+export type switchOrganizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type switchOrganizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type switchOrganizationResponseSuccess = (switchOrganizationResponse200) & {
+  headers: Headers;
+};
+export type switchOrganizationResponseError = (switchOrganizationResponse401 | switchOrganizationResponse404) & {
+  headers: Headers;
+};
+
+export type switchOrganizationResponse = (switchOrganizationResponseSuccess | switchOrganizationResponseError)
+
+export const getSwitchOrganizationUrl = () => {
+
+
+
+
+  return `/v1/auth/switch-organization`
+}
+
+export const switchOrganization = async (switchOrganizationRequest: SwitchOrganizationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<switchOrganizationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<switchOrganizationResponse>(getSwitchOrganizationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(switchOrganizationRequest)
   }
 );}
 
@@ -3286,6 +3447,390 @@ return apiFetch<updateOrganizationIntegritySettingsResponse>(getUpdateOrganizati
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateIntegritySettingsRequest)
+  }
+);}
+
+
+
+export type listTeamMembersResponse200 = {
+  data: TeamMember[]
+  status: 200
+}
+
+export type listTeamMembersResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTeamMembersResponseSuccess = (listTeamMembersResponse200) & {
+  headers: Headers;
+};
+export type listTeamMembersResponseError = (listTeamMembersResponse401) & {
+  headers: Headers;
+};
+
+export type listTeamMembersResponse = (listTeamMembersResponseSuccess | listTeamMembersResponseError)
+
+export const getListTeamMembersUrl = () => {
+
+
+
+
+  return `/v1/organization/members`
+}
+
+export const listTeamMembers = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listTeamMembersResponse> => {
+
+  return apiFetch<listTeamMembersResponse>(getListTeamMembersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listInvitationsResponse200 = {
+  data: PendingInvitation[]
+  status: 200
+}
+
+export type listInvitationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listInvitationsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listInvitationsResponseSuccess = (listInvitationsResponse200) & {
+  headers: Headers;
+};
+export type listInvitationsResponseError = (listInvitationsResponse401 | listInvitationsResponse403) & {
+  headers: Headers;
+};
+
+export type listInvitationsResponse = (listInvitationsResponseSuccess | listInvitationsResponseError)
+
+export const getListInvitationsUrl = () => {
+
+
+
+
+  return `/v1/organization/invitations`
+}
+
+export const listInvitations = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listInvitationsResponse> => {
+
+  return apiFetch<listInvitationsResponse>(getListInvitationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createInvitationResponse201 = {
+  data: PendingInvitation
+  status: 201
+}
+
+export type createInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createInvitationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createInvitationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createInvitationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createInvitationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createInvitationResponseSuccess = (createInvitationResponse201) & {
+  headers: Headers;
+};
+export type createInvitationResponseError = (createInvitationResponse400 | createInvitationResponse401 | createInvitationResponse403 | createInvitationResponse404 | createInvitationResponse409) & {
+  headers: Headers;
+};
+
+export type createInvitationResponse = (createInvitationResponseSuccess | createInvitationResponseError)
+
+export const getCreateInvitationUrl = () => {
+
+
+
+
+  return `/v1/organization/invitations`
+}
+
+export const createInvitation = async (invitationRequest: InvitationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createInvitationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createInvitationResponse>(getCreateInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationRequest)
+  }
+);}
+
+
+
+export type listMembershipLogResponse200 = {
+  data: MembershipLogEntry[]
+  status: 200
+}
+
+export type listMembershipLogResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listMembershipLogResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listMembershipLogResponseSuccess = (listMembershipLogResponse200) & {
+  headers: Headers;
+};
+export type listMembershipLogResponseError = (listMembershipLogResponse401 | listMembershipLogResponse403) & {
+  headers: Headers;
+};
+
+export type listMembershipLogResponse = (listMembershipLogResponseSuccess | listMembershipLogResponseError)
+
+export const getListMembershipLogUrl = () => {
+
+
+
+
+  return `/v1/organization/membership-log`
+}
+
+export const listMembershipLog = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listMembershipLogResponse> => {
+
+  return apiFetch<listMembershipLogResponse>(getListMembershipLogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type changeMemberRoleResponse200 = {
+  data: TeamMember
+  status: 200
+}
+
+export type changeMemberRoleResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeMemberRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeMemberRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeMemberRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeMemberRoleResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type changeMemberRoleResponseSuccess = (changeMemberRoleResponse200) & {
+  headers: Headers;
+};
+export type changeMemberRoleResponseError = (changeMemberRoleResponse400 | changeMemberRoleResponse401 | changeMemberRoleResponse403 | changeMemberRoleResponse404 | changeMemberRoleResponse409) & {
+  headers: Headers;
+};
+
+export type changeMemberRoleResponse = (changeMemberRoleResponseSuccess | changeMemberRoleResponseError)
+
+export const getChangeMemberRoleUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}/role`
+}
+
+export const changeMemberRole = async (memberId: string,
+    changeMemberRoleRequest: ChangeMemberRoleRequest, options?: Parameters<typeof apiFetch>[1]): Promise<changeMemberRoleResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<changeMemberRoleResponse>(getChangeMemberRoleUrl(memberId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeMemberRoleRequest)
+  }
+);}
+
+
+
+export type removeMemberResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removeMemberResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeMemberResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeMemberResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removeMemberResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removeMemberResponseSuccess = (removeMemberResponse204) & {
+  headers: Headers;
+};
+export type removeMemberResponseError = (removeMemberResponse401 | removeMemberResponse403 | removeMemberResponse404 | removeMemberResponse409) & {
+  headers: Headers;
+};
+
+export type removeMemberResponse = (removeMemberResponseSuccess | removeMemberResponseError)
+
+export const getRemoveMemberUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}`
+}
+
+export const removeMember = async (memberId: string, options?: Parameters<typeof apiFetch>[1]): Promise<removeMemberResponse> => {
+
+  return apiFetch<removeMemberResponse>(getRemoveMemberUrl(memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type revokeInvitationResponse204 = {
+  data: void
+  status: 204
+}
+
+export type revokeInvitationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeInvitationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeInvitationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeInvitationResponseSuccess = (revokeInvitationResponse204) & {
+  headers: Headers;
+};
+export type revokeInvitationResponseError = (revokeInvitationResponse401 | revokeInvitationResponse403 | revokeInvitationResponse404) & {
+  headers: Headers;
+};
+
+export type revokeInvitationResponse = (revokeInvitationResponseSuccess | revokeInvitationResponseError)
+
+export const getRevokeInvitationUrl = (invitationId: string,) => {
+
+
+
+
+  return `/v1/organization/invitations/${invitationId}`
+}
+
+export const revokeInvitation = async (invitationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<revokeInvitationResponse> => {
+
+  return apiFetch<revokeInvitationResponse>(getRevokeInvitationUrl(invitationId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
   }
 );}
 

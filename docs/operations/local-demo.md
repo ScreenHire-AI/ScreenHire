@@ -79,12 +79,16 @@ a user. No password anywhere.
 | Dev SSO user | Signs in as |
 |---|---|
 | Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data |
+| Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio: works on jobs and candidates, but cannot change the team or the organization's settings |
 | Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. After the first time they keep the organization they made |
 | Any email address you type | A new user each time you use a new address: the way to show onboarding again |
 | Unverified address | Refused: the provider did not vouch for the address |
 
 The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
+
+Team invitations have an API but no screen yet: `POST /v1/organization/invitations` as Avery sends the invitation to
+Mailpit. Its link opens `/invitations/accept` on the dashboard, a page the team screens will add.
 
 ## What the demo data is
 

@@ -75,6 +75,7 @@ app.MapIntegrityEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
+app.MapTeamEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
 app.MapSchemaEndpoints();

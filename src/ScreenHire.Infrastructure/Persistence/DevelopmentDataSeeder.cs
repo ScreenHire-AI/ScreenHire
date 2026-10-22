@@ -27,12 +27,18 @@ public static class DevelopmentDataSeeder
     public const string DemoOwnerEmail = "avery@brightwater.example.com";
     public const string DemoOwnerName = "Avery Quinn";
 
+    // A second, non-Owner member, so the demo shows roles: a Recruiter writes hiring data but cannot manage the team.
+    // Fictional (.claude/rules/no-personal-info.md); also a Dev SSO user.
+    public const string DemoRecruiterSubject = "brightwater-recruiter";
+    public const string DemoRecruiterEmail = "jordan@brightwater.example.com";
+    public const string DemoRecruiterName = "Jordan Ellis";
+
     /// <summary>Brightwater's brand colour, a deep teal, so the demo careers pages show employer branding.</summary>
     public const string DemoBrandColor = "#1f4e5a";
 
     /// <summary>
     /// Migrates as the table owner, lets the application role log in with the password from
-    /// <paramref name="appConnectionString"/>, then seeds Brightwater and its Owner. Every step is idempotent, so it
+    /// <paramref name="appConnectionString"/>, then seeds Brightwater, its Owner and a Recruiter. Every step is idempotent, so it
     /// runs on every start, including against a data volume from before a step existed.
     /// </summary>
     public static async Task MigrateAndSeedAsync(
@@ -53,7 +59,9 @@ public static class DevelopmentDataSeeder
         tenant.SetOrganization(organization.Id);
         await SeedBrandAsync(db, organization, cancellationToken);
         await SeedIntegritySettingsAsync(db, organization, now, cancellationToken);
-        await SeedOwnerAsync(db, organization, now, cancellationToken);
+        await SeedMemberAsync(db, organization, DemoOwnerSubject, DemoOwnerEmail, DemoOwnerName, OrganizationRole.Owner, now, cancellationToken);
+        await SeedMemberAsync(
+            db, organization, DemoRecruiterSubject, DemoRecruiterEmail, DemoRecruiterName, OrganizationRole.Recruiter, now, cancellationToken);
     }
 
     // Brightwater has the LLM consistency check on, so the demo shows it; locally the fake model answers. A step of its
@@ -128,44 +136,48 @@ public static class DevelopmentDataSeeder
         return organization;
     }
 
-    private static async Task SeedOwnerAsync(ScreenHireDbContext db, Organization organization, DateTimeOffset now, CancellationToken cancellationToken)
+    // A Dev SSO user (apps/apphost/DevSso/config.json) with a membership of Brightwater. Each part is added only when
+    // missing, so a data volume from before a member existed gets them too.
+    private static async Task SeedMemberAsync(
+        ScreenHireDbContext db, Organization organization, string subject, string email, string name, OrganizationRole role,
+        DateTimeOffset now, CancellationToken cancellationToken)
     {
         // Identity normalizes with UpperInvariantLookupNormalizer; match it so UserManager finds this user.
-        var normalizedEmail = DemoOwnerEmail.ToUpperInvariant();
-        var owner = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
-        if (owner is null)
+        var normalizedEmail = email.ToUpperInvariant();
+        var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
+        if (user is null)
         {
-            owner = new ApplicationUser
+            user = new ApplicationUser
             {
-                UserName = DemoOwnerEmail,
+                UserName = email,
                 NormalizedUserName = normalizedEmail,
-                Email = DemoOwnerEmail,
+                Email = email,
                 NormalizedEmail = normalizedEmail,
                 EmailConfirmed = true,
-                DisplayName = DemoOwnerName,
+                DisplayName = name,
                 CreatedAt = now,
             };
-            db.Users.Add(owner);
+            db.Users.Add(user);
         }
 
-        if (!await db.UserLogins.AnyAsync(l => l.LoginProvider == DevSsoProvider && l.ProviderKey == DemoOwnerSubject, cancellationToken))
+        if (!await db.UserLogins.AnyAsync(l => l.LoginProvider == DevSsoProvider && l.ProviderKey == subject, cancellationToken))
         {
             db.UserLogins.Add(new IdentityUserLogin<Guid>
             {
                 LoginProvider = DevSsoProvider,
-                ProviderKey = DemoOwnerSubject,
+                ProviderKey = subject,
                 ProviderDisplayName = "Dev SSO",
-                UserId = owner.Id,
+                UserId = user.Id,
             });
         }
 
-        if (!await db.OrganizationMembers.AnyAsync(m => m.OrganizationId == organization.Id && m.UserId == owner.Id, cancellationToken))
+        if (!await db.OrganizationMembers.AnyAsync(m => m.OrganizationId == organization.Id && m.UserId == user.Id, cancellationToken))
         {
             db.OrganizationMembers.Add(new OrganizationMember
             {
                 OrganizationId = organization.Id,
-                UserId = owner.Id,
-                Role = OrganizationRole.Owner,
+                UserId = user.Id,
+                Role = role,
                 CreatedAt = now,
             });
         }

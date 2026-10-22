@@ -18,6 +18,16 @@
         },
         {
           "requestParam": "subject",
+          "match": "brightwater-recruiter",
+          "claims": {
+            "sub": "brightwater-recruiter",
+            "email": "jordan@brightwater.example.com",
+            "email_verified": true,
+            "name": "Jordan Ellis"
+          }
+        },
+        {
+          "requestParam": "subject",
           "match": "new-recruiter",
           "claims": {
             "sub": "new-recruiter",

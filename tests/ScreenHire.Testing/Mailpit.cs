@@ -38,6 +38,16 @@ public sealed partial class Mailpit(Uri baseAddress)
     public async Task<Uri> WaitForSignInLinkAsync(string address, CancellationToken cancellationToken) =>
         (await WaitForSignInLinksAsync(address, 1, cancellationToken))[0];
 
+    /// <summary>
+    /// The token from the newest invitation email to <paramref name="address"/>. Invitation links carry
+    /// <c>#invitation=</c>, not <c>#token=</c>, so they never pass for a sign-in link.
+    /// </summary>
+    public async Task<string> WaitForInvitationTokenAsync(string address, CancellationToken cancellationToken)
+    {
+        var messages = await WaitForMessagesAsync(address, 1, cancellationToken);
+        return messages.Select(message => InvitationToken().Match(message.Text)).First(match => match.Success).Groups["token"].Value;
+    }
+
     /// <summary>Waits until at least <paramref name="count"/> emails have reached <paramref name="address"/>, then returns them all.</summary>
     public async Task<IReadOnlyList<MailpitMessage>> WaitForMessagesAsync(string address, int count, CancellationToken cancellationToken)
     {
@@ -119,6 +129,9 @@ public sealed partial class Mailpit(Uri baseAddress)
 
     [GeneratedRegex(@"https?://\S+#token=[A-Za-z0-9_-]+")]
     private static partial Regex SignInLink();
+
+    [GeneratedRegex(@"https?://\S+#invitation=(?<token>[A-Za-z0-9_-]+)")]
+    private static partial Regex InvitationToken();
 }
 
 /// <summary>One email as Mailpit stored it.</summary>

@@ -25,6 +25,12 @@ public sealed record CurrentUser(Guid Id, string Email, string DisplayName, Curr
 /// <summary>The organization the signed-in user works in, and their role there.</summary>
 public sealed record CurrentOrganization(Guid Id, string Name, string Slug, OrganizationRole Role);
 
+/// <summary>Makes another of the signed-in user's organizations the one they work in.</summary>
+public sealed record SwitchOrganizationRequest(Guid OrganizationId);
+
+/// <summary>Accepts the invitation whose token an emailed link carries, signing in as the invited address.</summary>
+public sealed record InvitationAcceptance(string Token);
+
 internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkRequest>
 {
     public MagicLinkRequestValidator() =>
@@ -48,6 +54,11 @@ internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkReq
 internal sealed class MagicLinkVerificationValidator : AbstractValidator<MagicLinkVerification>
 {
     public MagicLinkVerificationValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
+}
+
+internal sealed class InvitationAcceptanceValidator : AbstractValidator<InvitationAcceptance>
+{
+    public InvitationAcceptanceValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
 }
 
 internal sealed class OnboardingRequestValidator : AbstractValidator<OnboardingRequest>

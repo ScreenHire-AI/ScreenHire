@@ -24,6 +24,9 @@ The dashboard calls the API same-origin through its `/v1` path (the Vite proxy l
 | `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. |
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
 | `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
+| `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
+| `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. |
+| `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |
 
 ### Identity providers
@@ -85,8 +88,10 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 
 ## Organizations and roles
 
-`OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. The model allows
-many organizations per user; the dashboard uses the first one joined. Onboarding creates the organization and the
+`OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. A user can
+belong to several organizations and works in one at a time: the one in `users.active_organization_id` while they are
+still a member of it, otherwise the first one they joined. Joining by invitation and `POST /v1/auth/switch-organization`
+set it. It is per user, not per session, so it follows them to every device. Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain.
@@ -94,9 +99,47 @@ a careers subdomain.
 Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
 applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
 write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its careers branding)
-call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request. Today every member is an Owner,
-because onboarding is the one way to join an organization; a flow that lets someone join with another role must
-check that its own routes use the same filter.
+call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
+takes effect on the member's next request. An open real-time connection keeps the groups it joined until it reconnects
+(`docs/architecture/realtime.md`).
+
+### Team members and invitations
+
+`apps/api/Endpoints/TeamEndpoints.cs`, under `/v1/organization`:
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /members` | Any member | The organization's members with their email, name and role. |
+| `PUT /members/{memberId}/role` | Owner, Admin | Gives a member another role. |
+| `DELETE /members/{memberId}` | Owner, Admin | Removes a member. |
+| `GET /invitations` | Owner, Admin | Open invitations: not accepted, revoked or expired. |
+| `POST /invitations` | Owner, Admin | Invites an address with a role and emails the link. 404 when no email sender is configured. |
+| `DELETE /invitations/{invitationId}` | Owner, Admin | Revokes an open invitation. |
+| `GET /membership-log` | Owner, Admin | The latest 200 entries of the membership log. |
+
+`TeamPolicy` (`src/ScreenHire.Domain/Organizations`) says who may give which role: Owners manage everyone; Admins
+manage Admins, Recruiters and Viewers but cannot make anyone an Owner, change an Owner's role or remove an Owner. That
+refusal is a 403 "Owners only". Nobody can demote or remove the last Owner (409 "Last owner"). Every change runs under a
+per-organization advisory lock, so two Owners demoting each other at once cannot leave the organization with none.
+An address that is already a member gets 409 on invite. A team route narrows `organization_members` to the current
+organization itself, because the filter and the `own_memberships` policy also show the user's memberships elsewhere.
+
+**Invitations** (`organization_invitations`, tenant-owned with row-level security) work like sign-in links: only the
+SHA-256 hash of the token is stored, an invitation expires after `ScreenHire:Auth:Invitation:Lifetime` (7 days), one
+conditional UPDATE uses it up, and the link opens `/invitations/accept#invitation=...` on the dashboard, so the token
+stays out of server logs and the person confirms with a button. A new invitation to the same address revokes the open
+one. The token is the organization's id followed by 256 random bits (`apps/api/Auth/Invitations.cs`). Accepting reads
+the id, makes that organization the tenant, and looks for the hash inside it. The id only says where to look; the
+hash match is what authorizes. Accepting signs in as the user with the invited address, whoever the browser was signed
+in as, and creates that user if needed, because following the link proves the address. The membership, the log entry
+and the active organization are written in one transaction. The email goes out inside the request after the commit,
+like a sign-in link, so the token never sits in the outbox's message table. Inviting counts against the per-IP auth
+rate limit.
+
+**The membership log** (`membership_events`) records every invitation, revocation, join, role change and removal with
+who did it, who it was about and the roles before and after. It is append-only for audit: `screenhire_app` has no
+`UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
+record.
 
 ## Tenant isolation
 
@@ -127,6 +170,9 @@ Two layers, so one mistake is not a breach.
    security with no policy and no grant to `screenhire_app`, so the application role cannot touch it while the Signal
    Network stays off (ADR-0005).
 
+   The team tables (migration `AddTeamMembers`) follow the `jobs` pattern: `organization_invitations` and
+   `membership_events` each have a `tenant_isolation` policy, and `membership_events` is append-only.
+
    System hiring templates are the one shared data: `hiring_templates` and `hiring_template_versions` rows with a NULL
    `organization_id`. A `system_read` policy lets every tenant read them, the write policies require the caller's own
    organization, so no tenant can change one, and the entities carry a hand-written query filter (own organization or
@@ -150,9 +196,11 @@ Who the tenant is:
 
 | Request | Tenant |
 |---|---|
-| Signed in | `TenantResolutionMiddleware`: the user's first membership, read on every request |
+| Signed in | `TenantResolutionMiddleware`: the user's active organization (or first membership), read on every request |
 | Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization |
 | Onboarding | The new organization, from just before it is saved |
+| Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |
+| Switching organization | The chosen one, after a check that the user is a member of it |
 | Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn |
 
 ### Adding a tenant-owned table
@@ -194,6 +242,7 @@ listed on its login page.
 | Dev SSO user | Email | Signs in as |
 |---|---|---|
 | Avery Quinn | `avery@brightwater.example.com` | Owner of Brightwater Studio (seeded) |
+| Jordan Ellis | `jordan@brightwater.example.com` | Recruiter at Brightwater Studio (seeded) |
 | Sam Rivera | `sam@example.org` | A new user, until they onboard |
 | Unverified address | Avery's address, `email_verified: false` | Refused, as an unverified provider would be |
 | Any email address | what you type | A new user, or the existing one with that email |
