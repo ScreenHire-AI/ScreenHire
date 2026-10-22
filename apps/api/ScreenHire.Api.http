@@ -65,3 +65,63 @@ X-XSRF-TOKEN: {{xsrf}}
 
 GET {{api}}/v1/schemas/hiring-template-definition.json
 Accept: application/schema+json
+
+###
+
+# Team: members, invitations and the membership log (Owners and Admins manage; every member reads the list).
+GET {{api}}/v1/organization/members
+
+###
+
+POST {{api}}/v1/organization/invitations
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "email": "new.teammate@example.com", "role": "Recruiter" }
+
+###
+
+PUT {{api}}/v1/organization/members/00000000-0000-0000-0000-000000000000/role
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "role": "Viewer" }
+
+###
+
+DELETE {{api}}/v1/organization/members/00000000-0000-0000-0000-000000000000
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+GET {{api}}/v1/organization/invitations
+
+###
+
+DELETE {{api}}/v1/organization/invitations/00000000-0000-0000-0000-000000000000
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+GET {{api}}/v1/organization/membership-log
+
+###
+
+# The token comes from the emailed link's #invitation= fragment.
+POST {{api}}/v1/auth/invitations/accept
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "token": "paste-the-token-here" }
+
+###
+
+GET {{api}}/v1/auth/organizations
+
+###
+
+POST {{api}}/v1/auth/switch-organization
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "organizationId": "00000000-0000-0000-0000-000000000000" }

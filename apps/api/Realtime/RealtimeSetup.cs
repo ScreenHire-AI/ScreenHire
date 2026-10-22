@@ -28,6 +28,7 @@ internal static class RealtimeSetup
         // Self-hosted SignalR keeps connections in this process, and one API instance consumes the real-time queue. To
         // run more than one API instance, move connections to Azure SignalR Service (docs/architecture/realtime.md).
         builder.Services.AddSignalR().AddJsonProtocol(options => ConfigureJson(options.PayloadSerializerOptions));
+        builder.Services.AddSingleton<RealtimeConnections>();
 
         // A WebSocket upgrade is not subject to CORS, and the Lax session cookie rides along from any same-site page,
         // such as a tenant careers page under the same apex. Only the dashboard's origin may open the hub's WebSocket.

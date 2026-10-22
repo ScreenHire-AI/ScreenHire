@@ -21,18 +21,34 @@ public interface IEventsClient
 /// <remarks>
 /// Every hub call runs in its own DI scope, which the request middleware never sees, so each call resolves its own
 /// tenant from the connection's user (<see cref="Memberships"/>). A connection keeps the groups it joined until it
-/// closes: someone removed from an organization stops receiving its events when they reconnect, and the connection
-/// closes when the session cookie expires (<c>CloseOnAuthenticationExpiration</c>).
+/// closes. Removing someone from an organization closes their connections into it (<see cref="RealtimeConnections"/>),
+/// and every connection closes when the session cookie expires (<c>CloseOnAuthenticationExpiration</c>).
 /// </remarks>
 [Authorize]
-internal sealed class EventsHub(ScreenHireDbContext db, TenantContext tenant) : Hub<IEventsClient>
+internal sealed class EventsHub(ScreenHireDbContext db, TenantContext tenant, RealtimeConnections connections) : Hub<IEventsClient>
 {
     public override async Task OnConnectedAsync()
     {
         var organizationId = await ResolveOrganizationAsync()
             ?? throw new HubException("Set up your organization before connecting to live updates.");
+        connections.Add(Context, tenant.UserId!.Value, organizationId);
         await Groups.AddToGroupAsync(Context.ConnectionId, RealtimeGroups.Organization(organizationId), Context.ConnectionAborted);
+
+        // A removal that committed after the first check and closed this user's connections before this one was listed
+        // would miss it. Checking again once it is listed closes that gap.
+        if (await ResolveOrganizationAsync() != organizationId)
+        {
+            Context.Abort();
+            return;
+        }
+
         await base.OnConnectedAsync();
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        connections.Remove(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
     }
 
     /// <summary>

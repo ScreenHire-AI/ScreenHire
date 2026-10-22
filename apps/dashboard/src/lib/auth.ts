@@ -3,8 +3,11 @@ import type { CurrentUser } from '@screenhire/api-client';
 /** Pages a signed-out visitor may see. Everything else needs a session. */
 const publicRoutes = ['/(auth)/sign-in'];
 const onboardingRoute = '/(auth)/onboarding';
-/** Development pages anyone may see, signed in or not. Their own load returns 404 in a production build. */
-const openRoutes = ['/(dev)/style-guide'];
+/**
+ * Pages anyone may see, signed in or not. Development pages return 404 from their own load in a production build.
+ * Accepting an invitation signs in as the invited address, whoever is signed in now, so it must not redirect.
+ */
+const openRoutes = ['/(dev)/style-guide', '/(auth)/invitations/accept'];
 
 /** The query parameter that carries where to go after signing in. */
 export const returnUrlParameter = 'returnUrl';
@@ -27,7 +30,8 @@ export function safeReturnUrl(value: string | null | undefined): string {
 /**
  * Where the auth guard sends this visit, or null to let it through:
  * signed out → the sign-in page (remembering where they were going); signed in without an organization →
- * onboarding; signed in with one → away from sign-in and onboarding. Development pages let everyone through.
+ * onboarding; signed in with one → away from sign-in and onboarding. Development pages and the invitation page let
+ * everyone through.
  */
 export function guardRedirect(routeId: string | null, user: CurrentUser | null, url: URL): string | null {
   if (routeId !== null && openRoutes.includes(routeId)) {

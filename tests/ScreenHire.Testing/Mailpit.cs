@@ -38,6 +38,43 @@ public sealed partial class Mailpit(Uri baseAddress)
     public async Task<Uri> WaitForSignInLinkAsync(string address, CancellationToken cancellationToken) =>
         (await WaitForSignInLinksAsync(address, 1, cancellationToken))[0];
 
+    /// <summary>
+    /// The token from the newest invitation email to <paramref name="address"/>. Invitation links carry
+    /// <c>#invitation=</c>, not <c>#token=</c>, so they never pass for a sign-in link.
+    /// </summary>
+    public async Task<string> WaitForInvitationTokenAsync(string address, CancellationToken cancellationToken) =>
+        (await WaitForInvitationAsync(address, cancellationToken)).Groups["token"].Value;
+
+    /// <summary>The link the newest invitation email to <paramref name="address"/> carries: the dashboard's accept page.</summary>
+    public async Task<Uri> WaitForInvitationLinkAsync(string address, CancellationToken cancellationToken) =>
+        new((await WaitForInvitationAsync(address, cancellationToken)).Value);
+
+    // Skips the address's other email (a sign-in link), so an invitation that arrives second is still found.
+    private async Task<Match> WaitForInvitationAsync(string address, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(Timeout);
+        while (true)
+        {
+            var invitation = (await MessagesAsync(address, cancellationToken))
+                .Select(message => InvitationToken().Match(message.Text))
+                .FirstOrDefault(match => match.Success);
+            if (invitation is not null)
+            {
+                return invitation;
+            }
+
+            try
+            {
+                await Task.Delay(PollInterval, deadline.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"Mailpit received no invitation email for the test address within {Timeout.TotalSeconds:0} s.");
+            }
+        }
+    }
+
     /// <summary>Waits until at least <paramref name="count"/> emails have reached <paramref name="address"/>, then returns them all.</summary>
     public async Task<IReadOnlyList<MailpitMessage>> WaitForMessagesAsync(string address, int count, CancellationToken cancellationToken)
     {
@@ -119,6 +156,9 @@ public sealed partial class Mailpit(Uri baseAddress)
 
     [GeneratedRegex(@"https?://\S+#token=[A-Za-z0-9_-]+")]
     private static partial Regex SignInLink();
+
+    [GeneratedRegex(@"https?://\S+#invitation=(?<token>[A-Za-z0-9_-]+)")]
+    private static partial Regex InvitationToken();
 }
 
 /// <summary>One email as Mailpit stored it.</summary>

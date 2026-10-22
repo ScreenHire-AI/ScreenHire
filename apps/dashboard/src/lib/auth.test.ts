@@ -27,6 +27,12 @@ describe('auth guard', () => {
     }
   });
 
+  it('lets everyone open an invitation, signed in to any organization or none', () => {
+    for (const user of [null, newcomer, member]) {
+      expect(guardRedirect('/(auth)/invitations/accept', user, url('/invitations/accept#invitation=abc'))).toBeNull();
+    }
+  });
+
   it('lets signed-out visitors use the sign-in pages', () => {
     expect(guardRedirect('/(auth)/sign-in', null, url('/sign-in'))).toBeNull();
     expect(guardRedirect('/(auth)/sign-in/verify', null, url('/sign-in/verify#token=abc'))).toBeNull();
