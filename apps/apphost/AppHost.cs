@@ -26,6 +26,11 @@
 //                               worker. The worker's Development settings use the deterministic fake model; Provider
 //                               None turns the check into "unavailable"; in Anthropic mode the key comes from the secret
 //                               parameter anthropic-api-key, never from these keys.
+//   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
+//                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
+//                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
+//                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
+//                               never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -133,10 +138,12 @@ if (builder.Environment.IsDevelopment())
         .WaitFor(devSso);
 }
 
-// The key CallWebhook automations sign their deliveries with (ScreenHire:Webhooks:SigningKey). Generated per run
-// locally; production sets its own secret.
+// The platform key webhooks are signed with (ScreenHire:Webhooks:SigningKey): CallWebhook automations derive each
+// organization's key from it, subscriptions each endpoint's secret. The worker signs; the API derives an endpoint's
+// secret to show it once. Generated and kept in the AppHost's user secrets locally; production sets its own secret.
 var webhookSigningKey = builder.AddParameter(
     "webhook-signing-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+api.WithEnvironment("ScreenHire__Webhooks__SigningKey", webhookSigningKey);
 
 var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
@@ -153,6 +160,17 @@ foreach (var (key, value) in settings.GetSection("Distribution").AsEnumerable(ma
     if (value is not null && !key.Equals("GoogleIndexing:ServiceAccountKeyJson", StringComparison.OrdinalIgnoreCase))
     {
         var name = $"ScreenHire__Distribution__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePathsRelative: true))
+{
+    // The signing key is a secret: it goes through the parameter above, never as plain configuration.
+    if (value is not null && !key.Equals("SigningKey", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Webhooks__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
     }

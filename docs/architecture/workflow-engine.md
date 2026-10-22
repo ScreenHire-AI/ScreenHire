@@ -113,8 +113,74 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`
-- Webhooks: `application.submitted`, `application.stage_changed`, `integrity.assessed`, `automation.failed`, …
-  (signed, retried, replayable).
+- Webhooks: `/v1/webhooks` (below).
+
+### Webhook subscriptions
+
+Integrators subscribe to events instead of polling. An organization's owners and admins manage its endpoints; every
+other role gets 403, and another organization's endpoint or delivery is a 404 (tenant filter and row-level security on
+`webhook_endpoints` and `webhook_deliveries`).
+
+| Route | Does |
+|---|---|
+| `GET /v1/webhooks/event-types` | The event names below |
+| `GET/POST /v1/webhooks` | List endpoints; create one (URL, events, optional description). The 201 carries the signing secret, the only time it is shown |
+| `GET/PUT/DELETE /v1/webhooks/{id}` | Read, replace (URL, events, description, `enabled`) or delete an endpoint with its delivery log |
+| `POST /v1/webhooks/{id}/rotate-secret` | A new secret, shown once. The old one stops signing at once, retries of earlier events included |
+| `GET /v1/webhooks/{id}/deliveries?limit=` | The delivery log, newest first (default 50, at most 200): status, attempts, last status code, our description of the last error, the exact body |
+| `POST /v1/webhooks/{id}/deliveries/{deliveryId}/replay` | Sends a finished delivery's event again as a new delivery (`replayOfId` set, same event id and body). 409 while the original still has attempts, or while the endpoint is off |
+
+At most 20 endpoints per organization. A URL is absolute `https`, with no user info or fragment, and an IP literal
+must be public. `ScreenHire:Webhooks:AllowLoopback` (the local stack and the tests only) also accepts plain `http` to
+loopback, so a receiver on the same machine works. The worker checks the address again on the resolved IP at connect
+time (`WebhookAddresses`), so DNS cannot point a public name at a private address.
+
+**Events.** Each comes from a domain event that already exists; that event's worker handler cascades a
+`FanOutWebhook` message (`WebhookEvents`), which writes one delivery row per enabled endpoint that subscribes and sends
+its first attempt.
+
+| Event | From | `data` |
+|---|---|---|
+| `application.submitted` | `ApplicationSubmitted` | `applicationId`, `jobId`, `stageId` |
+| `application.moved` | `ApplicationMoved` | `applicationId`, `jobId`, `fromStageId`, `toStageId` |
+| `integrity.assessed` | `IntegrityAssessed` | `applicationId`, `jobId`, `authenticity`, `aiAssistance` (levels), `rulesetVersion` |
+| `automation.failed` | `AutomationRunFinished` with status `Failed` or `Blocked` | `applicationId`, `jobId`, `automationId`, `runId`, `status` |
+| `job.published` | `JobPublished` | `jobId`, `version`, `jobVersionId` |
+| `job.closed` | `JobClosed` | `jobId` |
+
+The body is `{"id", "type", "occurredAt", "organizationId", "data"}`: ids and facts, never names, emails, resume text,
+answers or integrity evidence. An integrator reads anything else through the API with its own credentials.
+`integrity.assessed` carries the categorical levels only (ADR-0004); like the levels in the dashboard, they are for
+routing a review, and never a reason to reject. The event `id` comes from the domain event's own key (a version 8 UUID
+from SHA-256 of the type and that key), so a redelivered domain event gives the same id and the unique index on
+(endpoint, event) for first deliveries adds nothing twice.
+
+**Signing.** Each endpoint's secret is `whsec_` and the hex HMAC-SHA256 of `webhook-endpoint:{endpointId}:{version}`
+under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only
+the version, and rotating bumps it. The API derives the secret to show it once; the worker derives it to sign. Every
+delivery carries:
+
+- `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex HMAC-SHA256 of `{t}.{raw body}` keyed with the secret.
+  `t` is the attempt's time, so a receiver can refuse old requests while retries still pass.
+- `Idempotency-Key` and `ScreenHire-Event-Id`: the event id, the same on every attempt and replay.
+- `ScreenHire-Event-Type`, `ScreenHire-Delivery-Id`, and `User-Agent: ScreenHire-Webhooks/1`.
+
+**Delivery and retries** (`DeliverWebhookHandler`). Each attempt is a `DeliverWebhook` message keyed by delivery and
+attempt (`[Deduplicated]`), and the row's attempt count makes a stale or duplicate message a no-op. A 2xx is success.
+Anything else (a status, a timeout after `ScreenHire:Webhooks:Timeout`, a refused address) is recorded on the row and
+the next attempt is scheduled durably after `RetryDelays`: 1 min, 5 min, 30 min, 2 h, 6 h, 12 h by default, seven
+attempts over about 21 hours. The handler schedules its own retries rather than throwing into the error policy, which
+would roll back the attempt it should record. Only the receiver's status code is kept, never its body. An endpoint
+deleted meanwhile takes its deliveries with it, and later attempts find nothing to send.
+
+**Automatic disabling.** A delivery that fails every attempt adds one to the endpoint's `consecutiveFailures`, in one
+`UPDATE` so parallel deliveries never lose a count; any success resets it. At `DisableAfterFailedDeliveries` (5) the
+same statement turns the endpoint off and records `disabledAt` and `disabledReason`, which the API returns. A disabled
+endpoint gets no new deliveries, and its pending attempts end as `Skipped`. Turning it back on (`PUT` with
+`enabled: true`) clears the reason and the count; skipped and failed deliveries can then be replayed.
+
+`CallWebhook`, the automation action, is separate and unchanged: it posts to one URL with the organization's derived
+key (section 8).
 
 ## 6. Data model sketch (Postgres)
 

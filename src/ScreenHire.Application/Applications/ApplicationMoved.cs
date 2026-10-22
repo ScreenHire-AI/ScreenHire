@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
@@ -20,7 +21,8 @@ public sealed record ApplicationMoved(
 /// <summary>
 /// Runs in the worker once per <see cref="ApplicationMoved"/>: the workflow engine's <c>StageExited</c> trigger for the
 /// stage left and <c>StageEntered</c> for the stage entered, which also starts that stage's TimeElapsed timers. A move an
-/// automation made links its timeline entry to that run, so the engine can follow the chain (depth limit, cycles).
+/// automation made links its timeline entry to that run, so the engine can follow the chain (depth limit, cycles). It
+/// also raises the <c>application.moved</c> webhook event (<see cref="WebhookEvents"/>).
 /// </summary>
 public static partial class ApplicationMovedHandler
 {
@@ -38,12 +40,14 @@ public static partial class ApplicationMovedHandler
         AutomationTriggerEvent Trigger(TriggerType type, string stageId) =>
             new(message.OrganizationId, message.ApplicationId, message.JobId, type, stageId, message.EventId, message.MovedAt, causedByRunId?.AutomationRunId);
 
-        return await AutomationEngine.EvaluateAsync(
+        var outgoing = await AutomationEngine.EvaluateAsync(
             db, time, application,
             [Trigger(TriggerType.StageExited, message.FromStageId), Trigger(TriggerType.StageEntered, message.ToStageId)],
             enteredStageId: message.ToStageId,
             onlyAutomationId: null,
             cancellationToken);
+        outgoing.Add(WebhookEvents.From(message));
+        return outgoing;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Application {ApplicationId} moved from {FromStageId} to {ToStageId}")]

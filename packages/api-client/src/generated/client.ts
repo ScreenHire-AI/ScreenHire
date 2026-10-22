@@ -23,6 +23,7 @@ import type {
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreateWebhookEndpointRequest,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
   HiringTemplateDetail,
@@ -39,6 +40,7 @@ import type {
   JobVersionDetail,
   JobVersionSummary,
   ListJobBoardJobsParams,
+  ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
@@ -64,10 +66,14 @@ import type {
   UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  WebhookDeliveryEntry,
+  WebhookEndpointEntry,
+  WebhookEndpointWithSecret,
   WorkflowSimulationResult,
   WorkflowValidationResult
 } from './model';
@@ -3541,6 +3547,491 @@ export const runManualAutomation = async (applicationId: string,
     automationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<runManualAutomationResponse> => {
 
   return apiFetch<runManualAutomationResponse>(getRunManualAutomationUrl(applicationId,automationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listWebhookEventTypesResponse200 = {
+  data: string[]
+  status: 200
+}
+
+export type listWebhookEventTypesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listWebhookEventTypesResponseSuccess = (listWebhookEventTypesResponse200) & {
+  headers: Headers;
+};
+export type listWebhookEventTypesResponseError = (listWebhookEventTypesResponse401) & {
+  headers: Headers;
+};
+
+export type listWebhookEventTypesResponse = (listWebhookEventTypesResponseSuccess | listWebhookEventTypesResponseError)
+
+export const getListWebhookEventTypesUrl = () => {
+
+
+
+
+  return `/v1/webhooks/event-types`
+}
+
+export const listWebhookEventTypes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listWebhookEventTypesResponse> => {
+
+  return apiFetch<listWebhookEventTypesResponse>(getListWebhookEventTypesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listWebhookEndpointsResponse200 = {
+  data: WebhookEndpointEntry[]
+  status: 200
+}
+
+export type listWebhookEndpointsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listWebhookEndpointsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listWebhookEndpointsResponseSuccess = (listWebhookEndpointsResponse200) & {
+  headers: Headers;
+};
+export type listWebhookEndpointsResponseError = (listWebhookEndpointsResponse401 | listWebhookEndpointsResponse403) & {
+  headers: Headers;
+};
+
+export type listWebhookEndpointsResponse = (listWebhookEndpointsResponseSuccess | listWebhookEndpointsResponseError)
+
+export const getListWebhookEndpointsUrl = () => {
+
+
+
+
+  return `/v1/webhooks`
+}
+
+export const listWebhookEndpoints = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listWebhookEndpointsResponse> => {
+
+  return apiFetch<listWebhookEndpointsResponse>(getListWebhookEndpointsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createWebhookEndpointResponse201 = {
+  data: WebhookEndpointWithSecret
+  status: 201
+}
+
+export type createWebhookEndpointResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createWebhookEndpointResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createWebhookEndpointResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createWebhookEndpointResponseSuccess = (createWebhookEndpointResponse201) & {
+  headers: Headers;
+};
+export type createWebhookEndpointResponseError = (createWebhookEndpointResponse400 | createWebhookEndpointResponse401 | createWebhookEndpointResponse403) & {
+  headers: Headers;
+};
+
+export type createWebhookEndpointResponse = (createWebhookEndpointResponseSuccess | createWebhookEndpointResponseError)
+
+export const getCreateWebhookEndpointUrl = () => {
+
+
+
+
+  return `/v1/webhooks`
+}
+
+export const createWebhookEndpoint = async (createWebhookEndpointRequest: CreateWebhookEndpointRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createWebhookEndpointResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createWebhookEndpointResponse>(getCreateWebhookEndpointUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createWebhookEndpointRequest)
+  }
+);}
+
+
+
+export type getWebhookEndpointResponse200 = {
+  data: WebhookEndpointEntry
+  status: 200
+}
+
+export type getWebhookEndpointResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getWebhookEndpointResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getWebhookEndpointResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getWebhookEndpointResponseSuccess = (getWebhookEndpointResponse200) & {
+  headers: Headers;
+};
+export type getWebhookEndpointResponseError = (getWebhookEndpointResponse401 | getWebhookEndpointResponse403 | getWebhookEndpointResponse404) & {
+  headers: Headers;
+};
+
+export type getWebhookEndpointResponse = (getWebhookEndpointResponseSuccess | getWebhookEndpointResponseError)
+
+export const getGetWebhookEndpointUrl = (endpointId: string,) => {
+
+
+
+
+  return `/v1/webhooks/${endpointId}`
+}
+
+export const getWebhookEndpoint = async (endpointId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getWebhookEndpointResponse> => {
+
+  return apiFetch<getWebhookEndpointResponse>(getGetWebhookEndpointUrl(endpointId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateWebhookEndpointResponse200 = {
+  data: WebhookEndpointEntry
+  status: 200
+}
+
+export type updateWebhookEndpointResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateWebhookEndpointResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateWebhookEndpointResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateWebhookEndpointResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateWebhookEndpointResponseSuccess = (updateWebhookEndpointResponse200) & {
+  headers: Headers;
+};
+export type updateWebhookEndpointResponseError = (updateWebhookEndpointResponse400 | updateWebhookEndpointResponse401 | updateWebhookEndpointResponse403 | updateWebhookEndpointResponse404) & {
+  headers: Headers;
+};
+
+export type updateWebhookEndpointResponse = (updateWebhookEndpointResponseSuccess | updateWebhookEndpointResponseError)
+
+export const getUpdateWebhookEndpointUrl = (endpointId: string,) => {
+
+
+
+
+  return `/v1/webhooks/${endpointId}`
+}
+
+export const updateWebhookEndpoint = async (endpointId: string,
+    updateWebhookEndpointRequest: UpdateWebhookEndpointRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateWebhookEndpointResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateWebhookEndpointResponse>(getUpdateWebhookEndpointUrl(endpointId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateWebhookEndpointRequest)
+  }
+);}
+
+
+
+export type deleteWebhookEndpointResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteWebhookEndpointResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteWebhookEndpointResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteWebhookEndpointResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteWebhookEndpointResponseSuccess = (deleteWebhookEndpointResponse204) & {
+  headers: Headers;
+};
+export type deleteWebhookEndpointResponseError = (deleteWebhookEndpointResponse401 | deleteWebhookEndpointResponse403 | deleteWebhookEndpointResponse404) & {
+  headers: Headers;
+};
+
+export type deleteWebhookEndpointResponse = (deleteWebhookEndpointResponseSuccess | deleteWebhookEndpointResponseError)
+
+export const getDeleteWebhookEndpointUrl = (endpointId: string,) => {
+
+
+
+
+  return `/v1/webhooks/${endpointId}`
+}
+
+export const deleteWebhookEndpoint = async (endpointId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteWebhookEndpointResponse> => {
+
+  return apiFetch<deleteWebhookEndpointResponse>(getDeleteWebhookEndpointUrl(endpointId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type rotateWebhookSecretResponse200 = {
+  data: WebhookEndpointWithSecret
+  status: 200
+}
+
+export type rotateWebhookSecretResponse401 = {
+  data: void
+  status: 401
+}
+
+export type rotateWebhookSecretResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type rotateWebhookSecretResponse404 = {
+  data: void
+  status: 404
+}
+
+export type rotateWebhookSecretResponseSuccess = (rotateWebhookSecretResponse200) & {
+  headers: Headers;
+};
+export type rotateWebhookSecretResponseError = (rotateWebhookSecretResponse401 | rotateWebhookSecretResponse403 | rotateWebhookSecretResponse404) & {
+  headers: Headers;
+};
+
+export type rotateWebhookSecretResponse = (rotateWebhookSecretResponseSuccess | rotateWebhookSecretResponseError)
+
+export const getRotateWebhookSecretUrl = (endpointId: string,) => {
+
+
+
+
+  return `/v1/webhooks/${endpointId}/rotate-secret`
+}
+
+export const rotateWebhookSecret = async (endpointId: string, options?: Parameters<typeof apiFetch>[1]): Promise<rotateWebhookSecretResponse> => {
+
+  return apiFetch<rotateWebhookSecretResponse>(getRotateWebhookSecretUrl(endpointId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listWebhookDeliveriesResponse200 = {
+  data: WebhookDeliveryEntry[]
+  status: 200
+}
+
+export type listWebhookDeliveriesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listWebhookDeliveriesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listWebhookDeliveriesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listWebhookDeliveriesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listWebhookDeliveriesResponseSuccess = (listWebhookDeliveriesResponse200) & {
+  headers: Headers;
+};
+export type listWebhookDeliveriesResponseError = (listWebhookDeliveriesResponse400 | listWebhookDeliveriesResponse401 | listWebhookDeliveriesResponse403 | listWebhookDeliveriesResponse404) & {
+  headers: Headers;
+};
+
+export type listWebhookDeliveriesResponse = (listWebhookDeliveriesResponseSuccess | listWebhookDeliveriesResponseError)
+
+export const getListWebhookDeliveriesUrl = (endpointId: string,
+    params?: ListWebhookDeliveriesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/webhooks/${endpointId}/deliveries?${stringifiedParams}` : `/v1/webhooks/${endpointId}/deliveries`
+}
+
+export const listWebhookDeliveries = async (endpointId: string,
+    params?: ListWebhookDeliveriesParams, options?: Parameters<typeof apiFetch>[1]): Promise<listWebhookDeliveriesResponse> => {
+
+  return apiFetch<listWebhookDeliveriesResponse>(getListWebhookDeliveriesUrl(endpointId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type replayWebhookDeliveryResponse202 = {
+  data: WebhookDeliveryEntry
+  status: 202
+}
+
+export type replayWebhookDeliveryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type replayWebhookDeliveryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type replayWebhookDeliveryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type replayWebhookDeliveryResponseSuccess = (replayWebhookDeliveryResponse202) & {
+  headers: Headers;
+};
+export type replayWebhookDeliveryResponseError = (replayWebhookDeliveryResponse401 | replayWebhookDeliveryResponse403 | replayWebhookDeliveryResponse404) & {
+  headers: Headers;
+};
+
+export type replayWebhookDeliveryResponse = (replayWebhookDeliveryResponseSuccess | replayWebhookDeliveryResponseError)
+
+export const getReplayWebhookDeliveryUrl = (endpointId: string,
+    deliveryId: string,) => {
+
+
+
+
+  return `/v1/webhooks/${endpointId}/deliveries/${deliveryId}/replay`
+}
+
+export const replayWebhookDelivery = async (endpointId: string,
+    deliveryId: string, options?: Parameters<typeof apiFetch>[1]): Promise<replayWebhookDeliveryResponse> => {
+
+  return apiFetch<replayWebhookDeliveryResponse>(getReplayWebhookDeliveryUrl(endpointId,deliveryId),
   {
     ...options,
     method: 'POST'
