@@ -311,6 +311,15 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
             ["events"] = new JsonArray("job.closed", "job.closed"),
         })).Expect(HttpStatusCode.Created).Count("endpoint.events").Should().Be(1);
         (await recruiter.GetAsync("/v1/webhooks/event-types")).Expect(HttpStatusCode.OK).Count().Should().Be(6);
+
+        // Twenty endpoints at most (one exists already); the next is a conflict, not a problem with its URL.
+        var more = new JsonObject { ["url"] = "https://hooks.example.com/in", ["events"] = new JsonArray("job.closed") };
+        for (var i = 1; i < 20; i++)
+        {
+            (await recruiter.PostAsync("/v1/webhooks", more.DeepClone())).Expect(HttpStatusCode.Created);
+        }
+
+        (await recruiter.PostAsync("/v1/webhooks", more.DeepClone())).Expect(HttpStatusCode.Conflict);
     }
 
     private static async Task<ApiResult> CreateEndpointAsync(Tenant tenant, WebhookReceiver receiver, params string[] events) =>
