@@ -74,6 +74,43 @@ waits for SMTP; moving the send to a worker message is a later change.
 - **Email addresses.** The magic-link form takes one bare address. A display name (`Name <a@example.com>`) or a list
   is refused, so nobody gets a fresh per-address cap by varying the display name.
 
+## API keys
+
+Integrators call the hiring API with an organization API key instead of a session (ADR-0011). Owners and Admins
+manage keys in a session; there is no screen yet.
+
+| Route | What it does |
+|---|---|
+| `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked. |
+| `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
+| `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
+| `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
+
+- **The key** is `shk_{prefix}_{organization}_{secret}`, lower-case hex: 8 digits of prefix that the list shows, the
+  organization's id and a 256-bit secret (`apps/api/Auth/ApiKeyTokens.cs`). `api_keys` stores the SHA-256 hash of the
+  whole key, never the key, and nothing logs it. Keys are revoked, never deleted: `screenhire_app` has no `DELETE` on
+  the table.
+- **Authentication** is the `ApiKey` scheme (`apps/api/Auth/ApiKeyAuthentication.cs`) for `Authorization: Bearer
+  shk_...`. It reads the organization from the key, sets it as the tenant in a DI scope of its own and looks the hash
+  up there, so the lookup runs under row-level security like every other tenant query. A key naming the wrong
+  organization finds nothing. `last_used_at` is written at most once a minute.
+- **Where keys work.** The hiring API (jobs, applications, candidates and templates) uses the `hiring-api`
+  authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
+  `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
+  cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
+  onboarding, key management, organization settings, integrity review, automations, distribution and the hub.
+- **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
+  authorization because the hiring policy replaces the request's user there). Writes by a key record no actor.
+- **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequireHiringRole` where a person needs
+  a writing role, and a read-only key gets 403 "Read-only key".
+- **Antiforgery** is skipped for a request the key scheme authenticated: it carries no cookie to forge with.
+- **Rate limit.** The `api-key` rate-limiter policy on the hiring groups gives each key a fixed window per minute of
+  `ScreenHire:ApiKeys:PermitsPerMinute` (default 600), or the lower `permitsPerMinute` set on the key, and answers 429
+  beyond it. Sessions pass unlimited. The count is per API instance.
+- **OpenAPI** declares two security schemes, `session` (the cookie) on every signed-in route and `apiKey` (HTTP
+  bearer) as the alternative on the hiring API (`apps/api/Auth/SecuritySchemes.cs`), so Scalar and the generated
+  client show them.
+
 ## Domains
 
 `ScreenHire:Domains` (`apps/api/Configuration/DomainOptions.cs`, validated at start) holds `Scheme`, `BaseDomain`,
@@ -133,6 +170,8 @@ Two layers, so one mistake is not a breach.
    system) instead of `ITenantOwned`. Published template versions are immutable in the database too: the update and
    delete policies match drafts only.
 
+   `api_keys` (migration `AddApiKeys`) follows the `jobs` pattern too, without `DELETE` for `screenhire_app`.
+
 `users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
 `OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.
@@ -151,6 +190,7 @@ Who the tenant is:
 | Request | Tenant |
 |---|---|
 | Signed in | `TenantResolutionMiddleware`: the user's first membership, read on every request |
+| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above) |
 | Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization |
 | Onboarding | The new organization, from just before it is saved |
 | Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn |
@@ -178,6 +218,8 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
   restart, and a second replica cannot read the first one's cookies. Locally the default key ring in the user profile
   survives restarts;
 - list its reverse proxies in `ScreenHire:Auth:TrustedProxies`;
+- set `ScreenHire:ApiKeys:PermitsPerMinute` for the number of API instances, because each one counts a key's requests
+  on its own;
 - give the worker an SMTP connection (`ConnectionStrings:mailpit` until the production provider is chosen) and
   `ScreenHire:Email:From`, or automations skip their emails (docs/architecture/workflow-engine.md section 8);
 - give the worker a secret `ScreenHire:Webhooks:SigningKey`, or CallWebhook automations fail as issues. Never share
