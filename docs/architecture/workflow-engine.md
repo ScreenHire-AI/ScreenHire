@@ -125,15 +125,15 @@ other role gets 403, and another organization's endpoint or delivery is a 404 (t
 |---|---|
 | `GET /v1/webhooks/event-types` | The event names below |
 | `GET/POST /v1/webhooks` | List endpoints; create one (URL, events, optional description). The 201 carries the signing secret, the only time it is shown |
-| `GET/PUT/DELETE /v1/webhooks/{id}` | Read, replace (URL, events, description, `enabled`) or delete an endpoint with its delivery log |
+| `GET/PUT/DELETE /v1/webhooks/{id}` | Read, replace (URL, events, description, and `enabled`, which keeps its value when left out) or delete an endpoint with its delivery log |
 | `POST /v1/webhooks/{id}/rotate-secret` | A new secret, shown once. The old one stops signing at once, retries of earlier events included |
 | `GET /v1/webhooks/{id}/deliveries?limit=` | The delivery log, newest first (default 50, at most 200): status, attempts, last status code, our description of the last error, the exact body |
-| `POST /v1/webhooks/{id}/deliveries/{deliveryId}/replay` | Sends a finished delivery's event again as a new delivery (`replayOfId` set, same event id and body). 409 while the original still has attempts, or while the endpoint is off |
+| `POST /v1/webhooks/{id}/deliveries/{deliveryId}/replay` | Sends a finished delivery's event again as a new delivery (`replayOfId` set, same event id and body). 409 while any delivery of that event to the endpoint still has attempts, or while the endpoint is off |
 
-At most 20 endpoints per organization. A URL is absolute `https`, with no user info or fragment, and an IP literal
-must be public. `ScreenHire:Webhooks:AllowLoopback` (the local stack and the tests only) also accepts plain `http` to
-loopback, so a receiver on the same machine works. The worker checks the address again on the resolved IP at connect
-time (`WebhookAddresses`), so DNS cannot point a public name at a private address.
+At most 20 endpoints per organization; a 21st is a 409. A URL is absolute `https`, with no user info or fragment, and an
+IP literal must be public. `ScreenHire:Webhooks:AllowLoopback` (the local stack and the tests only) also accepts plain
+`http` to loopback, so a receiver on the same machine works. The worker checks the address again on the resolved IP at
+connect time (`WebhookAddresses`), so DNS cannot point a public name at a private address.
 
 **Events.** Each comes from a domain event that already exists; that event's worker handler cascades a
 `FanOutWebhook` message (`WebhookEvents`), which writes one delivery row per enabled endpoint that subscribes and sends
@@ -154,14 +154,16 @@ answers or integrity evidence. An integrator reads anything else through the API
 notification for routing a review. ScreenHire never acts on it, and the rule that integrity signals never drive
 rejection binds ScreenHire's own code. An integrator that rejects automatically on this event goes against the
 product's guidance, and that decision is the customer's responsibility under GDPR Art. 22, NYC LL144 and the other
-rules in docs/research/legal.md. The integrator docs and terms must say so. The event `id` comes from the domain event's own key (a version 8 UUID
-from SHA-256 of the type and that key), so a redelivered domain event gives the same id and the unique index on
-(endpoint, event) for first deliveries adds nothing twice.
+rules in docs/research/legal.md. The integrator docs and terms must say so.
+
+The event `id` comes from the domain event's own key (a version 8 UUID from SHA-256 of the type and that key), so a
+redelivered domain event gives the same id and the unique index on (endpoint, event) for first deliveries adds
+nothing twice.
 
 **Signing.** Each endpoint's secret is `whsec_` and the hex HMAC-SHA256 of `webhook-endpoint:{endpointId}:{version}`
 under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only
-the version, and rotating bumps it. The API derives the secret to show it once; the worker derives it to sign. Every
-delivery carries:
+the version, and rotating bumps it. The API derives the secret to show it once; the worker derives it to sign. Both
+hold the platform key, and no response or log carries it. Every delivery carries:
 
 - `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex HMAC-SHA256 of `{t}.{raw body}` keyed with the secret.
   `t` is the attempt's time, so a receiver can refuse old requests while retries still pass.
@@ -171,10 +173,10 @@ delivery carries:
 **Delivery and retries** (`DeliverWebhookHandler`). Each attempt is a `DeliverWebhook` message keyed by delivery and
 attempt (`[Deduplicated]`), and the row's attempt count makes a stale or duplicate message a no-op. A 2xx is success.
 Anything else (a status, a timeout after `ScreenHire:Webhooks:Timeout`, a refused address) is recorded on the row and
-the next attempt is scheduled durably after `RetryDelays`: 1 min, 5 min, 30 min, 2 h, 6 h, 12 h by default, seven
-attempts over about 21 hours. The handler schedules its own retries rather than throwing into the error policy, which
-would roll back the attempt it should record. Only the receiver's status code is kept, never its body. An endpoint
-deleted meanwhile takes its deliveries with it, and later attempts find nothing to send.
+the next attempt is scheduled durably after `RetryDelays`, counted from the receiver's answer: 1 min, 5 min, 30 min, 2
+h, 6 h, 12 h by default, seven attempts over about 21 hours. The handler schedules its own retries rather than throwing
+into the error policy, which would roll back the attempt it should record. Only the receiver's status code is kept,
+never its body. An endpoint deleted meanwhile takes its deliveries with it, and later attempts find nothing to send.
 
 **Automatic disabling.** A delivery that fails every attempt adds one to the endpoint's `consecutiveFailures`, in one
 `UPDATE` so parallel deliveries never lose a count; any success resets it. At `DisableAfterFailedDeliveries` (5) the
