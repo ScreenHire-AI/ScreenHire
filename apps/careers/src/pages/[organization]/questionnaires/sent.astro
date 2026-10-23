@@ -1,0 +1,32 @@
+---
+// Where answered follow-up questions land (POST, then redirect, then this GET), so a refresh never sends them twice. The
+// address carries no token: the link stays in the candidate's email.
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicOrganization } from '../../../lib/api';
+import { basePath } from '../../../lib/host';
+
+const { organization } = Astro.params;
+const response = await getPublicOrganization(organization!);
+if (response.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = response.data;
+const base = basePath(Astro.request, employer.slug);
+---
+
+<CareersLayout
+  title={`Answers sent | ${employer.name}`}
+  description={`Your answers to ${employer.name} were sent.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">Answers sent</h1>
+  <p class="mt-3 text-[15px]">Thank you. {employer.name} has your answers, and a person reads them.</p>
+  <p class="mt-6 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+  <a href={base || '/'} class="button-secondary mt-4">See other open roles</a>
+</CareersLayout>

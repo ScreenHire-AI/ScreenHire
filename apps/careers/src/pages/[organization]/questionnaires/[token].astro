@@ -1,0 +1,123 @@
+---
+// A follow-up questionnaire (workflow-engine.md §8), opened from the signed link a SendQuestionnaire automation emailed.
+// One native form posted to the `questionnaire` action, so it works with JavaScript off; the fields are the shared
+// question components (packages/ui), rendered on the server only. It collects the answers and nothing else: no device
+// check, no form telemetry, no uploads (CLAUDE.md non-negotiable 4). An expired, answered or closed link says so.
+import { actions } from 'astro:actions';
+import ErrorSummary from '../../../components/ErrorSummary.astro';
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicOrganization, getPublicQuestionnaire } from '../../../lib/api';
+import { fields } from '../../../lib/apply';
+import { basePath } from '../../../lib/host';
+import { isToken } from '../../../lib/questionnaire';
+import { QuestionField } from '@screenhire/ui/questions';
+
+const { organization, token } = Astro.params;
+const base = basePath(Astro.request, organization!);
+const result = Astro.getActionResult(actions.questionnaire);
+if (result?.data?.outcome === 'sent') {
+  return Astro.redirect(`${base}/questionnaires/sent`, 303);
+}
+
+// The link is the candidate's alone: never cached, never indexed, never sent on as a referrer.
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+const response = isToken(token) ? await getPublicQuestionnaire(organization!, token) : null;
+const questionnaire = response?.status === 200 ? response.data : null;
+const employer = questionnaire?.organization ?? (await getPublicOrganization(organization!).then((r) => (r.status === 200 ? r.data : null)));
+if (!employer) {
+  return new Response(null, { status: 404 });
+}
+
+const outcome = result?.data?.outcome;
+const status = !questionnaire || outcome === 'not-found'
+  ? 'not-found'
+  : outcome === 'answered' || questionnaire.status === 'Answered'
+    ? 'answered'
+    : outcome === 'expired' || questionnaire.status === 'Expired'
+      ? 'expired'
+      : outcome === 'closed' || questionnaire.status === 'Closed'
+        ? 'closed'
+        : 'open';
+Astro.response.status = status === 'not-found' ? 404 : status === 'expired' || status === 'closed' ? 410 : 200;
+
+const answers = result?.data?.answers ?? {};
+const errors = result?.data?.errors ?? {};
+const formError =
+  result?.data?.formError ?? (result?.error ? 'Something went wrong on our side. Try again in a moment.' : undefined);
+
+const heading = {
+  'not-found': 'We could not find these questions',
+  answered: 'You have answered these questions',
+  expired: 'This link has expired',
+  closed: 'These questions are no longer open',
+  open: questionnaire?.name ?? '',
+}[status];
+const message = {
+  'not-found': 'The link may be incomplete. Open it again from the email you received.',
+  answered: `Your answers are with ${employer.name}. You do not need to do anything else.`,
+  expired: `Links to these questions work for 14 days. If you still want to answer, contact the hiring team at ${employer.name} for a new link.`,
+  closed: `${employer.name} is no longer asking these questions, so there is nothing more to do.`,
+  open: '',
+}[status];
+---
+
+<CareersLayout
+  title={`${heading} | ${employer.name}`}
+  description={questionnaire ? `Questions from ${employer.name} about your application for ${questionnaire.jobTitle}.` : `Questions from ${employer.name}.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  {
+    status !== 'open' && (
+      <>
+        <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+        <p class="mt-3 text-[15px] text-candidate-muted-foreground">{message}</p>
+        <p class="mt-6 text-sm">
+          <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+        </p>
+      </>
+    )
+  }
+
+  {
+    status === 'open' && questionnaire && (
+      <>
+        <div class="flex flex-col gap-2.5">
+          <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{questionnaire.name}</h1>
+          <p class="text-[15px] text-candidate-muted-foreground">
+            {employer.name} has a few more questions about your application for {questionnaire.jobTitle}. A person reads your answers.
+          </p>
+        </div>
+
+        <form method="POST" action={actions.questionnaire} novalidate aria-labelledby="questions-heading" class="mt-5 flex flex-col gap-4">
+          <input type="hidden" name="organization" value={employer.slug} />
+          <input type="hidden" name="token" value={token} />
+          <h2 id="questions-heading" class="sr-only">Questions</h2>
+
+          <ErrorSummary errors={errors} formError={formError} />
+
+          {questionnaire.questions.map((question) => (
+            <QuestionField question={question} answer={answers[question.id]} error={errors[fields.answer(question.id)] ?? null} />
+          ))}
+
+          <p class="text-[13.5px] text-candidate-muted-foreground">
+            We send only your answers. Nothing about your device or how you type is recorded on this page.
+          </p>
+
+          <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+            <button type="submit" class="button-primary">Send answers</button>
+          </div>
+        </form>
+
+        <p class="mt-6 text-sm">
+          <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+        </p>
+      </>
+    )
+  }
+</CareersLayout>
