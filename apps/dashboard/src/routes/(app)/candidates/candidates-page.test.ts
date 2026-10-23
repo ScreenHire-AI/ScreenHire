@@ -1,17 +1,30 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, applications } from '../../../test-support/fixtures.js';
+import type { ApplicationSummary } from '@screenhire/api-client';
+import { apiStub, applications, user } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-vi.mock('$app/state', () => ({ page: { url: new URL('http://dashboard.test/candidates') } }));
+// Signed out at /candidates unless a test changes it.
+const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/candidates'), data: {} as Record<string, unknown> }));
+vi.mock('$app/state', () => ({ page: appPage }));
 
 afterEach(() => {
+  appPage.url = new URL('http://dashboard.test/candidates');
+  appPage.data = {};
   vi.unstubAllGlobals();
 });
 
-const render_ = () => {
-  vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => Response.json(applications) })));
+const render_ = (rows: ApplicationSummary[] = applications) => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      apiStub({
+        'GET /v1/applications': () => Response.json(rows),
+        'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
+      }),
+    ),
+  );
   return render(WithQueryClient, { props: { component: Page, props: {} } });
 };
 
@@ -52,5 +65,32 @@ describe('candidates page', () => {
     const pill = screen.getByText('1 selected');
     expect(pill).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('region', { name: 'Applications' }).querySelector('header')).toContainElement(pill);
+  });
+
+  it('offers Email for the ticked rows, and none in a view that integrity picked (ADR-0004)', async () => {
+    appPage.data = { user };
+    const flagged = applications.map((application) => ({
+      ...application,
+      integrity: {
+        authenticity: 'ReviewSuggested' as const,
+        authenticityReasons: ['RESUME_TEMPLATE_MATCH'],
+        authenticityDismissed: false,
+        aiAssistance: 'NotIndicated' as const,
+        aiAssistanceReasons: [],
+        aiAssistanceDismissed: false,
+      },
+    }));
+    const { unmount } = render_(flagged);
+    await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
+    const header = screen.getByRole('region', { name: 'Applications' }).querySelector('header')!;
+    expect(await within(header).findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
+    unmount();
+
+    appPage.url = new URL('http://dashboard.test/candidates?view=needs-review');
+    render_(flagged);
+    await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
+    expect(await screen.findByText('1 selected')).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 });

@@ -109,6 +109,19 @@ describe('email template form', () => {
     expect(tests).toEqual([{ subject: 'An update on {{ jobTitle }}', body: 'Hi {{ candidateName }},', templateId: 'stage-change' }]);
   });
 
+  it('says where the preview will be while a new template has no wording, and turns the test send on with the first words', async () => {
+    const { previews } = renderForm({ template: undefined });
+    const preview = screen.getByRole('region', { name: 'Preview' });
+
+    expect(within(preview).getByText('The email appears here as you write the subject and the message.')).toBeInTheDocument();
+    expect(within(preview).getByRole('button', { name: 'Send test' })).toBeDisabled();
+    expect(previews).toHaveLength(0);
+
+    await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'An update on {{ jobTitle }}' } });
+    expect(await within(preview).findByText('An update on Product designer')).toBeInTheDocument();
+    expect(within(preview).getByRole('button', { name: 'Send test' })).toBeEnabled();
+  });
+
   it('hides the test send when this deployment cannot send email, and asks a new template for its name', async () => {
     const { onsave } = renderForm({ template: undefined, sendingEnabled: false });
 

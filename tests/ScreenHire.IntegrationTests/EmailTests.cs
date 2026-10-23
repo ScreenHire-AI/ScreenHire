@@ -1,7 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.DependencyInjection;
+using ScreenHire.Application.Applications;
 using ScreenHire.IntegrationTests.Automations;
+using ScreenHire.IntegrationTests.Messaging;
 using ScreenHire.IntegrationTests.Realtime;
+using Wolverine;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -132,6 +136,34 @@ public sealed class EmailTests(AppHostFixture fixture)
         entry.GetProperty("actorUserId").GetGuid().Should().Be(owner.UserId);
     }
 
+    // Delivery is at least once: the same send in a new envelope, as a recovered outbox would deliver it, finds its
+    // timeline entry (the send's id) and sends nothing twice.
+    [Fact]
+    public async Task A_send_delivered_again_sends_nothing_twice()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = (await owner.CreateJobAsync(Samples.RemoteJob("Redelivered email"))).Id();
+        var email = ApiSession.NewEmail("redelivered");
+        var application = (await owner.CreateApplicationAsync(job, email)).Id();
+        (await owner.PostAsync("/v1/emails", Send("application-received", [application]))).Expect(HttpStatusCode.Accepted);
+        (await fixture.Mailpit.WaitForMessagesAsync(email, 1, Ct)).Should().ContainSingle();
+        var sendId = EmailEntries(await owner.GetAsync($"/v1/applications/{application}/timeline")).Single().GetProperty("id").GetGuid();
+
+        // Both envelopes handled, the first and the second: the worker marks an envelope handled in a later batch, so a
+        // count taken before publishing can still rise for the first one alone.
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await using (var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct))
+        {
+            await publisher.Services.GetRequiredService<IMessageBus>()
+                .PublishAsync(new SendApplicationEmail(owner.OrganizationId, application, "application-received", sendId, owner.UserId));
+            await WolverineStore.WaitUntilAsync(
+                async () => await store.CountHandledAsync(sendId.ToString(), Ct) >= 2, "the worker to handle the send again", Ct);
+        }
+
+        (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().ContainSingle("the second delivery found the timeline entry and sent nothing");
+        EmailEntries(await owner.GetAsync($"/v1/applications/{application}/timeline")).Should().ContainSingle();
+    }
+
     // Workflow-engine.md §2: the rejection email goes only with Reject, and stage-change never tells an ended application
     // it moved on.
     [Fact]
@@ -235,6 +267,9 @@ public sealed class EmailTests(AppHostFixture fixture)
         var refused = (await owner.DeleteAsync($"/v1/email-templates/{template}")).Expect(HttpStatusCode.Conflict);
         refused.Text("detail").Should().Contain("Custom automation email");
     }
+
+    private static List<JsonElement> EmailEntries(ApiResult timeline) =>
+        [.. timeline.Expect(HttpStatusCode.OK).Body.EnumerateArray().Where(e => e.GetProperty("type").GetString() == "EmailSent")];
 
     private static JsonObject Wording(string subject, string body, string? name = null)
     {
