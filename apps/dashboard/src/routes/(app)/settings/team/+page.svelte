@@ -1,0 +1,396 @@
+<script lang="ts">
+  import SendIcon from '@lucide/svelte/icons/send';
+  import UserMinusIcon from '@lucide/svelte/icons/user-minus';
+  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
+  import XIcon from '@lucide/svelte/icons/x';
+  import type { HttpValidationProblemDetails, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
+  import {
+    ApiError,
+    createChangeMemberRole,
+    createCreateInvitation,
+    createListInvitations,
+    createListTeamMembers,
+    createRemoveMember,
+    createRevokeInvitation,
+  } from '@screenhire/api-client/svelte-query';
+  import { CreateInvitationBody } from '@screenhire/api-client/zod';
+  import { useQueryClient } from '@tanstack/svelte-query';
+  import { defaults, superForm } from 'sveltekit-superforms';
+  import { zod4 } from 'sveltekit-superforms/adapters';
+  import { z } from 'zod';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import DateText from '#lib/components/date-text.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
+  import HeaderBand from '#lib/components/header-band.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
+  import Panel from '#lib/components/panel.svelte';
+  import QueryError from '#lib/components/query-error.svelte';
+  import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Field from '#lib/components/ui/field/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import * as Table from '#lib/components/ui/table/index.js';
+  import { selectClass } from '#lib/components/workflow/controls.js';
+  import { applyValidationProblem } from '#lib/forms.js';
+  import { describeError, invalidatePath } from '#lib/query.js';
+  import { assignableRoles, mayManage, roleDescriptions } from '#lib/settings.js';
+  import { cn } from '#lib/utils.js';
+  import type { PageProps } from './$types';
+
+  // The team (sign-in-and-tenancy.md, "Team members and invitations"): members with their roles, and the invitations
+  // nobody has answered yet, on the list template. Owners manage everyone; admins everyone but owners (TeamPolicy). Your
+  // own row has no actions: handing over is done by another owner.
+  let { data }: PageProps = $props();
+
+  const membersPath = '/v1/organization/members';
+  const invitationsPath = '/v1/organization/invitations';
+
+  const queryClient = useQueryClient();
+  const sidebar = Sidebar.useSidebar();
+  const members = createListTeamMembers();
+  const invitations = createListInvitations();
+  const changeRole = createChangeMemberRole(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
+  const remove = createRemoveMember(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
+  const revoke = createRevokeInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
+  const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
+
+  const actor = $derived<OrganizationRole>(data.user?.organization?.role ?? 'Viewer');
+  const myId = $derived(data.user?.id);
+  const memberList = $derived(members.data?.data ?? []);
+  const invitationList = $derived(invitations.data?.data ?? []);
+  const offered = $derived(assignableRoles(actor));
+  const manageable = (member: TeamMember) => member.userId !== myId && mayManage(actor, member.role);
+
+  // A role change or removal that failed, in one line under the members.
+  let memberFailure = $state('');
+  // What the last action did, for screen readers; the lists show it to everyone else.
+  let announcement = $state('');
+
+  async function setRole(member: TeamMember, role: OrganizationRole) {
+    if (role === member.role) return;
+    memberFailure = '';
+    try {
+      await changeRole.mutateAsync({ memberId: member.id, data: { role } });
+      announcement = `${member.displayName} is now ${role === 'Admin' || role === 'Owner' ? 'an' : 'a'} ${role.toLowerCase()}.`;
+    } catch (error) {
+      memberFailure = describeError(error, `Could not change ${member.displayName}'s role`);
+    }
+  }
+
+  // Remove and revoke confirm in a dialog (A2). The menu opens it once it has closed, so focus comes back to the menu.
+  let removing = $state<TeamMember | null>(null);
+  let removeOpen = $state(false);
+  let revoking = $state<PendingInvitation | null>(null);
+  let revokeOpen = $state(false);
+  let confirmChosen = false;
+
+  function onMenuClosed() {
+    if (confirmChosen) {
+      if (removing) removeOpen = true;
+      else if (revoking) revokeOpen = true;
+    }
+    confirmChosen = false;
+  }
+
+  function askToRemove(member: TeamMember) {
+    revoking = null;
+    removing = member;
+    confirmChosen = true;
+  }
+
+  function askToRevoke(invitation: PendingInvitation) {
+    removing = null;
+    revoking = invitation;
+    confirmChosen = true;
+  }
+
+  async function removeMember() {
+    if (!removing) return;
+    await remove.mutateAsync({ memberId: removing.id });
+    announcement = `${removing.displayName} was removed from the team.`;
+  }
+
+  async function revokeInvitation() {
+    if (!revoking) return;
+    await revoke.mutateAsync({ invitationId: revoking.id });
+    announcement = `The invitation to ${revoking.email} was revoked.`;
+  }
+
+  let inviting = $state(false);
+  const schema = CreateInvitationBody.extend({
+    email: z.string().trim().min(1, 'Enter an email address.').max(256, 'Keep the address to 256 characters or fewer.'),
+    role: z.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
+  });
+  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'Recruiter' as OrganizationRole }, zod4(schema)), {
+    SPA: true,
+    validators: zod4(schema),
+    resetForm: false,
+    applyAction: false,
+    invalidateAll: false,
+    async onUpdate({ form: submitted }) {
+      if (!submitted.valid) return;
+      try {
+        const email = submitted.data.email.trim();
+        await invite.mutateAsync({ data: { email, role: submitted.data.role } });
+        inviting = false;
+        announcement = `Invitation sent to ${email}.`;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 400) {
+          applyValidationProblem(submitted, error.body as HttpValidationProblemDetails);
+        } else {
+          submitted.valid = false;
+          // 404: the deployment has no email sender, so an invitation could not reach anyone.
+          submitted.errors._errors = [
+            error instanceof ApiError && error.status === 404
+              ? 'Email is not set up here, so invitations cannot be sent.'
+              : describeError(error, 'Could not send the invitation'),
+          ];
+        }
+      }
+    },
+  });
+
+  $effect(() => {
+    if (inviting) reset({ data: { email: '', role: 'Recruiter' } });
+  });
+</script>
+
+<svelte:head>
+  <title>Team · ScreenHire</title>
+</svelte:head>
+
+<TopBar crumbs={[{ label: 'Settings' }, { label: 'Team' }]} />
+
+<main class={[sidebar.isMobile && 'pb-28']}>
+  <HeaderBand
+    title="Team"
+    count={members.isSuccess ? memberList.length : undefined}
+    countLabel={memberList.length === 1 ? 'member' : 'members'}
+    actions={sidebar.isMobile ? undefined : inviteButton}
+  />
+
+  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+    <p role="status" class="sr-only">{announcement}</p>
+
+    <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>
+      {#if members.isError}
+        <div class="p-4"><QueryError message={describeError(members.error, 'Could not load the team')} onretry={() => members.refetch()} inset /></div>
+      {:else if members.isPending}
+        <div aria-hidden="true" class="flex flex-col">
+          {#each [0, 1, 2] as row (row)}
+            <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
+              <Skeleton class="h-4 w-40" />
+              <Skeleton class="h-4 min-w-0 flex-1" />
+              <Skeleton class="h-4 w-24" />
+            </div>
+          {/each}
+        </div>
+        <p class="sr-only" role="status">Loading the team…</p>
+      {:else}
+        <!-- Phones get two-line items (design system section 8); wider screens the table. -->
+        <ul class="md:hidden">
+          {#each memberList as member (member.id)}
+            <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span class="flex min-w-0 flex-wrap items-center gap-2">
+                  <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
+                  {#if member.userId === myId}<Badge variant="muted">You</Badge>{/if}
+                </span>
+                <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
+                <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.role}</Badge></span>
+              </div>
+              {#if manageable(member)}{@render memberMenu(member)}{/if}
+            </li>
+          {/each}
+        </ul>
+        <div class="overflow-x-auto max-md:hidden">
+          <Table.Root>
+            <Table.Header>
+              <Table.Row class="bg-muted hover:bg-muted">
+                <Table.Head class="px-4.5">Name</Table.Head>
+                <Table.Head>Email</Table.Head>
+                <Table.Head>Role</Table.Head>
+                <Table.Head>Joined</Table.Head>
+                <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each memberList as member (member.id)}
+                <Table.Row class="h-12">
+                  <Table.Cell class="max-w-64 px-4.5">
+                    <span class="flex min-w-0 items-center gap-2">
+                      <TruncatedText text={member.displayName} class="font-semibold" />
+                      {#if member.userId === myId}<Badge variant="muted" class="shrink-0">You</Badge>{/if}
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell class="w-full max-w-0 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
+                  <Table.Cell>{member.role}</Table.Cell>
+                  <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
+                  <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        </div>
+      {/if}
+    </Panel>
+
+    <Panel title="Invitations" count={invitations.isSuccess ? invitationList.length : undefined} flush>
+      {#if invitations.isError}
+        <div class="p-4">
+          <QueryError message={describeError(invitations.error, 'Could not load the invitations')} onretry={() => invitations.refetch()} inset />
+        </div>
+      {:else if invitations.isPending}
+        <div aria-hidden="true" class="flex h-12 items-center gap-4 px-4.5 max-md:px-4"><Skeleton class="h-4 w-48" /><Skeleton class="h-4 w-24" /></div>
+      {:else if invitationList.length === 0}
+        <Empty.Root>
+          <Empty.Header>
+            <Empty.Media variant="icon"><UsersRoundIcon /></Empty.Media>
+            <Empty.Description>No open invitations.</Empty.Description>
+          </Empty.Header>
+        </Empty.Root>
+      {:else}
+        <ul class="md:hidden">
+          {#each invitationList as invitation (invitation.id)}
+            <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span class="min-w-0 font-semibold break-all">{invitation.email}</span>
+                <span class="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="muted">{invitation.role}</Badge>
+                  <Badge variant="muted">Expires <DateText at={invitation.expiresAt} /></Badge>
+                </span>
+              </div>
+              {#if mayManage(actor, invitation.role)}{@render invitationMenu(invitation)}{/if}
+            </li>
+          {/each}
+        </ul>
+        <div class="overflow-x-auto max-md:hidden">
+          <Table.Root>
+            <Table.Header>
+              <Table.Row class="bg-muted hover:bg-muted">
+                <Table.Head class="px-4.5">Email</Table.Head>
+                <Table.Head>Role</Table.Head>
+                <Table.Head>Sent</Table.Head>
+                <Table.Head>Expires</Table.Head>
+                <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each invitationList as invitation (invitation.id)}
+                <Table.Row class="h-12">
+                  <Table.Cell class="w-full max-w-0 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
+                  <Table.Cell>{invitation.role}</Table.Cell>
+                  <Table.Cell class="text-muted-foreground"><DateText at={invitation.createdAt} /></Table.Cell>
+                  <Table.Cell class="text-muted-foreground"><DateText at={invitation.expiresAt} /></Table.Cell>
+                  <Table.Cell class="pr-4.5 text-right">{#if mayManage(actor, invitation.role)}{@render invitationMenu(invitation)}{/if}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        </div>
+      {/if}
+    </Panel>
+  </div>
+
+  {#if sidebar.isMobile}
+    <ActionBar>{@render inviteButton()}</ActionBar>
+  {/if}
+</main>
+
+{#snippet inviteButton()}
+  <Button size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button>
+{/snippet}
+
+{#snippet memberFooter()}
+  <FailureText message={memberFailure} />
+{/snippet}
+
+{#snippet memberMenu(member: TeamMember)}
+  <MoreMenu label={`Actions for ${member.displayName}`} size="icon" quiet onclosed={onMenuClosed}>
+    <DropdownMenu.Label class="text-caption text-muted-foreground">Role</DropdownMenu.Label>
+    <DropdownMenu.RadioGroup value={member.role} onValueChange={(role) => setRole(member, role as OrganizationRole)}>
+      {#each offered as role (role)}
+        <DropdownMenu.RadioItem value={role}>{role}</DropdownMenu.RadioItem>
+      {/each}
+    </DropdownMenu.RadioGroup>
+    <DropdownMenu.Separator />
+    <DropdownMenu.Item variant="destructive" onSelect={() => askToRemove(member)}><UserMinusIcon aria-hidden="true" />Remove from team</DropdownMenu.Item>
+  </MoreMenu>
+{/snippet}
+
+{#snippet invitationMenu(invitation: PendingInvitation)}
+  <MoreMenu label={`Actions for the invitation to ${invitation.email}`} size="icon" quiet onclosed={onMenuClosed}>
+    <DropdownMenu.Item variant="destructive" onSelect={() => askToRevoke(invitation)}><XIcon aria-hidden="true" />Revoke invitation</DropdownMenu.Item>
+  </MoreMenu>
+{/snippet}
+
+<ConfirmDialog
+  bind:open={removeOpen}
+  title={`Remove ${removing?.displayName ?? 'this member'} from the team?`}
+  description="They lose access to this organization at once. Their past work stays."
+  confirmLabel="Remove from team"
+  failure="Could not remove the member"
+  onconfirm={removeMember}
+>
+  {#snippet icon()}<UserMinusIcon aria-hidden="true" />{/snippet}
+</ConfirmDialog>
+
+<ConfirmDialog
+  bind:open={revokeOpen}
+  title={`Revoke the invitation to ${revoking?.email ?? 'this address'}?`}
+  description="The emailed link stops working. You can invite them again later."
+  cancelLabel="Keep it"
+  confirmLabel="Revoke invitation"
+  failure="Could not revoke the invitation"
+  onconfirm={revokeInvitation}
+>
+  {#snippet icon()}<XIcon aria-hidden="true" />{/snippet}
+</ConfirmDialog>
+
+<Dialog.Root bind:open={inviting}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Invite a colleague</Dialog.Title>
+      <Dialog.Description>They get an email with a link to join. It works for 7 days.</Dialog.Description>
+    </Dialog.Header>
+    <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
+      <Field.Field data-invalid={$errors.email ? true : undefined}>
+        <Field.Label for="invite-email">Email</Field.Label>
+        <Input
+          id="invite-email"
+          name="email"
+          type="email"
+          autocomplete="off"
+          maxlength={256}
+          required
+          bind:value={$form.email}
+          aria-invalid={$errors.email ? 'true' : undefined}
+          aria-describedby={$errors.email ? 'invite-email-error' : undefined}
+        />
+        <Field.Error id="invite-email-error" errors={$errors.email?.map((message) => ({ message }))} />
+      </Field.Field>
+      <Field.Field data-invalid={$errors.role ? true : undefined}>
+        <Field.Label for="invite-role">Role</Field.Label>
+        <select id="invite-role" name="role" class={selectClass} bind:value={$form.role} aria-describedby="invite-role-hint">
+          {#each offered as role (role)}<option value={role}>{role}</option>{/each}
+        </select>
+        <Field.Description id="invite-role-hint">{roleDescriptions[$form.role]}</Field.Description>
+        <Field.Error errors={$errors.role?.map((message) => ({ message }))} />
+      </Field.Field>
+      <FailureText message={$errors._errors?.[0]} />
+      <Dialog.Footer>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+        <Button type="submit" size="lg" disabled={$submitting}><SendIcon aria-hidden="true" />Send invitation</Button>
+      </Dialog.Footer>
+    </form>
+  </Dialog.Content>
+</Dialog.Root>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createListApplications, createListJobs } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Command from '#lib/components/ui/command/index.js';
@@ -8,6 +9,7 @@
   import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
+  import { isAdministrator, settingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
 
   // Ctrl K / ⌘K: jump to a section, a job or a candidate, or run an action. Lists load when it opens.
@@ -43,6 +45,13 @@
         </Command.Item>
       {/each}
     </Command.Group>
+    {#if isAdministrator(page.data?.user?.organization?.role)}
+      <Command.Group heading="Settings">
+        {#each settingsSections as setting (setting.href)}
+          <Command.Item value={`Settings ${setting.label}`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
+        {/each}
+      </Command.Group>
+    {/if}
     {#if jobs.data && jobs.data.data.length > 0}
       <Command.Group heading="Jobs">
         {#each jobs.data.data as job (job.id)}
