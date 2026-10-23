@@ -167,6 +167,40 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_follow_up_answer_is_a_fact_only_for_triggers_after_it_arrives()
+    {
+        var definition = FollowUpDefinition();
+        var automations = definition["workflow"]!["automations"]!.AsArray();
+        automations.Add(TagWithoutLicence("tag-when-answered", new JsonObject { ["type"] = "QuestionnaireCompleted", ["questionnaireId"] = "availability" }, "no-licence"));
+        automations.Add(TagWithoutLicence("tag-at-interview", new JsonObject { ["type"] = "StageEntered", ["stageId"] = "interview" }, "interview-no-licence"));
+        var (recruiter, slug, job) = await JobWithFollowUpAsync("Follow-up facts", definition);
+        using var _ = recruiter;
+        using var careers = fixture.CreateHttpClient("api");
+        var email = ApiSession.NewEmail("facts");
+        var applicationId = await ApplyAsync(careers, slug, job, email);
+        await MoveAsync(recruiter, applicationId, "screening");
+        var token = TokenIn((await fixture.Mailpit.WaitForMessagesAsync(email, 1, Ct))[0].Text, slug);
+
+        // Before the answers arrive, a stage trigger sees no follow-up answer.
+        await MoveAsync(recruiter, applicationId, "interview");
+        await AutomationSamples.WaitForRunAsync(recruiter, applicationId, "tag-at-interview", "NotMatched");
+
+        (await careers.PostAsJsonAsync(QuestionnairePath(slug, token), Answers(("start_date", "Now"), ("forklift_licence", "no")), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var answered = await AutomationSamples.WaitForRunAsync(recruiter, applicationId, "tag-when-answered", "Completed");
+        answered.GetProperty("facts").GetProperty("answers").EnumerateArray()
+            .Select(a => (a.GetProperty("questionId").GetString(), a.GetProperty("values")[0].GetString()))
+            .Should().Contain(("forklift_licence", "no"));
+
+        // After them, the same stage trigger matches on the answer.
+        await MoveAsync(recruiter, applicationId, "screening");
+        await MoveAsync(recruiter, applicationId, "interview");
+        await AutomationSamples.WaitForRunAsync(recruiter, applicationId, "tag-at-interview", "Completed");
+        var detail = await WaitForAsync(recruiter, applicationId, d => d.At("tags").EnumerateArray().Any(t => t.GetString() == "interview-no-licence"), "the interview tag");
+        detail.At("tags").EnumerateArray().Select(t => t.GetString()).Should().Contain("no-licence");
+    }
+
+    [Fact]
     public async Task Simulate_fires_the_automations_that_name_the_answered_questionnaire()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
@@ -198,10 +232,10 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
 
     // The tenant's follow-up: a job whose workflow sends "Availability" on entering Screening and tags the application
     // when it is answered.
-    private async Task<(Tenant Recruiter, string Slug, Guid Job)> JobWithFollowUpAsync(string title)
+    private async Task<(Tenant Recruiter, string Slug, Guid Job)> JobWithFollowUpAsync(string title, JsonObject? definition = null)
     {
         var recruiter = await fixture.SignedInWithOrganizationAsync();
-        var (_, versionId) = await recruiter.CreatePublishedTemplateAsync($"{title} template", FollowUpDefinition());
+        var (_, versionId) = await recruiter.CreatePublishedTemplateAsync($"{title} template", definition ?? FollowUpDefinition());
         var body = Samples.RemoteJob(title);
         body["templateVersionId"] = versionId;
         var job = (await recruiter.CreateJobAsync(body)).Id();
@@ -244,6 +278,20 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
         });
         return definition;
     }
+
+    // Tags the application when the candidate answered "no" to the follow-up's forklift licence question.
+    private static JsonObject TagWithoutLicence(string id, JsonObject trigger, string tag) => new()
+    {
+        ["id"] = id,
+        ["name"] = $"Tag {tag}",
+        ["trigger"] = trigger,
+        ["conditions"] = new JsonObject
+        {
+            ["match"] = "All",
+            ["rules"] = new JsonArray(new JsonObject { ["fact"] = "answers.forklift_licence", ["operator"] = "EqualTo", ["value"] = "no" }),
+        },
+        ["actions"] = new JsonArray(new JsonObject { ["type"] = "AddTag", ["tag"] = tag }),
+    };
 
     private static async Task<Guid> ApplyAsync(HttpClient careers, string slug, Guid job, string email)
     {
