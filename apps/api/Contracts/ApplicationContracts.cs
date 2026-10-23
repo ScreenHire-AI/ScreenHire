@@ -71,6 +71,7 @@ public sealed record ApplicationFileSummary(
 /// <remarks>
 /// <c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did.
 /// <c>actorApiKeyId</c>: The organization API key that made the change (ADR-0011); null otherwise.
+/// <c>emailTemplateId</c>, <c>emailSubject</c>: For <c>EmailSent</c>, the template and the subject the candidate received.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -82,7 +83,9 @@ public sealed record ApplicationTimelineEntry(
     string? Note,
     string? Tag,
     Guid? AutomationRunId,
-    Guid? ActorApiKeyId);
+    Guid? ActorApiKeyId,
+    string? EmailTemplateId = null,
+    string? EmailSubject = null);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
@@ -127,7 +130,7 @@ internal static class ApplicationMappings
 
     public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry) =>
         new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note,
-            entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId);
+            entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.EmailTemplateId, entry.Data.EmailSubject);
 }
 
 internal sealed class CreateApplicationRequestValidator : AbstractValidator<CreateApplicationRequest>

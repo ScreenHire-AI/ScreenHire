@@ -27,4 +27,8 @@ export interface ApplicationTimelineEntry {
   automationRunId: string | null;
   /** @nullable */
   actorApiKeyId: string | null;
+  /** @nullable */
+  emailTemplateId?: string | null;
+  /** @nullable */
+  emailSubject?: string | null;
 }

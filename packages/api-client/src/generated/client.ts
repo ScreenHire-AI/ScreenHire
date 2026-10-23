@@ -23,6 +23,7 @@ import type {
   ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
+  CreateEmailTemplateRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
@@ -31,6 +32,11 @@ import type {
   CurrentOrganization,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
+  EmailPreview,
+  EmailTemplateDraft,
+  EmailTemplateEntry,
+  EmailTemplateList,
+  EmailsQueued,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -58,6 +64,7 @@ import type {
   OrganizationIntegritySettings,
   OrganizationProfile,
   PendingInvitation,
+  PreviewApplicationEmailParams,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -67,12 +74,15 @@ import type {
   PublicOrganization,
   PublishJobRequest,
   SandboxBoardListing,
+  SendEmailsRequest,
   SignInMethods,
   SimulateWorkflowRequest,
   SwitchOrganizationRequest,
   TeamMember,
   TelemetrySnapshotInput,
+  TestEmailSent,
   UpdateBrandingRequest,
+  UpdateEmailTemplateRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
   UpdateIntegritySettingsRequest,
@@ -5050,6 +5060,529 @@ export const replayWebhookDelivery = async (endpointId: string,
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export type listEmailTemplatesResponse200 = {
+  data: EmailTemplateList
+  status: 200
+}
+
+export type listEmailTemplatesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listEmailTemplatesResponseSuccess = (listEmailTemplatesResponse200) & {
+  headers: Headers;
+};
+export type listEmailTemplatesResponseError = (listEmailTemplatesResponse401) & {
+  headers: Headers;
+};
+
+export type listEmailTemplatesResponse = (listEmailTemplatesResponseSuccess | listEmailTemplatesResponseError)
+
+export const getListEmailTemplatesUrl = () => {
+
+
+
+
+  return `/v1/email-templates`
+}
+
+export const listEmailTemplates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listEmailTemplatesResponse> => {
+
+  return apiFetch<listEmailTemplatesResponse>(getListEmailTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createEmailTemplateResponse201 = {
+  data: EmailTemplateEntry
+  status: 201
+}
+
+export type createEmailTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createEmailTemplateResponseSuccess = (createEmailTemplateResponse201) & {
+  headers: Headers;
+};
+export type createEmailTemplateResponseError = (createEmailTemplateResponse400 | createEmailTemplateResponse401 | createEmailTemplateResponse403) & {
+  headers: Headers;
+};
+
+export type createEmailTemplateResponse = (createEmailTemplateResponseSuccess | createEmailTemplateResponseError)
+
+export const getCreateEmailTemplateUrl = () => {
+
+
+
+
+  return `/v1/email-templates`
+}
+
+export const createEmailTemplate = async (createEmailTemplateRequest: CreateEmailTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createEmailTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createEmailTemplateResponse>(getCreateEmailTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createEmailTemplateRequest)
+  }
+);}
+
+
+
+export type getEmailTemplateResponse200 = {
+  data: EmailTemplateEntry
+  status: 200
+}
+
+export type getEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getEmailTemplateResponseSuccess = (getEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type getEmailTemplateResponseError = (getEmailTemplateResponse401 | getEmailTemplateResponse404) & {
+  headers: Headers;
+};
+
+export type getEmailTemplateResponse = (getEmailTemplateResponseSuccess | getEmailTemplateResponseError)
+
+export const getGetEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}`
+}
+
+export const getEmailTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getEmailTemplateResponse> => {
+
+  return apiFetch<getEmailTemplateResponse>(getGetEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateEmailTemplateResponse200 = {
+  data: EmailTemplateEntry
+  status: 200
+}
+
+export type updateEmailTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateEmailTemplateResponseSuccess = (updateEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type updateEmailTemplateResponseError = (updateEmailTemplateResponse400 | updateEmailTemplateResponse401 | updateEmailTemplateResponse403 | updateEmailTemplateResponse404) & {
+  headers: Headers;
+};
+
+export type updateEmailTemplateResponse = (updateEmailTemplateResponseSuccess | updateEmailTemplateResponseError)
+
+export const getUpdateEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}`
+}
+
+export const updateEmailTemplate = async (templateId: string,
+    updateEmailTemplateRequest: UpdateEmailTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateEmailTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateEmailTemplateResponse>(getUpdateEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateEmailTemplateRequest)
+  }
+);}
+
+
+
+export type deleteEmailTemplateResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteEmailTemplateResponseSuccess = (deleteEmailTemplateResponse204) & {
+  headers: Headers;
+};
+export type deleteEmailTemplateResponseError = (deleteEmailTemplateResponse401 | deleteEmailTemplateResponse403 | deleteEmailTemplateResponse404) & {
+  headers: Headers;
+};
+
+export type deleteEmailTemplateResponse = (deleteEmailTemplateResponseSuccess | deleteEmailTemplateResponseError)
+
+export const getDeleteEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}`
+}
+
+export const deleteEmailTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteEmailTemplateResponse> => {
+
+  return apiFetch<deleteEmailTemplateResponse>(getDeleteEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type previewEmailTemplateResponse200 = {
+  data: EmailPreview
+  status: 200
+}
+
+export type previewEmailTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewEmailTemplateResponseSuccess = (previewEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type previewEmailTemplateResponseError = (previewEmailTemplateResponse400 | previewEmailTemplateResponse401) & {
+  headers: Headers;
+};
+
+export type previewEmailTemplateResponse = (previewEmailTemplateResponseSuccess | previewEmailTemplateResponseError)
+
+export const getPreviewEmailTemplateUrl = () => {
+
+
+
+
+  return `/v1/email-templates/preview`
+}
+
+export const previewEmailTemplate = async (emailTemplateDraft: EmailTemplateDraft, options?: Parameters<typeof apiFetch>[1]): Promise<previewEmailTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<previewEmailTemplateResponse>(getPreviewEmailTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(emailTemplateDraft)
+  }
+);}
+
+
+
+export type sendTestEmailResponse200 = {
+  data: TestEmailSent
+  status: 200
+}
+
+export type sendTestEmailResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendTestEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type sendTestEmailResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type sendTestEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendTestEmailResponseSuccess = (sendTestEmailResponse200) & {
+  headers: Headers;
+};
+export type sendTestEmailResponseError = (sendTestEmailResponse400 | sendTestEmailResponse401 | sendTestEmailResponse403 | sendTestEmailResponse404) & {
+  headers: Headers;
+};
+
+export type sendTestEmailResponse = (sendTestEmailResponseSuccess | sendTestEmailResponseError)
+
+export const getSendTestEmailUrl = () => {
+
+
+
+
+  return `/v1/email-templates/test`
+}
+
+export const sendTestEmail = async (emailTemplateDraft: EmailTemplateDraft, options?: Parameters<typeof apiFetch>[1]): Promise<sendTestEmailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendTestEmailResponse>(getSendTestEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(emailTemplateDraft)
+  }
+);}
+
+
+
+export type previewApplicationEmailResponse200 = {
+  data: EmailPreview
+  status: 200
+}
+
+export type previewApplicationEmailResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewApplicationEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewApplicationEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewApplicationEmailResponseSuccess = (previewApplicationEmailResponse200) & {
+  headers: Headers;
+};
+export type previewApplicationEmailResponseError = (previewApplicationEmailResponse400 | previewApplicationEmailResponse401 | previewApplicationEmailResponse404) & {
+  headers: Headers;
+};
+
+export type previewApplicationEmailResponse = (previewApplicationEmailResponseSuccess | previewApplicationEmailResponseError)
+
+export const getPreviewApplicationEmailUrl = (params: PreviewApplicationEmailParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/emails/preview?${stringifiedParams}` : `/v1/emails/preview`
+}
+
+export const previewApplicationEmail = async (params: PreviewApplicationEmailParams, options?: Parameters<typeof apiFetch>[1]): Promise<previewApplicationEmailResponse> => {
+
+  return apiFetch<previewApplicationEmailResponse>(getPreviewApplicationEmailUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type sendEmailsResponse202 = {
+  data: EmailsQueued
+  status: 202
+}
+
+export type sendEmailsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendEmailsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type sendEmailsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type sendEmailsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendEmailsResponseSuccess = (sendEmailsResponse202) & {
+  headers: Headers;
+};
+export type sendEmailsResponseError = (sendEmailsResponse400 | sendEmailsResponse401 | sendEmailsResponse403 | sendEmailsResponse404) & {
+  headers: Headers;
+};
+
+export type sendEmailsResponse = (sendEmailsResponseSuccess | sendEmailsResponseError)
+
+export const getSendEmailsUrl = () => {
+
+
+
+
+  return `/v1/emails`
+}
+
+export const sendEmails = async (sendEmailsRequest: SendEmailsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<sendEmailsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendEmailsResponse>(getSendEmailsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sendEmailsRequest)
   }
 );}
 

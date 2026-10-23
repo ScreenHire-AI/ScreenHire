@@ -34,6 +34,9 @@ public enum ApplicationEventType
 
     /// <summary>The integrity engine assessed the application, or reassessed it with a different result.</summary>
     IntegrityAssessed,
+
+    /// <summary>An email went to the candidate: sent by a person, or by an automation.</summary>
+    EmailSent,
 }
 
 /// <summary>
@@ -46,6 +49,8 @@ public enum ApplicationEventType
 /// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.IntegrityAssessed"/>,
 /// the levels as they stood after the assessment; automation conditions read them as integrity facts.
 /// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
+/// <c>emailTemplateId</c>, <c>emailSubject</c>: For <see cref="ApplicationEventType.EmailSent"/>, the template and the
+/// subject as the candidate received it. The body is never kept here.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -56,4 +61,6 @@ public sealed record ApplicationEventData(
     string? AuthenticityLevel = null,
     string? AiAssistanceLevel = null,
     string? RulesetVersion = null,
-    Guid? ApiKeyId = null);
+    Guid? ApiKeyId = null,
+    string? EmailTemplateId = null,
+    string? EmailSubject = null);

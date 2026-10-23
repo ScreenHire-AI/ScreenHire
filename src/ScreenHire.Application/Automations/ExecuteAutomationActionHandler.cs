@@ -30,6 +30,7 @@ public static partial class ExecuteAutomationActionHandler
         ExecuteAutomationAction message,
         ScreenHireDbContext db,
         TransactionalEmail email,
+        EmailTemplateStore templates,
         IWebhookSender webhooks,
         TimeProvider time,
         ILogger<ExecuteAutomationAction> logger,
@@ -46,7 +47,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var application = await db.Applications.SingleAsync(a => a.Id == run.ApplicationId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == run.JobId, cancellationToken);
-        var context = new ActionContext(db, email, webhooks, run, action, application, job, time.GetUtcNow(), outgoing);
+        var context = new ActionContext(db, email, templates, webhooks, run, action, application, job, time.GetUtcNow(), outgoing);
 
         var (status, detail) = await ExecuteAsync(context, cancellationToken);
         var now = context.Now;
@@ -105,30 +106,21 @@ public static partial class ExecuteAutomationActionHandler
         };
     }
 
+    // Every email a candidate gets is on the timeline, linked to this run (ApplicationEmails).
     private static async Task<(AutomationActionStatus, string)> SendEmailAsync(
         ActionContext context, string templateId, string? reason, CancellationToken cancellationToken)
     {
-        if (!context.Email.IsConfigured)
+        var result = await ApplicationEmails.SendAsync(
+            context.Db, context.Email, context.Templates, context.Application, context.Job, templateId, reason, Guid.CreateVersion7(),
+            actorUserId: null, context.Run.Id, context.Now, cancellationToken);
+        if (result.Event is not { } sent)
         {
-            return Skipped("Email is not set up, so nothing was sent.");
+            // An organization template deleted after the workflow was saved is a broken action, not a quiet skip.
+            return result.TemplateMissing ? Failed(result.Detail) : Skipped(result.Detail);
         }
 
-        // The stage-change email names the stage the application is in when it sends, which may not be the one the
-        // trigger saw. "Moved to the next step: Rejected" would be a rejection email that no Reject action guarded.
-        var stage = context.Job.Workflow.FindStage(context.Application.CurrentStageId);
-        if (templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn)
-        {
-            return Skipped("The application has ended, so the stage-change email was not sent.");
-        }
-
-        var candidate = await context.Db.Candidates.AsNoTracking().SingleAsync(c => c.Id == context.Application.CandidateId, cancellationToken);
-        var organization = await context.Db.Organizations.AsNoTracking().SingleAsync(o => o.Id == context.Run.OrganizationId, cancellationToken);
-        await context.Email.SendAsync(
-            templateId,
-            candidate.Email,
-            new EmailTemplateModel(candidate.FullName, context.Job.Title, organization.Name, stage?.Name, reason),
-            cancellationToken);
-        return Completed($"Sent the {templateId} email.");
+        context.Outgoing.Add(new ApplicationEmailed(context.Run.OrganizationId, context.Application.Id, context.Application.JobId, sent.Id, context.Now));
+        return Completed(result.Detail);
     }
 
     private static (AutomationActionStatus, string) MoveToStage(ActionContext context, string stageId)
@@ -279,6 +271,7 @@ public static partial class ExecuteAutomationActionHandler
     private sealed record ActionContext(
         ScreenHireDbContext Db,
         TransactionalEmail Email,
+        EmailTemplateStore Templates,
         IWebhookSender Webhooks,
         AutomationRun Run,
         AutomationActionRun Action,

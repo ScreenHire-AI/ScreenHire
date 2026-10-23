@@ -13,7 +13,11 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
 
     public bool IsConfigured => sender is not null;
 
-    public Task SendAsync(string templateId, string to, EmailTemplateModel model, CancellationToken cancellationToken) =>
-        (sender ?? throw new InvalidOperationException("No email sender is configured."))
-            .SendAsync(templates.Render(templateId, to, model), cancellationToken);
+    /// <summary>Renders <paramref name="content"/> for <paramref name="to"/>, sends it, and returns what was sent.</summary>
+    public async Task<EmailMessage> SendAsync(EmailTemplateContent content, string to, EmailTemplateModel model, CancellationToken cancellationToken)
+    {
+        var message = templates.Render(content, to, model);
+        await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
+        return message;
+    }
 }

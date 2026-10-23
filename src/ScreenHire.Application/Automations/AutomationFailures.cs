@@ -42,6 +42,7 @@ public static class AutomationFailures
         // The API and worker register this already; TryAdd covers any other host that runs the handlers.
         services.TryAddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
         services.TryAddSingleton<EmailTemplates>();
+        services.TryAddSingleton<EmailTemplateStore>();
         services.TryAddSingleton<TransactionalEmail>();
 
         services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);

@@ -524,7 +524,7 @@ internal static class JobEndpoints
             return conflict;
         }
 
-        if (DefinitionValidator.Validate(request.Workflow).ToProblems("workflow") is { } problems)
+        if ((await EmailTemplateReferences.ValidateAsync(db, request.Workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -573,7 +573,7 @@ internal static class JobEndpoints
                 "templateVersionId", "No published version of this job's template has this id."));
         }
 
-        if (DefinitionValidator.Validate(version.Definition.Workflow).ToProblems("workflow") is { } problems)
+        if ((await EmailTemplateReferences.ValidateAsync(db, version.Definition.Workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }

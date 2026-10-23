@@ -100,6 +100,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<IntegritySettings> IntegritySettings => Set<IntegritySettings>();
 
+    public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
+
     public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();

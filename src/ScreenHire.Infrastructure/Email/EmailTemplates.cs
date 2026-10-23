@@ -1,43 +1,129 @@
 using System.Collections.Frozen;
-using System.Text.Encodings.Web;
+using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 using Fluid;
+using Fluid.Ast;
 using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.Infrastructure.Email;
 
-/// <summary>What a transactional email may say about the application. Every value is plain text; HTML bodies encode it.</summary>
+/// <summary>What an email template may say about the application. Every value is plain text.</summary>
 public sealed record EmailTemplateModel(
-    string CandidateName, string JobTitle, string OrganizationName, string? StageName = null, string? Reason = null);
+    string CandidateName, string JobTitle, string OrganizationName, string? StageName = null, string? Reason = null)
+{
+    /// <summary>The made-up candidate a template's preview and test send use.</summary>
+    public static EmailTemplateModel Sample(string organizationName) =>
+        new("Jordan Lee", "Product designer", organizationName, "Interview", "This role needs a driving licence.");
+}
+
+/// <summary>A template's wording: a Liquid subject and a Liquid plain-text body.</summary>
+public sealed record EmailTemplateContent(string Subject, string Body);
+
+/// <summary>One variable a template may use, and what it holds.</summary>
+public sealed record EmailTemplateVariable(string Name, string Label);
+
+/// <summary>A problem with a template's wording, on its <c>subject</c> or <c>body</c>.</summary>
+public sealed record EmailTemplateProblem(string Field, string Message);
 
 /// <summary>
-/// Renders the transactional emails named in <see cref="EmailTemplateIds"/> with Fluid (Liquid templates, MIT). Each
-/// template is three embedded files under <c>Email/Templates</c>: <c>{id}.subject.liquid</c>, <c>{id}.txt.liquid</c>
-/// and <c>{id}.html.liquid</c>. The templates see only the variables <see cref="EmailTemplateModel"/> sets, and the HTML
-/// body encodes them, so a candidate's name or a job title can never inject markup. Parsed once; thread-safe.
+/// Renders email templates with Fluid (Liquid, MIT). A template is a subject and a plain-text body over the variables in
+/// <see cref="Variables"/>; the email's HTML part is built from the rendered text, every character encoded, so neither
+/// a value nor the template's author can put markup in an email. ScreenHire's wording of the built-in templates is two
+/// embedded files each under <c>Email/Templates</c>, <c>{id}.subject.liquid</c> and <c>{id}.body.liquid</c>; an
+/// organization's wording comes from its <see cref="EmailTemplate"/> rows. Thread-safe.
 /// </summary>
-public sealed class EmailTemplates
+public sealed partial class EmailTemplates
 {
-    private readonly FrozenDictionary<string, (IFluidTemplate Subject, IFluidTemplate Text, IFluidTemplate Html)> templates;
-    private readonly TemplateOptions options = new();
+    /// <summary>Enough for any email a person writes; a loop that would run longer stops with an error.</summary>
+    private const int MaxSteps = 10_000;
 
-    public EmailTemplates()
-    {
-        var parser = new FluidParser();
-        templates = EmailTemplateIds.All.ToFrozenDictionary(
-            id => id,
-            id => (Parse(parser, $"{id}.subject"), Parse(parser, $"{id}.txt"), Parse(parser, $"{id}.html")),
-            StringComparer.Ordinal);
-    }
+    /// <summary>The variables every template may use. <c>reason</c> is the rejection email's alone.</summary>
+    public static IReadOnlyList<EmailTemplateVariable> Variables { get; } =
+    [
+        new("candidateName", "Candidate name"),
+        new("jobTitle", "Job title"),
+        new("organizationName", "Organization name"),
+        new("stageName", "Stage"),
+    ];
 
-    /// <summary>The email <paramref name="templateId"/> renders for <paramref name="to"/>.</summary>
-    public EmailMessage Render(string templateId, string to, EmailTemplateModel model)
+    /// <summary>The variable only <see cref="EmailTemplateIds.ApplicationRejected"/> may use, and must.</summary>
+    public static EmailTemplateVariable Reason { get; } = new("reason", "Reason");
+
+    // Filters that only change how a value reads. Nothing that reaches outside the value (date, json, and so on).
+    private static readonly FrozenSet<string> AllowedFilters =
+        FrozenSet.Create(StringComparer.Ordinal, "capitalize", "default", "downcase", "strip", "truncate", "upcase");
+
+    private readonly FluidParser parser = new();
+    private readonly TemplateOptions options = new() { MaxSteps = MaxSteps, StrictFilters = true };
+    private readonly FrozenDictionary<string, EmailTemplateContent> defaults;
+
+    public EmailTemplates() =>
+        defaults = EmailTemplateIds.BuiltIn.ToFrozenDictionary(
+            id => id, id => new EmailTemplateContent(Read($"{id}.subject"), Read($"{id}.body")), StringComparer.Ordinal);
+
+    /// <summary>ScreenHire's wording of the built-in template <paramref name="builtInId"/>.</summary>
+    public EmailTemplateContent Default(string builtInId) =>
+        defaults.TryGetValue(builtInId, out var content)
+            ? content
+            : throw new ArgumentException($"There is no built-in email template '{builtInId}'.", nameof(builtInId));
+
+    /// <summary>
+    /// What is wrong with <paramref name="content"/> as the wording of template <paramref name="templateId"/> (null for
+    /// a new organization template): Liquid that does not parse, a tag other than <c>if</c>, <c>unless</c> and
+    /// <c>case</c>, a variable outside the list, or a rejection email that does not give its reason.
+    /// </summary>
+    public IReadOnlyList<EmailTemplateProblem> Validate(string? templateId, EmailTemplateContent content)
     {
-        ArgumentNullException.ThrowIfNull(model);
-        if (!templates.TryGetValue(templateId, out var template))
+        ArgumentNullException.ThrowIfNull(content);
+        var rejection = templateId == EmailTemplateIds.ApplicationRejected;
+        var allowed = Variables.Select(v => v.Name).Concat(rejection ? [Reason.Name] : []).ToHashSet(StringComparer.Ordinal);
+        var problems = new List<EmailTemplateProblem>();
+        var usesReason = false;
+        foreach (var (field, text) in new[] { ("subject", content.Subject), ("body", content.Body) })
         {
-            throw new ArgumentException($"There is no email template '{templateId}'.", nameof(templateId));
+            if (!parser.TryParse(text, out var template, out var error))
+            {
+                problems.Add(new(field, $"The template does not parse: {error}"));
+                continue;
+            }
+
+            var checker = new TemplateChecker(allowed);
+            checker.VisitTemplate(template);
+            problems.AddRange(checker.Problems.Distinct().Select(message => new EmailTemplateProblem(field, message)));
+            usesReason |= checker.UsesReason;
         }
 
+        if (rejection && problems.Count == 0 && !usesReason)
+        {
+            // The candidate must be told why (workflow-engine.md §2): a Reject action's reason goes into this email.
+            problems.Add(new("body", "The rejection email must give the reason: add {{ reason }}."));
+        }
+
+        if (problems.Count == 0)
+        {
+            // A template that parses can still fail as it runs, such as a loop past the step limit.
+            try
+            {
+                Render(content, "preview@example.com", EmailTemplateModel.Sample("Organization"));
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or FluidException or ArgumentException)
+            {
+                problems.Add(new("body", $"The template does not render: {exception.Message}"));
+            }
+        }
+
+        return problems;
+    }
+
+    /// <summary>The built-in email <paramref name="builtInId"/> in ScreenHire's wording, for <paramref name="to"/>.</summary>
+    public EmailMessage Render(string builtInId, string to, EmailTemplateModel model) => Render(Default(builtInId), to, model);
+
+    /// <summary>The email <paramref name="content"/> renders for <paramref name="to"/>. Validate content a person wrote first.</summary>
+    public EmailMessage Render(EmailTemplateContent content, string to, EmailTemplateModel model)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(model);
         var context = new TemplateContext(options);
         context.SetValue("candidateName", model.CandidateName);
         context.SetValue("jobTitle", model.JobTitle);
@@ -45,22 +131,149 @@ public sealed class EmailTemplates
         context.SetValue("stageName", model.StageName ?? "");
         context.SetValue("reason", model.Reason ?? "");
 
-        // A subject is one line of plain text: no encoding, and no line breaks a header could carry.
-        var subject = template.Subject.Render(context, NullEncoder.Default).Trim().ReplaceLineEndings(" ");
-        return new EmailMessage(
-            to,
-            subject,
-            template.Text.Render(context, NullEncoder.Default).Trim() + Environment.NewLine,
-            template.Html.Render(context, HtmlEncoder.Default));
+        // A subject is one line of plain text: no line breaks a header could carry.
+        var subject = Parse(content.Subject).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings(" ");
+        var text = Parse(content.Body).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings("\n");
+        return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(text));
     }
 
-    private static IFluidTemplate Parse(FluidParser parser, string name)
+    /// <summary>
+    /// The HTML part: a paragraph for each block of text between blank lines, a line break for each single newline, and
+    /// web addresses as links that show their own address. Everything else is encoded text.
+    /// </summary>
+    internal static string ToHtml(string text)
+    {
+        var html = new StringBuilder("<!doctype html>\n<html lang=\"en\">\n<body style=\"font-family: sans-serif; line-height: 1.5;\">\n");
+        foreach (var paragraph in BlankLines().Split(text).Where(p => p.Trim().Length > 0))
+        {
+            html.Append("<p>");
+            var lines = paragraph.Trim('\n').Split('\n');
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (i > 0)
+                {
+                    html.Append("<br>\n");
+                }
+
+                AppendWithLinks(html, lines[i]);
+            }
+
+            html.Append("</p>\n");
+        }
+
+        return html.Append("</body>\n</html>\n").ToString();
+    }
+
+    private static void AppendWithLinks(StringBuilder html, string line)
+    {
+        var start = 0;
+        foreach (Match link in WebAddress().Matches(line))
+        {
+            html.Append(WebUtility.HtmlEncode(line[start..link.Index]));
+            var address = WebUtility.HtmlEncode(link.Value);
+            html.Append("<a href=\"").Append(address).Append("\">").Append(address).Append("</a>");
+            start = link.Index + link.Length;
+        }
+
+        html.Append(WebUtility.HtmlEncode(line[start..]));
+    }
+
+    private IFluidTemplate Parse(string text) =>
+        parser.TryParse(text, out var template, out var error)
+            ? template
+            : throw new InvalidOperationException($"The email template does not parse: {error}");
+
+    private static string Read(string name)
     {
         using var stream = typeof(EmailTemplates).Assembly.GetManifestResourceStream($"ScreenHire.Email.{name}.liquid")
             ?? throw new InvalidOperationException($"The email template file {name}.liquid is not embedded.");
         using var reader = new StreamReader(stream);
-        return parser.TryParse(reader.ReadToEnd(), out var template, out var error)
-            ? template
-            : throw new InvalidOperationException($"The email template {name}.liquid does not parse: {error}");
+        return reader.ReadToEnd();
+    }
+
+    [GeneratedRegex(@"\n[ \t]*\n")]
+    private static partial Regex BlankLines();
+
+    // An https or http address up to the next space, leaving off punctuation that usually ends the sentence around it.
+    [GeneratedRegex(@"https?://[^\s<>""]+[^\s<>"".,;:!?)\]']")]
+    private static partial Regex WebAddress();
+
+    /// <summary>
+    /// Walks a parsed template and reports anything outside what an email template may do: output and the conditional
+    /// tags over the allowed variables, with filters that only change how a value reads. No assignments, loops,
+    /// includes or other tags, so a template can neither run long nor reach anything but its own values.
+    /// </summary>
+    private sealed class TemplateChecker(IReadOnlySet<string> allowed) : AstVisitor
+    {
+        public List<string> Problems { get; } = [];
+
+        public bool UsesReason { get; private set; }
+
+        protected override Expression VisitMemberExpression(MemberExpression memberExpression)
+        {
+            var segments = memberExpression.Segments;
+            if (segments.Count != 1 || segments[0] is not IdentifierSegment { Identifier: var name })
+            {
+                Problems.Add($"Use a variable on its own, such as {{{{ {Variables[0].Name} }}}}.");
+            }
+            else if (!allowed.Contains(name))
+            {
+                Problems.Add($"There is no variable \"{name}\". Use {string.Join(", ", allowed.Order(StringComparer.Ordinal))}.");
+            }
+            else
+            {
+                UsesReason |= name == Reason.Name;
+            }
+
+            return base.VisitMemberExpression(memberExpression);
+        }
+
+        protected override Expression VisitFilterExpression(FilterExpression filterExpression)
+        {
+            if (!AllowedFilters.Contains(filterExpression.Name))
+            {
+                Problems.Add($"The filter \"{filterExpression.Name}\" is not available. Use {string.Join(", ", AllowedFilters.Order(StringComparer.Ordinal))}.");
+            }
+
+            return base.VisitFilterExpression(filterExpression);
+        }
+
+        protected override Statement VisitAssignStatement(AssignStatement assignStatement) => Refuse(assignStatement, "assign");
+
+        protected override Statement VisitCaptureStatement(CaptureStatement captureStatement) => Refuse(captureStatement, "capture");
+
+        protected override Statement VisitCycleStatement(CycleStatement cycleStatement) => Refuse(cycleStatement, "cycle");
+
+        protected override Statement VisitDecrementStatement(DecrementStatement decrementStatement) => Refuse(decrementStatement, "decrement");
+
+        protected override Statement VisitIncrementStatement(IncrementStatement incrementStatement) => Refuse(incrementStatement, "increment");
+
+        protected override Statement VisitForStatement(ForStatement forStatement) => Refuse(forStatement, "for");
+
+        protected override Statement VisitTableRowStatement(TableRowStatement tableRowStatement) => Refuse(tableRowStatement, "tablerow");
+
+        protected override Statement VisitIncludeStatement(IncludeStatement includeStatement) => Refuse(includeStatement, "include");
+
+        protected override Statement VisitRenderStatement(RenderStatement renderStatement) => Refuse(renderStatement, "render");
+
+        protected override Statement VisitMacroStatement(MacroStatement macroStatement) => Refuse(macroStatement, "macro");
+
+        protected override Statement VisitFromStatement(FromStatement fromStatement) => Refuse(fromStatement, "from");
+
+        protected override Statement VisitLiquidStatement(LiquidStatement liquidStatement) => Refuse(liquidStatement, "liquid");
+
+        public override Statement VisitOtherStatement(Statement statement) => Refuse(statement, statement.GetType().Name);
+
+        protected override Expression VisitRangeExpression(RangeExpression rangeExpression)
+        {
+            Problems.Add("Ranges are not available in email templates.");
+            return rangeExpression;
+        }
+
+        private Statement Refuse(Statement statement, string tag)
+        {
+            Problems.Add($"The {{% {tag} %}} tag is not available in email templates. Use {{{{ variables }}}} and {{% if %}}.");
+            return statement;
+        }
     }
 }

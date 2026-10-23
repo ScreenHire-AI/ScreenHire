@@ -20,7 +20,7 @@ export const templatesPath = '/v1/templates';
  * HiringTemplateVersionPublished is here because the jobs list shows "template update available" and the templates
  * pages show each template's versions; an automation run can tag an application, which its page shows.
  * IntegrityAssessed changes the chips in every list, the job's overview and the application's integrity panel
- * (`/v1/applications/{id}/integrity`).
+ * (`/v1/applications/{id}/integrity`). ApplicationEmailed adds an entry to the application's activity.
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
@@ -31,6 +31,7 @@ export const invalidations: InvalidationMap = {
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
   AutomationRunFinished: [applicationsPath],
+  ApplicationEmailed: [applicationsPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
 };
 

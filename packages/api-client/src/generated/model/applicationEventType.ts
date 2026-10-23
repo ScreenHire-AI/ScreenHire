@@ -13,4 +13,5 @@ export const ApplicationEventType = {
   StageChanged: 'StageChanged',
   TagAdded: 'TagAdded',
   IntegrityAssessed: 'IntegrityAssessed',
+  EmailSent: 'EmailSent',
 } as const;

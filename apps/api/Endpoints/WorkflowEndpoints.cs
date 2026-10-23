@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
 /// Check and test a workflow before saving it (workflow-engine.md §4, §5). Both run the code the save and the worker run
 /// (<see cref="DefinitionValidator"/>, <see cref="AutomationEvaluator"/>), so what the builder shows is what will
-/// happen. Neither reads or writes organization data.
+/// happen. Validation also checks that the organization's email templates the workflow names exist; nothing else reads or
+/// writes organization data.
 /// </summary>
 internal static class WorkflowEndpoints
 {
@@ -25,9 +28,10 @@ internal static class WorkflowEndpoints
         return app;
     }
 
-    private static Ok<WorkflowValidationResult> ValidateWorkflow(ValidateWorkflowRequest request)
+    private static async Task<Ok<WorkflowValidationResult>> ValidateWorkflow(
+        ValidateWorkflowRequest request, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var errors = DefinitionValidator.Validate(request.Workflow);
+        var errors = await EmailTemplateReferences.ValidateAsync(db, request.Workflow, cancellationToken);
         return TypedResults.Ok(new WorkflowValidationResult(errors.Count == 0, errors));
     }
 

@@ -18,6 +18,8 @@ export const realtimeEventSchemas = {
     eventId: id,
     movedAt: instant,
   }),
+  // An email went to an application's candidate and is on its timeline.
+  ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant }),
   ApplicationSubmitted: z.object({
     organizationId: id,
     applicationId: id,
