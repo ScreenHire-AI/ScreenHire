@@ -120,7 +120,7 @@
                     onchange={(event) => (stage.slaDays = event.currentTarget.value ? Number(event.currentTarget.value) : null)}
                   />
                 </label>
-              {:else}<span></span>{/if}
+              {:else}<span class="hidden @xl:block"></span>{/if}
               <div class="flex shrink-0 justify-end gap-0.5">
                 <!-- The first stage cannot move earlier nor the last later: the button is left out, its place kept (A3). -->
                 {#if index > 0}
