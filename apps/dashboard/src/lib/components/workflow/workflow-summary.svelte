@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import Panel from '#lib/components/panel.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { aiUseLabels, isTerminal, questionTypeLabels, stageKindLabels, summarize } from '#lib/workflow.js';
+  import { aiUseLabels, emailTemplateNames, isTerminal, questionTypeLabels, stageKindLabels, summarize } from '#lib/workflow.js';
   import { rowClass } from './controls.js';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
@@ -16,6 +17,10 @@
   // (design system section 7, read-only view): the same views as the builder, as panes of the page's `Tabs.Root`, with
   // data as text and pills, never disabled inputs. Simulate still runs: it changes nothing.
   let { workflow, errors, tab }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
+
+  // The organization's template names, for "Send the ... email".
+  const emailTemplates = createListEmailTemplates();
+  const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
   const steps = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
@@ -61,7 +66,7 @@
                 <span class="font-semibold break-words">{automation.name}</span>
                 {#if automation.enabled === false}<Badge variant="muted">Off</Badge>{/if}
               </span>
-              <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow)}</span>
+              <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow, templateNames)}</span>
             </li>
           {/each}
         </ul>

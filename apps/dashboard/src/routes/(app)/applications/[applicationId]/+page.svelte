@@ -5,12 +5,20 @@
   import MailIcon from '@lucide/svelte/icons/mail';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
+  import SendIcon from '@lucide/svelte/icons/send';
   import TagIcon from '@lucide/svelte/icons/tag';
   import type { ApplicationAnswer, ApplicationTimelineEntry, Question } from '@screenhire/api-client';
-  import { ApiError, createGetApplication, createGetApplicationTimeline, createGetJob } from '@screenhire/api-client/svelte-query';
+  import {
+    ApiError,
+    createGetApplication,
+    createGetApplicationTimeline,
+    createGetJob,
+    createListEmailTemplates,
+  } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
+  import EmailSheet from '#lib/components/email-sheet.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
@@ -33,6 +41,7 @@
   import { sourceName } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { describeError } from '#lib/query.js';
+  import { isHiringWriter } from '#lib/settings.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -49,6 +58,11 @@
   const moves = createMoves();
   // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
+  // Email shows only where this deployment can send it and the person may (A3).
+  const emailTemplates = createListEmailTemplates();
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && isHiringWriter(page.data.user?.organization?.role));
+  let emailOpen = $state(false);
+  let emailed = $state('');
 
   const workflow = $derived(job.data?.data.workflow);
   const stages = $derived(workflow?.stages ?? []);
@@ -76,10 +90,12 @@
       case 'IntegrityAssessed':
         // Levels and evidence are the integrity panel's to show; the activity records only that the checks ran.
         return 'Integrity checks ran';
+      case 'EmailSent':
+        return `Emailed "${entry.emailSubject ?? 'an update'}"`;
     }
   }
 
-  const eventIcons = { Submitted: InboxIcon, StageChanged: ArrowRightIcon, TagAdded: TagIcon, IntegrityAssessed: ScanSearchIcon };
+  const eventIcons = { Submitted: InboxIcon, StageChanged: ArrowRightIcon, TagAdded: TagIcon, IntegrityAssessed: ScanSearchIcon, EmailSent: SendIcon };
 
   function actor(entry: ApplicationTimelineEntry): string | undefined {
     if (entry.automationRunId) return 'by an automation';
@@ -131,6 +147,9 @@
 
 {#snippet bandActions()}
   <FailureText message={moves.failure ? moves.announcement : ''} />
+  {#if canEmail}
+    <Button variant="outline" size="lg" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />Email</Button>
+  {/if}
   {#if !sidebar.isMobile}{@render moveToStage()}{/if}
 {/snippet}
 
@@ -187,6 +206,7 @@
       <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it. A failure shows in the
            header band, beside Move to stage. -->
       <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
+      <p role="status" class="sr-only">{emailed}</p>
 
       <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
            top of the side column, and the main column spans both of the side column's rows. -->
@@ -252,6 +272,14 @@
 
     {#if sidebar.isMobile && stages.length > 0}
       <ActionBar>{@render moveToStage()}</ActionBar>
+    {/if}
+
+    {#if canEmail}
+      <EmailSheet
+        bind:open={emailOpen}
+        recipients={[{ id: detail.id, candidateName: detail.candidate.fullName }]}
+        onsent={(message) => (emailed = message)}
+      />
     {/if}
   {/if}
 </main>

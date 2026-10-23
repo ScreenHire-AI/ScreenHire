@@ -4,7 +4,7 @@
 // so there is nothing to drag.
 import type { Edge, Node } from '@xyflow/svelte';
 import type { HiringWorkflow } from '@screenhire/api-client';
-import { describeAction, operatorLabels, triggerLabels } from './workflow.js';
+import { describeAction, emailTemplateNames, operatorLabels, triggerLabels } from './workflow.js';
 
 export type StepKind = 'stage' | 'trigger' | 'conditions' | 'action';
 
@@ -26,7 +26,10 @@ const ROW = 110;
 const STAGES_Y = 0;
 const FIRST_ROW_Y = 150;
 
-export function toGraph(workflow: HiringWorkflow): { nodes: StepNode[]; edges: Edge[] } {
+export function toGraph(
+  workflow: HiringWorkflow,
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): { nodes: StepNode[]; edges: Edge[] } {
   const nodes: StepNode[] = [];
   const edges: Edge[] = [];
   const stageNode = (id: string) => `stage:${id}`;
@@ -92,7 +95,7 @@ export function toGraph(workflow: HiringWorkflow): { nodes: StepNode[]; edges: E
       nodes.push(
         node(actionId, COLUMN * (2 + actionIndex), y, {
           kind: 'action',
-          title: describeAction(action, workflow),
+          title: describeAction(action, workflow, templateNames),
           detail: action.reason ?? action.note ?? action.url ?? '',
           automation: index,
           path: `${path}.actions[${actionIndex}]`,

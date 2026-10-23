@@ -143,7 +143,7 @@ public sealed partial class EmailTemplates
     /// </summary>
     internal static string ToHtml(string text)
     {
-        var html = new StringBuilder("<!doctype html>\n<html lang=\"en\">\n<body style=\"font-family: sans-serif; line-height: 1.5;\">\n");
+        var html = new StringBuilder("<!doctype html>\n<html lang=\"en\">\n<body style=\"margin: 16px; background: #ffffff; color: #1c1b19; font-family: sans-serif; line-height: 1.5;\">\n");
         foreach (var paragraph in BlankLines().Split(text).Where(p => p.Trim().Length > 0))
         {
             html.Append("<p>");

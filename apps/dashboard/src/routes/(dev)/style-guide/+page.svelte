@@ -23,6 +23,7 @@
   import BrandBar from '#lib/components/brand-bar.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
+  import EmailPreview from '#lib/components/email-preview.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
@@ -65,6 +66,7 @@
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
+  import EmailSheetDemo, { demoEmail } from './email-sheet-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
   // width to see the section 8 sizes; the components respond to the frame, not the window. Development builds only.
@@ -460,12 +462,19 @@
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
         </Panel>
+        <Panel title="Email sheet" class="flex-[1_1_320px]">
+          <EmailSheetDemo />
+        </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">
             {#each ['connected', 'reconnecting', 'disconnected'] as const as status (status)}<LiveIndicator {status} />{/each}
           </div>
         </Panel>
       </div>
+
+      <Panel title="Email preview">
+        <EmailPreview preview={demoEmail} />
+      </Panel>
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">

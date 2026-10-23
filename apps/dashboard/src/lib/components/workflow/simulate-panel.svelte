@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AnswerFact, EvaluationOutcome, HiringWorkflow, TriggerType, WorkflowSimulationResult } from '@screenhire/api-client';
-  import { ApiError, createSimulateWorkflow } from '@screenhire/api-client/svelte-query';
+  import { ApiError, createListEmailTemplates, createSimulateWorkflow } from '@screenhire/api-client/svelte-query';
   import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -10,6 +10,7 @@
     aiAssistanceLevels,
     authenticityLevels,
     describeAction,
+    emailTemplateNames,
     describePath,
     operatorLabels,
     problemErrors,
@@ -22,6 +23,10 @@
   // "Test this workflow" (workflow-engine.md §4): a sample application through the definition being edited, unsaved
   // changes included, with the evaluator the worker runs. Nothing is saved or sent.
   let { workflow }: { workflow: HiringWorkflow } = $props();
+
+  // The organization's template names, for "Send the ... email".
+  const emailTemplates = createListEmailTemplates();
+  const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
   const simulate = createSimulateWorkflow();
 
@@ -205,7 +210,7 @@
             {/if}
             {#if automation.actions.length > 0}
               <ol class="flex list-decimal flex-col gap-0.5 pl-5">
-                {#each automation.actions as action, actionIndex (actionIndex)}<li>{describeAction(action, workflow)}</li>{/each}
+                {#each automation.actions as action, actionIndex (actionIndex)}<li>{describeAction(action, workflow, templateNames)}</li>{/each}
               </ol>
             {/if}
           </li>

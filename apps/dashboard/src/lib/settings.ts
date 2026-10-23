@@ -1,5 +1,6 @@
 import Building2Icon from '@lucide/svelte/icons/building-2';
 import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+import MailIcon from '@lucide/svelte/icons/mail';
 import PaletteIcon from '@lucide/svelte/icons/palette';
 import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 import UsersRoundIcon from '@lucide/svelte/icons/users-round';
@@ -16,12 +17,16 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Team', href: '/settings/team', icon: UsersRoundIcon },
   { label: 'Careers branding', href: '/settings/branding', icon: PaletteIcon },
   { label: 'Integrity', href: '/settings/integrity', icon: ShieldCheckIcon },
+  { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon },
   { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon },
   { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon },
 ];
 
 /** Whether the role manages the organization's settings: the API's `RequireOrganizationAdmin`. */
 export const isAdministrator = (role: OrganizationRole | null | undefined): boolean => role === 'Owner' || role === 'Admin';
+
+/** Whether the role changes hiring data, such as moving or emailing candidates: the API's `RequireHiringRole`. */
+export const isHiringWriter = (role: OrganizationRole | null | undefined): boolean => Boolean(role) && role !== 'Viewer';
 
 /** Every role, most powerful first. */
 export const roles: readonly OrganizationRole[] = ['Owner', 'Admin', 'Recruiter', 'Viewer'];

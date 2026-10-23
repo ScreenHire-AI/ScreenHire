@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { Background, SvelteFlow, type Edge } from '@xyflow/svelte';
   import { untrack } from 'svelte';
   import '@xyflow/svelte/dist/style.css';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { errorsUnder } from '#lib/workflow.js';
+  import { emailTemplateNames, errorsUnder } from '#lib/workflow.js';
   import { toGraph, type StepNode } from '#lib/workflow-graph.js';
   import GraphControls from './graph-controls.svelte';
   import StepNodeView from './step-node.svelte';
@@ -17,9 +18,12 @@
   let { workflow, errors, onedit }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; onedit?: (automation: number) => void } = $props();
 
   const nodeTypes = { step: StepNodeView };
+  // The organization's template names, for "Send the ... email".
+  const emailTemplates = createListEmailTemplates();
+  const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
   function project() {
-    const graph = toGraph(workflow);
+    const graph = toGraph(workflow, templateNames);
     return {
       nodes: graph.nodes.map((node) => ({ ...node, data: { ...node.data, invalid: errorsUnder(errors, node.data.path).length > 0, onedit } })),
       edges: graph.edges,
