@@ -36,10 +36,15 @@
   });
 
   async function notifyTeam(applicationId: string, runId: string) {
-    const [application, runs] = await Promise.all([getApplication(applicationId), listAutomationRuns(applicationId)]);
-    if (application.status !== 200) return;
-    const run = runs.status === 200 ? runs.data.find((entry) => entry.id === runId) : undefined;
-    notifications.add(teamNotification(runId, run, application.data));
+    try {
+      const [application, runs] = await Promise.all([getApplication(applicationId), listAutomationRuns(applicationId)]);
+      if (application.status !== 200) return;
+      const run = runs.status === 200 ? runs.data.find((entry) => entry.id === runId) : undefined;
+      notifications.add(teamNotification(runId, run, application.data));
+    } catch {
+      // The plain client throws only when the network is down; the run stays on the application's page, so the
+      // notification is dropped rather than left as an unhandled rejection.
+    }
   }
 
   onDestroy(() => {

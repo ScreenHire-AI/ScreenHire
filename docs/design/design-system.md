@@ -236,7 +236,7 @@ Atlassian's surfaces.
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
+| List | Candidates, jobs, templates, My tasks | Header band (title, count, page actions); one table panel whose header holds its title, search and filters. A list with no search (My tasks) puts its toggles in a row under the panel header |
 | Detail | A candidate, a job | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
 | Form | Creating or editing a record | One column, 688px wide, labels above fields, actions at the end |

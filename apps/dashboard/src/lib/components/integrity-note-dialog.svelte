@@ -1,5 +1,5 @@
 <script lang="ts">
-  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
+  import ClipboardPenIcon from '@lucide/svelte/icons/clipboard-pen';
   import { addIntegrityNote } from '@screenhire/api-client';
   import { AddIntegrityNoteBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
@@ -79,7 +79,7 @@
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
-        <Button type="submit" size="lg" disabled={$submitting}><StickyNoteIcon aria-hidden="true" />Add review note</Button>
+        <Button type="submit" size="lg" disabled={$submitting}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261023171043_AddTaskCompletion")]
+    [Migration("20261023180335_AddTaskCompletion")]
     partial class AddTaskCompletion
     {
         /// <inheritdoc />
@@ -363,6 +363,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnName("automation_run_id");
 
                     b.Property<DateTimeOffset?>("CompletedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 

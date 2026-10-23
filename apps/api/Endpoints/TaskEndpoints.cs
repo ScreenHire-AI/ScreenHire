@@ -63,7 +63,8 @@ internal static class TaskEndpoints
     }
 
     // Anyone who can change hiring data may mark any of the organization's tasks done, the assignee's included: the
-    // team shares the work. A task that is done already stays as it was and raises nothing.
+    // team shares the work. A task that is done already stays as it was and raises nothing, including one someone else
+    // completed between this request's read and its save (CompletedAt is a concurrency token).
     private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound>> CompleteTask(
         Guid taskId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -82,7 +83,16 @@ internal static class TaskEndpoints
         if (task.Complete(userId, now))
         {
             await outbox.PublishAsync(new ApplicationTaskCompleted(task.OrganizationId, task.Id, task.ApplicationId, now));
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // The other completion won; its save carried the event, and this one's rolled back with it.
+                var stored = await db.ApplicationTasks.AsNoTracking().SingleAsync(t => t.Id == taskId, cancellationToken);
+                return TypedResults.Ok(stored.ToEntry());
+            }
         }
 
         return TypedResults.Ok(task.ToEntry());

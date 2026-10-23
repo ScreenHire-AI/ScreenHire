@@ -43,15 +43,18 @@
   <div class="@container">
     <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6">
       <Panel title={panelTitle} flush>
-        <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5). -->
-        <div class="flex items-center gap-4 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-          <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
-            <Toggle size="lg" bind:pressed={() => status === 'Open', () => (status = 'Open')}>Open</Toggle>
-            <Toggle size="lg" bind:pressed={() => status === 'Completed', () => (status = 'Completed')}>Done</Toggle>
-          </div>
-          <div role="group" aria-label="Whose" class="flex shrink-0 gap-1">
-            <Toggle size="lg" bind:pressed={() => scope === 'Mine', () => (scope = 'Mine')}>Mine and the team's</Toggle>
-            <Toggle size="lg" bind:pressed={() => scope === 'Everyone', () => (scope = 'Everyone')}>Everyone's</Toggle>
+        <!-- The filters, in a row under the header because the list has no search (section 7). Each group stays on one
+             line (F5); in a narrow container the two groups stack, so every choice shows at a glance (section 11). -->
+        <div class="@container/filters overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+          <div class="flex flex-col items-start gap-2 @md/filters:flex-row @md/filters:items-center @md/filters:gap-4">
+            <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
+              <Toggle size="lg" bind:pressed={() => status === 'Open', () => (status = 'Open')}>Open</Toggle>
+              <Toggle size="lg" bind:pressed={() => status === 'Completed', () => (status = 'Completed')}>Done</Toggle>
+            </div>
+            <div role="group" aria-label="Whose" class="flex shrink-0 gap-1">
+              <Toggle size="lg" bind:pressed={() => scope === 'Mine', () => (scope = 'Mine')}>Mine and the team's</Toggle>
+              <Toggle size="lg" bind:pressed={() => scope === 'Everyone', () => (scope = 'Everyone')}>Everyone's</Toggle>
+            </div>
           </div>
         </div>
 

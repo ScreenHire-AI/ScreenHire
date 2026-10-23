@@ -1,6 +1,6 @@
 <script lang="ts">
   import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
-  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
+  import ClipboardPenIcon from '@lucide/svelte/icons/clipboard-pen';
   import type { IntegrityReviewEntry } from '@screenhire/api-client';
   import { createGetApplicationIntegrity } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -38,7 +38,7 @@
   const items = $derived<Activity[]>(
     (entries ?? []).toReversed().map((entry) => ({
       id: entry.id,
-      icon: entry.type === 'Dismissed' ? CircleSlashIcon : StickyNoteIcon,
+      icon: entry.type === 'Dismissed' ? CircleSlashIcon : ClipboardPenIcon,
       event: describeEntry(entry),
       actor: `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}`,
       note: entry.note ?? undefined,
@@ -49,7 +49,7 @@
 
 <Panel title="Review log">
   {#snippet actions()}
-    {#if entries}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add review note</Button>{/if}
+    {#if entries}<Button variant="outline" onclick={() => (noteOpen = true)}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>{/if}
   {/snippet}
   <div class="flex flex-col gap-3">
     {#if integrity.isError && !entries}

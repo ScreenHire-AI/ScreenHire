@@ -79,7 +79,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
             .Should().BeTrue("the page never scrolls sideways (F1)");
         await SaveScreenshotAsync(Page, "dashboard-my-tasks-phone");
         await Page.SetViewportSizeAsync(1440, 1000);
-        await open.GetByRole(AriaRole.Button, new() { Name = "Complete, Call the references." }).ClickAsync();
+        await open.GetByRole(AriaRole.Button, new() { Name = $"Complete for {Tagged}: Call the references." }).ClickAsync();
         await Expect(open.GetByText("Nothing to do")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
         await Expect(Region("Done")).ToContainTextAsync("by you");

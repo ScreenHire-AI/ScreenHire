@@ -63,6 +63,9 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
     {
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.Note).HasMaxLength(1000);
+        // Completing updates WHERE completed_at IS NULL, so of two people completing a task at the same moment one
+        // wins and the other's save conflicts (TaskEndpoints.CompleteTask returns the winner's entry).
+        builder.Property(t => t.CompletedAt).IsConcurrencyToken();
 
         builder.HasOne<JobApplication>().WithMany()
             .HasForeignKey(t => new { t.OrganizationId, t.ApplicationId })

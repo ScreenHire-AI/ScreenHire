@@ -54,33 +54,44 @@
 <ol aria-label={label} class="flex flex-col">
   {#each tasks as task (task.id)}
     {@const done = Boolean(task.completedAt)}
-    <li class="flex items-start gap-3 border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
-      <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
-        {#if done}<CircleCheckIcon />{:else}<ListTodoIcon />{/if}
-      </span>
-      <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
-        <p class="break-words">{task.note}</p>
-        {#if showCandidate && task.candidateName}
-          <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
-        {/if}
-        <div class="flex flex-wrap items-center gap-2">
-          {#if showCandidate && task.jobTitle}<Badge variant="muted" class="max-w-60 min-w-0"><TruncatedText text={task.jobTitle} /></Badge>{/if}
-          <Badge variant="muted">{taskKindLabels[task.kind]}</Badge>
-          <Badge variant="muted">{assigneeText(task.assigneeUserId, members, currentUserId)}</Badge>
-          {#if done && task.completedAt}
-            <span class="text-caption text-muted-foreground">
-              Done <RelativeTime at={task.completedAt} />{task.completedByUserId ? ` by ${personName(task.completedByUserId, members, currentUserId)}` : ''}
-            </span>
-          {:else}
-            <RelativeTime at={task.createdAt} class="text-caption text-muted-foreground" />
+    <!-- In a narrow container (the 320px side column) Complete goes under the facts, so the text and pills keep the
+         row's width (F2). -->
+    <li class="@container/task border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
+      <div class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 @md/task:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
+          {#if done}<CircleCheckIcon />{:else}<ListTodoIcon />{/if}
+        </span>
+        <div class="flex min-w-0 flex-col gap-1.5 pt-1">
+          <p class="break-words">{task.note}</p>
+          {#if showCandidate && task.candidateName}
+            <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
           {/if}
+          <div class="flex flex-wrap items-center gap-2">
+            {#if showCandidate && task.jobTitle}<Badge variant="muted" class="max-w-60 min-w-0"><TruncatedText text={task.jobTitle} /></Badge>{/if}
+            <Badge variant="muted">{taskKindLabels[task.kind]}</Badge>
+            <Badge variant="muted">{assigneeText(task.assigneeUserId, members, currentUserId)}</Badge>
+            {#if done && task.completedAt}
+              <span class="text-caption text-muted-foreground">
+                Done <RelativeTime at={task.completedAt} />{task.completedByUserId ? ` by ${personName(task.completedByUserId, members, currentUserId)}` : ''}
+              </span>
+            {:else}
+              <RelativeTime at={task.createdAt} class="text-caption text-muted-foreground" />
+            {/if}
+          </div>
         </div>
+        {#if !done && oncomplete}
+          <!-- On My tasks the same note repeats across candidates, so the name says whose task it is (X1). -->
+          <Button
+            variant="outline"
+            class="col-start-2 justify-self-start @md/task:col-start-3 @md/task:row-start-1"
+            disabled={busy}
+            aria-label={showCandidate && task.candidateName ? `Complete for ${task.candidateName}: ${task.note}` : `Complete, ${task.note}`}
+            onclick={() => oncomplete(task)}
+          >
+            <CheckIcon aria-hidden="true" />Complete
+          </Button>
+        {/if}
       </div>
-      {#if !done && oncomplete}
-        <Button variant="outline" class="shrink-0" disabled={busy} aria-label={`Complete, ${task.note}`} onclick={() => oncomplete(task)}>
-          <CheckIcon aria-hidden="true" />Complete
-        </Button>
-      {/if}
     </li>
   {/each}
 </ol>

@@ -22,8 +22,9 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// </summary>
 /// <remarks>
 /// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>tags</c> are the
-/// application's tags, which lists filter by. <c>integrity</c> holds the integrity chips; null until the application has been assessed, and always null for an API key, because integrity
-/// evidence is for a person reviewing the application (ADR-0011).
+/// application's tags, which lists filter by. <c>integrity</c> holds the integrity chips; null until the application
+/// has been assessed, and always null for an API key, because integrity evidence is for a person reviewing the
+/// application (ADR-0011).
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,

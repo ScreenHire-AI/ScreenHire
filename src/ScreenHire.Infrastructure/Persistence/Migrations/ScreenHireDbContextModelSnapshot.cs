@@ -360,6 +360,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnName("automation_run_id");
 
                     b.Property<DateTimeOffset?>("CompletedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 

@@ -66,6 +66,7 @@
         id={inputId}
         bind:value={draft}
         maxlength={maxTagLength}
+        placeholder="New tag"
         autocomplete="off"
         class="min-w-0 flex-1"
         aria-invalid={message ? 'true' : undefined}

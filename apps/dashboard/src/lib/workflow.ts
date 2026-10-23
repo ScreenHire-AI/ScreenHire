@@ -14,6 +14,7 @@ import type {
   Question,
   QuestionType,
   StageKind,
+  TeamMember,
   TriggerType,
   WorkflowStage,
 } from '@screenhire/api-client';
@@ -342,7 +343,7 @@ export function describePath(workflow: HiringWorkflow, path: string): string {
 }
 
 /** A team member as an AssignReviewer action names them. */
-export type Reviewer = { userId: string; displayName: string };
+type Reviewer = Pick<TeamMember, 'userId' | 'displayName'>;
 
 /**
  * One sentence for an automation, as the pipeline view lists it: "When a candidate enters Screening: add a tag."
