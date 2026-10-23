@@ -96,14 +96,14 @@ internal sealed partial class DocsBundle
     private IEnumerable<string> IndexFolders =>
         Markdown.Where(file => FileName(file.Path) == "index.md").Select(file => Folder(file.Path));
 
-    private IReadOnlyList<string> ConceptsWithoutFrontmatter() =>
+    private List<string> ConceptsWithoutFrontmatter() =>
         Concepts.Where(file => file.Frontmatter is null)
             .Select(file => file.FrontmatterError is null
                 ? $"{file.Path}: no frontmatter (every docs markdown file but index.md and log.md is a concept)"
                 : $"{file.Path}: {file.FrontmatterError}")
             .ToList();
 
-    private IReadOnlyList<string> ConceptFieldProblems()
+    private List<string> ConceptFieldProblems()
     {
         var problems = new List<string>();
         foreach (var file in Concepts.Where(file => file.Frontmatter is not null))
@@ -152,7 +152,7 @@ internal sealed partial class DocsBundle
         return problems;
     }
 
-    private IReadOnlyList<string> TitleProblems()
+    private List<string> TitleProblems()
     {
         var problems = new List<string>();
         foreach (var file in Concepts.Where(file => file.Frontmatter is not null))
@@ -168,7 +168,7 @@ internal sealed partial class DocsBundle
         return problems;
     }
 
-    private IReadOnlyList<string> SharedDescriptions() =>
+    private List<string> SharedDescriptions() =>
         Concepts.Where(file => !string.IsNullOrWhiteSpace(Text(file, "description")))
             .GroupBy(file => Text(file, "description"))
             .Where(group => group.Count() > 1)
@@ -179,7 +179,7 @@ internal sealed partial class DocsBundle
     /// Every folder holding markdown, directly or below, docs/ included. A folder holding only subfolders counts too:
     /// without an index of its own nothing links its subfolders' indexes, and that branch is unreachable.
     /// </summary>
-    private IReadOnlyList<string> FoldersWithoutIndex()
+    private List<string> FoldersWithoutIndex()
     {
         var folders = new HashSet<string>();
         foreach (var file in Markdown)
@@ -194,7 +194,7 @@ internal sealed partial class DocsBundle
         return folders.Where(folder => !indexed.Contains(folder)).Order().Select(folder => $"{folder}: no index.md").ToList();
     }
 
-    private IReadOnlyList<string> OkfVersionProblems()
+    private List<string> OkfVersionProblems()
     {
         var problems = new List<string>();
         var root = Markdown.FirstOrDefault(file => file.Path == "docs/index.md");
@@ -210,7 +210,7 @@ internal sealed partial class DocsBundle
     }
 
     /// <summary>Each index lists each sibling concept as <c>* [Title](file.md) - description</c>, with its exact description.</summary>
-    private IReadOnlyList<string> IndexEntryProblems()
+    private List<string> IndexEntryProblems()
     {
         var problems = new List<string>();
         foreach (var folder in IndexFolders)
@@ -244,7 +244,7 @@ internal sealed partial class DocsBundle
         return problems;
     }
 
-    private IReadOnlyList<string> UnlinkedSubfolderIndexes()
+    private List<string> UnlinkedSubfolderIndexes()
     {
         var problems = new List<string>();
         foreach (var folder in IndexFolders.Where(folder => folder != "docs"))
@@ -261,7 +261,7 @@ internal sealed partial class DocsBundle
         return problems;
     }
 
-    private IReadOnlyList<string> BrokenLinks()
+    private List<string> BrokenLinks()
     {
         var anchors = Markdown.ToDictionary(file => file.Path, file => file.Headings.Select(heading => heading.Slug).ToHashSet());
         foreach (var (outside, slugs) in OutsideAnchors)
@@ -289,12 +289,12 @@ internal sealed partial class DocsBundle
         return problems;
     }
 
-    private IReadOnlyList<string> InstructionNamedFiles() =>
+    private List<string> InstructionNamedFiles() =>
         Files.Where(file => InstructionFileNames.Contains(FileName(file), StringComparer.OrdinalIgnoreCase))
             .Select(file => $"{file}: an agent CLI loads this name as instructions; name the file after its subject")
             .ToList();
 
-    private IReadOnlyList<string> LogProblems()
+    private List<string> LogProblems()
     {
         var log = Markdown.FirstOrDefault(file => file.Path == "docs/log.md");
         if (log is null)
@@ -323,7 +323,7 @@ internal sealed partial class DocsBundle
     /// rules, agents) exists, and a <c>#fragment</c> after it names a heading. A moved doc otherwise leaves each citation
     /// pointing at nothing, and no link checker reads a backticked path or a source comment.
     /// </summary>
-    private IReadOnlyList<string> MissingCitations()
+    private List<string> MissingCitations()
     {
         var anchors = Markdown.ToDictionary(file => file.Path, file => file.Headings.Select(heading => heading.Slug).ToHashSet());
         var problems = new List<string>();
