@@ -69,6 +69,7 @@
               <Empty.Title>No webhooks yet</Empty.Title>
               <Empty.Description>An endpoint gets a signed request when a job or an application changes.</Empty.Description>
             </Empty.Header>
+            <Empty.Content><Button href="/settings/webhooks/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />Add endpoint</Button></Empty.Content>
           </Empty.Root>
         {:else}
           <ul class="md:hidden">

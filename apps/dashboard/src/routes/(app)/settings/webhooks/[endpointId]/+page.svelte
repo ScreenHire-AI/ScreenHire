@@ -228,7 +228,7 @@
             {:else if log.length === 0}
               <Empty.Root>
                 <Empty.Header>
-                  <Empty.Description>No deliveries yet. One is sent when a chosen event happens.</Empty.Description>
+                  <Empty.Description>No deliveries yet.</Empty.Description>
                 </Empty.Header>
               </Empty.Root>
             {:else}

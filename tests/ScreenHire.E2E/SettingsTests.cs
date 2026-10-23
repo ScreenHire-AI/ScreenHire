@@ -32,7 +32,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
 
         var colleague = ApiSession.NewEmail("colleague");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Invite" }).ClickAsync();
+        await Page.Locator("[data-slot=header-band]").GetByRole(AriaRole.Button, new() { Name = "Invite" }).ClickAsync();
         var invite = Page.GetByRole(AriaRole.Dialog, new() { Name = "Invite a colleague" });
         await invite.GetByLabel("Email").FillAsync(colleague);
         await invite.GetByLabel("Role").SelectOptionAsync("Recruiter");
@@ -109,7 +109,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         var keys = Page.GetByRole(AriaRole.Region, new() { Name = "Keys" });
         await Expect(keys).ToContainTextAsync("No API keys yet");
 
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Create key" }).ClickAsync();
+        await keys.GetByRole(AriaRole.Button, new() { Name = "Create key" }).ClickAsync();
         var create = Page.GetByRole(AriaRole.Dialog, new() { Name = "Create an API key" });
         await create.GetByLabel("Name").FillAsync("Payroll sync");
         await create.GetByLabel("Read and write").CheckAsync();

@@ -257,6 +257,7 @@
             <Empty.Media variant="icon"><UsersRoundIcon /></Empty.Media>
             <Empty.Description>No open invitations.</Empty.Description>
           </Empty.Header>
+          <Empty.Content><Button variant="outline" size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button></Empty.Content>
         </Empty.Root>
       {:else}
         <ul class="md:hidden">

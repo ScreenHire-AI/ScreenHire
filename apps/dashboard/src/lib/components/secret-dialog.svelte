@@ -57,7 +57,7 @@
     <Field.Field>
       <Field.Label for={id}>{label}</Field.Label>
       <div class="flex min-w-0 gap-2">
-        <Input {id} readonly {value} class="min-w-0 flex-1 font-mono"onfocus={(event) => event.currentTarget.select()} />
+        <Input {id} readonly {value} class="min-w-0 flex-1 font-mono" onfocus={(event) => event.currentTarget.select()} />
         <Button variant="outline" size="lg" onclick={copy}>
           {#if copied}<CheckIcon aria-hidden="true" />Copied{:else}<CopyIcon aria-hidden="true" />Copy{/if}
         </Button>

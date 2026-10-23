@@ -140,6 +140,7 @@
               <Empty.Title>No API keys yet</Empty.Title>
               <Empty.Description>A key lets another system read and change your jobs and candidates.</Empty.Description>
             </Empty.Header>
+            <Empty.Content><Button variant="outline" size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />Create key</Button></Empty.Content>
           </Empty.Root>
         {:else}
           <ul class="md:hidden">

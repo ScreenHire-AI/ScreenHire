@@ -70,7 +70,8 @@ describe('API keys page', () => {
     renderPage([]);
 
     expect(await screen.findByText('No API keys yet')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create key' })).toBeInTheDocument();
+    // The empty state offers the one action too, beside the header band's (E1).
+    expect(within(screen.getByRole('region', { name: 'Keys' })).getByRole('button', { name: 'Create key' })).toBeInTheDocument();
   });
 
   it('gives a revoked key no actions, and an active key one', async () => {

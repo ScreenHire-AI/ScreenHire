@@ -96,7 +96,7 @@ describe('webhook endpoint page', () => {
   it('says there are no deliveries yet', async () => {
     renderPage(endpoint(), {}, []);
 
-    expect(await screen.findByText('No deliveries yet. One is sent when a chosen event happens.')).toBeInTheDocument();
+    expect(await screen.findByText('No deliveries yet.')).toBeInTheDocument();
   });
 
   it('replays a finished delivery with a POST', async () => {

@@ -1,5 +1,5 @@
 import type { WebhookEndpointEntry } from '@screenhire/api-client';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
@@ -66,7 +66,11 @@ describe('webhooks page', () => {
     renderPage([]);
 
     expect(await screen.findByText('No webhooks yet')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Add endpoint' })).toHaveAttribute('href', '/settings/webhooks/new');
+    // The empty state offers the one action too, beside the header band's (E1).
+    expect(within(screen.getByRole('region', { name: 'Endpoints' })).getByRole('link', { name: 'Add endpoint' })).toHaveAttribute(
+      'href',
+      '/settings/webhooks/new',
+    );
   });
 
   it('says why the endpoints could not load', async () => {
