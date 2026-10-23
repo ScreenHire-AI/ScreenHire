@@ -4766,7 +4766,8 @@ export const ListAutomationRunsResponseItem = zod.object({
   "finishedAt": zod.iso.datetime({"offset":true}).nullable()
 })),
   "createdAt": zod.iso.datetime({"offset":true}),
-  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "triggerQuestionnaireId": zod.string().nullish()
 }).describe('The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did.')
 export const ListAutomationRunsResponse = zod.array(ListAutomationRunsResponseItem)
 
