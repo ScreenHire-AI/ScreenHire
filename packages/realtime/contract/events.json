@@ -139,6 +139,17 @@
     }
   },
   {
+    "type": "QuestionnaireAnswered",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "requestId": "0199f0c4-0000-7000-8000-000000000004",
+      "eventId": "0199f0c4-0000-7000-8000-000000000005",
+      "answeredAt": "2026-10-20T09:06:00+00:00"
+    }
+  },
+  {
     "type": "ScorecardSubmitted",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

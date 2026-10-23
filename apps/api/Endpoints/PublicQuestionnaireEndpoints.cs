@@ -144,15 +144,19 @@ internal static class PublicQuestionnaireEndpoints
             return null;
         }
 
+        // The request on its own query: an answer changes it, and AsNoTracking anywhere in a query applies to all of it.
         var requests = tracked ? db.QuestionnaireRequests : db.QuestionnaireRequests.AsNoTracking();
-        var row = await requests
-            .Where(r => r.Id == link.RequestId)
-            .Join(db.Applications.AsNoTracking(), r => r.ApplicationId, a => a.Id, (r, a) => new { Request = r, Application = a })
-            .Join(db.Jobs.AsNoTracking(), x => x.Application.JobId, j => j.Id, (x, j) => new { x.Request, x.Application, Job = j })
-            .SingleOrDefaultAsync(cancellationToken);
-        return row is null
-            ? null
-            : new Found(organization, row.Request, row.Application, row.Job, row.Job.Workflow.FindFollowUp(row.Request.QuestionnaireId));
+        var request = await requests.SingleOrDefaultAsync(r => r.Id == link.RequestId, cancellationToken);
+        if (request is null)
+        {
+            return null;
+        }
+
+        var row = await db.Applications.AsNoTracking()
+            .Where(a => a.Id == request.ApplicationId)
+            .Join(db.Jobs.AsNoTracking(), a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
+            .SingleAsync(cancellationToken);
+        return new Found(organization, request, row.Application, row.Job, row.Job.Workflow.FindFollowUp(request.QuestionnaireId));
     }
 
     private sealed record Found(

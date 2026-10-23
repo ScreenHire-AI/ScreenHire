@@ -37,4 +37,8 @@ export interface ApplicationTimelineEntry {
   emailTemplateId?: string | null;
   /** @nullable */
   emailSubject?: string | null;
+  /** @nullable */
+  questionnaireId?: string | null;
+  /** @nullable */
+  questionnaireRequestId?: string | null;
 }

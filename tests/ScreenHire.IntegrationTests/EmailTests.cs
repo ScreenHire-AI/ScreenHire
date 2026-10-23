@@ -26,11 +26,13 @@ public sealed class EmailTests(AppHostFixture fixture)
         var list = (await owner.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK);
         list.At("sendingEnabled").GetBoolean().Should().BeTrue();
         list.Body.GetProperty("templates").EnumerateArray().Select(t => t.GetProperty("id").GetString())
-            .Should().Equal("application-received", "stage-change", "application-rejected");
-        list.Text("templates.2.name").Should().Be("Not progressing");
-        list.At("templates.2.rejectOnly").GetBoolean().Should().BeTrue();
+            .Should().Equal("application-received", "stage-change", "questionnaire-request", "application-rejected");
+        list.Text("templates.2.name").Should().Be("Follow-up questions");
+        list.At("templates.2.questionnaireOnly").GetBoolean().Should().BeTrue();
+        list.Text("templates.3.name").Should().Be("Not progressing");
+        list.At("templates.3.rejectOnly").GetBoolean().Should().BeTrue();
         list.Body.GetProperty("variables").EnumerateArray().Select(v => v.GetProperty("name").GetString())
-            .Should().Contain(["candidateName", "jobTitle", "organizationName", "stageName", "reason"]);
+            .Should().Contain(["candidateName", "jobTitle", "organizationName", "stageName", "reason", "questionnaireLink"]);
 
         var reworded = (await owner.PutAsync("/v1/email-templates/stage-change", Wording("News about {{ jobTitle }}", "Hi {{ candidateName }}, you are in {{ stageName }}.")))
             .Expect(HttpStatusCode.OK);
@@ -44,7 +46,7 @@ public sealed class EmailTests(AppHostFixture fixture)
         (await owner.GetAsync($"/v1/email-templates/{id}")).Expect(HttpStatusCode.OK).Text("name").Should().Be("Interview invitation");
         (await owner.PutAsync($"/v1/email-templates/{id}", Wording("Interview", "Hi.", "Interview call"))).Expect(HttpStatusCode.OK)
             .Text("name").Should().Be("Interview call");
-        (await owner.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(4);
+        (await owner.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(5);
 
         (await owner.DeleteAsync("/v1/email-templates/stage-change")).Expect(HttpStatusCode.NoContent);
         var restored = (await owner.GetAsync("/v1/email-templates/stage-change")).Expect(HttpStatusCode.OK);
@@ -189,6 +191,11 @@ public sealed class EmailTests(AppHostFixture fixture)
             .ProblemKeys().Should().Equal("templateId");
         (await owner.GetAsync($"/v1/emails/preview?applicationId={application}&templateId=application-rejected")).Expect(HttpStatusCode.BadRequest);
 
+        // The follow-up questions email carries a link made for one request, so only SendQuestionnaire sends it.
+        (await owner.PostAsync("/v1/emails", Send("questionnaire-request", [application]))).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("templateId");
+        (await owner.GetAsync($"/v1/emails/preview?applicationId={application}&templateId=questionnaire-request")).Expect(HttpStatusCode.BadRequest);
+
         var queued = (await owner.PostAsync("/v1/emails", Send("stage-change", [application]))).Expect(HttpStatusCode.Accepted);
         queued.At("queued").GetInt32().Should().Be(0);
         queued.At("skipped").GetInt32().Should().Be(1);
@@ -240,7 +247,7 @@ public sealed class EmailTests(AppHostFixture fixture)
         (await ours.PostAsync("/v1/emails", Send("stage-change", [theirApplication]))).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("applicationIds");
         (await ours.GetAsync($"/v1/emails/preview?applicationId={theirApplication}&templateId=stage-change")).Expect(HttpStatusCode.NotFound);
-        (await ours.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(3);
+        (await ours.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(4);
     }
 
     // An automation may send any of the organization's templates, which then cannot be deleted from under it; a workflow

@@ -65,7 +65,6 @@ public sealed class WorkflowEngineValidationTests
 
     [Theory]
     [InlineData(ActionType.RequestVerification)]
-    [InlineData(ActionType.SendQuestionnaire)]
     [InlineData(ActionType.ScheduleInterview)]
     public void Actions_the_engine_does_not_run_yet_are_refused(ActionType type)
     {
@@ -110,7 +109,7 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].emailTemplate")
-            .Which.Message.Should().Contain("application-received, application-rejected, stage-change");
+            .Which.Message.Should().Contain("application-received, application-rejected, questionnaire-request, stage-change");
     }
 
     [Fact]

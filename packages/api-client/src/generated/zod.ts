@@ -432,6 +432,59 @@ export const SubmitPublicApplicationResponse = zod.object({
 }).describe('Confirms that an application arrived.')
 
 
+export const GetPublicQuestionnaireParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicQuestionnaireResponse = zod.object({
+  "organization": zod.object({
+  "name": zod.string(),
+  "slug": zod.string(),
+  "branding": zod.union([zod.null(),zod.object({
+  "brand": zod.string(),
+  "onBrand": zod.string(),
+  "brandText": zod.string(),
+  "brandUi": zod.string()
+}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')])
+}).describe('An organization as its careers pages show it.'),
+  "jobTitle": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['Open', 'Answered', 'Expired', 'Closed']).describe('Whether a follow-up questionnaire\'s link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link\'s time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open.'),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "helpText": zod.string().nullable(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullable(),
+  "min": zod.number().nullable(),
+  "max": zod.number().nullable(),
+  "maxLength": zod.int().nullable(),
+  "acceptedFileTypes": zod.array(zod.string()).nullable()
+}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it.'))
+}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\r\n`questions` are listed only while the link is `Open`; knockout settings stay on the server.')
+
+
+export const AnswerPublicQuestionnaireParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const AnswerPublicQuestionnaireBody = zod.object({
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('The candidate\'s answers to a follow-up questionnaire, keyed by question id as on the apply form.')
+
+export const AnswerPublicQuestionnaireResponse = zod.void()
+
+
 export const ListJobsResponseItem = zod.object({
   "id": zod.uuid(),
   "title": zod.string(),
@@ -475,6 +528,7 @@ export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault 
 export const createJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const createJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const CreateJobResponse = zod.object({
   "id": zod.uuid(),
@@ -543,7 +597,8 @@ export const CreateJobResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -564,12 +619,36 @@ export const CreateJobResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -615,6 +694,7 @@ export const getJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = f
 export const getJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const getJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const getJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const GetJobResponse = zod.object({
   "id": zod.uuid(),
@@ -683,7 +763,8 @@ export const GetJobResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -704,12 +785,36 @@ export const GetJobResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(getJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -777,6 +882,7 @@ export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault 
 export const updateJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const updateJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const UpdateJobResponse = zod.object({
   "id": zod.uuid(),
@@ -845,7 +951,8 @@ export const UpdateJobResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -866,12 +973,36 @@ export const UpdateJobResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -921,6 +1052,7 @@ export const publishJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault
 export const publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const publishJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const publishJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const PublishJobResponse = zod.object({
   "id": zod.uuid(),
@@ -989,7 +1121,8 @@ export const PublishJobResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1010,12 +1143,36 @@ export const PublishJobResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(publishJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1061,6 +1218,7 @@ export const closeJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault =
 export const closeJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const closeJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const closeJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const CloseJobResponse = zod.object({
   "id": zod.uuid(),
@@ -1129,7 +1287,8 @@ export const CloseJobResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1150,12 +1309,36 @@ export const CloseJobResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(closeJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(closeJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1267,6 +1450,7 @@ export const updateJobWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefa
 export const updateJobWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const updateJobWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const UpdateJobWorkflowBody = zod.object({
   "workflow": zod.object({
@@ -1313,7 +1497,8 @@ export const UpdateJobWorkflowBody = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1334,12 +1519,36 @@ export const UpdateJobWorkflowBody = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateJobWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "expectedWorkflowVersion": zod.int()
 }).describe('Replaces a job\'s workflow with the recruiter\'s edit of it: the job\'s own copy, tailored. `expectedWorkflowVersion`\r\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\r\nthan overwriting their change. A stage that still holds applications cannot be removed.')
 
@@ -1347,6 +1556,7 @@ export const updateJobWorkflowResponseWorkflowQuestionnaireQuestionsItemRequired
 export const updateJobWorkflowResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const updateJobWorkflowResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const UpdateJobWorkflowResponse = zod.object({
   "id": zod.uuid(),
@@ -1415,7 +1625,8 @@ export const UpdateJobWorkflowResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1436,12 +1647,36 @@ export const UpdateJobWorkflowResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateJobWorkflowResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1492,6 +1727,7 @@ export const applyJobTemplateUpdateResponseWorkflowQuestionnaireQuestionsItemReq
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault = true;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const applyJobTemplateUpdateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const ApplyJobTemplateUpdateResponse = zod.object({
   "id": zod.uuid(),
@@ -1560,7 +1796,8 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1581,12 +1818,36 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1642,6 +1903,7 @@ export const createHiringTemplateBodyDefinitionTwoWorkflowQuestionnaireQuestions
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault = true;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const createHiringTemplateBodyDefinitionTwoWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const CreateHiringTemplateBody = zod.object({
   "name": zod.string(),
@@ -1691,7 +1953,8 @@ export const CreateHiringTemplateBody = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1712,12 +1975,36 @@ export const CreateHiringTemplateBody = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -1806,6 +2093,7 @@ export const createHiringTemplateVersionBodyDefinitionTwoWorkflowQuestionnaireQu
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault = true;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const createHiringTemplateVersionBodyDefinitionTwoWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const CreateHiringTemplateVersionBody = zod.object({
   "definition": zod.union([zod.null(),zod.object({
@@ -1853,7 +2141,8 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1874,12 +2163,36 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -1896,6 +2209,7 @@ export const createHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQ
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const createHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const CreateHiringTemplateVersionResponse = zod.object({
   "id": zod.uuid(),
@@ -1947,7 +2261,8 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -1968,12 +2283,36 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -1999,6 +2338,7 @@ export const getHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQues
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const getHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const GetHiringTemplateVersionResponse = zod.object({
   "id": zod.uuid(),
@@ -2050,7 +2390,8 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -2071,12 +2412,36 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -2102,6 +2467,7 @@ export const updateHiringTemplateVersionBodyDefinitionWorkflowQuestionnaireQuest
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const updateHiringTemplateVersionBodyDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const UpdateHiringTemplateVersionBody = zod.object({
   "definition": zod.object({
@@ -2149,7 +2515,8 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -2170,12 +2537,36 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -2192,6 +2583,7 @@ export const updateHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQ
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const updateHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const UpdateHiringTemplateVersionResponse = zod.object({
   "id": zod.uuid(),
@@ -2243,7 +2635,8 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -2264,12 +2657,36 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -2295,6 +2712,7 @@ export const publishHiringTemplateVersionResponseDefinitionWorkflowQuestionnaire
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const publishHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const PublishHiringTemplateVersionResponse = zod.object({
   "id": zod.uuid(),
@@ -2346,7 +2764,8 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -2367,12 +2786,36 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -2439,6 +2882,7 @@ export const CreateApplicationBody = zod.object({
 }).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
 
 export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
+export const createApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 
 export const CreateApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -2478,7 +2922,41 @@ export const CreateApplicationResponse = zod.object({
   "sizeBytes": zod.int(),
   "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
   "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.')),
+  "followUps": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionnaireId": zod.string(),
+  "name": zod.string(),
+  "firstSentAt": zod.iso.datetime({"offset":true}),
+  "lastSentAt": zod.iso.datetime({"offset":true}),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "timesSent": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createApplicationResponseFollowUpsItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -2514,6 +2992,7 @@ export const GetApplicationParams = zod.object({
 })
 
 export const getApplicationResponseAiUseDeclarationDefault = `NotProvided`;
+export const getApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 
 export const GetApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -2553,7 +3032,41 @@ export const GetApplicationResponse = zod.object({
   "sizeBytes": zod.int(),
   "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
   "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.')),
+  "followUps": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionnaireId": zod.string(),
+  "name": zod.string(),
+  "firstSentAt": zod.iso.datetime({"offset":true}),
+  "lastSentAt": zod.iso.datetime({"offset":true}),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "timesSent": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(getApplicationResponseFollowUpsItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -2567,6 +3080,7 @@ export const MoveApplicationBody = zod.object({
 }).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\r\n`note` is kept on the move\'s timeline entry.')
 
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
+export const moveApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 
 export const MoveApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -2606,7 +3120,41 @@ export const MoveApplicationResponse = zod.object({
   "sizeBytes": zod.int(),
   "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
   "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.')),
+  "followUps": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionnaireId": zod.string(),
+  "name": zod.string(),
+  "firstSentAt": zod.iso.datetime({"offset":true}),
+  "lastSentAt": zod.iso.datetime({"offset":true}),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "timesSent": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(moveApplicationResponseFollowUpsItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -2616,7 +3164,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2629,7 +3177,9 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "stageId": zod.string().nullable(),
   "recommendation": zod.string().nullable(),
   "emailTemplateId": zod.string().nullish(),
-  "emailSubject": zod.string().nullish()
+  "emailSubject": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "questionnaireRequestId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -2644,7 +3194,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2657,7 +3207,9 @@ export const AddApplicationNoteResponse = zod.object({
   "stageId": zod.string().nullable(),
   "recommendation": zod.string().nullable(),
   "emailTemplateId": zod.string().nullish(),
-  "emailSubject": zod.string().nullish()
+  "emailSubject": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "questionnaireRequestId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -2670,6 +3222,7 @@ export const AddApplicationTagBody = zod.object({
 }).describe('A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`.')
 
 export const addApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
+export const addApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 
 export const AddApplicationTagResponse = zod.object({
   "id": zod.uuid(),
@@ -2709,7 +3262,41 @@ export const AddApplicationTagResponse = zod.object({
   "sizeBytes": zod.int(),
   "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
   "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.')),
+  "followUps": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionnaireId": zod.string(),
+  "name": zod.string(),
+  "firstSentAt": zod.iso.datetime({"offset":true}),
+  "lastSentAt": zod.iso.datetime({"offset":true}),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "timesSent": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(addApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -2722,6 +3309,7 @@ export const RemoveApplicationTagQueryParams = zod.object({
 })
 
 export const removeApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
+export const removeApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 
 export const RemoveApplicationTagResponse = zod.object({
   "id": zod.uuid(),
@@ -2761,7 +3349,41 @@ export const RemoveApplicationTagResponse = zod.object({
   "sizeBytes": zod.int(),
   "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
   "uploadedAt": zod.iso.datetime({"offset":true})
-}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.')),
+  "followUps": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionnaireId": zod.string(),
+  "name": zod.string(),
+  "firstSentAt": zod.iso.datetime({"offset":true}),
+  "lastSentAt": zod.iso.datetime({"offset":true}),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "timesSent": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(removeApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3824,6 +4446,7 @@ export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefau
 export const validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const validateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
 export const validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const validateWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 
 export const ValidateWorkflowBody = zod.object({
   "workflow": zod.object({
@@ -3870,7 +4493,8 @@ export const ValidateWorkflowBody = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -3891,12 +4515,36 @@ export const ValidateWorkflowBody = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.')
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(validateWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
 }).describe('A workflow to check, as the builder holds it before saving.')
 
 export const ValidateWorkflowResponse = zod.object({
@@ -3912,6 +4560,7 @@ export const simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefau
 export const simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
 export const simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const simulateWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const simulateWorkflowBodyAccommodationRequestedDefault = false;
 
 export const SimulateWorkflowBody = zod.object({
@@ -3959,7 +4608,8 @@ export const SimulateWorkflowBody = zod.object({
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "conditions": zod.union([zod.null(),zod.object({
   "match": zod.enum(['All', 'Any']),
@@ -3980,16 +4630,41 @@ export const SimulateWorkflowBody = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).'))
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.'),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(simulateWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
   "stageId": zod.string().nullish(),
-  "afterHours": zod.int().nullish()
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
 }),
   "facts": zod.union([zod.null(),zod.object({
   "answers": zod.array(zod.object({
@@ -4027,7 +4702,8 @@ export const SimulateWorkflowResponse = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
   "reason": zod.string().nullable()
 }).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
@@ -4082,7 +4758,8 @@ export const ListAutomationRunsResponseItem = zod.object({
   "url": zod.string().nullish(),
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
-  "verificationProvider": zod.string().nullish()
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.'),
   "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
   "detail": zod.string().nullable(),
@@ -4386,6 +5063,9 @@ export const ReplayWebhookDeliveryResponse = zod.object({
 }).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
 
 
+export const listEmailTemplatesResponseTemplatesItemQuestionnaireOnlyDefault = false;
+export const listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault = false;
+
 export const ListEmailTemplatesResponse = zod.object({
   "sendingEnabled": zod.boolean(),
   "templates": zod.array(zod.object({
@@ -4396,13 +5076,15 @@ export const ListEmailTemplatesResponse = zod.object({
   "rejectOnly": zod.boolean(),
   "subject": zod.string(),
   "body": zod.string(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseTemplatesItemQuestionnaireOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')),
   "variables": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
-  "rejectOnly": zod.boolean()
-}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.'))
+  "rejectOnly": zod.boolean(),
+  "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault)
+}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it.'))
 }).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
 
 
@@ -4412,6 +5094,8 @@ export const CreateEmailTemplateBody = zod.object({
   "body": zod.string()
 }).describe('A new template of the organization\'s own: its name, a Liquid subject and a Liquid plain-text body.')
 
+export const createEmailTemplateResponseQuestionnaireOnlyDefault = false;
+
 export const CreateEmailTemplateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -4420,13 +5104,16 @@ export const CreateEmailTemplateResponse = zod.object({
   "rejectOnly": zod.boolean(),
   "subject": zod.string(),
   "body": zod.string(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questionnaireOnly": zod.boolean().default(createEmailTemplateResponseQuestionnaireOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const GetEmailTemplateParams = zod.object({
   "templateId": zod.string()
 })
+
+export const getEmailTemplateResponseQuestionnaireOnlyDefault = false;
 
 export const GetEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -4436,7 +5123,8 @@ export const GetEmailTemplateResponse = zod.object({
   "rejectOnly": zod.boolean(),
   "subject": zod.string(),
   "body": zod.string(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questionnaireOnly": zod.boolean().default(getEmailTemplateResponseQuestionnaireOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
@@ -4450,6 +5138,8 @@ export const UpdateEmailTemplateBody = zod.object({
   "name": zod.string().nullish()
 }).describe('New wording for a template. `name` renames the organization\'s own template; leave it out for a built-in,\r\nwhose name is ScreenHire\'s.')
 
+export const updateEmailTemplateResponseQuestionnaireOnlyDefault = false;
+
 export const UpdateEmailTemplateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -4458,7 +5148,8 @@ export const UpdateEmailTemplateResponse = zod.object({
   "rejectOnly": zod.boolean(),
   "subject": zod.string(),
   "body": zod.string(),
-  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questionnaireOnly": zod.boolean().default(updateEmailTemplateResponseQuestionnaireOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 

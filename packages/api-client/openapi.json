@@ -7282,6 +7282,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "triggerQuestionnaireId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did."

@@ -24,7 +24,8 @@ export const tasksPath = '/v1/tasks';
  * IntegrityAssessed changes the chips in every list, the job's overview and the application's integrity panel
  * (`/v1/applications/{id}/integrity`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show. Tags show in every list, which filter by them; a note shows on the application's
- * timeline only, and so does a sent email (ApplicationEmailed).
+ * timeline only, and so does a sent email (ApplicationEmailed). Answers to a follow-up questionnaire
+ * (QuestionnaireAnswered) show on the application's page and its timeline.
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
@@ -38,6 +39,7 @@ export const invalidations: InvalidationMap = {
   ApplicationNoteAdded: [applicationsPath],
   ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
   ScorecardSubmitted: [applicationsPath],
+  QuestionnaireAnswered: [applicationsPath],
   ApplicationTaskCompleted: [applicationsPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
