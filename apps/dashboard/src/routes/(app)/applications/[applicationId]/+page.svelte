@@ -39,6 +39,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import NoteSheet from '#lib/components/note-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -289,6 +290,7 @@
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
     <HeaderBand title={detail.candidate.fullName} actions={bandActions}>
+      {#snippet status()}<OverdueBadge dueAt={detail.slaDueAt} />{/snippet}
       {#snippet details()}
         <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
         {#if detail.candidate.phone}

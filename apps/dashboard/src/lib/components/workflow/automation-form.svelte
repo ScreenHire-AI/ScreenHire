@@ -12,12 +12,13 @@
     actionField,
     actionFieldLabels,
     actionLabels,
-    actionTypes,
+    actionsFor,
     builtInEmailTemplates,
     errorsAt,
     errorsUnder,
     factsFor,
     followUpsOf,
+    hasTimeLimit,
     moveItem,
     newAction,
     newRule,
@@ -59,17 +60,22 @@
   const reviewers = $derived(assignableMembers(team.data?.data ?? []));
   const path = $derived(`automations[${index}]`);
   const facts = $derived(factsFor(workflow, automation.trigger.type));
-  // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none.
-  const scoredStages = $derived(workflow.stages.filter((stage) => stage.scorecard));
+  // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none; a passed time limit,
+  // likewise, on one stage's limit or any stage's.
+  const timed = $derived(automation.trigger.type === 'SlaBreached');
+  const optionalStages = $derived(timed ? workflow.stages.filter(hasTimeLimit) : workflow.stages.filter((stage) => stage.scorecard));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
   const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
   // A completed questionnaire fires on one follow-up, or any; SendQuestionnaire names one. Without follow-ups, the action
   // is not offered (A3), unless this automation already has it.
   const followUps = $derived(followUpsOf(workflow));
   const offeredActions = (current: ActionType) =>
-    actionTypes.filter((type) => type !== 'SendQuestionnaire' || followUps.length > 0 || type === current);
+    actionsFor(automation.trigger.type, current).filter((type) => type !== 'SendQuestionnaire' || followUps.length > 0 || type === current);
   function setTrigger(type: TriggerType) {
-    const stageId = triggerNeedsStage(type) ? (automation.trigger.stageId ?? workflow.stages[0]?.id ?? '') : undefined;
+    const current = automation.trigger.stageId;
+    // A passed time limit keeps the automation's stage when that stage has a limit, so it stays in its lane.
+    const keepsStage = type === 'SlaBreached' && workflow.stages.some((stage) => stage.id === current && hasTimeLimit(stage));
+    const stageId = triggerNeedsStage(type) ? (current ?? workflow.stages[0]?.id ?? '') : keepsStage ? current : undefined;
     const questionnaireId = triggerMayHaveQuestionnaire(type) ? followUps[0]?.id : undefined;
     automation.trigger = {
       type,
@@ -150,9 +156,9 @@
               (stageId) => (automation.trigger = stageId ? { type: automation.trigger.type, stageId } : { type: automation.trigger.type })
             }
           >
-            <option value="">Any stage with a scorecard</option>
-            {#each scoredStages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
-            {#if automation.trigger.stageId && !scoredStages.some((stage) => stage.id === automation.trigger.stageId)}
+            <option value="">{timed ? 'Any stage with a time limit' : 'Any stage with a scorecard'}</option>
+            {#each optionalStages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+            {#if automation.trigger.stageId && !optionalStages.some((stage) => stage.id === automation.trigger.stageId)}
               <option value={automation.trigger.stageId}>{automation.trigger.stageId}</option>
             {/if}
           </select>
@@ -287,7 +293,7 @@
                 aria-describedby={describedBy(actionErrors.length > 0 && `${uid}-action-${actionIndex}-errors`)}
                 onchange={(event) => (automation.actions[actionIndex] = newAction(event.currentTarget.value as ActionType, workflow.stages, followUps))}
               >
-                {#each offeredActions(action.type) as type (type)}<option value={type}>{actionLabels[type]}</option>{/each}
+                {#each offeredActions(action.type) as type (type)}<option value={type}>{actionLabels[type] ?? type}</option>{/each}
               </select>
             </label>
             {#if field === 'emailTemplate'}

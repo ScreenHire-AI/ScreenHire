@@ -11,8 +11,8 @@ vi.mock('$app/navigation', () => navigation);
 const casey = applications[0]!;
 
 /** The API as the board sees it: the job's applications, and moves that change them. */
-function stubApi(options: { refuseMove?: boolean } = {}) {
-  let current: ApplicationSummary[] = applications.map((application) => ({ ...application }));
+function stubApi(options: { refuseMove?: boolean; rows?: ApplicationSummary[] } = {}) {
+  let current: ApplicationSummary[] = (options.rows ?? applications).map((application) => ({ ...application }));
   const fetchMock = vi.fn(
     apiStub({
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(current),
@@ -65,6 +65,22 @@ describe('pipeline board', () => {
     expect(within(card('Casey Morgan')).getByText('Careers page')).toHaveAttribute('data-slot', 'badge');
     expect(card('Casey Morgan').querySelector('time')).toHaveAttribute('datetime', casey.submittedAt);
     expect(card('Casey Morgan')).not.toHaveTextContent('·');
+  });
+
+  // Overdue is the team's status (design system section 3.2), first in the card's status row.
+  it('shows an overdue card with the review badge first, and nothing for a card within its time limit', async () => {
+    const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000 - 60_000).toISOString();
+    const inADay = new Date(Date.now() + 86_400_000).toISOString();
+    stubApi({ rows: [{ ...applications[0]!, slaDueAt: twoDaysAgo }, { ...applications[1]!, slaDueAt: inADay }, applications[2]!] });
+    renderBoard();
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    const badge = within(card('Casey Morgan')).getByText('Overdue by 2 days');
+    expect(badge).toHaveAttribute('data-status', 'review');
+    expect(badge.querySelector('[data-shape="diamond"]')).not.toBeNull();
+    expect(card('Casey Morgan').querySelector('[data-status]')).toBe(badge);
+    expect(card('Jordan Lee')).not.toHaveTextContent('Overdue');
+    expect(card('Sam Taylor')).not.toHaveTextContent('Overdue');
   });
 
   it('moves the focused card to the next stage with Shift + Right, keeps focus on it and announces it', async () => {

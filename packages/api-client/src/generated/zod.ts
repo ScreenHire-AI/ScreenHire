@@ -595,7 +595,7 @@ export const CreateJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -761,7 +761,7 @@ export const GetJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -949,7 +949,7 @@ export const UpdateJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -1119,7 +1119,7 @@ export const PublishJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -1285,7 +1285,7 @@ export const CloseJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -1495,7 +1495,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -1623,7 +1623,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -1794,7 +1794,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -1951,7 +1951,7 @@ export const CreateHiringTemplateBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2139,7 +2139,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2259,7 +2259,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2388,7 +2388,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2513,7 +2513,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2633,7 +2633,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2762,7 +2762,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -2858,7 +2858,8 @@ export const ListJobApplicationsResponseItem = zod.object({
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
-}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional()
+}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
@@ -2956,7 +2957,8 @@ export const CreateApplicationResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -2982,7 +2984,8 @@ export const ListApplicationsResponseItem = zod.object({
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
-}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional()
+}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -3066,7 +3069,8 @@ export const GetApplicationResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3154,7 +3158,8 @@ export const MoveApplicationResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3296,7 +3301,8 @@ export const AddApplicationTagResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3383,7 +3389,8 @@ export const RemoveApplicationTagResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3437,7 +3444,8 @@ export const GetCandidateResponse = zod.object({
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
-}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional()
+}).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.'))
 }).describe('A candidate and every application they made to the organization.')
 
@@ -4491,7 +4499,7 @@ export const ValidateWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -4606,7 +4614,7 @@ export const SimulateWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -4661,7 +4669,7 @@ export const SimulateWorkflowBody = zod.object({
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "trigger": zod.object({
-  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
   "afterHours": zod.int().nullish(),
   "questionnaireId": zod.string().nullish()
@@ -4721,7 +4729,7 @@ export const ListAutomationRunsResponseItem = zod.object({
   "automationId": zod.string(),
   "automationName": zod.string(),
   "workflowVersion": zod.int(),
-  "trigger": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual']),
+  "trigger": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'IntegrityAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "triggerStageId": zod.string().nullable(),
   "eventId": zod.uuid(),
   "eventOccurredAt": zod.iso.datetime({"offset":true}),

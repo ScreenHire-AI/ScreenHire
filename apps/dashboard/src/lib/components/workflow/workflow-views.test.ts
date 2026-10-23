@@ -174,7 +174,8 @@ describe('workflow builder', () => {
     const { container } = renderViews('editor');
 
     const stages = screen.getByRole('region', { name: 'Stages' });
-    expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' })).toHaveLength(4);
+    // Hired and Not progressing end the application, so a time limit there would do nothing.
+    expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' })).toHaveLength(2);
     expect(within(stages).queryByRole('button', { name: 'Move Applied earlier' })).toBeNull();
     expect(within(stages).getByRole('button', { name: 'Move Applied later' })).toBeInTheDocument();
     expect(within(stages).queryByRole('button', { name: 'Move Not progressing later' })).toBeNull();
@@ -239,6 +240,22 @@ describe('workflow builder', () => {
     const pickers = within(sheet).getAllByRole('combobox', { name: 'Questionnaire' });
     expect(within(pickers[0]!).getByRole('option', { name: 'Any follow-up questionnaire' })).toBeInTheDocument();
     expect((pickers[0] as HTMLSelectElement).value).toBe('availability');
+  });
+
+  // A passed time limit measures the team's delay, so the form offers only reminders for it (workflow-engine.md section 8).
+  it("offers a stage's time limit as a trigger, on stages that have one, with only the reminder actions", async () => {
+    renderViews('editor');
+    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Automations for Phone screen' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    const options = (select: HTMLElement) => within(select).getAllByRole('option').map((option) => option.textContent?.trim());
+
+    expect(options(within(sheet).getByRole('combobox', { name: 'Action 1' }))).toContain('Queue for rejection review');
+    await fireEvent.change(within(sheet).getByRole('combobox', { name: 'Trigger' }), { target: { value: 'SlaBreached' } });
+
+    const stage = within(sheet).getByRole('combobox', { name: 'Stage' }) as HTMLSelectElement;
+    expect(options(stage)).toEqual(['Any stage with a time limit', 'Phone screen']);
+    expect(stage.value).toBe('phone-screen');
+    expect(options(within(sheet).getByRole('combobox', { name: 'Action 1' }))).toEqual(['Add a tag', 'Assign a reviewer', 'Notify the team', 'Create a task']);
   });
 
   it('gives a review stage a scorecard of job-related criteria in a sheet, and an end stage none', async () => {

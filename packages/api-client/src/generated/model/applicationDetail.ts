@@ -34,4 +34,6 @@ export interface ApplicationDetail {
   answers: ApplicationAnswer[];
   files: ApplicationFileSummary[];
   followUps: ApplicationFollowUp[];
+  /** @nullable */
+  slaDueAt?: string | null;
 }

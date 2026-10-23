@@ -8,7 +8,7 @@ import { preferences } from '../preferences.svelte.js';
 
 vi.mock('$app/state', () => ({ page: { url: new URL('http://dashboard.test/candidates?view=needs-review') } }));
 
-const viewCounts = { 'needs-review': 2, 'verification-recommended': 1, 'new-today': 4, 'not-screened': 3, interviewing: 0 };
+const viewCounts = { 'needs-review': 2, 'verification-recommended': 1, overdue: 5, 'new-today': 4, 'not-screened': 3, interviewing: 0 };
 const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]');
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
@@ -27,7 +27,7 @@ afterEach(() => {
 
 // The frame every signed-in page sits in, at each size class of the design system (section 8).
 describe('app shell', () => {
-  it('shows the full sidebar from lg: icons and labels, marks only on the integrity views, count pills', async () => {
+  it('shows the full sidebar from lg: icons and labels, marks only on the status views, count pills', async () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user, viewCounts } });
 
@@ -40,14 +40,15 @@ describe('app shell', () => {
       'My tasks',
       'Needs review 2',
       'Verification recommended 1',
+      'Overdue 5',
       'New today 4',
       'Not screened yet 3',
       'Interviewing 0',
       ...settings,
     ]);
-    // Navigation pairs an icon with its label (I1); status shapes mark the two integrity views only (I2).
+    // Navigation pairs an icon with its label (I1); status shapes mark the integrity and Overdue views only (I2).
     const marks = links.map((link) => link.querySelector('[data-shape]')?.getAttribute('data-shape') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'diamond', 'square', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'diamond', 'square', 'diamond', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
     expect(screen.getByRole('heading', { level: 2, name: 'Settings' })).toBeInTheDocument();
     expect(within(links[4]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^Needs review/ })).toHaveAttribute('aria-current', 'page');
@@ -176,6 +177,7 @@ describe('app shell', () => {
     expect(links.map((link) => link.textContent?.trim()).slice(4)).toEqual([
       'Needs review',
       'Verification recommended',
+      'Overdue',
       'New today',
       'Not screened yet',
       'Interviewing',
@@ -190,8 +192,8 @@ describe('app shell', () => {
 
     expect(within(main()).queryByRole('heading', { name: 'Settings' })).toBeNull();
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    // The four sections (My tasks included) and the five saved views.
-    expect(within(main()).getAllByRole('link')).toHaveLength(9);
+    // The four sections (My tasks included) and the six saved views.
+    expect(within(main()).getAllByRole('link')).toHaveLength(10);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

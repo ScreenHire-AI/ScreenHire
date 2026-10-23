@@ -24,7 +24,8 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>tags</c> are the
 /// application's tags, which lists filter by. <c>integrity</c> holds the integrity chips; null until the application
 /// has been assessed, and always null for an API key, because integrity evidence is for a person reviewing the
-/// application (ADR-0011).
+/// application (ADR-0011). <c>slaDueAt</c> is when the application passes its stage's time limit: overdue from then
+/// on, which measures the hiring team's delay and never counts against the candidate. Null when the stage has no limit.
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -37,7 +38,8 @@ public sealed record ApplicationSummary(
     string JobTitle,
     ApplicationSource Source,
     IReadOnlyList<string> Tags,
-    IntegritySummary? Integrity = null);
+    IntegritySummary? Integrity = null,
+    DateTimeOffset? SlaDueAt = null);
 
 /// <summary>
 /// One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's
@@ -47,7 +49,8 @@ public sealed record ApplicationSummary(
 /// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>answers</c> are
 /// keyed by question id as automation conditions read them (<c>answers.{questionId}</c>); a file answer's value is the
 /// upload id of one of <c>files</c>. <c>followUps</c> are the follow-up questionnaires automations sent, oldest first,
-/// with their answers once the candidate gave them.
+/// with their answers once the candidate gave them. <c>slaDueAt</c> is when the application passes its stage's time
+/// limit, as on <c>ApplicationSummary</c>.
 /// </remarks>
 public sealed record ApplicationDetail(
     Guid Id,
@@ -65,7 +68,8 @@ public sealed record ApplicationDetail(
     ApplicationSource Source,
     IReadOnlyList<ApplicationAnswer> Answers,
     IReadOnlyList<ApplicationFileSummary> Files,
-    IReadOnlyList<ApplicationFollowUp> FollowUps);
+    IReadOnlyList<ApplicationFollowUp> FollowUps,
+    DateTimeOffset? SlaDueAt = null);
 
 /// <summary>
 /// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
@@ -152,9 +156,17 @@ internal static class ApplicationMappings
             ? new(stage.Id, stage.Name, stage.Kind)
             : new(application.CurrentStageId, application.CurrentStageId, StageKind.Custom);
 
+    /// <summary>
+    /// When the application passes the time limit of its stage in <paramref name="job"/>'s current workflow, or null.
+    /// The screens compare it with their own clock, so an application turns overdue on screen without an event.
+    /// </summary>
+    public static DateTimeOffset? SlaDueAt(this JobApplication application, Job job) =>
+        job.Workflow.FindStage(application.CurrentStageId)?.SlaDueAt(application.StageEnteredAt);
+
     public static ApplicationSummary ToSummary(this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
-            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, application.Tags, integrity);
+            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, application.Tags, integrity,
+            application.SlaDueAt(job));
 
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files,
@@ -163,7 +175,7 @@ internal static class ApplicationMappings
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
             application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
             application.Source,
-            application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())]);
+            application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job));
 
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
         new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,
