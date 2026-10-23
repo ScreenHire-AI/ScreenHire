@@ -319,7 +319,7 @@
     <DropdownMenu.Label class="text-caption text-muted-foreground">Role</DropdownMenu.Label>
     <DropdownMenu.RadioGroup value={member.role} onValueChange={(role) => setRole(member, role as OrganizationRole)}>
       {#each offered as role (role)}
-        <DropdownMenu.RadioItem value={role}>{role}</DropdownMenu.RadioItem>
+        <DropdownMenu.RadioItem value={role} closeOnSelect>{role}</DropdownMenu.RadioItem>
       {/each}
     </DropdownMenu.RadioGroup>
     <DropdownMenu.Separator />

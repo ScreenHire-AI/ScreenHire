@@ -98,8 +98,10 @@
     }
   });
 
-  // The picker shows what the text field holds while it is a whole colour.
-  const picked = $derived(brandColorPattern.test($form.brandColor.trim()) ? normalizeBrandColor($form.brandColor) : undefined);
+  // The picker shows what the text field holds while it is a whole colour, and otherwise the careers pages' own default
+  // (the `--candidate-cta` token), which they use until a colour is saved.
+  const fallback = getComputedStyle(document.documentElement).getPropertyValue('--candidate-cta').trim();
+  const picked = $derived(brandColorPattern.test($form.brandColor.trim()) ? normalizeBrandColor($form.brandColor) : fallback);
 
   const colours = (palette: PublicBranding) => [
     { label: 'Buttons', value: palette.brand },
@@ -137,7 +139,7 @@
               <input
                 type="color"
                 aria-label="Pick a colour"
-                value={picked ?? ''}
+                value={picked}
                 oninput={(event) => ($form.brandColor = event.currentTarget.value)}
                 class="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-input bg-card p-1 pointer-coarse:h-11 pointer-coarse:w-14"
               />

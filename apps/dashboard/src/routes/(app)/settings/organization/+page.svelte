@@ -129,7 +129,7 @@
       <Panel title="Careers page">
         <SummaryList>
           <SummaryItem label="Address">
-            <a href={detail.careersUrl} target="_blank" rel="noopener" class="inline-flex max-w-full items-center gap-1.5 break-all">
+            <a href={detail.careersUrl} target="_blank" rel="noopener" class="inline-flex max-w-full items-center gap-1.5 break-all text-primary underline underline-offset-2">
               {detail.careersUrl}<ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="sr-only">(opens in a new tab)</span>
             </a>
           </SummaryItem>
