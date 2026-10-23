@@ -26,6 +26,7 @@
 
   function opened() {
     secret = '';
+    create.reset();
     if (createdId) void goto(`/settings/webhooks/${createdId}`);
   }
 </script>

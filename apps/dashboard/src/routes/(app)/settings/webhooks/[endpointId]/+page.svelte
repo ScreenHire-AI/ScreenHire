@@ -281,7 +281,8 @@
           </Panel>
         </div>
 
-        <div class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-2">
+        <!-- Without the status panel the events take the side column's top, level with the deliveries (S4). -->
+        <div class={['flex min-w-0 flex-col gap-5 lg:col-start-2', detail.disabledReason ? 'lg:row-start-2' : 'lg:row-span-2 lg:row-start-1']}>
           <Panel title="Events" count={detail.events.length}>
             <ul class="flex flex-col gap-2" aria-label="Event types">
               {#each detail.events as type (type)}
@@ -350,4 +351,4 @@
   {#snippet icon()}<Trash2Icon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
 
-<SecretDialog bind:open={secretOpen} title="Your new signing secret" label="Signing secret" value={secret} onclose={() => (secret = '')} />
+<SecretDialog bind:open={secretOpen} title="Your new signing secret" label="Signing secret" value={secret} onclose={() => ((secret = ''), rotate.reset())} />

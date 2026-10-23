@@ -229,7 +229,7 @@
   {#snippet icon()}<BanIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
 
-<SecretDialog bind:open={tokenOpen} title="Your new API key" label="API key" value={token} onclose={() => (token = '')} />
+<SecretDialog bind:open={tokenOpen} title="Your new API key" label="API key" value={token} onclose={() => ((token = ''), create.reset())} />
 
 <Dialog.Root bind:open={creating}>
   <Dialog.Content class="sm:max-w-md">

@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ScreenHire.E2E;
 
@@ -148,13 +150,46 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Theory]
-    [InlineData(1440)]
-    [InlineData(390)]
-    public async Task Every_settings_page_fits_the_screen_and_passes_axe(int width)
+    [InlineData(1440, 900)]
+    [InlineData(768, 700)]
+    [InlineData(390, 844)]
+    public async Task Every_settings_page_fits_the_screen_and_passes_axe(int width, int height)
     {
-        var (owner, _) = await OwnerAsync();
-        await Page.SetViewportSizeAsync(width, 900);
+        // A member, an open invitation, a key and a webhook endpoint, so the lists and the endpoint's page have rows.
+        var owner = ApiSession.NewEmail("e2e-owner");
+        string endpointId;
+        using (var session = new ApiSession(Fixture))
+        {
+            await session.SignInWithDevSsoAsync(owner, Ct);
+            await session.OnboardAsync(Ct);
+            using (var invited = await session.PostAsync("/v1/organization/invitations", new { email = ApiSession.NewEmail("invitee"), role = "Viewer" }, Ct))
+            {
+                invited.StatusCode.Should().Be(HttpStatusCode.Created);
+            }
+
+            using (var key = await session.PostAsync("/v1/organization/api-keys", new { name = "Payroll sync", scopes = new[] { "Read" } }, Ct))
+            {
+                key.StatusCode.Should().Be(HttpStatusCode.Created);
+            }
+
+            using var endpoint = await session.PostAsync(
+                "/v1/webhooks", new { url = "https://hooks.example.com/in", events = new[] { "job.published" }, description = "Applicant sync" }, Ct);
+            endpoint.StatusCode.Should().Be(HttpStatusCode.Created);
+            endpointId = (await endpoint.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("endpoint").GetProperty("id").GetString()!;
+        }
+
+        await Page.SetViewportSizeAsync(width, height);
         await SignInAsync(owner);
+
+        if (width is >= 768 and < 1024)
+        {
+            // The icon rail scrolls, so the last settings link is reachable on a short window.
+            var webhooks = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Webhooks" });
+            await webhooks.ScrollIntoViewIfNeededAsync();
+            var box = await webhooks.BoundingBoxAsync();
+            box.Should().NotBeNull();
+            (box!.Y + box.Height).Should().BeLessThanOrEqualTo(height, "the rail's last settings link is on screen");
+        }
 
         (string Path, string Title)[] pages =
         [
@@ -165,6 +200,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             ("/settings/api-keys", "API keys"),
             ("/settings/webhooks", "Webhooks"),
             ("/settings/webhooks/new", "Add endpoint"),
+            ($"/settings/webhooks/{endpointId}", "Applicant sync"),
+            ($"/settings/webhooks/{endpointId}/edit", "Edit endpoint"),
         ];
         foreach (var (path, title) in pages)
         {
@@ -175,7 +212,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
                 .Should().BeTrue("{0} scrolls sideways at {1}px", path, width);
             await ExpectNoAccessibilityViolationsAsync();
-            await SaveScreenshotAsync(Page, $"dashboard-settings{path.Replace('/', '-')}-{width}");
+            var name = path.Replace(endpointId, "endpoint", StringComparison.Ordinal).Replace('/', '-');
+            await SaveScreenshotAsync(Page, $"dashboard-settings{name}-{width}");
         }
     }
 
