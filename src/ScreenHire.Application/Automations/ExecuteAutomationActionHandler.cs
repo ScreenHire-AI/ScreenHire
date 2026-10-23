@@ -32,6 +32,7 @@ public static partial class ExecuteAutomationActionHandler
         TransactionalEmail email,
         EmailTemplateStore templates,
         IWebhookSender webhooks,
+        QuestionnaireLinks links,
         TimeProvider time,
         ILogger<ExecuteAutomationAction> logger,
         CancellationToken cancellationToken)
@@ -47,7 +48,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var application = await db.Applications.SingleAsync(a => a.Id == run.ApplicationId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == run.JobId, cancellationToken);
-        var context = new ActionContext(db, email, templates, webhooks, run, action, application, job, time.GetUtcNow(), outgoing);
+        var context = new ActionContext(db, email, templates, webhooks, links, run, action, application, job, time.GetUtcNow(), outgoing);
 
         var (status, detail) = await ExecuteAsync(context, cancellationToken);
         var now = context.Now;
@@ -92,7 +93,8 @@ public static partial class ExecuteAutomationActionHandler
         var action = context.Action.Action;
         return action.Type switch
         {
-            ActionType.SendEmail => SendEmailAsync(context, action.EmailTemplate!, reason: null, cancellationToken),
+            ActionType.SendEmail => SendEmailAsync(context, action.EmailTemplate!, reason: null, questionnaireLink: null, cancellationToken),
+            ActionType.SendQuestionnaire => SendQuestionnaireAsync(context, action.QuestionnaireId!, cancellationToken),
             ActionType.MoveToStage => Task.FromResult(MoveToStage(context, action.StageId!)),
             ActionType.AddTag => Task.FromResult(AddTag(context, action.Tag!)),
             ActionType.AssignReviewer => AssignReviewerAsync(context, action.AssigneeUserId, cancellationToken),
@@ -108,11 +110,11 @@ public static partial class ExecuteAutomationActionHandler
 
     // Every email a candidate gets is on the timeline, linked to this run (ApplicationEmails).
     private static async Task<(AutomationActionStatus, string)> SendEmailAsync(
-        ActionContext context, string templateId, string? reason, CancellationToken cancellationToken)
+        ActionContext context, string templateId, string? reason, string? questionnaireLink, CancellationToken cancellationToken)
     {
         var result = await ApplicationEmails.SendAsync(
-            context.Db, context.Email, context.Templates, context.Application, context.Job, templateId, reason, Guid.CreateVersion7(),
-            actorUserId: null, context.Run.Id, context.Now, cancellationToken);
+            context.Db, context.Email, context.Templates, context.Application, context.Job, templateId, reason, questionnaireLink,
+            Guid.CreateVersion7(), actorUserId: null, context.Run.Id, context.Now, cancellationToken);
         if (result.Event is not { } sent)
         {
             // An organization template deleted after the workflow was saved is a broken action, not a quiet skip.
@@ -121,6 +123,63 @@ public static partial class ExecuteAutomationActionHandler
 
         context.Outgoing.Add(new ApplicationEmailed(context.Run.OrganizationId, context.Application.Id, context.Application.JobId, sent.Id, context.Now));
         return Completed(result.Detail);
+    }
+
+    /// <summary>
+    /// Emails the candidate a signed link to a follow-up questionnaire (workflow-engine.md §8). One request per application
+    /// and questionnaire: the first send creates it, a later one sends a fresh link to the same request while it is
+    /// unanswered, and once it is answered nothing is sent. Skipped without email, as SendEmail is, and for an application
+    /// that has ended.
+    /// </summary>
+    private static async Task<(AutomationActionStatus, string)> SendQuestionnaireAsync(
+        ActionContext context, string questionnaireId, CancellationToken cancellationToken)
+    {
+        if (!context.Email.IsConfigured)
+        {
+            return Skipped("Email is not set up, so nothing was sent.");
+        }
+
+        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        {
+            return Skipped("The application has ended, so no questionnaire was sent.");
+        }
+
+        if (context.Job.Workflow.FindFollowUp(questionnaireId) is not { } questionnaire)
+        {
+            return Failed($"The workflow has no follow-up questionnaire '{questionnaireId}' any more.");
+        }
+
+        var application = context.Application;
+        var request = await context.Db.QuestionnaireRequests
+            .SingleOrDefaultAsync(r => r.ApplicationId == application.Id && r.QuestionnaireId == questionnaireId, cancellationToken);
+        if (request is { IsCompleted: true })
+        {
+            return Skipped($"The candidate has answered \"{questionnaire.Name}\" already, so nothing was sent.");
+        }
+
+        if (request is null)
+        {
+            request = QuestionnaireRequest.Create(application, questionnaire, context.Now);
+            context.Db.QuestionnaireRequests.Add(request);
+        }
+        else
+        {
+            request.Resend(questionnaire, context.Now);
+        }
+
+        var slug = await context.Db.Organizations.AsNoTracking()
+            .Where(o => o.Id == application.OrganizationId).Select(o => o.Slug).SingleAsync(cancellationToken);
+        var link = context.Links.Url(slug, context.Links.Issue(request));
+        var (status, detail) = await SendEmailAsync(context, EmailTemplateIds.QuestionnaireRequest, reason: null, link, cancellationToken);
+        if (status != AutomationActionStatus.Completed)
+        {
+            return (status, detail);
+        }
+
+        context.Db.ApplicationEvents.Add(request.SentEvent(context.Now, context.Run.Id));
+        return Completed(request.TimesSent == 1
+            ? $"Sent the \"{questionnaire.Name}\" questionnaire."
+            : $"Sent the \"{questionnaire.Name}\" questionnaire again, with a fresh link.");
     }
 
     private static (AutomationActionStatus, string) MoveToStage(ActionContext context, string stageId)
@@ -236,7 +295,7 @@ public static partial class ExecuteAutomationActionHandler
             return Failed("The workflow has no rejected stage.");
         }
 
-        await SendEmailAsync(context, EmailTemplateIds.ApplicationRejected, action.Reason, cancellationToken);
+        await SendEmailAsync(context, EmailTemplateIds.ApplicationRejected, action.Reason, questionnaireLink: null, cancellationToken);
         Move(context, rejected, $"Rejected by the automation \"{context.Run.AutomationName}\": {action.Reason}");
         return Completed("Rejected, and told the candidate why.");
     }
@@ -273,6 +332,7 @@ public static partial class ExecuteAutomationActionHandler
         TransactionalEmail Email,
         EmailTemplateStore Templates,
         IWebhookSender Webhooks,
+        QuestionnaireLinks Links,
         AutomationRun Run,
         AutomationActionRun Action,
         JobApplication Application,

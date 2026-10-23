@@ -46,6 +46,12 @@ public enum ApplicationEventType
 
     /// <summary>An email went to the candidate: sent by a person, or by an automation.</summary>
     EmailSent,
+
+    /// <summary>A SendQuestionnaire action emailed the candidate a link to a follow-up questionnaire, or the same link again.</summary>
+    QuestionnaireSent,
+
+    /// <summary>The candidate answered a follow-up questionnaire; it raises the QuestionnaireCompleted trigger.</summary>
+    QuestionnaireCompleted,
 }
 
 /// <summary>
@@ -62,6 +68,9 @@ public enum ApplicationEventType
 /// scorecard, the stage it rates and its overall recommendation, which a ReviewerDecision automation reads as a fact.
 /// <c>emailTemplateId</c>, <c>emailSubject</c>: For <see cref="ApplicationEventType.EmailSent"/>, the template and the
 /// subject as the candidate received it. The body is never kept here.
+/// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <see cref="ApplicationEventType.QuestionnaireSent"/> and
+/// <see cref="ApplicationEventType.QuestionnaireCompleted"/>, the follow-up questionnaire and the request that carries
+/// its link and, once completed, its answers. The answers are never kept here.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -77,4 +86,6 @@ public sealed record ApplicationEventData(
     string? StageId = null,
     string? Recommendation = null,
     string? EmailTemplateId = null,
-    string? EmailSubject = null);
+    string? EmailSubject = null,
+    string? QuestionnaireId = null,
+    Guid? QuestionnaireRequestId = null);

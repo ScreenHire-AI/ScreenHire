@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Infrastructure.Email;
@@ -47,6 +48,7 @@ public static class AutomationFailures
 
         services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
         services.TryAddSingleton<IWebhookSender, HttpWebhookSender>();
+        services.AddQuestionnaireLinks();
         return services;
     }
 }

@@ -23,6 +23,29 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("text")
+                        .HasColumnName("friendly_name");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("text")
+                        .HasColumnName("xml");
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_protection_keys");
+
+                    b.ToTable("data_protection_keys", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -410,6 +433,90 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("applications", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Applications.QuestionnaireRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("answers");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid?>("CompletedEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("completed_event_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset>("FirstSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_sent_at");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<DateTimeOffset>("LastSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sent_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("QuestionnaireId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("questionnaire_id");
+
+                    b.Property<string>("QuestionnaireName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("questionnaire_name");
+
+                    b.Property<string>("Questions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("questions");
+
+                    b.Property<int>("TimesSent")
+                        .HasColumnType("integer")
+                        .HasColumnName("times_sent");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_questionnaire_requests");
+
+                    b.HasIndex("OrganizationId", "JobId")
+                        .HasDatabaseName("ix_questionnaire_requests_organization_id_job_id");
+
+                    b.HasIndex("OrganizationId", "ApplicationId", "QuestionnaireId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_questionnaire_requests_organization_id_application_id_quest");
+
+                    b.ToTable("questionnaire_requests", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Automations.ApplicationTask", b =>
                 {
                     b.Property<Guid>("Id")
@@ -614,6 +721,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("trigger");
+
+                    b.Property<string>("TriggerQuestionnaireId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("trigger_questionnaire_id");
 
                     b.Property<string>("TriggerStageId")
                         .HasMaxLength(40)
@@ -2700,6 +2812,25 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_applications_jobs_organization_id_job_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Applications.QuestionnaireRequest", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_questionnaire_requests_applications_organization_id_applica");
+
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_questionnaire_requests_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Automations.ApplicationTask", b =>

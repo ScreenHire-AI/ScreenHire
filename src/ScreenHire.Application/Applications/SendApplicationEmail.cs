@@ -43,7 +43,9 @@ public static class ApplicationEmails
         templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn;
 
     /// <summary>
-    /// Renders the organization's wording of <paramref name="templateId"/> for the candidate and sends it. Not sent: no
+    /// Renders the organization's wording of <paramref name="templateId"/> for the candidate and sends it, with
+    /// <paramref name="reason"/> for the rejection email and <paramref name="questionnaireLink"/> for the follow-up
+    /// questions email. Not sent: no
     /// email sender, a template the organization deleted, or a send that <see cref="Skips"/>. The caller saves the entry.
     /// </summary>
     public static async Task<ApplicationEmailResult> SendAsync(
@@ -54,6 +56,7 @@ public static class ApplicationEmails
         Job job,
         string templateId,
         string? reason,
+        string? questionnaireLink,
         Guid eventId,
         Guid? actorUserId,
         Guid? automationRunId,
@@ -82,7 +85,7 @@ public static class ApplicationEmails
             templateId,
             template.Content,
             candidate.Email,
-            new EmailTemplateModel(candidate.FullName, job.Title, organization.Name, stage?.Name, reason),
+            new EmailTemplateModel(candidate.FullName, job.Title, organization.Name, stage?.Name, reason, questionnaireLink),
             cancellationToken);
         var entry = application.EmailSent(eventId, templateId, sent.Subject, now, actorUserId, automationRunId);
         db.ApplicationEvents.Add(entry);
@@ -113,9 +116,10 @@ public static partial class SendApplicationEmailHandler
         }
 
         var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken);
-        if (application is null || message.TemplateId == EmailTemplateIds.ApplicationRejected)
+        if (application is null || EmailTemplateIds.IsActionOnly(message.TemplateId))
         {
-            // Gone since it was queued, or the rejection email, which only a Reject action sends (the API refuses it too).
+            // Gone since it was queued, or an email only an action sends: the rejection email (Reject) or the follow-up
+            // questions email (SendQuestionnaire). The API refuses both too.
             LogNotSent(logger, message.SendId, "the application or the template cannot be sent to");
             return outgoing;
         }
@@ -123,7 +127,7 @@ public static partial class SendApplicationEmailHandler
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         var now = time.GetUtcNow();
         var result = await ApplicationEmails.SendAsync(
-            db, email, store, application, job, message.TemplateId, reason: null, message.SendId, message.ActorUserId, automationRunId: null, now, cancellationToken);
+            db, email, store, application, job, message.TemplateId, reason: null, questionnaireLink: null, message.SendId, message.ActorUserId, automationRunId: null, now, cancellationToken);
         if (result.Event is null)
         {
             LogNotSent(logger, message.SendId, result.Detail);

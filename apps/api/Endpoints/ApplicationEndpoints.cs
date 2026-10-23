@@ -137,7 +137,7 @@ internal static class ApplicationEndpoints
         }
 
         var (application, candidate) = created;
-        return TypedResults.Created($"/v1/applications/{application.Id}", application.ToDetail(job, candidate, []));
+        return TypedResults.Created($"/v1/applications/{application.Id}", application.ToDetail(job, candidate, [], []));
     }
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound>> GetApplication(
@@ -149,7 +149,8 @@ internal static class ApplicationEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(found.Application.ToDetail(found.Job, found.Candidate, await FilesOfAsync(db, applicationId, cancellationToken)));
+        return TypedResults.Ok(found.Application.ToDetail(
+            found.Job, found.Candidate, await FilesOfAsync(db, applicationId, cancellationToken), await FollowUpsOfAsync(db, applicationId, cancellationToken)));
     }
 
     // A person moves an application to any stage of its job's workflow. The timeline event and ApplicationMoved commit
@@ -202,7 +203,8 @@ internal static class ApplicationEndpoints
             }
         }
 
-        return TypedResults.Ok(application.ToDetail(job, candidate, await FilesOfAsync(db, application.Id, cancellationToken)));
+        return TypedResults.Ok(application.ToDetail(
+            job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken)));
     }
 
     // A note from the hiring team: a timeline entry with its author, and ApplicationNoteAdded so open dashboards show it.
@@ -309,7 +311,8 @@ internal static class ApplicationEndpoints
             }
         }
 
-        return TypedResults.Ok(application.ToDetail(job, candidate, await FilesOfAsync(db, application.Id, cancellationToken)));
+        return TypedResults.Ok(application.ToDetail(
+            job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken)));
     }
 
     private static async Task<Results<Ok<List<ApplicationTimelineEntry>>, NotFound>> GetApplicationTimeline(
@@ -390,6 +393,13 @@ internal static class ApplicationEndpoints
             .Where(f => f.ApplicationId == applicationId)
             .OrderBy(f => f.UploadedAt)
             .ThenBy(f => f.QuestionId)
+            .ToListAsync(cancellationToken);
+
+    private static async Task<List<QuestionnaireRequest>> FollowUpsOfAsync(ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken) =>
+        await db.QuestionnaireRequests.AsNoTracking()
+            .Where(r => r.ApplicationId == applicationId)
+            .OrderBy(r => r.FirstSentAt)
+            .ThenBy(r => r.Id)
             .ToListAsync(cancellationToken);
 
     private static async Task<(JobApplication Application, Job Job, Candidate Candidate)?> LoadAsync(

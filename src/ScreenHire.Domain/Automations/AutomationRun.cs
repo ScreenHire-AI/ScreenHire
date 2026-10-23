@@ -32,6 +32,9 @@ public sealed class AutomationRun : ITenantOwned
 
     public string? TriggerStageId { get; init; }
 
+    /// <summary>For a QuestionnaireCompleted trigger, the follow-up questionnaire the candidate answered.</summary>
+    public string? TriggerQuestionnaireId { get; init; }
+
     /// <summary>
     /// The event that fired the trigger: a timeline entry for submissions, moves and timers (the stage entry they count
     /// from), or the request id of a manual run.
@@ -95,6 +98,7 @@ public sealed class AutomationRun : ITenantOwned
             WorkflowVersion = workflowVersion,
             Trigger = trigger.Trigger,
             TriggerStageId = trigger.StageId,
+            TriggerQuestionnaireId = trigger.QuestionnaireId,
             EventId = trigger.EventId,
             EventOccurredAt = trigger.OccurredAt,
             CausedByRunId = trigger.CausedByRunId,
@@ -196,7 +200,8 @@ public sealed record AutomationTriggerEvent(
     Guid EventId,
     DateTimeOffset OccurredAt,
     Guid? CausedByRunId = null,
-    Guid? ActorUserId = null);
+    Guid? ActorUserId = null,
+    string? QuestionnaireId = null);
 
 public enum AutomationRunStatus
 {

@@ -37,7 +37,7 @@ public static partial class RunAutomationsHandler
 
         var trigger = new AutomationTriggerEvent(
             message.OrganizationId, application.Id, application.JobId, message.Trigger, message.StageId, message.EventId, message.OccurredAt,
-            message.CausedByRunId, message.ActorUserId);
+            message.CausedByRunId, message.ActorUserId, message.QuestionnaireId);
         return await AutomationEngine.EvaluateAsync(db, time, application, [trigger], enteredStageId: null, message.AutomationId, cancellationToken);
     }
 

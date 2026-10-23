@@ -916,6 +916,125 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/questionnaires/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicQuestionnaire",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicQuestionnaire"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "AnswerPublicQuestionnaire",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionnaireAnswers"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/jobs": {
       "get": {
         "tags": [
@@ -6110,7 +6229,8 @@
           "tags",
           "source",
           "answers",
-          "files"
+          "files",
+          "followUps"
         ],
         "type": "object",
         "properties": {
@@ -6175,6 +6295,12 @@
             "items": {
               "$ref": "#/components/schemas/ApplicationFileSummary"
             }
+          },
+          "followUps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationFollowUp"
+            }
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
@@ -6188,7 +6314,9 @@
           "TagRemoved",
           "NoteAdded",
           "ScorecardSubmitted",
-          "EmailSent"
+          "EmailSent",
+          "QuestionnaireSent",
+          "QuestionnaireCompleted"
         ]
       },
       "ApplicationFileSummary": {
@@ -6234,6 +6362,69 @@
           }
         },
         "description": "A file the candidate uploaded. `scanStatus` is the malware scan's result; `NotScanned` means no scanner is configured."
+      },
+      "ApplicationFollowUp": {
+        "required": [
+          "id",
+          "questionnaireId",
+          "name",
+          "firstSentAt",
+          "lastSentAt",
+          "expiresAt",
+          "timesSent",
+          "completedAt",
+          "questions",
+          "answers"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questionnaireId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "firstSentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timesSent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
+          }
+        },
+        "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes."
       },
       "ApplicationIntegrity": {
         "required": [
@@ -6563,6 +6754,19 @@
               "null",
               "string"
             ]
+          },
+          "questionnaireId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "questionnaireRequestId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -6751,6 +6955,12 @@
             "format": "uuid"
           },
           "verificationProvider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "questionnaireId": {
             "type": [
               "null",
               "string"
@@ -7107,6 +7317,12 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "questionnaireId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7897,6 +8113,10 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "questionnaireOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
@@ -7943,9 +8163,13 @@
           },
           "rejectOnly": {
             "type": "boolean"
+          },
+          "questionnaireOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it."
       },
       "EmploymentType": {
         "enum": [
@@ -8020,6 +8244,29 @@
         },
         "additionalProperties": false,
         "description": "Counts for one form field. `fieldId` is a question id or one of the form's own fields (`fullName`, ...)."
+      },
+      "FollowUpQuestionnaire": {
+        "required": [
+          "id",
+          "name",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          }
+        },
+        "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
       },
       "HiringTemplateDefinition": {
         "required": [
@@ -8274,9 +8521,18 @@
             "items": {
               "$ref": "#/components/schemas/Automation"
             }
+          },
+          "followUpQuestionnaires": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/FollowUpQuestionnaire"
+            }
           }
         },
-        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy and the automations.",
+        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
         "externalDocs": {
           "description": "JSON Schema: Hiring workflow",
           "url": "/v1/schemas/hiring-workflow.json"
@@ -10346,6 +10602,61 @@
           }
         },
         "description": "One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it."
+      },
+      "PublicQuestionnaire": {
+        "required": [
+          "organization",
+          "jobTitle",
+          "name",
+          "status",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganization"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PublicQuestionnaireStatus"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicQuestion"
+            }
+          }
+        },
+        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\r\n`questions` are listed only while the link is `Open`; knockout settings stay on the server."
+      },
+      "PublicQuestionnaireAnswers": {
+        "required": [
+          "answers"
+        ],
+        "type": "object",
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
+          }
+        },
+        "description": "The candidate's answers to a follow-up questionnaire, keyed by question id as on the apply form."
+      },
+      "PublicQuestionnaireStatus": {
+        "enum": [
+          "Open",
+          "Answered",
+          "Expired",
+          "Closed"
+        ],
+        "description": "Whether a follow-up questionnaire's link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link's time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open."
       },
       "PublicTelemetrySettings": {
         "required": [

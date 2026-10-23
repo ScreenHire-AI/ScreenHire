@@ -70,6 +70,7 @@ internal static class EmailEndpoints
             [
                 .. EmailTemplates.Variables.Select(v => new EmailTemplateVariableEntry(v.Name, v.Label, false)),
                 new(EmailTemplates.Reason.Name, EmailTemplates.Reason.Label, true),
+                new(EmailTemplates.QuestionnaireLink.Name, EmailTemplates.QuestionnaireLink.Label, false, QuestionnaireOnly: true),
             ]));
     }
 
@@ -261,6 +262,11 @@ internal static class EmailEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", RejectionOnly));
         }
 
+        if (templateId == EmailTemplateIds.QuestionnaireRequest)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", QuestionnaireOnly));
+        }
+
         var row = await db.Applications.AsNoTracking()
             .Where(a => a.Id == applicationId)
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
@@ -333,6 +339,8 @@ internal static class EmailEndpoints
     }
 
     private const string RejectionOnly = "The rejection email goes only with a Reject action, which tells the candidate why.";
+
+    private const string QuestionnaireOnly = "The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.";
 
     private static bool SendingEnabled(IServiceProvider services) => services.GetService<IEmailSender>() is not null;
 

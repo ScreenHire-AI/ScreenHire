@@ -12,8 +12,10 @@ namespace ScreenHire.Application.Automations;
 /// </summary>
 /// <remarks>
 /// <c>eventId</c>: The event the runs are keyed on: for a timer, the timeline entry of the stage entry it counts from;
-/// for a manual run, the request's id. <c>automationId</c>: Only this automation (timers and manual runs). <c>occurredAt</c>:
-/// When the trigger happened; facts are measured at this instant, so a late delivery sees the same facts.
+/// for a manual run, the request's id; for a completed questionnaire, its QuestionnaireCompleted timeline entry.
+/// <c>automationId</c>: Only this automation (timers and manual runs). <c>occurredAt</c>: When the trigger happened; facts
+/// are measured at this instant, so a late delivery sees the same facts. <c>questionnaireId</c>: For QuestionnaireCompleted,
+/// the follow-up questionnaire that was answered.
 /// </remarks>
 public sealed record RunAutomations(
     Guid OrganizationId,
@@ -24,7 +26,8 @@ public sealed record RunAutomations(
     DateTimeOffset OccurredAt,
     string? AutomationId = null,
     Guid? CausedByRunId = null,
-    Guid? ActorUserId = null) : ITenantMessage
+    Guid? ActorUserId = null,
+    string? QuestionnaireId = null) : ITenantMessage
 {
     /// <summary>One intent per trigger event: a timer scheduled twice, or a replayed event, runs once.</summary>
     public string IdempotencyKey => $"{ApplicationId}:{AutomationId ?? "*"}:{Trigger}:{EventId}";

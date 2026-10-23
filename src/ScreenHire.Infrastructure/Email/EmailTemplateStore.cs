@@ -20,6 +20,7 @@ public sealed class EmailTemplateStore(EmailTemplates templates)
     {
         [EmailTemplateIds.ApplicationReceived] = "Application received",
         [EmailTemplateIds.StageChange] = "Moved to the next step",
+        [EmailTemplateIds.QuestionnaireRequest] = "Follow-up questions",
         [EmailTemplateIds.ApplicationRejected] = "Not progressing",
     };
 

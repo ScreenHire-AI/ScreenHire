@@ -9,12 +9,14 @@ using ScreenHire.Domain.Hiring;
 namespace ScreenHire.Infrastructure.Email;
 
 /// <summary>What an email template may say about the application. Every value is plain text.</summary>
+/// <remarks><c>questionnaireLink</c>: the signed link to a follow-up questionnaire, for the questionnaire request email only.</remarks>
 public sealed record EmailTemplateModel(
-    string CandidateName, string JobTitle, string OrganizationName, string? StageName = null, string? Reason = null)
+    string CandidateName, string JobTitle, string OrganizationName, string? StageName = null, string? Reason = null, string? QuestionnaireLink = null)
 {
     /// <summary>The made-up candidate a template's preview and test send use.</summary>
     public static EmailTemplateModel Sample(string organizationName) =>
-        new("Jordan Lee", "Product designer", organizationName, "Interview", "This role needs a driving licence.");
+        new("Jordan Lee", "Product designer", organizationName, "Interview", "This role needs a driving licence.",
+            "https://careers.example.com/questionnaires/sample");
 }
 
 /// <summary>A template's wording: a Liquid subject and a Liquid plain-text body.</summary>
@@ -50,6 +52,17 @@ public sealed partial class EmailTemplates
     /// <summary>The variable only <see cref="EmailTemplateIds.ApplicationRejected"/> may use, and must.</summary>
     public static EmailTemplateVariable Reason { get; } = new("reason", "Reason");
 
+    /// <summary>The variable only <see cref="EmailTemplateIds.QuestionnaireRequest"/> may use, and must.</summary>
+    public static EmailTemplateVariable QuestionnaireLink { get; } = new("questionnaireLink", "Questionnaire link");
+
+    /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required one.</summary>
+    public static IReadOnlyList<EmailTemplateVariable> VariablesFor(string? templateId) => templateId switch
+    {
+        EmailTemplateIds.ApplicationRejected => [.. Variables, Reason],
+        EmailTemplateIds.QuestionnaireRequest => [.. Variables, QuestionnaireLink],
+        _ => Variables,
+    };
+
     // Filters that only change how a value reads. Nothing that reaches outside the value (date, json, and so on).
     private static readonly FrozenSet<string> AllowedFilters =
         FrozenSet.Create(StringComparer.Ordinal, "capitalize", "default", "downcase", "strip", "truncate", "upcase");
@@ -71,15 +84,15 @@ public sealed partial class EmailTemplates
     /// <summary>
     /// What is wrong with <paramref name="content"/> as the wording of template <paramref name="templateId"/> (null for
     /// a new organization template): Liquid that does not parse, a tag other than <c>if</c>, <c>unless</c> and
-    /// <c>case</c>, a variable outside the list, or a rejection email that does not give its reason.
+    /// <c>case</c>, a variable outside the list, a rejection email that does not give its reason, or a questionnaire
+    /// request that does not give its link.
     /// </summary>
     public IReadOnlyList<EmailTemplateProblem> Validate(string? templateId, EmailTemplateContent content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        var rejection = templateId == EmailTemplateIds.ApplicationRejected;
-        var allowed = Variables.Select(v => v.Name).Concat(rejection ? [Reason.Name] : []).ToHashSet(StringComparer.Ordinal);
+        var allowed = VariablesFor(templateId).Select(v => v.Name).ToHashSet(StringComparer.Ordinal);
         var problems = new List<EmailTemplateProblem>();
-        var usesReason = false;
+        var used = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (field, text) in new[] { ("subject", content.Subject), ("body", content.Body) })
         {
             if (!parser.TryParse(text, out var template, out var error))
@@ -91,13 +104,19 @@ public sealed partial class EmailTemplates
             var checker = new TemplateChecker(allowed);
             checker.VisitTemplate(template);
             problems.AddRange(checker.Problems.Distinct().Select(message => new EmailTemplateProblem(field, message)));
-            usesReason |= checker.UsesReason;
+            used.UnionWith(checker.Used);
         }
 
-        if (rejection && problems.Count == 0 && !usesReason)
+        if (templateId == EmailTemplateIds.ApplicationRejected && problems.Count == 0 && !used.Contains(Reason.Name))
         {
             // The candidate must be told why (workflow-engine.md §2): a Reject action's reason goes into this email.
             problems.Add(new("body", "The rejection email must give the reason: add {{ reason }}."));
+        }
+
+        if (templateId == EmailTemplateIds.QuestionnaireRequest && problems.Count == 0 && !used.Contains(QuestionnaireLink.Name))
+        {
+            // The email exists to carry the link: without it the candidate has no way to answer.
+            problems.Add(new("body", "The follow-up questions email must give the link: add {{ questionnaireLink }}."));
         }
 
         if (problems.Count == 0)
@@ -135,6 +154,7 @@ public sealed partial class EmailTemplates
         context.SetValue("organizationName", model.OrganizationName);
         context.SetValue("stageName", model.StageName ?? "");
         context.SetValue("reason", model.Reason ?? "");
+        context.SetValue("questionnaireLink", model.QuestionnaireLink ?? "");
 
         // A subject is one line of plain text: no line breaks a header could carry.
         var subject = Parse(content.Subject).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings(" ");
@@ -228,7 +248,8 @@ public sealed partial class EmailTemplates
     {
         public List<string> Problems { get; } = [];
 
-        public bool UsesReason { get; private set; }
+        /// <summary>The allowed variables the template uses.</summary>
+        public HashSet<string> Used { get; } = new(StringComparer.Ordinal);
 
         protected override Expression VisitMemberExpression(MemberExpression memberExpression)
         {
@@ -243,7 +264,7 @@ public sealed partial class EmailTemplates
             }
             else
             {
-                UsesReason |= name == Reason.Name;
+                Used.Add(name);
             }
 
             return base.VisitMemberExpression(memberExpression);

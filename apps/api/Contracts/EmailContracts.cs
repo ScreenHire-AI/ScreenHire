@@ -16,13 +16,18 @@ public sealed record EmailTemplateList(bool SendingEnabled, IReadOnlyList<EmailT
 /// </summary>
 /// <remarks>
 /// <c>rejectOnly</c>: only a Reject action sends it (the rejection email); a person cannot send it, and SendEmail cannot
-/// name it. <c>updatedAt</c> is null for a built-in in ScreenHire's wording.
+/// name it. <c>questionnaireOnly</c>: only a SendQuestionnaire action sends it (the follow-up questions email, whose link
+/// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording.
 /// </remarks>
 public sealed record EmailTemplateEntry(
-    string Id, string Name, bool BuiltIn, bool Edited, bool RejectOnly, string Subject, string Body, DateTimeOffset? UpdatedAt);
+    string Id, string Name, bool BuiltIn, bool Edited, bool RejectOnly, string Subject, string Body, DateTimeOffset? UpdatedAt,
+    bool QuestionnaireOnly = false);
 
-/// <summary>A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.</summary>
-public sealed record EmailTemplateVariableEntry(string Name, string Label, bool RejectOnly);
+/// <summary>
+/// A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.
+/// <c>questionnaireOnly</c>: only the follow-up questions email has it.
+/// </summary>
+public sealed record EmailTemplateVariableEntry(string Name, string Label, bool RejectOnly, bool QuestionnaireOnly = false);
 
 /// <summary>A new template of the organization's own: its name, a Liquid subject and a Liquid plain-text body.</summary>
 public sealed record CreateEmailTemplateRequest(string Name, string Subject, string Body);
@@ -58,7 +63,7 @@ internal static class EmailMappings
 {
     public static EmailTemplateEntry ToEntry(this OrganizationEmailTemplate template) =>
         new(template.Id, template.Name, template.BuiltIn, template.Edited, template.Id == EmailTemplateIds.ApplicationRejected,
-            template.Content.Subject, template.Content.Body, template.UpdatedAt);
+            template.Content.Subject, template.Content.Body, template.UpdatedAt, template.Id == EmailTemplateIds.QuestionnaireRequest);
 
     public static EmailPreview ToPreview(this EmailMessage message) => new(message.Subject, message.HtmlBody ?? "", message.TextBody);
 
@@ -109,6 +114,8 @@ internal sealed class SendEmailsRequestValidator : AbstractValidator<SendEmailsR
             .Must(ids => ids is null || ids.Count <= MaxApplications).WithMessage($"Send to at most {MaxApplications} candidates at once.");
         RuleFor(r => r.TemplateId).NotEmpty().MaximumLength(40)
             .Must(id => id != EmailTemplateIds.ApplicationRejected)
-            .WithMessage("The rejection email goes only with a Reject action, which tells the candidate why.");
+            .WithMessage("The rejection email goes only with a Reject action, which tells the candidate why.")
+            .Must(id => id != EmailTemplateIds.QuestionnaireRequest)
+            .WithMessage("The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.");
     }
 }

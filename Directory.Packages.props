@@ -24,6 +24,11 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="$(DotNetVersion)" />
+    <!-- MIT. One Data Protection key ring in Postgres for the API and the worker: the worker signs follow-up questionnaire
+         links that the API reads (workflow-engine.md §8). -->
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="$(DotNetVersion)" />
+    <!-- MIT. Time-limited protectors (ToTimeLimitedDataProtector) for those links, outside the ASP.NET Core shared framework. -->
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="$(DotNetVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetVersion)" />
     <!-- MIT. IHttpClientFactory for the Google Indexing API client in ScreenHire.Application. -->

@@ -105,6 +105,29 @@ public sealed record PublicApplicationRequest(
 /// <summary>Confirms that an application arrived.</summary>
 public sealed record PublicApplicationReceipt(Guid ApplicationId, DateTimeOffset SubmittedAt);
 
+/// <summary>
+/// A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.
+/// <c>questions</c> are listed only while the link is <c>Open</c>; knockout settings stay on the server.
+/// </summary>
+public sealed record PublicQuestionnaire(
+    PublicOrganization Organization, string JobTitle, string Name, PublicQuestionnaireStatus Status, IReadOnlyList<PublicQuestion> Questions);
+
+/// <summary>
+/// Whether a follow-up questionnaire's link can still be answered: <c>Answered</c> once the candidate sent their answers,
+/// <c>Expired</c> after the link's time ran out, <c>Closed</c> when the questionnaire, the job or the application is no
+/// longer open.
+/// </summary>
+public enum PublicQuestionnaireStatus
+{
+    Open,
+    Answered,
+    Expired,
+    Closed,
+}
+
+/// <summary>The candidate's answers to a follow-up questionnaire, keyed by question id as on the apply form.</summary>
+public sealed record PublicQuestionnaireAnswers(IReadOnlyList<ApplicationAnswer> Answers);
+
 internal static class PublicApplicationMappings
 {
     public static PublicOrganization ToPublic(this Organization organization) =>

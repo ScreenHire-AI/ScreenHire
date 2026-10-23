@@ -14,13 +14,18 @@ namespace ScreenHire.Domain.Hiring;
 
 /// <summary>
 /// What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity
-/// policy and the automations.
+/// policy, the automations and the follow-up questionnaires a <see cref="ActionType.SendQuestionnaire"/> action sends.
 /// </summary>
+/// <remarks>
+/// <c>followUpQuestionnaires</c>: Optional; questionnaires an automation emails to the candidate after they applied.
+/// Question ids are unique across the apply questionnaire and every follow-up, so <c>answers.{id}</c> names one question.
+/// </remarks>
 public sealed record HiringWorkflow(
     IReadOnlyList<WorkflowStage> Stages,
     Questionnaire Questionnaire,
     IntegrityPolicy IntegrityPolicy,
-    IReadOnlyList<Automation> Automations)
+    IReadOnlyList<Automation> Automations,
+    IReadOnlyList<FollowUpQuestionnaire>? FollowUpQuestionnaires = null)
 {
     /// <summary>The workflow a job gets when it is created without a template.</summary>
     public static HiringWorkflow Default { get; } = new(
@@ -39,7 +44,23 @@ public sealed record HiringWorkflow(
 
     /// <summary>The stage with <paramref name="stageId"/>, or null.</summary>
     public WorkflowStage? FindStage(string stageId) => Stages.FirstOrDefault(s => s.Id == stageId);
+
+    /// <summary>The follow-up questionnaire with <paramref name="questionnaireId"/>, or null.</summary>
+    public FollowUpQuestionnaire? FindFollowUp(string? questionnaireId) =>
+        FollowUpQuestionnaires?.FirstOrDefault(q => q?.Id == questionnaireId);
 }
+
+/// <summary>
+/// A questionnaire the hiring team sends after the candidate applied, with a <see cref="ActionType.SendQuestionnaire"/>
+/// action: the candidate answers it on the careers site through a signed link. Completing it fires
+/// <see cref="TriggerType.QuestionnaireCompleted"/> automations that name it. File questions are not offered: the page
+/// works without JavaScript and takes no uploads.
+/// </summary>
+/// <remarks>
+/// <c>id</c>: Stable key, unique among the workflow's follow-up questionnaires; the trigger and the action name it.
+/// <c>name</c>: What the hiring team calls it, such as "Availability"; the candidate sees it as the page's heading.
+/// </remarks>
+public sealed record FollowUpQuestionnaire(string Id, string Name, IReadOnlyList<Question> Questions);
 
 /// <summary>A hiring template version's full definition: the workflow a job copies, plus defaults for the job's posting.</summary>
 public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDefaults PostingDefaults)
@@ -137,7 +158,7 @@ public sealed record Questionnaire(IReadOnlyList<Question> Questions);
 /// <see cref="AcceptedFileTypes"/> for <see cref="QuestionType.File"/>.
 /// </summary>
 /// <remarks>
-/// <c>id</c>: Stable key, unique within the questionnaire; conditions read the answer as <c>answers.{Id}</c>.
+/// <c>id</c>: Stable key, unique across the workflow's questionnaires; conditions read the answer as <c>answers.{Id}</c>.
 /// </remarks>
 public sealed record Question(
     string Id,
@@ -229,8 +250,11 @@ public sealed record Automation(
 /// <c>stageId</c>: For <see cref="TriggerType.StageEntered"/>, <see cref="TriggerType.StageExited"/> and <see cref="TriggerType.TimeElapsed"/>;
 /// optional for <see cref="TriggerType.ReviewerDecision"/>, where it limits the trigger to that stage's scorecards.
 /// <c>afterHours</c>: For <see cref="TriggerType.TimeElapsed"/>: hours since the application entered <see cref="StageId"/>.
+/// <c>questionnaireId</c>: For <see cref="TriggerType.QuestionnaireCompleted"/>: the follow-up questionnaire whose
+/// answers fire it. Without one it fires on any follow-up questionnaire, which is how definitions saved before follow-ups
+/// existed still read. The apply questionnaire never fires it; <see cref="TriggerType.ApplicationSubmitted"/> does.
 /// </remarks>
-public sealed record AutomationTrigger(TriggerType Type, string? StageId = null, int? AfterHours = null);
+public sealed record AutomationTrigger(TriggerType Type, string? StageId = null, int? AfterHours = null, string? QuestionnaireId = null);
 
 public enum TriggerType
 {
@@ -303,6 +327,7 @@ public enum ConditionOperator
 /// <c>note</c>: For <see cref="ActionType.NotifyTeam"/> and <see cref="ActionType.CreateTask"/>.
 /// <c>assigneeUserId</c>: Optional for <see cref="ActionType.AssignReviewer"/>; empty means the job's default reviewer.
 /// <c>verificationProvider</c>: Optional for <see cref="ActionType.RequestVerification"/>.
+/// <c>questionnaireId</c>: For <see cref="ActionType.SendQuestionnaire"/>: the follow-up questionnaire to send.
 /// </remarks>
 public sealed record AutomationAction(
     ActionType Type,
@@ -313,7 +338,8 @@ public sealed record AutomationAction(
     string? Url = null,
     string? Note = null,
     Guid? AssigneeUserId = null,
-    string? VerificationProvider = null);
+    string? VerificationProvider = null,
+    string? QuestionnaireId = null);
 
 public enum ActionType
 {

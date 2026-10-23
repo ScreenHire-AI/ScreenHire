@@ -17,12 +17,12 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var byName = Enumerable.Range(0, 2).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
         byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role");
         byName["Software engineer"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.SoftwareEngineer);
-        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion3);
+        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion4);
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
-        byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion2);
+        byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion3);
         byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
-        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
-        byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(2);
+        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(4);
+        byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
     }
 
     [Fact]

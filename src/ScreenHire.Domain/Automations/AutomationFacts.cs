@@ -10,8 +10,10 @@ namespace ScreenHire.Domain.Automations;
 /// and every other test fails.
 /// </summary>
 /// <remarks>
-/// <c>answers</c>: The candidate's answers by question id; yes/no answers are <c>yes</c> or <c>no</c>, choice answers
-/// are option ids, numbers use invariant digits. Empty until the careers apply flow stores answers.
+/// <c>answers</c>: The candidate's answers by question id: the apply form's, and each follow-up questionnaire's once it
+/// was answered before the trigger. Yes/no answers are <c>yes</c> or <c>no</c>, choice answers are option ids, numbers
+/// use invariant digits, and a file answer is its upload id. <c>source</c>: Where the application came from, an
+/// <see cref="ApplicationSource"/> name (<c>CareersSite</c>, <c>Recruiter</c>).
 /// <c>hoursInStage</c>: Whole hours between entering the current stage and the trigger.
 /// <c>integrityAuthenticity</c>, <c>integrityAiAssistance</c>: Level names from the integrity engine's latest
 /// assessment (<c>NoConcerns</c>, <c>ReviewSuggested</c>, ...). <c>verificationResult</c>: From the verification step,
@@ -38,9 +40,12 @@ public sealed record AutomationFacts(
     /// <paramref name="occurredAt"/> (a manual run). A <see cref="TriggerType.TimeElapsed"/> timer is keyed on its stage
     /// entry but fires later, so it reads everything at or before its due time (<paramref name="occurredAt"/>): a tag added
     /// while it waited counts. A <see cref="TriggerType.StageExited"/> trigger measures time in the stage that was left.
+    /// <paramref name="sources"/> adds the answers and the source: the apply form's answers for every trigger, a follow-up
+    /// questionnaire's only when its completion entry is among the entries read, so its answers count for triggers after
+    /// they arrived and never before.
     /// </summary>
     public static AutomationFacts FromTimeline(
-        IReadOnlyList<ApplicationEvent> timeline, Guid triggerEventId, TriggerType trigger, DateTimeOffset occurredAt)
+        IReadOnlyList<ApplicationEvent> timeline, Guid triggerEventId, TriggerType trigger, DateTimeOffset occurredAt, FactSources? sources = null)
     {
         ArgumentNullException.ThrowIfNull(timeline);
 
@@ -85,8 +90,7 @@ public sealed record AutomationFacts(
 
         int? hoursInStage = entries.Count == 0 ? null : (int)Math.Max(0, Math.Floor((occurredAt - entries[^1].OccurredAt).TotalHours));
 
-        // The integrity levels as the latest assessment before the trigger left them. Answers and the source join the
-        // snapshot when the apply flow stores them; until then those facts are absent.
+        // The integrity levels as the latest assessment before the trigger left them.
         var integrity = seen.LastOrDefault(e => e.Type == ApplicationEventType.IntegrityAssessed)?.Data;
 
         // A reviewer decision is the scorecard its trigger entry records, and no other: a different trigger has no
@@ -94,8 +98,16 @@ public sealed record AutomationFacts(
         var decision = trigger == TriggerType.ReviewerDecision && triggerIndex >= 0 && timeline[triggerIndex].Type == ApplicationEventType.ScorecardSubmitted
             ? timeline[triggerIndex].Data.Recommendation
             : null;
+        var answers = new List<AnswerFact>();
+        if (sources is not null)
+        {
+            var seenIds = seen.Select(e => e.Id).ToHashSet();
+            answers.AddRange(sources.ApplyAnswers.Select(ToFact));
+            answers.AddRange(sources.FollowUps.Where(f => seenIds.Contains(f.CompletedEventId)).SelectMany(f => f.Answers).Select(ToFact));
+        }
+
         return new AutomationFacts(
-            [], tags, HoursInStage: hoursInStage,
+            answers, tags, Source: sources?.Source, HoursInStage: hoursInStage,
             IntegrityAuthenticity: integrity?.AuthenticityLevel, IntegrityAiAssistance: integrity?.AiAssistanceLevel,
             ReviewerRecommendation: decision);
     }
@@ -124,7 +136,31 @@ public sealed record AutomationFacts(
     }
 
     private static IReadOnlyList<string> One(string? value) => string.IsNullOrEmpty(value) ? [] : [value];
+
+    private static AnswerFact ToFact(ApplicationAnswer answer) =>
+        new(answer.QuestionId, answer.Values is { Count: > 0 } values ? [.. values] : answer.Value is { } value ? [value] : []);
 }
+
+/// <summary>
+/// What a facts snapshot reads besides the timeline: the application's source and apply answers, and the answers of
+/// each follow-up questionnaire with the timeline entry that recorded them.
+/// </summary>
+public sealed record FactSources(string Source, IReadOnlyList<ApplicationAnswer> ApplyAnswers, IReadOnlyList<FollowUpAnswers> FollowUps)
+{
+    /// <summary>The sources of <paramref name="application"/> and its answered <paramref name="requests"/>.</summary>
+    public static FactSources Of(JobApplication application, IEnumerable<QuestionnaireRequest> requests)
+    {
+        ArgumentNullException.ThrowIfNull(application);
+        ArgumentNullException.ThrowIfNull(requests);
+        return new(
+            application.Source.ToString(),
+            application.Answers,
+            [.. requests.Where(r => r.CompletedEventId is not null).Select(r => new FollowUpAnswers(r.CompletedEventId!.Value, r.Answers))]);
+    }
+}
+
+/// <summary>One answered follow-up questionnaire: its answers and the QuestionnaireCompleted entry they arrived with.</summary>
+public sealed record FollowUpAnswers(Guid CompletedEventId, IReadOnlyList<ApplicationAnswer> Answers);
 
 /// <summary>A candidate's answer to one question. A multiple-choice answer has one value per chosen option.</summary>
 public sealed record AnswerFact(string QuestionId, IReadOnlyList<string> Values);
