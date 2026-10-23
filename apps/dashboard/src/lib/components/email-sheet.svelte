@@ -73,10 +73,14 @@
         <h3 id="email-sheet-preview" class="text-heading">
           {recipients.length === 1 ? 'Preview' : `Preview for ${first?.candidateName ?? ''}`}
         </h3>
-        <EmailPreview
-          preview={preview.data?.data}
-          failure={preview.isError ? describeError(preview.error, 'Could not show the preview') : undefined}
-        />
+        {#if templates.data && choices.length === 0}
+          <p class="text-muted-foreground">No templates to send.</p>
+        {:else}
+          <EmailPreview
+            preview={preview.data?.data}
+            failure={preview.isError ? describeError(preview.error, 'Could not show the preview') : undefined}
+          />
+        {/if}
       </section>
     </form>
     <Sheet.Footer class="flex-row flex-wrap items-center justify-end">
@@ -84,6 +88,7 @@
       <Sheet.Close>
         {#snippet child({ props })}<Button {...props} variant="outline" size="lg">Cancel</Button>{/snippet}
       </Sheet.Close>
+      <!-- With no template to send, the line in the preview's place says why Send is off (A3). -->
       <Button type="submit" form="email-sheet-form" size="lg" disabled={!chosen || send.isPending}>
         <SendIcon aria-hidden="true" />{recipients.length === 1 ? 'Send' : `Send ${emailCount(recipients.length)}`}
       </Button>

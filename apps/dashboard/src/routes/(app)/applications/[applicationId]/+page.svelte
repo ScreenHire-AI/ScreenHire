@@ -24,6 +24,7 @@
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -35,6 +36,7 @@
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -62,6 +64,8 @@
   const emailTemplates = createListEmailTemplates();
   const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && isHiringWriter(page.data.user?.organization?.role));
   let emailOpen = $state(false);
+  // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
+  let emailChosen = false;
   let emailed = $state('');
 
   const workflow = $derived(job.data?.data.workflow);
@@ -147,7 +151,12 @@
 
 {#snippet bandActions()}
   <FailureText message={moves.failure ? moves.announcement : ''} />
-  {#if canEmail}
+  {#if canEmail && sidebar.isMobile}
+    <!-- A phone keeps the bottom bar for the primary action; the rest fold into More (design system section 8). -->
+    <MoreMenu label="More actions" onclosed={() => emailChosen && ((emailChosen = false), (emailOpen = true))}>
+      <DropdownMenu.Item onSelect={() => (emailChosen = true)}><MailIcon aria-hidden="true" />Email</DropdownMenu.Item>
+    </MoreMenu>
+  {:else if canEmail}
     <Button variant="outline" size="lg" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />Email</Button>
   {/if}
   {#if !sidebar.isMobile}{@render moveToStage()}{/if}

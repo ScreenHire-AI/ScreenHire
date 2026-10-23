@@ -18,7 +18,7 @@
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
 
-  // An email template's wording on the form template (design system section 11, Template editor): a name for the
+  // An email template's wording on the form template (design system section 7): a name for the
   // organization's own, the subject and the message in Liquid over a fixed list of variables, then the email as the
   // sample candidate receives it, and a test send to yourself. The API checks the Liquid again and says what is wrong.
   let {
