@@ -141,6 +141,11 @@ internal sealed partial class DocsBundle
                 {
                     problems.Add($"{file.Path}: source \"{source}\" does not exist");
                 }
+                else if (!File.Exists(Path.Combine(Root, source)))
+                {
+                    // A folder flags the concept on every change to any file in it; name the files it describes.
+                    problems.Add($"{file.Path}: source \"{source}\" is a folder; list the files the concept describes");
+                }
             }
         }
 

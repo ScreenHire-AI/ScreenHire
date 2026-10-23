@@ -4,13 +4,35 @@ title: "Job Distribution Engine: In-House One-Click Post & Teardown"
 description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, and the distribution settings."
 tags: [distribution, job-boards, feeds, google-for-jobs]
 sources:
-  - resource: src/ScreenHire.Application/Distribution/
-  - resource: src/ScreenHire.Domain/Distribution/
+  - resource: src/ScreenHire.Application/Distribution/Adapters/OwnChannelAdapters.cs
+  - resource: src/ScreenHire.Application/Distribution/Adapters/SandboxBoardAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/BoardRegistry.cs
+  - resource: src/ScreenHire.Application/Distribution/Boards.cs
+  - resource: src/ScreenHire.Application/Distribution/DistributionOptions.cs
+  - resource: src/ScreenHire.Application/Distribution/DistributionPlanner.cs
+  - resource: src/ScreenHire.Application/Distribution/DistributionRegistration.cs
+  - resource: src/ScreenHire.Application/Distribution/Feeds/FeedAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/Feeds/FeedFormats.cs
+  - resource: src/ScreenHire.Application/Distribution/GoogleIndexing/DispatchIndexingNotifications.cs
+  - resource: src/ScreenHire.Application/Distribution/GoogleIndexing/GoogleIndexingAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/GoogleIndexing/IndexingClient.cs
+  - resource: src/ScreenHire.Application/Distribution/JobBoardAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/JobPostingsChanged.cs
+  - resource: src/ScreenHire.Application/Distribution/PostingContents.cs
+  - resource: src/ScreenHire.Application/Distribution/ReconcileJobPostings.cs
+  - resource: src/ScreenHire.Application/Distribution/SyncJobPosting.cs
+  - resource: src/ScreenHire.Domain/Distribution/IndexingNotification.cs
+  - resource: src/ScreenHire.Domain/Distribution/JobPosting.cs
+  - resource: src/ScreenHire.Domain/Distribution/SandboxListing.cs
   - resource: apps/api/Endpoints/DistributionEndpoints.cs
   - resource: apps/api/Endpoints/PublicDistributionEndpoints.cs
   - resource: apps/careers/src/lib/job-posting.ts
   - resource: apps/careers/src/pages/[organization]/sitemap.xml.ts
-  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/adzuna.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/careerjet.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/jooble.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/talent.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/xml-feed.xsd
 ---
 # Job Distribution Engine: In-House One-Click Post & Teardown
 

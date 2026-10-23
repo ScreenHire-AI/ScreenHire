@@ -21,6 +21,7 @@ public sealed class DocsBundleTests
         { "concept frontmatter", "frontmatter the parser cannot read" },
         { "concept fields", "a type outside the list" },
         { "concept fields", "a source that does not exist" },
+        { "concept fields", "a folder as a source" },
         { "concept fields", "no description" },
         { "title is the H1", "an H1 that is not the title" },
         { "unique descriptions", "two concepts with one description" },
@@ -173,6 +174,9 @@ public sealed class DocsBundleTests
                     break;
                 case "a source that does not exist":
                     Replace("docs/start.md", "resource: CLAUDE.md", "resource: src/Missing.cs");
+                    break;
+                case "a folder as a source":
+                    Replace("docs/start.md", "resource: CLAUDE.md", "resource: docs/guides/");
                     break;
                 case "no description":
                     Replace("docs/guides/setup.md", "description: Installing the fixture and its one command.\n", "");

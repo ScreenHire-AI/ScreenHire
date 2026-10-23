@@ -9,11 +9,23 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
   - resource: src/ScreenHire.Domain/Hiring/SystemTemplates.cs
-  - resource: src/ScreenHire.Domain/Automations/
+  - resource: src/ScreenHire.Domain/Automations/ApplicationTask.cs
+  - resource: src/ScreenHire.Domain/Automations/AutomationEvaluator.cs
+  - resource: src/ScreenHire.Domain/Automations/AutomationFacts.cs
+  - resource: src/ScreenHire.Domain/Automations/AutomationRun.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationScorecard.cs
-  - resource: src/ScreenHire.Domain/Webhooks/
-  - resource: src/ScreenHire.Application/Automations/
-  - resource: src/ScreenHire.Application/Webhooks/
+  - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
+  - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
+  - resource: src/ScreenHire.Application/Automations/ApplicationTaskCompleted.cs
+  - resource: src/ScreenHire.Application/Automations/AutomationEngine.cs
+  - resource: src/ScreenHire.Application/Automations/AutomationFailures.cs
+  - resource: src/ScreenHire.Application/Automations/AutomationMessages.cs
+  - resource: src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs
+  - resource: src/ScreenHire.Application/Automations/RunAutomationsHandler.cs
+  - resource: src/ScreenHire.Application/Automations/Webhooks.cs
+  - resource: src/ScreenHire.Application/Webhooks/WebhookDeliveryHandlers.cs
+  - resource: src/ScreenHire.Application/Webhooks/WebhookEvents.cs
+  - resource: src/ScreenHire.Application/Webhooks/WebhookRetention.cs
   - resource: apps/api/Endpoints/TemplateEndpoints.cs
   - resource: apps/api/Endpoints/WorkflowEndpoints.cs
   - resource: apps/api/Endpoints/AutomationEndpoints.cs

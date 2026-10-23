@@ -4,9 +4,18 @@ title: "Messaging and background work"
 description: "Wolverine on Postgres: publishing from an endpoint through the outbox, the worker queue, database roles and provisioning, how tenant messages keep row-level security, idempotency keys and [Deduplicated], retries and dead letters, cron schedules, and telemetry."
 tags: [messaging, wolverine, outbox]
 sources:
-  - resource: src/ScreenHire.Application/Messaging/
+  - resource: src/ScreenHire.Application/Messaging/ITenantEvent.cs
+  - resource: src/ScreenHire.Application/Messaging/MessagingSettings.cs
+  - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
+  - resource: src/ScreenHire.Application/Messaging/TenantMessageMiddleware.cs
   - resource: apps/worker/Program.cs
-  - resource: tests/ScreenHire.IntegrationTests/Messaging/
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/DeadLetterTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/HiringMessagingTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/MessagingHost.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/OutboxTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/RecurringMessageTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/WolverineStore.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/WorkerMessagingTests.cs
 ---
 # Messaging and background work
 

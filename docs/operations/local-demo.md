@@ -4,7 +4,9 @@ title: "Run ScreenHire locally and demo it"
 description: "Running the whole stack locally with pnpm dev or /preview: prerequisites, the URLs, the Dev SSO demo logins, what DevelopmentDemo seeds on Brightwater, a five-minute demo script, what is faked locally, and what to do when something looks wrong."
 tags: [demo, local, aspire]
 sources:
-  - resource: apps/api/Demo/
+  - resource: apps/api/Demo/DemoCandidates.cs
+  - resource: apps/api/Demo/DemoQuestionnaires.cs
+  - resource: apps/api/Demo/DevelopmentDemo.cs
   - resource: apps/apphost/DevSso/config.json
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md

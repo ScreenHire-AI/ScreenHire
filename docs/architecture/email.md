@@ -7,7 +7,12 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplates.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplateStore.cs
-  - resource: src/ScreenHire.Infrastructure/Email/Templates/
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.subject.liquid
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs
   - resource: apps/dashboard/src/lib/components/email-sheet.svelte

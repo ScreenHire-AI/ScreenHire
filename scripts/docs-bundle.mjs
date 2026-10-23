@@ -6,8 +6,8 @@
  *
  *   node scripts/docs-bundle.mjs sources <repo path>...
  *
- * prints, for each path, the concepts whose `sources:` name the file or a folder above it. /sync-docs uses it to map
- * a changed source file to the docs to re-check.
+ * prints, for each path, the concepts whose `sources:` name the file. /sync-docs uses it to map a changed source file
+ * to the docs to re-check. A path that is a folder prints the concepts that name any file in it.
  *
  *   node scripts/docs-bundle.mjs model [--root <dir>]
  *
@@ -270,15 +270,14 @@ function normalizeRepoPath(repoPath) {
   return repoPath.replace(/\\/g, '/').replace(/^\.\//, '');
 }
 
-/** Whether one `sources:` entry covers `target`: the file itself, or a folder above it. */
+/** Whether one `sources:` entry covers `target`: the same file, or a file inside the folder `target` names. */
 function entryCovers(entry, target) {
   const source = normalizeRepoPath(sourcePathOf(entry));
   if (source.length === 0) return false;
-  if (source.endsWith('/')) return target.startsWith(source);
-  return target === source || target.startsWith(`${source}/`);
+  return source === target || source.startsWith(target.endsWith('/') ? target : `${target}/`);
 }
 
-/** The concepts whose sources cover `repoPath`: the file itself, or a folder above it. */
+/** The concepts whose sources cover `repoPath`: the file itself, or a file inside the folder it names. */
 export function conceptsForSource(repoPath, concepts) {
   const target = normalizeRepoPath(repoPath);
   return concepts.filter((concept) => (concept.frontmatter?.sources ?? []).some((entry) => entryCovers(entry, target)));

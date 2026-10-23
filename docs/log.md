@@ -4,7 +4,7 @@
 
 **Restructure** of `docs/` into an Open Knowledge Format v0.2 bundle (ADR-0012). Every doc is now a concept with
 frontmatter: 37 concepts under 7 indexes, rooted at `index.md`, which alone carries `okf_version: "0.2"`. Each
-concept's H1 is its title, so eight H1s lost an em-dash. Each concept's `description` is the line its folder index
+concept's H1 is its title, so nine H1s lost an em-dash. Each concept's `description` is the line its folder index
 shows, and `sources:` names the code it describes, so `node scripts/docs-bundle.mjs sources <file>` finds the docs a
 change touches. `DocsBundleTests` checks all of it in `pnpm verify`.
 

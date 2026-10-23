@@ -69,8 +69,8 @@ design tokens (`packages/ui/src/tokens.css` is the source; `docs/design/design-s
   its H1), a one-line `description`, optional `tags: [...]`, and `sources:` as `- resource: <repo path>` lines.
 - The `description` is how an agent picks the concept from the index. Name what only this concept holds: the flags,
   files, failure modes and decisions someone would ask about. No two concepts share one.
-- `sources:` stay narrow: the files the concept describes, or a folder (ending in `/`) only when it describes every
-  file in it. A broad entry flags the concept on every unrelated change.
+- `sources:` stay narrow: the files the concept describes, never a folder (`DocsBundleTests` refuses one). A broad
+  entry flags the concept on every unrelated change, so leave out tests and helpers the concept does not describe.
 - Docs link with relative paths (`../../CLAUDE.md`). Code references use `path:line` or a backticked path. Files cited
   by section number (the architecture docs, the design system) keep their numbering.
 - CLAUDE.md is the index for agents: one line per rule or command, linking to the detail. Detail lives in

@@ -4,9 +4,41 @@ title: "Claude Code tooling"
 description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, and how to add a new skill, agent or rule."
 tags: [claude-code, skills, agents, rules]
 sources:
-  - resource: .claude/skills/
-  - resource: .claude/agents/
-  - resource: .claude/rules/
+  - resource: .claude/skills/add-careers-page/SKILL.md
+  - resource: .claude/skills/add-dashboard-page/SKILL.md
+  - resource: .claude/skills/add-endpoint/SKILL.md
+  - resource: .claude/skills/add-marketing-page/SKILL.md
+  - resource: .claude/skills/add-message/SKILL.md
+  - resource: .claude/skills/add-migration/SKILL.md
+  - resource: .claude/skills/add-realtime-event/SKILL.md
+  - resource: .claude/skills/commit/SKILL.md
+  - resource: .claude/skills/merge-back/SKILL.md
+  - resource: .claude/skills/merge-pull-request/SKILL.md
+  - resource: .claude/skills/preview/SKILL.md
+  - resource: .claude/skills/pull-request/SKILL.md
+  - resource: .claude/skills/sync-docs/SKILL.md
+  - resource: .claude/skills/task-review/SKILL.md
+  - resource: .claude/skills/task-review/visual-probe.js
+  - resource: .claude/skills/verify/SKILL.md
+  - resource: .claude/agents/design-review.md
+  - resource: .claude/agents/doc-auditor.md
+  - resource: .claude/agents/integrity-guardrails.md
+  - resource: .claude/agents/licence-check.md
+  - resource: .claude/agents/migration-safety.md
+  - resource: .claude/agents/review-finder.md
+  - resource: .claude/agents/tenant-isolation-guard.md
+  - resource: .claude/agents/test-builder.md
+  - resource: .claude/rules/astro-public.md
+  - resource: .claude/rules/cli-features-over-custom-layers.md
+  - resource: .claude/rules/docs-stay-in-sync.md
+  - resource: .claude/rules/dotnet-api.md
+  - resource: .claude/rules/integration-conflicts.md
+  - resource: .claude/rules/no-personal-info.md
+  - resource: .claude/rules/skill-authoring.md
+  - resource: .claude/rules/svelte-dashboard.md
+  - resource: .claude/rules/unattended-runs.md
+  - resource: .claude/rules/utc-timestamps.md
+  - resource: .claude/rules/writing-style.md
 ---
 # Claude Code tooling
 
