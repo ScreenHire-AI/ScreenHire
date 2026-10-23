@@ -1,4 +1,6 @@
 using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.IntegrationTests.Automations;
 
@@ -52,6 +54,29 @@ public sealed class TaskTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_completion_read_before_another_one_saved_conflicts_instead_of_overwriting_who_finished()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var teammate = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        await ApplicationWithTasksAsync(owner, teammate.UserId);
+        var taskId = (await owner.GetAsync("/v1/tasks")).Id("0.id");
+
+        // The teammate's request has read the open task when the owner's completion lands.
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+        var stale = await db.ApplicationTasks.SingleAsync(t => t.Id == taskId, Ct);
+        (await owner.PostAsync($"/v1/tasks/{taskId}/complete")).Expect(HttpStatusCode.OK);
+
+        stale.Complete(teammate.UserId, new DateTimeOffset(2026, 10, 23, 12, 0, 0, TimeSpan.Zero)).Should().BeTrue("this copy still reads as open");
+        var save = () => db.SaveChangesAsync(Ct);
+        await save.Should().ThrowAsync<DbUpdateConcurrencyException>();
+
+        var done = (await owner.GetAsync("/v1/tasks?status=Completed")).Expect(HttpStatusCode.OK);
+        done.Id("0.completedByUserId").Should().Be(owner.UserId);
+    }
+
+    [Fact]
     public async Task Another_organization_sees_and_completes_none_of_the_tasks_and_a_viewer_cannot_complete_one()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -87,6 +112,8 @@ public sealed class TaskTests(AppHostFixture fixture)
         await AutomationSamples.WaitForRunAsync(owner, application, "prepare", "Completed");
         return application;
     }
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static IEnumerable<string> Notes(ApiResult tasks) => tasks.Body.EnumerateArray().Select(t => t.GetProperty("note").GetString()!);
 }
