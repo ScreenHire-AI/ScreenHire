@@ -13,6 +13,9 @@
  *
  * prints the bundle as JSON (every docs file, each markdown file's frontmatter, headings and links) for the
  * conformance tests. `--root` points at another repository root, such as a test fixture.
+ *
+ * Links are inline links and images (`[text](path)`). Reference links (`[text][ref]`) and angle-bracket targets are
+ * not read; the docs do not use them.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,7 +30,25 @@ export const CONCEPT_TYPES = ['Guide', 'Reference', 'Design', 'Decision', 'Audit
 
 /** A leading `---` line (after an optional BOM), the block, which may be empty, and the closing `---` line. */
 const FRONTMATTER = /^\uFEFF?---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)??---[ \t]*(?:\r?\n|$)/;
-const FENCE = /^\s*(```|~~~)/;
+const FENCE = /^\s*(`{3,}|~{3,})(.*)$/;
+
+/**
+ * A reader for code fences: called once per line in order, it returns true for a fence line or a line inside a fence.
+ * As in CommonMark, a fence closes only on a bare run of its own character at least as long as the one that opened
+ * it, so a four-backtick fence can show a three-backtick block.
+ */
+function fenceReader() {
+  let open = null;
+  return (line) => {
+    const match = FENCE.exec(line);
+    if (open === null) {
+      if (match) open = match[1];
+      return match !== null;
+    }
+    if (match && match[1][0] === open[0] && match[1].length >= open.length && match[2].trim() === '') open = null;
+    return true;
+  };
+}
 
 /** A scalar as YAML writes it here: bare, or double or single quoted. */
 function parseScalar(raw) {
@@ -163,15 +184,11 @@ export function headingsOf(text) {
   const headings = [];
   // github-slugger's dedupe: a taken slug gets the next free `-N` counted on its base.
   const occurrences = new Map();
-  let fenced = false;
+  const inFence = fenceReader();
   const body = stripFrontmatter(text);
   const frontmatterLines = text.slice(0, text.length - body.length).split(/\r?\n/).length - 1;
   body.split(/\r?\n/).forEach((line, lineIndex) => {
-    if (FENCE.test(line)) {
-      fenced = !fenced;
-      return;
-    }
-    if (fenced) return;
+    if (inFence(line)) return;
     // A trailing run of `#` closes the heading only after a space (CommonMark), so `## Using C#` keeps its `#`.
     const match = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/.exec(line);
     if (!match) return;
@@ -203,16 +220,14 @@ function decodeFragment(fragment) {
  */
 export function linksOf(text) {
   const links = [];
-  let fenced = false;
+  const inFence = fenceReader();
   // An open `[` with no `]` after it on its line: the start of link text that wraps onto the next line.
   let carried = null;
   text.split(/\r?\n/).forEach((line, lineIndex) => {
-    if (FENCE.test(line)) {
-      fenced = !fenced;
+    if (inFence(line)) {
       carried = null;
       return;
     }
-    if (fenced) return;
     // Blank each inline code span to spaces of the same width, so a link written inside backticks is not read.
     const outsideCode = line.replace(/(`+)[\s\S]*?\1/g, (span) => ' '.repeat(span.length));
     if (outsideCode.trim().length === 0) {
@@ -284,8 +299,9 @@ export function conceptsForSource(repoPath, concepts) {
 }
 
 /**
- * The bundle as plain data: every docs file, each markdown file's frontmatter, headings and links, and the heading
- * anchors of markdown files outside docs/ that a doc links to (`../../CLAUDE.md#commands`).
+ * The bundle as plain data: the concept types and reserved names, every docs file, each markdown file's frontmatter,
+ * headings and links, and the heading anchors of markdown files outside docs/ that a doc links to
+ * (`../../CLAUDE.md#commands`).
  */
 export function bundleModel(root = PROJECT_ROOT) {
   const files = listDocsFiles(root);
@@ -309,7 +325,7 @@ export function bundleModel(root = PROJECT_ROOT) {
       if (fs.existsSync(file)) outsideAnchors[target] = headingsOf(fs.readFileSync(file, 'utf8')).map((heading) => heading.slug);
     }
   }
-  return { files, markdown, outsideAnchors };
+  return { conceptTypes: CONCEPT_TYPES, reservedNames: [...RESERVED_NAMES], files, markdown, outsideAnchors };
 }
 
 function main(argv) {

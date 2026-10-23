@@ -14,9 +14,6 @@ namespace ScreenHire.UnitTests.Tooling;
 /// </summary>
 internal sealed partial class DocsBundle
 {
-    /// <summary>The concept types, as <c>CONCEPT_TYPES</c> in the script lists them.</summary>
-    private static readonly string[] ConceptTypes = ["Guide", "Reference", "Design", "Decision", "Audit", "Research"];
-
     /// <summary>
     /// File names an agent CLI loads as instructions when it reads a folder, compared case-insensitively. Claude Code
     /// reads a claude.md under docs as a CLAUDE.md on a case-insensitive file system and puts the whole doc into context.
@@ -34,12 +31,20 @@ internal sealed partial class DocsBundle
     private DocsBundle(string root, Model model)
     {
         Root = root;
+        ConceptTypes = model.ConceptTypes;
+        ReservedNames = model.ReservedNames;
         Files = model.Files;
         Markdown = model.Markdown;
         OutsideAnchors = model.OutsideAnchors;
     }
 
     public string Root { get; }
+
+    /// <summary>The <c>type</c> values a concept may carry, as the script's <c>CONCEPT_TYPES</c> lists them.</summary>
+    public IReadOnlyList<string> ConceptTypes { get; }
+
+    /// <summary>The file names that are never concepts (index.md and log.md), as the script's <c>RESERVED_NAMES</c>.</summary>
+    public IReadOnlyList<string> ReservedNames { get; }
 
     public IReadOnlyList<string> Files { get; }
 
@@ -92,6 +97,8 @@ internal sealed partial class DocsBundle
     }
 
     private IEnumerable<MarkdownFile> Concepts => Markdown.Where(file => IsConcept(file.Path));
+
+    private bool IsConcept(string docPath) => !ReservedNames.Contains(FileName(docPath));
 
     private IEnumerable<string> IndexFolders =>
         Markdown.Where(file => FileName(file.Path) == "index.md").Select(file => Folder(file.Path));
@@ -206,35 +213,49 @@ internal sealed partial class DocsBundle
         problems.AddRange(Markdown
             .Where(file => file.Path != "docs/index.md" && !IsConcept(file.Path) && file.Frontmatter is not null)
             .Select(file => $"{file.Path}: only docs/index.md carries frontmatter among the index and log files"));
+        problems.AddRange(Concepts
+            .Where(file => file.Frontmatter?.ContainsKey("okf_version") == true)
+            .Select(file => $"{file.Path}: okf_version belongs to docs/index.md alone, not to a concept"));
         return problems;
     }
 
-    /// <summary>Each index lists each sibling concept as <c>* [Title](file.md) - description</c>, with its exact description.</summary>
+    /// <summary>
+    /// Each index lists each sibling concept as <c>* [Title](file.md) - description</c>, with its exact title and
+    /// description.
+    /// </summary>
     private List<string> IndexEntryProblems()
     {
         var problems = new List<string>();
         foreach (var folder in IndexFolders)
         {
             var indexPath = $"{folder}/index.md";
-            var entries = new Dictionary<string, string>();
+            var entries = new Dictionary<string, (string Title, string Description)>();
             foreach (var line in File.ReadAllLines(Path.Combine(Root, indexPath)))
             {
                 var match = IndexEntry().Match(line);
                 if (match.Success)
                 {
-                    entries[match.Groups["file"].Value] = match.Groups["description"].Value.Trim();
+                    entries[match.Groups["file"].Value] = (match.Groups["title"].Value, match.Groups["description"].Value.Trim());
                 }
             }
 
             foreach (var concept in Concepts.Where(file => Folder(file.Path) == folder))
             {
                 var name = FileName(concept.Path);
+                var title = Text(concept, "title");
                 var description = Text(concept, "description");
                 if (!entries.TryGetValue(name, out var listed))
                 {
                     problems.Add($"{indexPath}: no \"* [Title]({name}) - description\" entry");
+                    continue;
                 }
-                else if (listed != description)
+
+                if (listed.Title != title)
+                {
+                    problems.Add($"{indexPath}: the entry for {name} must link the text \"{title}\", its title");
+                }
+
+                if (listed.Description != description)
                 {
                     problems.Add($"{indexPath}: the entry for {name} must read \"{description}\", its description");
                 }
@@ -261,8 +282,14 @@ internal sealed partial class DocsBundle
         return problems;
     }
 
+    /// <summary>
+    /// Every link names a file or folder that exists, and a heading there when it has a fragment. A docs path must match
+    /// its file's case: Windows finds <c>Adr/x.md</c> for <c>adr/x.md</c>, GitHub does not.
+    /// </summary>
     private List<string> BrokenLinks()
     {
+        var files = Files.ToHashSet(StringComparer.Ordinal);
+        var filesAnyCase = Files.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var anchors = Markdown.ToDictionary(file => file.Path, file => file.Headings.Select(heading => heading.Slug).ToHashSet());
         foreach (var (outside, slugs) in OutsideAnchors)
         {
@@ -278,6 +305,10 @@ internal sealed partial class DocsBundle
                 if (!PathExists(target))
                 {
                     problems.Add($"{file.Path}:{link.Line} links to a missing file: {link.Url}");
+                }
+                else if (filesAnyCase.Contains(target) && !files.Contains(target))
+                {
+                    problems.Add($"{file.Path}:{link.Line} links to a file whose case differs: {link.Url}");
                 }
                 else if (link.Fragment is { Length: > 0 } fragment && anchors.TryGetValue(target, out var slugs) && !slugs.Contains(fragment))
                 {
@@ -372,10 +403,13 @@ internal sealed partial class DocsBundle
             || file.StartsWith("scripts/", StringComparison.Ordinal)
             || file.StartsWith("tests/", StringComparison.Ordinal));
 
-    /// <summary>Tracked and untracked files git does not ignore, so build output and node_modules stay out.</summary>
+    /// <summary>
+    /// Tracked and untracked files git does not ignore, so build output and node_modules stay out. With quotepath off,
+    /// git prints a non-ASCII name as it is instead of a quoted escape that names no file.
+    /// </summary>
     private IEnumerable<string> TrackedFiles()
     {
-        var start = new ProcessStartInfo("git", ["-C", Root, "ls-files", "-co", "--exclude-standard"])
+        var start = new ProcessStartInfo("git", ["-C", Root, "-c", "core.quotepath=false", "ls-files", "-co", "--exclude-standard"])
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -400,8 +434,6 @@ internal sealed partial class DocsBundle
         var full = Path.Combine(Root, repoPath);
         return File.Exists(full) || Directory.Exists(full);
     }
-
-    private static bool IsConcept(string docPath) => FileName(docPath) is not ("index.md" or "log.md");
 
     private static string Text(MarkdownFile file, string key) =>
         file.Frontmatter?[key] is JsonValue value && value.TryGetValue<string>(out var text) ? text : "";
@@ -442,7 +474,7 @@ internal sealed partial class DocsBundle
         return string.Join('/', segments);
     }
 
-    [GeneratedRegex(@"^\* \[[^\]]+\]\((?<file>[^)#]+)\) - (?<description>.+)$")]
+    [GeneratedRegex(@"^\* \[(?<title>[^\]]+)\]\((?<file>[^)#]+)\) - (?<description>.+)$")]
     private static partial Regex IndexEntry();
 
     [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}$")]
@@ -465,5 +497,6 @@ internal sealed partial class DocsBundle
 
     public sealed record Link(string Url, string Path, string? Fragment, int Line);
 
-    private sealed record Model(string[] Files, MarkdownFile[] Markdown, Dictionary<string, string[]> OutsideAnchors);
+    private sealed record Model(
+        string[] ConceptTypes, string[] ReservedNames, string[] Files, MarkdownFile[] Markdown, Dictionary<string, string[]> OutsideAnchors);
 }
