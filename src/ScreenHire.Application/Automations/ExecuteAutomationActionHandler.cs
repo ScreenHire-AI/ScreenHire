@@ -16,8 +16,9 @@ namespace ScreenHire.Application.Automations;
 /// Runs one action of an automation run in the worker, records what happened on its <see cref="AutomationActionRun"/>,
 /// and sends the next action, or finishes the run after the last. Everything the action changes in the database (a
 /// move, a tag, a task) commits with its status in one transaction, so a redelivery finds the action done and does
-/// nothing. An external effect (an email, a webhook) happens before that commit: a crash in between can repeat it once,
-/// which the receiver's idempotency key covers for webhooks.
+/// nothing. An email is queued in that transaction (<see cref="SendAutomationEmail"/>), so it leaves only once the action
+/// commits: an action retried after a conflict sends one email. A webhook happens before the commit: a crash in between
+/// can repeat it once, which the receiver's idempotency key covers.
 /// </summary>
 /// <remarks>
 /// A failure that retrying cannot fix (a reviewer who left the organization) fails the action at once. Anything that
@@ -108,21 +109,31 @@ public static partial class ExecuteAutomationActionHandler
         };
     }
 
-    // Every email a candidate gets is on the timeline, linked to this run (ApplicationEmails).
+    // Checks what can be checked now (email set up, the stage-change rule, the template still there) and queues the email
+    // in this action's transaction, so it goes only if the action commits. SendAutomationEmailHandler sends it and puts
+    // it on the timeline, linked to this run (ApplicationEmails).
     private static async Task<(AutomationActionStatus, string)> SendEmailAsync(
         ActionContext context, string templateId, string? reason, string? questionnaireLink, CancellationToken cancellationToken)
     {
-        var result = await ApplicationEmails.SendAsync(
-            context.Db, context.Email, context.Templates, context.Application, context.Job, templateId, reason, questionnaireLink,
-            Guid.CreateVersion7(), actorUserId: null, context.Run.Id, context.Now, cancellationToken);
-        if (result.Event is not { } sent)
+        if (!context.Email.IsConfigured)
         {
-            // An organization template deleted after the workflow was saved is a broken action, not a quiet skip.
-            return result.TemplateMissing ? Failed(result.Detail) : Skipped(result.Detail);
+            return Skipped("Email is not set up, so nothing was sent.");
         }
 
-        context.Outgoing.Add(new ApplicationEmailed(context.Run.OrganizationId, context.Application.Id, context.Application.JobId, sent.Id, context.Now));
-        return Completed(result.Detail);
+        if (ApplicationEmails.Skips(templateId, CurrentStage(context)))
+        {
+            return Skipped("The application has ended, so the stage-change email was not sent.");
+        }
+
+        if (await context.Templates.FindAsync(context.Db, templateId, cancellationToken) is not { } template)
+        {
+            // An organization template deleted after the workflow was saved is a broken action, not a quiet skip.
+            return Failed("The email template no longer exists, so nothing was sent.");
+        }
+
+        context.Outgoing.Add(new SendAutomationEmail(
+            context.Run.OrganizationId, context.Application.Id, templateId, Guid.CreateVersion7(), context.Run.Id, reason, questionnaireLink));
+        return Completed($"Sending the \"{template.Name}\" email.");
     }
 
     /// <summary>

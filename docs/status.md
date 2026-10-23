@@ -102,8 +102,5 @@ brackets.
 
 ## Known gaps
 
-- Two actions of different automations that change one application at the same moment (a Reject and an AddTag, say)
-  meet on the row's concurrency check, and the retried one can send its email again. Chain such automations, one on
-  the stage the other moves into, until actions on one application are serialized.
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (integrity-engine.md §10.9). In the browser pane, `/preview` waits for an integrity chip before it checks anything live.

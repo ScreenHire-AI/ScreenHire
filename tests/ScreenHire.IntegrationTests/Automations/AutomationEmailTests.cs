@@ -74,7 +74,7 @@ public sealed class AutomationEmailTests(AppHostFixture fixture)
 
         var run = await AutomationSamples.WaitForRunAsync(recruiter, application.Id(), "email-on-exit", "Completed");
         run.GetProperty("actions")[0].GetProperty("status").GetString().Should().Be("Skipped");
-        (await fixture.Mailpit.MessagesAsync(candidateEmail, Ct)).Should().BeEmpty("the email is sent before the action is recorded, so it would be here");
+        (await fixture.Mailpit.MessagesAsync(candidateEmail, Ct)).Should().BeEmpty("a skipped action queues no email");
     }
 
     [Fact]

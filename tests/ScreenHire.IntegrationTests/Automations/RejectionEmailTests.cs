@@ -119,13 +119,14 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
         ["allowAutoReject"] = true,
     };
 
-    // On the rejected stage, so it runs after the Reject action's move rather than beside it: two actions changing one
-    // application at once retry on the row's concurrency check, which can repeat an email (workflow-engine.md §8).
+    // On the same trigger as the rejection, so its AddTag and the Reject change one application at once. One of them meets
+    // the row's concurrency check and is retried; the rejection email still goes once, because it leaves only with the
+    // action's commit (SendAutomationEmail).
     private static JsonObject TagCareersApplications() => new()
     {
         ["id"] = "tag-careers",
         ["name"] = "Tag careers-site applications",
-        ["trigger"] = new JsonObject { ["type"] = "StageEntered", ["stageId"] = "rejected" },
+        ["trigger"] = new JsonObject { ["type"] = "ApplicationSubmitted" },
         ["conditions"] = new JsonObject
         {
             ["match"] = "All",

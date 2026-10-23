@@ -355,11 +355,13 @@ Version 2 corrects the condition (integrity-engine.md §10.9).
 reason a replayed event runs nothing twice. A matched run copies its actions into `automation_action_runs` and runs them
 in order, one `ExecuteAutomationAction` message each, keyed `application:automation:event:index` and
 `[Deduplicated]`. An action's database effect (a move, a tag, a task) commits with its status, so a redelivery finds it
-done. Email and webhooks happen before that commit; a crash in between can repeat one once.
+done. An email is queued in that transaction (`SendAutomationEmail`, [email.md](email.md)), so it leaves only once
+the action commits: an action retried after a conflict with another automation's action on the same application sends
+one email. A webhook happens before the commit; a crash in between can repeat one once.
 
 | Action | What v1 does |
 |---|---|
-| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured; fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
+| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Queues the email with the action's commit; the worker sends it and adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured; fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
 | `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. The builder offers the team's Owners, Admins and Recruiters (a Viewer could not complete the task) or "Anyone on the team". Saving a workflow checks only that a member is named; the run checks they still belong to the organization, and fails the action if not. |

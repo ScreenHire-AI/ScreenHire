@@ -71,8 +71,11 @@ worker's log and no timeline entry: Activity lists emails that went out.
 
 `ApplicationEmailed` (an `ITenantEvent`) tells open dashboards to refetch the application's Activity.
 
-`SendEmail` and `Reject` automation actions go through the same code (`ApplicationEmails.SendAsync`), so their emails
-are on the timeline too, linked to the automation run. An automation may name any organization template. The API checks
+`SendEmail`, `Reject` and `SendQuestionnaire` automation actions queue their email as a `SendAutomationEmail`
+message in the action's own transaction, and the worker's `SendAutomationEmailHandler` sends it through the same code
+(`ApplicationEmails.SendAsync`), so their emails are on the timeline too, linked to the automation run. Because the
+message leaves only when the action commits, an action retried after a conflict (two automations changing one
+application at once) sends one email. An automation may name any organization template. The API checks
 that the template exists when a person saves a workflow, and refuses to delete a template that an open or draft job's
 workflow, or a hiring template, still names. A template deleted anyway (a race) fails the action with the reason.
 
