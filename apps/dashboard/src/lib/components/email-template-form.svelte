@@ -170,10 +170,13 @@
 
         <Field.Field data-invalid={$errors.body ? true : undefined}>
           <Field.Label for="email-template-body">Message</Field.Label>
+          <!-- Twelve rows, not sized to its text: a content-sized box reflowed as the focus left it, and moved the preview
+               below out from under a click. -->
           <Textarea
             id="email-template-body"
             name="body"
             rows={12}
+            class="field-sizing-fixed resize-y"
             maxlength={10000}
             required
             bind:ref={bodyInput}

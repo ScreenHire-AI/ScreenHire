@@ -186,6 +186,27 @@ public sealed class DefinitionValidatorTests
             "automations[5].actions[0].stageId");
     }
 
+    // An organization's own template is named by its id; whether it exists is the API's check at save
+    // (EmailTemplateReferences), because the validator also runs in the worker.
+    [Theory]
+    [InlineData("application-received", true)]
+    [InlineData("0199f0c4-0000-7000-8000-000000000001", true)]
+    [InlineData("welcome", false)]
+    [InlineData("0199f0c40000700080000000000000001", false)]
+    public void A_SendEmail_action_names_a_built_in_template_or_an_organization_template_by_id(string templateId, bool valid)
+    {
+        var workflow = Workflow(automations: [Automation(null, new AutomationAction(ActionType.SendEmail, EmailTemplate: templateId), "mailer")]);
+
+        if (valid)
+        {
+            Paths(workflow).Should().BeEmpty();
+        }
+        else
+        {
+            Paths(workflow).Should().Equal("automations[0].actions[0].emailTemplate");
+        }
+    }
+
     // Guardrail 1 (ADR-0004, workflow-engine.md §2): integrity and verification signals may only route and step up.
     [Theory]
     [InlineData(ActionType.Reject)]

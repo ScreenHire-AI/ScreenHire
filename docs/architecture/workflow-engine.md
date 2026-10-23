@@ -289,14 +289,14 @@ done. Email and webhooks happen before that commit; a crash in between can repea
 
 | Action | What v1 does |
 |---|---|
-| `SendEmail` | Renders `application-received` or `stage-change` to the candidate. Skipped when email is not configured. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
+| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured; fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
 | `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. |
 | `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards. |
 | `CreateTask` | Creates a `Task` with the note. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
-| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` with the reason, saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
+| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected`, in the organization's wording, with the reason (the wording must use it), saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
 | `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time; loopback only where `ScreenHire:Webhooks:AllowLoopback` is on, in the local stack and the tests). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under the organization's key: hex HMAC-SHA256 of `webhook-signing:{organizationId}` under `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.OrganizationKey`; the AppHost generates the platform key locally). A receiver is given its organization's key only, so it cannot sign for another organization. Never through a proxy, which would resolve the target past the address check. Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
 | `RequestVerification`, `SendQuestionnaire`, `ScheduleInterview` | Refused at save. Verification is phase 2; the other two need features that do not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
 
@@ -342,6 +342,9 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   `Reject` whose run started before a workflow change falls back to a rejection review, as above.
 - Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
   either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
+- The validator checks only that an `emailTemplate` is a built-in id or a Guid, because it also runs in the worker,
+  which cannot know the organization's templates. The API checks that an organization template exists when a person
+  saves a workflow or validates it in the builder (`EmailTemplateReferences`).
 
 ## Open questions
 

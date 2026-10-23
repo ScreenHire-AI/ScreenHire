@@ -30,7 +30,8 @@
       <p class="min-w-0 break-words"><span class="text-muted-foreground">Subject</span> <span data-email-subject class="font-semibold">{preview.subject}</span></p>
       <div role="group" aria-label="Part" class="flex shrink-0 gap-1">
         {#each parts as option (option.id)}
-          <Toggle bind:pressed={() => part === option.id, () => (part = option.id)}>{option.label}</Toggle>
+          <!-- Only a press chooses a part: the other toggle writing back "not pressed" must not switch it again. -->
+          <Toggle bind:pressed={() => part === option.id, (pressed) => pressed && (part = option.id)}>{option.label}</Toggle>
         {/each}
       </div>
     </div>

@@ -94,6 +94,6 @@ public sealed class AutomationEmailTests(AppHostFixture fixture)
 
         var sent = await fixture.Mailpit.WaitForMessagesAsync(candidateEmail, 1, Ct);
         sent[0].Subject.Should().Be("We received your application for Received email");
-        sent[0].Html.Should().Contain("<strong>Received email</strong>");
+        sent[0].Html.Should().Contain("<p>Thank you for applying for Received email at");
     }
 }
