@@ -147,7 +147,17 @@ public sealed class EmailTests(AppHostFixture fixture)
         var application = (await owner.CreateApplicationAsync(job, email)).Id();
         (await owner.PostAsync("/v1/emails", Send("application-received", [application]))).Expect(HttpStatusCode.Accepted);
         (await fixture.Mailpit.WaitForMessagesAsync(email, 1, Ct)).Should().ContainSingle();
-        var sendId = EmailEntries(await owner.GetAsync($"/v1/applications/{application}/timeline")).Single().GetProperty("id").GetGuid();
+        // The email reaches Mailpit just before the worker commits its timeline entry.
+        var sendId = Guid.Empty;
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                var entries = EmailEntries(await owner.GetAsync($"/v1/applications/{application}/timeline"));
+                sendId = entries.Count == 1 ? entries[0].GetProperty("id").GetGuid() : Guid.Empty;
+                return sendId != Guid.Empty;
+            },
+            "the send's timeline entry",
+            Ct);
 
         // Both envelopes handled, the first and the second: the worker marks an envelope handled in a later batch, so a
         // count taken before publishing can still rise for the first one alone.
@@ -157,7 +167,7 @@ public sealed class EmailTests(AppHostFixture fixture)
             await publisher.Services.GetRequiredService<IMessageBus>()
                 .PublishAsync(new SendApplicationEmail(owner.OrganizationId, application, "application-received", sendId, owner.UserId));
             await WolverineStore.WaitUntilAsync(
-                async () => await store.CountHandledAsync(sendId.ToString(), Ct) >= 2, "the worker to handle the send again", Ct);
+                async () => await store.CountHandledAsync(sendId.ToString(), Ct, nameof(SendApplicationEmail)) >= 2, "the worker to handle the send again", Ct);
         }
 
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().ContainSingle("the second delivery found the timeline entry and sent nothing");
