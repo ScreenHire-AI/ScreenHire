@@ -39,27 +39,27 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             INSERT INTO hiring_template_versions (id, organization_id, template_id, version, status, definition, created_at, published_at)
             SELECT '0199e8a0-0000-7000-8000-000000000104', NULL, v.template_id, 4, 'Published',
                    jsonb_set(v.definition, '{workflow,automations,0,trigger}', '{"type":"ApplicationSubmitted"}'::jsonb),
-                   '2026-10-24T00:00:00Z', '2026-10-24T00:00:00Z'
+                   '2026-10-23T22:00:00Z', '2026-10-23T22:00:00Z'
             FROM hiring_template_versions v
             WHERE v.id = '0199e8a0-0000-7000-8000-000000000103'
               AND v.definition #>> '{workflow,automations,0,id}' = 'right_to_work_review'
               AND v.definition #>> '{workflow,automations,0,trigger,type}' = 'QuestionnaireCompleted';
 
             UPDATE hiring_templates SET latest_published_version = 4
-            WHERE id = '0199e8a0-0000-7000-8000-000000000001'
+            WHERE id = '0199e8a0-0000-7000-8000-000000000001' AND latest_published_version < 4
               AND EXISTS (SELECT FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000104');
 
             INSERT INTO hiring_template_versions (id, organization_id, template_id, version, status, definition, created_at, published_at)
             SELECT '0199e8a0-0000-7000-8000-000000000203', NULL, v.template_id, 3, 'Published',
                    jsonb_set(v.definition, '{workflow,automations,0,trigger}', '{"type":"ApplicationSubmitted"}'::jsonb),
-                   '2026-10-24T00:00:00Z', '2026-10-24T00:00:00Z'
+                   '2026-10-23T22:00:00Z', '2026-10-23T22:00:00Z'
             FROM hiring_template_versions v
             WHERE v.id = '0199e8a0-0000-7000-8000-000000000202'
               AND v.definition #>> '{workflow,automations,0,id}' = 'right_to_work_review'
               AND v.definition #>> '{workflow,automations,0,trigger,type}' = 'QuestionnaireCompleted';
 
             UPDATE hiring_templates SET latest_published_version = 3
-            WHERE id = '0199e8a0-0000-7000-8000-000000000002'
+            WHERE id = '0199e8a0-0000-7000-8000-000000000002' AND latest_published_version < 3
               AND EXISTS (SELECT FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000203');
 
             ALTER TABLE hiring_templates FORCE ROW LEVEL SECURITY;

@@ -236,7 +236,7 @@ internal sealed partial class DevelopmentDemo(
         }
 
         var source = await db.HiringTemplateVersions.AsNoTracking()
-            .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion3, cancellationToken);
+            .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion4, cancellationToken);
         var definition = source.Definition with
         {
             Workflow = source.Definition.Workflow with { Automations = [.. source.Definition.Workflow.Automations, .. CandidateEmails] },

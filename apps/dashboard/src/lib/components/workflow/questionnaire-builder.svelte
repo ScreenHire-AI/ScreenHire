@@ -65,9 +65,7 @@
               <Input bind:value={current.name} maxlength={80} aria-describedby="follow-up-note" aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
             </label>
             <FieldErrors id="follow-up-name-errors" messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.name`)]} />
-            <p id="follow-up-note" class="text-muted-foreground">
-              A "Send a questionnaire" automation emails the candidate a link. Their answers fire "A follow-up questionnaire is answered".
-            </p>
+            <p id="follow-up-note" class="text-muted-foreground">A "Send a questionnaire" automation emails the candidate a link to it.</p>
           </div>
         </Panel>
         <QuestionList

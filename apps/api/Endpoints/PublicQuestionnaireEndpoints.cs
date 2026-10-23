@@ -146,7 +146,7 @@ internal static class PublicQuestionnaireEndpoints
 
         // The request on its own query: an answer changes it, and AsNoTracking anywhere in a query applies to all of it.
         var requests = tracked ? db.QuestionnaireRequests : db.QuestionnaireRequests.AsNoTracking();
-        var request = await requests.SingleOrDefaultAsync(r => r.Id == link.RequestId, cancellationToken);
+        var request = await requests.SingleOrDefaultAsync(r => r.Id == link.RequestId && r.OrganizationId == organization.Id, cancellationToken);
         if (request is null)
         {
             return null;
