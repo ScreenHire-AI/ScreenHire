@@ -39,7 +39,7 @@
 <div class="flex flex-col gap-5">
   <div class="flex min-w-0 flex-wrap items-center gap-2">
     <div role="group" aria-label="Questionnaire" class="flex min-w-0 gap-1 overflow-x-auto">
-      <Toggle bind:pressed={() => selected === 'apply', (pressed) => pressed && (selected = 'apply')}>
+      <Toggle class="shrink-0" bind:pressed={() => selected === 'apply', (pressed) => pressed && (selected = 'apply')}>
         Apply form
       </Toggle>
       {#each followUps as followUp (followUp.id)}
@@ -57,7 +57,8 @@
       {#if current}
         <Panel title="Follow-up questionnaire">
           {#snippet actions()}
-            <Button variant="outline" onclick={removeFollowUp}>Remove questionnaire</Button>
+            <!-- A short label, so the panel title keeps its row at phone width (F5); the accessible name says what it removes. -->
+            <Button variant="outline" aria-label="Remove questionnaire" onclick={removeFollowUp}>Remove</Button>
           {/snippet}
           <div class="flex flex-col gap-1.5">
             <label class={labelClass}>

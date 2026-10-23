@@ -2,7 +2,7 @@
 // their email, answers, and the form posts to the `questionnaire` action. Server-only (it calls the API). Answers only:
 // no device check, telemetry or upload, so the page ships no JavaScript.
 import { answerPublicQuestionnaire, getPublicQuestionnaire, type PublicQuestion } from './api';
-import { emptyState, errorsFromProblem, fields, readAnswers, text, validateAnswers, type FieldErrors } from './apply';
+import { emptyState, errorsFromProblem, readAnswers, text, validateAnswers, type FieldErrors } from './apply';
 import { forwardedFor } from './apply-server';
 
 /** What the page renders after a post: the answers back with their problems, or how the questionnaire ended. */
@@ -73,5 +73,3 @@ export function toAnswers(answers: Record<string, string | string[]>, questions:
     return [Array.isArray(answer) ? { questionId: question.id, values: answer } : { questionId: question.id, value: answer }];
   });
 }
-
-export { fields };

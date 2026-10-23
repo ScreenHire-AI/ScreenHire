@@ -164,7 +164,12 @@ internal static class PublicQuestionnaireEndpoints
         var row = await db.Applications.AsNoTracking()
             .Where(a => a.Id == request.ApplicationId)
             .Join(db.Jobs.AsNoTracking(), a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
+        if (row is null)
+        {
+            return null; // the application went between the two reads
+        }
+
         return new Found(organization, request, row.Application, row.Job, row.Job.Workflow.FindFollowUp(request.QuestionnaireId));
     }
 

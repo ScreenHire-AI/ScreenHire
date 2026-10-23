@@ -115,39 +115,59 @@ public static partial class ExecuteAutomationActionHandler
     private static async Task<(AutomationActionStatus, string)> SendEmailAsync(
         ActionContext context, string templateId, string? reason, string? questionnaireLink, CancellationToken cancellationToken)
     {
+        var (template, refusal) = await TemplateToSendAsync(context, templateId, cancellationToken);
+        if (template is null)
+        {
+            return refusal;
+        }
+
+        QueueEmail(context, templateId, reason, questionnaireLink);
+        return Completed($"Sending the \"{template.Name}\" email.");
+    }
+
+    // The template, or why the email cannot go now.
+    private static async Task<(OrganizationEmailTemplate? Template, (AutomationActionStatus, string) Refusal)> TemplateToSendAsync(
+        ActionContext context, string templateId, CancellationToken cancellationToken)
+    {
         if (!context.Email.IsConfigured)
         {
-            return Skipped("Email is not set up, so nothing was sent.");
+            return (null, Skipped("Email is not set up, so nothing was sent."));
         }
 
         if (ApplicationEmails.Skips(templateId, CurrentStage(context)))
         {
-            return Skipped("The application has ended, so the stage-change email was not sent.");
+            return (null, Skipped("The application has ended, so the stage-change email was not sent."));
         }
 
-        if (await context.Templates.FindAsync(context.Db, templateId, cancellationToken) is not { } template)
-        {
-            // An organization template deleted after the workflow was saved is a broken action, not a quiet skip.
-            return Failed("The email template no longer exists, so nothing was sent.");
-        }
+        // An organization template deleted after the workflow was saved is a broken action, not a quiet skip.
+        return await context.Templates.FindAsync(context.Db, templateId, cancellationToken) is { } template
+            ? (template, default)
+            : (null, Failed("The email template no longer exists, so nothing was sent."));
+    }
 
+    private static void QueueEmail(ActionContext context, string templateId, string? reason, string? questionnaireLink) =>
         context.Outgoing.Add(new SendAutomationEmail(
             context.Run.OrganizationId, context.Application.Id, templateId, Guid.CreateVersion7(), context.Run.Id, reason, questionnaireLink));
-        return Completed($"Sending the \"{template.Name}\" email.");
-    }
 
     /// <summary>
     /// Emails the candidate a signed link to a follow-up questionnaire (workflow-engine.md §8). One request per application
     /// and questionnaire: the first send creates it, a later one sends a fresh link to the same request while it is
     /// unanswered, and once it is answered nothing is sent. Skipped without email, as SendEmail is, and for an application
-    /// that has ended.
+    /// that has ended. Every check runs before the request changes: a send that stops must not leave a request that
+    /// looks sent again, with a fresh expiry and a higher count, while no email went.
     /// </summary>
     private static async Task<(AutomationActionStatus, string)> SendQuestionnaireAsync(
         ActionContext context, string questionnaireId, CancellationToken cancellationToken)
     {
-        if (!context.Email.IsConfigured)
+        var (template, refusal) = await TemplateToSendAsync(context, EmailTemplateIds.QuestionnaireRequest, cancellationToken);
+        if (template is null)
         {
-            return Skipped("Email is not set up, so nothing was sent.");
+            return refusal;
+        }
+
+        if (!context.Links.IsConfigured)
+        {
+            return Failed("The careers site address is not set up, so no link could be sent.");
         }
 
         if (CurrentStage(context)?.Kind.IsTerminal() == true)
@@ -180,13 +200,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var slug = await context.Db.Organizations.AsNoTracking()
             .Where(o => o.Id == application.OrganizationId).Select(o => o.Slug).SingleAsync(cancellationToken);
-        var link = context.Links.Url(slug, context.Links.Issue(request));
-        var (status, detail) = await SendEmailAsync(context, EmailTemplateIds.QuestionnaireRequest, reason: null, link, cancellationToken);
-        if (status != AutomationActionStatus.Completed)
-        {
-            return (status, detail);
-        }
-
+        QueueEmail(context, EmailTemplateIds.QuestionnaireRequest, reason: null, context.Links.Url(slug, context.Links.Issue(request)));
         context.Db.ApplicationEvents.Add(request.SentEvent(context.Now, context.Run.Id));
         return Completed(request.TimesSent == 1
             ? $"Sent the \"{questionnaire.Name}\" questionnaire."

@@ -67,6 +67,9 @@ public sealed class QuestionnaireLinks(IDataProtectionProvider dataProtection, I
             request.ExpiresAt + Grace);
     }
 
+    /// <summary>False without a careers host pattern (<c>ScreenHire:Domains</c>): a link would name no host.</summary>
+    public bool IsConfigured => careers.Value.CareersHostPattern.Contains("{tenant}", StringComparison.Ordinal);
+
     /// <summary>The careers page for <paramref name="token"/> on the organization's careers board.</summary>
     public string Url(string organizationSlug, string token) => $"{careers.Value.BoardUrl(organizationSlug)}/questionnaires/{token}";
 
