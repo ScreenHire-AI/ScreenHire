@@ -1,4 +1,27 @@
-# Workflow Engine — Per-Job Hiring Workflows from User-Defined Templates
+---
+type: Design
+title: "Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates"
+description: "Hiring templates and per-job workflow definitions: stages, scorecards, automations with triggers, conditions and actions, the guardrail that integrity never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
+tags: [workflow, automations, webhooks, scorecards]
+sources:
+  - resource: src/ScreenHire.Domain/Hiring/HiringWorkflow.cs
+  - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
+  - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
+  - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
+  - resource: src/ScreenHire.Domain/Hiring/SystemTemplates.cs
+  - resource: src/ScreenHire.Domain/Automations/
+  - resource: src/ScreenHire.Domain/Applications/ApplicationScorecard.cs
+  - resource: src/ScreenHire.Domain/Webhooks/
+  - resource: src/ScreenHire.Application/Automations/
+  - resource: src/ScreenHire.Application/Webhooks/
+  - resource: apps/api/Endpoints/TemplateEndpoints.cs
+  - resource: apps/api/Endpoints/WorkflowEndpoints.cs
+  - resource: apps/api/Endpoints/AutomationEndpoints.cs
+  - resource: apps/api/Endpoints/ScorecardEndpoints.cs
+  - resource: apps/api/Endpoints/WebhookEndpoints.cs
+  - resource: apps/dashboard/src/lib/workflow.ts
+---
+# Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates
 
 > Status: **Draft v0.1 (2026-10-18)**. Requirement: "customized workflow creation for each job with templates that a
 > user defines". GoHire's gap (from `docs/research/competitors.md`): Pro-only stage actions, **no event triggers, no

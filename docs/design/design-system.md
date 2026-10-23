@@ -1,3 +1,13 @@
+---
+type: Reference
+title: "ScreenHire design system"
+description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status marks, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI and employer branding."
+tags: [design-system, ui, checklist]
+sources:
+  - resource: packages/ui/src/tokens.css
+  - resource: packages/ui/src/theme.css
+  - resource: apps/dashboard/src/routes/(dev)/style-guide/+page.svelte
+---
 # ScreenHire design system
 
 > Status: **v0.2 (2026-10-20)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by

@@ -1,4 +1,18 @@
-# Job Distribution Engine — In-House One-Click Post & Teardown
+---
+type: Design
+title: "Job Distribution Engine: In-House One-Click Post & Teardown"
+description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, and the distribution settings."
+tags: [distribution, job-boards, feeds, google-for-jobs]
+sources:
+  - resource: src/ScreenHire.Application/Distribution/
+  - resource: src/ScreenHire.Domain/Distribution/
+  - resource: apps/api/Endpoints/DistributionEndpoints.cs
+  - resource: apps/api/Endpoints/PublicDistributionEndpoints.cs
+  - resource: apps/careers/src/lib/job-posting.ts
+  - resource: apps/careers/src/pages/[organization]/sitemap.xml.ts
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/
+---
+# Job Distribution Engine: In-House One-Click Post & Teardown
 
 > Status: **v1 built (2026-10-20)**. Section 5 describes what exists; sections 1 to 4 are the design it follows.
 > Owner requirement: build multiposting **in-house as proprietary tech**; aggregators only as a fallback. Research:

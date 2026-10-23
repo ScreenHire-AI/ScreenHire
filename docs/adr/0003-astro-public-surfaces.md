@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0003: Astro for all public, SEO-critical surfaces (marketing site + careers pages)"
+description: "Why the marketing site is static Astro and the careers pages are Astro SSR: the technical SEO baseline, the 15 KB JS and Lighthouse budgets, tenant careers hosts, the embeddable apply widget as an iframe, and domains as configuration."
+tags: [adr, astro, seo, careers, marketing]
+---
 # ADR-0003: Astro for all public, SEO-critical surfaces (marketing site + careers pages)
 
 - **Status:** Accepted (2026-10-18)

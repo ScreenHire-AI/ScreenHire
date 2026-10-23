@@ -1,3 +1,15 @@
+---
+type: Design
+title: "Real-time updates"
+description: "How an ITenantEvent reaches open dashboards: the API's own Wolverine cluster in wolverine_api, the SignalR hub at /v1/hubs/events and its tenant groups, the packages/realtime client and cache invalidation, the C# to Zod contract test, and scaling out."
+tags: [realtime, signalr, events]
+sources:
+  - resource: apps/api/Realtime/
+  - resource: packages/realtime/src/
+  - resource: packages/realtime/contract/events.json
+  - resource: apps/dashboard/src/lib/realtime.ts
+  - resource: tests/ScreenHire.UnitTests/Realtime/RealtimeContractTests.cs
+---
 # Real-time updates
 
 The recruiter dashboard updates live. A job published or closed, and later a new application, a stage move or a

@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0011: Organization API keys now, OAuth client credentials later"
+description: "Organization API keys on the hiring API only: the shk_ key format, a SHA-256 hash with the key shown once, an authentication scheme beside the cookie, read and write scopes, no integrity levels for a key, and why OAuth client credentials with OpenIddict wait."
+tags: [adr, api-keys, auth]
+---
 # ADR-0011: Organization API keys now, OAuth client credentials later
 
 - **Status:** Accepted (2026-10-22)

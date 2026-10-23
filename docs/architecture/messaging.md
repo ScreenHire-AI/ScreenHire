@@ -1,3 +1,13 @@
+---
+type: Design
+title: "Messaging and background work"
+description: "Wolverine on Postgres: publishing from an endpoint through the outbox, the worker queue, database roles and provisioning, how tenant messages keep row-level security, idempotency keys and [Deduplicated], retries and dead letters, cron schedules, and telemetry."
+tags: [messaging, wolverine, outbox]
+sources:
+  - resource: src/ScreenHire.Application/Messaging/
+  - resource: apps/worker/Program.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/
+---
 # Messaging and background work
 
 Background work, domain events and scheduled jobs run on Wolverine 6.51 (MIT, ADR-0008) with Postgres as the only

@@ -1,8 +1,10 @@
 # ScreenHire — agent guide
 
 ScreenHire is an affordable applicant tracking system (ATS) for small hiring teams that detects AI-generated, fraudulent
-and bot applicants and explains every signal in plain language. Decisions, research and designs live in
-[`docs/README.md`](docs/README.md) — read the relevant ADR / architecture doc before changing a subsystem.
+and bot applicants and explains every signal in plain language. Decisions, research and designs live in `docs/`.
+Start at [`docs/index.md`](docs/index.md): it and each folder's `index.md` list every doc with one line on what only
+that doc holds, so open the one that answers the question. Read the relevant ADR / architecture doc before changing a
+subsystem.
 
 ## Repo layout
 
@@ -80,6 +82,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   Testing column runs it once for a branch that changes the marketing build, and only one run measures at a time on
   the machine (the next one waits).
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
+- After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
+  list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;
+  `DocsBundleTests` checks both (ADR-0012).
 - After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
   rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
   `pnpm --filter @screenhire/realtime test` passes, and commit both (`/add-realtime-event`).

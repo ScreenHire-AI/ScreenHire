@@ -1,4 +1,19 @@
-# Integrity Engine — Applicant Authenticity & AI-Assistance Signals
+---
+type: Design
+title: "Integrity Engine: Applicant Authenticity & AI-Assistance Signals"
+description: "The Authenticity and AI-assistance assessments: level rules, the collection timeline, the signal catalogue, the analyzers and the versioned IntegrityRuleset, retention, the LLM consistency check, content forensics, synthetic applicants and golden files, and the Signal Network design."
+tags: [integrity, signals, ruleset, telemetry]
+sources:
+  - resource: src/ScreenHire.Domain/Integrity/
+  - resource: src/ScreenHire.Application/Integrity/
+  - resource: src/ScreenHire.Infrastructure/Integrity/
+  - resource: apps/api/Endpoints/IntegrityEndpoints.cs
+  - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
+  - resource: apps/dashboard/src/lib/integrity.ts
+  - resource: packages/telemetry/src/
+  - resource: tests/ScreenHire.UnitTests/Integrity/Golden/
+---
+# Integrity Engine: Applicant Authenticity & AI-Assistance Signals
 
 > Status: **v1 application stage built (2026-10-20)**, content forensics included (§10.10); §10 describes the implementation. Design draft v0.1
 > (2026-10-18), grounded in `docs/research/legal.md` and `docs/research/competitors.md`.

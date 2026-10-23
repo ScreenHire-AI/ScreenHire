@@ -1,3 +1,9 @@
+---
+type: Research
+title: "Competitive Teardown"
+description: "ATS competitors' prices, AI features and fraud defences as of 2026-10-18, the AI and fraudulent applicant threat landscape, the gaps in the market, and ScreenHire's positioning against GoHire."
+tags: [research, competitors, positioning]
+---
 # Competitive Teardown
 
 > Research snapshot: **2026-10-18**. Prices from vendor pages fetched that day. **[U]** = could not verify.

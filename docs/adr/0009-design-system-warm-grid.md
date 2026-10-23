@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0009: \"Warm Grid\" design direction, shadcn-svelte + daisyUI, one token source"
+description: "The Warm Grid look, amended by ADR-0010: self-hosted fonts, shadcn-svelte on bits-ui in the dashboard, daisyUI as CSS only on public pages, one token source for both, and employer brand tokens computed and contrast-checked on the server."
+tags: [adr, design-system]
+---
 # ADR-0009: "Warm Grid" design direction, shadcn-svelte + daisyUI, one token source
 
 - **Status:** Accepted (2026-10-18); amended by [ADR-0010](0010-design-system-v0-2.md) (2026-10-20), which replaces

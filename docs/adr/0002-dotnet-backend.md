@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0002: ASP.NET Core on .NET 10 LTS for API and workers"
+description: "The backend platform: ASP.NET Core on .NET 10 LTS for the API and worker, PostgreSQL as the system of record with JSONB and pgvector, object storage behind an abstraction, and containers so hosting stays portable."
+tags: [adr, dotnet, postgres]
+---
 # ADR-0002: ASP.NET Core on .NET 10 LTS for API and workers
 
 - **Status:** Accepted (2026-10-18)

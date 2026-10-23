@@ -1,3 +1,19 @@
+---
+type: Design
+title: "Sign-in, organizations and tenant isolation"
+description: "Identity providers and email links, abuse controls, API key authentication, configured domains, organizations, roles, team members and invitations, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
+tags: [auth, tenancy, rls, team]
+sources:
+  - resource: apps/api/Auth/
+  - resource: apps/api/Endpoints/AuthEndpoints.cs
+  - resource: apps/api/Endpoints/TeamEndpoints.cs
+  - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
+  - resource: apps/api/Configuration/DomainOptions.cs
+  - resource: src/ScreenHire.Domain/Organizations/
+  - resource: src/ScreenHire.Infrastructure/Tenancy/
+  - resource: apps/apphost/DevSso/config.json
+  - resource: apps/dashboard/src/lib/auth.ts
+---
 # Sign-in, organizations and tenant isolation
 
 How a recruiter signs in, how their organization is chosen, and how every tenant-owned query stays inside that

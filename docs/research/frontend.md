@@ -1,3 +1,9 @@
+---
+type: Research
+title: "Frontend Framework Benchmarks & Stack Options"
+description: "Benchmarks and stack options for the two frontends, the SEO-critical candidate surface and the recruiter dashboard: Astro, Blazor, Angular and Svelte compared on size and speed, behind ADR-0003."
+tags: [research, frontend, benchmarks]
+---
 # Frontend Framework Benchmarks & Stack Options
 
 > Research snapshot: **2026-10-18**. Constraint from the owner: highly fluent in C#/.NET and Angular, open to Blazor;

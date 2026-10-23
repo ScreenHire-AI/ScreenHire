@@ -1,25 +1,31 @@
+---
+type: Reference
+title: "Roadmap"
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (the editable workflow builder, interview scheduling, adding candidates by hand with server search and reports), later items, and what must exist before real customers."
+tags: [roadmap, planning]
+---
 # Roadmap
 
-What comes after the MVP, in order. What is already built is in the [MVP status](README.md#mvp-status). Snapshot
-2026-10-21; each item names the doc that designs it. Board workflows carry the detail.
+What comes after the MVP, in order. What is already built is in the [MVP status](status.md). Snapshot 2026-10-23;
+each item names the doc that designs it. Board workflows carry the detail.
 
 ## Done since the MVP
 
 | Work | Workflow | PRs |
 |---|---|---|
 | Design system v0.2 in the dashboard: gate stability, demo questionnaires and answers, the foundation, components and a style guide, the app shell, an inline resume preview, every page, and a visual design pass in `/task-review` ([design system](design/design-system.md), ADR-0010) | "Design system v0.2" | #22 to #33 |
+| Webhook subscriptions, organization API keys for the hiring API, team members with invitations and organization switching ([sign-in and tenancy](architecture/sign-in-and-tenancy.md), [workflow engine](architecture/workflow-engine.md) §5, ADR-0011) | "Platform: team, API access and webhooks" | #36 to #38 |
+| Settings screens; notes, tags, tasks, a Run button for manual automations and a notification tray; scorecards that raise the "reviewer decision" trigger; editable email templates with manual and bulk email ([email](architecture/email.md), [workflow engine](architecture/workflow-engine.md) §8); the docs as an Open Knowledge Format bundle (ADR-0012) | "Team, collaboration and communication" | #39 to #42, and the docs restructure |
 
-Nothing is in flight. Items 1 and 2 below are saved as board workflows and wait for the owner to start them.
+Nothing is in flight. None of the items below is saved as a board workflow yet.
 
 ## Next
 
 | # | Work | Workflow | Why now |
 |---|---|---|---|
-| 1 | Team members and invites, API keys for integrators, webhook subscriptions (backend only) | "Platform: team, API access and webhooks" | Every member is an Owner today and nobody can invite a colleague; the public API is a headline feature but every route needs a browser session ([sign-in and tenancy](architecture/sign-in-and-tenancy.md), [workflow engine](architecture/workflow-engine.md) §5) |
-| 2 | Settings and team screens, notes, tags, tasks, scorecards, editable email templates, manual and bulk email | "Team, collaboration and communication" | The basics a hiring team uses daily. Starts after the platform workflow, on the design system's components |
-| 3 | Workflow builder: an editable xyflow graph, firing the "questionnaire completed" trigger, the send-questionnaire action, a Run button for manual automations, acting on stage SLAs | not yet planned | The graph is read-only today and the "questionnaire completed" trigger can be chosen but never fires ([workflow engine](architecture/workflow-engine.md) §8). Scorecards raise "reviewer decision" |
-| 4 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
-| 5 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
+| 1 | Workflow builder: an editable xyflow graph, firing the "questionnaire completed" trigger, the send-questionnaire action, acting on stage SLAs | not yet planned | The graph is read-only today and the "questionnaire completed" trigger can be chosen but never fires ([workflow engine](architecture/workflow-engine.md) §8). The Run button and the "reviewer decision" trigger shipped with the collaboration workflow |
+| 2 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
+| 3 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
 
 ## Later
 
@@ -40,7 +46,7 @@ Nothing is in flight. Items 1 and 2 below are saved as board workflows and wait 
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
   2027), the customer documentation pack.
 - **Accessibility:** an external WCAG 2.2 audit before general availability (ADR-0009).
-- **Owner actions:** the accounts, keys and decisions in the [MVP status](README.md#owner-actions).
+- **Owner actions:** the accounts, keys and decisions in the [MVP status](status.md#owner-actions).
 
 ## Start now, outside the code
 

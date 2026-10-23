@@ -1,3 +1,14 @@
+---
+type: Guide
+title: "Run ScreenHire locally and demo it"
+description: "Running the whole stack locally with pnpm dev or /preview: prerequisites, the URLs, the Dev SSO demo logins, what DevelopmentDemo seeds on Brightwater, a five-minute demo script, what is faked locally, and what to do when something looks wrong."
+tags: [demo, local, aspire]
+sources:
+  - resource: apps/api/Demo/
+  - resource: apps/apphost/DevSso/config.json
+  - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
+  - resource: .claude/skills/preview/SKILL.md
+---
 # Run ScreenHire locally and demo it
 
 Everything runs on one machine with no accounts, keys or internet services: `pnpm dev` starts the whole stack in
@@ -198,7 +209,7 @@ Settings, as Avery (owners and admins only):
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 
-The [MVP status](../README.md#mvp-status) lists what each of these needs before real use.
+The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.
 
 ## When something looks wrong
 

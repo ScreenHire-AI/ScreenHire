@@ -3,7 +3,7 @@
 An affordable applicant tracking system for small hiring teams that knows who is really applying: it detects bots,
 impersonators and AI-generated applications and explains every signal in plain language. Evidence, never verdicts.
 
-- **Docs:** [`docs/README.md`](docs/README.md): MVP status, decision log (ADRs), architecture, design system, research.
+- **Docs:** [`docs/index.md`](docs/index.md) is the map; [`docs/README.md`](docs/README.md) says where to start. The MVP status, decisions (ADRs), architecture, design system and research are all listed there.
 - **Agent guide:** [`CLAUDE.md`](CLAUDE.md).
 
 ## Quick start
@@ -36,7 +36,7 @@ integrity level. Any other email address starts a new account. Nothing needs a r
 providers, the LLM check, job boards and IP data all have local stand-ins.
 
 The demo script, logins, what is faked and how to reset the data: [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
-What is built and what the owner still has to do before real use: [MVP status](docs/README.md#mvp-status).
+What is built and what the owner still has to do before real use: [MVP status](docs/status.md).
 
 Tests and the gate: `pnpm e2e:install` once per machine, then `pnpm verify`
 ([`docs/process/testing.md`](docs/process/testing.md)).
