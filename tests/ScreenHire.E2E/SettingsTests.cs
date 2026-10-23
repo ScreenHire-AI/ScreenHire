@@ -12,6 +12,10 @@ namespace ScreenHire.E2E;
 /// </summary>
 public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 {
+    private static readonly string[] ReadOnly = ["Read"];
+
+    private static readonly string[] JobPublished = ["job.published"];
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -167,13 +171,13 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
                 invited.StatusCode.Should().Be(HttpStatusCode.Created);
             }
 
-            using (var key = await session.PostAsync("/v1/organization/api-keys", new { name = "Payroll sync", scopes = new[] { "Read" } }, Ct))
+            using (var key = await session.PostAsync("/v1/organization/api-keys", new { name = "Payroll sync", scopes = ReadOnly }, Ct))
             {
                 key.StatusCode.Should().Be(HttpStatusCode.Created);
             }
 
             using var endpoint = await session.PostAsync(
-                "/v1/webhooks", new { url = "https://hooks.example.com/in", events = new[] { "job.published" }, description = "Applicant sync" }, Ct);
+                "/v1/webhooks", new { url = "https://hooks.example.com/in", events = JobPublished, description = "Applicant sync" }, Ct);
             endpoint.StatusCode.Should().Be(HttpStatusCode.Created);
             endpointId = (await endpoint.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("endpoint").GetProperty("id").GetString()!;
         }
