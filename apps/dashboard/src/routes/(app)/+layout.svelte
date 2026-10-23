@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getApplication, listAutomationRuns } from '@screenhire/api-client';
   import { createListApplications } from '@screenhire/api-client/svelte-query';
   import { setQueryClientContext } from '@tanstack/svelte-query';
   import { onDestroy } from 'svelte';
@@ -7,9 +8,11 @@
   import { clock } from '#lib/clock.svelte.js';
   import AppSidebar from '#lib/components/app-sidebar.svelte';
   import CommandPalette from '#lib/components/command-palette.svelte';
+  import NotificationTray from '#lib/components/notification-tray.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
+  import { Notifications, teamNotification } from '#lib/notifications.svelte.js';
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
   import { savedViews } from '#lib/saved-views.js';
@@ -24,7 +27,23 @@
   const queryClient = createQueryClient();
   setQueryClientContext(queryClient);
   const live = startLiveUpdates(queryClient);
+
+  // A NotifyTeam action shows in the tray. TeamNotified carries ids only, so the tray reads the application and the run
+  // (for the action's note) through the API first; an application this person cannot read shows nothing.
+  const notifications = new Notifications();
+  const stopNotifying = live.onEvent((event) => {
+    if (event.type === 'TeamNotified') void notifyTeam(event.data.applicationId, event.data.runId);
+  });
+
+  async function notifyTeam(applicationId: string, runId: string) {
+    const [application, runs] = await Promise.all([getApplication(applicationId), listAutomationRuns(applicationId)]);
+    if (application.status !== 200) return;
+    const run = runs.status === 200 ? runs.data.find((entry) => entry.id === runId) : undefined;
+    notifications.add(teamNotification(runId, run, application.data));
+  }
+
   onDestroy(() => {
+    stopNotifying();
     void live.stop();
     queryClient.clear();
   });
@@ -70,5 +89,6 @@
   </Sidebar.Inset>
 </Sidebar.Provider>
 
+<NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} />
 <CommandPalette bind:open={paletteOpen} />
 <ShortcutsDialog bind:open={shortcutsOpen} />

@@ -1,5 +1,6 @@
 <script lang="ts">
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
   import type { WorkflowStage } from '@screenhire/api-client';
   import { buttonVariants, type ButtonSize, type ButtonVariant } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -16,6 +17,7 @@
     size,
     class: className,
     onmove,
+    onnote,
   }: {
     candidateName: string;
     currentStageId: string;
@@ -29,6 +31,8 @@
     size?: ButtonSize;
     class?: string;
     onmove: (stage: WorkflowStage) => void;
+    /** Adds "With a note", which opens a sheet to move with a note (the detail page's). */
+    onnote?: () => void;
   } = $props();
 </script>
 
@@ -51,5 +55,9 @@
         {#if stage.id === currentStageId}<span class="ml-auto text-caption text-muted-foreground">current</span>{/if}
       </DropdownMenu.Item>
     {/each}
+    {#if onnote}
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item onSelect={onnote}><StickyNoteIcon aria-hidden="true" />With a note…</DropdownMenu.Item>
+    {/if}
   </DropdownMenu.Content>
 </DropdownMenu.Root>

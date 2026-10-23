@@ -1,5 +1,6 @@
 import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
 import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
+import ListTodoIcon from '@lucide/svelte/icons/list-todo';
 import UsersIcon from '@lucide/svelte/icons/users';
 import { getContext, setContext } from 'svelte';
 
@@ -37,4 +38,5 @@ export const sections: readonly {
     matches: (path) => path.startsWith('/candidates') || path.startsWith('/applications/'),
   },
   { label: 'Templates', href: '/templates', key: 't', icon: LayoutTemplateIcon, matches: (path) => path.startsWith('/templates') },
+  { label: 'My tasks', href: '/tasks', key: 'm', icon: ListTodoIcon, matches: (path) => path.startsWith('/tasks') },
 ];

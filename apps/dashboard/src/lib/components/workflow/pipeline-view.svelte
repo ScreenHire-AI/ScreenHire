@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
@@ -27,6 +28,8 @@
     /** Opens the automations drawer for a stage, or for the whole workflow (null). */
     onopen: (stageId: string | null) => void;
   } = $props();
+  // Names an AssignReviewer action's reviewer.
+  const team = createListTeamMembers();
 
   const inLane = (stageId: string | null) => workflow.automations.filter((automation) => laneOf(automation) === stageId);
   const laneErrors = (stageId: string | null) =>
@@ -44,7 +47,7 @@
       {#each automations as automation (automation.id)}
         <li class={['flex gap-1.5', automation.enabled === false && 'text-muted-foreground']}>
           <ArrowRightIcon aria-hidden="true" class="mt-0.5 shrink-0 text-muted-foreground" />
-          <span>{summarize(automation, workflow)}{automation.enabled === false ? ' (off)' : ''}</span>
+          <span>{summarize(automation, workflow, team.data?.data)}{automation.enabled === false ? ' (off)' : ''}</span>
         </li>
       {/each}
     </ul>

@@ -3,6 +3,7 @@
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import IconButton from '#lib/components/icon-button.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -26,6 +27,7 @@
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
+  import { assignableMembers } from '#lib/team.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
@@ -41,6 +43,10 @@
   }: { automation: Automation; index: number; workflow: HiringWorkflow; errors: readonly DefinitionError[]; onremove: () => void } = $props();
 
   const uid = $props.id();
+  // AssignReviewer names one of these, or nobody for the whole team. Viewers are left out: they could not complete the
+  // review task. A reviewer who has left keeps their option until someone picks another, so the form shows what is saved.
+  const team = createListTeamMembers();
+  const reviewers = $derived(assignableMembers(team.data?.data ?? []));
   const path = $derived(`automations[${index}]`);
   const facts = $derived(factsFor(workflow));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
@@ -236,6 +242,23 @@
                 {actionFieldLabels[field]}
                 <select class={selectClass} bind:value={action.stageId}>
                   {#each workflow.stages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+                </select>
+              </label>
+            {:else if action.type === 'AssignReviewer'}
+              <label class={labelClass}>
+                Reviewer
+                <select
+                  class={selectClass}
+                  bind:value={
+                    () => action.assigneeUserId ?? '',
+                    (userId) => (automation.actions[actionIndex] = userId ? { type: 'AssignReviewer', assigneeUserId: userId } : { type: 'AssignReviewer' })
+                  }
+                >
+                  <option value="">Anyone on the team</option>
+                  {#each reviewers as member (member.userId)}<option value={member.userId}>{member.displayName}</option>{/each}
+                  {#if action.assigneeUserId && !reviewers.some((member) => member.userId === action.assigneeUserId)}
+                    <option value={action.assigneeUserId}>{team.isSuccess ? 'No longer on the team' : 'Loading the team…'}</option>
+                  {/if}
                 </select>
               </label>
             {:else if field}

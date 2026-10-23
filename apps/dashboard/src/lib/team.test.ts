@@ -1,0 +1,32 @@
+import type { TeamMember } from '@screenhire/api-client';
+import { describe, expect, it } from 'vitest';
+import { assignableMembers, assigneeText, personName } from './team.js';
+
+const member = (userId: string, displayName: string, role: TeamMember['role']): TeamMember => ({
+  id: `m-${userId}`,
+  userId,
+  email: `${userId}@example.com`,
+  displayName,
+  role,
+  joinedAt: '2026-10-20T09:00:00Z',
+});
+
+const members = [member('u1', 'Avery Quinn', 'Owner'), member('u2', 'Robin Ashby', 'Recruiter'), member('u3', 'Sam Lee', 'Viewer')];
+
+describe('team', () => {
+  it('names the signed-in person "you", members by name, and anyone else as a former teammate', () => {
+    expect(personName('u1', members, 'u1')).toBe('you');
+    expect(personName('u2', members, 'u1')).toBe('Robin Ashby');
+    expect(personName('gone', members, 'u1')).toBe('a former teammate');
+  });
+
+  it('says who a task is for', () => {
+    expect(assigneeText(null, members, 'u1')).toBe('For the team');
+    expect(assigneeText('u1', members, 'u1')).toBe('For you');
+    expect(assigneeText('u2', members, 'u1')).toBe('For Robin Ashby');
+  });
+
+  it('offers only members whose role can complete a task', () => {
+    expect(assignableMembers(members).map((m) => m.userId)).toEqual(['u1', 'u2']);
+  });
+});
