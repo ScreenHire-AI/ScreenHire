@@ -269,6 +269,14 @@ public sealed class FollowUpQuestionnaireTests
         var telemetry = provider.CreateProtector("ScreenHire.Telemetry.Session.v1").ToTimeLimitedDataProtector()
             .Protect($"{request.OrganizationId:N}.{request.Id:N}", DateTimeOffset.UtcNow.AddHours(1));
         links.Read(telemetry).Should().BeNull();
+        links.IsConfigured.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Links_without_a_careers_host_pattern_are_not_configured()
+    {
+        // A worker without ScreenHire:Domains would email https:///questionnaires/..., so SendQuestionnaire fails first.
+        new QuestionnaireLinks(new EphemeralDataProtectionProvider(), Options.Create(new CareersSiteOptions())).IsConfigured.Should().BeFalse();
     }
 
     private static AutomationAction Tag() => new(ActionType.AddTag, Tag: "x");
