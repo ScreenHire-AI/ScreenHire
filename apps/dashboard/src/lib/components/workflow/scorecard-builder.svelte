@@ -7,7 +7,7 @@
   import IconButton from '#lib/components/icon-button.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { defaultScorecard, errorsAt, errorsUnder, moveItem, newCriterion, ratingLabels, ratings, removeAt } from '#lib/workflow.js';
+  import { defaultScorecard, errorsAt, errorsUnder, moveItem, newCriterion, removeAt } from '#lib/workflow.js';
   import { insetClass, labelClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
@@ -21,7 +21,6 @@
 </script>
 
 <div class="flex flex-col gap-4">
-  <p class="text-body text-muted-foreground">Rate what the job needs: skills, experience and the work itself. Never personality, emotion or honesty.</p>
   <FieldErrors id={`${uid}-errors`} messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.criteria`)]} />
 
   {#if stage.scorecard}
@@ -58,7 +57,6 @@
         </li>
       {/each}
     </ol>
-    <p class="text-caption text-muted-foreground">Rated {ratings.map((rating) => ratingLabels[rating].toLowerCase()).join(', ')}, then an overall recommendation.</p>
     <div class="flex flex-wrap gap-2">
       <Button variant="outline" size="lg" onclick={() => (scorecard.criteria = [...scorecard.criteria, newCriterion(scorecard)])}>
         <PlusIcon aria-hidden="true" />Add criterion

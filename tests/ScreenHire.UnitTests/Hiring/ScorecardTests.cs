@@ -54,6 +54,10 @@ public sealed class ScorecardTests
     [InlineData("Seems honest")]
     [InlineData("Culture fit")]
     [InlineData("Trustworthy")]
+    [InlineData("Positive attitude")]
+    [InlineData("Passion for the product")]
+    [InlineData("Motivation")]
+    [InlineData("Demeanour")]
     public void A_criterion_never_rates_personality_emotion_or_honesty(string label)
     {
         var workflow = WithStage(new WorkflowStage("panel", "Panel", StageKind.Interview, Scorecard: Card(new ScorecardCriterion("c", label))));
@@ -64,6 +68,7 @@ public sealed class ScorecardTests
 
     [Theory]
     [InlineData("Data integrity", null)]
+    [InlineData("Energy sector knowledge", "Character encoding and statistical confidence in the exercise.")]
     [InlineData("Honours deadlines in the exercise", null)]
     [InlineData("Testing", "Covers the edge cases the exercise names.")]
     public void Job_related_criteria_pass(string label, string? guidance)

@@ -406,7 +406,7 @@ describe('application page', () => {
       expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
 
       await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Skills the role needs' })).getByRole('radio', { name: 'Demonstrated' }));
-      await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Recommendation' })).getByRole('radio', { name: 'Strong yes' }));
+      await fireEvent.click(within(within(sheet).getByRole('group', { name: /^Recommendation/ })).getByRole('radio', { name: 'Strong yes' }));
       await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: '  Good depth.  ' } });
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
 

@@ -121,7 +121,7 @@
       {/each}
 
       <fieldset class="flex flex-col gap-2" aria-describedby={missingRecommendation ? `${uid}-recommendation-error` : undefined}>
-        <legend class="text-body font-semibold">Recommendation</legend>
+        <legend class="text-body font-semibold">Recommendation <span class="text-caption font-normal text-muted-foreground">Required</span></legend>
         <div class="grid gap-1.5 @sm:grid-cols-2">
           {#each recommendations as value (value)}
             <label

@@ -108,6 +108,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl">
     <Sheet.Header>
       <Sheet.Title>Scorecard: {workflow.stages[scorecardIndex]?.name ?? ''}</Sheet.Title>
+      <Sheet.Description>Rate what the job needs: skills, experience and the work itself. Never personality, emotion or honesty.</Sheet.Description>
     </Sheet.Header>
     <div class="@container px-4 pb-4">
       {#if scorecardIndex >= 0}

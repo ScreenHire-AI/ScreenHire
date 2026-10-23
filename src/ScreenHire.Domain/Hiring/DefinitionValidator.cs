@@ -929,9 +929,10 @@ public static partial class DefinitionValidator
     private static partial Regex CurrencyCode();
 
     // A backstop for criteria that rate the person rather than the job (CLAUDE.md non-negotiable 3). Whole words only,
-    // and not "integrity" on its own: "data integrity" is a fair engineering criterion. It catches the obvious cases; a
-    // criterion's meaning is for the template builder's guidance and review of system templates (workflow-engine.md §7).
-    [GeneratedRegex(@"\b(personality|personalities|emotion|emotions|emotional|emotionally|honest|honesty|dishonest|dishonesty|truthful|truthfulness|lying|liar|trustworthy|trustworthiness|sincere|sincerity|temperament|likeable|likeability|culture fit|gut feeling)\b",
+    // and not words with a fair job meaning: "data integrity", "energy sector knowledge", "character encoding" and
+    // "statistical confidence" pass. It catches the obvious cases; a criterion's meaning is for the template builder's
+    // guidance and review of system templates (workflow-engine.md §7).
+    [GeneratedRegex(@"\b(personality|personalities|emotion|emotions|emotional|emotionally|honest|honesty|dishonest|dishonesty|truthful|truthfulness|lying|liar|trustworthy|trustworthiness|sincere|sincerity|temperament|likeable|likeability|likability|culture fit|cultural fit|gut feeling|attitude|enthusiasm|enthusiastic|passion|passionate|demeanor|demeanour|motivation|motivated|charisma|charismatic|vibe|vibes)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PersonalJudgement();
 }
