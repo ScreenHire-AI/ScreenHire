@@ -89,7 +89,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>Fill scorecard</Sheet.Title>
-      <Sheet.Description>Rate what the job needs. Your team sees it with your name.</Sheet.Description>
+      <Sheet.Description>Your team sees it with your name, and it is final once submitted.</Sheet.Description>
     </Sheet.Header>
     <form novalidate class="@container flex flex-col gap-5 px-4 pb-4" {onsubmit}>
       {#if stages.length > 1}

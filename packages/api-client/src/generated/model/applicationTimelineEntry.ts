@@ -28,9 +28,9 @@ export interface ApplicationTimelineEntry {
   /** @nullable */
   actorApiKeyId: string | null;
   /** @nullable */
-  scorecardId?: string | null;
+  scorecardId: string | null;
   /** @nullable */
-  stageId?: string | null;
+  stageId: string | null;
   /** @nullable */
-  recommendation?: string | null;
+  recommendation: string | null;
 }

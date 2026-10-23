@@ -6003,7 +6003,10 @@
           "note",
           "tag",
           "automationRunId",
-          "actorApiKeyId"
+          "actorApiKeyId",
+          "scorecardId",
+          "stageId",
+          "recommendation"
         ],
         "type": "object",
         "properties": {

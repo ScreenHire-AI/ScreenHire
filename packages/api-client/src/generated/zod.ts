@@ -2625,9 +2625,9 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "tag": zod.string().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "actorApiKeyId": zod.uuid().nullable(),
-  "scorecardId": zod.uuid().nullish(),
-  "stageId": zod.string().nullish(),
-  "recommendation": zod.string().nullish()
+  "scorecardId": zod.uuid().nullable(),
+  "stageId": zod.string().nullable(),
+  "recommendation": zod.string().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -2651,9 +2651,9 @@ export const AddApplicationNoteResponse = zod.object({
   "tag": zod.string().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "actorApiKeyId": zod.uuid().nullable(),
-  "scorecardId": zod.uuid().nullish(),
-  "stageId": zod.string().nullish(),
-  "recommendation": zod.string().nullish()
+  "scorecardId": zod.uuid().nullable(),
+  "stageId": zod.string().nullable(),
+  "recommendation": zod.string().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 

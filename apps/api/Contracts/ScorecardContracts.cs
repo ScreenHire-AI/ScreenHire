@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
@@ -34,14 +35,16 @@ public sealed record ScorecardRating(string CriterionId, string Label, Criterion
 /// <remarks>
 /// <c>ratings</c>: Ratings by criterion id; a criterion left out is not rated. <c>note</c>: Optional, for the hiring team.
 /// </remarks>
+// The enums are JsonRequired: left out, they would bind to their first member (StrongNo, NotDemonstrated) and store a
+// judgement nobody gave, in a scorecard that cannot be changed.
 public sealed record SubmitScorecardRequest(
     string StageId,
     IReadOnlyList<CriterionRatingInput> Ratings,
-    Recommendation Recommendation,
+    [property: JsonRequired] Recommendation Recommendation,
     string? Note = null);
 
 /// <summary>The rating for one criterion of the stage's scorecard.</summary>
-public sealed record CriterionRatingInput(string CriterionId, CriterionRating Rating);
+public sealed record CriterionRatingInput(string CriterionId, [property: JsonRequired] CriterionRating Rating);
 
 internal static class ScorecardMappings
 {

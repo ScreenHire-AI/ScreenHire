@@ -87,9 +87,9 @@ public sealed record ApplicationTimelineEntry(
     string? Tag,
     Guid? AutomationRunId,
     Guid? ActorApiKeyId,
-    Guid? ScorecardId = null,
-    string? StageId = null,
-    string? Recommendation = null);
+    Guid? ScorecardId,
+    string? StageId,
+    string? Recommendation);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email

@@ -183,7 +183,7 @@ describe('workflow builder', () => {
     expect(within(stages).queryByRole('button', { name: 'Scorecard for Hired' })).toBeNull();
     await fireEvent.click(within(stages).getByRole('button', { name: 'Scorecard for Phone screen' }));
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
-    expect(sheet).toHaveTextContent('Never personality, emotion or honesty.');
+    expect(sheet).toHaveTextContent('never personality, emotion or honesty.');
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Add scorecard' }));
 
     const criteria = within(sheet).getByRole('list', { name: 'Criteria' });

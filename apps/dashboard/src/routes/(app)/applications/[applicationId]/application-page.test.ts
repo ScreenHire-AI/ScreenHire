@@ -99,6 +99,9 @@ const entry = (overrides: Partial<ApplicationTimelineEntry>): ApplicationTimelin
   tag: null,
   automationRunId: null,
   actorApiKeyId: null,
+  scorecardId: null,
+  stageId: null,
+  recommendation: null,
   ...overrides,
 });
 

@@ -82,6 +82,14 @@ internal static class ScorecardEndpoints
             return TypedResults.NotFound();
         }
 
+        // A retry is answered from the stored scorecard before the checks below, which read the job's current workflow:
+        // an edit since the first request must not turn the same submission into an error.
+        var ratings = request.Ratings.ToDictionary(r => r.CriterionId, r => (CriterionRating?)r.Rating, StringComparer.Ordinal);
+        if (await ExistingAsync(db, application.Id, request.StageId, reviewerUserId, cancellationToken) is { } existing)
+        {
+            return Replay(existing, ratings, request);
+        }
+
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         if (job.Workflow.FindStage(request.StageId) is not { Scorecard: { } card } stage)
         {
@@ -106,12 +114,6 @@ internal static class ScorecardEndpoints
         if (application.CurrentStageId != stage.Id && !entries.Exists(d => d.ToStageId == stage.Id))
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("stageId", $"The application has not been in {stage.Name} yet."));
-        }
-
-        var ratings = request.Ratings.ToDictionary(r => r.CriterionId, r => (CriterionRating?)r.Rating, StringComparer.Ordinal);
-        if (await ExistingAsync(db, application.Id, stage.Id, reviewerUserId, cancellationToken) is { } existing)
-        {
-            return Replay(existing, ratings, request);
         }
 
         var now = time.GetUtcNow();

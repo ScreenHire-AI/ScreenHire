@@ -38,6 +38,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
+  import ScorecardList from '#lib/components/scorecard-list.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
@@ -48,7 +49,6 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TagList from '#lib/components/tag-list.svelte';
-  import ScorecardList from '#lib/components/scorecard-list.svelte';
   import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
