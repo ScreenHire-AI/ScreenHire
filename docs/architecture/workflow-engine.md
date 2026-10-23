@@ -91,8 +91,8 @@ validation result is a status badge beside the page title.
 - **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-builder.svelte`): criteria with what to look for, reordered
   with buttons. Adding a scorecard starts from job-related defaults, and the sheet says criteria never rate
-  personality, emotion or honesty. A stage that ends the application offers no scorecard. Automations whose trigger has no stage (an arriving application, the integrity checks, a manual
-  run) sit in a "Whole workflow" lane. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  personality, emotion or honesty. A stage that ends the application offers no scorecard. Automations whose trigger
+  has no stage (an arriving application, the integrity checks, a manual run) sit in a "Whole workflow" lane. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): stages
   along the top, one row per automation from trigger to conditions to actions, edges to the stages it fires on and
