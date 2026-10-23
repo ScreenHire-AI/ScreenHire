@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { Scorecard } from './scorecard.ts';
 import type { StageKind } from './stageKind.ts';
 
 /**
@@ -15,4 +16,5 @@ export interface WorkflowStage {
   kind: StageKind;
   /** @nullable */
   slaDays?: number | null;
+  scorecard?: null | Scorecard;
 }

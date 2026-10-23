@@ -21,6 +21,8 @@ import type {
 } from '@tanstack/svelte-query';
 
 import type {
+  AddApplicationNoteRequest,
+  AddApplicationTagRequest,
   AddIntegrityNoteRequest,
   ApiKeySummary,
   ApiMeta,
@@ -39,7 +41,6 @@ import type {
   ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
-  CreateEmailTemplateRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
@@ -48,11 +49,6 @@ import type {
   CurrentOrganization,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
-  EmailPreview,
-  EmailTemplateDraft,
-  EmailTemplateEntry,
-  EmailTemplateList,
-  EmailsQueued,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -69,6 +65,7 @@ import type {
   JobVersionDetail,
   JobVersionSummary,
   ListJobBoardJobsParams,
+  ListTasksParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
@@ -80,7 +77,6 @@ import type {
   OrganizationIntegritySettings,
   OrganizationProfile,
   PendingInvitation,
-  PreviewApplicationEmailParams,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -89,16 +85,17 @@ import type {
   PublicJobBoard,
   PublicOrganization,
   PublishJobRequest,
+  RemoveApplicationTagParams,
   SandboxBoardListing,
-  SendEmailsRequest,
+  ScorecardEntry,
   SignInMethods,
   SimulateWorkflowRequest,
+  SubmitScorecardRequest,
   SwitchOrganizationRequest,
+  TaskListItem,
   TeamMember,
   TelemetrySnapshotInput,
-  TestEmailSent,
   UpdateBrandingRequest,
-  UpdateEmailTemplateRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
   UpdateIntegritySettingsRequest,
@@ -4924,6 +4921,370 @@ export function createGetApplicationTimeline<TData = Awaited<ReturnType<typeof g
 
 
 
+export type addApplicationNoteResponse201 = {
+  data: ApplicationTimelineEntry
+  status: 201
+}
+
+export type addApplicationNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addApplicationNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addApplicationNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addApplicationNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addApplicationNoteResponse429 = {
+  data: void
+  status: 429
+}
+
+export type addApplicationNoteResponseSuccess = (addApplicationNoteResponse201) & {
+  headers: Headers;
+};
+export type addApplicationNoteResponseError = (addApplicationNoteResponse400 | addApplicationNoteResponse401 | addApplicationNoteResponse403 | addApplicationNoteResponse404 | addApplicationNoteResponse429) & {
+  headers: Headers;
+};
+
+export const getAddApplicationNoteUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/notes`
+}
+
+export const addApplicationNote = async (applicationId: string,
+    addApplicationNoteRequest: AddApplicationNoteRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addApplicationNoteResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<addApplicationNoteResponseSuccess>(getAddApplicationNoteUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addApplicationNoteRequest)
+  }
+);}
+
+
+
+
+
+export const getAddApplicationNoteMutationKey = () => ['addApplicationNote'] as const;
+
+export const getAddApplicationNoteMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext> => {
+
+const mutationKey = getAddApplicationNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addApplicationNote>>, AddApplicationNoteMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  addApplicationNote(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddApplicationNoteMutationResult = NonNullable<Awaited<ReturnType<typeof addApplicationNote>>>
+    export type AddApplicationNoteMutationBody = AddApplicationNoteRequest
+    export type AddApplicationNoteMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type AddApplicationNoteMutationVariables = {applicationId: string;data: AddApplicationNoteRequest}
+
+    export const createAddApplicationNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof addApplicationNote>>,
+        TError,
+        AddApplicationNoteMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAddApplicationNoteMutationOptions(options?.()) }), queryClient);
+    }
+
+export type addApplicationTagResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type addApplicationTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addApplicationTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addApplicationTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addApplicationTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addApplicationTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type addApplicationTagResponse429 = {
+  data: void
+  status: 429
+}
+
+export type addApplicationTagResponseSuccess = (addApplicationTagResponse200) & {
+  headers: Headers;
+};
+export type addApplicationTagResponseError = (addApplicationTagResponse400 | addApplicationTagResponse401 | addApplicationTagResponse403 | addApplicationTagResponse404 | addApplicationTagResponse409 | addApplicationTagResponse429) & {
+  headers: Headers;
+};
+
+export const getAddApplicationTagUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tags`
+}
+
+export const addApplicationTag = async (applicationId: string,
+    addApplicationTagRequest: AddApplicationTagRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addApplicationTagResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<addApplicationTagResponseSuccess>(getAddApplicationTagUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addApplicationTagRequest)
+  }
+);}
+
+
+
+
+
+export const getAddApplicationTagMutationKey = () => ['addApplicationTag'] as const;
+
+export const getAddApplicationTagMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext> => {
+
+const mutationKey = getAddApplicationTagMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addApplicationTag>>, AddApplicationTagMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  addApplicationTag(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddApplicationTagMutationResult = NonNullable<Awaited<ReturnType<typeof addApplicationTag>>>
+    export type AddApplicationTagMutationBody = AddApplicationTagRequest
+    export type AddApplicationTagMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type AddApplicationTagMutationVariables = {applicationId: string;data: AddApplicationTagRequest}
+
+    export const createAddApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof addApplicationTag>>,
+        TError,
+        AddApplicationTagMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAddApplicationTagMutationOptions(options?.()) }), queryClient);
+    }
+
+export type removeApplicationTagResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type removeApplicationTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type removeApplicationTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeApplicationTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeApplicationTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removeApplicationTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removeApplicationTagResponse429 = {
+  data: void
+  status: 429
+}
+
+export type removeApplicationTagResponseSuccess = (removeApplicationTagResponse200) & {
+  headers: Headers;
+};
+export type removeApplicationTagResponseError = (removeApplicationTagResponse400 | removeApplicationTagResponse401 | removeApplicationTagResponse403 | removeApplicationTagResponse404 | removeApplicationTagResponse409 | removeApplicationTagResponse429) & {
+  headers: Headers;
+};
+
+export const getRemoveApplicationTagUrl = (applicationId: string,
+    params?: RemoveApplicationTagParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/applications/${applicationId}/tags?${stringifiedParams}` : `/v1/applications/${applicationId}/tags`
+}
+
+export const removeApplicationTag = async (applicationId: string,
+    params?: RemoveApplicationTagParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<removeApplicationTagResponseSuccess> => {
+
+  return apiQueryFetch<removeApplicationTagResponseSuccess>(getRemoveApplicationTagUrl(applicationId,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveApplicationTagMutationKey = () => ['removeApplicationTag'] as const;
+
+export const getRemoveApplicationTagMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext> => {
+
+const mutationKey = getRemoveApplicationTagMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeApplicationTag>>, RemoveApplicationTagMutationVariables> = (props) => {
+          const {applicationId,params} = props ?? {};
+
+          return  removeApplicationTag(applicationId,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveApplicationTagMutationResult = NonNullable<Awaited<ReturnType<typeof removeApplicationTag>>>
+
+    export type RemoveApplicationTagMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type RemoveApplicationTagMutationVariables = {applicationId: string;params?: RemoveApplicationTagParams}
+
+    export const createRemoveApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof removeApplicationTag>>,
+        TError,
+        RemoveApplicationTagMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRemoveApplicationTagMutationOptions(options?.()) }), queryClient);
+    }
+
 export type downloadApplicationFileResponse401 = {
   data: void
   status: 401
@@ -8410,6 +8771,424 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getRunManualAutomationMutationOptions(options?.()) }), queryClient);
     }
 
+export type listTasksResponse200 = {
+  data: TaskListItem[]
+  status: 200
+}
+
+export type listTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTasksResponseSuccess = (listTasksResponse200) & {
+  headers: Headers;
+};
+export type listTasksResponseError = (listTasksResponse401) & {
+  headers: Headers;
+};
+
+export const getListTasksUrl = (params?: ListTasksParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/tasks?${stringifiedParams}` : `/v1/tasks`
+}
+
+export const listTasks = async (params?: ListTasksParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listTasksResponseSuccess> => {
+
+  return apiQueryFetch<listTasksResponseSuccess>(getListTasksUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTasksQueryKey = (params?: ListTasksParams,) => {
+    return [
+    'v1','tasks', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListTasksQueryOptions = <TData = Awaited<ReturnType<typeof listTasks>>, TError = ErrorType<void>>(params?: ListTasksParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTasksQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTasks>>> = ({ signal }) => listTasks(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listTasks>>>
+export type ListTasksQueryError = ErrorType<void>
+
+
+
+export function createListTasks<TData = Awaited<ReturnType<typeof listTasks>>, TError = ErrorType<void>>(
+ params?: () =>  ListTasksParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListTasksQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type completeTaskResponse200 = {
+  data: ApplicationTaskEntry
+  status: 200
+}
+
+export type completeTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type completeTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type completeTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type completeTaskResponseSuccess = (completeTaskResponse200) & {
+  headers: Headers;
+};
+export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404) & {
+  headers: Headers;
+};
+
+export const getCompleteTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/v1/tasks/${taskId}/complete`
+}
+
+export const completeTask = async (taskId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<completeTaskResponseSuccess> => {
+
+  return apiQueryFetch<completeTaskResponseSuccess>(getCompleteTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteTaskMutationKey = () => ['completeTask'] as const;
+
+export const getCompleteTaskMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof completeTask>>, TError,CompleteTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof completeTask>>, TError,CompleteTaskMutationVariables, TContext> => {
+
+const mutationKey = getCompleteTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeTask>>, CompleteTaskMutationVariables> = (props) => {
+          const {taskId} = props ?? {};
+
+          return  completeTask(taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteTaskMutationResult = NonNullable<Awaited<ReturnType<typeof completeTask>>>
+
+    export type CompleteTaskMutationError = ErrorType<void | ProblemDetails>
+    export type CompleteTaskMutationVariables = {taskId: string}
+
+    export const createCompleteTask = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof completeTask>>, TError,CompleteTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof completeTask>>,
+        TError,
+        CompleteTaskMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCompleteTaskMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listApplicationScorecardsResponse200 = {
+  data: ScorecardEntry[]
+  status: 200
+}
+
+export type listApplicationScorecardsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationScorecardsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationScorecardsResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listApplicationScorecardsResponseSuccess = (listApplicationScorecardsResponse200) & {
+  headers: Headers;
+};
+export type listApplicationScorecardsResponseError = (listApplicationScorecardsResponse401 | listApplicationScorecardsResponse404 | listApplicationScorecardsResponse429) & {
+  headers: Headers;
+};
+
+export const getListApplicationScorecardsUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/scorecards`
+}
+
+export const listApplicationScorecards = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApplicationScorecardsResponseSuccess> => {
+
+  return apiQueryFetch<listApplicationScorecardsResponseSuccess>(getListApplicationScorecardsUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApplicationScorecardsQueryKey = (applicationId: string,) => {
+    return [
+    'v1','applications',applicationId,'scorecards'
+    ] as const;
+    }
+
+
+export const getListApplicationScorecardsQueryOptions = <TData = Awaited<ReturnType<typeof listApplicationScorecards>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationScorecards>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApplicationScorecardsQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApplicationScorecards>>> = ({ signal }) => listApplicationScorecards(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listApplicationScorecards>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListApplicationScorecardsQueryResult = NonNullable<Awaited<ReturnType<typeof listApplicationScorecards>>>
+export type ListApplicationScorecardsQueryError = ErrorType<void>
+
+
+
+export function createListApplicationScorecards<TData = Awaited<ReturnType<typeof listApplicationScorecards>>, TError = ErrorType<void>>(
+ applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationScorecards>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListApplicationScorecardsQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type submitScorecardResponse200 = {
+  data: ScorecardEntry
+  status: 200
+}
+
+export type submitScorecardResponse201 = {
+  data: ScorecardEntry
+  status: 201
+}
+
+export type submitScorecardResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type submitScorecardResponse401 = {
+  data: void
+  status: 401
+}
+
+export type submitScorecardResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type submitScorecardResponse404 = {
+  data: void
+  status: 404
+}
+
+export type submitScorecardResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type submitScorecardResponse429 = {
+  data: void
+  status: 429
+}
+
+export type submitScorecardResponseSuccess = (submitScorecardResponse200 | submitScorecardResponse201) & {
+  headers: Headers;
+};
+export type submitScorecardResponseError = (submitScorecardResponse400 | submitScorecardResponse401 | submitScorecardResponse403 | submitScorecardResponse404 | submitScorecardResponse409 | submitScorecardResponse429) & {
+  headers: Headers;
+};
+
+export const getSubmitScorecardUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/scorecards`
+}
+
+export const submitScorecard = async (applicationId: string,
+    submitScorecardRequest: SubmitScorecardRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<submitScorecardResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<submitScorecardResponseSuccess>(getSubmitScorecardUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(submitScorecardRequest)
+  }
+);}
+
+
+
+
+
+export const getSubmitScorecardMutationKey = () => ['submitScorecard'] as const;
+
+export const getSubmitScorecardMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof submitScorecard>>, TError,SubmitScorecardMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof submitScorecard>>, TError,SubmitScorecardMutationVariables, TContext> => {
+
+const mutationKey = getSubmitScorecardMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitScorecard>>, SubmitScorecardMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  submitScorecard(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitScorecardMutationResult = NonNullable<Awaited<ReturnType<typeof submitScorecard>>>
+    export type SubmitScorecardMutationBody = SubmitScorecardRequest
+    export type SubmitScorecardMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SubmitScorecardMutationVariables = {applicationId: string;data: SubmitScorecardRequest}
+
+    export const createSubmitScorecard = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof submitScorecard>>, TError,SubmitScorecardMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof submitScorecard>>,
+        TError,
+        SubmitScorecardMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSubmitScorecardMutationOptions(options?.()) }), queryClient);
+    }
+
 export type listWebhookEventTypesResponse200 = {
   data: string[]
   status: 200
@@ -9314,943 +10093,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getReplayWebhookDeliveryMutationOptions(options?.()) }), queryClient);
-    }
-
-export type listEmailTemplatesResponse200 = {
-  data: EmailTemplateList
-  status: 200
-}
-
-export type listEmailTemplatesResponse401 = {
-  data: void
-  status: 401
-}
-
-export type listEmailTemplatesResponseSuccess = (listEmailTemplatesResponse200) & {
-  headers: Headers;
-};
-export type listEmailTemplatesResponseError = (listEmailTemplatesResponse401) & {
-  headers: Headers;
-};
-
-export const getListEmailTemplatesUrl = () => {
-
-
-
-
-  return `/v1/email-templates`
-}
-
-export const listEmailTemplates = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listEmailTemplatesResponseSuccess> => {
-
-  return apiQueryFetch<listEmailTemplatesResponseSuccess>(getListEmailTemplatesUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListEmailTemplatesQueryKey = () => {
-    return [
-    'v1','email-templates'
-    ] as const;
-    }
-
-
-export const getListEmailTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof listEmailTemplates>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listEmailTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListEmailTemplatesQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmailTemplates>>> = ({ signal }) => listEmailTemplates({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listEmailTemplates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListEmailTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof listEmailTemplates>>>
-export type ListEmailTemplatesQueryError = ErrorType<void>
-
-
-
-export function createListEmailTemplates<TData = Awaited<ReturnType<typeof listEmailTemplates>>, TError = ErrorType<void>>(
-  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listEmailTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getListEmailTemplatesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
-export type createEmailTemplateResponse201 = {
-  data: EmailTemplateEntry
-  status: 201
-}
-
-export type createEmailTemplateResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type createEmailTemplateResponse401 = {
-  data: void
-  status: 401
-}
-
-export type createEmailTemplateResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type createEmailTemplateResponseSuccess = (createEmailTemplateResponse201) & {
-  headers: Headers;
-};
-export type createEmailTemplateResponseError = (createEmailTemplateResponse400 | createEmailTemplateResponse401 | createEmailTemplateResponse403) & {
-  headers: Headers;
-};
-
-export const getCreateEmailTemplateUrl = () => {
-
-
-
-
-  return `/v1/email-templates`
-}
-
-export const createEmailTemplate = async (createEmailTemplateRequest: CreateEmailTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createEmailTemplateResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<createEmailTemplateResponseSuccess>(getCreateEmailTemplateUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(createEmailTemplateRequest)
-  }
-);}
-
-
-
-
-
-export const getCreateEmailTemplateMutationKey = () => ['createEmailTemplate'] as const;
-
-export const getCreateEmailTemplateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createEmailTemplate>>, TError,CreateEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof createEmailTemplate>>, TError,CreateEmailTemplateMutationVariables, TContext> => {
-
-const mutationKey = getCreateEmailTemplateMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEmailTemplate>>, CreateEmailTemplateMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  createEmailTemplate(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof createEmailTemplate>>>
-    export type CreateEmailTemplateMutationBody = CreateEmailTemplateRequest
-    export type CreateEmailTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type CreateEmailTemplateMutationVariables = {data: CreateEmailTemplateRequest}
-
-    export const createCreateEmailTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createEmailTemplate>>, TError,CreateEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof createEmailTemplate>>,
-        TError,
-        CreateEmailTemplateMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getCreateEmailTemplateMutationOptions(options?.()) }), queryClient);
-    }
-
-export type getEmailTemplateResponse200 = {
-  data: EmailTemplateEntry
-  status: 200
-}
-
-export type getEmailTemplateResponse401 = {
-  data: void
-  status: 401
-}
-
-export type getEmailTemplateResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getEmailTemplateResponseSuccess = (getEmailTemplateResponse200) & {
-  headers: Headers;
-};
-export type getEmailTemplateResponseError = (getEmailTemplateResponse401 | getEmailTemplateResponse404) & {
-  headers: Headers;
-};
-
-export const getGetEmailTemplateUrl = (templateId: string,) => {
-
-
-
-
-  return `/v1/email-templates/${templateId}`
-}
-
-export const getEmailTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getEmailTemplateResponseSuccess> => {
-
-  return apiQueryFetch<getEmailTemplateResponseSuccess>(getGetEmailTemplateUrl(templateId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetEmailTemplateQueryKey = (templateId: string,) => {
-    return [
-    'v1','email-templates',templateId
-    ] as const;
-    }
-
-
-export const getGetEmailTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getEmailTemplate>>, TError = ErrorType<void>>(templateId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getEmailTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetEmailTemplateQueryKey(templateId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailTemplate>>> = ({ signal }) => getEmailTemplate(templateId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getEmailTemplate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetEmailTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailTemplate>>>
-export type GetEmailTemplateQueryError = ErrorType<void>
-
-
-
-export function createGetEmailTemplate<TData = Awaited<ReturnType<typeof getEmailTemplate>>, TError = ErrorType<void>>(
- templateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getEmailTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getGetEmailTemplateQueryOptions(templateId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
-export type updateEmailTemplateResponse200 = {
-  data: EmailTemplateEntry
-  status: 200
-}
-
-export type updateEmailTemplateResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type updateEmailTemplateResponse401 = {
-  data: void
-  status: 401
-}
-
-export type updateEmailTemplateResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type updateEmailTemplateResponse404 = {
-  data: void
-  status: 404
-}
-
-export type updateEmailTemplateResponseSuccess = (updateEmailTemplateResponse200) & {
-  headers: Headers;
-};
-export type updateEmailTemplateResponseError = (updateEmailTemplateResponse400 | updateEmailTemplateResponse401 | updateEmailTemplateResponse403 | updateEmailTemplateResponse404) & {
-  headers: Headers;
-};
-
-export const getUpdateEmailTemplateUrl = (templateId: string,) => {
-
-
-
-
-  return `/v1/email-templates/${templateId}`
-}
-
-export const updateEmailTemplate = async (templateId: string,
-    updateEmailTemplateRequest: UpdateEmailTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateEmailTemplateResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<updateEmailTemplateResponseSuccess>(getUpdateEmailTemplateUrl(templateId),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateEmailTemplateRequest)
-  }
-);}
-
-
-
-
-
-export const getUpdateEmailTemplateMutationKey = () => ['updateEmailTemplate'] as const;
-
-export const getUpdateEmailTemplateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateEmailTemplate>>, TError,UpdateEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof updateEmailTemplate>>, TError,UpdateEmailTemplateMutationVariables, TContext> => {
-
-const mutationKey = getUpdateEmailTemplateMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmailTemplate>>, UpdateEmailTemplateMutationVariables> = (props) => {
-          const {templateId,data} = props ?? {};
-
-          return  updateEmailTemplate(templateId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmailTemplate>>>
-    export type UpdateEmailTemplateMutationBody = UpdateEmailTemplateRequest
-    export type UpdateEmailTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type UpdateEmailTemplateMutationVariables = {templateId: string;data: UpdateEmailTemplateRequest}
-
-    export const createUpdateEmailTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateEmailTemplate>>, TError,UpdateEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof updateEmailTemplate>>,
-        TError,
-        UpdateEmailTemplateMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getUpdateEmailTemplateMutationOptions(options?.()) }), queryClient);
-    }
-
-export type deleteEmailTemplateResponse204 = {
-  data: void
-  status: 204
-}
-
-export type deleteEmailTemplateResponse401 = {
-  data: void
-  status: 401
-}
-
-export type deleteEmailTemplateResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type deleteEmailTemplateResponse404 = {
-  data: void
-  status: 404
-}
-
-export type deleteEmailTemplateResponseSuccess = (deleteEmailTemplateResponse204) & {
-  headers: Headers;
-};
-export type deleteEmailTemplateResponseError = (deleteEmailTemplateResponse401 | deleteEmailTemplateResponse403 | deleteEmailTemplateResponse404) & {
-  headers: Headers;
-};
-
-export const getDeleteEmailTemplateUrl = (templateId: string,) => {
-
-
-
-
-  return `/v1/email-templates/${templateId}`
-}
-
-export const deleteEmailTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<deleteEmailTemplateResponseSuccess> => {
-
-  return apiQueryFetch<deleteEmailTemplateResponseSuccess>(getDeleteEmailTemplateUrl(templateId),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-
-export const getDeleteEmailTemplateMutationKey = () => ['deleteEmailTemplate'] as const;
-
-export const getDeleteEmailTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteEmailTemplate>>, TError,DeleteEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof deleteEmailTemplate>>, TError,DeleteEmailTemplateMutationVariables, TContext> => {
-
-const mutationKey = getDeleteEmailTemplateMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmailTemplate>>, DeleteEmailTemplateMutationVariables> = (props) => {
-          const {templateId} = props ?? {};
-
-          return  deleteEmailTemplate(templateId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmailTemplate>>>
-
-    export type DeleteEmailTemplateMutationError = ErrorType<void | ProblemDetails>
-    export type DeleteEmailTemplateMutationVariables = {templateId: string}
-
-    export const createDeleteEmailTemplate = <TError = ErrorType<void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteEmailTemplate>>, TError,DeleteEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof deleteEmailTemplate>>,
-        TError,
-        DeleteEmailTemplateMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getDeleteEmailTemplateMutationOptions(options?.()) }), queryClient);
-    }
-
-export type previewEmailTemplateResponse200 = {
-  data: EmailPreview
-  status: 200
-}
-
-export type previewEmailTemplateResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type previewEmailTemplateResponse401 = {
-  data: void
-  status: 401
-}
-
-export type previewEmailTemplateResponseSuccess = (previewEmailTemplateResponse200) & {
-  headers: Headers;
-};
-export type previewEmailTemplateResponseError = (previewEmailTemplateResponse400 | previewEmailTemplateResponse401) & {
-  headers: Headers;
-};
-
-export const getPreviewEmailTemplateUrl = () => {
-
-
-
-
-  return `/v1/email-templates/preview`
-}
-
-export const previewEmailTemplate = async (emailTemplateDraft: EmailTemplateDraft, options?: Parameters<typeof apiQueryFetch>[1]): Promise<previewEmailTemplateResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<previewEmailTemplateResponseSuccess>(getPreviewEmailTemplateUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(emailTemplateDraft)
-  }
-);}
-
-
-
-
-
-export const getPreviewEmailTemplateMutationKey = () => ['previewEmailTemplate'] as const;
-
-export const getPreviewEmailTemplateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof previewEmailTemplate>>, TError,PreviewEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof previewEmailTemplate>>, TError,PreviewEmailTemplateMutationVariables, TContext> => {
-
-const mutationKey = getPreviewEmailTemplateMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewEmailTemplate>>, PreviewEmailTemplateMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  previewEmailTemplate(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PreviewEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof previewEmailTemplate>>>
-    export type PreviewEmailTemplateMutationBody = EmailTemplateDraft
-    export type PreviewEmailTemplateMutationError = ErrorType<HttpValidationProblemDetails | void>
-    export type PreviewEmailTemplateMutationVariables = {data: EmailTemplateDraft}
-
-    export const createPreviewEmailTemplate = <TError = ErrorType<HttpValidationProblemDetails | void>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof previewEmailTemplate>>, TError,PreviewEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof previewEmailTemplate>>,
-        TError,
-        PreviewEmailTemplateMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getPreviewEmailTemplateMutationOptions(options?.()) }), queryClient);
-    }
-
-export type sendTestEmailResponse200 = {
-  data: TestEmailSent
-  status: 200
-}
-
-export type sendTestEmailResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type sendTestEmailResponse401 = {
-  data: void
-  status: 401
-}
-
-export type sendTestEmailResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type sendTestEmailResponse404 = {
-  data: void
-  status: 404
-}
-
-export type sendTestEmailResponseSuccess = (sendTestEmailResponse200) & {
-  headers: Headers;
-};
-export type sendTestEmailResponseError = (sendTestEmailResponse400 | sendTestEmailResponse401 | sendTestEmailResponse403 | sendTestEmailResponse404) & {
-  headers: Headers;
-};
-
-export const getSendTestEmailUrl = () => {
-
-
-
-
-  return `/v1/email-templates/test`
-}
-
-export const sendTestEmail = async (emailTemplateDraft: EmailTemplateDraft, options?: Parameters<typeof apiQueryFetch>[1]): Promise<sendTestEmailResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<sendTestEmailResponseSuccess>(getSendTestEmailUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(emailTemplateDraft)
-  }
-);}
-
-
-
-
-
-export const getSendTestEmailMutationKey = () => ['sendTestEmail'] as const;
-
-export const getSendTestEmailMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendTestEmail>>, TError,SendTestEmailMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof sendTestEmail>>, TError,SendTestEmailMutationVariables, TContext> => {
-
-const mutationKey = getSendTestEmailMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendTestEmail>>, SendTestEmailMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  sendTestEmail(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type SendTestEmailMutationResult = NonNullable<Awaited<ReturnType<typeof sendTestEmail>>>
-    export type SendTestEmailMutationBody = EmailTemplateDraft
-    export type SendTestEmailMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type SendTestEmailMutationVariables = {data: EmailTemplateDraft}
-
-    export const createSendTestEmail = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendTestEmail>>, TError,SendTestEmailMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof sendTestEmail>>,
-        TError,
-        SendTestEmailMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getSendTestEmailMutationOptions(options?.()) }), queryClient);
-    }
-
-export type previewApplicationEmailResponse200 = {
-  data: EmailPreview
-  status: 200
-}
-
-export type previewApplicationEmailResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type previewApplicationEmailResponse401 = {
-  data: void
-  status: 401
-}
-
-export type previewApplicationEmailResponse404 = {
-  data: void
-  status: 404
-}
-
-export type previewApplicationEmailResponseSuccess = (previewApplicationEmailResponse200) & {
-  headers: Headers;
-};
-export type previewApplicationEmailResponseError = (previewApplicationEmailResponse400 | previewApplicationEmailResponse401 | previewApplicationEmailResponse404) & {
-  headers: Headers;
-};
-
-export const getPreviewApplicationEmailUrl = (params: PreviewApplicationEmailParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/v1/emails/preview?${stringifiedParams}` : `/v1/emails/preview`
-}
-
-export const previewApplicationEmail = async (params: PreviewApplicationEmailParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<previewApplicationEmailResponseSuccess> => {
-
-  return apiQueryFetch<previewApplicationEmailResponseSuccess>(getPreviewApplicationEmailUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getPreviewApplicationEmailQueryKey = (params?: PreviewApplicationEmailParams,) => {
-    return [
-    'v1','emails','preview', ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getPreviewApplicationEmailQueryOptions = <TData = Awaited<ReturnType<typeof previewApplicationEmail>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params: PreviewApplicationEmailParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPreviewApplicationEmailQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewApplicationEmail>>> = ({ signal }) => previewApplicationEmail(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PreviewApplicationEmailQueryResult = NonNullable<Awaited<ReturnType<typeof previewApplicationEmail>>>
-export type PreviewApplicationEmailQueryError = ErrorType<HttpValidationProblemDetails | void>
-
-
-
-export function createPreviewApplicationEmail<TData = Awaited<ReturnType<typeof previewApplicationEmail>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
- params: () =>  PreviewApplicationEmailParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getPreviewApplicationEmailQueryOptions(params(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
-export type sendEmailsResponse202 = {
-  data: EmailsQueued
-  status: 202
-}
-
-export type sendEmailsResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type sendEmailsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type sendEmailsResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type sendEmailsResponse404 = {
-  data: void
-  status: 404
-}
-
-export type sendEmailsResponseSuccess = (sendEmailsResponse202) & {
-  headers: Headers;
-};
-export type sendEmailsResponseError = (sendEmailsResponse400 | sendEmailsResponse401 | sendEmailsResponse403 | sendEmailsResponse404) & {
-  headers: Headers;
-};
-
-export const getSendEmailsUrl = () => {
-
-
-
-
-  return `/v1/emails`
-}
-
-export const sendEmails = async (sendEmailsRequest: SendEmailsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<sendEmailsResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<sendEmailsResponseSuccess>(getSendEmailsUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(sendEmailsRequest)
-  }
-);}
-
-
-
-
-
-export const getSendEmailsMutationKey = () => ['sendEmails'] as const;
-
-export const getSendEmailsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendEmails>>, TError,SendEmailsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof sendEmails>>, TError,SendEmailsMutationVariables, TContext> => {
-
-const mutationKey = getSendEmailsMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendEmails>>, SendEmailsMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  sendEmails(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type SendEmailsMutationResult = NonNullable<Awaited<ReturnType<typeof sendEmails>>>
-    export type SendEmailsMutationBody = SendEmailsRequest
-    export type SendEmailsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type SendEmailsMutationVariables = {data: SendEmailsRequest}
-
-    export const createSendEmails = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendEmails>>, TError,SendEmailsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof sendEmails>>,
-        TError,
-        SendEmailsMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getSendEmailsMutationOptions(options?.()) }), queryClient);
     }
 
 export type getHiringTemplateDefinitionSchemaResponse200 = {

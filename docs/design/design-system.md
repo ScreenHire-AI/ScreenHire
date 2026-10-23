@@ -236,7 +236,7 @@ Atlassian's surfaces.
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates; the team, email templates, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
+| List | Candidates, jobs, templates, My tasks; the team, email templates, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters. A list with no search (My tasks) puts its toggles in a row under the panel header |
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
@@ -323,19 +323,24 @@ in a development build, shows every component in each state, and its test fails 
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
-| Activity | Our component | Icon in a circle, event, time ago |
+| Activity | Our component | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People show by name ("by Robin Ashby", "by you") |
+| Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
+| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. An open task has Complete (outline) for a role that changes hiring data. On My tasks the candidate's name links to the application and the job is a pill |
+| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each criterion and its rating as a summary list ("Not rated" when left out) and the note quoted. Ratings and recommendations are labels, never numbers, and nothing totals or averages them (principle 9). The sheet groups each criterion's labelled radios under its name, then the required recommendation; it never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Criteria rate the job, never personality, emotion or honesty |
+| Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon, the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
+| Sheet | shadcn `Sheet` (`NoteSheet`, `MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
 | Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the verify mark and colour (T1) |
-| Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked |
+| Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a detail page a last item, With a note, opens the move in a sheet with a note |
 | Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template |
 | Email sheet | `EmailSheet` on shadcn `Sheet` | Email one candidate or a selection (section 9, in place): a template, the Email preview for the first candidate, and Send as the one primary. The rejection email is never offered (section 16), and no bulk email while an integrity filter or view picked the rows |
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
 | Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
 
 ## 12. Words
 

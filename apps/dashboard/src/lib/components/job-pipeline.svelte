@@ -2,6 +2,7 @@
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import { canChangeHiringData } from '#lib/auth.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
@@ -32,7 +33,6 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
-  import { isHiringWriter } from '#lib/settings.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { cn } from '#lib/utils.js';
 
@@ -83,7 +83,7 @@
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
   // Email to the selection, hidden under an integrity filter for the reason bulkMoveStages gives (ADR-0004).
   const emailTemplates = createListEmailTemplates();
-  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && isHiringWriter(page.data.user?.organization?.role));
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user));
   let emailOpen = $state(false);
   let emailed = $state('');
   const countIn = (stageId: string) => applications.filter((application) => application.stage.id === stageId).length;

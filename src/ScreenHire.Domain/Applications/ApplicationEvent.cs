@@ -35,6 +35,15 @@ public enum ApplicationEventType
     /// <summary>The integrity engine assessed the application, or reassessed it with a different result.</summary>
     IntegrityAssessed,
 
+    /// <summary>A person or an API key took a tag off the application.</summary>
+    TagRemoved,
+
+    /// <summary>A note from the hiring team.</summary>
+    NoteAdded,
+
+    /// <summary>A reviewer submitted a stage's scorecard; it raises the ReviewerDecision trigger.</summary>
+    ScorecardSubmitted,
+
     /// <summary>An email went to the candidate: sent by a person, or by an automation.</summary>
     EmailSent,
 }
@@ -49,6 +58,8 @@ public enum ApplicationEventType
 /// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.IntegrityAssessed"/>,
 /// the levels as they stood after the assessment; automation conditions read them as integrity facts.
 /// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
+/// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <see cref="ApplicationEventType.ScorecardSubmitted"/>, the
+/// scorecard, the stage it rates and its overall recommendation, which a ReviewerDecision automation reads as a fact.
 /// <c>emailTemplateId</c>, <c>emailSubject</c>: For <see cref="ApplicationEventType.EmailSent"/>, the template and the
 /// subject as the candidate received it. The body is never kept here.
 /// </remarks>
@@ -62,5 +73,8 @@ public sealed record ApplicationEventData(
     string? AiAssistanceLevel = null,
     string? RulesetVersion = null,
     Guid? ApiKeyId = null,
+    Guid? ScorecardId = null,
+    string? StageId = null,
+    string? Recommendation = null,
     string? EmailTemplateId = null,
     string? EmailSubject = null);

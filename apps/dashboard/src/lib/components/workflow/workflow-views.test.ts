@@ -175,4 +175,25 @@ describe('workflow builder', () => {
     expect(screen.getByRole('region', { name: 'Whole workflow' })).toHaveTextContent('When an application arrives: notify the team. (off)');
     await expectNoAxeViolations(container);
   });
+
+  it('gives a review stage a scorecard of job-related criteria in a sheet, and an end stage none', async () => {
+    const { container } = renderViews('editor');
+    const stages = screen.getByRole('region', { name: 'Stages' });
+
+    expect(within(stages).queryByRole('button', { name: 'Scorecard for Hired' })).toBeNull();
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Scorecard for Phone screen' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
+    expect(sheet).toHaveTextContent('never personality, emotion or honesty.');
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add scorecard' }));
+
+    const criteria = within(sheet).getByRole('list', { name: 'Criteria' });
+    expect(within(criteria).getAllByRole('textbox', { name: /^Criterion / }).map((input) => (input as HTMLInputElement).value)).toEqual([
+      "Meets the role's requirements",
+      'Relevant experience',
+    ]);
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add criterion' }));
+    expect(within(criteria).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(stages).getByText('Scorecard: 3 criteria and a recommendation')).toBeInTheDocument();
+    await expectNoAxeViolations(container);
+  });
 });

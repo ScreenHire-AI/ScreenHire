@@ -4,6 +4,7 @@
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import IconButton from '#lib/components/icon-button.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -24,10 +25,12 @@
     removeAt,
     ruleOperand,
     triggerLabels,
+    triggerMayHaveStage,
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
   import { sendableTemplates } from '#lib/email.js';
+  import { assignableMembers } from '#lib/team.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
@@ -48,8 +51,14 @@
   const emailChoices = $derived(emailTemplates.data ? sendableTemplates(emailTemplates.data.data.templates) : builtInEmailTemplates);
 
   const uid = $props.id();
+  // AssignReviewer names one of these, or nobody for the whole team. Viewers are left out: they could not complete the
+  // review task. A reviewer who has left keeps their option until someone picks another, so the form shows what is saved.
+  const team = createListTeamMembers();
+  const reviewers = $derived(assignableMembers(team.data?.data ?? []));
   const path = $derived(`automations[${index}]`);
-  const facts = $derived(factsFor(workflow));
+  const facts = $derived(factsFor(workflow, automation.trigger.type));
+  // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none.
+  const scoredStages = $derived(workflow.stages.filter((stage) => stage.scorecard));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
   const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
   function setTrigger(type: TriggerType) {
@@ -115,6 +124,24 @@
           Stage
           <select class={selectClass} bind:value={automation.trigger.stageId}>
             {#each workflow.stages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+          </select>
+        </label>
+      {/if}
+      {#if triggerMayHaveStage(automation.trigger.type)}
+        <label class={labelClass}>
+          Stage
+          <select
+            class={selectClass}
+            bind:value={
+              () => automation.trigger.stageId ?? '',
+              (stageId) => (automation.trigger = stageId ? { type: automation.trigger.type, stageId } : { type: automation.trigger.type })
+            }
+          >
+            <option value="">Any stage with a scorecard</option>
+            {#each scoredStages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+            {#if automation.trigger.stageId && !scoredStages.some((stage) => stage.id === automation.trigger.stageId)}
+              <option value={automation.trigger.stageId}>{automation.trigger.stageId}</option>
+            {/if}
           </select>
         </label>
       {/if}
@@ -246,6 +273,23 @@
                 {actionFieldLabels[field]}
                 <select class={selectClass} bind:value={action.stageId}>
                   {#each workflow.stages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+                </select>
+              </label>
+            {:else if action.type === 'AssignReviewer'}
+              <label class={labelClass}>
+                Reviewer
+                <select
+                  class={selectClass}
+                  bind:value={
+                    () => action.assigneeUserId ?? '',
+                    (userId) => (automation.actions[actionIndex] = userId ? { type: 'AssignReviewer', assigneeUserId: userId } : { type: 'AssignReviewer' })
+                  }
+                >
+                  <option value="">Anyone on the team</option>
+                  {#each reviewers as member (member.userId)}<option value={member.userId}>{member.displayName}</option>{/each}
+                  {#if action.assigneeUserId && !reviewers.some((member) => member.userId === action.assigneeUserId)}
+                    <option value={action.assigneeUserId}>{team.isSuccess ? 'No longer on the team' : 'Loading the team…'}</option>
+                  {/if}
                 </select>
               </label>
             {:else if field}

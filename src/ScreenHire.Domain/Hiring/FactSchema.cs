@@ -22,6 +22,13 @@ public static class FactSchema
     public const string IntegrityAiAssistance = "integrity.aiAssistance";
     public const string VerificationResult = "verification.result";
 
+    /// <summary>
+    /// The overall recommendation of the scorecard whose submission fired a <see cref="TriggerType.ReviewerDecision"/>
+    /// automation. Only that trigger has it: on any other trigger "the latest reviewer's view" would depend on which
+    /// scorecard happened to come last, on whichever stage.
+    /// </summary>
+    public const string ReviewerRecommendation = "reviewer.recommendation";
+
     // Telemetry facts arrive with the integrity engine. The prefix is reserved now so the accommodation rule already
     // covers them (workflow-engine.md §2, guardrail 4).
     private const string TelemetryPrefix = "telemetry.";
@@ -35,6 +42,7 @@ public static class FactSchema
         new(IntegrityAuthenticity, FactType.Level, FactCategory.Signal),
         new(IntegrityAiAssistance, FactType.Level, FactCategory.Signal),
         new(VerificationResult, FactType.Level, FactCategory.Signal),
+        new(ReviewerRecommendation, FactType.Recommendation, FactCategory.Reviewer),
     ];
 
     /// <summary>The fact <paramref name="fact"/> names in a workflow with these questions, or null if there is none.</summary>
@@ -63,7 +71,7 @@ public static class FactSchema
         FactType.TextList or FactType.MultiChoice => ListOperators,
         FactType.Number => NumberOperators,
         FactType.YesNo => YesNoOperators,
-        FactType.Choice or FactType.Level => ChoiceOperators,
+        FactType.Choice or FactType.Level or FactType.Recommendation => ChoiceOperators,
         FactType.File => ExistsOnly,
         _ => ExistsOnly,
     };
@@ -128,6 +136,9 @@ public enum FactType
     MultiChoice,
     File,
     Level,
+
+    /// <summary>A <see cref="Hiring.Recommendation"/> name, such as <c>StrongYes</c>: equality and In only.</summary>
+    Recommendation,
 }
 
 public enum FactCategory
@@ -136,4 +147,7 @@ public enum FactCategory
     Application,
     Timing,
     Signal,
+
+    /// <summary>What a person on the hiring team recorded: a scorecard's recommendation.</summary>
+    Reviewer,
 }

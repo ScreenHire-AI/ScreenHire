@@ -37,7 +37,8 @@ export function createMoves() {
       return mutation.isPending;
     },
 
-    async move(application: Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'>, to: WorkflowStage): Promise<boolean> {
+    /** Moves one application; `note` is kept on the move's entry in its Activity. */
+    async move(application: Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'>, to: WorkflowStage, note?: string): Promise<boolean> {
       failure = '';
       const stage: ApplicationStage = { id: to.id, name: to.name, kind: to.kind };
       const queryKey = getListJobApplicationsQueryKey(application.jobId);
@@ -47,7 +48,7 @@ export function createMoves() {
         cached && { ...cached, data: cached.data.map((item) => (item.id === application.id ? { ...item, stage } : item)) },
       );
       try {
-        await mutation.mutateAsync({ applicationId: application.id, data: { toStageId: to.id } });
+        await mutation.mutateAsync({ applicationId: application.id, data: { toStageId: to.id, ...(note?.trim() ? { note: note.trim() } : {}) } });
         announcement = `Moved ${application.candidateName} to ${to.name}.`;
         return true;
       } catch (error) {

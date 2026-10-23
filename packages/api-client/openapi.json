@@ -2574,6 +2574,255 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/notes": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "AddApplicationNote",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddApplicationNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTimelineEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/tags": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "AddApplicationTag",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddApplicationTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "RemoveApplicationTag",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/files/{fileId}": {
       "get": {
         "tags": [
@@ -4307,6 +4556,254 @@
         ]
       }
     },
+    "/v1/tasks": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "operationId": "ListTasks",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "default": "Open",
+              "$ref": "#/components/schemas/TaskStatusFilter"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "default": "Mine",
+              "$ref": "#/components/schemas/TaskScope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskListItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/tasks/{taskId}/complete": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "operationId": "CompleteTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/scorecards": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ListApplicationScorecards",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScorecardEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "SubmitScorecard",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitScorecardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardEntry"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/webhooks/event-types": {
       "get": {
         "tags": [
@@ -4786,472 +5283,6 @@
         ]
       }
     },
-    "/v1/email-templates": {
-      "get": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "ListEmailTemplates",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailTemplateList"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "CreateEmailTemplate",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateEmailTemplateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailTemplateEntry"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/email-templates/{templateId}": {
-      "get": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "GetEmailTemplate",
-        "parameters": [
-          {
-            "name": "templateId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailTemplateEntry"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "UpdateEmailTemplate",
-        "parameters": [
-          {
-            "name": "templateId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateEmailTemplateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailTemplateEntry"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "DeleteEmailTemplate",
-        "parameters": [
-          {
-            "name": "templateId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/email-templates/preview": {
-      "post": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "PreviewEmailTemplate",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmailTemplateDraft"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailPreview"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/email-templates/test": {
-      "post": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "SendTestEmail",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmailTemplateDraft"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestEmailSent"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/emails/preview": {
-      "get": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "PreviewApplicationEmail",
-        "parameters": [
-          {
-            "name": "applicationId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "templateId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailPreview"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/emails": {
-      "post": {
-        "tags": [
-          "Email"
-        ],
-        "operationId": "SendEmails",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SendEmailsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmailsQueued"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -5309,6 +5340,30 @@
           "QueueForRejectionReview",
           "Reject"
         ]
+      },
+      "AddApplicationNoteRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        },
+        "description": "A note from the hiring team on an application, kept on its timeline with the author and the time."
+      },
+      "AddApplicationTagRequest": {
+        "required": [
+          "tag"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          }
+        },
+        "description": "A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`."
       },
       "AddIntegrityNoteRequest": {
         "required": [
@@ -5664,7 +5719,9 @@
           "StageChanged",
           "TagAdded",
           "IntegrityAssessed",
-          "EmailSent"
+          "TagRemoved",
+          "NoteAdded",
+          "ScorecardSubmitted"
         ]
       },
       "ApplicationFileSummary": {
@@ -5809,7 +5866,8 @@
           "submittedAt",
           "stageEnteredAt",
           "jobTitle",
-          "source"
+          "source",
+          "tags"
         ],
         "type": "object",
         "properties": {
@@ -5845,6 +5903,12 @@
           "source": {
             "$ref": "#/components/schemas/ApplicationSource"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "integrity": {
             "oneOf": [
               {
@@ -5867,7 +5931,8 @@
           "assigneeUserId",
           "automationRunId",
           "createdAt",
-          "completedAt"
+          "completedAt",
+          "completedByUserId"
         ],
         "type": "object",
         "properties": {
@@ -5909,6 +5974,13 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "completedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "Something a person should do about an application: a review, a to-do, or a rejection to decide on."
@@ -5931,7 +6003,10 @@
           "note",
           "tag",
           "automationRunId",
-          "actorApiKeyId"
+          "actorApiKeyId",
+          "scorecardId",
+          "stageId",
+          "recommendation"
         ],
         "type": "object",
         "properties": {
@@ -5991,13 +6066,20 @@
             ],
             "format": "uuid"
           },
-          "emailTemplateId": {
+          "scorecardId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "stageId": {
             "type": [
               "null",
               "string"
             ]
           },
-          "emailSubject": {
+          "recommendation": {
             "type": [
               "null",
               "string"
@@ -6274,7 +6356,7 @@
             "default": false
           }
         },
-        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`."
+        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`."
       },
       "AutomationConditions": {
         "required": [
@@ -6340,6 +6422,12 @@
             ]
           },
           "verificationResult": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reviewerRecommendation": {
             "type": [
               "null",
               "string"
@@ -6909,26 +6997,6 @@
         },
         "description": "A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`."
       },
-      "CreateEmailTemplateRequest": {
-        "required": [
-          "name",
-          "subject",
-          "body"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          }
-        },
-        "description": "A new template of the organization's own: its name, a Liquid subject and a Liquid plain-text body."
-      },
       "CreateHiringTemplateRequest": {
         "required": [
           "name"
@@ -7097,6 +7165,31 @@
         },
         "description": "A new webhook endpoint: where to post, and which events (`GET /v1/webhooks/event-types` lists them)."
       },
+      "CriterionRating": {
+        "enum": [
+          "NotDemonstrated",
+          "PartlyDemonstrated",
+          "Demonstrated",
+          "StronglyDemonstrated",
+          null
+        ]
+      },
+      "CriterionRatingInput": {
+        "required": [
+          "criterionId",
+          "rating"
+        ],
+        "type": "object",
+        "properties": {
+          "criterionId": {
+            "type": "string"
+          },
+          "rating": {
+            "$ref": "#/components/schemas/CriterionRating"
+          }
+        },
+        "description": "The rating for one criterion of the stage's scorecard."
+      },
       "CurrentOrganization": {
         "required": [
           "id",
@@ -7204,156 +7297,6 @@
           "Other"
         ],
         "description": "Why a reviewer dismissed an assessment."
-      },
-      "EmailPreview": {
-        "required": [
-          "subject",
-          "html",
-          "text"
-        ],
-        "type": "object",
-        "properties": {
-          "subject": {
-            "type": "string"
-          },
-          "html": {
-            "type": "string"
-          },
-          "text": {
-            "type": "string"
-          }
-        },
-        "description": "An email as the candidate would receive it: the subject, the HTML part and the plain-text part."
-      },
-      "EmailsQueued": {
-        "required": [
-          "queued",
-          "skipped"
-        ],
-        "type": "object",
-        "properties": {
-          "queued": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "skipped": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "description": "How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\r\ncandidate whose application has ended. Each sent email appears in its application's activity."
-      },
-      "EmailTemplateDraft": {
-        "required": [
-          "subject",
-          "body"
-        ],
-        "type": "object",
-        "properties": {
-          "subject": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "templateId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email's `reason` renders; leave it out for a new template."
-      },
-      "EmailTemplateEntry": {
-        "required": [
-          "id",
-          "name",
-          "builtIn",
-          "edited",
-          "rejectOnly",
-          "subject",
-          "body",
-          "updatedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "builtIn": {
-            "type": "boolean"
-          },
-          "edited": {
-            "type": "boolean"
-          },
-          "rejectOnly": {
-            "type": "boolean"
-          },
-          "subject": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
-        },
-        "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
-      },
-      "EmailTemplateList": {
-        "required": [
-          "sendingEnabled",
-          "templates",
-          "variables"
-        ],
-        "type": "object",
-        "properties": {
-          "sendingEnabled": {
-            "type": "boolean"
-          },
-          "templates": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EmailTemplateEntry"
-            }
-          },
-          "variables": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EmailTemplateVariableEntry"
-            }
-          }
-        },
-        "description": "The organization's email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested."
-      },
-      "EmailTemplateVariableEntry": {
-        "required": [
-          "name",
-          "label",
-          "rejectOnly"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "rejectOnly": {
-            "type": "boolean"
-          }
-        },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it."
       },
       "EmploymentType": {
         "enum": [
@@ -9040,7 +8983,7 @@
             ]
           }
         },
-        "description": "Moves an application to another stage of its job's workflow. Only people move applications here."
+        "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\r\n`note` is kept on the move's timeline entry."
       },
       "OnboardingRequest": {
         "required": [
@@ -9928,6 +9871,15 @@
           "File"
         ]
       },
+      "Recommendation": {
+        "enum": [
+          "StrongNo",
+          "No",
+          "Yes",
+          "StrongYes"
+        ],
+        "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
+      },
       "RuleResult": {
         "required": [
           "fact",
@@ -10034,25 +9986,123 @@
         },
         "description": "One listing on the local sandbox board, as the board itself would show it."
       },
-      "SendEmailsRequest": {
+      "Scorecard": {
         "required": [
-          "applicationIds",
-          "templateId"
+          "criteria"
         ],
         "type": "object",
         "properties": {
-          "applicationIds": {
+          "criteria": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uuid"
+              "$ref": "#/components/schemas/ScorecardCriterion"
             }
-          },
-          "templateId": {
-            "type": "string"
           }
         },
-        "description": "Sends one of the organization's templates to the candidates of these applications, one email each."
+        "description": "The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those."
+      },
+      "ScorecardCriterion": {
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "guidance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ScorecardEntry": {
+        "required": [
+          "id",
+          "stageId",
+          "reviewerUserId",
+          "ratings",
+          "recommendation",
+          "note",
+          "workflowVersion",
+          "timelineEventId",
+          "submittedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stageId": {
+            "type": "string"
+          },
+          "reviewerUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardRating"
+            }
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timelineEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One reviewer's scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004)."
+      },
+      "ScorecardRating": {
+        "required": [
+          "criterionId",
+          "label",
+          "rating"
+        ],
+        "type": "object",
+        "properties": {
+          "criterionId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "rating": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CriterionRating"
+              }
+            ]
+          }
+        },
+        "description": "A criterion as the reviewer was asked it, and their rating; null when they did not rate it."
       },
       "SignalCategory": {
         "enum": [
@@ -10299,6 +10349,35 @@
           "Custom"
         ]
       },
+      "SubmitScorecardRequest": {
+        "required": [
+          "stageId",
+          "ratings",
+          "recommendation"
+        ],
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriterionRatingInput"
+            }
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A reviewer's scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409."
+      },
       "SwitchOrganizationRequest": {
         "required": [
           "organizationId"
@@ -10311,6 +10390,96 @@
           }
         },
         "description": "Makes another of the signed-in user's organizations the one they work in."
+      },
+      "TaskListItem": {
+        "required": [
+          "id",
+          "applicationId",
+          "jobId",
+          "candidateName",
+          "jobTitle",
+          "kind",
+          "note",
+          "assigneeUserId",
+          "automationRunId",
+          "createdAt",
+          "completedAt",
+          "completedByUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApplicationTaskKind"
+          },
+          "note": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "completedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A task in a list across applications (My tasks): the task, and the candidate and job it is about."
+      },
+      "TaskScope": {
+        "enum": [
+          "Mine",
+          "Everyone"
+        ],
+        "description": "Whose tasks a list shows: the signed-in person's and the whole team's (unassigned), or everyone's."
+      },
+      "TaskStatusFilter": {
+        "enum": [
+          "Open",
+          "Completed"
+        ],
+        "description": "Which tasks a list shows: the open ones, or the ones done."
       },
       "TeamMember": {
         "required": [
@@ -10387,18 +10556,6 @@
           "Published"
         ]
       },
-      "TestEmailSent": {
-        "required": [
-          "to"
-        ],
-        "type": "object",
-        "properties": {
-          "to": {
-            "type": "string"
-          }
-        },
-        "description": "A test send went to the signed-in person's own address."
-      },
       "TriggerType": {
         "enum": [
           "ApplicationSubmitted",
@@ -10428,28 +10585,6 @@
           }
         },
         "description": "Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default."
-      },
-      "UpdateEmailTemplateRequest": {
-        "required": [
-          "subject",
-          "body"
-        ],
-        "type": "object",
-        "properties": {
-          "subject": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "New wording for a template. `name` renames the organization's own template; leave it out for a built-in,\r\nwhose name is ScreenHire's."
       },
       "UpdateHiringTemplateRequest": {
         "required": [
@@ -10982,6 +11117,16 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "scorecard": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Scorecard"
+              }
+            ]
           }
         },
         "description": "One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal."
@@ -11078,10 +11223,10 @@
       "name": "Workflows"
     },
     {
-      "name": "Webhooks"
+      "name": "Tasks"
     },
     {
-      "name": "Email"
+      "name": "Webhooks"
     },
     {
       "name": "Schemas"

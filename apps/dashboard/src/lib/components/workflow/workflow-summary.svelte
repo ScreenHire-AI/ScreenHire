@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import Panel from '#lib/components/panel.svelte';
@@ -17,6 +18,8 @@
   // (design system section 7, read-only view): the same views as the builder, as panes of the page's `Tabs.Root`, with
   // data as text and pills, never disabled inputs. Simulate still runs: it changes nothing.
   let { workflow, errors, tab }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
+  // Names an AssignReviewer action's reviewer.
+  const team = createListTeamMembers();
 
   // The organization's template names, for "Send the ... email".
   const emailTemplates = createListEmailTemplates();
@@ -25,6 +28,7 @@
   const steps = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const questions = $derived(workflow.questionnaire.questions);
+  const scored = $derived(workflow.stages.filter((stage) => stage.scorecard));
   const days = (count: number) => `${count}-day limit`;
 </script>
 
@@ -66,7 +70,29 @@
                 <span class="font-semibold break-words">{automation.name}</span>
                 {#if automation.enabled === false}<Badge variant="muted">Off</Badge>{/if}
               </span>
-              <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow, templateNames)}</span>
+              <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow, team.data?.data, templateNames)}</span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </Panel>
+
+    <Panel title="Scorecards" count={scored.length} class="flex-[1_1_100%]">
+      {#if scored.length === 0}
+        <p class="text-muted-foreground">No scorecards.</p>
+      {:else}
+        <ul class="flex flex-col">
+          {#each scored as stage (stage.id)}
+            <li class={['flex flex-col gap-2', rowClass]}>
+              <h3 class="text-heading break-words">{stage.name}</h3>
+              <ol class="flex flex-col gap-1.5">
+                {#each stage.scorecard?.criteria ?? [] as criterion (criterion.id)}
+                  <li class="flex flex-col">
+                    <span class="font-semibold break-words">{criterion.label}</span>
+                    {#if criterion.guidance}<span class="text-muted-foreground">{criterion.guidance}</span>{/if}
+                  </li>
+                {/each}
+              </ol>
             </li>
           {/each}
         </ul>

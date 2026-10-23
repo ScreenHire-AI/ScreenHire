@@ -95,6 +95,8 @@ app.MapTeamEndpoints();
 app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
+app.MapTaskEndpoints();
+app.MapScorecardEndpoints();
 app.MapWebhookEndpoints();
 app.MapEmailEndpoints();
 app.MapSchemaEndpoints();

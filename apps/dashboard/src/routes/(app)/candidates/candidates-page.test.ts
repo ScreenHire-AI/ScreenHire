@@ -55,6 +55,23 @@ describe('candidates page', () => {
     expect(screen.getByText('1', { selector: '[data-slot="badge"]' })).toHaveTextContent('1 application');
   });
 
+  it('filters by a tag the listed applications carry, from the panel header', async () => {
+    render_();
+    const panel = await screen.findByRole('region', { name: 'Applications' });
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+
+    const trigger = within(panel.querySelector('header')!).getByRole('button', { name: /^Tag: all/ });
+    await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Any tag', 'Referral']);
+    await fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'Referral' }));
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent)).toEqual(['Jordan Lee']),
+    );
+    expect(within(panel.querySelector('header')!).getByRole('button', { name: /^Tag: Referral/ })).toBeInTheDocument();
+  });
+
   it('counts the ticked rows in a pill in the panel header, as the table has no footer (K1, W3)', async () => {
     render_();
     await screen.findByRole('link', { name: 'Casey Morgan' });

@@ -220,7 +220,7 @@ Two layers, so one mistake is not a breach.
    reference their parent with a composite foreign key on `(organization_id, id)`, because foreign key checks bypass
    row-level security: an application can only point at a job and a candidate of its own organization, whatever id a
    request carries. `job_versions` and `application_events` are append-only: `screenhire_app` has no `UPDATE` or
-   `DELETE` on them.
+   `DELETE` on them. `application_scorecards` (migration `AddScorecards`) is the same: a submitted scorecard is final.
 
    The integrity tables (migration `AddIntegrityEngine`) follow the same pattern. `integrity_analyzer_runs`,
    `integrity_signals`, `integrity_assessments` and `integrity_review_actions` are append-only for audit;

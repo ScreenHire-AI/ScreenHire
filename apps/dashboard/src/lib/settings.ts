@@ -25,9 +25,6 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
 /** Whether the role manages the organization's settings: the API's `RequireOrganizationAdmin`. */
 export const isAdministrator = (role: OrganizationRole | null | undefined): boolean => role === 'Owner' || role === 'Admin';
 
-/** Whether the role changes hiring data, such as moving or emailing candidates: the API's `RequireHiringRole`. */
-export const isHiringWriter = (role: OrganizationRole | null | undefined): boolean => Boolean(role) && role !== 'Viewer';
-
 /** Every role, most powerful first. */
 export const roles: readonly OrganizationRole[] = ['Owner', 'Admin', 'Recruiter', 'Viewer'];
 

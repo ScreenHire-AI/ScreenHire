@@ -42,6 +42,20 @@ internal static class ApplicationEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline")
             .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapPost("/{applicationId:guid}/notes", AddApplicationNote).WithName("AddApplicationNote")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapPost("/{applicationId:guid}/tags", AddApplicationTag).WithName("AddApplicationTag")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapDelete("/{applicationId:guid}/tags", RemoveApplicationTag).WithName("RemoveApplicationTag")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -185,6 +199,113 @@ internal static class ApplicationEndpoints
             catch (DbUpdateConcurrencyException)
             {
                 return TypedResults.Problem("Someone else moved this application at the same moment; refresh and try again.", statusCode: StatusCodes.Status409Conflict);
+            }
+        }
+
+        return TypedResults.Ok(application.ToDetail(job, candidate, await FilesOfAsync(db, application.Id, cancellationToken)));
+    }
+
+    // A note from the hiring team: a timeline entry with its author, and ApplicationNoteAdded so open dashboards show it.
+    // It changes nothing else about the application, so it cannot race a move.
+    private static async Task<Results<Created<ApplicationTimelineEntry>, NotFound, ValidationProblem>> AddApplicationNote(
+        Guid applicationId,
+        AddApplicationNoteRequest request,
+        IValidator<AddApplicationNoteRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var db = outbox.DbContext;
+        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == applicationId, cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = time.GetUtcNow();
+        var note = application.AddNote(request.Note, now, tenant.UserId, user.ApiKeyId());
+        db.ApplicationEvents.Add(note);
+        await outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, note.Id, now));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.Created($"/v1/applications/{application.Id}/timeline", note.ToTimelineEntry());
+    }
+
+    // A person or an API key tags an application. A tag it already has (ignoring case) changes nothing. The worker's
+    // AddTag action writes the same row, so a clash is a 409, as a move is.
+    private static async Task<Results<Ok<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> AddApplicationTag(
+        Guid applicationId,
+        AddApplicationTagRequest request,
+        IValidator<AddApplicationTagRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        return await ChangeTagsAsync(
+            applicationId, outbox, time, (application, now) => application.AddTag(request.Tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
+            cancellationToken);
+    }
+
+    // Takes a tag off. A tag the application does not have changes nothing. Removing is undone by adding the tag again.
+    private static async Task<Results<Ok<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> RemoveApplicationTag(
+        Guid applicationId,
+        string? tag,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(tag) || tag.Trim().Length > JobApplication.MaxTagLength)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("tag", $"Name the tag to remove, in at most {JobApplication.MaxTagLength} characters."));
+        }
+
+        return await ChangeTagsAsync(
+            applicationId, outbox, time, (application, now) => application.RemoveTag(tag, now, tenant.UserId, user.ApiKeyId()), cancellationToken);
+    }
+
+    private static async Task<Results<Ok<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ChangeTagsAsync(
+        Guid applicationId,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TimeProvider time,
+        Func<JobApplication, DateTimeOffset, ApplicationEvent?> change,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        var application = await db.Applications.SingleOrDefaultAsync(a => a.Id == applicationId, cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+        var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == application.CandidateId, cancellationToken);
+        var now = time.GetUtcNow();
+        if (change(application, now) is { } changed)
+        {
+            db.ApplicationEvents.Add(changed);
+            await outbox.PublishAsync(new ApplicationTagsChanged(application.OrganizationId, application.Id, application.JobId, changed.Id, now));
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return TypedResults.Problem("Someone else changed this application at the same moment; refresh and try again.", statusCode: StatusCodes.Status409Conflict);
             }
         }
 

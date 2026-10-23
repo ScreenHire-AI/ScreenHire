@@ -1,38 +1,53 @@
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import MailIcon from '@lucide/svelte/icons/mail';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
   import SendIcon from '@lucide/svelte/icons/send';
+  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
   import TagIcon from '@lucide/svelte/icons/tag';
+  import TagsIcon from '@lucide/svelte/icons/tags';
   import type { ApplicationAnswer, ApplicationTimelineEntry, Question } from '@screenhire/api-client';
   import {
     ApiError,
     createGetApplication,
     createGetApplicationTimeline,
     createGetJob,
+    createListApplicationScorecards,
+    createListApplicationTasks,
     createListEmailTemplates,
+    createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
+  import { useQueryClient } from '@tanstack/svelte-query';
   import { page } from '$app/state';
+  import { canChangeHiringData } from '#lib/auth.js';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
+  import ApplicationTags from '#lib/components/application-tags.svelte';
   import EmailSheet from '#lib/components/email-sheet.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
+  import ManualAutomations from '#lib/components/manual-automations.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import NoteSheet from '#lib/components/note-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
+  import ScorecardList from '#lib/components/scorecard-list.svelte';
+  import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import TaskList from '#lib/components/task-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -42,39 +57,74 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { sourceName } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
-  import { describeError } from '#lib/query.js';
-  import { isHiringWriter } from '#lib/settings.js';
+  import { describeError, invalidatePath } from '#lib/query.js';
+  import { applicationsPath } from '#lib/realtime.js';
+  import { createTaskCompletion } from '#lib/tasks.svelte.js';
+  import { personName } from '#lib/team.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
 
-  // ApplicationMoved and AutomationRunFinished refetch the application and its timeline live (#lib/realtime.ts).
+  // ApplicationMoved, the note and tag events and AutomationRunFinished refetch the application, its timeline and its
+  // tasks live (#lib/realtime.ts).
   const application = createGetApplication(() => params.applicationId);
   const timeline = createGetApplicationTimeline(() => params.applicationId);
+  const tasks = createListApplicationTasks(() => params.applicationId);
+  // ScorecardSubmitted refetches them live, for every reviewer on the page.
+  const scorecards = createListApplicationScorecards(() => params.applicationId);
+  // Names the people in Activity and Tasks.
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const queryClient = useQueryClient();
   const detail = $derived(application.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  // Viewers read; the controls that change hiring data are left out for them (A3).
+  const editable = $derived(canChangeHiringData(page.data.user));
+  let noteOpen = $state(false);
+  let moveNoteOpen = $state(false);
+  let noteAnnouncement = $state('');
+  let scorecardOpen = $state(false);
+  let scorecardAnnouncement = $state('');
   // The job's workflow names the stages and labels the questions.
   const job = createGetJob(
     () => detail?.jobId ?? '',
     () => ({ query: { enabled: Boolean(detail) } }),
   );
   const moves = createMoves();
+  const completion = createTaskCompletion();
   // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
   // Email shows only where this deployment can send it and the person may (A3).
   const emailTemplates = createListEmailTemplates();
-  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && isHiringWriter(page.data.user?.organization?.role));
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && editable);
   let emailOpen = $state(false);
   // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
   let emailChosen = false;
   let emailed = $state('');
 
   const workflow = $derived(job.data?.data.workflow);
+  const manualAutomations = $derived((workflow?.automations ?? []).filter((automation) => automation.enabled && automation.trigger.type === 'Manual'));
   const stages = $derived(workflow?.stages ?? []);
   const stageName = (id: string | null) => (id ? (stages.find((stage) => stage.id === id)?.name ?? id) : '');
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const fileById = $derived(new Map((detail?.files ?? []).map((file) => [file.uploadId, file])));
   const resume = $derived(detail?.files.find((file) => file.questionId === 'resume'));
   const answers = $derived(detail?.answers.filter((answer) => answer.questionId !== 'resume') ?? []);
+  // A reviewer scores a stage that has a scorecard, that the application has reached, and that they have not scored yet;
+  // the current stage first.
+  const reached = $derived(
+    new Set([
+      ...(detail ? [detail.stage.id] : []),
+      ...(timeline.data?.data ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').map((entry) => entry.toStageId),
+    ]),
+  );
+  const scoredByMe = $derived(new Set((scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId).map((card) => card.stageId)));
+  const scoreable = $derived(
+    stages
+      .filter((stage) => stage.scorecard && reached.has(stage.id) && !scoredByMe.has(stage.id))
+      .toSorted((a, b) => Number(b.id === detail?.stage.id) - Number(a.id === detail?.stage.id)),
+  );
+  const hasScorecards = $derived(stages.some((stage) => stage.scorecard) || (scorecards.data?.data.length ?? 0) > 0);
 
   function answerText(answer: ApplicationAnswer, question: Question | undefined): string {
     const values = answer.values ?? (answer.value ? [answer.value] : []);
@@ -91,21 +141,48 @@
         return `Moved from ${stageName(entry.fromStageId)} to ${stageName(entry.toStageId)}`;
       case 'TagAdded':
         return `Tagged "${entry.tag}"`;
+      case 'TagRemoved':
+        return `Removed the tag "${entry.tag}"`;
+      case 'NoteAdded':
+        return 'Note';
       case 'IntegrityAssessed':
         // Levels and evidence are the integrity panel's to show; the activity records only that the checks ran.
         return 'Integrity checks ran';
+      case 'ScorecardSubmitted':
+        // The ratings and the recommendation are the Scorecards panel's to show.
+        return `Scorecard for ${stageName(entry.stageId ?? null)}`;
       case 'EmailSent':
+        // The body is never kept on the timeline, only the subject the candidate received.
         return `Emailed "${entry.emailSubject ?? 'an update'}"`;
     }
   }
 
-  const eventIcons = { Submitted: InboxIcon, StageChanged: ArrowRightIcon, TagAdded: TagIcon, IntegrityAssessed: ScanSearchIcon, EmailSent: SendIcon };
+  const eventIcons = {
+    Submitted: InboxIcon,
+    StageChanged: ArrowRightIcon,
+    TagAdded: TagIcon,
+    TagRemoved: TagsIcon,
+    IntegrityAssessed: ScanSearchIcon,
+    NoteAdded: StickyNoteIcon,
+    ScorecardSubmitted: ClipboardCheckIcon,
+    EmailSent: SendIcon,
+  };
 
   function actor(entry: ApplicationTimelineEntry): string | undefined {
     if (entry.automationRunId) return 'by an automation';
-    if (entry.actorUserId === page.data.user?.id) return 'by you';
-    if (entry.actorUserId) return 'by a teammate';
+    if (entry.actorUserId) return `by ${personName(entry.actorUserId, members, currentUserId)}`;
+    if (entry.actorApiKeyId) return 'by an API key';
     return undefined;
+  }
+
+  async function scorecardSubmitted(message: string) {
+    scorecardAnnouncement = message;
+    await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`);
+  }
+
+  async function noteAdded(message: string) {
+    noteAnnouncement = message;
+    await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}/timeline`);
   }
 
   const activity = $derived<Activity[]>(
@@ -145,6 +222,7 @@
       size="lg"
       disabled={moves.pending}
       onmove={(stage) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage)}
+      onnote={editable ? () => (moveNoteOpen = true) : undefined}
     />
   {/if}
 {/snippet}
@@ -253,6 +331,34 @@
             {/if}
           </Panel>
 
+          {#if hasScorecards}
+            <Panel title="Scorecards" count={scorecards.data?.data.length}>
+              {#snippet actions()}
+                {#if editable && scoreable.length > 0}
+                  <Button variant="outline" onclick={() => (scorecardOpen = true)}><ClipboardCheckIcon aria-hidden="true" />Fill scorecard</Button>
+                {/if}
+              {/snippet}
+              <div class="flex flex-col gap-3">
+                {#if scorecards.isError}
+                  <QueryError message={describeError(scorecards.error, 'Could not load the scorecards')} onretry={() => scorecards.refetch()} inset />
+                {:else if scorecards.isPending}
+                  <div aria-hidden="true" class="flex gap-3">
+                    <Skeleton class="size-7 shrink-0 rounded-full" />
+                    <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+                      <Skeleton class="h-4 w-1/2" />
+                      <Skeleton class="h-16 w-full" />
+                    </div>
+                  </div>
+                {:else if scorecards.data && scorecards.data.data.length > 0}
+                  <ScorecardList scorecards={scorecards.data.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
+                {:else}
+                  <p class="text-muted-foreground">No scorecards yet.</p>
+                {/if}
+                <p role="status" class="text-muted-foreground empty:hidden">{scorecardAnnouncement}</p>
+              </div>
+            </Panel>
+          {/if}
+
           <Panel title="Declarations">
             <SummaryList>
               <SummaryItem label="AI use">
@@ -266,14 +372,57 @@
         </div>
 
         <div class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-2">
+          {#if tasks.isError}
+            <Panel title="Tasks"><QueryError message={describeError(tasks.error, 'Could not load the tasks')} onretry={() => tasks.refetch()} inset /></Panel>
+          {:else if tasks.isPending}
+            <!-- Rows of the list's shape while it loads (E1); with no tasks the panel then leaves, as a calm state (T3). -->
+            <Panel title="Tasks">
+              <div aria-hidden="true" class="flex gap-3">
+                <Skeleton class="size-7 shrink-0 rounded-full" />
+                <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+                  <Skeleton class="h-4 w-3/4" />
+                  <Skeleton class="h-5 w-32" />
+                </div>
+              </div>
+            </Panel>
+          {:else if tasks.data && tasks.data.data.length > 0}
+            {@const items = tasks.data.data}
+            <Panel title="Tasks" count={items.filter((task) => !task.completedAt).length}>
+              <div class="flex flex-col gap-3">
+                <TaskList
+                  label="Tasks"
+                  tasks={items.toReversed()}
+                  {members}
+                  {currentUserId}
+                  oncomplete={editable ? (task) => completion.complete(task) : undefined}
+                  busy={completion.pending}
+                />
+                <FailureText message={completion.failure} />
+                <p role="status" class="sr-only">{completion.announcement}</p>
+              </div>
+            </Panel>
+          {/if}
+
+          <ApplicationTags applicationId={detail.id} tags={detail.tags} {editable} />
+
+          {#if editable && manualAutomations.length > 0}
+            <ManualAutomations applicationId={detail.id} automations={manualAutomations} />
+          {/if}
+
           <ReviewLog applicationId={detail.id} />
 
           <Panel title="Activity">
-            {#if timeline.isError}
-              <QueryError message={describeError(timeline.error, 'Could not load the activity')} onretry={() => timeline.refetch()} inset />
-            {:else}
-              <ActivityList label="Events" items={timeline.data && activity} />
-            {/if}
+            {#snippet actions()}
+              {#if editable}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add note</Button>{/if}
+            {/snippet}
+            <div class="flex flex-col gap-3">
+              {#if timeline.isError}
+                <QueryError message={describeError(timeline.error, 'Could not load the activity')} onretry={() => timeline.refetch()} inset />
+              {:else}
+                <ActivityList label="Events" items={timeline.data && activity} />
+              {/if}
+              <p role="status" class="text-muted-foreground empty:hidden">{noteAnnouncement}</p>
+            </div>
           </Panel>
         </div>
       </div>
@@ -288,6 +437,19 @@
         bind:open={emailOpen}
         recipients={[{ id: detail.id, candidateName: detail.candidate.fullName }]}
         onsent={(message) => (emailed = message)}
+      />
+    {/if}
+
+    {#if editable}
+      <NoteSheet bind:open={noteOpen} applicationId={detail.id} ondone={noteAdded} />
+      <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} stages={scoreable} ondone={scorecardSubmitted} />
+      <MoveNoteSheet
+        bind:open={moveNoteOpen}
+        candidateName={detail.candidate.fullName}
+        currentStageId={detail.stage.id}
+        {stages}
+        failure={moves.failure}
+        onmove={(stage, note) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage, note)}
       />
     {/if}
   {/if}

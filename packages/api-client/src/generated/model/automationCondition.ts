@@ -10,8 +10,9 @@ import type { ConditionOperator } from './conditionOperator.ts';
  * One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are
  * `yes` and `no`, choice answers are option ids). Facts are
  * `answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,
- * `verification.result`, `application.tags`, `application.source` and
- * `application.hoursInStage`.
+ * `verification.result`, `application.tags`, `application.source`,
+ * `application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,
+ * `reviewer.recommendation`.
  */
 export interface AutomationCondition {
   fact: string;

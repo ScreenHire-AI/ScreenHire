@@ -95,7 +95,7 @@ export function toGraph(
       nodes.push(
         node(actionId, COLUMN * (2 + actionIndex), y, {
           kind: 'action',
-          title: describeAction(action, workflow, templateNames),
+          title: describeAction(action, workflow, undefined, templateNames),
           detail: action.reason ?? action.note ?? action.url ?? '',
           automation: index,
           path: `${path}.actions[${actionIndex}]`,

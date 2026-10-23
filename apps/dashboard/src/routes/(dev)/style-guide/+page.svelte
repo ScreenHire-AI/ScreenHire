@@ -15,7 +15,7 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import type { ApplicationFileSummary, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -34,10 +34,12 @@
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import NotificationTray from '#lib/components/notification-tray.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
+  import ScorecardList from '#lib/components/scorecard-list.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
@@ -47,6 +49,8 @@
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import TagList from '#lib/components/tag-list.svelte';
+  import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -54,10 +58,12 @@
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
+  import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
@@ -138,6 +144,39 @@
     { id: 'b', icon: MessageSquareIcon, event: 'Note added', actor: 'Avery Quinn', note: 'Strong portfolio. Ask about the agency years.', at: ago(5 * hour) },
     { id: 'c', icon: UserPlusIcon, event: 'Applied', actor: 'Careers page', at: ago(10 * day) },
   ];
+
+  // Tags change in place here; nothing is saved.
+  let sampleTags = $state(['Referral', 'Relocating to Leeds']);
+  const sampleTeam = [
+    { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, joinedAt: ago(30 * day) },
+    { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, joinedAt: ago(20 * day) },
+  ];
+  const sampleTasks: TaskRow[] = [
+    { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
+    { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
+    { id: 't3', applicationId: 'a1', kind: 'Task', note: 'Call the references.', assigneeUserId: null, createdAt: ago(3 * day), completedAt: ago(5 * hour), completedByUserId: 'u2' },
+  ];
+  const sampleScorecards: ScorecardEntry[] = [
+    {
+      id: 's1',
+      stageId: 'interview',
+      reviewerUserId: 'u2',
+      ratings: [
+        { criterionId: 'role_skills', label: 'Skills the role needs', rating: 'StronglyDemonstrated' },
+        { criterionId: 'problem_solving', label: 'Problem solving', rating: 'Demonstrated' },
+        { criterionId: 'work_knowledge', label: 'Knowledge of the work', rating: null },
+      ],
+      recommendation: 'StrongYes',
+      note: 'Walked through the cache design and its trade-offs.',
+      workflowVersion: 1,
+      timelineEventId: 'e1',
+      submittedAt: ago(3 * hour),
+    },
+  ];
+  let notifications = $state([
+    { id: 'n1', title: 'Priya Natarajan, Product Designer', detail: 'A referral arrived. Call within a day.', href: '/style-guide' },
+  ]);
+  let sheetOpen = $state(false);
 
   const quote: Evidence = {
     kind: 'Quote',
@@ -592,6 +631,52 @@
         </Panel>
         <Panel title="Activity" class="flex-[1_1_320px]">
           <ActivityList label="Activity" items={activity} />
+        </Panel>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Tag list" class="flex-[1_1_320px]">
+          <TagList
+            tags={sampleTags}
+            onadd={async (tag) => ((sampleTags = [...sampleTags, tag]), true)}
+            onremove={(tag) => (sampleTags = sampleTags.filter((other) => other !== tag))}
+          />
+        </Panel>
+        <Panel title="Task list" class="flex-[1_1_320px]">
+          <TaskList label="Tasks" tasks={sampleTasks} members={sampleTeam} currentUserId="u1" oncomplete={() => {}} />
+        </Panel>
+        <Panel title="Scorecard" class="flex-[1_1_320px]">
+          <ScorecardList scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+        </Panel>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Notification tray" class="flex-[1_1_320px]">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Fixed to the bottom corner of the app; shown in place here</figcaption>
+            <NotificationTray class="static w-full" items={notifications} ondismiss={(id) => (notifications = notifications.filter((item) => item.id !== id))} />
+          </figure>
+        </Panel>
+        <Panel title="Sheet" class="flex-[1_1_320px]">
+          <Button variant="outline" onclick={() => (sheetOpen = true)}>Add note</Button>
+          <Sheet.Root bind:open={sheetOpen}>
+            <Sheet.Content side="right" class="w-full overflow-y-auto">
+              <Sheet.Header>
+                <Sheet.Title>Add a note</Sheet.Title>
+                <Sheet.Description>Your team sees it in Activity, with your name and the time.</Sheet.Description>
+              </Sheet.Header>
+              <form class="flex flex-col gap-4 px-4 pb-4" onsubmit={(event) => (event.preventDefault(), (sheetOpen = false))}>
+                <Field.Field>
+                  <Field.Label for="style-guide-note">Note</Field.Label>
+                  <Textarea id="style-guide-note" rows={4} />
+                </Field.Field>
+                <div class="flex justify-end gap-2">
+                  <Sheet.Close type="button" class={buttonVariants({ variant: 'outline', size: 'lg' })}>Cancel</Sheet.Close>
+                  <Button type="submit" size="lg">Add note</Button>
+                </div>
+              </form>
+            </Sheet.Content>
+          </Sheet.Root>
         </Panel>
       </div>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import { canChangeHiringData } from '#lib/auth.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
@@ -11,6 +12,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import TagFilterMenu from '#lib/components/tag-filter.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -19,7 +21,7 @@
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
-  import { isHiringWriter } from '#lib/settings.js';
+  import { matchesTag, tagsOf } from '#lib/tags.js';
 
   // Every application in the organization, newest first; new ones, stage moves and integrity levels arrive live
   // (#lib/realtime.ts).
@@ -28,15 +30,21 @@
   const all = $derived(applications.data?.data ?? []);
   // The sidebar counts use the same clock, so a view and its count agree.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
+  let tagFilter = $state<string | null>(null);
   let search = $state('');
+  // Tags people and automations put on applications; tags and removals arrive live (ApplicationTagsChanged).
+  const tags = $derived(tagsOf(all));
   const shown = $derived(
     all.filter(
       (application) =>
-        (!view || view.matches(application, clock.now)) && matchesIntegrityFilter(application, integrityFilter) && matchesSearch(application, search, true),
+        (!view || view.matches(application, clock.now)) &&
+        matchesIntegrityFilter(application, integrityFilter) &&
+        matchesTag(application, tagFilter) &&
+        matchesSearch(application, search, true),
     ),
   );
   // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
-  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || Boolean(search.trim()));
+  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || tagFilter !== null || Boolean(search.trim()));
   const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
@@ -51,7 +59,7 @@
   const emailTemplates = createListEmailTemplates();
   const integrityPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.mark));
   const canEmail = $derived(
-    Boolean(emailTemplates.data?.data.sendingEnabled) && isHiringWriter(page.data.user?.organization?.role) && !integrityPicked,
+    Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user) && !integrityPicked,
   );
   let emailOpen = $state(false);
   let emailed = $state('');
@@ -78,8 +86,9 @@
     <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
       <Panel title="Applications" flush>
         {#snippet tools()}
-          <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
+          <TagFilterMenu bind:tag={tagFilter} {tags} />
           {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
           {#if canEmail && selectedCount > 0 && !phone.current}
             <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
@@ -101,7 +110,7 @@
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
-            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter })) : undefined}
+            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter }), (tagFilter = null)) : undefined}
           />
         {/if}
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>

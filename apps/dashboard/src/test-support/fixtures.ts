@@ -61,6 +61,7 @@ function application(index: number, candidateName: string, stage: WorkflowStage,
     stageEnteredAt: submittedAt,
     jobTitle: 'Senior .NET Engineer',
     source: index % 2 === 0 ? 'CareersSite' : 'Recruiter',
+    tags: index === 1 ? ['Referral'] : [],
   };
 }
 

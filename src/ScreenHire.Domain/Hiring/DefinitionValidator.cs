@@ -56,6 +56,7 @@ public static partial class DefinitionValidator
     public const int MaxAutomations = 50;
     public const int MaxRules = 20;
     public const int MaxActions = 10;
+    public const int MaxCriteria = 20;
 
     public static IReadOnlyList<DefinitionError> Validate(HiringTemplateDefinition? definition)
     {
@@ -141,6 +142,11 @@ public static partial class DefinitionValidator
             {
                 errors.Add(new(Join(stagePath, "slaDays"), "An SLA is between 1 and 365 days."));
             }
+
+            if (stage.Scorecard is not null)
+            {
+                ValidateScorecard(stage, Join(stagePath, "scorecard"), errors);
+            }
         }
 
         // Applications start in the first stage, so it has to be the one Applied stage.
@@ -155,6 +161,48 @@ public static partial class DefinitionValidator
         }
 
         return byId;
+    }
+
+    private static void ValidateScorecard(WorkflowStage stage, string path, List<DefinitionError> errors)
+    {
+        if (Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal())
+        {
+            errors.Add(new(path, "A hired, rejected or withdrawn stage ends the application, so it has no scorecard."));
+        }
+
+        if (stage.Scorecard!.Criteria is not { Count: > 0 and <= MaxCriteria } criteria)
+        {
+            errors.Add(new(Join(path, "criteria"), $"A scorecard has between 1 and {MaxCriteria} criteria; leave the scorecard out for none."));
+            return;
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < criteria.Count; i++)
+        {
+            var criterionPath = $"{path}.criteria[{i}]";
+            if (criteria[i] is not { } criterion)
+            {
+                errors.Add(new(criterionPath, "A criterion is required."));
+                continue;
+            }
+
+            if (ValidateId(criterion.Id, Join(criterionPath, "id"), errors) && !ids.Add(criterion.Id))
+            {
+                errors.Add(new(Join(criterionPath, "id"), $"Criterion id '{criterion.Id}' is used twice."));
+            }
+
+            ValidateText(criterion.Label, Join(criterionPath, "label"), 120, required: true, errors);
+            ValidateText(criterion.Guidance, Join(criterionPath, "guidance"), 500, required: false, errors);
+            foreach (var (text, member) in new[] { (criterion.Label, "label"), (criterion.Guidance, "guidance") })
+            {
+                if (text is not null && PersonalJudgement().Match(text) is { Success: true } match)
+                {
+                    errors.Add(new(Join(criterionPath, member),
+                        $"Rate what the job needs, such as a skill or experience, not \"{match.Value}\". Scorecards never rate " +
+                        "personality, emotion or honesty (CLAUDE.md non-negotiable 3)."));
+                }
+            }
+        }
     }
 
     private static Dictionary<string, Question> ValidateQuestionnaire(Questionnaire? questionnaire, string path, List<DefinitionError> errors)
@@ -323,7 +371,7 @@ public static partial class DefinitionValidator
 
             ValidateText(automation.Name, Join(automationPath, "name"), 120, required: true, errors);
             ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), stages, errors);
-            ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), questions, errors);
+            ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), automation.Trigger?.Type, questions, errors);
             ValidateActions(automation.Actions, Join(automationPath, "actions"), stages, errors);
         }
 
@@ -342,6 +390,9 @@ public static partial class DefinitionValidator
     /// trigger or a signal fact. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
     /// trigger on a stage one moves applications into, or any StageExited trigger once one moves applications at all
     /// (the stage a move leaves is wherever the application is when the action runs, which no definition can know).
+    /// A ReviewerDecision trigger counts like a stage trigger: on a stage a signal moves applications into, or with no
+    /// stage once a signal moves applications at all. A person's scorecard sits in between, but the scorecard may be
+    /// filled only because a signal put the candidate in front of that reviewer, so the guardrail stays conservative.
     /// Otherwise a signal could tag or route an application and a second automation could act on the tag or the stage,
     /// laundering the signal past guardrail 1. Repeated until nothing new is found, so chains of any length count.
     /// </summary>
@@ -387,7 +438,8 @@ public static partial class DefinitionValidator
     {
         if (automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
             || (automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId))
-            || (automation.Trigger?.Type == TriggerType.StageExited && signalMovesOut))
+            || (automation.Trigger?.Type == TriggerType.StageExited && signalMovesOut)
+            || (automation.Trigger is { Type: TriggerType.ReviewerDecision, StageId: null } && signalMovesOut))
         {
             return true;
         }
@@ -428,6 +480,15 @@ public static partial class DefinitionValidator
         {
             ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
         }
+        else if (trigger.Type == TriggerType.ReviewerDecision && trigger.StageId is not null)
+        {
+            // Optional: a decision on any stage's scorecard, or only on this one's.
+            ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+            if (stages.GetValueOrDefault(trigger.StageId) is { Scorecard: null } stage)
+            {
+                errors.Add(new(Join(path, "stageId"), $"{stage.Name} has no scorecard, so no reviewer decision is recorded there."));
+            }
+        }
         else if (trigger.StageId is not null)
         {
             errors.Add(new(Join(path, "stageId"), $"A {trigger.Type} trigger has no stage."));
@@ -447,7 +508,7 @@ public static partial class DefinitionValidator
     }
 
     private static void ValidateConditions(
-        AutomationConditions? conditions, string path, Dictionary<string, Question> questions, List<DefinitionError> errors)
+        AutomationConditions? conditions, string path, TriggerType? trigger, Dictionary<string, Question> questions, List<DefinitionError> errors)
     {
         if (conditions is null)
         {
@@ -480,6 +541,10 @@ public static partial class DefinitionValidator
                 errors.Add(new(Join(rulePath, "fact"), rule.Fact?.StartsWith(AnswersPrefix, StringComparison.Ordinal) == true
                     ? $"No question has the id '{rule.Fact[AnswersPrefix.Length..]}'."
                     : $"Unknown fact '{rule.Fact}'."));
+            }
+            else if (fact.Category == FactCategory.Reviewer && trigger != TriggerType.ReviewerDecision)
+            {
+                errors.Add(new(Join(rulePath, "fact"), "Only a ReviewerDecision automation has a reviewer's recommendation to test."));
             }
             else if (Enum.IsDefined(rule.Operator) && !FactSchema.OperatorsFor(fact.Type).Contains(rule.Operator))
             {
@@ -756,6 +821,9 @@ public static partial class DefinitionValidator
             case FactType.Number when operands.Any(o => !FactSchema.TryParseNumber(o, out _)):
                 errors.Add(new(operandPath, $"{fact.Name} is a number; compare it with a number such as 48."));
                 break;
+            case FactType.Recommendation when operands.FirstOrDefault(o => o is null || !Enum.GetNames<Recommendation>().Contains(o, StringComparer.Ordinal)) is { } notRecommendation:
+                errors.Add(new(operandPath, $"'{notRecommendation}' is not a recommendation. Use {string.Join(", ", Enum.GetNames<Recommendation>())}."));
+                break;
             case FactType.Choice or FactType.MultiChoice:
                 var options = questions[fact.Name[AnswersPrefix.Length..]].Options?.Where(o => o is not null).Select(o => o.Id).ToHashSet(StringComparer.Ordinal) ?? [];
                 if (operands.FirstOrDefault(o => o is not null && !options.Contains(o)) is { } unknown)
@@ -860,4 +928,12 @@ public static partial class DefinitionValidator
 
     [GeneratedRegex("^[A-Z]{3}$")]
     private static partial Regex CurrencyCode();
+
+    // A backstop for criteria that rate the person rather than the job (CLAUDE.md non-negotiable 3). Whole words only,
+    // and not words with a fair job meaning: "data integrity", "energy sector knowledge", "character encoding" and
+    // "statistical confidence" pass. It catches the obvious cases; a criterion's meaning is for the template builder's
+    // guidance and review of system templates (workflow-engine.md §7).
+    [GeneratedRegex(@"\b(personality|personalities|emotion|emotions|emotional|emotionally|honest|honesty|dishonest|dishonesty|truthful|truthfulness|lying|liar|trustworthy|trustworthiness|sincere|sincerity|temperament|likeable|likeability|likability|culture fit|cultural fit|gut feeling|attitude|enthusiasm|enthusiastic|passion|passionate|demeanor|demeanour|motivation|motivated|charisma|charismatic|vibe|vibes)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex PersonalJudgement();
 }

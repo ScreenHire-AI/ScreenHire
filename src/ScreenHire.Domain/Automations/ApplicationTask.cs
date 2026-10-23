@@ -30,6 +30,26 @@ public sealed class ApplicationTask : ITenantOwned
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset? CompletedAt { get; private set; }
+
+    /// <summary>The person who marked it done.</summary>
+    public Guid? CompletedByUserId { get; private set; }
+
+    /// <summary>
+    /// Marks the task done by <paramref name="userId"/>. A task that is done already keeps who finished it and when, and
+    /// this returns false. Completing a task changes nothing about the application: a rejection review is decided by
+    /// moving the candidate, not by this.
+    /// </summary>
+    public bool Complete(Guid userId, DateTimeOffset now)
+    {
+        if (CompletedAt is not null)
+        {
+            return false;
+        }
+
+        CompletedAt = now;
+        CompletedByUserId = userId;
+        return true;
+    }
 }
 
 public enum ApplicationTaskKind

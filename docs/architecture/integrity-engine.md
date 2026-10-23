@@ -156,7 +156,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 ## 7. Recruiter & candidate experience
 
 - **Recruiter**: assessment chips on every candidate card (`Authenticity: Review suggested · 3 reasons`), a detail
-  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add note*.
+  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add review note*.
   Every action is audit-logged. No "reject" button sits in the integrity panel.
 
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
@@ -168,7 +168,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
   counter-evidence, the job's AI policy and any dismissal. The candidate's AI declaration is in the page's Declarations
   panel, not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
-  log panel beside it lists every dismissal and note and holds *Add note*. *Request verification* is hidden until
+  log panel beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until
   phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
   `IntegrityAssessed` refetches the chips, overview and panel live. AI chips use one colour and no mark, so they read
   as information; "Not indicated" is neutral. While an integrity filter is set, the job page's bulk move offers no
@@ -491,9 +491,10 @@ assessment, shown next to it as context; it is never a reason on its own.
 - Version 1 of the "Software engineer" system template tests `integrity.aiAssistance` for `ReviewSuggested`, an
   authenticity level, so that half of its integrity automation never matches. Version 2 (migration
   `AddSoftwareEngineerTemplateVersion2`) corrects it: a reviewer is asked when either assessment is above its lowest
-  level. New jobs and the Brightwater seed use version 2; jobs copied from version 1 keep their copy and show "update
-  available". Level names in conditions are still not validated, because validation would block those version 1 jobs
-  until someone adopts version 2. Turning it on is a small change once no job uses version 1.
+  level. Version 3 (`AddScorecards`) keeps the correction and adds default scorecards; a new Brightwater seed copies
+  version 3. Jobs copied from version 1 keep their copy and show "update available". Level names in conditions are
+  still not validated, because validation would block those version 1 jobs until someone adopts version 2. Turning it
+  on is a small change once no job uses version 1.
 - Duplicates do not revisit earlier applications (§10.2).
 - With the demo seeding on in the end-to-end stack, `LiveUpdatesTests` failed in 3 of 9 runs: a live `JobClosed` took
   more than 5 seconds to reach the second browser. With it off, 10 of 10 runs passed. The demo itself finished well

@@ -12,7 +12,9 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
     {
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion1, 1, "Software engineer" },
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion2, 2, "Software engineer" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion3, 3, "Software engineer" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, 1, "Hourly role" },
+        { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion2, 2, "Hourly role" },
     };
 
     [Theory]
