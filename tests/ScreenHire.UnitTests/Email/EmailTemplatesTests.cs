@@ -32,6 +32,21 @@ public sealed class EmailTemplatesTests
             .And.Contain("made automatically").And.Contain("a person will review your application");
     }
 
+    // The automated decision and the offer of a person's review come from ScreenHire, so rewording cannot drop them.
+    [Fact]
+    public void A_reworded_rejection_email_still_says_the_decision_was_automatic_and_offers_a_person()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("Your application", "Hi {{ candidateName }}. Not this time: {{ reason }}"), "sam@example.com", Sam,
+            EmailTemplateIds.ApplicationRejected);
+
+        email.TextBody.Should().Contain("Not this time: No right to work.")
+            .And.EndWith(EmailTemplates.AutomatedDecisionNotice("Brightwater") + Environment.NewLine);
+        email.HtmlBody.Should().Contain("a person will review your application");
+        Templates.Render(new EmailTemplateContent("Hi", "Hello"), "sam@example.com", Sam, EmailTemplateIds.StageChange)
+            .TextBody.Should().NotContain("made automatically");
+    }
+
     [Fact]
     public void Every_built_in_template_passes_its_own_checks()
     {

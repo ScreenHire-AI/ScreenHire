@@ -117,10 +117,14 @@ public sealed partial class EmailTemplates
     }
 
     /// <summary>The built-in email <paramref name="builtInId"/> in ScreenHire's wording, for <paramref name="to"/>.</summary>
-    public EmailMessage Render(string builtInId, string to, EmailTemplateModel model) => Render(Default(builtInId), to, model);
+    public EmailMessage Render(string builtInId, string to, EmailTemplateModel model) => Render(Default(builtInId), to, model, builtInId);
 
-    /// <summary>The email <paramref name="content"/> renders for <paramref name="to"/>. Validate content a person wrote first.</summary>
-    public EmailMessage Render(EmailTemplateContent content, string to, EmailTemplateModel model)
+    /// <summary>
+    /// The email <paramref name="content"/> renders for <paramref name="to"/>, as template <paramref name="templateId"/>.
+    /// The rejection email always ends with <see cref="AutomatedDecisionNotice"/>, whatever the organization's wording.
+    /// Validate content a person wrote first.
+    /// </summary>
+    public EmailMessage Render(EmailTemplateContent content, string to, EmailTemplateModel model, string? templateId = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(model);
@@ -134,8 +138,22 @@ public sealed partial class EmailTemplates
         // A subject is one line of plain text: no line breaks a header could carry.
         var subject = Parse(content.Subject).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings(" ");
         var text = Parse(content.Body).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings("\n");
+        if (templateId == EmailTemplateIds.ApplicationRejected)
+        {
+            text += "\n\n" + AutomatedDecisionNotice(model.OrganizationName);
+        }
+
         return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(text));
     }
+
+    /// <summary>
+    /// What ScreenHire adds to every rejection email. Only a Reject action sends it, and that decision is automatic, so
+    /// the candidate is told so and offered a person's review (docs/research/legal.md, principle 1: GDPR Art. 22 and the
+    /// human-review rules). An organization rewords the rest of the email, never this.
+    /// </summary>
+    public static string AutomatedDecisionNotice(string organizationName) =>
+        "This decision was made automatically from your answer to a screening question. If you think it is wrong, "
+        + $"contact the hiring team at {organizationName} and a person will review your application.";
 
     /// <summary>
     /// The HTML part: a paragraph for each block of text between blank lines, a line break for each single newline, and

@@ -72,6 +72,7 @@ public static class ApplicationEmails
         var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == application.CandidateId, cancellationToken);
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == application.OrganizationId, cancellationToken);
         var sent = await email.SendAsync(
+            templateId,
             template.Content,
             candidate.Email,
             new EmailTemplateModel(candidate.FullName, job.Title, organization.Name, stage?.Name, reason),

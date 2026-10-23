@@ -53,7 +53,9 @@ workflow, or a hiring template, still names. A template deleted anyway (a race) 
 ## Rules
 
 - **The rejection email goes only with `Reject`.** It cannot be sent by hand or by `SendEmail`: the API refuses it and
-  the dashboard never offers it. The organization may reword it, but it must keep the reason.
+  the dashboard never offers it. The organization may reword it, but it must keep the reason, and ScreenHire ends it
+  with a fixed sentence (`EmailTemplates.AutomatedDecisionNotice`): the decision was automatic, and a person reviews it
+  on request (docs/research/legal.md, principle 1). The preview shows that sentence too.
 - **`stage-change` never goes to an ended application.** "Moved to the next step: Rejected" would be a rejection no
   `Reject` action guarded. The API skips such applications in a send; the worker checks again when it sends.
 - **No bulk email picked by integrity signals.** On the candidates list and a job's pipeline, Email for a selection is

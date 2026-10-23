@@ -338,7 +338,7 @@ internal static class EmailEndpoints
         }
 
         var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == tenant.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
-        return renderer.Render(new EmailTemplateContent(request.Subject, request.Body), to, EmailTemplateModel.Sample(organization));
+        return renderer.Render(new EmailTemplateContent(request.Subject, request.Body), to, EmailTemplateModel.Sample(organization), request.TemplateId);
     }
 
     private static async Task<IDictionary<string, string[]>> DraftProblemsAsync(
