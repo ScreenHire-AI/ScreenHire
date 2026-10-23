@@ -7,8 +7,9 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// A hiring team organizing candidates in the dashboard: a note in Activity, a tag, the candidates list filtered by that
-/// tag, a manual automation run from the application, and completing the task it made on My tasks. Signs in as a new
-/// person with a new organization, whose job has a Manual automation that creates a to-do.
+/// tag, a manual automation run from the application with the team notified, and completing the task it made on My
+/// tasks. Signs in as a new person with a new organization, whose job has a Manual automation that creates a to-do and
+/// notifies the team.
 /// </summary>
 public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -65,6 +66,12 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Region("Automations").GetByRole(AriaRole.Button, new() { Name = "Run, Prepare the interview" }).ClickAsync();
         await Expect(Region("Automations")).ToContainTextAsync("Asked to run \"Prepare the interview\"");
         await Expect(Region("Tasks")).ToContainTextAsync("Call the references.", new() { Timeout = 30_000 });
+        // Its NotifyTeam action reaches the open dashboard's notification tray, with the action's note.
+        var notifications = Region("Notifications");
+        await Expect(notifications).ToContainTextAsync("Interview prep has started.", new() { Timeout = 30_000 });
+        await Expect(notifications.GetByRole(AriaRole.Link, new() { Name = $"{Tagged}, Platform Engineer" })).ToBeVisibleAsync();
+        await notifications.GetByRole(AriaRole.Button, new() { Name = "Dismiss notification" }).ClickAsync();
+        await Expect(notifications.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(0);
 
         // My tasks lists it for the team; completing it empties the open list and puts it under Done.
         await Page.GotoAsync(DashboardUrl("/tasks"));
@@ -87,8 +94,8 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 
-    // A new person and organization, a published job whose workflow gains a Manual automation that makes a to-do, and two
-    // applications a recruiter added.
+    // A new person and organization, a published job whose workflow gains a Manual automation that makes a to-do and
+    // notifies the team, and two applications a recruiter added.
     private async Task<(string Email, Guid ApplicationId)> ArrangeAsync()
     {
         var email = ApiSession.NewEmail("e2e-team-work");
@@ -114,7 +121,9 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
             ["id"] = "prepare",
             ["name"] = "Prepare the interview",
             ["trigger"] = new JsonObject { ["type"] = "Manual" },
-            ["actions"] = new JsonArray(new JsonObject { ["type"] = "CreateTask", ["note"] = "Call the references." }),
+            ["actions"] = new JsonArray(
+                new JsonObject { ["type"] = "CreateTask", ["note"] = "Call the references." },
+                new JsonObject { ["type"] = "NotifyTeam", ["note"] = "Interview prep has started." }),
         });
         await ReadAsync(await session.PutAsync($"/v1/jobs/{jobId}/workflow", new JsonObject { ["workflow"] = workflow, ["expectedWorkflowVersion"] = 1 }, Ct), HttpStatusCode.OK);
         await ReadAsync(await session.PostAsync($"/v1/jobs/{jobId}/publish", new { }, Ct), HttpStatusCode.OK);
