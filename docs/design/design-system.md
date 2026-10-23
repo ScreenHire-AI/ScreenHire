@@ -236,10 +236,10 @@ Atlassian's surfaces.
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates; the team, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
+| List | Candidates, jobs, templates; the team, email templates, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
-| Form | Creating or editing a record; a settings page such as Organization, Careers branding or Integrity | One column, 688px wide, labels above fields, actions at the end |
+| Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
 | Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
