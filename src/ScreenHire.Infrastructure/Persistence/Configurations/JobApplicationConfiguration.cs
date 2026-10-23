@@ -70,6 +70,11 @@ internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfigurati
             .HasForeignKey(s => new { s.OrganizationId, s.ApplicationId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
+        // The application's own job, in the same organization; set from the application, never from a request.
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(s => new { s.OrganizationId, s.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
         // One judgement per reviewer per stage: a second submission is the same request again or a conflict, and two
         // submissions racing each other hit this index.
         builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId }).IsUnique();

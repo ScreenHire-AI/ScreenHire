@@ -504,7 +504,14 @@ export const CreateJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -546,7 +553,7 @@ export const CreateJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -637,7 +644,14 @@ export const GetJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -679,7 +693,7 @@ export const GetJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(getJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -792,7 +806,14 @@ export const UpdateJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -834,7 +855,7 @@ export const UpdateJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -929,7 +950,14 @@ export const PublishJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -971,7 +999,7 @@ export const PublishJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1062,7 +1090,14 @@ export const CloseJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1104,7 +1139,7 @@ export const CloseJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(closeJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1239,7 +1274,14 @@ export const UpdateJobWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1281,7 +1323,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1334,7 +1376,14 @@ export const UpdateJobWorkflowResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1376,7 +1425,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1472,7 +1521,14 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1514,7 +1570,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1596,7 +1652,14 @@ export const CreateHiringTemplateBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1638,7 +1701,7 @@ export const CreateHiringTemplateBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1751,7 +1814,14 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1793,7 +1863,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1838,7 +1908,14 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1880,7 +1957,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -1934,7 +2011,14 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1976,7 +2060,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -2026,7 +2110,14 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2068,7 +2159,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -2113,7 +2204,14 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2155,7 +2253,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -2209,7 +2307,14 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2251,7 +2356,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -2511,7 +2616,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2519,7 +2624,10 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "note": zod.string().nullable(),
   "tag": zod.string().nullable(),
   "automationRunId": zod.uuid().nullable(),
-  "actorApiKeyId": zod.uuid().nullable()
+  "actorApiKeyId": zod.uuid().nullable(),
+  "scorecardId": zod.uuid().nullish(),
+  "stageId": zod.string().nullish(),
+  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -2534,7 +2642,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2542,7 +2650,10 @@ export const AddApplicationNoteResponse = zod.object({
   "note": zod.string().nullable(),
   "tag": zod.string().nullable(),
   "automationRunId": zod.uuid().nullable(),
-  "actorApiKeyId": zod.uuid().nullable()
+  "actorApiKeyId": zod.uuid().nullable(),
+  "scorecardId": zod.uuid().nullish(),
+  "stageId": zod.string().nullish(),
+  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -3716,7 +3827,14 @@ export const ValidateWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3758,7 +3876,7 @@ export const ValidateWorkflowBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -3798,7 +3916,14 @@ export const SimulateWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
-  "slaDays": zod.int().nullish()
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "criteria": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "guidance": zod.string().nullish()
+}))
+}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3840,7 +3965,7 @@ export const SimulateWorkflowBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`.'))
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
 }).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
@@ -3872,7 +3997,8 @@ export const SimulateWorkflowBody = zod.object({
   "hoursInStage": zod.int().nullish(),
   "integrityAuthenticity": zod.string().nullish(),
   "integrityAiAssistance": zod.string().nullish(),
-  "verificationResult": zod.string().nullish()
+  "verificationResult": zod.string().nullish(),
+  "reviewerRecommendation": zod.string().nullish()
 }).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.')]).optional(),
   "accommodationRequested": zod.boolean().default(simulateWorkflowBodyAccommodationRequestedDefault),
   "chain": zod.array(zod.string()).nullish()
@@ -3931,7 +4057,8 @@ export const ListAutomationRunsResponseItem = zod.object({
   "hoursInStage": zod.int().nullish(),
   "integrityAuthenticity": zod.string().nullish(),
   "integrityAiAssistance": zod.string().nullish(),
-  "verificationResult": zod.string().nullish()
+  "verificationResult": zod.string().nullish(),
+  "reviewerRecommendation": zod.string().nullish()
 }).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.'),
   "rules": zod.array(zod.object({
   "fact": zod.string(),
@@ -4034,6 +4161,59 @@ export const CompleteTaskResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable()
 }).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+
+
+export const ListApplicationScorecardsParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const ListApplicationScorecardsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "stageId": zod.string(),
+  "reviewerUserId": zod.uuid(),
+  "ratings": zod.array(zod.object({
+  "criterionId": zod.string(),
+  "label": zod.string(),
+  "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
+}).describe('A criterion as the reviewer was asked it, and their rating; null when they did not rate it.')),
+  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
+  "note": zod.string().nullable(),
+  "workflowVersion": zod.int(),
+  "timelineEventId": zod.uuid(),
+  "submittedAt": zod.iso.datetime({"offset":true})
+}).describe('One reviewer\'s scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004).')
+export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
+
+
+export const SubmitScorecardParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const SubmitScorecardBody = zod.object({
+  "stageId": zod.string(),
+  "ratings": zod.array(zod.object({
+  "criterionId": zod.string(),
+  "rating": zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])
+}).describe('The rating for one criterion of the stage\'s scorecard.')),
+  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
+  "note": zod.string().nullish()
+}).describe('A reviewer\'s scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409.')
+
+export const SubmitScorecardResponse = zod.object({
+  "id": zod.uuid(),
+  "stageId": zod.string(),
+  "reviewerUserId": zod.uuid(),
+  "ratings": zod.array(zod.object({
+  "criterionId": zod.string(),
+  "label": zod.string(),
+  "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
+}).describe('A criterion as the reviewer was asked it, and their rating; null when they did not rate it.')),
+  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
+  "note": zod.string().nullable(),
+  "workflowVersion": zod.int(),
+  "timelineEventId": zod.uuid(),
+  "submittedAt": zod.iso.datetime({"offset":true})
+}).describe('One reviewer\'s scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004).')
 
 
 export const ListWebhookEventTypesResponseItem = zod.string()

@@ -274,6 +274,25 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         (await other.GetAsync($"/v1/organization/api-keys/{othersKey.Id("key.id")}")).At("revokedAt").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
+    // A scorecard is a person's judgement: a write key reads them but cannot give one.
+    [Fact]
+    public async Task A_key_reads_scorecards_but_cannot_submit_one()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        var application = await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
+        (await owner.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
+        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "ATS sync", ["Read", "Write"])).Text("token"));
+
+        var submit = await key.PostAsync($"/v1/applications/{application.Id()}/scorecards", new JsonObject
+        {
+            ["stageId"] = "interview", ["ratings"] = new JsonArray(), ["recommendation"] = "Yes",
+        });
+
+        submit.Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("People only");
+        (await key.GetAsync($"/v1/applications/{application.Id()}/scorecards")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+    }
+
     [Fact]
     public async Task The_OpenAPI_document_declares_the_key_on_the_hiring_api_only()
     {

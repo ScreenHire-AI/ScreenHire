@@ -290,6 +290,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_application_scorecards");
 
+                    b.HasIndex("OrganizationId", "JobId")
+                        .HasDatabaseName("ix_application_scorecards_organization_id_job_id");
+
                     b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId")
                         .IsUnique()
                         .HasDatabaseName("ix_application_scorecards_organization_id_application_id_stage");
@@ -2615,6 +2618,14 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_application_scorecards_applications_organization_id_applica");
+
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_scorecards_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Applications.JobApplication", b =>

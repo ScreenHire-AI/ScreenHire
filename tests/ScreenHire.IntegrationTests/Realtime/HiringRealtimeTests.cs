@@ -81,7 +81,16 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
         var completed = await ourClient.WaitForAsync("ApplicationTaskCompleted", "taskId", task, cancellationToken);
         completed.GetProperty("applicationId").GetGuid().Should().Be(application);
 
-        theirClient.ReceivedAnythingAbout(application).Should().BeFalse("another organization's notes, tags and tasks never reach us");
+        (await ours.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
+        var scorecard = (await ours.PostAsync($"/v1/applications/{application}/scorecards", new JsonObject
+        {
+            ["stageId"] = "interview", ["ratings"] = new JsonArray(), ["recommendation"] = "Yes",
+        })).Expect(HttpStatusCode.Created);
+        var scored = await ourClient.WaitForAsync("ScorecardSubmitted", "scorecardId", scorecard.Id(), cancellationToken);
+        scored.GetProperty("eventId").GetGuid().Should().Be(scorecard.Id("timelineEventId"));
+        scored.TryGetProperty("recommendation", out _).Should().BeFalse("the scorecard stays behind the API");
+
+        theirClient.ReceivedAnythingAbout(application).Should().BeFalse("another organization's notes, tags, tasks and scorecards never reach us");
         theirClient.ReceivedAnythingAbout(task).Should().BeFalse();
     }
 

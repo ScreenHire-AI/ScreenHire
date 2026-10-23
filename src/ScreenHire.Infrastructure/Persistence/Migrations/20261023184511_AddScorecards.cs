@@ -106,6 +106,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         principalTable: "applications",
                         principalColumns: new[] { "organization_id", "id" },
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_application_scorecards_jobs_organization_id_job_id",
+                        columns: x => new { x.organization_id, x.job_id },
+                        principalTable: "jobs",
+                        principalColumns: new[] { "organization_id", "id" },
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -113,6 +119,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 table: "application_scorecards",
                 columns: new[] { "organization_id", "application_id", "stage_id", "reviewer_user_id" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_application_scorecards_organization_id_job_id",
+                table: "application_scorecards",
+                columns: new[] { "organization_id", "job_id" });
 
             migrationBuilder.Sql(EnableRowLevelSecurityAndTemplates);
         }

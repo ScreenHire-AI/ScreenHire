@@ -14,3 +14,10 @@ public sealed record ApplicationNoteAdded(Guid OrganizationId, Guid ApplicationI
 /// <see cref="Automations.AutomationRunFinished"/> refreshes the same screens.
 /// </summary>
 public sealed record ApplicationTagsChanged(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset ChangedAt) : ITenantEvent;
+
+/// <summary>
+/// A reviewer submitted a stage's scorecard. Ids only: open dashboards refetch the application's scorecards and timeline.
+/// The ReviewerDecision automations it fires run in the worker, from the <c>RunAutomations</c> published with it.
+/// </summary>
+public sealed record ScorecardSubmitted(
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid ScorecardId, Guid EventId, DateTimeOffset SubmittedAt) : ITenantEvent;

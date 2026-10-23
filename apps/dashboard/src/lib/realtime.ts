@@ -36,6 +36,7 @@ export const invalidations: InvalidationMap = {
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteAdded: [applicationsPath],
   ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
+  ScorecardSubmitted: [applicationsPath],
   ApplicationTaskCompleted: [applicationsPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],

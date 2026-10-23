@@ -4657,6 +4657,153 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/scorecards": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ListApplicationScorecards",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScorecardEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "SubmitScorecard",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitScorecardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardEntry"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/webhooks/event-types": {
       "get": {
         "tags": [
@@ -5915,6 +6062,29 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "scorecardId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "stageId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recommendation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Recommendation"
+              }
+            ]
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -6995,6 +7165,31 @@
           }
         },
         "description": "A new webhook endpoint: where to post, and which events (`GET /v1/webhooks/event-types` lists them)."
+      },
+      "CriterionRating": {
+        "enum": [
+          "NotDemonstrated",
+          "PartlyDemonstrated",
+          "Demonstrated",
+          "StronglyDemonstrated",
+          null
+        ]
+      },
+      "CriterionRatingInput": {
+        "required": [
+          "criterionId",
+          "rating"
+        ],
+        "type": "object",
+        "properties": {
+          "criterionId": {
+            "type": "string"
+          },
+          "rating": {
+            "$ref": "#/components/schemas/CriterionRating"
+          }
+        },
+        "description": "The rating for one criterion of the stage's scorecard."
       },
       "CurrentOrganization": {
         "required": [
@@ -9677,6 +9872,15 @@
           "File"
         ]
       },
+      "Recommendation": {
+        "enum": [
+          "StrongNo",
+          "No",
+          "Yes",
+          "StrongYes",
+          null
+        ]
+      },
       "RuleResult": {
         "required": [
           "fact",
@@ -9818,6 +10022,88 @@
             ]
           }
         }
+      },
+      "ScorecardEntry": {
+        "required": [
+          "id",
+          "stageId",
+          "reviewerUserId",
+          "ratings",
+          "recommendation",
+          "note",
+          "workflowVersion",
+          "timelineEventId",
+          "submittedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stageId": {
+            "type": "string"
+          },
+          "reviewerUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardRating"
+            }
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timelineEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One reviewer's scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004)."
+      },
+      "ScorecardRating": {
+        "required": [
+          "criterionId",
+          "label",
+          "rating"
+        ],
+        "type": "object",
+        "properties": {
+          "criterionId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "rating": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CriterionRating"
+              }
+            ]
+          }
+        },
+        "description": "A criterion as the reviewer was asked it, and their rating; null when they did not rate it."
       },
       "SignalCategory": {
         "enum": [
@@ -10063,6 +10349,35 @@
           "Withdrawn",
           "Custom"
         ]
+      },
+      "SubmitScorecardRequest": {
+        "required": [
+          "stageId",
+          "ratings",
+          "recommendation"
+        ],
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CriterionRatingInput"
+            }
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A reviewer's scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409."
       },
       "SwitchOrganizationRequest": {
         "required": [

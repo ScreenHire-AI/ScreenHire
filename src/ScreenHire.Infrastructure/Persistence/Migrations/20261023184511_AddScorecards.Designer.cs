@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261023183735_AddScorecards")]
+    [Migration("20261023184511_AddScorecards")]
     partial class AddScorecards
     {
         /// <inheritdoc />
@@ -292,6 +292,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_application_scorecards");
+
+                    b.HasIndex("OrganizationId", "JobId")
+                        .HasDatabaseName("ix_application_scorecards_organization_id_job_id");
 
                     b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId")
                         .IsUnique()
@@ -2618,6 +2621,14 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_application_scorecards_applications_organization_id_applica");
+
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_scorecards_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Applications.JobApplication", b =>

@@ -221,7 +221,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         publish.Expect(HttpStatusCode.Conflict);
         var after = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}");
         after.Text("name").Should().Be("Software engineer");
-        after.Count("versions").Should().Be(2, "version 1 and the version 2 a later migration shipped");
+        after.Count("versions").Should().Be(3, "version 1 and the versions 2 and 3 later migrations shipped");
     }
 
     [Fact]

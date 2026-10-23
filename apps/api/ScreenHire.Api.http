@@ -85,6 +85,19 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
+# Scorecards: one per reviewer per stage; submitting raises the ReviewerDecision trigger.
+GET {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
+
+###
+
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "stageId": "interview", "ratings": [{ "criterionId": "role_skills", "rating": "Demonstrated" }], "recommendation": "Yes" }
+
+###
+
 # My tasks: the signed-in person's and the team's open tasks (status=Completed, scope=Everyone widen it).
 GET {{api}}/v1/tasks?status=Open&scope=Mine
 

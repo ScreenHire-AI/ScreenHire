@@ -30,6 +30,7 @@ export const realtimeEventSchemas = {
   }),
   // A person or an API key added or removed a tag; lists that filter by tag refetch.
   ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant }),
+  ScorecardSubmitted: z.object({ organizationId: id, applicationId: id, jobId: id, scorecardId: id, eventId: id, submittedAt: instant }),
   ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, completedAt: instant }),
   // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
   AutomationRunFinished: z.object({
