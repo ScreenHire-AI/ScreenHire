@@ -289,6 +289,17 @@
         <div class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-2">
           {#if tasks.isError}
             <Panel title="Tasks"><QueryError message={describeError(tasks.error, 'Could not load the tasks')} onretry={() => tasks.refetch()} inset /></Panel>
+          {:else if tasks.isPending}
+            <!-- Rows of the list's shape while it loads (E1); with no tasks the panel then leaves, as a calm state (T3). -->
+            <Panel title="Tasks">
+              <div aria-hidden="true" class="flex gap-3">
+                <Skeleton class="size-7 shrink-0 rounded-full" />
+                <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+                  <Skeleton class="h-4 w-3/4" />
+                  <Skeleton class="h-5 w-32" />
+                </div>
+              </div>
+            </Panel>
           {:else if tasks.data && tasks.data.data.length > 0}
             {@const items = tasks.data.data}
             <Panel title="Tasks" count={items.filter((task) => !task.completedAt).length}>

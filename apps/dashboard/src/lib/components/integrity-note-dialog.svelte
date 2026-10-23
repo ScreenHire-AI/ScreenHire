@@ -58,7 +58,7 @@
 <Dialog.Root bind:open>
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
-      <Dialog.Title>Add a note</Dialog.Title>
+      <Dialog.Title>Add a review note</Dialog.Title>
       <Dialog.Description>Your team sees it in the review log, with your name and the time.</Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
@@ -79,7 +79,7 @@
       {/if}
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
-        <Button type="submit" size="lg" disabled={$submitting}><StickyNoteIcon aria-hidden="true" />Add note</Button>
+        <Button type="submit" size="lg" disabled={$submitting}><StickyNoteIcon aria-hidden="true" />Add review note</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

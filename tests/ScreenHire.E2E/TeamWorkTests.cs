@@ -29,10 +29,10 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Tagged);
         var activity = Region("Activity");
-        await activity.GetByRole(AriaRole.Button, new() { Name = "Add note" }).ClickAsync();
+        await activity.GetByRole(AriaRole.Button, new() { Name = "Add note", Exact = true }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add a note" });
         await sheet.GetByLabel("Note").FillAsync("Strong portfolio. Ask about the notice period.");
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Add note" }).ClickAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Add note", Exact = true }).ClickAsync();
         await Expect(sheet).ToBeHiddenAsync();
         await Expect(activity).ToContainTextAsync("Note by you");
         await Expect(activity).ToContainTextAsync("\"Strong portfolio. Ask about the notice period.\"");
@@ -45,6 +45,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Remove tag Referral" })).ToBeVisibleAsync();
         await Expect(activity).ToContainTextAsync("Tagged \"Referral\" by you");
         await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-team-work-application");
 
         // The candidates list, filtered by the tag, shows only the tagged candidate.
         await Page.GotoAsync(DashboardUrl("/candidates"));
@@ -72,6 +73,12 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(open.GetByRole(AriaRole.Link, new() { Name = Tagged, Exact = true })).ToBeVisibleAsync();
         await Expect(open).ToContainTextAsync("For the team");
         await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-my-tasks");
+        await Page.SetViewportSizeAsync(390, 844);
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
+            .Should().BeTrue("the page never scrolls sideways (F1)");
+        await SaveScreenshotAsync(Page, "dashboard-my-tasks-phone");
+        await Page.SetViewportSizeAsync(1440, 1000);
         await open.GetByRole(AriaRole.Button, new() { Name = "Complete, Call the references." }).ClickAsync();
         await Expect(open.GetByText("Nothing to do")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();

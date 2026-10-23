@@ -211,10 +211,10 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a note' });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add review note' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a review note' });
     await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: 'A note.' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add note' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add review note' }));
 
     expect(await within(dialog).findByText('The note is too long.')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Note')).toHaveAttribute('aria-invalid', 'true');
@@ -245,10 +245,10 @@ describe('integrity panel', () => {
     const sent = serve(botIntegrity(), { [`POST ${base}/notes`]: () => ({ status: 200, body: noted, next: noted }) });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a note' });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add review note' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a review note' });
     await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: '  Asked for references. ' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add note' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add review note' }));
 
     await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/notes`, body: { note: 'Asked for references.' } }]));
     const log = screen.getByRole('region', { name: 'Review log' });
