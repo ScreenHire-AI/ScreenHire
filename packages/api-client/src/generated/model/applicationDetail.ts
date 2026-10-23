@@ -32,4 +32,6 @@ export interface ApplicationDetail {
   source: ApplicationSource;
   answers: ApplicationAnswer[];
   files: ApplicationFileSummary[];
+  /** @nullable */
+  slaDueAt?: string | null;
 }

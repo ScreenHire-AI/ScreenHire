@@ -35,6 +35,21 @@ export function timeUntil(iso: string, now: number, unitDisplay: 'narrow' | 'lon
   return new Intl.NumberFormat(locales, { style: 'unit', unit, unitDisplay }).format(amount);
 }
 
+/**
+ * Time since an instant, in its largest whole unit, long, in the browser's locale: `5 minutes`, `2 hours`, `3 days`.
+ * Never less than a minute, so a time that has only just passed still reads as a span.
+ */
+export function timeSince(iso: string, now: number): string {
+  const elapsed = Math.max(0, now - Date.parse(iso));
+  const [unit, amount] =
+    elapsed < hour
+      ? (['minute', Math.max(1, Math.floor(elapsed / minute))] as const)
+      : elapsed < day
+        ? (['hour', Math.floor(elapsed / hour)] as const)
+        : (['day', Math.floor(elapsed / day)] as const);
+  return new Intl.NumberFormat(locales, { style: 'unit', unit, unitDisplay: 'long' }).format(amount);
+}
+
 /** A board's estimate, for a fact pill: `~20s`, `~1d`. */
 export const eta = (iso: string, now: number) => `~${timeUntil(iso, now)}`;
 

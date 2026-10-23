@@ -50,10 +50,24 @@ public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDe
 /// <summary>One step of the pipeline. <c>hired</c>, <c>rejected</c> and <c>withdrawn</c> are terminal.</summary>
 /// <remarks>
 /// <c>id</c>: Stable key, unique within the workflow: lowercase letters, digits, <c>-</c> and <c>_</c>.
-/// <c>slaDays</c>: Optional service level: candidates should not wait longer than this in the stage.
+/// <c>slaDays</c>: Optional time limit: candidates should not wait longer than this in the stage. It measures the hiring
+/// team's delay, never the candidate: past it the application shows as overdue and <see cref="TriggerType.SlaBreached"/>
+/// fires. A hired, rejected or withdrawn stage ends the application, so a limit there is ignored.
 /// <c>scorecard</c>: Optional: what reviewers rate candidates on in this stage. Not on a terminal stage.
 /// </remarks>
-public sealed record WorkflowStage(string Id, string Name, StageKind Kind, int? SlaDays = null, Scorecard? Scorecard = null);
+public sealed record WorkflowStage(string Id, string Name, StageKind Kind, int? SlaDays = null, Scorecard? Scorecard = null)
+{
+    // Methods, not properties: a property would join the serialized definition and its JSON Schema.
+
+    /// <summary>Whether the stage's time limit counts: it has one, and the stage does not end the application.</summary>
+    public bool HasSla() => SlaDays is not null && Enum.IsDefined(Kind) && !Kind.IsTerminal();
+
+    /// <summary>
+    /// When an application that entered this stage at <paramref name="enteredAt"/> passes its time limit, or null when
+    /// the limit does not count (<see cref="HasSla"/>). The overdue status and the SlaBreached timer both use it.
+    /// </summary>
+    public DateTimeOffset? SlaDueAt(DateTimeOffset enteredAt) => HasSla() ? enteredAt.AddDays(SlaDays!.Value) : null;
+}
 
 /// <summary>
 /// The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled
@@ -227,7 +241,8 @@ public sealed record Automation(
 
 /// <remarks>
 /// <c>stageId</c>: For <see cref="TriggerType.StageEntered"/>, <see cref="TriggerType.StageExited"/> and <see cref="TriggerType.TimeElapsed"/>;
-/// optional for <see cref="TriggerType.ReviewerDecision"/>, where it limits the trigger to that stage's scorecards.
+/// optional for <see cref="TriggerType.ReviewerDecision"/>, where it limits the trigger to that stage's scorecards, and for
+/// <see cref="TriggerType.SlaBreached"/>, where it limits the trigger to that stage's time limit.
 /// <c>afterHours</c>: For <see cref="TriggerType.TimeElapsed"/>: hours since the application entered <see cref="StageId"/>.
 /// </remarks>
 public sealed record AutomationTrigger(TriggerType Type, string? StageId = null, int? AfterHours = null);
@@ -245,6 +260,13 @@ public enum TriggerType
     CandidateReplied,
     InterviewScheduled,
     Manual,
+
+    /// <summary>
+    /// An application has been in a stage longer than the stage's <see cref="WorkflowStage.SlaDays"/>: once per stage
+    /// entry. It measures the team's delay, so its actions may only remind the team (notify, assign a reviewer, create a
+    /// task, add a tag), and it runs for every application, an accommodation included (workflow-engine.md §8).
+    /// </summary>
+    SlaBreached,
 }
 
 /// <summary>

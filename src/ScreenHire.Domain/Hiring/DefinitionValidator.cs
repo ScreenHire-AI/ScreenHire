@@ -50,6 +50,11 @@ public static partial class DefinitionValidator
     private static readonly HashSet<StageKind> SignalSafeStages =
         [StageKind.Screening, StageKind.Assessment, StageKind.Verification, StageKind.Interview];
 
+    // What an SlaBreached automation may do. A breach measures the hiring team's delay, not the candidate, so it may only
+    // remind the team; nothing it does may count against the candidate (workflow-engine.md section 8).
+    private static readonly HashSet<ActionType> SlaBreachActions =
+        [ActionType.NotifyTeam, ActionType.AssignReviewer, ActionType.CreateTask, ActionType.AddTag];
+
     public const int MaxStages = 30;
     public const int MaxQuestions = 50;
     public const int MaxOptions = 50;
@@ -375,28 +380,36 @@ public static partial class DefinitionValidator
             ValidateActions(automation.Actions, Join(automationPath, "actions"), stages, errors);
         }
 
-        var signalDriven = SignalDrivenAutomations(automations);
+        var signalDriven = DrivenAutomations(automations, DrivenBySignal);
+        var delayDriven = DrivenAutomations(automations, a => a.Trigger?.Type == TriggerType.SlaBreached);
         for (var i = 0; i < automations.Count; i++)
         {
             if (automations[i] is { } automation)
             {
-                ValidateGuardrails(automation, $"{path}[{i}]", signalDriven.Contains(i), stages, questions, errors);
+                ValidateGuardrails(automation, $"{path}[{i}]", signalDriven.Contains(i), delayDriven.Contains(i), stages, questions, errors);
             }
         }
     }
 
+    // An integrity or verification signal drives the automation directly: its trigger or a fact it reads.
+    private static bool DrivenBySignal(Automation automation) =>
+        automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
+        || automation.Conditions?.Rules?.Any(rule => rule is not null && FactSchema.IsSignal(rule.Fact)) == true;
+
     /// <summary>
-    /// The automations an integrity or verification signal can drive, directly or at one remove. Directly: a signal
-    /// trigger or a signal fact. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
+    /// The automations something can drive, directly or at one remove. For integrity and verification signals, directly
+    /// means a signal trigger or a signal fact; for an SLA breach, the SlaBreached trigger. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
     /// trigger on a stage one moves applications into, or any StageExited trigger once one moves applications at all
     /// (the stage a move leaves is wherever the application is when the action runs, which no definition can know).
     /// A ReviewerDecision trigger counts like a stage trigger: on a stage a signal moves applications into, or with no
     /// stage once a signal moves applications at all. A person's scorecard sits in between, but the scorecard may be
     /// filled only because a signal put the candidate in front of that reviewer, so the guardrail stays conservative.
+    /// An SlaBreached trigger without a stage counts the same way: it fires on whatever stage the application is in.
     /// Otherwise a signal could tag or route an application and a second automation could act on the tag or the stage,
-    /// laundering the signal past guardrail 1. Repeated until nothing new is found, so chains of any length count.
+    /// laundering the signal past guardrail 1, or a breach past "never counts against the candidate". Repeated until
+    /// nothing new is found, so chains of any length count.
     /// </summary>
-    private static HashSet<int> SignalDrivenAutomations(IReadOnlyList<Automation> automations)
+    private static HashSet<int> DrivenAutomations(IReadOnlyList<Automation> automations, Func<Automation, bool> drivenDirectly)
     {
         var driven = new HashSet<int>();
         var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -408,7 +421,8 @@ public static partial class DefinitionValidator
             found = false;
             for (var i = 0; i < automations.Count; i++)
             {
-                if (driven.Contains(i) || automations[i] is not { } automation || !IsSignalDriven(automation, tags, stages, movesOut))
+                if (driven.Contains(i) || automations[i] is not { } automation
+                    || !(drivenDirectly(automation) || IsDrivenAtOneRemove(automation, tags, stages, movesOut)))
                 {
                     continue;
                 }
@@ -434,18 +448,17 @@ public static partial class DefinitionValidator
         return driven;
     }
 
-    private static bool IsSignalDriven(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages, bool signalMovesOut)
+    private static bool IsDrivenAtOneRemove(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages, bool drivenMovesOut)
     {
-        if (automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
-            || (automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId))
-            || (automation.Trigger?.Type == TriggerType.StageExited && signalMovesOut)
-            || (automation.Trigger is { Type: TriggerType.ReviewerDecision, StageId: null } && signalMovesOut))
+        if ((automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId))
+            || (automation.Trigger?.Type == TriggerType.StageExited && drivenMovesOut)
+            || (automation.Trigger is { Type: TriggerType.ReviewerDecision or TriggerType.SlaBreached, StageId: null } && drivenMovesOut))
         {
             return true;
         }
 
         return automation.Conditions?.Rules?.Any(rule => rule is not null
-            && (FactSchema.IsSignal(rule.Fact) || (rule.Fact == FactSchema.Tags && ReadsTaintedTag(rule, taintedTags)))) == true;
+            && rule.Fact == FactSchema.Tags && ReadsTaintedTag(rule, taintedTags)) == true;
     }
 
     // A rule reads a tainted tag if it would hold for an application carrying that tag, judged by the evaluator itself so
@@ -487,6 +500,24 @@ public static partial class DefinitionValidator
             if (stages.GetValueOrDefault(trigger.StageId) is { Scorecard: null } stage)
             {
                 errors.Add(new(Join(path, "stageId"), $"{stage.Name} has no scorecard, so no reviewer decision is recorded there."));
+            }
+        }
+        else if (trigger.Type == TriggerType.SlaBreached)
+        {
+            // Optional: any stage's time limit, or only this one's.
+            if (trigger.StageId is not null)
+            {
+                ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+                if (stages.GetValueOrDefault(trigger.StageId) is { } stage && !stage.HasSla())
+                {
+                    errors.Add(new(Join(path, "stageId"), Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal()
+                        ? $"{stage.Name} ends the application, so its time limit never passes."
+                        : $"{stage.Name} has no time limit, so it is never overdue. Set its time limit in days."));
+                }
+            }
+            else if (stages.Count > 0 && !stages.Values.Any(s => s.HasSla()))
+            {
+                errors.Add(new(Join(path, "type"), "No stage has a time limit, so this never fires. Set a stage's time limit in days."));
             }
         }
         else if (trigger.StageId is not null)
@@ -545,6 +576,14 @@ public static partial class DefinitionValidator
             else if (fact.Category == FactCategory.Reviewer && trigger != TriggerType.ReviewerDecision)
             {
                 errors.Add(new(Join(rulePath, "fact"), "Only a ReviewerDecision automation has a reviewer's recommendation to test."));
+            }
+            else if (trigger == TriggerType.SlaBreached && FactSchema.IsTimingOrTelemetry(fact.Name))
+            {
+                // The engine skips an automation with a timing condition for an application with an accommodation, and a
+                // skipped reminder would leave that candidate waiting with nobody told (workflow-engine.md section 8).
+                errors.Add(new(Join(rulePath, "fact"),
+                    "A time limit passing already says how long the candidate waited. A timing condition here would skip the " +
+                    "reminder for a candidate with an accommodation, who would then wait with nobody told."));
             }
             else if (Enum.IsDefined(rule.Operator) && !FactSchema.OperatorsFor(fact.Type).Contains(rule.Operator))
             {
@@ -703,6 +742,7 @@ public static partial class DefinitionValidator
         Automation automation,
         string path,
         bool signalDriven,
+        bool delayDriven,
         Dictionary<string, WorkflowStage> stages,
         Dictionary<string, Question> questions,
         List<DefinitionError> errors)
@@ -732,6 +772,14 @@ public static partial class DefinitionValidator
                 continue;
             }
 
+            if (automation.Trigger?.Type == TriggerType.SlaBreached && !SlaBreachActions.Contains(action.Type))
+            {
+                errors.Add(new(actionPath,
+                    "A time limit passing measures the hiring team's delay, not the candidate, so this automation may only notify " +
+                    "the team, assign a reviewer, create a task or add a tag. Nothing it does may count against the candidate."));
+                continue;
+            }
+
             var target = action.StageId is null ? null : stages.GetValueOrDefault(action.StageId);
             if (signalDriven && (!SignalSafeActions.Contains(action.Type)
                 || (action.Type == ActionType.MoveToStage && target is not null && !SignalSafeStages.Contains(target.Kind))))
@@ -743,8 +791,22 @@ public static partial class DefinitionValidator
                 continue;
             }
 
+            // At one remove from a breach (a tag it adds, a stage reached through one), the same list as the breach itself,
+            // plus a move into a review stage as a signal may make. Not Custom, not an email: either could be a rejection
+            // under another name, and the team's delay never counts against the candidate.
+            if (delayDriven && automation.Trigger?.Type != TriggerType.SlaBreached && !SlaBreachActions.Contains(action.Type)
+                && !(action.Type == ActionType.MoveToStage && target is not null && SignalSafeStages.Contains(target.Kind)))
+            {
+                errors.Add(new(actionPath,
+                    "This automation acts on a tag or stage that a passed time limit sets. A time limit measures the hiring " +
+                    "team's delay and never counts against the candidate, so this automation may only notify the team, assign " +
+                    "a reviewer, create a task, add a tag or move to a screening, assessment, verification or interview stage."));
+                continue;
+            }
+
             var rejects = action.Type == ActionType.Reject
                 || (action.Type == ActionType.MoveToStage && target?.Kind is StageKind.Rejected or StageKind.Withdrawn);
+
             if (!rejects)
             {
                 continue;

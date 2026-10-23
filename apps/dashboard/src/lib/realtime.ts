@@ -30,7 +30,8 @@ export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
   JobClosed: [jobsPath],
   JobPostingsChanged: [jobsPath],
-  JobWorkflowChanged: [jobsPath],
+  // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
+  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],

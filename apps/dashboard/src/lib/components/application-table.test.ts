@@ -35,6 +35,21 @@ describe('candidate table', () => {
     expect(screen.getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
   });
 
+  // Overdue comes first in the stage cell, as a status (T2), on the table and on a phone's list items.
+  it('shows Overdue before the stage of an application past its time limit, with the due time on hover', async () => {
+    const rows = [{ ...applications[1]!, slaDueAt: new Date(Date.now() - 5 * 3_600_000 - 60_000).toISOString() }, applications[0]!];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows } } });
+
+    const stageCell = within(rowOf('Jordan Lee')).getAllByRole('cell')[2]!;
+    expect(stageCell.textContent?.replace(/\s+/g, ' ').trim()).toBe('Overdue by 5 hours Screening');
+    expect(within(stageCell).getByText('Overdue by 5 hours')).toHaveAttribute('data-status', 'review');
+    expect(rowOf('Casey Morgan')).not.toHaveTextContent('Overdue');
+    const trigger = within(stageCell).getByText('Overdue by 5 hours').parentElement!;
+    trigger.focus();
+    await waitFor(() => expect(trigger).toHaveAttribute('data-state', expect.stringMatching(/open/)));
+    expect(document.getElementById(trigger.getAttribute('aria-describedby')!)).toHaveTextContent(/^Time limit passed /);
+  });
+
   it('adds the job column for the table across jobs', () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true } } });
 

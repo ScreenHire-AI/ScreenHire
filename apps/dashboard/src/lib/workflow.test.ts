@@ -1,6 +1,7 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  actionsFor,
   defaultScorecard,
   describeAction,
   describePath,
@@ -170,6 +171,29 @@ describe('validator paths', () => {
   it('summarizes an automation in one sentence', () => {
     expect(summarize(workflow.automations[0]!, workflow)).toBe('When a candidate enters Screening, if 1 condition holds: add the tag "check".');
     expect(summarize(workflow.automations[1]!, workflow)).toBe('When someone runs it by hand: notify the team.');
+  });
+});
+
+describe('stage time limits', () => {
+  const timed: HiringWorkflow = {
+    ...workflow,
+    automations: [
+      { id: 'any', name: 'Any', trigger: { type: 'SlaBreached' }, conditions: null, actions: [{ type: 'CreateTask', note: 'Reply' }] },
+      { id: 'screen', name: 'Screen', trigger: { type: 'SlaBreached', stageId: 'screening' }, conditions: null, actions: [{ type: 'AddTag', tag: 'overdue' }] },
+    ],
+  };
+
+  it('offers a passed time limit only the reminders, keeping a saved action outside them so its error shows', () => {
+    expect(actionsFor('SlaBreached')).toEqual(['AddTag', 'AssignReviewer', 'NotifyTeam', 'CreateTask']);
+    expect(actionsFor('SlaBreached', 'Reject')).toEqual(['AddTag', 'AssignReviewer', 'NotifyTeam', 'CreateTask', 'Reject']);
+    expect(actionsFor('StageEntered')).toContain('QueueForRejectionReview');
+  });
+
+  it("puts a stage's time limit in its lane and any stage's in the whole workflow's", () => {
+    expect(laneOf(timed.automations[0]!)).toBeNull();
+    expect(laneOf(timed.automations[1]!)).toBe('screening');
+    expect(summarize(timed.automations[0]!, timed)).toBe("When a stage's time limit passes: create a task.");
+    expect(summarize(timed.automations[1]!, timed)).toBe('When the time limit in Screening passes: add the tag "overdue".');
   });
 });
 

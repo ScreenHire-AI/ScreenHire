@@ -12,6 +12,7 @@
     describeAction,
     emailTemplateNames,
     describePath,
+    hasTimeLimit,
     operatorLabels,
     problemErrors,
     recommendationLabels,
@@ -45,9 +46,13 @@
   let result = $state<WorkflowSimulationResult | null>(null);
   let failure = $state<{ message: string; problems: string[] } | null>(null);
 
-  // A reviewer decision comes from a stage's scorecard, so it offers only the stages that have one.
+  // A reviewer decision comes from a stage's scorecard, and a passed time limit from a stage's limit, so each offers only
+  // the stages that have one.
   const reviewed = $derived(triggerType === 'ReviewerDecision');
-  const stageOptions = $derived(reviewed ? workflow.stages.filter((candidate) => candidate.scorecard) : workflow.stages);
+  const timed = $derived(triggerType === 'SlaBreached');
+  const stageOptions = $derived(
+    reviewed ? workflow.stages.filter((candidate) => candidate.scorecard) : timed ? workflow.stages.filter(hasTimeLimit) : workflow.stages,
+  );
   const stage = $derived(stageOptions.some((candidate) => candidate.id === stageId) ? stageId : (stageOptions[0]?.id ?? ''));
   const questions = $derived(workflow.questionnaire.questions.filter((question) => question.type !== 'File'));
   const list = (text: string) =>
@@ -80,7 +85,7 @@
       const response = await simulate.mutateAsync({
         data: {
           workflow,
-          trigger: { type: triggerType, ...((triggerNeedsStage(triggerType) || (reviewed && stage)) && { stageId: stage }) },
+          trigger: { type: triggerType, ...((triggerNeedsStage(triggerType) || ((reviewed || timed) && stage)) && { stageId: stage }) },
           facts,
           accommodationRequested: accommodation,
         },
@@ -116,7 +121,7 @@
             {#each triggerTypes as type (type)}<option value={type}>{triggerLabels[type]}</option>{/each}
           </select>
         </label>
-        {#if triggerNeedsStage(triggerType) || (reviewed && stageOptions.length > 0)}
+        {#if triggerNeedsStage(triggerType) || ((reviewed || timed) && stageOptions.length > 0)}
           <label class={labelClass}>
             Stage
             <select class={selectClass} value={stage} onchange={(event) => (stageId = event.currentTarget.value)}>

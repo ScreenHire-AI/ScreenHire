@@ -4,10 +4,12 @@ import InboxIcon from '@lucide/svelte/icons/inbox';
 import MessagesSquareIcon from '@lucide/svelte/icons/messages-square';
 import { needsReview, verificationRecommended } from '#lib/integrity.js';
 import type { LucideIcon } from '#lib/shell.js';
+import { isOverdue } from '#lib/sla.js';
 
 /**
- * A ready-made filter on the candidates table, listed in the sidebar with its count. A view of an integrity status shows
- * that status's mark; any other view shows an icon (design system I2).
+ * A ready-made filter on the candidates table, listed in the sidebar with its count. A view of a status (an integrity
+ * level, Overdue) shows that status's mark; any other view shows an icon (design system I2). A status view picks rows by
+ * something that must never drive a decision against a candidate, so the candidates page offers no bulk email on it.
  */
 export type SavedView = {
   id: string;
@@ -33,6 +35,13 @@ export const savedViews: readonly SavedView[] = [
     label: 'Verification recommended',
     mark: { shape: 'square', tone: 'verify' },
     matches: (application) => verificationRecommended(application),
+  },
+  {
+    // Past the stage's time limit: the team's delay, never the candidate's (design system section 3.2).
+    id: 'overdue',
+    label: 'Overdue',
+    mark: { shape: 'diamond', tone: 'review' },
+    matches: (application, now) => isOverdue(application, now),
   },
   {
     id: 'new-today',
