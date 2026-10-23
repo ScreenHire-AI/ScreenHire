@@ -42,6 +42,14 @@ public sealed class TimeLimitTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-overdue-view");
 
+        // A phone lists the rows as items, the badge first among the facts, and never scrolls sideways (F1).
+        await Page.SetViewportSizeAsync(390, 844);
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Candidates" })).ToContainTextAsync("Overdue by 1 day");
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
+            .Should().BeTrue("the page never scrolls sideways (F1)");
+        await SaveScreenshotAsync(Page, "dashboard-overdue-view-phone");
+        await Page.SetViewportSizeAsync(1440, 1000);
+
         // The job's table and board show it too.
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {Title}" });

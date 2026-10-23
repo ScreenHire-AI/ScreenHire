@@ -592,21 +592,27 @@ public sealed class DefinitionValidatorTests
             .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].conditions.rules[0].fact" && e.Message.Contains("accommodation", StringComparison.Ordinal));
     }
 
-    // A breach never counts against the candidate, not even through the tag it adds.
+    // A breach never counts against the candidate, not even through the tag it adds: a reader of that tag may remind the
+    // team or move into a review stage, and nothing that could be a rejection under another name.
     [Fact]
-    public void A_tag_a_time_limit_breach_adds_cannot_queue_a_rejection()
+    public void A_tag_a_time_limit_breach_adds_can_only_drive_reminders_and_review_moves()
     {
-        var workflow = Workflow(automations:
+        var stages = HiringWorkflow.Default.Stages.Append(new WorkflowStage("parked", "Not progressing", StageKind.Custom)).ToList();
+        var readsTag = Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "overdue"));
+        var workflow = Workflow(stages: stages, automations:
         [
             Automation(null, ReminderAction(ActionType.AddTag), "late", new AutomationTrigger(TriggerType.SlaBreached, "screening")),
-            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "overdue")),
-                new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Waiting too long"), "queue"),
-            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "overdue")),
-                new AutomationAction(ActionType.NotifyTeam, Note: "Still waiting"), "nudge"),
+            Automation(readsTag, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Waiting too long"), "queue"),
+            Automation(readsTag, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park"),
+            Automation(readsTag, new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "mail"),
+            Automation(readsTag, new AutomationAction(ActionType.NotifyTeam, Note: "Still waiting"), "nudge"),
+            Automation(readsTag, new AutomationAction(ActionType.MoveToStage, StageId: "interview"), "advance"),
         ]);
 
-        DefinitionValidator.Validate(workflow).Should().ContainSingle()
-            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[1].actions[0]" && e.Message.Contains("never counts against the candidate", StringComparison.Ordinal));
+        var errors = DefinitionValidator.Validate(workflow);
+
+        errors.Select(e => e.Path).Should().Equal("automations[1].actions[0]", "automations[2].actions[0]", "automations[3].actions[0]");
+        errors.Should().OnlyContain(e => e.Message.Contains("never counts against the candidate", StringComparison.Ordinal));
     }
 
     // On a stage a signal routes into, the breach is signal-driven too: it may assign or tag, as any such automation.

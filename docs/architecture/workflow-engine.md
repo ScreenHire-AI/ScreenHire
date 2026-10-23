@@ -335,9 +335,10 @@ withdrawn stage ends the application, so a limit there is ignored (`WorkflowStag
   keyed on the entry and the message is `[Deduplicated]`, so a redelivery runs nothing twice. Its facts are read at
   the due time.
 - The validator allows it only `NotifyTeam`, `AssignReviewer`, `CreateTask` and `AddTag`, and refuses anything else
-  with the reason: nothing it does may count against the candidate. It refuses timing facts in its conditions, and an
-  automation that reads a tag it adds (or a stage such an automation moves into) may not queue a rejection review or
-  reject. It needs a stage whose limit counts, or with no stage, at least one such stage.
+  with the reason: nothing it does may count against the candidate. It refuses timing facts in its conditions. An
+  automation that reads a tag it adds, or fires on a stage such an automation moves into, may do the same four things
+  or move to a screening, assessment, verification or interview stage, the limits a signal has: no email and no custom
+  stage, since either could be a rejection under another name. It needs a stage whose limit counts, or with no stage, at least one such stage.
 - It is not skipped for an application with an accommodation. Guardrail 4 skips timing automations so that time
   never counts against a candidate who asked for more of it; a breach reminds the team and nothing it does can harm
   the candidate, so skipping it would leave the candidate who needs the most care waiting with nobody told.

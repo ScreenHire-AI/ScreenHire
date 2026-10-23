@@ -791,15 +791,21 @@ public static partial class DefinitionValidator
                 continue;
             }
 
-            var rejects = action.Type == ActionType.Reject
-                || (action.Type == ActionType.MoveToStage && target?.Kind is StageKind.Rejected or StageKind.Withdrawn);
-            if (delayDriven && (rejects || action.Type == ActionType.QueueForRejectionReview))
+            // At one remove from a breach (a tag it adds, a stage reached through one), the same list as the breach itself,
+            // plus a move into a review stage as a signal may make. Not Custom, not an email: either could be a rejection
+            // under another name, and the team's delay never counts against the candidate.
+            if (delayDriven && automation.Trigger?.Type != TriggerType.SlaBreached && !SlaBreachActions.Contains(action.Type)
+                && !(action.Type == ActionType.MoveToStage && target is not null && SignalSafeStages.Contains(target.Kind)))
             {
                 errors.Add(new(actionPath,
                     "This automation acts on a tag or stage that a passed time limit sets. A time limit measures the hiring " +
-                    "team's delay and never counts against the candidate, so it may not queue a rejection review or reject."));
+                    "team's delay and never counts against the candidate, so this automation may only notify the team, assign " +
+                    "a reviewer, create a task, add a tag or move to a screening, assessment, verification or interview stage."));
                 continue;
             }
+
+            var rejects = action.Type == ActionType.Reject
+                || (action.Type == ActionType.MoveToStage && target?.Kind is StageKind.Rejected or StageKind.Withdrawn);
 
             if (!rejects)
             {

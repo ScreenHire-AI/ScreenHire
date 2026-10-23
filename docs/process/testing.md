@@ -6,6 +6,7 @@ tags: [testing, xunit, playwright, vitest]
 sources:
   - resource: tests/ScreenHire.Testing/AppHostFixture.cs
   - resource: tests/ScreenHire.E2E/E2EFixture.cs
+  - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
   - resource: apps/marketing/scripts/check-dist.mjs
   - resource: apps/marketing/scripts/lighthouse.mjs
   - resource: scripts/install-browsers.mjs
@@ -174,6 +175,12 @@ A test that needs the worker in the middle of something, such as saving a board'
 rather than racing the real worker: `BoardAnswerRaceTests` holds a posting's row lock as a handler does, starts the
 request, waits until Postgres shows it blocked (`pg_blocking_pids` on the owner connection, which only observes), then
 commits. The outcome is the same on every run.
+
+A timer that waits hours or days (a `TimeElapsed` automation, a stage's time limit) is never waited for. An
+integration test reads when it falls due with `WolverineStore.ScheduledTimesAsync` and publishes the message the
+schedule would release, through `MessagingHost.StartPublisherToAppHostQueuesAsync`. An end-to-end test calls
+`fixture.ReleaseAsync(id)` (`ScheduledMessages`), which moves the real scheduled message's due time to now, and runs the
+browser's clock ahead with `Page.Clock.SetFixedTimeAsync`.
 
 What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
 
