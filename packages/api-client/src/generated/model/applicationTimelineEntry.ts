@@ -33,4 +33,8 @@ export interface ApplicationTimelineEntry {
   stageId: string | null;
   /** @nullable */
   recommendation: string | null;
+  /** @nullable */
+  emailTemplateId?: string | null;
+  /** @nullable */
+  emailSubject?: string | null;
 }

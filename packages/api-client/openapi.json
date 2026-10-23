@@ -5283,6 +5283,472 @@
         ]
       }
     },
+    "/v1/email-templates": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "ListEmailTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "CreateEmailTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmailTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/email-templates/{templateId}": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "GetEmailTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "UpdateEmailTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmailTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "DeleteEmailTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/email-templates/preview": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "PreviewEmailTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplateDraft"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/email-templates/test": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "SendTestEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplateDraft"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestEmailSent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/emails/preview": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "PreviewApplicationEmail",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/emails": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "SendEmails",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendEmailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailsQueued"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -5721,7 +6187,8 @@
           "IntegrityAssessed",
           "TagRemoved",
           "NoteAdded",
-          "ScorecardSubmitted"
+          "ScorecardSubmitted",
+          "EmailSent"
         ]
       },
       "ApplicationFileSummary": {
@@ -6080,6 +6547,18 @@
             ]
           },
           "recommendation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailSubject": {
             "type": [
               "null",
               "string"
@@ -6997,6 +7476,26 @@
         },
         "description": "A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`."
       },
+      "CreateEmailTemplateRequest": {
+        "required": [
+          "name",
+          "subject",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "description": "A new template of the organization's own: its name, a Liquid subject and a Liquid plain-text body."
+      },
       "CreateHiringTemplateRequest": {
         "required": [
           "name"
@@ -7297,6 +7796,156 @@
           "Other"
         ],
         "description": "Why a reviewer dismissed an assessment."
+      },
+      "EmailPreview": {
+        "required": [
+          "subject",
+          "html",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "description": "An email as the candidate would receive it: the subject, the HTML part and the plain-text part."
+      },
+      "EmailsQueued": {
+        "required": [
+          "queued",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\r\ncandidate whose application has ended. Each sent email appears in its application's activity."
+      },
+      "EmailTemplateDraft": {
+        "required": [
+          "subject",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email's `reason` renders; leave it out for a new template."
+      },
+      "EmailTemplateEntry": {
+        "required": [
+          "id",
+          "name",
+          "builtIn",
+          "edited",
+          "rejectOnly",
+          "subject",
+          "body",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "builtIn": {
+            "type": "boolean"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "rejectOnly": {
+            "type": "boolean"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
+      },
+      "EmailTemplateList": {
+        "required": [
+          "sendingEnabled",
+          "templates",
+          "variables"
+        ],
+        "type": "object",
+        "properties": {
+          "sendingEnabled": {
+            "type": "boolean"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateEntry"
+            }
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailTemplateVariableEntry"
+            }
+          }
+        },
+        "description": "The organization's email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested."
+      },
+      "EmailTemplateVariableEntry": {
+        "required": [
+          "name",
+          "label",
+          "rejectOnly"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "rejectOnly": {
+            "type": "boolean"
+          }
+        },
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it."
       },
       "EmploymentType": {
         "enum": [
@@ -10104,6 +10753,26 @@
         },
         "description": "A criterion as the reviewer was asked it, and their rating; null when they did not rate it."
       },
+      "SendEmailsRequest": {
+        "required": [
+          "applicationIds",
+          "templateId"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "templateId": {
+            "type": "string"
+          }
+        },
+        "description": "Sends one of the organization's templates to the candidates of these applications, one email each."
+      },
       "SignalCategory": {
         "enum": [
           "Network",
@@ -10556,6 +11225,18 @@
           "Published"
         ]
       },
+      "TestEmailSent": {
+        "required": [
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          }
+        },
+        "description": "A test send went to the signed-in person's own address."
+      },
       "TriggerType": {
         "enum": [
           "ApplicationSubmitted",
@@ -10585,6 +11266,28 @@
           }
         },
         "description": "Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default."
+      },
+      "UpdateEmailTemplateRequest": {
+        "required": [
+          "subject",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "New wording for a template. `name` renames the organization's own template; leave it out for a built-in,\r\nwhose name is ScreenHire's."
       },
       "UpdateHiringTemplateRequest": {
         "required": [
@@ -11227,6 +11930,9 @@
     },
     {
       "name": "Webhooks"
+    },
+    {
+      "name": "Email"
     },
     {
       "name": "Schemas"

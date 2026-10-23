@@ -2616,7 +2616,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2627,7 +2627,9 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "actorApiKeyId": zod.uuid().nullable(),
   "scorecardId": zod.uuid().nullable(),
   "stageId": zod.string().nullable(),
-  "recommendation": zod.string().nullable()
+  "recommendation": zod.string().nullable(),
+  "emailTemplateId": zod.string().nullish(),
+  "emailSubject": zod.string().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -2642,7 +2644,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2653,7 +2655,9 @@ export const AddApplicationNoteResponse = zod.object({
   "actorApiKeyId": zod.uuid().nullable(),
   "scorecardId": zod.uuid().nullable(),
   "stageId": zod.string().nullable(),
-  "recommendation": zod.string().nullable()
+  "recommendation": zod.string().nullable(),
+  "emailTemplateId": zod.string().nullish(),
+  "emailSubject": zod.string().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -4380,6 +4384,136 @@ export const ReplayWebhookDeliveryResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "payload": zod.string()
 }).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+
+
+export const ListEmailTemplatesResponse = zod.object({
+  "sendingEnabled": zod.boolean(),
+  "templates": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "edited": zod.boolean(),
+  "rejectOnly": zod.boolean(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')),
+  "variables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "rejectOnly": zod.boolean()
+}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.'))
+}).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
+
+
+export const CreateEmailTemplateBody = zod.object({
+  "name": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string()
+}).describe('A new template of the organization\'s own: its name, a Liquid subject and a Liquid plain-text body.')
+
+export const CreateEmailTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "edited": zod.boolean(),
+  "rejectOnly": zod.boolean(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+
+
+export const GetEmailTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const GetEmailTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "edited": zod.boolean(),
+  "rejectOnly": zod.boolean(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+
+
+export const UpdateEmailTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const UpdateEmailTemplateBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string(),
+  "name": zod.string().nullish()
+}).describe('New wording for a template. `name` renames the organization\'s own template; leave it out for a built-in,\r\nwhose name is ScreenHire\'s.')
+
+export const UpdateEmailTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "edited": zod.boolean(),
+  "rejectOnly": zod.boolean(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+
+
+export const DeleteEmailTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const DeleteEmailTemplateResponse = zod.void()
+
+
+export const PreviewEmailTemplateBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string(),
+  "templateId": zod.string().nullish()
+}).describe('Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email\'s `reason` renders; leave it out for a new template.')
+
+export const PreviewEmailTemplateResponse = zod.object({
+  "subject": zod.string(),
+  "html": zod.string(),
+  "text": zod.string()
+}).describe('An email as the candidate would receive it: the subject, the HTML part and the plain-text part.')
+
+
+export const SendTestEmailBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string(),
+  "templateId": zod.string().nullish()
+}).describe('Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email\'s `reason` renders; leave it out for a new template.')
+
+export const SendTestEmailResponse = zod.object({
+  "to": zod.string()
+}).describe('A test send went to the signed-in person\'s own address.')
+
+
+export const PreviewApplicationEmailQueryParams = zod.object({
+  "applicationId": zod.uuid(),
+  "templateId": zod.string()
+})
+
+export const PreviewApplicationEmailResponse = zod.object({
+  "subject": zod.string(),
+  "html": zod.string(),
+  "text": zod.string()
+}).describe('An email as the candidate would receive it: the subject, the HTML part and the plain-text part.')
+
+
+export const SendEmailsBody = zod.object({
+  "applicationIds": zod.array(zod.uuid()),
+  "templateId": zod.string()
+}).describe('Sends one of the organization\'s templates to the candidates of these applications, one email each.')
+
+export const SendEmailsResponse = zod.object({
+  "queued": zod.int(),
+  "skipped": zod.int()
+}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\r\ncandidate whose application has ended. Each sent email appears in its application\'s activity.')
 
 
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()
