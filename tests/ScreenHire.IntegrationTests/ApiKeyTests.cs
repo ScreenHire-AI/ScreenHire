@@ -91,7 +91,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         await b.PublishJobAsync(bJob.Id());
         var bApplication = await b.CreateApplicationAsync(bJob.Id(), ApiSession.NewEmail("b-candidate"));
         var (bTemplateId, _) = await b.CreatePublishedTemplateAsync("B pipeline");
-        var bJobBefore = (await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body.GetRawText();
+        var bJobBefore = WithoutPostings(await b.GetAsync($"/v1/jobs/{bJob.Id()}"));
         using var aKey = new KeyClient(fixture, (await CreateKeyAsync(a, "A sync", ["Read", "Write"])).Text("token"));
 
         var responses = new Dictionary<string, ApiResult>
@@ -108,7 +108,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
 
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");
         (await aKey.GetAsync("/v1/jobs")).Count().Should().Be(0);
-        (await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body.GetRawText().Should().Be(bJobBefore, "nothing of B's job changed");
+        WithoutPostings(await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Should().Be(bJobBefore, "nothing of B's job changed");
         (await b.GetAsync($"/v1/applications/{bApplication.Id()}")).Text("stage.id").Should().Be("applied");
     }
 
@@ -345,5 +345,14 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
                 return new ApiResult(response.StatusCode, document?.RootElement.Clone() ?? default);
             }
         }
+    }
+
+    // The job as its owner and a key could change it. Its board postings are left out: the worker moves them on by itself
+    // after publishing (Queued, then Submitted), which no request in the test causes.
+    private static string WithoutPostings(ApiResult job)
+    {
+        var node = JsonNode.Parse(job.Body.GetRawText())!.AsObject();
+        node.Remove("postings");
+        return node.ToJsonString();
     }
 }
