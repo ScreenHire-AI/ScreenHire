@@ -190,7 +190,8 @@ describe('app shell', () => {
 
     expect(within(main()).queryByRole('heading', { name: 'Settings' })).toBeNull();
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    expect(within(main()).getAllByRole('link')).toHaveLength(8);
+    // The four sections (My tasks included) and the five saved views.
+    expect(within(main()).getAllByRole('link')).toHaveLength(9);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {
