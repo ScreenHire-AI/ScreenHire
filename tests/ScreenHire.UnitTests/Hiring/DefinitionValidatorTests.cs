@@ -523,6 +523,118 @@ public sealed class DefinitionValidatorTests
             "postingDefaults.salaryCurrency", "postingDefaults.validForDays", "postingDefaults.department");
     }
 
+    // An SLA breach measures the team's delay (workflow-engine.md section 8): only reminders, on a stage whose time limit
+    // counts, or on any stage once one has a limit.
+    [Theory]
+    [InlineData(ActionType.NotifyTeam)]
+    [InlineData(ActionType.AssignReviewer)]
+    [InlineData(ActionType.CreateTask)]
+    [InlineData(ActionType.AddTag)]
+    public void A_time_limit_breach_may_remind_the_team(ActionType type)
+    {
+        var workflow = Workflow(automations: [Automation(null, ReminderAction(type), "remind", new AutomationTrigger(TriggerType.SlaBreached, "screening"))]);
+
+        Paths(workflow).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(ActionType.SendEmail)]
+    [InlineData(ActionType.MoveToStage)]
+    [InlineData(ActionType.CallWebhook)]
+    [InlineData(ActionType.QueueForRejectionReview)]
+    [InlineData(ActionType.Reject)]
+    public void A_time_limit_breach_may_do_nothing_that_could_count_against_the_candidate(ActionType type)
+    {
+        var action = type == ActionType.MoveToStage ? new AutomationAction(type, StageId: "interview") : Action(type);
+        var workflow = Workflow(automations: [Automation(null, action, "slow", new AutomationTrigger(TriggerType.SlaBreached), allowAutoReject: true)]);
+
+        var errors = DefinitionValidator.Validate(workflow);
+
+        errors.Should().ContainSingle().Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].actions[0]"
+            && e.Message.Contains("hiring team's delay, not the candidate", StringComparison.Ordinal)
+            && e.Message.Contains("notify the team, assign a reviewer, create a task or add a tag", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_time_limit_breach_names_a_stage_whose_limit_counts_or_any_stage_when_one_has_a_limit()
+    {
+        var noLimits = HiringWorkflow.Default.Stages.Select(s => s with { SlaDays = null }).ToList();
+        var terminalLimit = HiringWorkflow.Default.Stages.Select(s => s.Id == "rejected" ? s with { SlaDays = 2 } : s).ToList();
+        AutomationTrigger On(string? stageId) => new(TriggerType.SlaBreached, stageId);
+
+        Paths(Workflow(automations: [Automation(null, ReminderAction(ActionType.CreateTask), "a", On("interview"))]))
+            .Should().Equal(["automations[0].trigger.stageId"], "interview has no time limit");
+        Paths(Workflow(stages: terminalLimit, automations: [Automation(null, ReminderAction(ActionType.CreateTask), "a", On("rejected"))]))
+            .Should().Equal(["automations[0].trigger.stageId"], "a rejected stage ends the application");
+        Paths(Workflow(automations: [Automation(null, ReminderAction(ActionType.CreateTask), "a", On("nowhere"))]))
+            .Should().Equal("automations[0].trigger.stageId");
+        Paths(Workflow(stages: noLimits, automations: [Automation(null, ReminderAction(ActionType.CreateTask), "a", On(null))]))
+            .Should().Equal(["automations[0].trigger.type"], "no stage has a time limit");
+        Paths(Workflow(automations: [Automation(null, ReminderAction(ActionType.CreateTask), "a", On(null))]))
+            .Should().BeEmpty("screening has a time limit in the default workflow");
+        Paths(Workflow(automations: [Automation(null, ReminderAction(ActionType.CreateTask), "a", new AutomationTrigger(TriggerType.SlaBreached, AfterHours: 4))]))
+            .Should().Equal("automations[0].trigger.afterHours");
+    }
+
+    // The engine skips a timing condition for an application with an accommodation; the breach must never be skipped.
+    [Fact]
+    public void A_time_limit_breach_cannot_test_time_in_stage()
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(Conditions(new AutomationCondition("application.hoursInStage", ConditionOperator.GreaterThan, "100")),
+                ReminderAction(ActionType.NotifyTeam), "slow", new AutomationTrigger(TriggerType.SlaBreached, "screening")),
+            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral")),
+                ReminderAction(ActionType.NotifyTeam), "referral", new AutomationTrigger(TriggerType.SlaBreached, "screening")),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle()
+            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].conditions.rules[0].fact" && e.Message.Contains("accommodation", StringComparison.Ordinal));
+    }
+
+    // A breach never counts against the candidate, not even through the tag it adds.
+    [Fact]
+    public void A_tag_a_time_limit_breach_adds_cannot_queue_a_rejection()
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(null, ReminderAction(ActionType.AddTag), "late", new AutomationTrigger(TriggerType.SlaBreached, "screening")),
+            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "overdue")),
+                new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Waiting too long"), "queue"),
+            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "overdue")),
+                new AutomationAction(ActionType.NotifyTeam, Note: "Still waiting"), "nudge"),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle()
+            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[1].actions[0]" && e.Message.Contains("never counts against the candidate", StringComparison.Ordinal));
+    }
+
+    // On a stage a signal routes into, the breach is signal-driven too: it may assign or tag, as any such automation.
+    [Fact]
+    public void A_time_limit_breach_on_a_stage_a_signal_routes_into_follows_the_integrity_guardrail()
+    {
+        var stages = HiringWorkflow.Default.Stages.Append(new WorkflowStage("verify", "Verification", StageKind.Verification, SlaDays: 2)).ToList();
+        var route = Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.IntegrityAssessed));
+
+        AssertRefusedAsSignalDriven(
+            Workflow(stages: stages, automations: [route, Automation(null, ReminderAction(ActionType.NotifyTeam), "remind", new AutomationTrigger(TriggerType.SlaBreached, "verify"))]),
+            "automations[1].actions[0]");
+        AssertRefusedAsSignalDriven(
+            Workflow(stages: stages, automations: [route, Automation(null, ReminderAction(ActionType.CreateTask), "remind", new AutomationTrigger(TriggerType.SlaBreached))]),
+            "automations[1].actions[0]");
+        Paths(Workflow(stages: stages, automations: [route, Automation(null, ReminderAction(ActionType.AssignReviewer), "remind", new AutomationTrigger(TriggerType.SlaBreached, "verify"))]))
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_terminal_stage_has_no_time_limit_that_counts()
+    {
+        new WorkflowStage("rejected", "Rejected", StageKind.Rejected, SlaDays: 3).SlaDueAt(DateTimeOffset.UnixEpoch).Should().BeNull();
+        new WorkflowStage("screening", "Screening", StageKind.Screening).SlaDueAt(DateTimeOffset.UnixEpoch).Should().BeNull();
+        new WorkflowStage("screening", "Screening", StageKind.Screening, SlaDays: 3).SlaDueAt(DateTimeOffset.UnixEpoch)
+            .Should().Be(DateTimeOffset.UnixEpoch.AddDays(3));
+    }
+
     private static HiringWorkflow KnockoutReject(bool allowAutoReject) =>
         Workflow(questions: [WorkAuthorization], automations:
         [
@@ -560,6 +672,14 @@ public sealed class DefinitionValidatorTests
     private static Automation Automation(
         AutomationConditions? conditions, IReadOnlyList<AutomationAction> actions, string id = "a", AutomationTrigger? trigger = null, bool allowAutoReject = false) =>
         new(id, $"Automation {id}", trigger ?? new AutomationTrigger(TriggerType.QuestionnaireCompleted), conditions, actions, AllowAutoReject: allowAutoReject);
+
+    // A valid reminder, the only kind of action a time limit breach may take.
+    private static AutomationAction ReminderAction(ActionType type) => type switch
+    {
+        ActionType.AddTag => new(type, Tag: "overdue"),
+        ActionType.CreateTask => new(type, Note: "Reply to this candidate"),
+        _ => Action(type),
+    };
 
     // A valid instance of each action type, so a test isolates the guardrail from the field checks.
     private static AutomationAction Action(ActionType type) => type switch

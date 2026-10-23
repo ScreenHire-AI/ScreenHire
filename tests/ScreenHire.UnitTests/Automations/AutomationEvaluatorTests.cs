@@ -82,6 +82,48 @@ public sealed class AutomationEvaluatorTests
         facts.HoursInStage.Should().Be(24);
     }
 
+    // A breach on any stage's time limit fires wherever the application is; one on a stage, only there.
+    [Fact]
+    public void A_time_limit_breach_without_a_stage_fires_on_any_stage()
+    {
+        var workflow = HiringWorkflow.Default with
+        {
+            Automations =
+            [
+                Automation("any", new AutomationTrigger(TriggerType.SlaBreached)),
+                Automation("screening", new AutomationTrigger(TriggerType.SlaBreached, "screening")),
+                Automation("entered", new AutomationTrigger(TriggerType.StageEntered, "interview")),
+            ],
+        };
+
+        AutomationEvaluator.Triggered(workflow, TriggerType.SlaBreached, "screening").Select(a => a.Id).Should().Equal("any", "screening");
+        AutomationEvaluator.Triggered(workflow, TriggerType.SlaBreached, "interview").Select(a => a.Id).Should().Equal("any");
+    }
+
+    // The breach timer is keyed on its stage entry, like TimeElapsed, and reads the timeline at its due time.
+    [Fact]
+    public void A_time_limit_breach_sees_what_happened_while_it_waited()
+    {
+        var submitted = Event(ApplicationEventType.Submitted, Start, new(ToStageId: "applied"));
+        var moved = Event(ApplicationEventType.StageChanged, Start.AddHours(2), new("applied", "screening"));
+        var reviewed = Event(ApplicationEventType.TagAdded, Start.AddHours(10), new(Tag: "reviewed"));
+        var due = moved.OccurredAt.AddDays(3);
+
+        var facts = AutomationFacts.FromTimeline([submitted, moved, reviewed], moved.Id, TriggerType.SlaBreached, due);
+
+        facts.Tags.Should().Equal("reviewed");
+        facts.HoursInStage.Should().Be(72);
+    }
+
+    // A breach measures the team's delay: an accommodation does not skip it, or that candidate would wait unseen.
+    [Fact]
+    public void An_accommodation_does_not_skip_a_time_limit_breach()
+    {
+        var breach = Automation("remind", new AutomationTrigger(TriggerType.SlaBreached, "screening"));
+
+        AutomationEvaluator.Evaluate(breach, AutomationFacts.None, accommodationRequested: true, []).Outcome.Should().Be(EvaluationOutcome.Matched);
+    }
+
     // People remove tags by hand, so the snapshot replays additions and removals in order, ignoring case as tags do.
     [Fact]
     public void Tags_replay_in_order_so_a_removed_tag_is_gone_and_one_added_again_is_back()
