@@ -8,15 +8,19 @@
   import { describeError } from '#lib/query.js';
   import {
     aiAssistanceLevels,
+    allQuestions,
     authenticityLevels,
     describeAction,
     emailTemplateNames,
     describePath,
+    followUpsOf,
     operatorLabels,
     problemErrors,
     recommendationLabels,
     recommendations,
+    sources,
     triggerLabels,
+    triggerMayHaveQuestionnaire,
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
@@ -34,6 +38,7 @@
 
   let triggerType = $state<TriggerType>('ApplicationSubmitted');
   let stageId = $state('');
+  let questionnaireId = $state('');
   let answers = $state<Record<string, string>>({});
   let tags = $state('');
   let source = $state('');
@@ -49,7 +54,11 @@
   const reviewed = $derived(triggerType === 'ReviewerDecision');
   const stageOptions = $derived(reviewed ? workflow.stages.filter((candidate) => candidate.scorecard) : workflow.stages);
   const stage = $derived(stageOptions.some((candidate) => candidate.id === stageId) ? stageId : (stageOptions[0]?.id ?? ''));
-  const questions = $derived(workflow.questionnaire.questions.filter((question) => question.type !== 'File'));
+  // Every questionnaire's questions: a follow-up's answers are what a completed-questionnaire trigger tests.
+  const questions = $derived(allQuestions(workflow).filter((question) => question.type !== 'File'));
+  const followUps = $derived(followUpsOf(workflow));
+  const answered = $derived(triggerMayHaveQuestionnaire(triggerType));
+  const questionnaire = $derived(followUps.some((followUp) => followUp.id === questionnaireId) ? questionnaireId : (followUps[0]?.id ?? ''));
   const list = (text: string) =>
     text
       .split(',')
@@ -70,7 +79,7 @@
         .map((question): AnswerFact => ({ questionId: question.id, values: question.type === 'MultiChoice' ? list(answers[question.id] ?? '') : [answers[question.id] ?? ''].filter(Boolean) }))
         .filter((answer) => answer.values.length > 0),
       tags: list(tags),
-      source: source.trim() || null,
+      source: source || null,
       hoursInStage: hoursInStage.trim() ? Number(hoursInStage) : null,
       integrityAuthenticity: authenticity || null,
       integrityAiAssistance: aiAssistance || null,
@@ -80,7 +89,11 @@
       const response = await simulate.mutateAsync({
         data: {
           workflow,
-          trigger: { type: triggerType, ...((triggerNeedsStage(triggerType) || (reviewed && stage)) && { stageId: stage }) },
+          trigger: {
+            type: triggerType,
+            ...((triggerNeedsStage(triggerType) || (reviewed && stage)) && { stageId: stage }),
+            ...(answered && questionnaire && { questionnaireId: questionnaire }),
+          },
           facts,
           accommodationRequested: accommodation,
         },
@@ -124,6 +137,14 @@
             </select>
           </label>
         {/if}
+        {#if answered && followUps.length > 0}
+          <label class={labelClass}>
+            Questionnaire
+            <select class={selectClass} value={questionnaire} onchange={(event) => (questionnaireId = event.currentTarget.value)}>
+              {#each followUps as followUp (followUp.id)}<option value={followUp.id}>{followUp.name || followUp.id}</option>{/each}
+            </select>
+          </label>
+        {/if}
         {#if reviewed}
           <label class={labelClass}>
             Recommendation
@@ -163,7 +184,13 @@
         <legend class={kickerClass}>Application</legend>
         <div class="grid gap-2 @xl:grid-cols-3">
           <label class={labelClass}>Tags, separated by commas<Input bind:value={tags} /></label>
-          <label class={labelClass}>Source<Input bind:value={source} /></label>
+          <label class={labelClass}>
+            Source
+            <select class={selectClass} bind:value={source}>
+              <option value="">Not given</option>
+              {#each sources as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </select>
+          </label>
           <label class={labelClass}>Hours in stage<Input type="number" min={0} bind:value={hoursInStage} /></label>
         </div>
       </fieldset>

@@ -2312,10 +2312,15 @@ export type answerPublicQuestionnaireResponse429 = {
   status: 429
 }
 
+export type answerPublicQuestionnaireResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
 export type answerPublicQuestionnaireResponseSuccess = (answerPublicQuestionnaireResponse204) & {
   headers: Headers;
 };
-export type answerPublicQuestionnaireResponseError = (answerPublicQuestionnaireResponse400 | answerPublicQuestionnaireResponse404 | answerPublicQuestionnaireResponse409 | answerPublicQuestionnaireResponse410 | answerPublicQuestionnaireResponse429) & {
+export type answerPublicQuestionnaireResponseError = (answerPublicQuestionnaireResponse400 | answerPublicQuestionnaireResponse404 | answerPublicQuestionnaireResponse409 | answerPublicQuestionnaireResponse410 | answerPublicQuestionnaireResponse429 | answerPublicQuestionnaireResponse503) & {
   headers: Headers;
 };
 

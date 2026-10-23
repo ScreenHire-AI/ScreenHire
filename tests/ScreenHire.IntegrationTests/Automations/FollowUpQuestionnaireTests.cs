@@ -166,11 +166,52 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
         theirs.ReceivedAnythingAbout(applicationId).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Simulate_fires_the_automations_that_name_the_answered_questionnaire()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var workflow = FollowUpDefinition()["workflow"]!.AsObject();
+        workflow["automations"]!.AsArray().Add(new JsonObject
+        {
+            ["id"] = "tag-on-other",
+            ["name"] = "Tag on another questionnaire",
+            ["trigger"] = new JsonObject { ["type"] = "QuestionnaireCompleted", ["questionnaireId"] = "references" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "AddTag", ["tag"] = "references" }),
+        });
+        workflow["followUpQuestionnaires"]!.AsArray().Add(new JsonObject
+        {
+            ["id"] = "references",
+            ["name"] = "References",
+            ["questions"] = new JsonArray(new JsonObject { ["id"] = "referee", ["type"] = "ShortText", ["label"] = "Who can we ask?" }),
+        });
+
+        var result = (await recruiter.PostAsync("/v1/workflows/simulate", new JsonObject
+        {
+            ["workflow"] = workflow.DeepClone(),
+            ["trigger"] = new JsonObject { ["type"] = "QuestionnaireCompleted", ["questionnaireId"] = "availability" },
+            ["facts"] = new JsonObject { ["answers"] = new JsonArray(), ["tags"] = new JsonArray() },
+        })).Expect(HttpStatusCode.OK);
+
+        result.Body.GetProperty("automations").EnumerateArray().Select(a => a.GetProperty("automationId").GetString()).Should().Equal("tag-on-answers");
+        result.Text("automations.0.outcome").Should().Be("Matched");
+    }
+
     // The tenant's follow-up: a job whose workflow sends "Availability" on entering Screening and tags the application
     // when it is answered.
     private async Task<(Tenant Recruiter, string Slug, Guid Job)> JobWithFollowUpAsync(string title)
     {
         var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var (_, versionId) = await recruiter.CreatePublishedTemplateAsync($"{title} template", FollowUpDefinition());
+        var body = Samples.RemoteJob(title);
+        body["templateVersionId"] = versionId;
+        var job = (await recruiter.CreateJobAsync(body)).Id();
+        await recruiter.PublishJobAsync(job);
+        var slug = (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("slug");
+        return (recruiter, slug, job);
+    }
+
+    private static JsonObject FollowUpDefinition()
+    {
         var definition = Samples.DefinitionWith(
             new JsonObject
             {
@@ -201,13 +242,7 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
                     ["knockout"] = new JsonObject { ["disqualifyingAnswer"] = false },
                 }),
         });
-        var (_, versionId) = await recruiter.CreatePublishedTemplateAsync($"{title} template", definition);
-        var body = Samples.RemoteJob(title);
-        body["templateVersionId"] = versionId;
-        var job = (await recruiter.CreateJobAsync(body)).Id();
-        await recruiter.PublishJobAsync(job);
-        var slug = (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("slug");
-        return (recruiter, slug, job);
+        return definition;
     }
 
     private static async Task<Guid> ApplyAsync(HttpClient careers, string slug, Guid job, string email)

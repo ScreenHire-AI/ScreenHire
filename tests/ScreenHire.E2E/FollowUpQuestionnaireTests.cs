@@ -30,30 +30,35 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         link.Success.Should().BeTrue($"the email carries the link: {sent[0].Text}");
 
         // The candidate's browser runs no JavaScript: the page is a plain form that posts.
-        await using (var context = await Fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false, Locale = "en-US" }))
-        {
-            var page = await context.NewPageAsync();
-            var response = await page.GotoAsync(link.Value);
-            response!.Status.Should().Be(200);
-            await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Availability");
-            (await page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
+        await WithoutJavaScriptAsync();
+        var response = await Page.GotoAsync(link.Value);
+        response!.Status.Should().Be(200);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Availability");
+        (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
+        await ExpectNoAccessibilityViolationsAsync();
 
-            // A required question left blank comes back with the problem, and what was typed is kept.
-            await page.GetByLabel("Yes").CheckAsync();
-            await page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
-            await Expect(page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Answer this question.");
-            await Expect(page.GetByLabel("Yes")).ToBeCheckedAsync();
+        // A required question left blank comes back with the problem, and what was typed is kept.
+        await Page.GetByLabel("Yes").CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Answer this question.");
+        await Expect(Page.GetByLabel("Yes")).ToBeCheckedAsync();
+        await ExpectNoAccessibilityViolationsAsync();
 
-            await page.GetByLabel("When could you start?").FillAsync("In two weeks");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
-            await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Answers sent");
-            page.Url.Should().NotContain(link.Groups["token"].Value, "the confirmation's address carries no token");
+        await Page.GetByLabel("When could you start?").FillAsync("In two weeks");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Answers sent");
+        Page.Url.Should().NotContain(link.Groups["token"].Value, "the confirmation's address carries no token");
+        await ExpectNoAccessibilityViolationsAsync();
 
-            // The link answers once.
-            await page.GotoAsync(link.Value);
-            await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("You have answered these questions");
-        }
+        // The link answers once, and a link that was never issued says so plainly.
+        await Page.GotoAsync(link.Value);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("You have answered these questions");
+        var unknown = await Page.GotoAsync(link.Value.Replace(link.Groups["token"].Value, "CfDJ8NeverIssuedToken000000000", StringComparison.Ordinal));
+        unknown!.Status.Should().Be(404);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("We could not find these questions");
+        await ExpectNoAccessibilityViolationsAsync();
 
+        await WithJavaScriptAsync();
         await SignInAsync(owner);
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         var tags = Page.GetByRole(AriaRole.Region, new() { Name = "Tags" });

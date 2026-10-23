@@ -14,6 +14,25 @@ public sealed class WorkflowDiffTests
         WorkflowDiff.Compare(Base, Base with { Stages = [.. Base.Stages] }).Should().BeEmpty();
     }
 
+    // A job's own follow-up edits show in the diff, so applying a template update never drops them unseen.
+    [Fact]
+    public void Follow_up_questionnaires_and_their_questions_are_matched_by_id()
+    {
+        var question = new Question("start_date", QuestionType.ShortText, "When could you start?");
+        var before = Base with { FollowUpQuestionnaires = [new FollowUpQuestionnaire("availability", "Availability", [question])] };
+        var after = Base with
+        {
+            FollowUpQuestionnaires = [new FollowUpQuestionnaire("availability", "Start date", [question with { Label = "When can you start?" }])],
+        };
+
+        WorkflowDiff.Compare(before, after).Should().BeEquivalentTo(new[]
+        {
+            new WorkflowChange("followUpQuestionnaires[availability].name", WorkflowChangeKind.Changed, "Availability", "Start date"),
+            new WorkflowChange("followUpQuestionnaires[availability].questions[start_date].label", WorkflowChangeKind.Changed, "When could you start?", "When can you start?"),
+        });
+        WorkflowDiff.Compare(Base, before).Should().ContainSingle().Which.Path.Should().Be("followUpQuestionnaires");
+    }
+
     [Fact]
     public void A_renamed_stage_is_one_change_found_by_its_id()
     {

@@ -38,6 +38,7 @@ internal static class PublicQuestionnaireEndpoints
         group.MapPost("", AnswerPublicQuestionnaire).WithName("AnswerPublicQuestionnaire")
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status410Gone)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
             .Produces(StatusCodes.Status429TooManyRequests);
         return app;
     }
@@ -119,7 +120,15 @@ internal static class PublicQuestionnaireEndpoints
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Answered(); // the same link answered at the same moment: the first answers stand
+            // Someone else changed the request first. Answered at the same moment: the first answers stand. Sent again
+            // at the same moment (a resend moves its expiry): nothing was saved, and the candidate can send again.
+            var requestId = found.Request.Id;
+            db.ChangeTracker.Clear();
+            return await db.QuestionnaireRequests.AsNoTracking().AnyAsync(r => r.Id == requestId && r.CompletedAt != null, cancellationToken)
+                ? Answered()
+                : TypedResults.Problem(
+                    title: "Try again", detail: "The questions changed while you answered. Send your answers again.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
         return TypedResults.NoContent();

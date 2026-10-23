@@ -9,7 +9,7 @@ import { fieldId, fields, RESUME_QUESTION_ID } from '@screenhire/ui/questions/mo
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-20.4';
+export const NOTICE_VERSION = '2026-10-23.1';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
