@@ -26,8 +26,8 @@ public sealed record HiringWorkflow(
     public static HiringWorkflow Default { get; } = new(
         [
             new("applied", "Applied", StageKind.Applied),
-            new("screening", "Screening", StageKind.Screening, SlaDays: 3),
-            new("interview", "Interview", StageKind.Interview),
+            new("screening", "Screening", StageKind.Screening, SlaDays: 3, Scorecard: Scorecard.DefaultScreening),
+            new("interview", "Interview", StageKind.Interview, Scorecard: Scorecard.DefaultInterview),
             new("offer", "Offer", StageKind.Offer),
             new("hired", "Hired", StageKind.Hired),
             new("rejected", "Rejected", StageKind.Rejected),
@@ -51,8 +51,61 @@ public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDe
 /// <remarks>
 /// <c>id</c>: Stable key, unique within the workflow: lowercase letters, digits, <c>-</c> and <c>_</c>.
 /// <c>slaDays</c>: Optional service level: candidates should not wait longer than this in the stage.
+/// <c>scorecard</c>: Optional: what reviewers rate candidates on in this stage. Not on a terminal stage.
 /// </remarks>
-public sealed record WorkflowStage(string Id, string Name, StageKind Kind, int? SlaDays = null);
+public sealed record WorkflowStage(string Id, string Name, StageKind Kind, int? SlaDays = null, Scorecard? Scorecard = null);
+
+/// <summary>
+/// The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled
+/// scale <see cref="CriterionRating"/>, and an overall <see cref="Recommendation"/>. Submitting one raises the
+/// <see cref="TriggerType.ReviewerDecision"/> trigger with the recommendation as the <c>reviewer.recommendation</c>
+/// fact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty
+/// (CLAUDE.md non-negotiable 3); <see cref="DefinitionValidator"/> refuses criteria that name those.
+/// </summary>
+public sealed record Scorecard(IReadOnlyList<ScorecardCriterion> Criteria)
+{
+    /// <summary>The screening scorecard of the default workflow: what the job asks for, nothing about the person.</summary>
+    public static Scorecard DefaultScreening { get; } = new(
+    [
+        new("role_requirements", "Meets the role's requirements", "The experience, qualifications or licences the job description asks for."),
+        new("relevant_experience", "Relevant experience", "Work they have done that is like this job's work."),
+    ]);
+
+    /// <summary>The interview scorecard of the default workflow.</summary>
+    public static Scorecard DefaultInterview { get; } = new(
+    [
+        new("role_skills", "Skills the role needs", "The skills in the job description, shown in examples or answers."),
+        new("problem_solving", "Problem solving", "How they work through a problem taken from this job's work."),
+        new("work_knowledge", "Knowledge of the work", "What they know about the tools, methods or rules this job uses."),
+    ]);
+}
+
+/// <remarks>
+/// <c>id</c>: Stable key, unique within the scorecard; a submitted rating refers to it.
+/// <c>guidance</c>: Optional: what a reviewer looks for, shown under the label.
+/// </remarks>
+public sealed record ScorecardCriterion(string Id, string Label, string? Guidance = null);
+
+/// <summary>
+/// A reviewer's rating of one criterion. Categorical on purpose: the levels are labels, never summed or averaged into a
+/// score (ADR-0004's evidence, not verdicts, applied to people's judgements too).
+/// </summary>
+public enum CriterionRating
+{
+    NotDemonstrated,
+    PartlyDemonstrated,
+    Demonstrated,
+    StronglyDemonstrated,
+}
+
+/// <summary>A reviewer's overall recommendation for the stage. Automations test it as <c>reviewer.recommendation</c>.</summary>
+public enum Recommendation
+{
+    StrongNo,
+    No,
+    Yes,
+    StrongYes,
+}
 
 public static class StageKinds
 {
@@ -173,7 +226,8 @@ public sealed record Automation(
     bool AllowAutoReject = false);
 
 /// <remarks>
-/// <c>stageId</c>: For <see cref="TriggerType.StageEntered"/>, <see cref="TriggerType.StageExited"/> and <see cref="TriggerType.TimeElapsed"/>.
+/// <c>stageId</c>: For <see cref="TriggerType.StageEntered"/>, <see cref="TriggerType.StageExited"/> and <see cref="TriggerType.TimeElapsed"/>;
+/// optional for <see cref="TriggerType.ReviewerDecision"/>, where it limits the trigger to that stage's scorecards.
 /// <c>afterHours</c>: For <see cref="TriggerType.TimeElapsed"/>: hours since the application entered <see cref="StageId"/>.
 /// </remarks>
 public sealed record AutomationTrigger(TriggerType Type, string? StageId = null, int? AfterHours = null);
@@ -209,8 +263,9 @@ public enum ConditionMatch
 /// One test of an application fact, such as <c>answers.work_authorization EqualTo no</c> (yes/no answers are
 /// <c>yes</c> and <c>no</c>, choice answers are option ids). Facts are
 /// <c>answers.{questionId}</c>, <c>integrity.authenticity</c>, <c>integrity.aiAssistance</c>,
-/// <c>verification.result</c>, <c>application.tags</c>, <c>application.source</c> and
-/// <c>application.hoursInStage</c>.
+/// <c>verification.result</c>, <c>application.tags</c>, <c>application.source</c>,
+/// <c>application.hoursInStage</c> and, for a <see cref="TriggerType.ReviewerDecision"/> automation only,
+/// <c>reviewer.recommendation</c>.
 /// </summary>
 /// <remarks>
 /// <c>value</c>: The operand for every operator except <see cref="ConditionOperator.In"/> and <see cref="ConditionOperator.Exists"/>.

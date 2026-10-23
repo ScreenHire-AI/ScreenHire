@@ -24,6 +24,7 @@
     removeAt,
     ruleOperand,
     triggerLabels,
+    triggerMayHaveStage,
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
@@ -48,7 +49,9 @@
   const team = createListTeamMembers();
   const reviewers = $derived(assignableMembers(team.data?.data ?? []));
   const path = $derived(`automations[${index}]`);
-  const facts = $derived(factsFor(workflow));
+  const facts = $derived(factsFor(workflow, automation.trigger.type));
+  // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none.
+  const scoredStages = $derived(workflow.stages.filter((stage) => stage.scorecard));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
   const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
   function setTrigger(type: TriggerType) {
@@ -114,6 +117,24 @@
           Stage
           <select class={selectClass} bind:value={automation.trigger.stageId}>
             {#each workflow.stages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+          </select>
+        </label>
+      {/if}
+      {#if triggerMayHaveStage(automation.trigger.type)}
+        <label class={labelClass}>
+          Stage
+          <select
+            class={selectClass}
+            bind:value={
+              () => automation.trigger.stageId ?? '',
+              (stageId) => (automation.trigger = stageId ? { type: automation.trigger.type, stageId } : { type: automation.trigger.type })
+            }
+          >
+            <option value="">Any stage with a scorecard</option>
+            {#each scoredStages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
+            {#if automation.trigger.stageId && !scoredStages.some((stage) => stage.id === automation.trigger.stageId)}
+              <option value={automation.trigger.stageId}>{automation.trigger.stageId}</option>
+            {/if}
           </select>
         </label>
       {/if}

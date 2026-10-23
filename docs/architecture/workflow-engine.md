@@ -39,7 +39,7 @@ visibility rules (which roles see candidates here). `hired`/`rejected`/`withdraw
 | Part | Examples |
 |---|---|
 | **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
-| **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, integrity levels (`integrity.authenticity >= ReviewSuggested`), reviewer ratings, time in stage. Combinators `all/any/not`. |
+| **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, integrity levels (`integrity.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
 | **Actions** | `SendEmail(template)`, `SendQuestionnaire(q)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
 
 ### Guardrails enforced by the engine (product-legal policy, see ADR-0004)
@@ -89,8 +89,10 @@ job's) opens the same tabs in `workflow-summary.svelte`, which reads it as conte
 validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
-  in a Sheet drawer. Automations whose trigger has no stage (an arriving application, the integrity checks, a manual
-  run) sit in a "Whole workflow" lane. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  in a Sheet drawer and its scorecard in another (`scorecard-builder.svelte`): criteria with what to look for, reordered
+  with buttons. Adding a scorecard starts from job-related defaults, and the sheet says criteria never rate
+  personality, emotion or honesty. A stage that ends the application offers no scorecard. Automations whose trigger
+  has no stage (an arriving application, the integrity checks, a manual run) sit in a "Whole workflow" lane. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): stages
   along the top, one row per automation from trigger to conditions to actions, edges to the stages it fires on and
@@ -115,6 +117,7 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
   `POST` and `DELETE /v1/applications/{id}/tags`
 - `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
+- `GET` and `POST /v1/applications/{id}/scorecards` (an API key reads them; only a signed-in person submits one)
 - Webhooks: `/v1/webhooks` (below).
 
 ### Webhook subscriptions
@@ -218,7 +221,8 @@ The data model and API from the jobs and templates task, and the engine that run
   `JsonSchemaExporter`, at `/v1/schemas/hiring-template-definition.json`, `/v1/schemas/hiring-workflow.json` and
   `/v1/schemas/questionnaire.json`, and the OpenAPI components link to them with `externalDocs`.
 - **Validation** is `DefinitionValidator`: structure (ids, stage and question references, per-kind fields) plus the
-  guardrails above as an allowlist. An automation that uses an `integrity.*` or `verification.*` fact, or an
+  guardrails above as an allowlist. A stage may carry a scorecard (section 8): 1 to 20 criteria with unique ids,
+  never on a hired, rejected or withdrawn stage. An automation that uses an `integrity.*` or `verification.*` fact, or an
   `IntegrityAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
   workflow: an automation that reads a tag such an automation adds, or fires on a stage it moves applications into,
@@ -228,14 +232,19 @@ The data model and API from the jobs and templates task, and the engine that run
   every condition is a knockout question equal to its disqualifying answer, with `allowAutoReject` set, may `Reject`,
   and it must give the candidate a reason. Accommodation status and the AI-use declaration are not facts. Publishing a
   template version validates it again, so a draft saved under older rules cannot go live.
-- **What the validator cannot check:** a question's meaning. A knockout must be an objective eligibility check (right
+- **What the validator cannot check:** a question's meaning, or a scorecard criterion's. It refuses criteria that
+  name personality, emotion, honesty and the like (whole words, so "data integrity" passes), but that is a backstop:
+  a criterion rates the job, and the builder's sheet and review of system templates hold that line.
+  A knockout question must be an objective eligibility check (right
   to work, a required licence). A knockout on AI use or on needing an accommodation would reject candidates for
   exactly what ADR-0004 and the accommodation guardrail protect; the template builder must say so, and review of
   system templates checks it.
 - **Templates** have numbered versions: at most one draft, then published versions that never change. The system
   templates "Software engineer" and "Hourly role" ship in the `AddHiringModel` migration with no organization, and a
   later version of one ships as its own migration (`AddSoftwareEngineerTemplateVersion2`); an organization copies one
-  (`copyFromVersionId`) to customise it.
+  (`copyFromVersionId`) to customise it. `AddScorecards` ships "Software engineer" version 3 and "Hourly role"
+  version 2, the earlier versions with default scorecards on their review stages; the default workflow (a job made
+  without a template) has scorecards on Screening and Interview.
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
   template's newest published version, matching list elements by id.
@@ -268,14 +277,16 @@ worker handlers, which write and send nothing when the job has no matching autom
 application has left that stage entry, which is how leaving the stage cancels it. `Manual` is
 `POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The integrity
 engine publishes `RunAutomations(IntegrityAssessed)` whenever an assessment changes, keyed on the `IntegrityAssessed`
-timeline entry it appends. `QuestionnaireCompleted` and `ReviewerDecision` are valid in definitions and run through
-`RunAutomations`, but nothing raises them yet.
+timeline entry it appends. Submitting a scorecard publishes `RunAutomations(ReviewerDecision)` keyed on its
+`ScorecardSubmitted` timeline entry (below). `QuestionnaireCompleted` is valid in definitions and runs through
+`RunAutomations`, but nothing raises it yet.
 
 **Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
 trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
 sees what the first one saw. The snapshot and every rule's result are stored on the run. Integrity levels come from
-the latest `IntegrityAssessed` entry at or before the trigger. Answers and the application source are absent until
-the features that store them exist. The facts schema
+the latest `IntegrityAssessed` entry at or before the trigger. `reviewer.recommendation` is the recommendation of the
+scorecard whose entry fired a ReviewerDecision trigger, and absent on every other trigger. Answers and the application
+source are absent until the features that store them exist. The facts schema
 (`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only. The integrity engine's level names are `NoConcerns`, `ReviewSuggested` and
 `VerificationRecommended` for `integrity.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
 `integrity.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
@@ -329,12 +340,42 @@ entries). The facts snapshot replays additions and removals in timeline order, i
 from every later evaluation. No automation action removes a tag. A Manual automation runs from the application's
 Automations panel, which sends a new `Idempotency-Key` with each click.
 
+**Scorecards and the reviewer decision.** A stage's scorecard (`Scorecard` on `WorkflowStage`) lists job-related
+criteria. A reviewer rates each on one fixed, labelled scale (`CriterionRating`: not demonstrated, partly
+demonstrated, demonstrated, strongly demonstrated), may leave one unrated, and gives a required overall
+`Recommendation` (strong no, no, yes, strong yes). Ratings and recommendations are categories: nothing sums or
+averages them, in the API or the dashboard (ADR-0004's evidence, not verdicts, for people's judgements too).
+
+- `POST /v1/applications/{id}/scorecards` stores one reviewer's scorecard for a stage that has one and that the
+  application has been in. It copies each criterion's label as asked, so a later workflow change cannot rewrite it.
+  In one transaction with the `application_scorecards` row it appends a `ScorecardSubmitted` timeline entry (the
+  stage and the recommendation), publishes `RunAutomations(ReviewerDecision, stage, entry)` and raises the
+  `ScorecardSubmitted` realtime event (ids only).
+- One scorecard per reviewer and stage, on a unique index. The same submission again, a retried or doubled request,
+  returns the stored one with 200 and raises nothing. A different one is 409: a scorecard is final, and the role may
+  not update or delete the rows. Deleting the application is the only way one goes, by cascade.
+- The trigger fires once per scorecard: the run is keyed on the timeline entry, and `RunAutomations` is
+  `[Deduplicated]`.
+- A ReviewerDecision automation with a stage fires on that stage's scorecards; without one it fires on any stage's.
+  Only its conditions may test `reviewer.recommendation` (EqualTo, In or Exists, on the recommendation names).
+- Only a person submits a scorecard. An API key gets 403, and a Viewer gets 403 as on every write. Both may read
+  scorecards.
+- Integrity output never feeds a scorecard. The sheet shows only the criteria and the scale, and no automation action
+  writes one. A reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout
+  rejects.
+
 **Validate and simulate.** `POST /v1/workflows/validate` returns the validator's errors with their paths, 200 either
 way. `POST /v1/workflows/simulate` refuses an invalid workflow, then runs a sample facts snapshot through the same
 evaluator for one trigger and lists each triggered automation's outcome, rule results and actions.
 
 **Decisions that differ from the text above.**
 
+- A ReviewerDecision automation counts as signal-driven like a stage trigger: on a stage a signal-driven automation
+  moves applications into, or with no stage once any signal-driven automation moves applications. A person decides in
+  between, but the candidate reached that reviewer because of the signal, so the guardrail stays conservative. Such
+  an automation may route, never queue a rejection.
+- The rating scale is fixed rather than set per scorecard: one scale reads the same on every candidate, and labels
+  cannot drift into a numeric score.
 - Signal-driven automations may not use `NotifyTeam` even though "notify" reads as routing. ADR-0004 lists route, tag,
   assign and request verification, and the validator keeps to that list.
 - A signal may move an application into a screening, assessment, verification or interview stage only, not any

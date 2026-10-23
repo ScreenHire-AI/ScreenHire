@@ -54,6 +54,7 @@ const panels: Record<string, string[]> = {
   Activity: ['Activity'],
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
+  Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],
   'Action bar': ['Action bar'],

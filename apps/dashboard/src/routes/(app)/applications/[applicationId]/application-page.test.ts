@@ -1,4 +1,4 @@
-import type { ApplicationDetail, ApplicationTaskEntry, ApplicationTimelineEntry, JobDetail, TeamMember } from '@screenhire/api-client';
+import type { ApplicationDetail, ApplicationTaskEntry, ApplicationTimelineEntry, JobDetail, ScorecardEntry, TeamMember } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId, stages, user } from '../../../../test-support/fixtures.js';
@@ -99,6 +99,9 @@ const entry = (overrides: Partial<ApplicationTimelineEntry>): ApplicationTimelin
   tag: null,
   automationRunId: null,
   actorApiKeyId: null,
+  scorecardId: null,
+  stageId: null,
+  recommendation: null,
   ...overrides,
 });
 
@@ -117,6 +120,7 @@ const reads = {
   [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(timeline),
   [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json([task]),
   [`GET /v1/applications/${applicationId}/automation-runs`]: () => Response.json([]),
+  [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([]),
   [`GET /v1/jobs/${jobId}`]: () => Response.json(job),
   [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...pendingIntegrity(), applicationId }),
   'GET /v1/organization/members': () => Response.json(members),
@@ -327,5 +331,131 @@ describe('application page', () => {
 
     expect(declarations).toHaveTextContent('Used AI: Grammar checks only.');
     expect(declarations).toHaveTextContent('Asked for adjustments to the process');
+  });
+
+  describe('scorecards', () => {
+    // The job with an interview scorecard; the application reached Interview (the timeline) and is back in Screening.
+    const scoredJob = {
+      ...job,
+      workflow: {
+        ...job.workflow,
+        stages: stages.map((stage) =>
+          stage.id === 'interview'
+            ? {
+                ...stage,
+                scorecard: {
+                  criteria: [
+                    { id: 'role_skills', label: 'Skills the role needs', guidance: 'The skills in the job description.' },
+                    { id: 'problem_solving', label: 'Problem solving' },
+                  ],
+                },
+              }
+            : stage,
+        ),
+      },
+    } as JobDetail;
+    const submitted: ScorecardEntry = {
+      id: '01a157d4-0000-7000-8000-000000000310',
+      stageId: 'interview',
+      reviewerUserId: teammate,
+      ratings: [
+        { criterionId: 'role_skills', label: 'Skills the role needs', rating: 'StronglyDemonstrated' },
+        { criterionId: 'problem_solving', label: 'Problem solving', rating: null },
+      ],
+      recommendation: 'StrongYes',
+      note: 'Clear walk-through of the design.',
+      workflowVersion: 1,
+      timelineEventId: '01a157d4-0000-7000-8000-000000000311',
+      submittedAt: '2026-10-20T11:45:00Z',
+    };
+
+    it('shows each scorecard with its reviewer and its ratings in words, never a number', async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([submitted]),
+      });
+      renderPage();
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+      await within(panel).findByText('Strong yes');
+      expect(panel).toHaveTextContent('by Robin Ashby');
+      expect(panel).toHaveTextContent('Interview');
+      const rows = within(panel)
+        .getAllByRole('term')
+        .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
+      expect(rows).toEqual([
+        ['Skills the role needs', 'Strongly demonstrated'],
+        ['Problem solving', 'Not rated'],
+      ]);
+      expect(panel).toHaveTextContent('"Clear walk-through of the design."');
+      // A rating or a recommendation is never a figure or a percentage.
+      expect(within(panel).getByRole('list', { name: 'Scorecards' }).querySelector('dl')?.textContent).not.toMatch(/\d|%/);
+    });
+
+    it('fills a scorecard in a sheet: ratings by criterion, and the recommendation is required', async () => {
+      const fetch = stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`POST /v1/applications/${applicationId}/scorecards`]: () => Response.json({ ...submitted, reviewerUserId: user.id }, { status: 201 }),
+      });
+      renderPage();
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+      await fireEvent.click(await within(panel).findByRole('button', { name: 'Fill scorecard' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Fill scorecard' });
+      expect(sheet).toHaveTextContent('Stage: Interview');
+      expect(within(sheet).queryByText(/integrity/i)).not.toBeInTheDocument();
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
+      await within(sheet).findByText('Choose a recommendation.');
+      expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+
+      await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Skills the role needs' })).getByRole('radio', { name: 'Demonstrated' }));
+      await fireEvent.click(within(within(sheet).getByRole('group', { name: /^Recommendation/ })).getByRole('radio', { name: 'Strong yes' }));
+      await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: '  Good depth.  ' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
+
+      await within(panel).findByText('Scorecard for Interview saved.');
+      const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/scorecards') && init?.method === 'POST');
+      expect(JSON.parse(String(post![1]!.body))).toEqual({
+        stageId: 'interview',
+        ratings: [{ criterionId: 'role_skills', rating: 'Demonstrated' }],
+        recommendation: 'StrongYes',
+        note: 'Good depth.',
+      });
+    });
+
+    it('offers no Fill scorecard once you scored every reached stage, nor to a Viewer', async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([{ ...submitted, reviewerUserId: user.id }]),
+      });
+      renderPage();
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+      await within(panel).findByText('by you');
+      expect(within(panel).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
+      cleanup();
+
+      page.data.user = { ...user, organization: { ...user.organization!, role: 'Viewer' } };
+      stubApi({ [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob) });
+      renderPage();
+      const viewed = await screen.findByRole('region', { name: 'Scorecards' });
+      await within(viewed).findByText('No scorecards yet.');
+      expect(within(viewed).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
+    });
+
+    it('records a scorecard in Activity by its stage, leaving the judgement to the panel', async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/timeline`]: () =>
+          Response.json([
+            ...timeline,
+            entry({ type: 'ScorecardSubmitted', occurredAt: '2026-10-20T11:45:00Z', actorUserId: teammate, stageId: 'interview', recommendation: 'StrongYes' }),
+          ]),
+      });
+      renderPage();
+      const activity = await screen.findByRole('region', { name: 'Activity' });
+
+      await within(activity).findByText(/Scorecard for Interview/);
+      expect(activity).not.toHaveTextContent('Strong yes');
+    });
   });
 });

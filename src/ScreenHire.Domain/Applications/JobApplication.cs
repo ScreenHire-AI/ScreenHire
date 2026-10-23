@@ -194,6 +194,48 @@ public sealed class JobApplication : ITenantOwned
         return NewEvent(ApplicationEventType.NoteAdded, new ApplicationEventData(Note: note.Trim(), ApiKeyId: actorApiKeyId), now, actorUserId);
     }
 
+    /// <summary>
+    /// A reviewer's scorecard for <paramref name="stage"/> and the timeline entry that records it, which raises the
+    /// ReviewerDecision trigger. <paramref name="ratings"/> holds ratings by criterion id; a criterion it leaves out is
+    /// not rated. The caller checks that every id is one of the stage's criteria.
+    /// </summary>
+    public (ApplicationScorecard Scorecard, ApplicationEvent Entry) SubmitScorecard(
+        WorkflowStage stage,
+        Guid reviewerUserId,
+        IReadOnlyDictionary<string, CriterionRating?> ratings,
+        Recommendation recommendation,
+        string? note,
+        int workflowVersion,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(stage);
+        ArgumentNullException.ThrowIfNull(ratings);
+        var criteria = stage.Scorecard?.Criteria ?? throw new InvalidOperationException($"Stage {stage.Id} has no scorecard.");
+
+        var scorecardId = Guid.CreateVersion7();
+        var entry = NewEvent(
+            ApplicationEventType.ScorecardSubmitted,
+            new ApplicationEventData(ScorecardId: scorecardId, StageId: stage.Id, Recommendation: recommendation.ToString()),
+            now,
+            reviewerUserId);
+        var scorecard = new ApplicationScorecard
+        {
+            Id = scorecardId,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            JobId = JobId,
+            StageId = stage.Id,
+            ReviewerUserId = reviewerUserId,
+            Ratings = [.. criteria.Select(c => new CriterionScore(c.Id, c.Label, ratings.GetValueOrDefault(c.Id)))],
+            Recommendation = recommendation,
+            Note = ApplicationScorecard.Normalize(note),
+            WorkflowVersion = workflowVersion,
+            TimelineEventId = entry.Id,
+            SubmittedAt = now,
+        };
+        return (scorecard, entry);
+    }
+
     private ApplicationEvent NewEvent(ApplicationEventType type, ApplicationEventData data, DateTimeOffset now, Guid? actorUserId) =>
         new()
         {

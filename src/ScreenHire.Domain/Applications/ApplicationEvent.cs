@@ -40,6 +40,9 @@ public enum ApplicationEventType
 
     /// <summary>A note from the hiring team.</summary>
     NoteAdded,
+
+    /// <summary>A reviewer submitted a stage's scorecard; it raises the ReviewerDecision trigger.</summary>
+    ScorecardSubmitted,
 }
 
 /// <summary>
@@ -52,6 +55,8 @@ public enum ApplicationEventType
 /// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.IntegrityAssessed"/>,
 /// the levels as they stood after the assessment; automation conditions read them as integrity facts.
 /// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
+/// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <see cref="ApplicationEventType.ScorecardSubmitted"/>, the
+/// scorecard, the stage it rates and its overall recommendation, which a ReviewerDecision automation reads as a fact.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -62,4 +67,7 @@ public sealed record ApplicationEventData(
     string? AuthenticityLevel = null,
     string? AiAssistanceLevel = null,
     string? RulesetVersion = null,
-    Guid? ApiKeyId = null);
+    Guid? ApiKeyId = null,
+    Guid? ScorecardId = null,
+    string? StageId = null,
+    string? Recommendation = null);

@@ -62,6 +62,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
 
+    public DbSet<ApplicationScorecard> ApplicationScorecards => Set<ApplicationScorecard>();
+
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
 
     public DbSet<IndexingNotification> IndexingNotifications => Set<IndexingNotification>();

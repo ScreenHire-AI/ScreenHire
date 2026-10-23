@@ -27,4 +27,10 @@ export interface ApplicationTimelineEntry {
   automationRunId: string | null;
   /** @nullable */
   actorApiKeyId: string | null;
+  /** @nullable */
+  scorecardId: string | null;
+  /** @nullable */
+  stageId: string | null;
+  /** @nullable */
+  recommendation: string | null;
 }

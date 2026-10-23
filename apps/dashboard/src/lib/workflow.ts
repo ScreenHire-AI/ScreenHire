@@ -9,10 +9,13 @@ import type {
   AutomationAction,
   AutomationCondition,
   ConditionOperator,
+  CriterionRating,
   DefinitionError,
   HiringWorkflow,
   Question,
   QuestionType,
+  Recommendation,
+  Scorecard,
   StageKind,
   TeamMember,
   TriggerType,
@@ -51,6 +54,58 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
 export const triggerTypes = Object.keys(triggerLabels) as TriggerType[];
 
 export const triggerNeedsStage = (type: TriggerType): boolean => type === 'StageEntered' || type === 'StageExited' || type === 'TimeElapsed';
+
+/** A reviewer decision may name the stage whose scorecards it fires on; without one it fires on any stage's. */
+export const triggerMayHaveStage = (type: TriggerType): boolean => type === 'ReviewerDecision';
+
+/** The labelled rating scale of every scorecard (CriterionRating). Categories, never summed into a score. */
+export type Rating = NonNullable<CriterionRating>;
+
+export const ratingLabels: Record<Rating, string> = {
+  NotDemonstrated: 'Not demonstrated',
+  PartlyDemonstrated: 'Partly demonstrated',
+  Demonstrated: 'Demonstrated',
+  StronglyDemonstrated: 'Strongly demonstrated',
+};
+
+export const ratings = Object.keys(ratingLabels) as Rating[];
+
+/** A reviewer's overall recommendation; automations test it as `reviewer.recommendation`. */
+export const recommendationLabels: Record<Recommendation, string> = {
+  StrongNo: 'Strong no',
+  No: 'No',
+  Yes: 'Yes',
+  StrongYes: 'Strong yes',
+};
+
+export const recommendations = Object.keys(recommendationLabels) as Recommendation[];
+
+/**
+ * What a new scorecard starts with: the job, never the person (CLAUDE.md non-negotiable 3). The same criteria as the
+ * default workflow's (Scorecard.DefaultScreening and DefaultInterview in HiringWorkflow.cs).
+ */
+export function defaultScorecard(kind: StageKind): Scorecard {
+  return kind === 'Applied' || kind === 'Screening'
+    ? {
+        criteria: [
+          { id: 'role_requirements', label: "Meets the role's requirements", guidance: 'The experience, qualifications or licences the job description asks for.' },
+          { id: 'relevant_experience', label: 'Relevant experience', guidance: "Work they have done that is like this job's work." },
+        ],
+      }
+    : {
+        criteria: [
+          { id: 'role_skills', label: 'Skills the role needs', guidance: 'The skills in the job description, shown in examples or answers.' },
+          { id: 'problem_solving', label: 'Problem solving', guidance: "How they work through a problem taken from this job's work." },
+          { id: 'work_knowledge', label: 'Knowledge of the work', guidance: 'What they know about the tools, methods or rules this job uses.' },
+        ],
+      };
+}
+
+/** A new, empty criterion with an id unique in `scorecard`. */
+export const newCriterion = (scorecard: Scorecard) => ({
+  id: idFrom('criterion', scorecard.criteria.map((criterion) => criterion.id), 'criterion'),
+  label: 'New criterion',
+});
 
 /** Actions v1 runs. SendQuestionnaire, RequestVerification and ScheduleInterview are refused at save, so not offered. */
 export const actionLabels: Partial<Record<ActionType, string>> = {
@@ -136,7 +191,7 @@ export const operatorLabels: Record<ConditionOperator, string> = {
   Exists: 'is given',
 };
 
-export type FactType = 'Text' | 'TextList' | 'Number' | 'YesNo' | 'Choice' | 'MultiChoice' | 'File' | 'Level';
+export type FactType = 'Text' | 'TextList' | 'Number' | 'YesNo' | 'Choice' | 'MultiChoice' | 'File' | 'Level' | 'Recommendation';
 
 /** One fact a condition can test, with the values it may take when they are a fixed list. */
 export interface FactOption {
@@ -156,6 +211,7 @@ const operatorsByType: Record<FactType, ConditionOperator[]> = {
   YesNo: ['EqualTo', 'Exists'],
   Choice: ['EqualTo', 'In', 'Exists'],
   Level: ['EqualTo', 'In', 'Exists'],
+  Recommendation: ['EqualTo', 'In', 'Exists'],
   File: ['Exists'],
 };
 
@@ -190,8 +246,11 @@ const yesNo = [
   { value: 'no', label: 'No' },
 ];
 
-/** Every fact a condition in this workflow can test: one per question, then the application's and the signals. */
-export function factsFor(workflow: HiringWorkflow): FactOption[] {
+/**
+ * Every fact a condition in this workflow can test: one per question, then the application's and the signals, and for
+ * a reviewer-decision automation the reviewer's recommendation, which only that trigger has.
+ */
+export function factsFor(workflow: HiringWorkflow, trigger?: TriggerType): FactOption[] {
   const answers = workflow.questionnaire.questions.map(
     (question): FactOption => ({
       fact: `answers.${question.id}`,
@@ -213,6 +272,17 @@ export function factsFor(workflow: HiringWorkflow): FactOption[] {
     { fact: 'application.hoursInStage', label: 'Hours in stage', type: 'Number', signal: false },
     { fact: 'integrity.authenticity', label: 'Integrity: authenticity', type: 'Level', signal: true, values: authenticityLevels },
     { fact: 'integrity.aiAssistance', label: 'Integrity: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
+    ...(trigger === 'ReviewerDecision'
+      ? [
+          {
+            fact: 'reviewer.recommendation',
+            label: "Reviewer's recommendation",
+            type: 'Recommendation' as const,
+            signal: false,
+            values: recommendations.map((value) => ({ value, label: recommendationLabels[value] })),
+          },
+        ]
+      : []),
   ];
 }
 
@@ -285,7 +355,7 @@ export function newAutomation(workflow: HiringWorkflow, stageId: string | null):
 
 /** The stage an automation belongs to in the pipeline view, or null for the whole workflow. */
 export const laneOf = (automation: Automation): string | null =>
-  triggerNeedsStage(automation.trigger.type) ? (automation.trigger.stageId ?? null) : null;
+  triggerNeedsStage(automation.trigger.type) || triggerMayHaveStage(automation.trigger.type) ? (automation.trigger.stageId ?? null) : null;
 
 /** `list` with the item at `index` moved by `delta`, or unchanged at either end. The non-drag way to reorder. */
 export function moveItem<T>(list: readonly T[], index: number, delta: -1 | 1): T[] {
@@ -359,6 +429,8 @@ export function summarize(automation: Automation, workflow: HiringWorkflow, memb
         ? `When a candidate leaves ${stage(trigger.stageId)}`
         : trigger.type === 'TimeElapsed'
           ? `${trigger.afterHours ?? '?'} hours after entering ${stage(trigger.stageId)}`
+          : trigger.type === 'ReviewerDecision' && trigger.stageId
+            ? `When a reviewer records a decision on ${stage(trigger.stageId)}`
           : (triggerLabels[trigger.type] ?? trigger.type).replace(/^./, (first) => `When ${first.toLowerCase()}`);
   const rules = automation.conditions?.rules.length ?? 0;
   const condition = rules > 0 ? `, if ${rules} ${rules === 1 ? 'condition holds' : automation.conditions?.match === 'Any' ? 'conditions: any holds' : 'conditions hold'}` : '';

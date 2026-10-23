@@ -117,6 +117,39 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         (await check.ApplicationEvents.CountAsync(Ct)).Should().Be(1);
     }
 
+    // A submitted scorecard is final: one person's judgement, kept as given. Another organization does not see it.
+    [Fact]
+    public async Task Scorecards_can_be_added_and_read_by_their_organization_but_never_changed_or_deleted()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var job = TestData.NewJob(organization, "scored");
+        var candidate = Candidate.Create(organization.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
+        var (scorecard, entry) = application.SubmitScorecard(
+            job.Workflow.FindStage("interview")!,
+            Guid.CreateVersion7(), new Dictionary<string, CriterionRating?>(), Recommendation.Yes, null, job.WorkflowVersion, Now);
+        await using (var db = await ContextAsync(organization.Id))
+        {
+            db.Jobs.Add(job);
+            db.Candidates.Add(candidate);
+            db.Applications.Add(application);
+            db.ApplicationEvents.AddRange(submitted, entry);
+            db.ApplicationScorecards.Add(scorecard);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var update = () => ExecuteAsync(organization.Id, "UPDATE application_scorecards SET recommendation = 'StrongNo'");
+        var delete = () => ExecuteAsync(organization.Id, "DELETE FROM application_scorecards");
+
+        (await update.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await delete.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        await using var check = await ContextAsync(organization.Id);
+        (await check.ApplicationScorecards.SingleAsync(Ct)).Recommendation.Should().Be(Recommendation.Yes);
+        await using var outside = await ContextAsync(other.Id);
+        (await outside.ApplicationScorecards.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0, "row-level security hides it even without the query filter");
+    }
+
     [Fact]
     public async Task A_template_version_can_change_while_it_is_a_draft_and_never_after_it_is_published()
     {
@@ -214,7 +247,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         await using var db = await ContextAsync(organization.Id);
 
         (await db.HiringTemplates.Where(t => t.OrganizationId == null).CountAsync(Ct)).Should().Be(2);
-        (await db.HiringTemplateVersions.Where(v => v.OrganizationId == null).CountAsync(Ct)).Should().Be(3, "two system templates, one of them with a second version");
+        (await db.HiringTemplateVersions.Where(v => v.OrganizationId == null).CountAsync(Ct)).Should().Be(5, "two system templates: three versions of one, two of the other");
     }
 
     [Fact]
