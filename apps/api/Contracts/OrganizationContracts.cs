@@ -1,3 +1,5 @@
+using FluentValidation;
+
 namespace ScreenHire.Api.Contracts;
 
 /// <summary>
@@ -20,3 +22,19 @@ public sealed record OrganizationIntegritySettings(bool LlmConsistencyCheck, lon
 
 /// <summary>Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default).</summary>
 public sealed record UpdateIntegritySettingsRequest(bool LlmConsistencyCheck, long? MonthlyTokenBudget = null);
+
+/// <summary>
+/// The signed-in user's organization. <c>slug</c> names its careers pages and public API routes and does not change after
+/// onboarding; <c>careersUrl</c> is its careers board on the configured careers domain.
+/// </summary>
+public sealed record OrganizationProfile(Guid Id, string Name, string Slug, string HomeRegion, string CareersUrl, DateTimeOffset CreatedAt);
+
+/// <summary>Renames the organization. Its slug, and so its careers address, stays as it is.</summary>
+public sealed record UpdateOrganizationRequest(string Name);
+
+internal sealed class UpdateOrganizationRequestValidator : AbstractValidator<UpdateOrganizationRequest>
+{
+    public UpdateOrganizationRequestValidator() =>
+        RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter your organization's name.")
+            .MaximumLength(200);
+}

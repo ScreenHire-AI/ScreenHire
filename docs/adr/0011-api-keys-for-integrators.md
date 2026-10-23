@@ -58,8 +58,8 @@ per-app scopes. ScreenHire has no marketplace and no third-party apps yet.
 - The application timeline names the key that submitted or moved an application. Template versions record no creator
   or publisher for a key: they keep only a user id, and adding a key column there is a migration for a rare path.
 - A key belongs to the organization, not to its creator: it keeps working after that person leaves. Removing a member
-  does not exist yet; when it does, the flow should offer to revoke the keys they created.
+  in Settings > Team offers to revoke the active keys they created (`createdByUserId` on the key's summary), ticked by
+  default; a person who unticks it keeps the keys working.
 - An address that runs out of failed attempts gets 429 for every key, a good one too, until the minute is up. An
   attacker behind the same address as an integrator can slow that integrator down for a minute at a time.
-- There are no screens yet; the routes are in the OpenAPI document and the generated client for the settings page that
-  comes later.
+- The dashboard's Settings > API keys page creates, lists and revokes keys, and shows a new key once.

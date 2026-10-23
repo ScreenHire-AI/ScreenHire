@@ -8,7 +8,8 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>
 /// An organization API key as listed: never the key itself, which only <see cref="CreatedApiKey"/> carries.
 /// <c>prefix</c> is the key's first characters. <c>permitsPerMinute</c> is null for the deployment's default.
-/// <c>lastUsedAt</c> is accurate to about a minute.
+/// <c>lastUsedAt</c> is accurate to about a minute. <c>createdByUserId</c> is the member who created it, or null once their
+/// account is deleted; removing a member offers to revoke the keys they created.
 /// </summary>
 public sealed record ApiKeySummary(
     Guid Id,
@@ -18,7 +19,8 @@ public sealed record ApiKeySummary(
     int? PermitsPerMinute,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastUsedAt,
-    DateTimeOffset? RevokedAt);
+    DateTimeOffset? RevokedAt,
+    Guid? CreatedByUserId);
 
 /// <summary>
 /// A new key. <c>token</c> is shown this once and cannot be read again: send it as <c>Authorization: Bearer
@@ -35,7 +37,7 @@ public sealed record CreateApiKeyRequest(string Name, IReadOnlyList<ApiKeyScope>
 internal static class ApiKeyMapping
 {
     public static ApiKeySummary ToSummary(this ApiKey key) =>
-        new(key.Id, key.Name, key.Prefix, key.Scopes, key.PermitsPerMinute, key.CreatedAt, key.LastUsedAt, key.RevokedAt);
+        new(key.Id, key.Name, key.Prefix, key.Scopes, key.PermitsPerMinute, key.CreatedAt, key.LastUsedAt, key.RevokedAt, key.CreatedByUserId);
 }
 
 internal sealed class CreateApiKeyRequestValidator : AbstractValidator<CreateApiKeyRequest>

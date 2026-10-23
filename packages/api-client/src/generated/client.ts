@@ -56,6 +56,7 @@ import type {
   OnboardingRequest,
   OrganizationBranding,
   OrganizationIntegritySettings,
+  OrganizationProfile,
   PendingInvitation,
   ProblemDetails,
   PublicApplicationForm,
@@ -77,6 +78,7 @@ import type {
   UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateOrganizationRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -3378,6 +3380,120 @@ export const getJobBoardJob = async (organizationSlug: string,
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type getOrganizationResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type getOrganizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationResponseSuccess = (getOrganizationResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationResponseError = (getOrganizationResponse401 | getOrganizationResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationResponse = (getOrganizationResponseSuccess | getOrganizationResponseError)
+
+export const getGetOrganizationUrl = () => {
+
+
+
+
+  return `/v1/organization`
+}
+
+export const getOrganization = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationResponse> => {
+
+  return apiFetch<getOrganizationResponse>(getGetOrganizationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateOrganizationResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type updateOrganizationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateOrganizationResponseSuccess = (updateOrganizationResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationResponseError = (updateOrganizationResponse400 | updateOrganizationResponse401 | updateOrganizationResponse403 | updateOrganizationResponse404) & {
+  headers: Headers;
+};
+
+export type updateOrganizationResponse = (updateOrganizationResponseSuccess | updateOrganizationResponseError)
+
+export const getUpdateOrganizationUrl = () => {
+
+
+
+
+  return `/v1/organization`
+}
+
+export const updateOrganization = async (updateOrganizationRequest: UpdateOrganizationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOrganizationResponse>(getUpdateOrganizationUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationRequest)
   }
 );}
 

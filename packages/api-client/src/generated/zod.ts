@@ -3355,6 +3355,30 @@ export const GetJobBoardJobResponse = zod.object({
 }).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')
 
 
+export const GetOrganizationResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "homeRegion": zod.string(),
+  "careersUrl": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain.')
+
+
+export const UpdateOrganizationBody = zod.object({
+  "name": zod.string()
+}).describe('Renames the organization. Its slug, and so its careers address, stays as it is.')
+
+export const UpdateOrganizationResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "homeRegion": zod.string(),
+  "careersUrl": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain.')
+
+
 export const GetOrganizationBrandingResponse = zod.object({
   "brandColor": zod.string().nullable(),
   "palette": zod.union([zod.null(),zod.object({
@@ -3490,8 +3514,9 @@ export const ListApiKeysResponseItem = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 export const ListApiKeysResponse = zod.array(ListApiKeysResponseItem)
 
 
@@ -3510,8 +3535,9 @@ export const CreateApiKeyResponse = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.'),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.'),
   "token": zod.string()
 }).describe('A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`.')
 
@@ -3528,8 +3554,9 @@ export const GetApiKeyResponse = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
 export const RevokeApiKeyParams = zod.object({
@@ -3544,8 +3571,9 @@ export const RevokeApiKeyResponse = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;

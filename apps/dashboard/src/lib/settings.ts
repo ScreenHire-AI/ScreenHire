@@ -1,0 +1,48 @@
+import Building2Icon from '@lucide/svelte/icons/building-2';
+import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+import PaletteIcon from '@lucide/svelte/icons/palette';
+import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
+import UsersRoundIcon from '@lucide/svelte/icons/users-round';
+import WebhookIcon from '@lucide/svelte/icons/webhook';
+import type { OrganizationRole } from '@screenhire/api-client';
+import type { LucideIcon } from '#lib/shell.js';
+
+/**
+ * The Settings group in the sidebar, for Owners and Admins only. Kept apart from `sections`, which every member sees and
+ * which the G chords read.
+ */
+export const settingsSections: readonly { label: string; href: string; icon: LucideIcon }[] = [
+  { label: 'Organization', href: '/settings/organization', icon: Building2Icon },
+  { label: 'Team', href: '/settings/team', icon: UsersRoundIcon },
+  { label: 'Careers branding', href: '/settings/branding', icon: PaletteIcon },
+  { label: 'Integrity', href: '/settings/integrity', icon: ShieldCheckIcon },
+  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon },
+  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon },
+];
+
+/** Whether the role manages the organization's settings: the API's `RequireOrganizationAdmin`. */
+export const isAdministrator = (role: OrganizationRole | null | undefined): boolean => role === 'Owner' || role === 'Admin';
+
+/** Every role, most powerful first. */
+export const roles: readonly OrganizationRole[] = ['Owner', 'Admin', 'Recruiter', 'Viewer'];
+
+/** What each role may do, in one line, for the invite dialog. */
+export const roleDescriptions: Record<OrganizationRole, string> = {
+  Owner: 'Everything, including other owners',
+  Admin: 'Hiring and settings',
+  Recruiter: 'Jobs, candidates and templates',
+  Viewer: 'Reads, changes nothing',
+};
+
+// The API's TeamPolicy (src/ScreenHire.Domain/Organizations/TeamPolicy.cs), so the page offers only what it allows. The
+// API stays the judge: it refuses anything else with 403 "Owners only", and the last Owner with 409.
+
+/** Whether `actor` may invite someone as, or move someone into, `role`. */
+export const mayAssign = (actor: OrganizationRole, role: OrganizationRole): boolean =>
+  actor === 'Owner' || (actor === 'Admin' && role !== 'Owner');
+
+/** The roles `actor` may give. */
+export const assignableRoles = (actor: OrganizationRole): OrganizationRole[] => roles.filter((role) => mayAssign(actor, role));
+
+/** Whether `actor` may change the role of, or remove, a member who has `role`. */
+export const mayManage = (actor: OrganizationRole, role: OrganizationRole): boolean => mayAssign(actor, role);

@@ -119,7 +119,9 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 
 Integrators subscribe to events instead of polling. An organization's owners and admins manage its endpoints; every
 other role gets 403, and another organization's endpoint or delivery is a 404 (tenant filter and row-level security on
-`webhook_endpoints` and `webhook_deliveries`).
+`webhook_endpoints` and `webhook_deliveries`). In the dashboard they do it in Settings > Webhooks: an endpoint's page
+shows its delivery log, refreshed while a delivery is pending, with replay; the signing secret appears once, after
+creating or rotating.
 
 | Route | Does |
 |---|---|

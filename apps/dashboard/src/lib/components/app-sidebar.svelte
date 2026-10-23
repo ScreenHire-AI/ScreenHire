@@ -17,6 +17,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { savedViews } from '#lib/saved-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
+  import { isAdministrator, settingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
 
   // The app's navigation (design system sections 8 and 9): the full sidebar, the icon rail or the phone sheet, as the
@@ -176,6 +177,35 @@
           {/each}
         </Sidebar.Menu>
       </Sidebar.Group>
+
+      {#if isAdministrator(user?.organization?.role)}
+        <!-- Owners and admins only; the pages under it say so to anyone else who opens one by its address. -->
+        <Sidebar.Group>
+          <Sidebar.GroupLabel>
+            {#snippet child({ props })}<h2 {...props}>Settings</h2>{/snippet}
+          </Sidebar.GroupLabel>
+          <Sidebar.Menu>
+            {#each settingsSections as setting (setting.href)}
+              {@const Icon = setting.icon}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton
+                  isActive={page.url.pathname.startsWith(setting.href)}
+                  tooltipContent={setting.label}
+                  tooltipContentProps={tooltipFor(setting.href)}
+                  onclick={closeSheet}
+                >
+                  {#snippet child({ props })}
+                    <a href={setting.href} {...props}>
+                      <Icon aria-hidden="true" />
+                      <span {@attach truncation(setting.href)} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{setting.label}</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/each}
+          </Sidebar.Menu>
+        </Sidebar.Group>
+      {/if}
     </nav>
   </Sidebar.Content>
 

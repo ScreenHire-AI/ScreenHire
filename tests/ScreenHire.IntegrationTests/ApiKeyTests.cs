@@ -51,6 +51,8 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         listed.At("0.lastUsedAt").ValueKind.Should().Be(JsonValueKind.String, "the key has been used");
         listed.Body.GetRawText().Should().NotContain(token, "the key is shown once, when it is created");
         listed.At("0").TryGetProperty("token", out _).Should().BeFalse();
+        var me = (await owner.Session.CurrentUserAsync(TestContext.Current.CancellationToken))!.Value;
+        listed.Id("0.createdByUserId").Should().Be(me.GetProperty("id").GetGuid(), "removing a member offers to revoke the keys they created");
     }
 
     [Fact]

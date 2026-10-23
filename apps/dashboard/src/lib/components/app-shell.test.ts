@@ -12,6 +12,8 @@ const viewCounts = { 'needs-review': 2, 'verification-recommended': 1, 'new-toda
 const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]');
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
+// The fixture user is an Owner, so the sidebar ends with the Settings group.
+const settings = ['Organization', 'Team', 'Careers branding', 'Integrity', 'API keys', 'Webhooks'];
 
 // jsdom does not navigate; the sheet closing is what these tests watch, not the page change.
 const stopNavigation = (event: MouseEvent) => event.preventDefault();
@@ -40,10 +42,12 @@ describe('app shell', () => {
       'New today 4',
       'Not screened yet 3',
       'Interviewing 0',
+      ...settings,
     ]);
     // Navigation pairs an icon with its label (I1); status shapes mark the two integrity views only (I2).
     const marks = links.map((link) => link.querySelector('[data-shape]')?.getAttribute('data-shape') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'diamond', 'square', 'icon', 'icon', 'icon']);
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'diamond', 'square', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    expect(screen.getByRole('heading', { level: 2, name: 'Settings' })).toBeInTheDocument();
     expect(within(links[3]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^Needs review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
@@ -174,8 +178,18 @@ describe('app shell', () => {
       'New today',
       'Not screened yet',
       'Interviewing',
+      ...settings,
     ]);
     expect(main().querySelector('[data-slot="badge"]')).toBeNull();
+  });
+
+  it.each(['Recruiter', 'Viewer'] as const)('shows a %s no settings: they are for owners and admins', (role) => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user: { ...user, organization: { ...user.organization!, role } }, viewCounts } });
+
+    expect(within(main()).queryByRole('heading', { name: 'Settings' })).toBeNull();
+    expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
+    expect(within(main()).getAllByRole('link')).toHaveLength(8);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

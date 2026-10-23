@@ -130,8 +130,8 @@ An organization's `BrandColor` becomes a `BrandPalette` on the server (`src/Scre
 colour that fails is darkened in OKLCH lightness, keeping its hue, until it passes. The public organization and board
 responses carry the palette; the careers server turns it into a stylesheet named by a hash of its content
 (`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. Owners
-and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette (there is no
-dashboard screen for it yet); the Development seed gives Brightwater one.
+and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette, from the
+dashboard's Settings > Careers branding page; the Development seed gives Brightwater one.
 
 Careers pages run under a strict policy: Astro's `security.csp` (hashes for what Astro emits, `default-src 'none'`,
 no `unsafe-inline`), stylesheets never inlined, the apply page adding `connect-src` for the upload origin (and

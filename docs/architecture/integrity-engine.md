@@ -437,7 +437,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../integrity/notes` | a note on the application's integrity or one assessment |
 | `POST .../integrity/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/integrity-settings` | whether the consistency check is on, its monthly token budget, and the tokens used this month |
-| `PUT /v1/organization/integrity-settings` | turn the check on or off and set the budget (organization admins) |
+| `PUT /v1/organization/integrity-settings` | turn the check on or off and set the budget (organization admins, in the dashboard's Settings > Integrity) |
 
 The integrity view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
 each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance.

@@ -1,7 +1,10 @@
 using System.Globalization;
+using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Organizations;
@@ -12,7 +15,7 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The signed-in user's organization: its careers-page branding and its integrity settings. Saving a brand colour derives and checks the
+/// The signed-in user's organization: its name, its careers-page branding and its integrity settings. Saving a brand colour derives and checks the
 /// palette on the server (design-system §7); a colour that fails a contrast minimum is darkened, never refused, so only a
 /// malformed colour is a 400.
 /// </summary>
@@ -21,6 +24,11 @@ internal static class OrganizationEndpoints
     public static IEndpointRouteBuilder MapOrganizationEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/v1/organization").WithTags("Organization").RequireAuthorization();
+        group.MapGet("", GetOrganization).WithName("GetOrganization").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("", UpdateOrganization).WithName("UpdateOrganization")
+            .RequireAntiforgeryToken()
+            .RequireOrganizationAdmin()
+            .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/branding", GetBranding).WithName("GetOrganizationBranding").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/branding", UpdateBranding).WithName("UpdateOrganizationBranding")
             .RequireAntiforgeryToken()
@@ -34,6 +42,37 @@ internal static class OrganizationEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
+
+    private static async Task<Results<Ok<OrganizationProfile>, NotFound>> GetOrganization(
+        ScreenHireDbContext db, ITenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)
+    {
+        var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        return organization is null ? TypedResults.NotFound() : TypedResults.Ok(ToProfile(organization, domains.Value));
+    }
+
+    // Renames only. The slug is the careers address boards and candidates already link to, so it stays.
+    private static async Task<Results<Ok<OrganizationProfile>, NotFound, ValidationProblem>> UpdateOrganization(
+        UpdateOrganizationRequest request, IValidator<UpdateOrganizationRequest> validator, ScreenHireDbContext db, ITenantContext tenant,
+        IOptions<DomainOptions> domains, CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var organization = await db.Organizations.SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        if (organization is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        organization.Name = request.Name.Trim();
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(ToProfile(organization, domains.Value));
+    }
+
+    private static OrganizationProfile ToProfile(Organization organization, DomainOptions domains) =>
+        new(organization.Id, organization.Name, organization.Slug, organization.HomeRegion, domains.CareersBoardUrl(organization.Slug), organization.CreatedAt);
 
     private static async Task<Ok<OrganizationIntegritySettings>> GetIntegritySettings(
         ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)

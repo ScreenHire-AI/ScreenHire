@@ -236,10 +236,10 @@ Atlassian's surfaces.
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
-| Detail | A candidate, a job | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
+| List | Candidates, jobs, templates; the team, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters |
+| Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
-| Form | Creating or editing a record | One column, 688px wide, labels above fields, actions at the end |
+| Form | Creating or editing a record; a settings page such as Organization, Careers branding or Integrity | One column, 688px wide, labels above fields, actions at the end |
 | Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
@@ -319,7 +319,7 @@ in a development build, shows every component in each state, and its test fails 
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
-| Sidebar | shadcn `Sidebar` | Section 8 |
+| Sidebar | shadcn `Sidebar` | Section 8. The sections, the saved views, then Settings for owners and admins only; nobody else sees the group |
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
@@ -329,7 +329,8 @@ in a development build, shows every component in each state, and its test fails 
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
 | Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the verify mark and colour (T1) |
 | Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked |
-| Confirm dialog | shadcn `Dialog` (`CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2) |
+| Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
+| Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
 | Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
