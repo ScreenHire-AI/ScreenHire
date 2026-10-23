@@ -49,7 +49,7 @@
 
 <Panel title="Review log">
   {#snippet actions()}
-    {#if entries}<Button variant="outline" onclick={() => (noteOpen = true)}>Add review note</Button>{/if}
+    {#if entries}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add review note</Button>{/if}
   {/snippet}
   <div class="flex flex-col gap-3">
     {#if integrity.isError && !entries}
