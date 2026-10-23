@@ -271,6 +271,28 @@ describe('application page', () => {
     expect(new Headers(run![1]!.headers).get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it('moves with a note from Move to stage, in a sheet', async () => {
+    const fetch = stubApi({
+      [`POST /v1/applications/${applicationId}/move`]: () => Response.json({ ...application, stage: { id: 'interview', name: 'Interview', kind: 'Interview' } }),
+      [`GET /v1/jobs/${jobId}/applications`]: () => Response.json([]),
+      'GET /v1/applications': () => Response.json([]),
+    });
+    renderPage();
+
+    const trigger = await screen.findByRole('button', { name: 'Move to stage, Casey Morgan' });
+    await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'With a note…' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Move Casey Morgan' });
+    await fireEvent.change(within(sheet).getByLabelText('Stage'), { target: { value: 'interview' } });
+    await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: ' Strong second round. ' } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Move' }));
+
+    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith('/move') && init?.method === 'POST')).toBe(true));
+    const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/move') && init?.method === 'POST');
+    expect(JSON.parse(String(post![1]!.body))).toEqual({ toStageId: 'interview', note: 'Strong second round.' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Move Casey Morgan' })).not.toBeInTheDocument());
+  });
+
   it('leaves out the controls that change hiring data for a viewer', async () => {
     page.data.user = { ...user, organization: { ...user.organization!, role: 'Viewer' } };
     renderPage();

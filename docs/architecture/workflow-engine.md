@@ -112,7 +112,9 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
-- `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`
+- `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
+  `POST` and `DELETE /v1/applications/{id}/tags`
+- `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
 - Webhooks: `/v1/webhooks` (below).
 
 ### Webhook subscriptions

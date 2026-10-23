@@ -336,7 +336,7 @@ in a development build, shows every component in each state, and its test fails 
 | Confirm dialog | shadcn `Dialog` (`CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2) |
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
 | Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and notes as Activity, and Add note |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
 
 ## 12. Words
 

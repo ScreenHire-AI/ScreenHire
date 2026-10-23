@@ -156,7 +156,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 ## 7. Recruiter & candidate experience
 
 - **Recruiter**: assessment chips on every candidate card (`Authenticity: Review suggested · 3 reasons`), a detail
-  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add note*.
+  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add review note*.
   Every action is audit-logged. No "reject" button sits in the integrity panel.
 
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
@@ -168,7 +168,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
   counter-evidence, the job's AI policy and any dismissal. The candidate's AI declaration is in the page's Declarations
   panel, not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
-  log panel beside it lists every dismissal and note and holds *Add note*. *Request verification* is hidden until
+  log panel beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until
   phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
   `IntegrityAssessed` refetches the chips, overview and panel live. AI chips use one colour and no mark, so they read
   as information; "Not indicated" is neutral. While an integrity filter is set, the job page's bulk move offers no
