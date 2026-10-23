@@ -15,7 +15,8 @@ namespace ScreenHire.Domain.Automations;
 /// <c>hoursInStage</c>: Whole hours between entering the current stage and the trigger.
 /// <c>integrityAuthenticity</c>, <c>integrityAiAssistance</c>: Level names from the integrity engine's latest
 /// assessment (<c>NoConcerns</c>, <c>ReviewSuggested</c>, ...). <c>verificationResult</c>: From the verification step,
-/// once it exists.
+/// once it exists. <c>reviewerRecommendation</c>: For a <see cref="TriggerType.ReviewerDecision"/> trigger only, the
+/// submitted scorecard's recommendation (<c>StrongNo</c>, <c>No</c>, <c>Yes</c>, <c>StrongYes</c>).
 /// </remarks>
 public sealed record AutomationFacts(
     IReadOnlyList<AnswerFact> Answers,
@@ -24,7 +25,8 @@ public sealed record AutomationFacts(
     int? HoursInStage = null,
     string? IntegrityAuthenticity = null,
     string? IntegrityAiAssistance = null,
-    string? VerificationResult = null)
+    string? VerificationResult = null,
+    string? ReviewerRecommendation = null)
 {
     public static AutomationFacts None { get; } = new([], []);
 
@@ -86,9 +88,16 @@ public sealed record AutomationFacts(
         // The integrity levels as the latest assessment before the trigger left them. Answers and the source join the
         // snapshot when the apply flow stores them; until then those facts are absent.
         var integrity = seen.LastOrDefault(e => e.Type == ApplicationEventType.IntegrityAssessed)?.Data;
+
+        // A reviewer decision is the scorecard its trigger entry records, and no other: a different trigger has no
+        // recommendation, so a condition on it reads one reviewer's judgement at the moment it was given.
+        var decision = trigger == TriggerType.ReviewerDecision && triggerIndex >= 0 && timeline[triggerIndex].Type == ApplicationEventType.ScorecardSubmitted
+            ? timeline[triggerIndex].Data.Recommendation
+            : null;
         return new AutomationFacts(
             [], tags, HoursInStage: hoursInStage,
-            IntegrityAuthenticity: integrity?.AuthenticityLevel, IntegrityAiAssistance: integrity?.AiAssistanceLevel);
+            IntegrityAuthenticity: integrity?.AuthenticityLevel, IntegrityAiAssistance: integrity?.AiAssistanceLevel,
+            ReviewerRecommendation: decision);
     }
 
     /// <summary>The values of <paramref name="fact"/>, or an empty list when the application has none.</summary>
@@ -109,6 +118,7 @@ public sealed record AutomationFacts(
             FactSchema.IntegrityAuthenticity => One(IntegrityAuthenticity),
             FactSchema.IntegrityAiAssistance => One(IntegrityAiAssistance),
             FactSchema.VerificationResult => One(VerificationResult),
+            FactSchema.ReviewerRecommendation => One(ReviewerRecommendation),
             _ => [],
         };
     }

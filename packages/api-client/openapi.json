@@ -5573,7 +5573,8 @@
           "TagAdded",
           "IntegrityAssessed",
           "TagRemoved",
-          "NoteAdded"
+          "NoteAdded",
+          "ScorecardSubmitted"
         ]
       },
       "ApplicationFileSummary": {
@@ -6186,7 +6187,7 @@
             "default": false
           }
         },
-        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source` and\r\n`application.hoursInStage`."
+        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`."
       },
       "AutomationConditions": {
         "required": [
@@ -6252,6 +6253,12 @@
             ]
           },
           "verificationResult": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reviewerRecommendation": {
             "type": [
               "null",
               "string"
@@ -9776,6 +9783,42 @@
         },
         "description": "One listing on the local sandbox board, as the board itself would show it."
       },
+      "Scorecard": {
+        "required": [
+          "criteria"
+        ],
+        "type": "object",
+        "properties": {
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardCriterion"
+            }
+          }
+        },
+        "description": "The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those."
+      },
+      "ScorecardCriterion": {
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "guidance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SignalCategory": {
         "enum": [
           "Network",
@@ -10760,6 +10803,16 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "scorecard": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Scorecard"
+              }
+            ]
           }
         },
         "description": "One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal."

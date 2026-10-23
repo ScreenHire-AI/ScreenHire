@@ -57,6 +57,25 @@ internal sealed class ApplicationEventConfiguration : IEntityTypeConfiguration<A
     }
 }
 
+internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfiguration<ApplicationScorecard>
+{
+    public void Configure(EntityTypeBuilder<ApplicationScorecard> builder)
+    {
+        builder.Property(s => s.StageId).HasMaxLength(40);
+        builder.Property(s => s.Ratings).HasJsonColumn();
+        builder.Property(s => s.Recommendation).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.Note).HasMaxLength(ApplicationScorecard.MaxNoteLength);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(s => new { s.OrganizationId, s.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // One judgement per reviewer per stage: a second submission is the same request again or a conflict, and two
+        // submissions racing each other hit this index.
+        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId }).IsUnique();
+    }
+}
+
 internal sealed class ApplicationFileConfiguration : IEntityTypeConfiguration<ApplicationFile>
 {
     public void Configure(EntityTypeBuilder<ApplicationFile> builder)

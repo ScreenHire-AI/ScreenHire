@@ -14,7 +14,13 @@ public static class SystemTemplates
     /// <summary>Version 1 with its integrity automation's level names corrected (migration <c>AddSoftwareEngineerTemplateVersion2</c>).</summary>
     public static readonly Guid SoftwareEngineerVersion2 = new("0199e8a0-0000-7000-8000-000000000102");
 
+    /// <summary>Version 2 with default scorecards on Screening, Technical exercise and Interviews (migration <c>AddScorecards</c>).</summary>
+    public static readonly Guid SoftwareEngineerVersion3 = new("0199e8a0-0000-7000-8000-000000000103");
+
     public static readonly Guid HourlyRole = new("0199e8a0-0000-7000-8000-000000000002");
 
     public static readonly Guid HourlyRoleVersion1 = new("0199e8a0-0000-7000-8000-000000000201");
+
+    /// <summary>Version 1 with default scorecards on Phone screen and Interview (migration <c>AddScorecards</c>).</summary>
+    public static readonly Guid HourlyRoleVersion2 = new("0199e8a0-0000-7000-8000-000000000202");
 }
