@@ -32,6 +32,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations make, a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40 |
 | Scorecards | Job-related criteria per stage on a fixed labelled scale and a required recommendation, nothing summed; submitting one raises the "reviewer decision" trigger | #41 |
 | Email | Organization email templates (Liquid subject, plain-text message, live preview, a test send), email to one candidate or a selection, the rejection email only with Reject ([email](architecture/email.md)) | #42 |
+| Follow-up questionnaires | Answers and the application's source as automation facts, so a knockout can match; follow-up questionnaires in a workflow, sent by a SendQuestionnaire automation through a signed, time-limited link to a careers page that works without JavaScript; answering one fires the "questionnaire answered" trigger ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)) | "Workflow builder", in progress |
 | Settings | Organization, Team, Careers branding, Integrity, API keys, Webhooks and Email templates screens for Owners and Admins | #39, #42 |
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
@@ -65,7 +66,9 @@ brackets.
 - **Sign-in.** Register the Google and Microsoft apps with redirect URIs `{AppOrigin}/v1/auth/signin-google` and
   `/signin-microsoft`, request Microsoft's `xms_edov` optional claim, and put the client ids and secrets in the secret
   store (#7). Persist and share the Data Protection key ring across instances, for sign-in cookies and telemetry tokens
-  (#7, #18). List the reverse proxies and the careers servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
+  (#7, #18). The ring is in Postgres now, shared by the API and the worker for questionnaire links; protect its keys
+  at rest with a key vault or certificate (`ProtectKeysWith...`) in production. List the reverse proxies and the careers
+  servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
 - **Email.** Choose the production provider behind `IEmailSender`, and set `ScreenHire:Email:From` and the worker's
   SMTP connection; without them automations skip email, and invitations and candidate email cannot go out (#7, #10,
   #38, #42). Candidate replies and an inbox need that provider to route inbound mail (#42). Set a production
@@ -99,6 +102,8 @@ brackets.
 
 ## Known gaps
 
-- `answers.*` and `application.source` facts are not wired into automation conditions yet (#11).
+- Two actions of different automations that change one application at the same moment (a Reject and an AddTag, say)
+  meet on the row's concurrency check, and the retried one can send its email again. Chain such automations, one on
+  the stage the other moves into, until actions on one application are serialized.
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (integrity-engine.md §10.9). In the browser pane, `/preview` waits for an integrity chip before it checks anything live.

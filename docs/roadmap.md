@@ -17,13 +17,13 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Webhook subscriptions, organization API keys for the hiring API, team members with invitations and organization switching ([sign-in and tenancy](architecture/sign-in-and-tenancy.md), [workflow engine](architecture/workflow-engine.md) §5, ADR-0011) | "Platform: team, API access and webhooks" | #36 to #38 |
 | Settings screens; notes, tags, tasks, a Run button for manual automations and a notification tray; scorecards that raise the "reviewer decision" trigger; editable email templates with manual and bulk email ([email](architecture/email.md), [workflow engine](architecture/workflow-engine.md) §8); the docs as an Open Knowledge Format bundle (ADR-0012) | "Team, collaboration and communication" | #39 to #42, and the docs restructure |
 
-Nothing is in flight. None of the items below is saved as a board workflow yet.
+The "Workflow builder" workflow is in flight: follow-up questionnaires, with answers as automation facts, are built; stage SLAs and the editable graph are next in it.
 
 ## Next
 
 | # | Work | Workflow | Why now |
 |---|---|---|---|
-| 1 | Workflow builder: an editable xyflow graph, firing the "questionnaire completed" trigger, the send-questionnaire action, acting on stage SLAs | not yet planned | The graph is read-only today and the "questionnaire completed" trigger can be chosen but never fires ([workflow engine](architecture/workflow-engine.md) §8). The Run button and the "reviewer decision" trigger shipped with the collaboration workflow |
+| 1 | Workflow builder: follow-up questionnaires with the send-questionnaire action and their trigger, an editable xyflow graph, acting on stage SLAs | "Workflow builder" | The graph is read-only today ([workflow engine](architecture/workflow-engine.md) §8). Follow-up questionnaires and answer facts are built; the graph and SLAs follow. The Run button and the "reviewer decision" trigger shipped with the collaboration workflow |
 | 2 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
 | 3 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
 
