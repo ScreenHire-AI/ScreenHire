@@ -28,10 +28,13 @@ public sealed class DocsBundleTests
         { "an index per folder", "a folder with no index" },
         { "okf_version on the root only", "frontmatter on a folder index" },
         { "okf_version on the root only", "no okf_version on the root index" },
+        { "okf_version on the root only", "okf_version on a concept" },
         { "index entries", "an index entry that differs from the description" },
+        { "index entries", "an index entry whose link text differs from the title" },
         { "index entries", "a concept missing from its index" },
         { "subfolder indexes linked", "a subfolder index the parent does not link" },
         { "links resolve", "a link to a missing file" },
+        { "links resolve", "a link whose case differs from the file" },
         { "links resolve", "a link to a missing heading" },
         { "no instruction file names", "a doc named AGENTS.md" },
         { "log newest first", "log entries oldest first" },
@@ -80,10 +83,45 @@ public sealed class DocsBundleTests
         DocsBundle.Checks[check](DocsBundle.Load(fixture.Root)).Should().NotBeEmpty($"the fixture has {defect}");
     }
 
+    /// <summary>
+    /// The script's parsing, read directly: the repository passing only proves the cases its docs happen to contain.
+    /// Anchors follow GitHub's (a closing <c>#</c> kept, code spans as text, snake_case kept, <c>-1</c> on a repeat),
+    /// a longer fence holds a shorter one, and a link inside a fence or a code span is not a link.
+    /// </summary>
+    [Fact]
+    public void The_script_reads_headings_links_and_frontmatter_as_GitHub_renders_them()
+    {
+        using var fixture = new Fixture();
+        fixture.WriteExactly("docs/guides/notes.md", string.Join("\r\n",
+            "---", "type: Guide", "title: \"Notes, with a comma\"", "description: Notes.", "tags: [a, \"b, c\"]", "---",
+            "# Notes, with a comma", "", "## Using C#", "", "## The `sources` list", "", "## snake_case and *emphasis*", "",
+            "## Repeat", "", "## Repeat", "", "````md", "```", "## Not a heading", "[fenced](fenced.md)", "```", "````", "",
+            "See `[code](code.md)` and [the install](setup.md#install).", ""));
+
+        var notes = DocsBundle.Load(fixture.Root).Markdown.Single(file => file.Path == "docs/guides/notes.md");
+
+        notes.Frontmatter!["title"]!.GetValue<string>().Should().Be("Notes, with a comma");
+        notes.Frontmatter["tags"]!.AsArray().Select(tag => tag!.GetValue<string>()).Should().Equal("a", "b, c");
+        notes.Headings.Select(heading => heading.Slug).Should().Equal(
+            "notes-with-a-comma", "using-c", "the-sources-list", "snake_case-and-emphasis", "repeat", "repeat-1");
+        notes.Links.Select(link => link.Url).Should().Equal("setup.md#install");
+        notes.Links.Single().Fragment.Should().Be("install");
+    }
+
     [Fact]
     public void Sources_names_the_concepts_that_list_a_file()
     {
-        var start = new ProcessStartInfo("node", [RepositoryFiles.PathTo("scripts", "docs-bundle.mjs"), "sources", "src/ScreenHire.Application/Automations/Webhooks.cs"])
+        var output = Sources(
+            "src/ScreenHire.Application/Automations/Webhooks.cs",
+            @"src\ScreenHire.Application\Automations\Webhooks.cs",
+            "src/ScreenHire.Application/Automations");
+
+        output.Should().HaveCount(3).And.AllSatisfy(line => line.Should().Contain("docs/architecture/workflow-engine.md"));
+    }
+
+    private static string[] Sources(params string[] paths)
+    {
+        var start = new ProcessStartInfo("node", [RepositoryFiles.PathTo("scripts", "docs-bundle.mjs"), "sources", .. paths])
         {
             RedirectStandardOutput = true,
             UseShellExecute = false,
@@ -93,7 +131,7 @@ public sealed class DocsBundleTests
         process.WaitForExit();
 
         process.ExitCode.Should().Be(0);
-        output.Should().Contain("docs/architecture/workflow-engine.md");
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     /// <summary>A two-folder bundle in a temporary git repository that passes every check.</summary>
@@ -196,8 +234,14 @@ public sealed class DocsBundleTests
                 case "no okf_version on the root index":
                     Replace("docs/index.md", "okf_version: \"0.2\"", "okf_version: \"0.1\"");
                     break;
+                case "okf_version on a concept":
+                    Replace("docs/guides/setup.md", "type: Guide", "okf_version: \"0.2\"\ntype: Guide");
+                    break;
                 case "an index entry that differs from the description":
                     Replace("docs/guides/index.md", "its one command.", "its commands.");
+                    break;
+                case "an index entry whose link text differs from the title":
+                    Replace("docs/guides/index.md", "[Setup]", "[Set up]");
                     break;
                 case "a concept missing from its index":
                     Write("docs/guides/upgrade.md", "---\ntype: Guide\ntitle: Upgrade\ndescription: Upgrading the fixture.\n---\n# Upgrade\n");
@@ -207,6 +251,9 @@ public sealed class DocsBundleTests
                     break;
                 case "a link to a missing file":
                     Replace("docs/start.md", "(log.md)", "(changes.md)");
+                    break;
+                case "a link whose case differs from the file":
+                    Replace("docs/start.md", "(log.md)", "(Log.md)");
                     break;
                 case "a link to a missing heading":
                     Replace("docs/start.md", "setup.md#install", "setup.md#installing");
@@ -240,6 +287,13 @@ public sealed class DocsBundleTests
             }
 
             Directory.Delete(Root, recursive: true);
+        }
+
+        /// <summary>Writes the text byte for byte, line endings included, unlike the fixture's own files.</summary>
+        public void WriteExactly(string repoPath, string text)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(PathOf(repoPath))!);
+            File.WriteAllText(PathOf(repoPath), text);
         }
 
         private string PathOf(string repoPath) => Path.Combine(Root, repoPath);
