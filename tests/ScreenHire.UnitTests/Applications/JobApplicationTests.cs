@@ -112,6 +112,35 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void Removing_a_tag_ignores_case_and_records_the_tag_as_it_was()
+    {
+        var (application, _) = Submitted();
+        application.AddTag("Referral", Monday, Recruiter);
+        var apiKey = Guid.CreateVersion7();
+
+        var removed = application.RemoveTag(" referral ", Monday.AddHours(1), actorUserId: null, apiKey);
+
+        application.Tags.Should().BeEmpty();
+        removed!.Type.Should().Be(ApplicationEventType.TagRemoved);
+        removed.Data.Should().Be(new ApplicationEventData(Tag: "Referral", ApiKeyId: apiKey));
+        application.RemoveTag("referral", Monday.AddHours(2), Recruiter).Should().BeNull("a tag it does not have changes nothing");
+    }
+
+    [Fact]
+    public void A_note_is_trimmed_and_kept_with_its_author_without_changing_the_application()
+    {
+        var (application, _) = Submitted();
+
+        var note = application.AddNote("  Ask about the notice period.  ", Monday.AddHours(1), Recruiter);
+
+        note.Type.Should().Be(ApplicationEventType.NoteAdded);
+        note.Data.Should().Be(new ApplicationEventData(Note: "Ask about the notice period."));
+        note.ActorUserId.Should().Be(Recruiter);
+        application.CurrentStageId.Should().Be("applied");
+        application.StageEnteredAt.Should().Be(Monday);
+    }
+
+    [Fact]
     public void Emails_match_whatever_their_case_and_spacing()
     {
         Candidate.Create(Guid.CreateVersion7(), " Alex Rivera ", " Alex.Rivera@Example.com ", " ", Monday)

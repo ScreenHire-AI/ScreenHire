@@ -48,6 +48,44 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Notes_tags_and_completed_tasks_reach_their_own_organization_with_ids_only_and_never_another()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        await using var ourClient = await EventsConnection.ConnectAsync(ours.Session, cancellationToken);
+        await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, cancellationToken);
+        var job = await Automations.AutomationSamples.JobWithAutomationsAsync(ours, "Platform Engineer", new JsonObject
+        {
+            ["id"] = "todo",
+            ["name"] = "Make a to-do",
+            ["trigger"] = new JsonObject { ["type"] = "Manual" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "CreateTask", ["note"] = "Call the references." }),
+        });
+        var application = (await ours.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"))).Id();
+
+        var note = (await ours.PostAsync($"/v1/applications/{application}/notes", new JsonObject { ["note"] = "Strong portfolio." }))
+            .Expect(HttpStatusCode.Created);
+        var noted = await ourClient.WaitForAsync("ApplicationNoteAdded", "applicationId", application, cancellationToken);
+        noted.GetProperty("eventId").GetGuid().Should().Be(note.Id());
+        noted.TryGetProperty("note", out _).Should().BeFalse("the note's text stays behind the API");
+
+        (await ours.PostAsync($"/v1/applications/{application}/tags", new JsonObject { ["tag"] = "referral" })).Expect(HttpStatusCode.OK);
+        var tagged = await ourClient.WaitForAsync("ApplicationTagsChanged", "applicationId", application, cancellationToken);
+        tagged.GetProperty("jobId").GetGuid().Should().Be(job);
+
+        (await ours.PostAsync($"/v1/applications/{application}/automations/todo/run")).Expect(HttpStatusCode.Accepted);
+        await Automations.AutomationSamples.WaitForRunAsync(ours, application, "todo", "Completed");
+        var task = (await ours.GetAsync("/v1/tasks")).Id("0.id");
+        (await ours.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.OK);
+        var completed = await ourClient.WaitForAsync("ApplicationTaskCompleted", "taskId", task, cancellationToken);
+        completed.GetProperty("applicationId").GetGuid().Should().Be(application);
+
+        theirClient.ReceivedAnythingAbout(application).Should().BeFalse("another organization's notes, tags and tasks never reach us");
+        theirClient.ReceivedAnythingAbout(task).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task A_job_workflow_change_reaches_its_own_organization_with_the_new_version_and_never_another()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

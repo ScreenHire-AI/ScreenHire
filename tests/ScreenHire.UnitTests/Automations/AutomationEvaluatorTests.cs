@@ -82,6 +82,22 @@ public sealed class AutomationEvaluatorTests
         facts.HoursInStage.Should().Be(24);
     }
 
+    // People remove tags by hand, so the snapshot replays additions and removals in order, ignoring case as tags do.
+    [Fact]
+    public void Tags_replay_in_order_so_a_removed_tag_is_gone_and_one_added_again_is_back()
+    {
+        var submitted = Event(ApplicationEventType.Submitted, Start, new(ToStageId: "applied"));
+        var referral = Event(ApplicationEventType.TagAdded, Start.AddHours(1), new(Tag: "Referral"));
+        var priority = Event(ApplicationEventType.TagAdded, Start.AddHours(2), new(Tag: "priority"));
+        var removed = Event(ApplicationEventType.TagRemoved, Start.AddHours(3), new(Tag: "referral"));
+        var priorityGone = Event(ApplicationEventType.TagRemoved, Start.AddHours(4), new(Tag: "PRIORITY"));
+        var back = Event(ApplicationEventType.TagAdded, Start.AddHours(5), new(Tag: "referral"));
+        var timeline = new[] { submitted, referral, priority, removed, priorityGone, back };
+
+        AutomationFacts.FromTimeline(timeline, removed.Id, TriggerType.Manual, removed.OccurredAt).Tags.Should().Equal("priority");
+        AutomationFacts.FromTimeline(timeline, back.Id, TriggerType.Manual, back.OccurredAt).Tags.Should().Equal("referral");
+    }
+
     [Fact]
     public void An_automation_that_its_own_actions_led_back_to_is_blocked_as_a_cycle()
     {
