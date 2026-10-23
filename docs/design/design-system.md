@@ -141,13 +141,20 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 | Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
 |---|---|---|---|---|---|
 | No concerns, Live, a workflow with no problems found | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
-| Review suggested, Queued, a file being scanned | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
+| Review suggested, Queued, a file being scanned, Overdue | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verification recommended, a file withheld by the scan, a workflow with problems to fix | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
 | Not started or ended: a draft, a closed job, a board the job is not on | ring | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
 is `aria-hidden` and always has its numeric legend.
+
+**Overdue** is the hiring team's status, never the candidate's. An application is overdue once it has been in its stage
+longer than the stage's time limit (`slaDays`), which measures how long the team has kept the candidate waiting. It
+takes the review diamond because it asks a person to act, as Queued does. It never takes the verify square: that sits
+beside integrity results and would read as a concern about the candidate. The label says by how much, in the largest
+whole unit: "Overdue by 2 days", "Overdue by 5 hours". The due date and time are in its tooltip (section 13). It is a
+filled badge wherever it shows (T3), because it needs attention. An application within its time limit shows nothing.
 
 ### 3.3 Recruiter app, dark
 
@@ -316,6 +323,7 @@ in a development build, shows every component in each state, and its test fails 
 |---|---|---|
 | Header band, Panel | Our components (`HeaderBand` with `Fact` for the facts row, `Panel`) | Section 7 |
 | Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
+| Overdue badge | `OverdueBadge` on `StatusBadge` and `Hint` | Section 3.2: the review badge, "Overdue by" and how long, the due time in a tooltip that opens on hover, focus or tap. First in the stage cell of a candidate table and list item, first in a board card's status row, and beside the title on an application's page (S2, T2). Never on a hired, rejected or withdrawn stage |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
 | Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
 | Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |

@@ -12,6 +12,7 @@
   import { goto } from '$app/navigation';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -125,8 +126,10 @@
                   class="font-semibold text-foreground no-underline hover:underline"
                 />
               </span>
-              <!-- Status first, calm states quiet (T2, T3); the column already says the stage. -->
+              <!-- Status first, calm states quiet (T2, T3); the column already says the stage. Overdue is the team's
+                   status and needs attention, so it leads. -->
               <span class="flex flex-wrap items-center gap-1.5">
+                <OverdueBadge dueAt={card.slaDueAt} />
                 <IntegrityChip
                   kind="authenticity"
                   compact

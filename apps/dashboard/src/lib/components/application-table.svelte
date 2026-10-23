@@ -11,6 +11,7 @@
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -215,7 +216,11 @@
 {/snippet}
 
 {#snippet stageCell(application: ApplicationSummary)}
-  <Badge variant="muted">{application.stage.name}</Badge>
+  <!-- Overdue is a status, so it comes first in the cell (T2); the stage it is overdue in follows. -->
+  <span class="flex items-center gap-1.5">
+    <OverdueBadge dueAt={application.slaDueAt} />
+    <Badge variant="muted">{application.stage.name}</Badge>
+  </span>
 {/snippet}
 
 {#snippet sourceCell(application: ApplicationSummary)}
@@ -259,6 +264,8 @@
       <DateText at={application.submittedAt} />
     {/snippet}
     {#snippet facts()}
+      <!-- relative: above the item's link, so the due time's tooltip opens on tap. -->
+      <OverdueBadge dueAt={application.slaDueAt} class="relative" />
       <Badge variant="muted">{application.stage.name}</Badge>
       {#if showJob}
         <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->

@@ -34,6 +34,7 @@ function catalogue(): string[] {
 const panels: Record<string, string[]> = {
   'Header band, Panel': ['Header band', 'Panel'],
   'Status badge': ['Status badge'],
+  'Overdue badge': ['Overdue badge'],
   'Fact pill': ['Fact pill'],
   Toggle: ['Toggle'],
   'More menu': ['More menu'],

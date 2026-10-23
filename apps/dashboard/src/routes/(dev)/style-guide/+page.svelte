@@ -35,6 +35,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
+  import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -351,6 +352,15 @@
               <StatusBadge status="neutral" label="Closed" quiet />
             </div>
           </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Overdue badge">
+        <!-- Past the stage's time limit by two days and by five hours; within its limit, nothing shows. -->
+        <div class="flex flex-wrap items-center gap-2">
+          <OverdueBadge dueAt={new Date(Date.now() - 2 * 86_400_000).toISOString()} />
+          <OverdueBadge dueAt={new Date(Date.now() - 5 * 3_600_000).toISOString()} />
+          <Badge variant="muted">Screening</Badge>
         </div>
       </Panel>
 

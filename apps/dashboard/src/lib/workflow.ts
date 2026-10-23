@@ -48,6 +48,7 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
   QuestionnaireCompleted: 'The questionnaire is completed',
   IntegrityAssessed: 'The integrity checks finish',
   ReviewerDecision: 'A reviewer records a decision',
+  SlaBreached: "A stage's time limit passes",
   Manual: 'Someone runs it by hand',
 };
 
@@ -55,8 +56,30 @@ export const triggerTypes = Object.keys(triggerLabels) as TriggerType[];
 
 export const triggerNeedsStage = (type: TriggerType): boolean => type === 'StageEntered' || type === 'StageExited' || type === 'TimeElapsed';
 
-/** A reviewer decision may name the stage whose scorecards it fires on; without one it fires on any stage's. */
-export const triggerMayHaveStage = (type: TriggerType): boolean => type === 'ReviewerDecision';
+/**
+ * A reviewer decision may name the stage whose scorecards it fires on, and a passed time limit the stage whose limit it
+ * watches; without one, either fires on any stage's.
+ */
+export const triggerMayHaveStage = (type: TriggerType): boolean => type === 'ReviewerDecision' || type === 'SlaBreached';
+
+/** Whether a stage's time limit counts: it has one, and the stage does not end the application (WorkflowStage.HasSla). */
+export const hasTimeLimit = (stage: WorkflowStage): boolean => Boolean(stage.slaDays) && !isTerminal(stage.kind);
+
+/**
+ * What a passed time limit may do (DefinitionValidator's SlaBreachActions). It measures the team's delay, never the
+ * candidate, so it may only remind the team.
+ */
+export const timeLimitActions: readonly ActionType[] = ['NotifyTeam', 'AssignReviewer', 'CreateTask', 'AddTag'];
+
+/**
+ * The actions the builder offers for an automation on `trigger`: all of `actionTypes`, or only the reminders for a
+ * passed time limit. A saved action outside that list stays offered as `current`, so the form shows what is saved and
+ * the validator's message beside it.
+ */
+export function actionsFor(trigger: TriggerType, current?: ActionType): ActionType[] {
+  const offered = trigger === 'SlaBreached' ? actionTypes.filter((type) => timeLimitActions.includes(type)) : [...actionTypes];
+  return current && !offered.includes(current) ? [...offered, current] : offered;
+}
 
 /** The labelled rating scale of every scorecard (CriterionRating). Categories, never summed into a score. */
 export type Rating = NonNullable<CriterionRating>;
@@ -444,6 +467,8 @@ export function summarize(
           ? `${trigger.afterHours ?? '?'} hours after entering ${stage(trigger.stageId)}`
           : trigger.type === 'ReviewerDecision' && trigger.stageId
             ? `When a reviewer records a decision on ${stage(trigger.stageId)}`
+          : trigger.type === 'SlaBreached' && trigger.stageId
+            ? `When the time limit in ${stage(trigger.stageId)} passes`
           : (triggerLabels[trigger.type] ?? trigger.type).replace(/^./, (first) => `When ${first.toLowerCase()}`);
   const rules = automation.conditions?.rules.length ?? 0;
   const condition = rules > 0 ? `, if ${rules} ${rules === 1 ? 'condition holds' : automation.conditions?.match === 'Any' ? 'conditions: any holds' : 'conditions hold'}` : '';
