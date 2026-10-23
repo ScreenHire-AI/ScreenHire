@@ -3355,6 +3355,30 @@ export const GetJobBoardJobResponse = zod.object({
 }).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')
 
 
+export const GetOrganizationResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "homeRegion": zod.string(),
+  "careersUrl": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain.')
+
+
+export const UpdateOrganizationBody = zod.object({
+  "name": zod.string()
+}).describe('Renames the organization. Its slug, and so its careers address, stays as it is.')
+
+export const UpdateOrganizationResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "homeRegion": zod.string(),
+  "careersUrl": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain.')
+
+
 export const GetOrganizationBrandingResponse = zod.object({
   "brandColor": zod.string().nullable(),
   "palette": zod.union([zod.null(),zod.object({

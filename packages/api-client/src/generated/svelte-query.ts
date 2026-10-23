@@ -72,6 +72,7 @@ import type {
   OnboardingRequest,
   OrganizationBranding,
   OrganizationIntegritySettings,
+  OrganizationProfile,
   PendingInvitation,
   ProblemDetails,
   PublicApplicationForm,
@@ -93,6 +94,7 @@ import type {
   UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateOrganizationRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -6192,6 +6194,213 @@ export function createGetJobBoardJob<TData = Awaited<ReturnType<typeof getJobBoa
 
 
 
+
+export type getOrganizationResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type getOrganizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationResponseSuccess = (getOrganizationResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationResponseError = (getOrganizationResponse401 | getOrganizationResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationUrl = () => {
+
+
+
+
+  return `/v1/organization`
+}
+
+export const getOrganization = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationResponseSuccess>(getGetOrganizationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationQueryKey = () => {
+    return [
+    'v1','organization'
+    ] as const;
+    }
+
+
+export const getGetOrganizationQueryOptions = <TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganization>>> = ({ signal }) => getOrganization({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganization>>>
+export type GetOrganizationQueryError = ErrorType<void>
+
+
+
+export function createGetOrganization<TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateOrganizationResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type updateOrganizationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateOrganizationResponseSuccess = (updateOrganizationResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationResponseError = (updateOrganizationResponse400 | updateOrganizationResponse401 | updateOrganizationResponse403 | updateOrganizationResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateOrganizationUrl = () => {
+
+
+
+
+  return `/v1/organization`
+}
+
+export const updateOrganization = async (updateOrganizationRequest: UpdateOrganizationRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateOrganizationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateOrganizationResponseSuccess>(getUpdateOrganizationUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateOrganizationMutationKey = () => ['updateOrganization'] as const;
+
+export const getUpdateOrganizationMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateOrganization>>, TError,UpdateOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateOrganization>>, TError,UpdateOrganizationMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganization>>, UpdateOrganizationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOrganization(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganization>>>
+    export type UpdateOrganizationMutationBody = UpdateOrganizationRequest
+    export type UpdateOrganizationMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateOrganizationMutationVariables = {data: UpdateOrganizationRequest}
+
+    export const createUpdateOrganization = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateOrganization>>, TError,UpdateOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateOrganization>>,
+        TError,
+        UpdateOrganizationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateOrganizationMutationOptions(options?.()) }), queryClient);
+    }
 
 export type getOrganizationBrandingResponse200 = {
   data: OrganizationBranding

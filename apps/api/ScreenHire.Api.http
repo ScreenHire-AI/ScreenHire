@@ -68,6 +68,19 @@ Accept: application/schema+json
 
 ###
 
+# The organization: any member reads it; Owners and Admins rename it. The slug never changes.
+GET {{api}}/v1/organization
+
+###
+
+PUT {{api}}/v1/organization
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "name": "Brightwater Studio" }
+
+###
+
 # Team: members, invitations and the membership log (Owners and Admins manage; every member reads the list).
 GET {{api}}/v1/organization/members
 
