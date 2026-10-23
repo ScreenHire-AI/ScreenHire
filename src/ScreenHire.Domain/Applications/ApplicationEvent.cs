@@ -43,6 +43,9 @@ public enum ApplicationEventType
 
     /// <summary>A reviewer submitted a stage's scorecard; it raises the ReviewerDecision trigger.</summary>
     ScorecardSubmitted,
+
+    /// <summary>An email went to the candidate: sent by a person, or by an automation.</summary>
+    EmailSent,
 }
 
 /// <summary>
@@ -57,6 +60,8 @@ public enum ApplicationEventType
 /// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
 /// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <see cref="ApplicationEventType.ScorecardSubmitted"/>, the
 /// scorecard, the stage it rates and its overall recommendation, which a ReviewerDecision automation reads as a fact.
+/// <c>emailTemplateId</c>, <c>emailSubject</c>: For <see cref="ApplicationEventType.EmailSent"/>, the template and the
+/// subject as the candidate received it. The body is never kept here.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -70,4 +75,6 @@ public sealed record ApplicationEventData(
     Guid? ApiKeyId = null,
     Guid? ScorecardId = null,
     string? StageId = null,
-    string? Recommendation = null);
+    string? Recommendation = null,
+    string? EmailTemplateId = null,
+    string? EmailSubject = null);

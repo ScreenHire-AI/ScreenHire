@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Content;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
@@ -105,7 +106,7 @@ internal static class TemplateEndpoints
         }
 
         definition ??= HiringTemplateDefinition.Default;
-        if (DefinitionValidator.Validate(definition).ToProblems("definition") is { } definitionProblems)
+        if ((await EmailTemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } definitionProblems)
         {
             return TypedResults.ValidationProblem(definitionProblems);
         }
@@ -172,7 +173,7 @@ internal static class TemplateEndpoints
         }
 
         var definition = request.Definition ?? template.Versions.MaxBy(v => v.Version)?.Definition ?? HiringTemplateDefinition.Default;
-        if (DefinitionValidator.Validate(definition).ToProblems("definition") is { } problems)
+        if ((await EmailTemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -225,7 +226,7 @@ internal static class TemplateEndpoints
             return TypedResults.Problem($"Version {version} is published and cannot change; create a new version.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        if (DefinitionValidator.Validate(request.Definition).ToProblems("definition") is { } problems)
+        if ((await EmailTemplateReferences.ValidateAsync(db, request.Definition, cancellationToken)).ToProblems("definition") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -268,7 +269,7 @@ internal static class TemplateEndpoints
 
         if (found.Status == TemplateVersionStatus.Draft)
         {
-            if (DefinitionValidator.Validate(found.Definition).ToProblems("definition") is { } problems)
+            if ((await EmailTemplateReferences.ValidateAsync(outbox.DbContext, found.Definition, cancellationToken)).ToProblems("definition") is { } problems)
             {
                 return TypedResults.ValidationProblem(problems);
             }

@@ -125,6 +125,8 @@ brackets.
   dead letters, cron, telemetry
 - [Sign-in and tenant isolation](architecture/sign-in-and-tenancy.md) - providers, email links, domains,
   organizations, the query filter and row-level security, Dev SSO and Mailpit
+- [Email to candidates](architecture/email.md) - organization email templates (Liquid, plain-text body), sending by hand
+  or to a selection, the rejection email rule, what is not built
 - [Careers apply flow](architecture/apply-flow.md) - notice before collection, the three steps without JavaScript,
   direct-to-storage uploads, public submission, employer branding and the content security policy, tenant hosts
 

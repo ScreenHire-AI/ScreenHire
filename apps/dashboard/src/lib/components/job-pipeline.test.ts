@@ -3,12 +3,20 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
 import type { IntegrityFilter } from '#lib/integrity.js';
-import { applications, stages } from '../../test-support/fixtures.js';
+import { apiStub, applications, stages, user } from '../../test-support/fixtures.js';
 import JobPipelineHarness from '../../test-support/job-pipeline-harness.svelte';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(async () => {}) }));
+// Signed out unless a test signs in: the bulk Email button needs a hiring role and a deployment that sends email.
+const appPage = vi.hoisted(() => ({ data: {} as Record<string, unknown> }));
+vi.mock('$app/state', () => ({ page: appPage }));
+
+function canSendEmail() {
+  appPage.data = { user };
+  vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) })));
+}
 
 function renderPipeline(overrides: { stages?: WorkflowStage[]; integrityFilter?: IntegrityFilter } = {}) {
   return render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications, ...overrides } } });
@@ -23,6 +31,7 @@ const names = () =>
     .filter((text) => applications.some((application) => application.candidateName === text));
 
 afterEach(() => {
+  appPage.data = {};
   preferences.setShortcutsEnabled(true);
   vi.unstubAllGlobals();
 });
@@ -98,6 +107,21 @@ describe('job pipeline', () => {
 
     const items = (await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim());
     expect(items).toEqual(stages.map((stage) => stage.name));
+  });
+
+  it('offers Email for the ticked rows, and none while an integrity filter picked them (ADR-0004)', async () => {
+    canSendEmail();
+    const { unmount } = renderPipeline();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    expect(await within(panelHeader()).findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
+    unmount();
+
+    // The fixtures have no assessment yet, so the Pending filter shows every row.
+    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    expect(within(panelHeader()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(within(panelHeader()).queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
   it('keeps the board when its empty state clears a search', async () => {

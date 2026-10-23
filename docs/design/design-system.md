@@ -236,10 +236,10 @@ Atlassian's surfaces.
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates, My tasks; the team, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters. A list with no search (My tasks) puts its toggles in a row under the panel header |
+| List | Candidates, jobs, templates, My tasks; the team, email templates, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters. A list with no search (My tasks) puts its toggles in a row under the panel header |
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
-| Form | Creating or editing a record; a settings page such as Organization, Careers branding or Integrity | One column, 688px wide, labels above fields, actions at the end |
+| Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
 | Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
@@ -336,6 +336,8 @@ in a development build, shows every component in each state, and its test fails 
 | Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a detail page a last item, With a note, opens the move in a sheet with a note |
 | Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
+| Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template |
+| Email sheet | `EmailSheet` on shadcn `Sheet` | Email one candidate or a selection (section 9, in place): a template, the Email preview for the first candidate, and Send as the one primary. The rejection email is never offered (section 16), and no bulk email while an integrity filter or view picked the rows |
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
 | Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |

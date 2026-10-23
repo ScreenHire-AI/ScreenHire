@@ -939,6 +939,61 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("sandbox_listings", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.EmailTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("body");
+
+                    b.Property<string>("BuiltInId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("built_in_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("subject");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_email_templates");
+
+                    b.HasIndex("OrganizationId", "BuiltInId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_email_templates_organization_id_built_in_id")
+                        .HasFilter("built_in_id IS NOT NULL");
+
+                    b.HasIndex("OrganizationId", "CreatedAt")
+                        .HasDatabaseName("ix_email_templates_organization_id_created_at");
+
+                    b.ToTable("email_templates", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Hiring.HiringTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2735,6 +2790,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_sandbox_listings_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.EmailTemplate", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_email_templates_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Hiring.HiringTemplate", b =>

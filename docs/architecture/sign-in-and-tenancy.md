@@ -147,7 +147,7 @@ organization and leaves the slug, because boards and candidates already link to 
 Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
 applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
 write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its name, careers branding,
-integrity settings, team, API keys and webhooks) call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
+integrity settings, team, email templates, API keys and webhooks) call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
 takes effect on the member's next request. Removing a member also closes their open real-time connections into the
 organization at once (`RealtimeConnections`, `docs/architecture/realtime.md`).
 

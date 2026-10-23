@@ -145,17 +145,25 @@ export const actionFieldLabels: Record<ActionField, string> = {
   reason: 'Reason',
 };
 
-/** The emails an automation may send (EmailTemplateIds.cs). The rejection email is sent only by Reject. */
-export const emailTemplates = [
-  { id: 'application-received', label: 'Application received' },
-  { id: 'stage-change', label: 'Moved to the next step' },
+/**
+ * The built-in emails a SendEmail automation may send (EmailTemplateIds.cs), with their names until the organization's
+ * list loads (`GET /v1/email-templates`), which adds its own templates. The rejection email is sent only by Reject.
+ */
+export const builtInEmailTemplates = [
+  { id: 'application-received', name: 'Application received' },
+  { id: 'stage-change', name: 'Moved to the next step' },
 ];
+
+/** Template names by id, for `describeAction`: the organization's list, or the built-in names until it loads. */
+export function emailTemplateNames(templates: readonly { id: string; name: string }[] | undefined): ReadonlyMap<string, string> {
+  return new Map([...builtInEmailTemplates, ...(templates ?? [])].map((template) => [template.id, template.name]));
+}
 
 /** A fresh action of `type`, carrying only that type's field: the validator refuses fields a type does not take. */
 export const newAction = (type: ActionType, stages: readonly WorkflowStage[] = []): AutomationAction => {
   const field = actionField[type];
   if (!field) return { type };
-  if (field === 'emailTemplate') return { type, emailTemplate: emailTemplates[0]!.id };
+  if (field === 'emailTemplate') return { type, emailTemplate: builtInEmailTemplates[0]!.id };
   if (field === 'stageId') return { type, stageId: stages.find((stage) => !isTerminal(stage.kind))?.id ?? stages[0]?.id ?? '' };
   return { type, [field]: '' };
 };
@@ -417,9 +425,14 @@ type Reviewer = Pick<TeamMember, 'userId' | 'displayName'>;
 
 /**
  * One sentence for an automation, as the pipeline view lists it: "When a candidate enters Screening: add a tag."
- * `members` names an AssignReviewer action's reviewer.
+ * `members` names an AssignReviewer action's reviewer; `templateNames` names a SendEmail action's template.
  */
-export function summarize(automation: Automation, workflow: HiringWorkflow, members?: readonly Reviewer[]): string {
+export function summarize(
+  automation: Automation,
+  workflow: HiringWorkflow,
+  members?: readonly Reviewer[],
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): string {
   const stage = (id: string | null | undefined) => workflow.stages.find((candidate) => candidate.id === id)?.name ?? id ?? '?';
   const { trigger } = automation;
   const when =
@@ -435,11 +448,18 @@ export function summarize(automation: Automation, workflow: HiringWorkflow, memb
   const rules = automation.conditions?.rules.length ?? 0;
   const condition = rules > 0 ? `, if ${rules} ${rules === 1 ? 'condition holds' : automation.conditions?.match === 'Any' ? 'conditions: any holds' : 'conditions hold'}` : '';
   // Only the first letter drops to lower case, so stage, template and people's names keep theirs.
-  const actions = automation.actions.map((action) => describeAction(action, workflow, members).replace(/^./, (first) => first.toLowerCase())).join(', then ');
+  const actions = automation.actions
+    .map((action) => describeAction(action, workflow, members, templateNames).replace(/^./, (first) => first.toLowerCase()))
+    .join(', then ');
   return `${when}${condition}: ${actions}.`;
 }
 
-export function describeAction(action: AutomationAction, workflow: HiringWorkflow, members?: readonly Reviewer[]): string {
+export function describeAction(
+  action: AutomationAction,
+  workflow: HiringWorkflow,
+  members?: readonly Reviewer[],
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): string {
   const label = actionLabels[action.type] ?? action.type;
   if (action.type === 'AssignReviewer') {
     if (!action.assigneeUserId) return 'Ask the team to review';
@@ -447,6 +467,9 @@ export function describeAction(action: AutomationAction, workflow: HiringWorkflo
   }
   if (action.type === 'MoveToStage') return `Move to ${workflow.stages.find((stage) => stage.id === action.stageId)?.name ?? action.stageId}`;
   if (action.type === 'AddTag') return `Add the tag "${action.tag ?? ''}"`;
-  if (action.type === 'SendEmail') return `Send the "${emailTemplates.find((template) => template.id === action.emailTemplate)?.label ?? action.emailTemplate}" email`;
+  if (action.type === 'SendEmail') {
+    const name = action.emailTemplate ? templateNames.get(action.emailTemplate) : undefined;
+    return name ? `Send the "${name}" email` : 'Send an email';
+  }
   return label;
 }

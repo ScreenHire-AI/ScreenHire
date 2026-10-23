@@ -16,4 +16,5 @@ export const ApplicationEventType = {
   TagRemoved: 'TagRemoved',
   NoteAdded: 'NoteAdded',
   ScorecardSubmitted: 'ScorecardSubmitted',
+  EmailSent: 'EmailSent',
 } as const;

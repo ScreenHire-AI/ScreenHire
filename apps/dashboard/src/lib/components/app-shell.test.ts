@@ -13,7 +13,7 @@ const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
 // The fixture user is an Owner, so the sidebar ends with the Settings group.
-const settings = ['Organization', 'Team', 'Careers branding', 'Integrity', 'API keys', 'Webhooks'];
+const settings = ['Organization', 'Team', 'Careers branding', 'Integrity', 'Email templates', 'API keys', 'Webhooks'];
 
 // jsdom does not navigate; the sheet closing is what these tests watch, not the page change.
 const stopNavigation = (event: MouseEvent) => event.preventDefault();

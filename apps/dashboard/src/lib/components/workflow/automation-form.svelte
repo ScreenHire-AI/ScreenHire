@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
+  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
@@ -12,7 +13,7 @@
     actionFieldLabels,
     actionLabels,
     actionTypes,
-    emailTemplates,
+    builtInEmailTemplates,
     errorsAt,
     errorsUnder,
     factsFor,
@@ -28,6 +29,7 @@
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
+  import { sendableTemplates } from '#lib/email.js';
   import { assignableMembers } from '#lib/team.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
@@ -42,6 +44,11 @@
     errors,
     onremove,
   }: { automation: Automation; index: number; workflow: HiringWorkflow; errors: readonly DefinitionError[]; onremove: () => void } = $props();
+
+  // The emails a SendEmail action may send: the organization's list without the rejection email, or the built-in ones
+  // until it loads.
+  const emailTemplates = createListEmailTemplates();
+  const emailChoices = $derived(emailTemplates.data ? sendableTemplates(emailTemplates.data.data.templates) : builtInEmailTemplates);
 
   const uid = $props.id();
   // AssignReviewer names one of these, or nobody for the whole team. Viewers are left out: they could not complete the
@@ -255,7 +262,10 @@
               <label class={labelClass}>
                 {actionFieldLabels[field]}
                 <select class={selectClass} bind:value={action.emailTemplate}>
-                  {#each emailTemplates as template (template.id)}<option value={template.id}>{template.label}</option>{/each}
+                  {#each emailChoices as template (template.id)}<option value={template.id}>{template.name}</option>{/each}
+                  {#if action.emailTemplate && !emailChoices.some((template) => template.id === action.emailTemplate)}
+                    <option value={action.emailTemplate}>A deleted template</option>
+                  {/if}
                 </select>
               </label>
             {:else if field === 'stageId'}

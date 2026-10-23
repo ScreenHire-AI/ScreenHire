@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { createListApplications } from '@screenhire/api-client/svelte-query';
+  import { createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
+  import { canChangeHiringData } from '#lib/auth.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
+  import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
+  import EmailSheet from '#lib/components/email-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -15,6 +18,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import { isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
   import { matchesTag, tagsOf } from '#lib/tags.js';
@@ -45,7 +49,23 @@
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
   // The table has no footer (design system K1), so a pill in the panel header says how many of the shown rows are ticked.
-  const selectedCount = $derived(shown.filter((application) => selectedIds.includes(application.id)).length);
+  const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
+  const selectedCount = $derived(selected.length);
+
+  // Email to a selection, where this deployment can send it and the person may (A3). Not while integrity picked the rows
+  // (an integrity filter or view): a "not moving forward" email to a filtered "select all" would be a rejection driven
+  // by integrity signals, as a bulk move to Rejected would (ADR-0004, bulkMoveStages). One candidate at a time, from
+  // their page, is still a person's decision.
+  const emailTemplates = createListEmailTemplates();
+  const integrityPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.mark));
+  const canEmail = $derived(
+    Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user) && !integrityPicked,
+  );
+  let emailOpen = $state(false);
+  let emailed = $state('');
+  // Phones list the rows without checkboxes, so a selection only gets there from a wider window, and the header has no
+  // room for the button beside the search and the pill.
+  const phone = new IsMobile();
 </script>
 
 <svelte:head>
@@ -70,6 +90,9 @@
           <IntegrityFilterMenu bind:filter={integrityFilter} />
           <TagFilterMenu bind:tag={tagFilter} {tags} />
           {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
+          {#if canEmail && selectedCount > 0 && !phone.current}
+            <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
+          {/if}
         {/snippet}
         {#if applications.isError}
           <div class="p-4">
@@ -90,7 +113,12 @@
             onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter }), (tagFilter = null)) : undefined}
           />
         {/if}
+        <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
       </Panel>
     </div>
   </div>
 </main>
+
+{#if canEmail}
+  <EmailSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
+{/if}

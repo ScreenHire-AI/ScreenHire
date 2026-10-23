@@ -669,9 +669,10 @@ public static partial class DefinitionValidator
             ValidateStageReference(action.StageId, Join(path, "stageId"), stages, errors);
         }
 
-        if (action.EmailTemplate is not null && !EmailTemplateIds.All.Contains(action.EmailTemplate))
+        if (action.EmailTemplate is not null && !EmailTemplateIds.IsWellFormed(action.EmailTemplate))
         {
-            errors.Add(new(Join(path, "emailTemplate"), $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}."));
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}, or the id of one of the organization's templates."));
         }
         else if (action.Type == ActionType.SendEmail && action.EmailTemplate == EmailTemplateIds.ApplicationRejected)
         {

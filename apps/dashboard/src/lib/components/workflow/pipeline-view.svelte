@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
+  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
@@ -11,7 +12,19 @@
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { errorsAt, errorsUnder, isTerminal, laneOf, moveItem, newStage, removeAt, stageKindLabels, stageKinds, summarize } from '#lib/workflow.js';
+  import {
+    emailTemplateNames,
+    errorsAt,
+    errorsUnder,
+    isTerminal,
+    laneOf,
+    moveItem,
+    newStage,
+    removeAt,
+    stageKindLabels,
+    stageKinds,
+    summarize,
+  } from '#lib/workflow.js';
   import { labelClass, rowClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
   import ProblemMark from './problem-mark.svelte';
@@ -34,6 +47,10 @@
   // Names an AssignReviewer action's reviewer.
   const team = createListTeamMembers();
 
+  // The organization's template names, for "Send the ... email".
+  const emailTemplates = createListEmailTemplates();
+  const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
+
   const inLane = (stageId: string | null) => workflow.automations.filter((automation) => laneOf(automation) === stageId);
   const laneErrors = (stageId: string | null) =>
     workflow.automations.reduce(
@@ -50,7 +67,7 @@
       {#each automations as automation (automation.id)}
         <li class={['flex gap-1.5', automation.enabled === false && 'text-muted-foreground']}>
           <ArrowRightIcon aria-hidden="true" class="mt-0.5 shrink-0 text-muted-foreground" />
-          <span>{summarize(automation, workflow, team.data?.data)}{automation.enabled === false ? ' (off)' : ''}</span>
+          <span>{summarize(automation, workflow, team.data?.data, templateNames)}{automation.enabled === false ? ' (off)' : ''}</span>
         </li>
       {/each}
     </ul>

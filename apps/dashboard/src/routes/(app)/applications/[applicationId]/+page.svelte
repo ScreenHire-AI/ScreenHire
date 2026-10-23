@@ -6,6 +6,7 @@
   import MailIcon from '@lucide/svelte/icons/mail';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
+  import SendIcon from '@lucide/svelte/icons/send';
   import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
   import TagIcon from '@lucide/svelte/icons/tag';
   import TagsIcon from '@lucide/svelte/icons/tags';
@@ -17,6 +18,7 @@
     createGetJob,
     createListApplicationScorecards,
     createListApplicationTasks,
+    createListEmailTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -25,12 +27,14 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import ApplicationTags from '#lib/components/application-tags.svelte';
+  import EmailSheet from '#lib/components/email-sheet.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
   import ManualAutomations from '#lib/components/manual-automations.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import NoteSheet from '#lib/components/note-sheet.svelte';
@@ -47,6 +51,7 @@
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -89,6 +94,13 @@
   const completion = createTaskCompletion();
   // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
+  // Email shows only where this deployment can send it and the person may (A3).
+  const emailTemplates = createListEmailTemplates();
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && editable);
+  let emailOpen = $state(false);
+  // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
+  let emailChosen = false;
+  let emailed = $state('');
 
   const workflow = $derived(job.data?.data.workflow);
   const manualAutomations = $derived((workflow?.automations ?? []).filter((automation) => automation.enabled && automation.trigger.type === 'Manual'));
@@ -139,6 +151,9 @@
       case 'ScorecardSubmitted':
         // The ratings and the recommendation are the Scorecards panel's to show.
         return `Scorecard for ${stageName(entry.stageId ?? null)}`;
+      case 'EmailSent':
+        // The body is never kept on the timeline, only the subject the candidate received.
+        return `Emailed "${entry.emailSubject ?? 'an update'}"`;
     }
   }
 
@@ -150,6 +165,7 @@
     IntegrityAssessed: ScanSearchIcon,
     NoteAdded: StickyNoteIcon,
     ScorecardSubmitted: ClipboardCheckIcon,
+    EmailSent: SendIcon,
   };
 
   function actor(entry: ApplicationTimelineEntry): string | undefined {
@@ -213,6 +229,14 @@
 
 {#snippet bandActions()}
   <FailureText message={moves.failure ? moves.announcement : ''} />
+  {#if canEmail && sidebar.isMobile}
+    <!-- A phone keeps the bottom bar for the primary action; the rest fold into More (design system section 8). -->
+    <MoreMenu label="More actions" onclosed={() => emailChosen && ((emailChosen = false), (emailOpen = true))}>
+      <DropdownMenu.Item onSelect={() => (emailChosen = true)}><MailIcon aria-hidden="true" />Email</DropdownMenu.Item>
+    </MoreMenu>
+  {:else if canEmail}
+    <Button variant="outline" size="lg" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />Email</Button>
+  {/if}
   {#if !sidebar.isMobile}{@render moveToStage()}{/if}
 {/snippet}
 
@@ -269,6 +293,7 @@
       <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it. A failure shows in the
            header band, beside Move to stage. -->
       <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
+      <p role="status" class="sr-only">{emailed}</p>
 
       <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
            top of the side column, and the main column spans both of the side column's rows. -->
@@ -405,6 +430,14 @@
 
     {#if sidebar.isMobile && stages.length > 0}
       <ActionBar>{@render moveToStage()}</ActionBar>
+    {/if}
+
+    {#if canEmail}
+      <EmailSheet
+        bind:open={emailOpen}
+        recipients={[{ id: detail.id, candidateName: detail.candidate.fullName }]}
+        onsent={(message) => (emailed = message)}
+      />
     {/if}
 
     {#if editable}

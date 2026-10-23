@@ -178,6 +178,9 @@ Settings, as Avery (owners and admins only):
 - **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
   from the row's menu.
+- **Email templates.** Open "Application received", change the subject, and the preview with the made-up Jordan Lee
+  follows as you type; **Send test** lands in Mailpit with `[Test]` in front. Then, on a job's pipeline, tick a few
+  candidates and press **Email**: each gets the email in Mailpit, and it shows in their Activity.
 - **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).

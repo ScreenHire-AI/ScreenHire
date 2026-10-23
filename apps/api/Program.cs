@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FluentValidation;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
@@ -10,6 +11,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +30,13 @@ builder.AddScreenHireApiMessaging(TenantEventPusher.For);
 builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
+// Email templates render here for previews and test sends; every send to a candidate renders in the worker.
+builder.Services.AddSingleton<EmailTemplates>();
+builder.Services.AddSingleton<EmailTemplateStore>();
+builder.Services.AddSingleton<IValidator<CreateEmailTemplateRequest>, CreateEmailTemplateRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateEmailTemplateRequest>, UpdateEmailTemplateRequestValidator>();
+builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraftValidator>();
+builder.Services.AddSingleton<IValidator<SendEmailsRequest>, SendEmailsRequestValidator>();
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
 {
     // The local demo's data: Brightwater's template, jobs on every board, a closed job, the synthetic applicants and
@@ -89,6 +98,7 @@ app.MapAutomationEndpoints();
 app.MapTaskEndpoints();
 app.MapScorecardEndpoints();
 app.MapWebhookEndpoints();
+app.MapEmailEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
 

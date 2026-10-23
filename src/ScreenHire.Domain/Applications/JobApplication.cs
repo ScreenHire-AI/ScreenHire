@@ -236,6 +236,23 @@ public sealed class JobApplication : ITenantOwned
         return (scorecard, entry);
     }
 
+    /// <summary>
+    /// The timeline event for an email sent to the candidate. <paramref name="eventId"/> is the send's own id, so a
+    /// redelivered send finds its event and records nothing twice.
+    /// </summary>
+    public ApplicationEvent EmailSent(
+        Guid eventId, string templateId, string subject, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
+        new()
+        {
+            Id = eventId,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Type = ApplicationEventType.EmailSent,
+            Data = new ApplicationEventData(AutomationRunId: automationRunId, EmailTemplateId: templateId, EmailSubject: subject),
+            ActorUserId = actorUserId,
+            OccurredAt = now,
+        };
+
     private ApplicationEvent NewEvent(ApplicationEventType type, ApplicationEventData data, DateTimeOffset now, Guid? actorUserId) =>
         new()
         {

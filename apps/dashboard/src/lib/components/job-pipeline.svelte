@@ -1,7 +1,12 @@
 <script lang="ts">
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
+  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { page } from '$app/state';
+  import { canChangeHiringData } from '#lib/auth.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
+  import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
+  import EmailSheet from '#lib/components/email-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -76,6 +81,11 @@
   const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
+  // Email to the selection, hidden under an integrity filter for the reason bulkMoveStages gives (ADR-0004).
+  const emailTemplates = createListEmailTemplates();
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user));
+  let emailOpen = $state(false);
+  let emailed = $state('');
   const countIn = (stageId: string) => applications.filter((application) => application.stage.id === stageId).length;
   const views = [
     { id: 'table', label: 'Table' },
@@ -131,6 +141,9 @@
             {/each}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
+        {#if canEmail && !isIntegrityFiltered(integrityFilter)}
+          <EmailSelectionButton count={selected.length} onclick={() => (emailOpen = true)} />
+        {/if}
       {/if}
     {/if}
   {/snippet}
@@ -203,7 +216,12 @@
   <!-- A move that worked is a quiet line; a failed one is a problem to fix (T1). -->
   <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{moves.failure ? '' : moves.announcement}</p>
   <FailureText message={moves.failure ? moves.announcement : ''} class="px-4.5 py-2 max-md:px-4" />
+  <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
 </Panel>
+
+{#if canEmail}
+  <EmailSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
+{/if}
 
 {#snippet searchField(className: string)}
   <SearchField bind:value={search} label="Search candidates" class={className} />
