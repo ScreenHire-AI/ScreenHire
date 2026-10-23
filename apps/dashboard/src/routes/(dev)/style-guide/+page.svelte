@@ -37,6 +37,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import SecretDialog from '#lib/components/secret-dialog.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge, { type Status } from '#lib/components/status-badge.svelte';
@@ -85,6 +86,7 @@
 
   let shortcutsOpen = $state(false);
   let confirmOpen = $state(false);
+  let secretOpen = $state(false);
   const demoStages: WorkflowStage[] = [
     { id: 'applied', name: 'Applied', kind: 'Applied' },
     { id: 'screening', name: 'Screening', kind: 'Screening' },
@@ -169,6 +171,7 @@
 </svelte:head>
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
+<SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
 <!-- The confirm dialog's shape, as CloseJobDialog and LeaveDialog draw it (section 9). -->
 <Dialog.Root bind:open={confirmOpen}>
@@ -454,6 +457,9 @@
         </Panel>
         <Panel title="Confirm dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (confirmOpen = true)}>Close the job</Button>
+        </Panel>
+        <Panel title="Secret dialog" class="flex-[1_1_320px]">
+          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
         </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">
