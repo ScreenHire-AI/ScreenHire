@@ -91,7 +91,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         await b.PublishJobAsync(bJob.Id());
         var bApplication = await b.CreateApplicationAsync(bJob.Id(), ApiSession.NewEmail("b-candidate"));
         var (bTemplateId, _) = await b.CreatePublishedTemplateAsync("B pipeline");
-        var bJobBefore = (await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body.GetRawText();
+        var bJobBefore = WithoutPostingStates((await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body);
         using var aKey = new KeyClient(fixture, (await CreateKeyAsync(a, "A sync", ["Read", "Write"])).Text("token"));
 
         var responses = new Dictionary<string, ApiResult>
@@ -108,7 +108,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
 
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");
         (await aKey.GetAsync("/v1/jobs")).Count().Should().Be(0);
-        (await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body.GetRawText().Should().Be(bJobBefore, "nothing of B's job changed");
+        WithoutPostingStates((await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body).Should().Be(bJobBefore, "nothing of B's job changed");
         (await b.GetAsync($"/v1/applications/{bApplication.Id()}")).Text("stage.id").Should().Be("applied");
     }
 
@@ -305,6 +305,15 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         Schemes(document.At("paths./v1/jobs.get")).Should().BeEquivalentTo(["session", "apiKey"]);
         Schemes(document.At("paths./v1/auth/onboarding.post")).Should().Equal("session");
         Schemes(document.At("paths./v1/organization/api-keys.post")).Should().Equal("session");
+    }
+
+    // The job as a key could change it. Its postings keep only their boards: the worker moves each posting from Queued
+    // to Submitted on its own schedule after publishing, so their state and times are not the key's doing.
+    private static string WithoutPostingStates(JsonElement job)
+    {
+        var node = JsonNode.Parse(job.GetRawText())!.AsObject();
+        node["postings"] = new JsonArray([.. node["postings"]!.AsArray().Select(p => (JsonNode?)JsonValue.Create(p!["boardId"]!.GetValue<string>()))]);
+        return node.ToJsonString();
     }
 
     private static List<string?> Types(ApiResult timeline) => [.. timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString())];
