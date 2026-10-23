@@ -363,6 +363,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
+                    b.Property<Guid?>("CompletedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("completed_by_user_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -391,6 +395,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OrganizationId", "AutomationRunId")
                         .HasDatabaseName("ix_application_tasks_organization_id_automation_run_id");
+
+                    b.HasIndex("OrganizationId", "AssigneeUserId", "CompletedAt")
+                        .HasDatabaseName("ix_application_tasks_organization_id_assignee_user_id_complete");
 
                     b.ToTable("application_tasks", (string)null);
                 });

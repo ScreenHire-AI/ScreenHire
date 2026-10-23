@@ -21,8 +21,8 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// application itself.
 /// </summary>
 /// <remarks>
-/// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>integrity</c> holds
-/// the integrity chips; null until the application has been assessed, and always null for an API key, because integrity
+/// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>tags</c> are the
+/// application's tags, which lists filter by. <c>integrity</c> holds the integrity chips; null until the application has been assessed, and always null for an API key, because integrity
 /// evidence is for a person reviewing the application (ADR-0011).
 /// </remarks>
 public sealed record ApplicationSummary(
@@ -35,6 +35,7 @@ public sealed record ApplicationSummary(
     DateTimeOffset StageEnteredAt,
     string JobTitle,
     ApplicationSource Source,
+    IReadOnlyList<string> Tags,
     IntegritySummary? Integrity = null);
 
 /// <summary>
@@ -96,8 +97,17 @@ public sealed record CreateApplicationRequest(
 
 public sealed record CandidateInput(string FullName, string Email, string? Phone = null);
 
-/// <summary>Moves an application to another stage of its job's workflow. Only people move applications here.</summary>
+/// <summary>
+/// Moves an application to another stage of its job's workflow. Only people move applications here. The optional
+/// <c>note</c> is kept on the move's timeline entry.
+/// </summary>
 public sealed record MoveApplicationRequest(string ToStageId, string? Note = null);
+
+/// <summary>A note from the hiring team on an application, kept on its timeline with the author and the time.</summary>
+public sealed record AddApplicationNoteRequest(string Note);
+
+/// <summary>A tag to add to an application. Tags compare ignoring case; conditions read them as <c>application.tags</c>.</summary>
+public sealed record AddApplicationTagRequest(string Tag);
 
 internal static class ApplicationMappings
 {
@@ -112,7 +122,7 @@ internal static class ApplicationMappings
 
     public static ApplicationSummary ToSummary(this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
-            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, integrity);
+            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, application.Tags, integrity);
 
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files) =>
@@ -149,5 +159,24 @@ internal sealed class MoveApplicationRequestValidator : AbstractValidator<MoveAp
     {
         RuleFor(r => r.ToStageId).NotEmpty().MaximumLength(40);
         RuleFor(r => r.Note).MaximumLength(1000);
+    }
+}
+
+internal sealed class AddApplicationNoteRequestValidator : AbstractValidator<AddApplicationNoteRequest>
+{
+    public AddApplicationNoteRequestValidator()
+    {
+        RuleFor(r => r.Note).NotEmpty().Must(note => !string.IsNullOrWhiteSpace(note)).WithMessage("Write the note first.")
+            .MaximumLength(JobApplication.MaxNoteLength);
+    }
+}
+
+internal sealed class AddApplicationTagRequestValidator : AbstractValidator<AddApplicationTagRequest>
+{
+    public AddApplicationTagRequestValidator()
+    {
+        RuleFor(r => r.Tag).NotEmpty().Must(tag => !string.IsNullOrWhiteSpace(tag)).WithMessage("Name the tag first.")
+            .Must(tag => tag is null || tag.Trim().Length <= JobApplication.MaxTagLength)
+            .WithMessage($"A tag is at most {JobApplication.MaxTagLength} characters.");
     }
 }

@@ -140,11 +140,18 @@ public sealed class JobApplication : ITenantOwned
             actorUserId);
     }
 
+    /// <summary>The longest tag, as the workflow validator allows it in an AddTag action.</summary>
+    public const int MaxTagLength = 50;
+
+    /// <summary>The longest note a person can add to the timeline.</summary>
+    public const int MaxNoteLength = 2000;
+
     /// <summary>
     /// Adds <paramref name="tag"/> (trimmed; tags compare ignoring case) and returns the timeline event. A tag the
-    /// application already has changes nothing and returns null.
+    /// application already has changes nothing and returns null. <paramref name="actorApiKeyId"/> is the API key that
+    /// added it, if one did.
     /// </summary>
-    public ApplicationEvent? AddTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null)
+    public ApplicationEvent? AddTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null, Guid? actorApiKeyId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
         var trimmed = tag.Trim();
@@ -154,7 +161,37 @@ public sealed class JobApplication : ITenantOwned
         }
 
         Tags = [.. Tags, trimmed];
-        return NewEvent(ApplicationEventType.TagAdded, new ApplicationEventData(Tag: trimmed, AutomationRunId: automationRunId), now, actorUserId);
+        return NewEvent(
+            ApplicationEventType.TagAdded, new ApplicationEventData(Tag: trimmed, AutomationRunId: automationRunId, ApiKeyId: actorApiKeyId), now, actorUserId);
+    }
+
+    /// <summary>
+    /// Removes <paramref name="tag"/> (compared ignoring case) and returns the timeline event, which names the tag as
+    /// the application had it. A tag the application does not have changes nothing and returns null. Only people and
+    /// API keys remove tags; no automation action does.
+    /// </summary>
+    public ApplicationEvent? RemoveTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+        var trimmed = tag.Trim();
+        var existing = Tags.FirstOrDefault(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+        {
+            return null;
+        }
+
+        Tags = [.. Tags.Where(t => t != existing)];
+        return NewEvent(ApplicationEventType.TagRemoved, new ApplicationEventData(Tag: existing, ApiKeyId: actorApiKeyId), now, actorUserId);
+    }
+
+    /// <summary>
+    /// A note from the hiring team, kept on the timeline with its author and time. It changes nothing else about the
+    /// application, and no automation reads it.
+    /// </summary>
+    public ApplicationEvent AddNote(string note, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(note);
+        return NewEvent(ApplicationEventType.NoteAdded, new ApplicationEventData(Note: note.Trim(), ApiKeyId: actorApiKeyId), now, actorUserId);
     }
 
     private ApplicationEvent NewEvent(ApplicationEventType type, ApplicationEventData data, DateTimeOffset now, Guid? actorUserId) =>

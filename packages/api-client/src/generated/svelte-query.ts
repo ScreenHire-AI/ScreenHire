@@ -21,6 +21,8 @@ import type {
 } from '@tanstack/svelte-query';
 
 import type {
+  AddApplicationNoteRequest,
+  AddApplicationTagRequest,
   AddIntegrityNoteRequest,
   ApiKeySummary,
   ApiMeta,
@@ -63,6 +65,7 @@ import type {
   JobVersionDetail,
   JobVersionSummary,
   ListJobBoardJobsParams,
+  ListTasksParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
@@ -81,10 +84,12 @@ import type {
   PublicJobBoard,
   PublicOrganization,
   PublishJobRequest,
+  RemoveApplicationTagParams,
   SandboxBoardListing,
   SignInMethods,
   SimulateWorkflowRequest,
   SwitchOrganizationRequest,
+  TaskListItem,
   TeamMember,
   TelemetrySnapshotInput,
   UpdateBrandingRequest,
@@ -4912,6 +4917,370 @@ export function createGetApplicationTimeline<TData = Awaited<ReturnType<typeof g
 
 
 
+export type addApplicationNoteResponse201 = {
+  data: ApplicationTimelineEntry
+  status: 201
+}
+
+export type addApplicationNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addApplicationNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addApplicationNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addApplicationNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addApplicationNoteResponse429 = {
+  data: void
+  status: 429
+}
+
+export type addApplicationNoteResponseSuccess = (addApplicationNoteResponse201) & {
+  headers: Headers;
+};
+export type addApplicationNoteResponseError = (addApplicationNoteResponse400 | addApplicationNoteResponse401 | addApplicationNoteResponse403 | addApplicationNoteResponse404 | addApplicationNoteResponse429) & {
+  headers: Headers;
+};
+
+export const getAddApplicationNoteUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/notes`
+}
+
+export const addApplicationNote = async (applicationId: string,
+    addApplicationNoteRequest: AddApplicationNoteRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addApplicationNoteResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<addApplicationNoteResponseSuccess>(getAddApplicationNoteUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addApplicationNoteRequest)
+  }
+);}
+
+
+
+
+
+export const getAddApplicationNoteMutationKey = () => ['addApplicationNote'] as const;
+
+export const getAddApplicationNoteMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext> => {
+
+const mutationKey = getAddApplicationNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addApplicationNote>>, AddApplicationNoteMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  addApplicationNote(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddApplicationNoteMutationResult = NonNullable<Awaited<ReturnType<typeof addApplicationNote>>>
+    export type AddApplicationNoteMutationBody = AddApplicationNoteRequest
+    export type AddApplicationNoteMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type AddApplicationNoteMutationVariables = {applicationId: string;data: AddApplicationNoteRequest}
+
+    export const createAddApplicationNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof addApplicationNote>>,
+        TError,
+        AddApplicationNoteMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAddApplicationNoteMutationOptions(options?.()) }), queryClient);
+    }
+
+export type addApplicationTagResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type addApplicationTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addApplicationTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addApplicationTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addApplicationTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addApplicationTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type addApplicationTagResponse429 = {
+  data: void
+  status: 429
+}
+
+export type addApplicationTagResponseSuccess = (addApplicationTagResponse200) & {
+  headers: Headers;
+};
+export type addApplicationTagResponseError = (addApplicationTagResponse400 | addApplicationTagResponse401 | addApplicationTagResponse403 | addApplicationTagResponse404 | addApplicationTagResponse409 | addApplicationTagResponse429) & {
+  headers: Headers;
+};
+
+export const getAddApplicationTagUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tags`
+}
+
+export const addApplicationTag = async (applicationId: string,
+    addApplicationTagRequest: AddApplicationTagRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addApplicationTagResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<addApplicationTagResponseSuccess>(getAddApplicationTagUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addApplicationTagRequest)
+  }
+);}
+
+
+
+
+
+export const getAddApplicationTagMutationKey = () => ['addApplicationTag'] as const;
+
+export const getAddApplicationTagMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext> => {
+
+const mutationKey = getAddApplicationTagMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addApplicationTag>>, AddApplicationTagMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  addApplicationTag(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddApplicationTagMutationResult = NonNullable<Awaited<ReturnType<typeof addApplicationTag>>>
+    export type AddApplicationTagMutationBody = AddApplicationTagRequest
+    export type AddApplicationTagMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type AddApplicationTagMutationVariables = {applicationId: string;data: AddApplicationTagRequest}
+
+    export const createAddApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof addApplicationTag>>,
+        TError,
+        AddApplicationTagMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAddApplicationTagMutationOptions(options?.()) }), queryClient);
+    }
+
+export type removeApplicationTagResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type removeApplicationTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type removeApplicationTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeApplicationTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeApplicationTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removeApplicationTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removeApplicationTagResponse429 = {
+  data: void
+  status: 429
+}
+
+export type removeApplicationTagResponseSuccess = (removeApplicationTagResponse200) & {
+  headers: Headers;
+};
+export type removeApplicationTagResponseError = (removeApplicationTagResponse400 | removeApplicationTagResponse401 | removeApplicationTagResponse403 | removeApplicationTagResponse404 | removeApplicationTagResponse409 | removeApplicationTagResponse429) & {
+  headers: Headers;
+};
+
+export const getRemoveApplicationTagUrl = (applicationId: string,
+    params?: RemoveApplicationTagParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/applications/${applicationId}/tags?${stringifiedParams}` : `/v1/applications/${applicationId}/tags`
+}
+
+export const removeApplicationTag = async (applicationId: string,
+    params?: RemoveApplicationTagParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<removeApplicationTagResponseSuccess> => {
+
+  return apiQueryFetch<removeApplicationTagResponseSuccess>(getRemoveApplicationTagUrl(applicationId,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveApplicationTagMutationKey = () => ['removeApplicationTag'] as const;
+
+export const getRemoveApplicationTagMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext> => {
+
+const mutationKey = getRemoveApplicationTagMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeApplicationTag>>, RemoveApplicationTagMutationVariables> = (props) => {
+          const {applicationId,params} = props ?? {};
+
+          return  removeApplicationTag(applicationId,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveApplicationTagMutationResult = NonNullable<Awaited<ReturnType<typeof removeApplicationTag>>>
+
+    export type RemoveApplicationTagMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type RemoveApplicationTagMutationVariables = {applicationId: string;params?: RemoveApplicationTagParams}
+
+    export const createRemoveApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof removeApplicationTag>>,
+        TError,
+        RemoveApplicationTagMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRemoveApplicationTagMutationOptions(options?.()) }), queryClient);
+    }
+
 export type downloadApplicationFileResponse401 = {
   data: void
   status: 401
@@ -8189,6 +8558,196 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getRunManualAutomationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listTasksResponse200 = {
+  data: TaskListItem[]
+  status: 200
+}
+
+export type listTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTasksResponseSuccess = (listTasksResponse200) & {
+  headers: Headers;
+};
+export type listTasksResponseError = (listTasksResponse401) & {
+  headers: Headers;
+};
+
+export const getListTasksUrl = (params?: ListTasksParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/tasks?${stringifiedParams}` : `/v1/tasks`
+}
+
+export const listTasks = async (params?: ListTasksParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listTasksResponseSuccess> => {
+
+  return apiQueryFetch<listTasksResponseSuccess>(getListTasksUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTasksQueryKey = (params?: ListTasksParams,) => {
+    return [
+    'v1','tasks', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListTasksQueryOptions = <TData = Awaited<ReturnType<typeof listTasks>>, TError = ErrorType<void>>(params?: ListTasksParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTasksQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTasks>>> = ({ signal }) => listTasks(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listTasks>>>
+export type ListTasksQueryError = ErrorType<void>
+
+
+
+export function createListTasks<TData = Awaited<ReturnType<typeof listTasks>>, TError = ErrorType<void>>(
+ params?: () =>  ListTasksParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListTasksQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type completeTaskResponse200 = {
+  data: ApplicationTaskEntry
+  status: 200
+}
+
+export type completeTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type completeTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type completeTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type completeTaskResponseSuccess = (completeTaskResponse200) & {
+  headers: Headers;
+};
+export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404) & {
+  headers: Headers;
+};
+
+export const getCompleteTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/v1/tasks/${taskId}/complete`
+}
+
+export const completeTask = async (taskId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<completeTaskResponseSuccess> => {
+
+  return apiQueryFetch<completeTaskResponseSuccess>(getCompleteTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteTaskMutationKey = () => ['completeTask'] as const;
+
+export const getCompleteTaskMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof completeTask>>, TError,CompleteTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof completeTask>>, TError,CompleteTaskMutationVariables, TContext> => {
+
+const mutationKey = getCompleteTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeTask>>, CompleteTaskMutationVariables> = (props) => {
+          const {taskId} = props ?? {};
+
+          return  completeTask(taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteTaskMutationResult = NonNullable<Awaited<ReturnType<typeof completeTask>>>
+
+    export type CompleteTaskMutationError = ErrorType<void | ProblemDetails>
+    export type CompleteTaskMutationVariables = {taskId: string}
+
+    export const createCompleteTask = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof completeTask>>, TError,CompleteTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof completeTask>>,
+        TError,
+        CompleteTaskMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCompleteTaskMutationOptions(options?.()) }), queryClient);
     }
 
 export type listWebhookEventTypesResponse200 = {

@@ -18,6 +18,8 @@ export const realtimeEventSchemas = {
     eventId: id,
     movedAt: instant,
   }),
+  // A note from the hiring team: ids only, the dashboard reads the note through GET /v1/applications/{id}/timeline.
+  ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant }),
   ApplicationSubmitted: z.object({
     organizationId: id,
     applicationId: id,
@@ -26,6 +28,9 @@ export const realtimeEventSchemas = {
     eventId: id,
     submittedAt: instant,
   }),
+  // A person or an API key added or removed a tag; lists that filter by tag refetch.
+  ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant }),
+  ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, completedAt: instant }),
   // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
   AutomationRunFinished: z.object({
     organizationId: id,

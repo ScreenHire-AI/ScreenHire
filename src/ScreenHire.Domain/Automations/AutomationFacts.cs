@@ -61,10 +61,21 @@ public sealed record AutomationFacts(
             entries.RemoveAt(entries.Count - 1);
         }
 
+        // Tags replay in timeline order, so a tag removed and added again is there, and one removed is not.
         var tags = new List<string>();
-        foreach (var tag in seen.Where(e => e.Type == ApplicationEventType.TagAdded).Select(e => e.Data.Tag))
+        foreach (var entry in seen.Where(e => e.Type is ApplicationEventType.TagAdded or ApplicationEventType.TagRemoved))
         {
-            if (tag is not null && !tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            if (entry.Data.Tag is not { } tag)
+            {
+                continue;
+            }
+
+            var index = tags.FindIndex(t => string.Equals(t, tag, StringComparison.OrdinalIgnoreCase));
+            if (entry.Type == ApplicationEventType.TagRemoved && index >= 0)
+            {
+                tags.RemoveAt(index);
+            }
+            else if (entry.Type == ApplicationEventType.TagAdded && index < 0)
             {
                 tags.Add(tag);
             }

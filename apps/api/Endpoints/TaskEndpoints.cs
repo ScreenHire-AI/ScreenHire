@@ -1,0 +1,90 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using ScreenHire.Api.Auth;
+using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Automations;
+using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
+using Wolverine.EntityFrameworkCore;
+
+namespace ScreenHire.Api.Endpoints;
+
+/// <summary>
+/// The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview) across the organization's
+/// applications: the dashboard's My tasks. Session only, because "mine" needs a person. Tenant-scoped by the query
+/// filter and row-level security: another organization's task is a 404. Completing a task changes nothing about the
+/// application; a rejection review is decided by moving the candidate (workflow-engine.md §2, guardrail 2).
+/// </summary>
+internal static class TaskEndpoints
+{
+    // Done tasks pile up, so a list shows the most recent ones. Paging comes with a screen that needs it.
+    private const int CompletedLimit = 200;
+
+    public static IEndpointRouteBuilder MapTaskEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/v1/tasks").WithTags("Tasks").RequireAuthorization();
+        group.MapGet("/", ListTasks).WithName("ListTasks").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{taskId:guid}/complete", CompleteTask).WithName("CompleteTask")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .Produces(StatusCodes.Status401Unauthorized);
+        return app;
+    }
+
+    // Mine is what the signed-in person should pick up: tasks assigned to them and tasks for the whole team (no
+    // assignee). Open tasks oldest first, so the longest-waiting is on top; done ones newest first.
+    private static async Task<Ok<List<TaskListItem>>> ListTasks(
+        ScreenHireDbContext db,
+        ITenantContext tenant,
+        CancellationToken cancellationToken,
+        TaskStatusFilter status = TaskStatusFilter.Open,
+        TaskScope scope = TaskScope.Mine)
+    {
+        var userId = tenant.UserId;
+        var tasks = db.ApplicationTasks.AsNoTracking();
+        if (scope == TaskScope.Mine)
+        {
+            tasks = tasks.Where(t => t.AssigneeUserId == null || t.AssigneeUserId == userId);
+        }
+
+        tasks = status == TaskStatusFilter.Open
+            ? tasks.Where(t => t.CompletedAt == null).OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
+            : tasks.Where(t => t.CompletedAt != null).OrderByDescending(t => t.CompletedAt).ThenByDescending(t => t.Id).Take(CompletedLimit);
+        var rows = await (
+            from task in tasks
+            join application in db.Applications on task.ApplicationId equals application.Id
+            join job in db.Jobs on application.JobId equals job.Id
+            join candidate in db.Candidates on application.CandidateId equals candidate.Id
+            select new TaskListItem(
+                task.Id, task.ApplicationId, application.JobId, candidate.FullName, job.Title, task.Kind, task.Note, task.AssigneeUserId,
+                task.AutomationRunId, task.CreatedAt, task.CompletedAt, task.CompletedByUserId))
+            .ToListAsync(cancellationToken);
+        return TypedResults.Ok(rows);
+    }
+
+    // Anyone who can change hiring data may mark any of the organization's tasks done, the assignee's included: the
+    // team shares the work. A task that is done already stays as it was and raises nothing.
+    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound>> CompleteTask(
+        Guid taskId,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        var task = await db.ApplicationTasks.SingleOrDefaultAsync(t => t.Id == taskId, cancellationToken);
+        if (task is null || tenant.UserId is not { } userId)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = time.GetUtcNow();
+        if (task.Complete(userId, now))
+        {
+            await outbox.PublishAsync(new ApplicationTaskCompleted(task.OrganizationId, task.Id, task.ApplicationId, now));
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+
+        return TypedResults.Ok(task.ToEntry());
+    }
+}

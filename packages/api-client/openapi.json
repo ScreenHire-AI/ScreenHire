@@ -2574,6 +2574,255 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/notes": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "AddApplicationNote",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddApplicationNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTimelineEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/tags": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "AddApplicationTag",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddApplicationTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "RemoveApplicationTag",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/files/{fileId}": {
       "get": {
         "tags": [
@@ -4217,6 +4466,107 @@
         ]
       }
     },
+    "/v1/tasks": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "operationId": "ListTasks",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "default": "Open",
+              "$ref": "#/components/schemas/TaskStatusFilter"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "default": "Mine",
+              "$ref": "#/components/schemas/TaskScope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskListItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/tasks/{taskId}/complete": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "operationId": "CompleteTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/webhooks/event-types": {
       "get": {
         "tags": [
@@ -4754,6 +5104,30 @@
           "Reject"
         ]
       },
+      "AddApplicationNoteRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        },
+        "description": "A note from the hiring team on an application, kept on its timeline with the author and the time."
+      },
+      "AddApplicationTagRequest": {
+        "required": [
+          "tag"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          }
+        },
+        "description": "A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`."
+      },
       "AddIntegrityNoteRequest": {
         "required": [
           "note"
@@ -5099,7 +5473,9 @@
           "Submitted",
           "StageChanged",
           "TagAdded",
-          "IntegrityAssessed"
+          "IntegrityAssessed",
+          "TagRemoved",
+          "NoteAdded"
         ]
       },
       "ApplicationFileSummary": {
@@ -5244,7 +5620,8 @@
           "submittedAt",
           "stageEnteredAt",
           "jobTitle",
-          "source"
+          "source",
+          "tags"
         ],
         "type": "object",
         "properties": {
@@ -5280,6 +5657,12 @@
           "source": {
             "$ref": "#/components/schemas/ApplicationSource"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "integrity": {
             "oneOf": [
               {
@@ -5302,7 +5685,8 @@
           "assigneeUserId",
           "automationRunId",
           "createdAt",
-          "completedAt"
+          "completedAt",
+          "completedByUserId"
         ],
         "type": "object",
         "properties": {
@@ -5344,6 +5728,13 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "completedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "Something a person should do about an application: a review, a to-do, or a rejection to decide on."
@@ -8293,7 +8684,7 @@
             ]
           }
         },
-        "description": "Moves an application to another stage of its job's workflow. Only people move applications here."
+        "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\r\n`note` is kept on the move's timeline entry."
       },
       "OnboardingRequest": {
         "required": [
@@ -9511,6 +9902,96 @@
         },
         "description": "Makes another of the signed-in user's organizations the one they work in."
       },
+      "TaskListItem": {
+        "required": [
+          "id",
+          "applicationId",
+          "jobId",
+          "candidateName",
+          "jobTitle",
+          "kind",
+          "note",
+          "assigneeUserId",
+          "automationRunId",
+          "createdAt",
+          "completedAt",
+          "completedByUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApplicationTaskKind"
+          },
+          "note": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "completedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A task in a list across applications (My tasks): the task, and the candidate and job it is about."
+      },
+      "TaskScope": {
+        "enum": [
+          "Mine",
+          "Everyone"
+        ],
+        "description": "Whose tasks a list shows: the signed-in person's and the whole team's (unassigned), or everyone's."
+      },
+      "TaskStatusFilter": {
+        "enum": [
+          "Open",
+          "Completed"
+        ],
+        "description": "Which tasks a list shows: the open ones, or the ones done."
+      },
       "TeamMember": {
         "required": [
           "id",
@@ -10229,6 +10710,9 @@
     },
     {
       "name": "Workflows"
+    },
+    {
+      "name": "Tasks"
     },
     {
       "name": "Webhooks"

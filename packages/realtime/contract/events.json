@@ -12,6 +12,16 @@
     }
   },
   {
+    "type": "ApplicationNoteAdded",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "eventId": "0199f0c4-0000-7000-8000-000000000004",
+      "addedAt": "2026-10-20T09:05:00+00:00"
+    }
+  },
+  {
     "type": "ApplicationSubmitted",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",
@@ -20,6 +30,25 @@
       "stageId": "sample-4",
       "eventId": "0199f0c4-0000-7000-8000-000000000005",
       "submittedAt": "2026-10-20T09:06:00+00:00"
+    }
+  },
+  {
+    "type": "ApplicationTagsChanged",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "eventId": "0199f0c4-0000-7000-8000-000000000004",
+      "changedAt": "2026-10-20T09:05:00+00:00"
+    }
+  },
+  {
+    "type": "ApplicationTaskCompleted",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "taskId": "0199f0c4-0000-7000-8000-000000000002",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000003",
+      "completedAt": "2026-10-20T09:04:00+00:00"
     }
   },
   {
