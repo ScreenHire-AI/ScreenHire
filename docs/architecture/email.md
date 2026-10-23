@@ -41,7 +41,9 @@ message per application through the outbox, in one transaction, and answers 202 
 The worker's `SendApplicationEmailHandler` renders the organization's current wording for that candidate, sends it and
 adds an `EmailSent` timeline entry with the template id and the subject. The message's send id, created once in the
 API, is that entry's id, so a redelivered message finds the entry and sends nothing. As with the `SendEmail` action, a
-crash between the send and the commit can repeat one email.
+crash between the send and the commit can repeat one email. A send that cannot go when the worker reaches it (the
+template was deleted, or the application ended or was removed, since the request) is dropped with a warning in the
+worker's log and no timeline entry: Activity lists emails that went out.
 
 `ApplicationEmailed` (an `ITenantEvent`) tells open dashboards to refetch the application's Activity.
 

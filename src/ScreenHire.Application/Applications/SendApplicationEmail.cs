@@ -134,6 +134,6 @@ public static partial class SendApplicationEmailHandler
         return outgoing;
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Email send {SendId} was not sent: {Reason}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Email send {SendId} was not sent: {Reason}")]
     private static partial void LogNotSent(ILogger logger, Guid sendId, string reason);
 }
