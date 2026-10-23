@@ -7,6 +7,7 @@ using Npgsql;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.IntegrationTests.Messaging;
+using ScreenHire.IntegrationTests.Realtime;
 using Wolverine;
 
 namespace ScreenHire.IntegrationTests.Automations;
@@ -140,6 +141,29 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
         (await careers.GetFromJsonAsync<JsonElement>(QuestionnairePath(slug, token), Ct)).At("status").GetString().Should().Be("Expired");
         (await careers.PostAsJsonAsync(QuestionnairePath(slug, token), answers, Ct)).StatusCode.Should().Be(HttpStatusCode.Gone);
         (await recruiter.GetAsync($"/v1/applications/{applicationId}")).At("followUps.0.completedAt").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Answering_raises_questionnaire_answered_to_its_own_organization_only()
+    {
+        var (recruiter, slug, job) = await JobWithFollowUpAsync("Follow-up live");
+        using var _ = recruiter;
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        await using var ours = await EventsConnection.ConnectAsync(recruiter.Session, Ct);
+        await using var theirs = await EventsConnection.ConnectAsync(other.Session, Ct);
+        using var careers = fixture.CreateHttpClient("api");
+        var email = ApiSession.NewEmail("live");
+        var applicationId = await ApplyAsync(careers, slug, job, email);
+        await MoveAsync(recruiter, applicationId, "screening");
+        var token = TokenIn((await fixture.Mailpit.WaitForMessagesAsync(email, 1, Ct))[0].Text, slug);
+
+        (await careers.PostAsJsonAsync(QuestionnairePath(slug, token), Answers(("start_date", "Soon"), ("forklift_licence", "yes")), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var answered = await ours.WaitForAsync("QuestionnaireAnswered", "applicationId", applicationId, Ct);
+        answered.GetProperty("organizationId").GetGuid().Should().Be(recruiter.OrganizationId);
+        answered.GetRawText().Should().NotContain("Soon", "events carry ids, never answers");
+        theirs.ReceivedAnythingAbout(applicationId).Should().BeFalse();
     }
 
     // The tenant's follow-up: a job whose workflow sends "Availability" on entering Screening and tags the application

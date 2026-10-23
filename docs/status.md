@@ -65,9 +65,9 @@ brackets.
 
 - **Sign-in.** Register the Google and Microsoft apps with redirect URIs `{AppOrigin}/v1/auth/signin-google` and
   `/signin-microsoft`, request Microsoft's `xms_edov` optional claim, and put the client ids and secrets in the secret
-  store (#7). Persist and share the Data Protection key ring across instances, for sign-in cookies and telemetry tokens
-  (#7, #18). The ring is in Postgres now, shared by the API and the worker for questionnaire links; protect its keys
-  at rest with a key vault or certificate (`ProtectKeysWith...`) in production. List the reverse proxies and the careers
+  store (#7). The Data Protection key ring (sign-in cookies, telemetry tokens, questionnaire links) is kept in Postgres
+  and shared by the API and the worker; protect its keys at rest with a key vault or certificate
+  (`ProtectKeysWith...`) in production (#7, #18). List the reverse proxies and the careers
   servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
 - **Email.** Choose the production provider behind `IEmailSender`, and set `ScreenHire:Email:From` and the worker's
   SMTP connection; without them automations skip email, and invitations and candidate email cannot go out (#7, #10,

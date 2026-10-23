@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Careers apply flow"
-description: "The candidate apply page: the notice before any collection, three steps that work without JavaScript, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, and tenant careers hosts."
+description: "The candidate apply page: the notice before any collection, three steps that work without JavaScript, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, and the follow-up questionnaire page a signed link opens."
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
@@ -12,6 +12,9 @@ sources:
   - resource: apps/careers/src/lib/host.ts
   - resource: apps/careers/src/middleware.ts
   - resource: apps/careers/src/components/PrivacyNotice.astro
+  - resource: apps/careers/src/pages/[organization]/questionnaires/[token].astro
+  - resource: apps/careers/src/pages/[organization]/questionnaires/sent.astro
+  - resource: apps/careers/src/lib/questionnaire.ts
   - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
   - resource: apps/api/Applications/ApplicantUploads.cs
   - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
@@ -38,6 +41,8 @@ never calls the API.
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (integrity-engine.md §10.2, "Form telemetry"). |
+| `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
+| `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -168,7 +173,26 @@ uses `localhost` otherwise. Endpoints (`/uploads`, the brand stylesheet) take th
 tenant host, a path that already starts with `/{tenant}` (a path-style link) gets a 301 to the same path without it. On the careers domain itself, the organization is in the path. Locally the AppHost sets
 `CareersDomain` to the careers endpoint, so `http://brightwater.localhost:<port>/` serves Brightwater's board.
 
-## 7. Owner actions before production
+## 8. Follow-up questionnaires
+
+After someone applied, a SendQuestionnaire automation can email them a link to a follow-up questionnaire
+(workflow-engine.md §8): `/questionnaires/{token}` on the organization's careers board. The page is one native form
+posted to the `questionnaire` Astro Action (`src/lib/questionnaire.ts`), so it works with JavaScript off and ships no
+script at all. Its fields are the same shared question components as the apply form, rendered on the server; follow-up
+questionnaires have no file questions, so there is no upload island.
+
+- **Answers only.** No device check, no form telemetry and no bot challenge: the candidate saw the notice when they
+  applied, and this page collects what they type into its fields and nothing about their browser (CLAUDE.md
+  non-negotiable 4). The page says so above the button.
+- **The link stays private.** `Cache-Control: no-store`, `noindex`, and `<meta name="referrer" content="no-referrer">`,
+  so the token is never cached or sent on. The careers server refuses a token that is not Data Protection's base64url
+  text before it builds an API path from it.
+- **Plain endings.** An answered link says "You have answered these questions" (200), an expired one "This link has
+  expired" with what to do (410), one whose questionnaire, job or application has ended "These questions are no longer
+  open" (410), and an unknown or forged one "We could not find these questions" (404). A problem with an answer comes
+  back on the same page with what was typed, as on the apply form.
+
+## 9. Owner actions before production
 
 - Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts and `GET`
   from the dashboard host (the resume preview), and a lifecycle rule that deletes unclaimed uploads (blobs with no

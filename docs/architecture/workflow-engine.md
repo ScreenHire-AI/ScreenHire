@@ -1,8 +1,8 @@
 ---
 type: Design
 title: "Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates"
-description: "Hiring templates and per-job workflow definitions: stages, scorecards, automations with triggers, conditions and actions, the guardrail that integrity never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
-tags: [workflow, automations, webhooks, scorecards]
+description: "Hiring templates and per-job workflow definitions: stages, scorecards, follow-up questionnaires, automations with triggers, conditions and actions, the guardrail that integrity never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
+tags: [workflow, automations, webhooks, scorecards, questionnaires]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringWorkflow.cs
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
@@ -14,6 +14,7 @@ sources:
   - resource: src/ScreenHire.Domain/Automations/AutomationFacts.cs
   - resource: src/ScreenHire.Domain/Automations/AutomationRun.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationScorecard.cs
+  - resource: src/ScreenHire.Domain/Applications/QuestionnaireRequest.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCompleted.cs
@@ -23,6 +24,8 @@ sources:
   - resource: src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs
   - resource: src/ScreenHire.Application/Automations/RunAutomationsHandler.cs
   - resource: src/ScreenHire.Application/Automations/Webhooks.cs
+  - resource: src/ScreenHire.Application/Applications/QuestionnaireLinks.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/DataProtectionRegistration.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookDeliveryHandlers.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookEvents.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookRetention.cs
@@ -31,7 +34,10 @@ sources:
   - resource: apps/api/Endpoints/AutomationEndpoints.cs
   - resource: apps/api/Endpoints/ScorecardEndpoints.cs
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
+  - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
+  - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/question-list.svelte
 ---
 # Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates
 
@@ -73,9 +79,9 @@ visibility rules (which roles see candidates here). `hired`/`rejected`/`withdraw
 
 | Part | Examples |
 |---|---|
-| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
+| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted(questionnaire)`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
 | **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, integrity levels (`integrity.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
-| **Actions** | `SendEmail(template)`, `SendQuestionnaire(q)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
+| **Actions** | `SendEmail(template)`, `SendQuestionnaire(questionnaire)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
 
 ### Guardrails enforced by the engine (product-legal policy, see ADR-0004)
 1. **Integrity-derived conditions can never drive `Reject`.** Any automation whose condition references `integrity.*`
@@ -132,9 +138,13 @@ validation result is a status badge beside the page title.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): stages
   along the top, one row per automation from trigger to conditions to actions, edges to the stages it fires on and
   moves into. Nodes are not draggable or focusable; each automation node's Edit button opens its form.
-- **Questionnaire:** the question list beside a live preview rendered by the shared components in
-  `packages/ui/src/questions`, the ones the careers apply page renders. Marking a yes/no question as a knockout shows
-  what a knockout may be (an objective eligibility check, never AI use or an accommodation).
+- **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, as a question list
+  (`question-list.svelte`) beside a live preview rendered by the shared components in `packages/ui/src/questions`, the
+  ones the careers pages render. The apply form's preview starts with the candidate's details and the resume; a
+  follow-up's is its questions alone, as its page shows them. A follow-up offers every answer type but a file upload.
+  Marking a yes/no question as a knockout shows what a knockout may be (an objective eligibility check, never AI use or
+  an accommodation). The automation form offers "Send a questionnaire" and the "questionnaire answered" trigger's
+  picker only when the workflow has a follow-up to name.
 - **Simulate:** a sample application's answers, tags, source, hours in stage and integrity levels through
   `POST /v1/workflows/simulate`, unsaved changes included.
 
@@ -255,8 +265,13 @@ The data model and API from the jobs and templates task, and the engine that run
   (`match: All | Any`, rules with `negate`) rather than a tree. The API serves their JSON Schemas, generated by .NET's
   `JsonSchemaExporter`, at `/v1/schemas/hiring-template-definition.json`, `/v1/schemas/hiring-workflow.json` and
   `/v1/schemas/questionnaire.json`, and the OpenAPI components link to them with `externalDocs`.
-- **Validation** is `DefinitionValidator`: structure (ids, stage and question references, per-kind fields) plus the
-  guardrails above as an allowlist. A stage may carry a scorecard (section 8): 1 to 20 criteria with unique ids,
+- **Follow-up questionnaires** (`followUpQuestionnaires`, optional, so stored definitions still read): up to 10 named
+  questionnaires beside the apply questionnaire, each with at least one question. A question id is unique across the
+  apply questionnaire and every follow-up, and a follow-up cannot use the apply form's own ids (`resume`,
+  `linkedin_export`), so `answers.{id}` names one question. No file questions: the follow-up page works without
+  JavaScript and takes no uploads. The knockout rules apply to follow-up questions as to apply questions.
+- **Validation** is `DefinitionValidator`: structure (ids, stage, question and questionnaire references, per-kind
+  fields) plus the guardrails above as an allowlist. A stage may carry a scorecard (section 8): 1 to 20 criteria with unique ids,
   never on a hired, rejected or withdrawn stage. An automation that uses an `integrity.*` or `verification.*` fact, or an
   `IntegrityAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
@@ -279,7 +294,9 @@ The data model and API from the jobs and templates task, and the engine that run
   later version of one ships as its own migration (`AddSoftwareEngineerTemplateVersion2`); an organization copies one
   (`copyFromVersionId`) to customise it. `AddScorecards` ships "Software engineer" version 3 and "Hourly role"
   version 2, the earlier versions with default scorecards on their review stages; the default workflow (a job made
-  without a template) has scorecards on Screening and Interview.
+  without a template) has scorecards on Screening and Interview. `AddFollowUpQuestionnaires` ships "Software engineer"
+  version 4 and "Hourly role" version 3, whose right-to-work automation fires on `ApplicationSubmitted`: it read an
+  apply-form answer on a `QuestionnaireCompleted` trigger that nothing raised.
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
   template's newest published version, matching list elements by id.
@@ -313,15 +330,20 @@ application has left that stage entry, which is how leaving the stage cancels it
 `POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The integrity
 engine publishes `RunAutomations(IntegrityAssessed)` whenever an assessment changes, keyed on the `IntegrityAssessed`
 timeline entry it appends. Submitting a scorecard publishes `RunAutomations(ReviewerDecision)` keyed on its
-`ScorecardSubmitted` timeline entry (below). `QuestionnaireCompleted` is valid in definitions and runs through
-`RunAutomations`, but nothing raises it yet.
+`ScorecardSubmitted` timeline entry (below). Answering a follow-up questionnaire publishes
+`RunAutomations(QuestionnaireCompleted, questionnaire, entry)` keyed on its `QuestionnaireCompleted` timeline entry
+(below). A `QuestionnaireCompleted` automation names the follow-up it fires on, as a stage trigger names its stage;
+one that names none fires on any follow-up, which keeps definitions saved before follow-ups existed valid. The apply
+questionnaire never fires it: `ApplicationSubmitted` covers that.
 
 **Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
 trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
 sees what the first one saw. The snapshot and every rule's result are stored on the run. Integrity levels come from
 the latest `IntegrityAssessed` entry at or before the trigger. `reviewer.recommendation` is the recommendation of the
-scorecard whose entry fired a ReviewerDecision trigger, and absent on every other trigger. Answers and the application
-source are absent until the features that store them exist. The facts schema
+scorecard whose entry fired a ReviewerDecision trigger, and absent on every other trigger. `answers.{id}` holds the
+apply form's answers on every trigger, and a follow-up questionnaire's once its `QuestionnaireCompleted` entry is among
+the entries the snapshot reads, so follow-up answers count only for triggers after they arrive. `application.source` is
+`CareersSite` or `Recruiter`. The facts schema
 (`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only. The integrity engine's level names are `NoConcerns`, `ReviewSuggested` and
 `VerificationRecommended` for `integrity.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
 `integrity.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
@@ -346,7 +368,8 @@ done. Email and webhooks happen before that commit; a crash in between can repea
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
 | `Reject` | Only for an opted-in knockout automation. Sends `application-rejected`, in the organization's wording, with the reason (the wording must use it). ScreenHire adds the sentence that says the decision was automatic and that a person reviews it on request, which no wording can remove. It then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
 | `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time; loopback only where `ScreenHire:Webhooks:AllowLoopback` is on, in the local stack and the tests). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under the organization's key: hex HMAC-SHA256 of `webhook-signing:{organizationId}` under `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.OrganizationKey`; the AppHost generates the platform key locally). A receiver is given its organization's key only, so it cannot sign for another organization. Never through a proxy, which would resolve the target past the address check. Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
-| `RequestVerification`, `SendQuestionnaire`, `ScheduleInterview` | Refused at save. Verification is phase 2; the other two need features that do not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
+| `SendQuestionnaire` | Emails the candidate a link to one of the workflow's follow-up questionnaires on the careers site, through the built-in `questionnaire-request` email, whose wording must use `{{ questionnaireLink }}` ([email.md](email.md)). One request per application and questionnaire (`questionnaire_requests`, unique): the first send creates it, a later one sends a fresh link to the same request while it is unanswered, and once it is answered nothing is sent. A `QuestionnaireSent` timeline entry links each send to the run. Skipped without email, as `SendEmail` is, and for an application that has ended; fails when the questionnaire left the workflow. Not open to signal-driven automations. |
+| `RequestVerification`, `ScheduleInterview` | Refused at save. Verification is phase 2; scheduling does not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
 
 **Loops and depth.** A run records the chain of automations whose actions led to it. An automation already in its own
 chain is a loop, and a chain of `AutomationEvaluator.MaxDepth` (10) stops there; either way the run is `Blocked` and
@@ -399,6 +422,29 @@ averages them, in the API or the dashboard (ADR-0004's evidence, not verdicts, f
   writes one. A reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout
   rejects.
 
+**Follow-up questionnaires.** The link is the careers board's `/questionnaires/{token}`. Its token names the
+organization and the request, protected with ASP.NET Core Data Protection under its own purpose
+(`ScreenHire.Questionnaire.Link.v1`, `QuestionnaireLinks`) and time-limited. The worker issues it and the API reads it,
+so the two share one key ring in Postgres (`data_protection_keys`, `AddScreenHireDataProtection`) under one application
+name; the worker builds the careers URL from the same `ScreenHire:Domains` settings as the API.
+
+- The request's `expiresAt` (14 days after the latest send) decides whether a link has expired, against the API's
+  clock, so the page can say "expired" rather than "not found", and a second send revives every link to the request.
+  The token's own Data Protection limit is that expiry plus 30 days; after it the token reads as forged.
+- `GET /v1/public/organizations/{slug}/questionnaires/{token}` returns the organization, the job title, the
+  questionnaire's name and a status: `Open` (with the questions, knockout settings left out), `Answered`, `Expired`, or
+  `Closed` once the questionnaire left the workflow or the job or application ended. A forged token, or one for another
+  organization than the slug's, is 404.
+- `POST` to the same path takes the answers, checked with `ApplicationForm.Validate` against the follow-up's questions.
+  In one transaction it stores them with a copy of the questions on the request, appends the `QuestionnaireCompleted`
+  entry, publishes `RunAutomations` keyed on that entry (`[Deduplicated]`) and raises `QuestionnaireAnswered` (ids
+  only) to open dashboards. An answered link is 409, two answers racing meet the row's concurrency check and the second
+  is 409 too, and an expired or closed one is 410. Both routes are anonymous and rate limited with the `apply` policy.
+- The careers page collects the answers and nothing else: no device check, no form telemetry, no file (CLAUDE.md
+  non-negotiable 4). [apply-flow.md](apply-flow.md) §8 has the page.
+- The candidate page lists each follow-up in its own panel, with the answers once given, read against the copied
+  questions; Activity shows each send and the completion.
+
 **Validate and simulate.** `POST /v1/workflows/validate` returns the validator's errors with their paths, 200 either
 way. `POST /v1/workflows/simulate` refuses an invalid workflow, then runs a sample facts snapshot through the same
 evaluator for one trigger and lists each triggered automation's outcome, rule results and actions.
@@ -434,6 +480,18 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - The validator checks only that an `emailTemplate` is a built-in id or a Guid, because it also runs in the worker,
   which cannot know the organization's templates. The API checks that an organization template exists when a person
   saves a workflow or validates it in the builder (`EmailTemplateReferences`).
+- A `QuestionnaireCompleted` trigger's questionnaire is optional, not required as a stage trigger's stage is: the
+  system templates' versions before `AddFollowUpQuestionnaires` carry a bare one, and a required id would make the
+  engine block every automation of each job copied from them.
+- Follow-up answers are not integrity-analysed: the integrity engine reads the apply form only. A follow-up asks what
+  the hiring team needs after a person or an automation chose to ask, and nothing in it is a signal.
+- Follow-up questionnaires take no file questions, so their page needs no upload island and works without JavaScript.
+- `SendQuestionnaire` stays off the list of actions a signal-driven automation may use: asking a candidate for more
+  because a signal fired would act on the signal as a finding about them (ADR-0004 lists route, tag, assign and
+  request verification).
+- The Data Protection key ring moved to Postgres for the API too, so its sign-in cookies, antiforgery tokens and
+  telemetry sessions survive a restart. The keys are stored as Data Protection writes them; production should protect
+  them at rest (status.md, owner actions).
 
 ## Open questions
 

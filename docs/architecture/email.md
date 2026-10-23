@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a plain-text body over fixed variables, sending to one candidate or a selection through the worker, EmailSent in Activity, the rule that the rejection email goes only with Reject, and what is not built (replies, an inbox)."
+description: "Organization email templates in Liquid with a plain-text body over fixed variables, sending to one candidate or a selection through the worker, EmailSent in Activity, the rules that the rejection email goes only with Reject and the follow-up questions email only with SendQuestionnaire, and what is not built (replies, an inbox)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -11,6 +11,8 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/questionnaire-request.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/questionnaire-request.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.subject.liquid
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
@@ -27,7 +29,8 @@ application's Activity. Candidates cannot reply into ScreenHire yet (see "Not bu
 
 There are two kinds, both listed by `GET /v1/email-templates` and edited in Settings, Email templates:
 
-- **Built-in.** `application-received`, `stage-change` and `application-rejected` (`EmailTemplateIds`). ScreenHire's
+- **Built-in.** `application-received`, `stage-change`, `questionnaire-request` and `application-rejected`
+  (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
   ScreenHire's wording. A built-in keeps its name.
@@ -41,13 +44,15 @@ image or a script, and a candidate's name cannot inject markup.
 
 `EmailTemplates.Validate` checks wording on every save, preview and test send:
 
-- Variables: `candidateName`, `jobTitle`, `organizationName`, `stageName`, and `reason` in the rejection email only.
-  Nothing else, and no member access (`candidateName.size`).
+- Variables: `candidateName`, `jobTitle`, `organizationName`, `stageName`, `reason` in the rejection email only, and
+  `questionnaireLink` in the follow-up questions email only. Nothing else, and no member access (`candidateName.size`).
 - Tags: `if`, `unless`, `case` and comments. No `assign`, `for`, `include`, `render` or other tags, and no ranges, so a
   template cannot loop or read anything beyond its values. Rendering also has a step limit.
 - Filters: `capitalize`, `default`, `downcase`, `strip`, `truncate`, `upcase`.
 - The rejection email must use `{{ reason }}`: a `Reject` action's reason goes into it, and the candidate must be told
   why (workflow-engine.md §2).
+- The follow-up questions email (`questionnaire-request`) must use `{{ questionnaireLink }}`: the signed link to the
+  questionnaire is the reason it exists (workflow-engine.md §8).
 
 The preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee. The
 dashboard shows the HTML part in a sandboxed frame, never in the page. The test send (`POST /v1/email-templates/test`)
@@ -77,6 +82,9 @@ workflow, or a hiring template, still names. A template deleted anyway (a race) 
   the dashboard never offers it. The organization may reword it, but it must keep the reason, and ScreenHire ends it
   with a fixed sentence (`EmailTemplates.AutomatedDecisionNotice`): the decision was automatic, and a person reviews it
   on request (docs/research/legal.md, principle 1). The preview shows that sentence too.
+- **The follow-up questions email goes only with `SendQuestionnaire`.** Its link is made for one questionnaire request,
+  so it cannot be sent by hand or by `SendEmail`: the API and the validator refuse it, the worker drops it, and the
+  dashboard never offers it. The organization may reword it, but it must keep the link.
 - **`stage-change` never goes to an ended application.** "Moved to the next step: Rejected" would be a rejection no
   `Reject` action guarded. The API skips such applications in a send; the worker checks again when it sends.
 - **No bulk email picked by integrity signals.** On the candidates list and a job's pipeline, Email for a selection is
