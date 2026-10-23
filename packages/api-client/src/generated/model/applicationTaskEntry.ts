@@ -21,4 +21,6 @@ export interface ApplicationTaskEntry {
   createdAt: string;
   /** @nullable */
   completedAt: string | null;
+  /** @nullable */
+  completedByUserId: string | null;
 }

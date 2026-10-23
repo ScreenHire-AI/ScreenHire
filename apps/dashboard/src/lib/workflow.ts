@@ -14,6 +14,7 @@ import type {
   Question,
   QuestionType,
   StageKind,
+  TeamMember,
   TriggerType,
   WorkflowStage,
 } from '@screenhire/api-client';
@@ -341,8 +342,14 @@ export function describePath(workflow: HiringWorkflow, path: string): string {
   return 'Workflow';
 }
 
-/** One sentence for an automation, as the pipeline view lists it: "When a candidate enters Screening: add a tag." */
-export function summarize(automation: Automation, workflow: HiringWorkflow): string {
+/** A team member as an AssignReviewer action names them. */
+type Reviewer = Pick<TeamMember, 'userId' | 'displayName'>;
+
+/**
+ * One sentence for an automation, as the pipeline view lists it: "When a candidate enters Screening: add a tag."
+ * `members` names an AssignReviewer action's reviewer.
+ */
+export function summarize(automation: Automation, workflow: HiringWorkflow, members?: readonly Reviewer[]): string {
   const stage = (id: string | null | undefined) => workflow.stages.find((candidate) => candidate.id === id)?.name ?? id ?? '?';
   const { trigger } = automation;
   const when =
@@ -355,12 +362,17 @@ export function summarize(automation: Automation, workflow: HiringWorkflow): str
           : (triggerLabels[trigger.type] ?? trigger.type).replace(/^./, (first) => `When ${first.toLowerCase()}`);
   const rules = automation.conditions?.rules.length ?? 0;
   const condition = rules > 0 ? `, if ${rules} ${rules === 1 ? 'condition holds' : automation.conditions?.match === 'Any' ? 'conditions: any holds' : 'conditions hold'}` : '';
-  const actions = automation.actions.map((action) => describeAction(action, workflow).toLowerCase()).join(', then ');
+  // Only the first letter drops to lower case, so stage, template and people's names keep theirs.
+  const actions = automation.actions.map((action) => describeAction(action, workflow, members).replace(/^./, (first) => first.toLowerCase())).join(', then ');
   return `${when}${condition}: ${actions}.`;
 }
 
-export function describeAction(action: AutomationAction, workflow: HiringWorkflow): string {
+export function describeAction(action: AutomationAction, workflow: HiringWorkflow, members?: readonly Reviewer[]): string {
   const label = actionLabels[action.type] ?? action.type;
+  if (action.type === 'AssignReviewer') {
+    if (!action.assigneeUserId) return 'Ask the team to review';
+    return `Ask ${members?.find((member) => member.userId === action.assigneeUserId)?.displayName ?? 'a teammate'} to review`;
+  }
   if (action.type === 'MoveToStage') return `Move to ${workflow.stages.find((stage) => stage.id === action.stageId)?.name ?? action.stageId}`;
   if (action.type === 'AddTag') return `Add the tag "${action.tag ?? ''}"`;
   if (action.type === 'SendEmail') return `Send the "${emailTemplates.find((template) => template.id === action.emailTemplate)?.label ?? action.emailTemplate}" email`;

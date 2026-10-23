@@ -22,5 +22,6 @@ export interface ApplicationSummary {
   stageEnteredAt: string;
   jobTitle: string;
   source: ApplicationSource;
+  tags: string[];
   integrity?: null | IntegritySummary;
 }

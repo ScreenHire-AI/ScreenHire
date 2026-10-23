@@ -34,6 +34,12 @@ public enum ApplicationEventType
 
     /// <summary>The integrity engine assessed the application, or reassessed it with a different result.</summary>
     IntegrityAssessed,
+
+    /// <summary>A person or an API key took a tag off the application.</summary>
+    TagRemoved,
+
+    /// <summary>A note from the hiring team.</summary>
+    NoteAdded,
 }
 
 /// <summary>

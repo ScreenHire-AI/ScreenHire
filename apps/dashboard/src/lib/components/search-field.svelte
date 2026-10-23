@@ -3,8 +3,14 @@
   import { cn } from '#lib/utils.js';
 
   // A list's search box, in its table panel's header (design system section 7). The page filters the rows it passes to
-  // the table, so the count matches what is shown. 16px text on touch, so phones do not zoom in (F4).
-  let { value = $bindable(''), label, class: className }: { value?: string; label: string; class?: string } = $props();
+  // the table, so the count matches what is shown. 16px text on touch, so phones do not zoom in (F4). A crowded header
+  // passes a shorter `placeholder` than the label, which stays the field's name.
+  let {
+    value = $bindable(''),
+    label,
+    placeholder = label,
+    class: className,
+  }: { value?: string; label: string; placeholder?: string; class?: string } = $props();
 </script>
 
 <label
@@ -18,7 +24,7 @@
   <input
     type="search"
     bind:value
-    placeholder={label}
+    {placeholder}
     class="h-full min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground pointer-coarse:text-reading"
   />
 </label>

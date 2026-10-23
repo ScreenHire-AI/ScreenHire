@@ -112,7 +112,9 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
-- `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`
+- `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
+  `POST` and `DELETE /v1/applications/{id}/tags`
+- `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
 - Webhooks: `/v1/webhooks` (below).
 
 ### Webhook subscriptions
@@ -292,8 +294,8 @@ done. Email and webhooks happen before that commit; a crash in between can repea
 | `SendEmail` | Renders `application-received` or `stage-change` to the candidate. Skipped when email is not configured. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
-| `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. |
-| `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards. |
+| `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. The builder offers the team's Owners, Admins and Recruiters (a Viewer could not complete the task) or "Anyone on the team". Saving a workflow checks only that a member is named; the run checks they still belong to the organization, and fails the action if not. |
+| `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards, which show the action's note in the shell's notification tray. |
 | `CreateTask` | Creates a `Task` with the note. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
 | `Reject` | Only for an opted-in knockout automation. Sends `application-rejected` with the reason, saying the decision was automatic and that a person reviews it on request, then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
@@ -315,6 +317,17 @@ after every retry goes to the dead-letter table, and the error policy's last ste
 `AutomationActionFailed`, which marks the action and its run failed. `AutomationRunFinished` (completed, failed or
 blocked) and `TeamNotified` reach the organization's dashboards; quiet outcomes raise nothing, so a skip for an
 accommodation never reaches anyone's browser. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
+
+**Tasks, notes and tags by hand.** The tasks automations make are the dashboard's My tasks: `GET /v1/tasks` lists open
+tasks for the signed-in person and the whole team (no assignee), oldest first; `scope=Everyone` adds teammates' and
+`status=Completed` lists the most recent 200 done ones. `POST /v1/tasks/{id}/complete` records who finished it and when,
+once, and raises `ApplicationTaskCompleted`; it never changes the application, so a rejection review is still decided
+by a person moving the candidate. Anyone whose role changes hiring data may complete any of the organization's tasks;
+the team shares the work. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
+automation reads) and add or remove tags (`POST` and `DELETE /v1/applications/{id}/tags`, `TagAdded` and `TagRemoved`
+entries). The facts snapshot replays additions and removals in timeline order, ignoring case, so a removed tag is gone
+from every later evaluation. No automation action removes a tag. A Manual automation runs from the application's
+Automations panel, which sends a new `Idempotency-Key` with each click.
 
 **Validate and simulate.** `POST /v1/workflows/validate` returns the validator's errors with their paths, 200 either
 way. `POST /v1/workflows/simulate` refuses an invalid workflow, then runs a sample facts snapshot through the same

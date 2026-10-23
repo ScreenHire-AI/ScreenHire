@@ -1,6 +1,7 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  describeAction,
   describePath,
   errorsUnder,
   factsFor,
@@ -156,6 +157,13 @@ describe('validator paths', () => {
     expect(describePath(workflow, 'questionnaire.questions[1].options')).toBe('Question "Shift"');
     expect(describePath(workflow, 'stages[1].name')).toBe('Stage "Screening"');
     expect(describePath(workflow, 'stages')).toBe('Stages');
+  });
+
+  it('names the reviewer an AssignReviewer action asks, or the team', () => {
+    const members = [{ userId: 'u2', displayName: 'Robin Ashby' }];
+    expect(describeAction({ type: 'AssignReviewer', assigneeUserId: 'u2' }, workflow, members)).toBe('Ask Robin Ashby to review');
+    expect(describeAction({ type: 'AssignReviewer', assigneeUserId: 'gone' }, workflow, members)).toBe('Ask a teammate to review');
+    expect(describeAction({ type: 'AssignReviewer' }, workflow, members)).toBe('Ask the team to review');
   });
 
   it('summarizes an automation in one sentence', () => {

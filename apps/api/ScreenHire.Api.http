@@ -63,6 +63,38 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
+# Notes and tags from the hiring team; tags compare ignoring case.
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/notes
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "note": "Ask about the notice period." }
+
+###
+
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/tags
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "tag": "referral" }
+
+###
+
+DELETE {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/tags?tag=referral
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+# My tasks: the signed-in person's and the team's open tasks (status=Completed, scope=Everyone widen it).
+GET {{api}}/v1/tasks?status=Open&scope=Mine
+
+###
+
+POST {{api}}/v1/tasks/00000000-0000-0000-0000-000000000000/complete
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
 GET {{api}}/v1/schemas/hiring-template-definition.json
 Accept: application/schema+json
 

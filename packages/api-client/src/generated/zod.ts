@@ -2302,6 +2302,7 @@ export const ListJobApplicationsResponseItem = zod.object({
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
   "jobTitle": zod.string(),
   "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "tags": zod.array(zod.string()),
   "integrity": zod.union([zod.null(),zod.object({
   "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
   "authenticityReasons": zod.array(zod.string()),
@@ -2390,6 +2391,7 @@ export const ListApplicationsResponseItem = zod.object({
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
   "jobTitle": zod.string(),
   "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "tags": zod.array(zod.string()),
   "integrity": zod.union([zod.null(),zod.object({
   "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
   "authenticityReasons": zod.array(zod.string()),
@@ -2457,7 +2459,7 @@ export const MoveApplicationParams = zod.object({
 export const MoveApplicationBody = zod.object({
   "toStageId": zod.string(),
   "note": zod.string().nullish()
-}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here.')
+}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\r\n`note` is kept on the move\'s timeline entry.')
 
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 
@@ -2509,7 +2511,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -2520,6 +2522,132 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "actorApiKeyId": zod.uuid().nullable()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
+
+
+export const AddApplicationNoteParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const AddApplicationNoteBody = zod.object({
+  "note": zod.string()
+}).describe('A note from the hiring team on an application, kept on its timeline with the author and the time.')
+
+export const AddApplicationNoteResponse = zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "actorUserId": zod.uuid().nullable(),
+  "fromStageId": zod.string().nullable(),
+  "toStageId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "actorApiKeyId": zod.uuid().nullable()
+}).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
+
+
+export const AddApplicationTagParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const AddApplicationTagBody = zod.object({
+  "tag": zod.string()
+}).describe('A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`.')
+
+export const addApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
+
+export const AddApplicationTagResponse = zod.object({
+  "id": zod.uuid(),
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "candidate": zod.object({
+  "id": zod.uuid(),
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('A candidate: one person per email address within the organization.'),
+  "stage": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "workflowVersion": zod.int(),
+  "accommodationRequested": zod.boolean(),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(addApplicationTagResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDetails": zod.string().nullable(),
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "tags": zod.array(zod.string()),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "files": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionId": zod.string(),
+  "uploadId": zod.uuid(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "sizeBytes": zod.int(),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "uploadedAt": zod.iso.datetime({"offset":true})
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+
+
+export const RemoveApplicationTagParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const RemoveApplicationTagQueryParams = zod.object({
+  "tag": zod.string().optional()
+})
+
+export const removeApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
+
+export const RemoveApplicationTagResponse = zod.object({
+  "id": zod.uuid(),
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "candidate": zod.object({
+  "id": zod.uuid(),
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true})
+}).describe('A candidate: one person per email address within the organization.'),
+  "stage": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "workflowVersion": zod.int(),
+  "accommodationRequested": zod.boolean(),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(removeApplicationTagResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDetails": zod.string().nullable(),
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "tags": zod.array(zod.string()),
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "files": zod.array(zod.object({
+  "id": zod.uuid(),
+  "questionId": zod.string(),
+  "uploadId": zod.uuid(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "sizeBytes": zod.int(),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "uploadedAt": zod.iso.datetime({"offset":true})
+}).describe('A file the candidate uploaded. `scanStatus` is the malware scan\'s result; `NotScanned` means no scanner is configured.'))
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
 export const DownloadApplicationFileParams = zod.object({
@@ -2564,6 +2692,7 @@ export const GetCandidateResponse = zod.object({
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
   "jobTitle": zod.string(),
   "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "tags": zod.array(zod.string()),
   "integrity": zod.union([zod.null(),zod.object({
   "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
   "authenticityReasons": zod.array(zod.string()),
@@ -3846,7 +3975,8 @@ export const ListApplicationTasksResponseItem = zod.object({
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
-  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedByUserId": zod.uuid().nullable()
 }).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
@@ -3865,6 +3995,45 @@ export const RunManualAutomationResponse = zod.object({
   "automationId": zod.string(),
   "eventId": zod.uuid()
 }).describe('A manual automation was queued. `eventId` keys its run: find it in the application\'s automation runs.')
+
+
+export const ListTasksQueryParams = zod.object({
+  "status": zod.enum(['Open', 'Completed']).optional(),
+  "scope": zod.enum(['Mine', 'Everyone']).optional()
+})
+
+export const ListTasksResponseItem = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "jobId": zod.uuid(),
+  "candidateName": zod.string(),
+  "jobTitle": zod.string(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedByUserId": zod.uuid().nullable()
+}).describe('A task in a list across applications (My tasks): the task, and the candidate and job it is about.')
+export const ListTasksResponse = zod.array(ListTasksResponseItem)
+
+
+export const CompleteTaskParams = zod.object({
+  "taskId": zod.uuid()
+})
+
+export const CompleteTaskResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedByUserId": zod.uuid().nullable()
+}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
 
 
 export const ListWebhookEventTypesResponseItem = zod.string()

@@ -5,6 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AddApplicationNoteRequest,
+  AddApplicationTagRequest,
   AddIntegrityNoteRequest,
   ApiKeySummary,
   ApiMeta,
@@ -47,6 +49,7 @@ import type {
   JobVersionDetail,
   JobVersionSummary,
   ListJobBoardJobsParams,
+  ListTasksParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
@@ -66,10 +69,12 @@ import type {
   PublicJobBoard,
   PublicOrganization,
   PublishJobRequest,
+  RemoveApplicationTagParams,
   SandboxBoardListing,
   SignInMethods,
   SimulateWorkflowRequest,
   SwitchOrganizationRequest,
+  TaskListItem,
   TeamMember,
   TelemetrySnapshotInput,
   UpdateBrandingRequest,
@@ -2732,6 +2737,235 @@ export const getApplicationTimeline = async (applicationId: string, options?: Pa
 
 
 
+export type addApplicationNoteResponse201 = {
+  data: ApplicationTimelineEntry
+  status: 201
+}
+
+export type addApplicationNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addApplicationNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addApplicationNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addApplicationNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addApplicationNoteResponse429 = {
+  data: void
+  status: 429
+}
+
+export type addApplicationNoteResponseSuccess = (addApplicationNoteResponse201) & {
+  headers: Headers;
+};
+export type addApplicationNoteResponseError = (addApplicationNoteResponse400 | addApplicationNoteResponse401 | addApplicationNoteResponse403 | addApplicationNoteResponse404 | addApplicationNoteResponse429) & {
+  headers: Headers;
+};
+
+export type addApplicationNoteResponse = (addApplicationNoteResponseSuccess | addApplicationNoteResponseError)
+
+export const getAddApplicationNoteUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/notes`
+}
+
+export const addApplicationNote = async (applicationId: string,
+    addApplicationNoteRequest: AddApplicationNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addApplicationNoteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<addApplicationNoteResponse>(getAddApplicationNoteUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addApplicationNoteRequest)
+  }
+);}
+
+
+
+export type addApplicationTagResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type addApplicationTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addApplicationTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addApplicationTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addApplicationTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addApplicationTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type addApplicationTagResponse429 = {
+  data: void
+  status: 429
+}
+
+export type addApplicationTagResponseSuccess = (addApplicationTagResponse200) & {
+  headers: Headers;
+};
+export type addApplicationTagResponseError = (addApplicationTagResponse400 | addApplicationTagResponse401 | addApplicationTagResponse403 | addApplicationTagResponse404 | addApplicationTagResponse409 | addApplicationTagResponse429) & {
+  headers: Headers;
+};
+
+export type addApplicationTagResponse = (addApplicationTagResponseSuccess | addApplicationTagResponseError)
+
+export const getAddApplicationTagUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tags`
+}
+
+export const addApplicationTag = async (applicationId: string,
+    addApplicationTagRequest: AddApplicationTagRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addApplicationTagResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<addApplicationTagResponse>(getAddApplicationTagUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addApplicationTagRequest)
+  }
+);}
+
+
+
+export type removeApplicationTagResponse200 = {
+  data: ApplicationDetail
+  status: 200
+}
+
+export type removeApplicationTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type removeApplicationTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeApplicationTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeApplicationTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removeApplicationTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removeApplicationTagResponse429 = {
+  data: void
+  status: 429
+}
+
+export type removeApplicationTagResponseSuccess = (removeApplicationTagResponse200) & {
+  headers: Headers;
+};
+export type removeApplicationTagResponseError = (removeApplicationTagResponse400 | removeApplicationTagResponse401 | removeApplicationTagResponse403 | removeApplicationTagResponse404 | removeApplicationTagResponse409 | removeApplicationTagResponse429) & {
+  headers: Headers;
+};
+
+export type removeApplicationTagResponse = (removeApplicationTagResponseSuccess | removeApplicationTagResponseError)
+
+export const getRemoveApplicationTagUrl = (applicationId: string,
+    params?: RemoveApplicationTagParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/applications/${applicationId}/tags?${stringifiedParams}` : `/v1/applications/${applicationId}/tags`
+}
+
+export const removeApplicationTag = async (applicationId: string,
+    params?: RemoveApplicationTagParams, options?: Parameters<typeof apiFetch>[1]): Promise<removeApplicationTagResponse> => {
+
+  return apiFetch<removeApplicationTagResponse>(getRemoveApplicationTagUrl(applicationId,params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
 export type downloadApplicationFileResponse401 = {
   data: void
   status: 401
@@ -4560,6 +4794,103 @@ export const runManualAutomation = async (applicationId: string,
     automationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<runManualAutomationResponse> => {
 
   return apiFetch<runManualAutomationResponse>(getRunManualAutomationUrl(applicationId,automationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listTasksResponse200 = {
+  data: TaskListItem[]
+  status: 200
+}
+
+export type listTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTasksResponseSuccess = (listTasksResponse200) & {
+  headers: Headers;
+};
+export type listTasksResponseError = (listTasksResponse401) & {
+  headers: Headers;
+};
+
+export type listTasksResponse = (listTasksResponseSuccess | listTasksResponseError)
+
+export const getListTasksUrl = (params?: ListTasksParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/tasks?${stringifiedParams}` : `/v1/tasks`
+}
+
+export const listTasks = async (params?: ListTasksParams, options?: Parameters<typeof apiFetch>[1]): Promise<listTasksResponse> => {
+
+  return apiFetch<listTasksResponse>(getListTasksUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type completeTaskResponse200 = {
+  data: ApplicationTaskEntry
+  status: 200
+}
+
+export type completeTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type completeTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type completeTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type completeTaskResponseSuccess = (completeTaskResponse200) & {
+  headers: Headers;
+};
+export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404) & {
+  headers: Headers;
+};
+
+export type completeTaskResponse = (completeTaskResponseSuccess | completeTaskResponseError)
+
+export const getCompleteTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/v1/tasks/${taskId}/complete`
+}
+
+export const completeTask = async (taskId: string, options?: Parameters<typeof apiFetch>[1]): Promise<completeTaskResponse> => {
+
+  return apiFetch<completeTaskResponse>(getCompleteTaskUrl(taskId),
   {
     ...options,
     method: 'POST'

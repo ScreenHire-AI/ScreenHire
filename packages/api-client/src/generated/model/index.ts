@@ -6,6 +6,8 @@
  */
 
 export * from './actionType.ts';
+export * from './addApplicationNoteRequest.ts';
+export * from './addApplicationTagRequest.ts';
 export * from './addIntegrityNoteRequest.ts';
 export * from './aiAssistanceAssessmentView.ts';
 export * from './aiAssistanceLevel.ts';
@@ -111,6 +113,7 @@ export * from './jobVersionDetail.ts';
 export * from './jobVersionSummary.ts';
 export * from './knockout.ts';
 export * from './listJobBoardJobsParams.ts';
+export * from './listTasksParams.ts';
 export * from './listWebhookDeliveriesParams.ts';
 export * from './llmProvenance.ts';
 export * from './magicLinkRequest.ts';
@@ -145,6 +148,7 @@ export * from './question.ts';
 export * from './questionnaire.ts';
 export * from './questionOption.ts';
 export * from './questionType.ts';
+export * from './removeApplicationTagParams.ts';
 export * from './ruleResult.ts';
 export * from './salaryPeriod.ts';
 export * from './salaryRequest.ts';
@@ -159,6 +163,9 @@ export * from './simulatedAutomation.ts';
 export * from './simulateWorkflowRequest.ts';
 export * from './stageKind.ts';
 export * from './switchOrganizationRequest.ts';
+export * from './taskListItem.ts';
+export * from './taskScope.ts';
+export * from './taskStatusFilter.ts';
 export * from './teamMember.ts';
 export * from './telemetrySnapshotInput.ts';
 export * from './templateVersionStatus.ts';

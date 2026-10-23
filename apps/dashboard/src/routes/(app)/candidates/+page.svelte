@@ -9,6 +9,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import TagFilterMenu from '#lib/components/tag-filter.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -16,6 +17,7 @@
   import { isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
+  import { matchesTag, tagsOf } from '#lib/tags.js';
 
   // Every application in the organization, newest first; new ones, stage moves and integrity levels arrive live
   // (#lib/realtime.ts).
@@ -24,15 +26,21 @@
   const all = $derived(applications.data?.data ?? []);
   // The sidebar counts use the same clock, so a view and its count agree.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
+  let tagFilter = $state<string | null>(null);
   let search = $state('');
+  // Tags people and automations put on applications; tags and removals arrive live (ApplicationTagsChanged).
+  const tags = $derived(tagsOf(all));
   const shown = $derived(
     all.filter(
       (application) =>
-        (!view || view.matches(application, clock.now)) && matchesIntegrityFilter(application, integrityFilter) && matchesSearch(application, search, true),
+        (!view || view.matches(application, clock.now)) &&
+        matchesIntegrityFilter(application, integrityFilter) &&
+        matchesTag(application, tagFilter) &&
+        matchesSearch(application, search, true),
     ),
   );
   // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
-  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || Boolean(search.trim()));
+  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || tagFilter !== null || Boolean(search.trim()));
   const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
@@ -58,8 +66,9 @@
     <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
       <Panel title="Applications" flush>
         {#snippet tools()}
-          <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
+          <TagFilterMenu bind:tag={tagFilter} {tags} />
           {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
         {/snippet}
         {#if applications.isError}
@@ -78,7 +87,7 @@
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
-            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter })) : undefined}
+            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter }), (tagFilter = null)) : undefined}
           />
         {/if}
       </Panel>

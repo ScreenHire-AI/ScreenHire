@@ -37,6 +37,7 @@ describe('app shell', () => {
       'Jobs',
       'Candidates',
       'Templates',
+      'My tasks',
       'Needs review 2',
       'Verification recommended 1',
       'New today 4',
@@ -46,9 +47,9 @@ describe('app shell', () => {
     ]);
     // Navigation pairs an icon with its label (I1); status shapes mark the two integrity views only (I2).
     const marks = links.map((link) => link.querySelector('[data-shape]')?.getAttribute('data-shape') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'diamond', 'square', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'diamond', 'square', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
     expect(screen.getByRole('heading', { level: 2, name: 'Settings' })).toBeInTheDocument();
-    expect(within(links[3]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
+    expect(within(links[4]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^Needs review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
     await expectNoAxeViolations();
@@ -172,7 +173,7 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user, viewCounts: {} } });
 
     const links = within(main()).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim()).slice(3)).toEqual([
+    expect(links.map((link) => link.textContent?.trim()).slice(4)).toEqual([
       'Needs review',
       'Verification recommended',
       'New today',
@@ -189,7 +190,8 @@ describe('app shell', () => {
 
     expect(within(main()).queryByRole('heading', { name: 'Settings' })).toBeNull();
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    expect(within(main()).getAllByRole('link')).toHaveLength(8);
+    // The four sections (My tasks included) and the five saved views.
+    expect(within(main()).getAllByRole('link')).toHaveLength(9);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

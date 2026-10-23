@@ -214,6 +214,7 @@ counter in process; no test reads them back from the dashboard.
 | `Automations/TimeElapsedTests` | entering a stage schedules a durable timer; the timer runs its automation when it fires, and a timer from a stage entry the application has left does nothing |
 | `Webhooks/WebhookSubscriptionTests` | webhook subscriptions through the running stack, with a receiver on loopback (`WebhookReceiver`): signed deliveries with ids only, secret rotation, retries with backoff, replay, automatic disabling and re-enabling, tenant isolation, URL and event validation |
 | `Automations/WorkflowEngineTests` | validate and simulate; a manual run's tag and rejection-review task; two automations moving an application back and forth stopped as a loop; and, in a private schema with no retries, a dead-lettered action reaching the automation issues list |
+| `Automations/TaskTests` | My tasks (`/v1/tasks`) on tasks a manual run made: the person's own and the team's, everyone's, completing once with who did it, done tasks; another organization sees and completes none, and a Viewer cannot complete one |
 
 Real-time delivery has its own tests (realtime.md). `MessagingHost` starts those private-schema hosts, and a publisher
 whose storage is private but whose queues are the running stack's, to put a message on the real worker queue. `WolverineStore` reads Wolverine's tables and finds a test's own

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import Panel from '#lib/components/panel.svelte';
   import StepLine from '#lib/components/step-line.svelte';
@@ -16,6 +17,8 @@
   // (design system section 7, read-only view): the same views as the builder, as panes of the page's `Tabs.Root`, with
   // data as text and pills, never disabled inputs. Simulate still runs: it changes nothing.
   let { workflow, errors, tab }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
+  // Names an AssignReviewer action's reviewer.
+  const team = createListTeamMembers();
 
   const steps = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
@@ -61,7 +64,7 @@
                 <span class="font-semibold break-words">{automation.name}</span>
                 {#if automation.enabled === false}<Badge variant="muted">Off</Badge>{/if}
               </span>
-              <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow)}</span>
+              <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow, team.data?.data)}</span>
             </li>
           {/each}
         </ul>
