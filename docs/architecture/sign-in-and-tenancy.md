@@ -85,7 +85,7 @@ manage keys in a session, on the dashboard's Settings > API keys page, which sho
 
 | Route | What it does |
 |---|---|
-| `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked. |
+| `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked, and who created it. |
 | `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
 | `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
 | `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
@@ -155,7 +155,8 @@ The dashboard follows the same rule. Its **Settings** group (Organization, Team,
 Webhooks under `/settings/*`) is in the sidebar and the command palette for Owners and Admins only, and the settings
 layout tells anyone else who opens one by its address that only owners and admins can change settings. The Team page
 offers only what `TeamPolicy` allows (`apps/dashboard/src/lib/settings.ts` mirrors it): an Admin sees no Owner role and
-no actions on an Owner's row, and nobody gets actions on their own row. The API stays the judge.
+no actions on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active
+API keys they created as well (ADR-0011). The API stays the judge.
 
 ### Team members and invitations
 

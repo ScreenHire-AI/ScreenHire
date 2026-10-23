@@ -1,4 +1,4 @@
-import type { CurrentUser, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
+import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
@@ -38,6 +38,7 @@ function renderPage(role: OrganizationRole, routes: Parameters<typeof apiStub>[0
     apiStub({
       'GET /v1/organization/members': () => Response.json(team),
       'GET /v1/organization/invitations': () => Response.json(invitations),
+      'GET /v1/organization/api-keys': () => Response.json([]),
       ...routes,
     }),
   );
@@ -215,6 +216,71 @@ describe('team page', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/members/m-4', expect.objectContaining({ method: 'DELETE' })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  describe('the API keys a removed member created', () => {
+    const key = (id: string, createdByUserId: string | null, revokedAt: string | null = null): ApiKeySummary => ({
+      id,
+      name: `Key ${id}`,
+      prefix: `shk_${id}`,
+      scopes: ['Read'],
+      permitsPerMinute: null,
+      createdAt: '2026-10-01T09:00:00Z',
+      lastUsedAt: null,
+      revokedAt,
+      createdByUserId,
+    });
+    // Jordan created two active keys and one already revoked; Avery created another.
+    const keys = [key('k-1', recruiter.userId), key('k-2', recruiter.userId), key('k-3', recruiter.userId, '2026-10-02T09:00:00Z'), key('k-4', owner.userId)];
+    const routes = {
+      'GET /v1/organization/api-keys': () => Response.json(keys),
+      'DELETE /v1/organization/members/m-4': () => new Response(null, { status: 204 }),
+      'POST /v1/organization/api-keys/k-1/revoke': () => Response.json({ ...keys[0], revokedAt: '2026-10-23T09:00:00Z' }),
+      'POST /v1/organization/api-keys/k-2/revoke': () => Response.json({ ...keys[1], revokedAt: '2026-10-23T09:00:00Z' }),
+    };
+    const revoked = (fetchMock: ReturnType<typeof renderPage>) =>
+      writes(fetchMock, 'POST')
+        .map(([url]) => String(url))
+        .filter((url) => url.endsWith('/revoke'));
+
+    it('are revoked with the member unless the person unticks it', async () => {
+      const fetchMock = renderPage('Owner', routes);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/api-keys', expect.anything()));
+      const menu = await openMenu('Actions for Jordan Lee');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
+
+      const choice = within(dialog).getByRole('checkbox', { name: 'Also revoke the 2 API keys they created' });
+      expect(choice).toBeChecked();
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove from team' }));
+
+      await waitFor(() => expect(revoked(fetchMock).toSorted()).toEqual(['/v1/organization/api-keys/k-1/revoke', '/v1/organization/api-keys/k-2/revoke']));
+      expect(fetchMock).toHaveBeenCalledWith('/v1/organization/members/m-4', expect.objectContaining({ method: 'DELETE' }));
+    });
+
+    it('stay when the person unticks the choice', async () => {
+      const fetchMock = renderPage('Owner', routes);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/api-keys', expect.anything()));
+      const menu = await openMenu('Actions for Jordan Lee');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
+
+      await fireEvent.click(within(dialog).getByRole('checkbox', { name: /Also revoke/ }));
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove from team' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(fetchMock).toHaveBeenCalledWith('/v1/organization/members/m-4', expect.objectContaining({ method: 'DELETE' }));
+      expect(revoked(fetchMock)).toEqual([]);
+    });
+
+    it('are not mentioned for a member who created none', async () => {
+      renderPage('Owner', { ...routes, 'DELETE /v1/organization/members/m-3': () => new Response(null, { status: 204 }) });
+      const menu = await openMenu('Actions for Casey Morgan');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Casey Morgan from the team?' });
+
+      expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    });
   });
 
   it('removes nobody when the person backs out of the confirmation', async () => {

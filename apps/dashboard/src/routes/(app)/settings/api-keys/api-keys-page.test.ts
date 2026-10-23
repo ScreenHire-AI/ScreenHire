@@ -19,6 +19,7 @@ const key = (id: string, name: string, overrides: Partial<ApiKeySummary> = {}): 
   createdAt: '2026-10-01T09:00:00Z',
   lastUsedAt: null,
   revokedAt: null,
+  createdByUserId: null,
   ...overrides,
 });
 

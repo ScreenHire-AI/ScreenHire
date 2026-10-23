@@ -18,6 +18,7 @@
     destructive = true,
     failure: failureLabel,
     onconfirm,
+    children,
   }: {
     open?: boolean;
     title: string;
@@ -31,6 +32,8 @@
     failure: string;
     /** Does the work; the dialog closes when it resolves and shows the error when it throws. */
     onconfirm: () => Promise<unknown>;
+    /** A choice that goes with the action, such as also revoking a removed member's keys. */
+    children?: Snippet;
   } = $props();
 
   let failure = $state('');
@@ -60,6 +63,7 @@
       <Dialog.Title>{title}</Dialog.Title>
       <Dialog.Description>{description}</Dialog.Description>
     </Dialog.Header>
+    {@render children?.()}
     <FailureText message={failure} />
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>{cancelLabel}</Dialog.Close>

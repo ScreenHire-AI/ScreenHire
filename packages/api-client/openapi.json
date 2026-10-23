@@ -5004,7 +5004,8 @@
           "permitsPerMinute",
           "createdAt",
           "lastUsedAt",
-          "revokedAt"
+          "revokedAt",
+          "createdByUserId"
         ],
         "type": "object",
         "properties": {
@@ -5048,9 +5049,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "createdByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key's first characters. `permitsPerMinute` is null for the deployment's default.\r\n`lastUsedAt` is accurate to about a minute."
+        "description": "An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key's first characters. `permitsPerMinute` is null for the deployment's default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created."
       },
       "ApiMeta": {
         "required": [

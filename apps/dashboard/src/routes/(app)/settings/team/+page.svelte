@@ -9,9 +9,11 @@
     ApiError,
     createChangeMemberRole,
     createCreateInvitation,
+    createListApiKeys,
     createListInvitations,
     createListTeamMembers,
     createRemoveMember,
+    createRevokeApiKey,
     createRevokeInvitation,
   } from '@screenhire/api-client/svelte-query';
   import { CreateInvitationBody } from '@screenhire/api-client/zod';
@@ -61,6 +63,9 @@
   const changeRole = createChangeMemberRole(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
   const remove = createRemoveMember(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
   const revoke = createRevokeInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
+  // Removing a member offers to revoke the API keys they created (ADR-0011): a key outlives its creator otherwise.
+  const keys = createListApiKeys();
+  const revokeKey = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/api-keys') } }));
   const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
 
   const actor = $derived<OrganizationRole>(data.user?.organization?.role ?? 'Viewer');
@@ -113,10 +118,26 @@
     confirmChosen = true;
   }
 
+  // The active keys the member being removed created, and whether to revoke them too (on unless the person unticks it).
+  const removingKeys = $derived(removing ? (keys.data?.data ?? []).filter((key) => !key.revokedAt && key.createdByUserId === removing!.userId) : []);
+  let revokeTheirKeys = $state(true);
+  $effect(() => {
+    if (removeOpen) revokeTheirKeys = true;
+  });
+
   async function removeMember() {
     if (!removing) return;
+    const theirKeys = revokeTheirKeys ? removingKeys : [];
+    memberFailure = '';
     await remove.mutateAsync({ memberId: removing.id });
     announcement = `${removing.displayName} was removed from the team.`;
+    // The removal stands even when a revocation fails, so the dialog closes and the members panel says what is left.
+    const failed = (await Promise.allSettled(theirKeys.map((key) => revokeKey.mutateAsync({ keyId: key.id })))).filter((result) => result.status === 'rejected');
+    if (failed.length > 0) {
+      memberFailure = `${failed.length === 1 ? '1 of their API keys' : `${failed.length} of their API keys`} could not be revoked. Revoke it in API keys.`;
+    } else if (theirKeys.length > 0) {
+      announcement += ` ${theirKeys.length === 1 ? 'Their API key was' : 'Their API keys were'} revoked.`;
+    }
   }
 
   async function revokeInvitation() {
@@ -343,6 +364,12 @@
   onconfirm={removeMember}
 >
   {#snippet icon()}<UserMinusIcon aria-hidden="true" />{/snippet}
+  {#if removingKeys.length > 0}
+    <label class="flex items-center gap-2 pointer-coarse:min-h-11">
+      <input type="checkbox" bind:checked={revokeTheirKeys} class="size-4 shrink-0 accent-primary" />
+      Also revoke the {removingKeys.length === 1 ? 'API key' : `${removingKeys.length} API keys`} they created
+    </label>
+  {/if}
 </ConfirmDialog>
 
 <ConfirmDialog

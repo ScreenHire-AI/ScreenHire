@@ -3514,8 +3514,9 @@ export const ListApiKeysResponseItem = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 export const ListApiKeysResponse = zod.array(ListApiKeysResponseItem)
 
 
@@ -3534,8 +3535,9 @@ export const CreateApiKeyResponse = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.'),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.'),
   "token": zod.string()
 }).describe('A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`.')
 
@@ -3552,8 +3554,9 @@ export const GetApiKeyResponse = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
 export const RevokeApiKeyParams = zod.object({
@@ -3568,8 +3571,9 @@ export const RevokeApiKeyResponse = zod.object({
   "permitsPerMinute": zod.int().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute.')
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "createdByUserId": zod.uuid().nullable()
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
