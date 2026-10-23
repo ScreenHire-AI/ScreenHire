@@ -27,6 +27,20 @@ public sealed class OrganizationProfileTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_rename_changes_only_the_owners_own_organization()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var otherBefore = (await other.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK);
+
+        (await owner.PutAsync("/v1/organization", new JsonObject { ["name"] = "Harbour Lane Bakery" })).Expect(HttpStatusCode.OK);
+
+        var otherAfter = (await other.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK);
+        otherAfter.Id().Should().Be(otherBefore.Id());
+        otherAfter.Text("name").Should().Be(otherBefore.Text("name"));
+    }
+
+    [Fact]
     public async Task A_blank_or_long_name_is_refused()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
