@@ -1,6 +1,7 @@
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import MailIcon from '@lucide/svelte/icons/mail';
   import PhoneIcon from '@lucide/svelte/icons/phone';
@@ -14,6 +15,7 @@
     createGetApplication,
     createGetApplicationTimeline,
     createGetJob,
+    createListApplicationScorecards,
     createListApplicationTasks,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
@@ -37,6 +39,8 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
+  import ScorecardList from '#lib/components/scorecard-list.svelte';
+  import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TaskList from '#lib/components/task-list.svelte';
@@ -61,6 +65,8 @@
   const application = createGetApplication(() => params.applicationId);
   const timeline = createGetApplicationTimeline(() => params.applicationId);
   const tasks = createListApplicationTasks(() => params.applicationId);
+  // ScorecardSubmitted refetches them live, for every reviewer on the page.
+  const scorecards = createListApplicationScorecards(() => params.applicationId);
   // Names the people in Activity and Tasks.
   const team = createListTeamMembers();
   const members = $derived(team.data?.data);
@@ -72,6 +78,8 @@
   let noteOpen = $state(false);
   let moveNoteOpen = $state(false);
   let noteAnnouncement = $state('');
+  let scorecardOpen = $state(false);
+  let scorecardAnnouncement = $state('');
   // The job's workflow names the stages and labels the questions.
   const job = createGetJob(
     () => detail?.jobId ?? '',
@@ -90,6 +98,21 @@
   const fileById = $derived(new Map((detail?.files ?? []).map((file) => [file.uploadId, file])));
   const resume = $derived(detail?.files.find((file) => file.questionId === 'resume'));
   const answers = $derived(detail?.answers.filter((answer) => answer.questionId !== 'resume') ?? []);
+  // A reviewer scores a stage that has a scorecard, that the application has reached, and that they have not scored yet;
+  // the current stage first.
+  const reached = $derived(
+    new Set([
+      ...(detail ? [detail.stage.id] : []),
+      ...(timeline.data?.data ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').map((entry) => entry.toStageId),
+    ]),
+  );
+  const scoredByMe = $derived(new Set((scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId).map((card) => card.stageId)));
+  const scoreable = $derived(
+    stages
+      .filter((stage) => stage.scorecard && reached.has(stage.id) && !scoredByMe.has(stage.id))
+      .toSorted((a, b) => Number(b.id === detail?.stage.id) - Number(a.id === detail?.stage.id)),
+  );
+  const hasScorecards = $derived(stages.some((stage) => stage.scorecard) || (scorecards.data?.data.length ?? 0) > 0);
 
   function answerText(answer: ApplicationAnswer, question: Question | undefined): string {
     const values = answer.values ?? (answer.value ? [answer.value] : []);
@@ -113,6 +136,9 @@
       case 'IntegrityAssessed':
         // Levels and evidence are the integrity panel's to show; the activity records only that the checks ran.
         return 'Integrity checks ran';
+      case 'ScorecardSubmitted':
+        // The ratings and the recommendation are the Scorecards panel's to show.
+        return `Scorecard for ${stageName(entry.stageId ?? null)}`;
     }
   }
 
@@ -123,6 +149,7 @@
     TagRemoved: TagsIcon,
     IntegrityAssessed: ScanSearchIcon,
     NoteAdded: StickyNoteIcon,
+    ScorecardSubmitted: ClipboardCheckIcon,
   };
 
   function actor(entry: ApplicationTimelineEntry): string | undefined {
@@ -130,6 +157,11 @@
     if (entry.actorUserId) return `by ${personName(entry.actorUserId, members, currentUserId)}`;
     if (entry.actorApiKeyId) return 'by an API key';
     return undefined;
+  }
+
+  async function scorecardSubmitted(message: string) {
+    scorecardAnnouncement = message;
+    await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`);
   }
 
   async function noteAdded(message: string) {
@@ -274,6 +306,34 @@
             {/if}
           </Panel>
 
+          {#if hasScorecards}
+            <Panel title="Scorecards" count={scorecards.data?.data.length}>
+              {#snippet actions()}
+                {#if editable && scoreable.length > 0}
+                  <Button variant="outline" onclick={() => (scorecardOpen = true)}><ClipboardCheckIcon aria-hidden="true" />Fill scorecard</Button>
+                {/if}
+              {/snippet}
+              <div class="flex flex-col gap-3">
+                {#if scorecards.isError}
+                  <QueryError message={describeError(scorecards.error, 'Could not load the scorecards')} onretry={() => scorecards.refetch()} inset />
+                {:else if scorecards.isPending}
+                  <div aria-hidden="true" class="flex gap-3">
+                    <Skeleton class="size-7 shrink-0 rounded-full" />
+                    <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+                      <Skeleton class="h-4 w-1/2" />
+                      <Skeleton class="h-16 w-full" />
+                    </div>
+                  </div>
+                {:else if scorecards.data && scorecards.data.data.length > 0}
+                  <ScorecardList scorecards={scorecards.data.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
+                {:else}
+                  <p class="text-muted-foreground">No scorecards yet.</p>
+                {/if}
+                <p role="status" class="text-muted-foreground empty:hidden">{scorecardAnnouncement}</p>
+              </div>
+            </Panel>
+          {/if}
+
           <Panel title="Declarations">
             <SummaryList>
               <SummaryItem label="AI use">
@@ -349,6 +409,7 @@
 
     {#if editable}
       <NoteSheet bind:open={noteOpen} applicationId={detail.id} ondone={noteAdded} />
+      <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} stages={scoreable} ondone={scorecardSubmitted} />
       <MoveNoteSheet
         bind:open={moveNoteOpen}
         candidateName={detail.candidate.fullName}

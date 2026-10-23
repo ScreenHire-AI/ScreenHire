@@ -74,7 +74,7 @@ public sealed record ApplicationFileSummary(
 /// <c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did.
 /// <c>actorApiKeyId</c>: The organization API key that made the change (ADR-0011); null otherwise.
 /// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <c>ScorecardSubmitted</c>, the scorecard, the stage it
-/// rates and the reviewer's overall recommendation.
+/// rates and the reviewer's overall recommendation (a <c>Recommendation</c> name, as automations read it).
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -89,7 +89,7 @@ public sealed record ApplicationTimelineEntry(
     Guid? ActorApiKeyId,
     Guid? ScorecardId = null,
     string? StageId = null,
-    Recommendation? Recommendation = null);
+    string? Recommendation = null);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
@@ -144,7 +144,7 @@ internal static class ApplicationMappings
     public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry) =>
         new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note,
             entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId, entry.Data.StageId,
-            Enum.TryParse<Recommendation>(entry.Data.Recommendation, out var recommendation) ? recommendation : null);
+            entry.Data.Recommendation);
 }
 
 internal sealed class CreateApplicationRequestValidator : AbstractValidator<CreateApplicationRequest>

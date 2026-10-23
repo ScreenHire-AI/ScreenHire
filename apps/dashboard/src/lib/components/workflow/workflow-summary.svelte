@@ -23,6 +23,7 @@
   const steps = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const questions = $derived(workflow.questionnaire.questions);
+  const scored = $derived(workflow.stages.filter((stage) => stage.scorecard));
   const days = (count: number) => `${count}-day limit`;
 </script>
 
@@ -65,6 +66,28 @@
                 {#if automation.enabled === false}<Badge variant="muted">Off</Badge>{/if}
               </span>
               <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow, team.data?.data)}</span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </Panel>
+
+    <Panel title="Scorecards" count={scored.length} class="flex-[1_1_100%]">
+      {#if scored.length === 0}
+        <p class="text-muted-foreground">No scorecards.</p>
+      {:else}
+        <ul class="flex flex-col">
+          {#each scored as stage (stage.id)}
+            <li class={['flex flex-col gap-2', rowClass]}>
+              <h3 class="text-heading break-words">{stage.name}</h3>
+              <ol class="flex flex-col gap-1.5">
+                {#each stage.scorecard?.criteria ?? [] as criterion (criterion.id)}
+                  <li class="flex flex-col">
+                    <span class="font-semibold break-words">{criterion.label}</span>
+                    {#if criterion.guidance}<span class="text-muted-foreground">{criterion.guidance}</span>{/if}
+                  </li>
+                {/each}
+              </ol>
             </li>
           {/each}
         </ul>

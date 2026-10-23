@@ -9,6 +9,7 @@
   import PipelineView from './pipeline-view.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
+  import ScorecardBuilder from './scorecard-builder.svelte';
   import SimulatePanel from './simulate-panel.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
 
@@ -23,6 +24,15 @@
   }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
 
   let drawerOpen = $state(false);
+  let scorecardOpen = $state(false);
+  // The stage whose scorecard the sheet edits, by id, so reordering stages behind the sheet keeps the same one.
+  let scorecardStageId = $state<string | null>(null);
+  const scorecardIndex = $derived(workflow.stages.findIndex((stage) => stage.id === scorecardStageId));
+
+  function openScorecard(index: number) {
+    scorecardStageId = workflow.stages[index]?.id ?? null;
+    scorecardOpen = true;
+  }
   let drawerLane = $state<string | null>(null);
   // The automations listed in the open drawer, fixed when it opens, so changing one's trigger does not make it vanish.
   let drawerIds = $state<string[]>([]);
@@ -56,7 +66,7 @@
 <ProblemsPanel title="Problems to fix" {workflow} {errors} />
 
 <Tabs.Content value="pipeline">
-  <PipelineView bind:workflow {errors} onopen={openLane} />
+  <PipelineView bind:workflow {errors} onopen={openLane} onscorecard={openScorecard} />
 </Tabs.Content>
 <Tabs.Content value="graph">
   <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph fits its view to the size
@@ -90,6 +100,19 @@
         <p class="text-muted-foreground">No automations here yet.</p>
       {/each}
       <div><Button variant="outline" size="lg" onclick={addAutomation}>Add automation</Button></div>
+    </div>
+  </Sheet.Content>
+</Sheet.Root>
+
+<Sheet.Root bind:open={scorecardOpen}>
+  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl">
+    <Sheet.Header>
+      <Sheet.Title>Scorecard: {workflow.stages[scorecardIndex]?.name ?? ''}</Sheet.Title>
+    </Sheet.Header>
+    <div class="@container px-4 pb-4">
+      {#if scorecardIndex >= 0}
+        <ScorecardBuilder bind:stage={workflow.stages[scorecardIndex]!} index={scorecardIndex} {errors} />
+      {/if}
     </div>
   </Sheet.Content>
 </Sheet.Root>

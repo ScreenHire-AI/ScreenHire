@@ -15,7 +15,7 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import type { ApplicationFileSummary, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -48,6 +48,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TagList from '#lib/components/tag-list.svelte';
+  import ScorecardList from '#lib/components/scorecard-list.svelte';
   import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -152,6 +153,23 @@
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
     { id: 't3', applicationId: 'a1', kind: 'Task', note: 'Call the references.', assigneeUserId: null, createdAt: ago(3 * day), completedAt: ago(5 * hour), completedByUserId: 'u2' },
+  ];
+  const sampleScorecards: ScorecardEntry[] = [
+    {
+      id: 's1',
+      stageId: 'interview',
+      reviewerUserId: 'u2',
+      ratings: [
+        { criterionId: 'role_skills', label: 'Skills the role needs', rating: 'StronglyDemonstrated' },
+        { criterionId: 'problem_solving', label: 'Problem solving', rating: 'Demonstrated' },
+        { criterionId: 'work_knowledge', label: 'Knowledge of the work', rating: null },
+      ],
+      recommendation: 'StrongYes',
+      note: 'Walked through the cache design and its trade-offs.',
+      workflowVersion: 1,
+      timelineEventId: 'e1',
+      submittedAt: ago(3 * hour),
+    },
   ];
   let notifications = $state([
     { id: 'n1', title: 'Priya Natarajan, Product Designer', detail: 'A referral arrived. Call within a day.', href: '/style-guide' },
@@ -617,6 +635,9 @@
         </Panel>
         <Panel title="Task list" class="flex-[1_1_320px]">
           <TaskList label="Tasks" tasks={sampleTasks} members={sampleTeam} currentUserId="u1" oncomplete={() => {}} />
+        </Panel>
+        <Panel title="Scorecard" class="flex-[1_1_320px]">
+          <ScorecardList scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
         </Panel>
       </div>
 

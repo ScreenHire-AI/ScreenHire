@@ -5,7 +5,6 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ApplicationEventType } from './applicationEventType.ts';
-import type { Recommendation } from './recommendation.ts';
 
 /**
  * One entry of an application's timeline, oldest first. Members that do not apply to the type are null.
@@ -32,5 +31,6 @@ export interface ApplicationTimelineEntry {
   scorecardId?: string | null;
   /** @nullable */
   stageId?: string | null;
-  recommendation?: null | Recommendation;
+  /** @nullable */
+  recommendation?: string | null;
 }

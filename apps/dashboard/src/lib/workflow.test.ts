@@ -1,6 +1,7 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  defaultScorecard,
   describeAction,
   describePath,
   errorsUnder,
@@ -169,5 +170,38 @@ describe('validator paths', () => {
   it('summarizes an automation in one sentence', () => {
     expect(summarize(workflow.automations[0]!, workflow)).toBe('When a candidate enters Screening, if 1 condition holds: add the tag "check".');
     expect(summarize(workflow.automations[1]!, workflow)).toBe('When someone runs it by hand: notify the team.');
+  });
+});
+
+describe('scorecards and the reviewer decision', () => {
+  const reviewed: HiringWorkflow = {
+    ...workflow,
+    stages: workflow.stages.map((stage) => (stage.id === 'screening' ? { ...stage, scorecard: defaultScorecard('Screening') } : stage)),
+    automations: [
+      { id: 'any', name: 'Any', trigger: { type: 'ReviewerDecision' }, conditions: null, actions: [{ type: 'AddTag', tag: 'reviewed' }] },
+      { id: 'screen', name: 'Screen', trigger: { type: 'ReviewerDecision', stageId: 'screening' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
+    ],
+  };
+
+  it("offers the reviewer's recommendation only to a reviewer-decision automation", () => {
+    expect(factsFor(reviewed).map((fact) => fact.fact)).not.toContain('reviewer.recommendation');
+    const recommendation = factsFor(reviewed, 'ReviewerDecision').find((fact) => fact.fact === 'reviewer.recommendation');
+    expect(recommendation?.signal).toBe(false);
+    expect(recommendation?.values?.map((value) => value.value)).toEqual(['StrongNo', 'No', 'Yes', 'StrongYes']);
+    expect(operatorsFor(recommendation!.type)).toEqual(['EqualTo', 'In', 'Exists']);
+  });
+
+  it("puts a stage's reviewer decisions in its lane and the rest in the whole workflow's", () => {
+    expect(laneOf(reviewed.automations[0]!)).toBeNull();
+    expect(laneOf(reviewed.automations[1]!)).toBe('screening');
+    expect(summarize(reviewed.automations[1]!, reviewed)).toBe('When a reviewer records a decision on Screening: add the tag "screened".');
+    expect(summarize(reviewed.automations[0]!, reviewed)).toBe('When a reviewer records a decision: add the tag "reviewed".');
+  });
+
+  it('starts a scorecard with criteria about the job, never the person', () => {
+    for (const kind of ['Screening', 'Interview', 'Assessment'] as const) {
+      const text = defaultScorecard(kind).criteria.map((criterion) => `${criterion.label} ${criterion.guidance ?? ''}`).join(' ');
+      expect(text).not.toMatch(/personalit|emotion|honest|truthful|culture fit|integrity/i);
+    }
   });
 });

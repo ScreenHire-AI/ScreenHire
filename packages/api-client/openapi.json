@@ -6077,13 +6077,9 @@
             ]
           },
           "recommendation": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/Recommendation"
-              }
+            "type": [
+              "null",
+              "string"
             ]
           }
         },
@@ -9877,9 +9873,9 @@
           "StrongNo",
           "No",
           "Yes",
-          "StrongYes",
-          null
-        ]
+          "StrongYes"
+        ],
+        "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
       },
       "RuleResult": {
         "required": [

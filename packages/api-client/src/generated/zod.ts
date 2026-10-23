@@ -2627,7 +2627,7 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "actorApiKeyId": zod.uuid().nullable(),
   "scorecardId": zod.uuid().nullish(),
   "stageId": zod.string().nullish(),
-  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]).optional()
+  "recommendation": zod.string().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -2653,7 +2653,7 @@ export const AddApplicationNoteResponse = zod.object({
   "actorApiKeyId": zod.uuid().nullable(),
   "scorecardId": zod.uuid().nullish(),
   "stageId": zod.string().nullish(),
-  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]).optional()
+  "recommendation": zod.string().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -4176,7 +4176,7 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
 }).describe('A criterion as the reviewer was asked it, and their rating; null when they did not rate it.')),
-  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
+  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
@@ -4195,7 +4195,7 @@ export const SubmitScorecardBody = zod.object({
   "criterionId": zod.string(),
   "rating": zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])
 }).describe('The rating for one criterion of the stage\'s scorecard.')),
-  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
+  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullish()
 }).describe('A reviewer\'s scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409.')
 
@@ -4208,7 +4208,7 @@ export const SubmitScorecardResponse = zod.object({
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
 }).describe('A criterion as the reviewer was asked it, and their rating; null when they did not rate it.')),
-  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
+  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
