@@ -438,8 +438,9 @@ name; the worker builds the careers URL from the same `ScreenHire:Domains` setti
 - `POST` to the same path takes the answers, checked with `ApplicationForm.Validate` against the follow-up's questions.
   In one transaction it stores them with a copy of the questions on the request, appends the `QuestionnaireCompleted`
   entry, publishes `RunAutomations` keyed on that entry (`[Deduplicated]`) and raises `QuestionnaireAnswered` (ids
-  only) to open dashboards. An answered link is 409, two answers racing meet the row's concurrency check and the second
-  is 409 too, and an expired or closed one is 410. Both routes are anonymous and rate limited with the `apply` policy.
+  only) to open dashboards. An answered link is 409, and an expired or closed one is 410. Two writes racing meet the
+  row's concurrency check: a second answer is 409, and an answer that lost to a resend is 503 with nothing saved, so the
+  careers page keeps the answers and the candidate sends again. Both routes are anonymous and rate limited with the `apply` policy.
 - The careers page collects the answers and nothing else: no device check, no form telemetry, no file (CLAUDE.md
   non-negotiable 4). [apply-flow.md](apply-flow.md) §8 has the page.
 - The candidate page lists each follow-up in its own panel, with the answers once given, read against the copied
