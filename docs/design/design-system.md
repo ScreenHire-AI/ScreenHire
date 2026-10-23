@@ -155,6 +155,8 @@ takes the review diamond because it asks a person to act, as Queued does. It nev
 beside integrity results and would read as a concern about the candidate. The label says by how much, in the largest
 whole unit: "Overdue by 2 days", "Overdue by 5 hours". The due date and time are in its tooltip (section 13). It is a
 filled badge wherever it shows (T3), because it needs attention. An application within its time limit shows nothing.
+A job board's estimate that has run out, the muted "Overdue" pill in a job's Distribution panel, is a fact about the
+board and not this status.
 
 ### 3.3 Recruiter app, dark
 

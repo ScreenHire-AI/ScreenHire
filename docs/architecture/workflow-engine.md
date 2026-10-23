@@ -32,6 +32,7 @@ sources:
   - resource: apps/api/Endpoints/ScorecardEndpoints.cs
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
+  - resource: apps/dashboard/src/lib/sla.ts
 ---
 # Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates
 
@@ -67,13 +68,14 @@ Organization
 ### Stages
 Ordered list. Each stage has `id`, `name`, `kind` (`applied`, `screening`, `assessment`, `verification`, `interview`,
 `offer`, `hired`, `rejected`, `withdrawn`, `custom`), `color`, optional SLA (e.g., "respond within 3 days"), and
-visibility rules (which roles see candidates here). `hired`/`rejected`/`withdrawn` are terminal.
+visibility rules (which roles see candidates here). `hired`/`rejected`/`withdrawn` are terminal. The SLA (`slaDays`, the
+builder's "time limit") measures the hiring team's delay, never the candidate: section 8 says what acts on it.
 
 ### Automations (trigger → conditions → actions)
 
 | Part | Examples |
 |---|---|
-| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
+| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `SlaBreached(stage?)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
 | **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, integrity levels (`integrity.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
 | **Actions** | `SendEmail(template)`, `SendQuestionnaire(q)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
 
@@ -86,6 +88,7 @@ visibility rules (which roles see candidates here). `hired`/`rejected`/`withdraw
    candidate a reason, and is logged for record-keeping.
 3. **Every automated action is audit-logged** with the definition version, trigger event, evaluated facts and result.
 4. Accommodation: if the candidate requested accommodation, automations referencing timing/telemetry facts are skipped.
+   `SlaBreached` is the exception, and the reason is section 8.
 
 ## 3. Execution model
 
@@ -127,7 +130,8 @@ validation result is a status badge beside the page title.
   in a Sheet drawer and its scorecard in another (`scorecard-builder.svelte`): criteria with what to look for, reordered
   with buttons. Adding a scorecard starts from job-related defaults, and the sheet says criteria never rate
   personality, emotion or honesty. A stage that ends the application offers no scorecard. Automations whose trigger
-  has no stage (an arriving application, the integrity checks, a manual run) sit in a "Whole workflow" lane. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
+  workflow" lane. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): stages
   along the top, one row per automation from trigger to conditions to actions, edges to the stages it fires on and
@@ -313,8 +317,30 @@ application has left that stage entry, which is how leaving the stage cancels it
 `POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The integrity
 engine publishes `RunAutomations(IntegrityAssessed)` whenever an assessment changes, keyed on the `IntegrityAssessed`
 timeline entry it appends. Submitting a scorecard publishes `RunAutomations(ReviewerDecision)` keyed on its
-`ScorecardSubmitted` timeline entry (below). `QuestionnaireCompleted` is valid in definitions and runs through
-`RunAutomations`, but nothing raises it yet.
+`ScorecardSubmitted` timeline entry (below). `SlaBreached` is a scheduled `RunAutomations` message like `TimeElapsed`
+(below). `QuestionnaireCompleted` is valid in definitions and runs through `RunAutomations`, but nothing raises it yet.
+
+**Stage time limits (SLAs).** A stage's `slaDays` is how long a candidate should wait there for the hiring team. It
+measures the team's delay, not the candidate's, so a breach never counts against a candidate. A hired, rejected or
+withdrawn stage ends the application, so a limit there is ignored (`WorkflowStage.SlaDueAt`).
+
+- An application is overdue from `slaDueAt`: its stage entry plus the stage's `slaDays` in the job's current workflow,
+  sent on `ApplicationSummary` and `ApplicationDetail` and null without a limit. The dashboard compares it with its own
+  minute clock, so the candidates list, the job's table and board, and the application's page show "Overdue by 2 days"
+  while the page is open (design-system.md section 3.2). The sidebar's Overdue view is the list's filter.
+- `SlaBreached`, optionally for one stage, fires once per stage entry. Entering a stage with a limit schedules one
+  `RunAutomations(SlaBreached)` per enabled automation for that stage or for any stage, due when the limit passes and
+  keyed on the entry's timeline id. When it fires it does nothing if the application has left that stage entry, as a
+  `TimeElapsed` timer does, or if the stage's limit has since been removed or lengthened past the due time. The run is
+  keyed on the entry and the message is `[Deduplicated]`, so a redelivery runs nothing twice. Its facts are read at
+  the due time.
+- The validator allows it only `NotifyTeam`, `AssignReviewer`, `CreateTask` and `AddTag`, and refuses anything else
+  with the reason: nothing it does may count against the candidate. It refuses timing facts in its conditions, and an
+  automation that reads a tag it adds (or a stage such an automation moves into) may not queue a rejection review or
+  reject. It needs a stage whose limit counts, or with no stage, at least one such stage.
+- It is not skipped for an application with an accommodation. Guardrail 4 skips timing automations so that time
+  never counts against a candidate who asked for more of it; a breach reminds the team and nothing it does can harm
+  the candidate, so skipping it would leave the candidate who needs the most care waiting with nobody told.
 
 **Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
 trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
@@ -356,7 +382,8 @@ worker cannot disagree about which rules read it.
 
 **Accommodation.** For an application with an accommodation, an automation with a `TimeElapsed` trigger or a condition
 on `application.hoursInStage` (or, later, a `telemetry.*` fact) is skipped: recorded as `Skipped` ("Not evaluated for
-this application"), with no actions. Its stored snapshot leaves the timing facts out.
+this application"), with no actions. Its stored snapshot leaves the timing facts out. An `SlaBreached` automation runs
+as for anyone (above), and the validator keeps timing facts out of its conditions so the skip can never catch it.
 
 **Issues and events.** `GET /v1/automation-issues` lists blocked and failed runs, newest first. An action that fails
 after every retry goes to the dead-letter table, and the error policy's last step (`AutomationFailures`) publishes
@@ -431,6 +458,22 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   `Reject` whose run started before a workflow change falls back to a rejection review, as above.
 - Transactional email in the worker needs `ScreenHire:Email:From` and the AppHost's Mailpit connection. Without
   either, no sender is registered and email actions are skipped. The production provider is still to be chosen.
+- Overdue is computed on screen from `slaDueAt` and the dashboard's clock, with no realtime event when an
+  application falls overdue. Overdue changes with time, not with an event, so an event would only mark the moment of
+  crossing while the clock already redraws every minute. An event would also need a timer for every stage entry in
+  every job, automations or not. `JobWorkflowChanged` refetches the application lists, so a changed limit shows at
+  once.
+- A breach timer is fixed when the stage is entered and is never moved: removing or lengthening a stage's limit drops a
+  waiting timer when it fires, and shortening one does not bring it forward. Applications already in a stage when a
+  limit or an `SlaBreached` automation is added get no timer, though the screens show them overdue. Moving a timer
+  would mean rewriting Wolverine's scheduled envelopes, and `[Deduplicated]` would drop a rescheduled message with
+  the same key anyway.
+- An `SlaBreached` automation counts as signal-driven on a stage a signal moves applications into, and with no stage
+  once any signal-driven automation moves applications, like `ReviewerDecision`. There it may only assign a reviewer
+  or add a tag: `NotifyTeam` and `CreateTask` are outside guardrail 1's list.
+- The candidates page offers no bulk email on the Overdue view, as on an integrity view: a "not moving forward"
+  email to every overdue candidate would count the team's delay against them. One candidate at a time is still a
+  person's decision.
 - The validator checks only that an `emailTemplate` is a built-in id or a Guid, because it also runs in the worker,
   which cannot know the organization's templates. The API checks that an organization template exists when a person
   saves a workflow or validates it in the builder (`EmailTemplateReferences`).
