@@ -9,7 +9,8 @@ import type { ApiKeyScope } from './apiKeyScope.ts';
 /**
  * An organization API key as listed: never the key itself, which only CreatedApiKey carries.
  * `prefix` is the key's first characters. `permitsPerMinute` is null for the deployment's default.
- * `lastUsedAt` is accurate to about a minute.
+ * `lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their
+ * account is deleted; removing a member offers to revoke the keys they created.
  */
 export interface ApiKeySummary {
   id: string;
@@ -23,4 +24,6 @@ export interface ApiKeySummary {
   lastUsedAt: string | null;
   /** @nullable */
   revokedAt: string | null;
+  /** @nullable */
+  createdByUserId: string | null;
 }

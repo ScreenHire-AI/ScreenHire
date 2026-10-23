@@ -63,6 +63,7 @@ const panels: Record<string, string[]> = {
   'Form field': ['Form field'],
   'Move to stage': ['Move to stage'],
   'Confirm dialog': ['Confirm dialog'],
+  'Secret dialog': ['Secret dialog'],
   'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
 };

@@ -87,9 +87,9 @@ a user. No password anywhere.
 The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
-Team management has an API but no screen yet: `POST /v1/organization/invitations` as Avery (the Scalar API reference
-works) sends the invitation to Mailpit. Its link opens the dashboard's **Join your team** page, and **Accept
-invitation** signs the invitee in to Brightwater with the invited role.
+Avery manages the team in **Settings > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
+dashboard's **Join your team** page, and **Accept invitation** signs the invitee in to Brightwater with the invited
+role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, has no Settings in the sidebar.
 
 ## What the demo data is
 
@@ -169,6 +169,18 @@ Extras if there is time: Support Engineer for a closed job and its candidates' a
 the Templates page and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
+
+Settings, as Avery (owners and admins only):
+
+- **Careers branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
+  http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
+  back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.
+- **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
+  `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
+  from the row's menu.
+- **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
+  turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
+  delivery log with replay).
 
 ## What is faked locally
 

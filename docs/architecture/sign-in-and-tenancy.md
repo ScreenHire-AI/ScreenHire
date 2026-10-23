@@ -81,11 +81,11 @@ waits for SMTP; moving the send to a worker message is a later change.
 ## API keys
 
 Integrators call the hiring API with an organization API key instead of a session (ADR-0011). Owners and Admins
-manage keys in a session; there is no screen yet.
+manage keys in a session, on the dashboard's Settings > API keys page, which shows a new key once.
 
 | Route | What it does |
 |---|---|
-| `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked. |
+| `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked, and who created it. |
 | `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
 | `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
 | `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
@@ -139,14 +139,24 @@ set it. It is per user, not per session, so it follows them to every device, and
 connections into the organization they left (`docs/architecture/realtime.md`). Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
-a careers subdomain.
+a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Owners and Admins) renames the
+organization and leaves the slug, because boards and candidates already link to its careers address.
+`GET /v1/organization` gives any member the name, slug, home region and `careersUrl`, the careers board built from
+`ScreenHire:Domains` (`DomainOptions.CareersBoardUrl`), so the dashboard never builds a careers host itself.
 
 Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
 applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
-write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its careers branding)
-call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
+write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its name, careers branding,
+integrity settings, team, API keys and webhooks) call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
 takes effect on the member's next request. Removing a member also closes their open real-time connections into the
 organization at once (`RealtimeConnections`, `docs/architecture/realtime.md`).
+
+The dashboard follows the same rule. Its **Settings** group (Organization, Team, Careers branding, Integrity, API keys,
+Webhooks under `/settings/*`) is in the sidebar and the command palette for Owners and Admins only, and the settings
+layout tells anyone else who opens one by its address that only owners and admins can change settings. The Team page
+offers only what `TeamPolicy` allows (`apps/dashboard/src/lib/settings.ts` mirrors it): an Admin sees no Owner role and
+no actions on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active
+API keys they created as well (ADR-0011). The API stays the judge.
 
 ### Team members and invitations
 
