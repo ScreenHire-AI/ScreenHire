@@ -162,7 +162,8 @@ describe('workflow builder', () => {
     const { container } = renderViews('editor');
 
     const stages = screen.getByRole('region', { name: 'Stages' });
-    expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' })).toHaveLength(4);
+    // Hired and Not progressing end the application, so a time limit there would do nothing.
+    expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' })).toHaveLength(2);
     expect(within(stages).queryByRole('button', { name: 'Move Applied earlier' })).toBeNull();
     expect(within(stages).getByRole('button', { name: 'Move Applied later' })).toBeInTheDocument();
     expect(within(stages).queryByRole('button', { name: 'Move Not progressing later' })).toBeNull();

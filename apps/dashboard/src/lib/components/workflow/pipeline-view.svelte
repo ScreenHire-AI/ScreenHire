@@ -107,16 +107,20 @@
                   {#each stageKinds as kind (kind)}<option value={kind}>{stageKindLabels[kind]}</option>{/each}
                 </select>
               </label>
-              <label class={labelClass}>
-                Time limit (days)
-                <Input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={stage.slaDays ?? ''}
-                  onchange={(event) => (stage.slaDays = event.currentTarget.value ? Number(event.currentTarget.value) : null)}
-                />
-              </label>
+              <!-- A stage that ends the application ignores a time limit (WorkflowStage.HasSla): the input is left out, its
+                   place kept (A3); one left from another kind still shows, to clear. -->
+              {#if !isTerminal(stage.kind) || stage.slaDays}
+                <label class={labelClass}>
+                  Time limit (days)
+                  <Input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={stage.slaDays ?? ''}
+                    onchange={(event) => (stage.slaDays = event.currentTarget.value ? Number(event.currentTarget.value) : null)}
+                  />
+                </label>
+              {:else}<span></span>{/if}
               <div class="flex shrink-0 justify-end gap-0.5">
                 <!-- The first stage cannot move earlier nor the last later: the button is left out, its place kept (A3). -->
                 {#if index > 0}

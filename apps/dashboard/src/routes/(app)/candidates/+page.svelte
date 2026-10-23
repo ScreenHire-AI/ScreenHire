@@ -58,9 +58,9 @@
   // the team's delay never counts against a candidate (workflow-engine.md section 8). Every status view has a mark. One
   // candidate at a time, from their page, is still a person's decision.
   const emailTemplates = createListEmailTemplates();
-  const integrityPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.mark));
+  const statusPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.mark));
   const canEmail = $derived(
-    Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user) && !integrityPicked,
+    Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user) && !statusPicked,
   );
   let emailOpen = $state(false);
   let emailed = $state('');

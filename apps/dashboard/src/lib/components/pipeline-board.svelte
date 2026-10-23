@@ -80,8 +80,9 @@
   }
 </script>
 
-<!-- The board scrolls sideways inside its panel; each column is an inset (design system section 6). -->
-<div class="overflow-x-auto">
+<!-- The board scrolls sideways inside its panel; each column is an inset (design system section 6). relative: the
+     chips' sr-only labels are absolute, and without a positioned scroller they escape it and widen the page (F1). -->
+<div class="relative overflow-x-auto">
   <div class="flex min-w-max gap-3 p-3">
     {#each columns as column (column.stage.id)}
       <section aria-labelledby={`stage-${column.stage.id}`} class="flex w-64 flex-col rounded-lg bg-secondary">

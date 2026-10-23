@@ -322,7 +322,8 @@ timeline entry it appends. Submitting a scorecard publishes `RunAutomations(Revi
 
 **Stage time limits (SLAs).** A stage's `slaDays` is how long a candidate should wait there for the hiring team. It
 measures the team's delay, not the candidate's, so a breach never counts against a candidate. A hired, rejected or
-withdrawn stage ends the application, so a limit there is ignored (`WorkflowStage.SlaDueAt`).
+withdrawn stage ends the application, so a limit there is ignored (`WorkflowStage.SlaDueAt`) and the builder offers
+none.
 
 - An application is overdue from `slaDueAt`: its stage entry plus the stage's `slaDays` in the job's current workflow,
   sent on `ApplicationSummary` and `ApplicationDetail` and null without a limit. The dashboard compares it with its own
