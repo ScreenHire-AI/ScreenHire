@@ -1,3 +1,21 @@
+---
+type: Design
+title: "Careers apply flow"
+description: "The candidate apply page: the notice before any collection, three steps that work without JavaScript, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, and tenant careers hosts."
+tags: [careers, apply, astro]
+sources:
+  - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
+  - resource: apps/careers/src/pages/[organization]/uploads.ts
+  - resource: apps/careers/src/lib/apply.ts
+  - resource: apps/careers/src/lib/apply-server.ts
+  - resource: apps/careers/src/lib/brand.ts
+  - resource: apps/careers/src/lib/host.ts
+  - resource: apps/careers/src/middleware.ts
+  - resource: apps/careers/src/components/PrivacyNotice.astro
+  - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
+  - resource: apps/api/Applications/ApplicantUploads.cs
+  - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
+---
 # Careers apply flow
 
 > Status: v1 (2026-10-20). Code: `apps/careers` (pages, `src/actions`, `src/lib/apply*.ts`), `apps/api`

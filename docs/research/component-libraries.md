@@ -1,4 +1,10 @@
-# Svelte 5 UI Libraries — Evaluation
+---
+type: Research
+title: "Svelte 5 UI Libraries: Evaluation"
+description: "Whether the Svelte 5 ecosystem covers the dashboard's needs, shadcn-svelte against the other component libraries with sizes and ARIA gaps, the recommendation behind ADR-0009, risks, and an ecosystem map with versions and downloads."
+tags: [research, svelte, components]
+---
+# Svelte 5 UI Libraries: Evaluation
 
 > Research snapshot: **2026-10-18**. npm registry + downloads (week Oct 10–16), GitHub API (human contributors last
 > 12 months, open issues excl. PRs). Probe builds: SvelteKit 3.1.0, Vite 8.3, Svelte 5.57.2, Tailwind 4.3, Astro 7.4.

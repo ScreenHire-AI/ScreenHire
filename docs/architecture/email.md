@@ -1,3 +1,22 @@
+---
+type: Design
+title: "Email to candidates"
+description: "Organization email templates in Liquid with a plain-text body over fixed variables, sending to one candidate or a selection through the worker, EmailSent in Activity, the rule that the rejection email goes only with Reject, and what is not built (replies, an inbox)."
+tags: [email, templates, liquid]
+sources:
+  - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
+  - resource: src/ScreenHire.Infrastructure/Email/EmailTemplates.cs
+  - resource: src/ScreenHire.Infrastructure/Email/EmailTemplateStore.cs
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.subject.liquid
+  - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
+  - resource: apps/api/Endpoints/EmailEndpoints.cs
+  - resource: apps/dashboard/src/lib/components/email-sheet.svelte
+---
 # Email to candidates
 
 A hiring team writes its own emails and sends them to candidates by hand, to a selection, or from an automation. Every

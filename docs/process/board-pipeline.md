@@ -1,3 +1,13 @@
+---
+type: Guide
+title: "Board pipeline (Kangentic)"
+description: "How a Kangentic task moves through Executing, Code Review, Testing and Merge: what each column runs, the outcome lines and the silent stall, notifications and unblocking, and processes on the dev machine (Aspire teardown, Docker Desktop, a gate stopped with TaskStop)."
+tags: [kangentic, pipeline, process]
+sources:
+  - resource: kangentic.json
+  - resource: scripts/guard-processes.mjs
+  - resource: scripts/start-docker.mjs
+---
 # Board pipeline (Kangentic)
 
 How a task travels from the board to `main` without anyone at the keyboard, what each notification means, and how to

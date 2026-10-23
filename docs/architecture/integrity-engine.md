@@ -1,4 +1,64 @@
-# Integrity Engine — Applicant Authenticity & AI-Assistance Signals
+---
+type: Design
+title: "Integrity Engine: Applicant Authenticity & AI-Assistance Signals"
+description: "The Authenticity and AI-assistance assessments: level rules, the collection timeline, the signal catalogue, the analyzers and the versioned IntegrityRuleset, retention, the LLM consistency check, content forensics, synthetic applicants and golden files, and the Signal Network design."
+tags: [integrity, signals, ruleset, telemetry]
+sources:
+  - resource: src/ScreenHire.Domain/Integrity/AnswerFingerprint.cs
+  - resource: src/ScreenHire.Domain/Integrity/ApplicationDocument.cs
+  - resource: src/ScreenHire.Domain/Integrity/ConsistencyCheck.cs
+  - resource: src/ScreenHire.Domain/Integrity/Identifiers.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityAnalyzerRun.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityAssessment.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityReviewAction.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityRuleset.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegritySettings.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegritySignal.cs
+  - resource: src/ScreenHire.Domain/Integrity/SignalCatalogue.cs
+  - resource: src/ScreenHire.Domain/Integrity/SignalNetworkEntry.cs
+  - resource: src/ScreenHire.Domain/Integrity/SubmissionObservation.cs
+  - resource: src/ScreenHire.Domain/Integrity/TelemetrySnapshot.cs
+  - resource: src/ScreenHire.Application/Integrity/AutomationAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/BehaviouralAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/AnswerAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ApplicationText.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ConsistencyAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ContentMessages.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ContentPatterns.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ContentRecords.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/DocumentAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/DuplicateAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/IIntegrityAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/IdentityAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/IntegrityMessages.cs
+  - resource: src/ScreenHire.Application/Integrity/IntegrityPipeline.cs
+  - resource: src/ScreenHire.Application/Integrity/IntegrityRegistration.cs
+  - resource: src/ScreenHire.Application/Integrity/NetworkAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/SyntheticApplicants.cs
+  - resource: src/ScreenHire.Application/Integrity/SyntheticDocuments.cs
+  - resource: src/ScreenHire.Application/Integrity/TelemetrySource.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Data/disposable-email-domains.txt
+  - resource: src/ScreenHire.Infrastructure/Integrity/Documents/DocumentExtraction.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Documents/PdfText.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Documents/WordText.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/IdentityChecks.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/IntegrityOptions.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/IpIntelligence.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/KeyedHashing.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/ConsistencyBudget.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/ConsistencyChecker.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/ConsistencyPrompts.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/FakeConsistencyChatClient.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/LlmAccess.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/TextSimilarity.cs
+  - resource: apps/api/Endpoints/IntegrityEndpoints.cs
+  - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
+  - resource: apps/dashboard/src/lib/integrity.ts
+  - resource: packages/telemetry/src/collector.ts
+  - resource: packages/telemetry/src/device.ts
+  - resource: packages/telemetry/src/index.ts
+---
+# Integrity Engine: Applicant Authenticity & AI-Assistance Signals
 
 > Status: **v1 application stage built (2026-10-20)**, content forensics included (§10.10); §10 describes the implementation. Design draft v0.1
 > (2026-10-18), grounded in `docs/research/legal.md` and `docs/research/competitors.md`.

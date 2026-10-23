@@ -28,8 +28,10 @@ For each anchor:
    - projects: every folder directly under `apps/`, `packages/` and `src/` (Glob);
    - tooling: every `.claude/skills/*/SKILL.md` folder name, `.claude/agents/*.md` and `.claude/rules/*.md` file
      name;
-   - docs: every `docs/**/*.md` file.
-2. **Extract from the doc.** Find the section that lists them and record each item with its `file:line`.
+   - docs: every `docs/**/*.md` file except `index.md` and `log.md`, grouped by folder (Glob).
+2. **Extract from the doc.** Find the section that lists them and record each item with its `file:line`. For the
+   docs anchor the doc is each folder's own `index.md`: every `* [Title](file.md) - description` line names one file
+   in that folder. Compare each folder separately; a file listed only in another folder's index is still missing.
 3. **Compare.** Items in the source but not the doc are missing. Items in the doc but not the source are extra.
 
 Be exact. `verify:dotnet` is not `verify`. A port listed as `:5080` matches `PortFor("Api", 5080)`.

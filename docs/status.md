@@ -1,0 +1,104 @@
+---
+type: Reference
+title: "MVP status"
+description: "What is built and in which PR, the acceptance journey that walks it end to end, the local stand-in for each external integration, every owner action (accounts, keys, legal reviews) needed before real use, and the known gaps."
+tags: [status, owner-actions, mvp]
+sources:
+  - resource: tests/ScreenHire.E2E/AcceptanceJourneyTests.cs
+---
+# MVP status
+
+Snapshot 2026-10-23, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
+workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
+collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012). The whole product
+runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
+`pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
+publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
+levels and evidence, a move sends the stage-change email, and closing takes the job down everywhere. Nothing is hosted
+yet.
+
+What comes next, in order, is the [roadmap](roadmap.md).
+
+## Built
+
+| Area | What works | PRs |
+|---|---|---|
+| Sign-in and tenancy | Email links, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7 |
+| Team | Members with roles, email invitations that expire and work once, role changes and removal with the last Owner protected, a membership log, switching between organizations | #38 |
+| API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)) | #37 |
+| Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
+| Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
+| Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling | #36 |
+| Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations make, a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40 |
+| Scorecards | Job-related criteria per stage on a fixed labelled scale and a required recommendation, nothing summed; submitting one raises the "reviewer decision" trigger | #41 |
+| Email | Organization email templates (Liquid subject, plain-text message, live preview, a test send), email to one candidate or a selection, the rejection email only with Reject ([email](architecture/email.md)) | #42 |
+| Settings | Organization, Team, Careers branding, Integrity, API keys, Webhooks and Email templates screens for Owners and Admins | #39, #42 |
+| Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
+| Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
+| Integrity | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
+| Dashboard | Every page on [design system v0.2](design/design-system.md) (ADR-0010): the shell with a sidebar, an icon rail and a phone sheet; jobs and their forms; the candidates list and job pipeline; the candidate page with an inline resume preview; templates and the workflow builder; live updates; integrity badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33 |
+| Demo data | The local demo fills every screen, with a questionnaire on every seeded job and answers for every candidate, and a second Brightwater member (Jordan Ellis, Recruiter) | #20, #23, #38 |
+| Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets, a visual design pass at three widths in `/task-review`, the docs as an Open Knowledge Format bundle (ADR-0012) | #4, #5, #6, #8, #22, #28 |
+
+## Faked locally
+
+Every external integration sits behind an interface with a local stand-in, and a provider with no configuration is
+hidden rather than an error.
+
+| Integration | Local stand-in |
+|---|---|
+| Identity providers | Dev SSO (navikt/mock-oauth2-server) with seeded users; Google, Microsoft and generic OIDC appear only with a client id and secret |
+| Email | Mailpit, through the SMTP adapter behind `IEmailSender`; invitations, sign-in links and candidate email all land there |
+| LLM | A deterministic fake model for the consistency check; with no provider the check records "unavailable"; off per organization by default |
+| Job boards | A sandbox push board (Development only) and the feeds; Google Indexing has a local fake and is off unless set; Indeed is flags only |
+| Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
+| IP data | Configured ranges for the RFC 5737 documentation addresses; an ip2asn file and a Tor exit list are optional and absent |
+| Storage, bot challenge, malware scan | Azurite; Turnstile unconfigured (recorded as "not checked", the honeypot still works); `NoMalwareScanner`, which records every file as "not scanned" |
+| Built, flagged off | The cross-employer Signal Network, off until legal review (ADR-0005) |
+| Not built | Identity verification and liveness (phase 2, the control is disabled), interview integrity (phase 3), candidate replies and an inbox |
+
+## Owner actions
+
+Everything below needs a person: an account, a key, a decision or a legal review. The PR that raised each is in
+brackets.
+
+- **Sign-in.** Register the Google and Microsoft apps with redirect URIs `{AppOrigin}/v1/auth/signin-google` and
+  `/signin-microsoft`, request Microsoft's `xms_edov` optional claim, and put the client ids and secrets in the secret
+  store (#7). Persist and share the Data Protection key ring across instances, for sign-in cookies and telemetry tokens
+  (#7, #18). List the reverse proxies and the careers servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
+- **Email.** Choose the production provider behind `IEmailSender`, and set `ScreenHire:Email:From` and the worker's
+  SMTP connection; without them automations skip email, and invitations and candidate email cannot go out (#7, #10,
+  #38, #42). Candidate replies and an inbox need that provider to route inbound mail (#42). Set a production
+  `ScreenHire:Webhooks:SigningKey` for the API and the worker; without it creating or rotating a webhook endpoint
+  returns 503 and deliveries are skipped (#10, #36).
+- **Integrators.** Integrator docs and terms must carry the `integrity.assessed` guidance on automated rejection
+  (GDPR Art. 22, NYC LL144 and the other rules in [legal](research/legal.md)); no integrator docs exist yet (#36).
+- **LLM.** Set `ScreenHire:Integrity:Llm:Provider=Anthropic` and the `anthropic-api-key` secret, then replace the
+  hand-written recordings with live ones; add the provider to the sub-processor list and DPA before a real tenant turns
+  the check on (#15).
+- **Job boards.** Create a Google service account that owns the careers domain in Search Console, set
+  `GoogleIndexing:Mode=Google` and `google-indexing-service-account-key`, and ask for more than 200 calls a day; the real
+  client has never run (#12). Onboard each organization's feed with Careerjet, Talent.com, Adzuna and Jooble, and check
+  Jooble's date format and Adzuna's schema with them (#12).
+- **IP data and identity checks.** Supply an ip2asn file and a Tor exit list, or wire a commercial source behind
+  `IIpIntelligence` (#13). Set `ScreenHire:Integrity:DeviceHashKey` (32+ characters) in production (#13). Refresh the
+  embedded disposable-domain list from time to time (#13).
+- **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
+  dashboard host (the resume preview, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
+  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
+- **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
+  its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
+  until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's
+  `security.allowedDomains` for careers behind a CDN (#11); keep access logs for 30 days or less (#11). Set
+  `PUBLIC_APP_URL` so the marketing site's "Start free" reaches sign-in (#6).
+- **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
+  page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
+  device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18).
+- **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
+  engineer" version 1 to version 2 (#13).
+
+## Known gaps
+
+- `answers.*` and `application.source` facts are not wired into automation conditions yet (#11).
+- With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
+  startup (integrity-engine.md §10.9). In the browser pane, `/preview` waits for an integrity chip before it checks anything live.

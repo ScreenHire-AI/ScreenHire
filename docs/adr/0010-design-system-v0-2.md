@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0010: Design system v0.2, simple and approachable"
+description: "Design system v0.2, which replaces the dense keyboard-first brief: keep it simple first, the 16px root and 14px body, a 1280px layout with page templates, five layers, status first, controls that never wrap, and how times and dates show."
+tags: [adr, design-system]
+---
 # ADR-0010: Design system v0.2, simple and approachable
 
 - **Status:** Accepted (2026-10-20)

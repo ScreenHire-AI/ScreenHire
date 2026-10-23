@@ -1,4 +1,10 @@
-# ADR-0005: Cross-employer Signal Network — pseudonymised, opt-in, legal-gated
+---
+type: Decision
+title: "ADR-0005: Cross-employer Signal Network, pseudonymised, opt-in, legal-gated"
+description: "The cross-employer Signal Network, accepted with a gate: keyed hashes of hard identifiers only, counts shown at three or more organisations, 90-day retention, opt in to contribute before querying, step-up verification only, and a feature flag that stays off until legal review."
+tags: [adr, integrity, signal-network, legal]
+---
+# ADR-0005: Cross-employer Signal Network, pseudonymised, opt-in, legal-gated
 
 - **Status:** Accepted with gate (2026-10-18)
 - **Deciders:** Owner

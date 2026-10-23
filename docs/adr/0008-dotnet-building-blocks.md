@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0008: .NET building blocks under a permissive-licence policy"
+description: "The .NET library for each concern (Wolverine, ASP.NET Core Identity, Aspire, OpenAPI with Scalar, Orval, named query filters with RLS, Mapperly) under the permissive-licence policy, and the packages it bans, such as MediatR, AutoMapper and Finbuckle."
+tags: [adr, dotnet, licences]
+---
 # ADR-0008: .NET building blocks under a permissive-licence policy
 
 - **Status:** Accepted (2026-10-18) — technical defaults, revisitable per component
