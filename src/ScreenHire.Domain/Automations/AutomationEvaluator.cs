@@ -19,13 +19,14 @@ public static class AutomationEvaluator
     /// <summary>
     /// The enabled automations of <paramref name="workflow"/> that fire on <paramref name="trigger"/>, in definition
     /// order. A stage trigger matches only its own stage. A <see cref="TriggerType.ReviewerDecision"/> automation with no
-    /// stage matches a scorecard on any stage; one with a stage matches that stage's scorecards.
+    /// stage matches a scorecard on any stage; one with a stage matches that stage's scorecards. An
+    /// <see cref="TriggerType.SlaBreached"/> automation with no stage matches any stage's time limit.
     /// </summary>
     public static IReadOnlyList<Automation> Triggered(HiringWorkflow workflow, TriggerType trigger, string? stageId)
     {
         ArgumentNullException.ThrowIfNull(workflow);
         return [.. workflow.Automations.Where(a => a.Enabled && a.Trigger.Type == trigger
-            && (a.Trigger.StageId == stageId || (trigger == TriggerType.ReviewerDecision && a.Trigger.StageId is null)))];
+            && (a.Trigger.StageId == stageId || (trigger is (TriggerType.ReviewerDecision or TriggerType.SlaBreached) && a.Trigger.StageId is null)))];
     }
 
     /// <summary>

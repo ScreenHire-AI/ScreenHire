@@ -24,4 +24,6 @@ export interface ApplicationSummary {
   source: ApplicationSource;
   tags: string[];
   integrity?: null | IntegritySummary;
+  /** @nullable */
+  slaDueAt?: string | null;
 }

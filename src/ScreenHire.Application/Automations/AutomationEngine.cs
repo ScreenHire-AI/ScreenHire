@@ -11,7 +11,8 @@ namespace ScreenHire.Application.Automations;
 /// The workflow engine's evaluation step (docs/architecture/workflow-engine.md §3). For one application and the triggers
 /// one event fires, it finds the job's automations, takes the facts snapshot, evaluates each automation, records an
 /// <see cref="AutomationRun"/> for every one (the audit, guardrail 3), and returns the messages that carry the work on:
-/// the first action of each matched run, issue events, and TimeElapsed timers for a stage the application entered.
+/// the first action of each matched run, issue events, and the TimeElapsed and SlaBreached timers for a stage the
+/// application entered.
 /// Everything it writes commits in the calling handler's transaction, with those messages.
 /// </summary>
 /// <remarks>
@@ -24,7 +25,7 @@ public static class AutomationEngine
     /// <summary>
     /// Evaluates <paramref name="triggers"/> (the triggers one event fires, sharing its id, time and cause) for
     /// <paramref name="application"/>. <paramref name="enteredStageId"/> is the stage the event put the application in,
-    /// for TimeElapsed timers, or null; <paramref name="onlyAutomationId"/> limits it to one automation (timers and
+    /// for TimeElapsed and SlaBreached timers, or null; <paramref name="onlyAutomationId"/> limits it to one automation (timers and
     /// manual runs).
     /// </summary>
     public static async Task<OutgoingMessages> EvaluateAsync(
@@ -52,7 +53,12 @@ public static class AutomationEngine
         var timers = enteredStageId is null
             ? []
             : workflow.Automations.Where(a => a.Enabled && a.Trigger.Type == TriggerType.TimeElapsed && a.Trigger.StageId == enteredStageId).ToList();
-        if (candidates.Count == 0 && timers.Count == 0)
+        var enteredStage = enteredStageId is null ? null : workflow.FindStage(enteredStageId);
+        var slaTimers = enteredStage?.HasSla() == true
+            ? workflow.Automations.Where(a => a.Enabled && a.Trigger.Type == TriggerType.SlaBreached
+                && (a.Trigger.StageId is null || a.Trigger.StageId == enteredStage.Id)).ToList()
+            : [];
+        if (candidates.Count == 0 && timers.Count == 0 && slaTimers.Count == 0)
         {
             return outgoing;
         }
@@ -106,17 +112,24 @@ public static class AutomationEngine
             }
         }
 
-        ScheduleTimers(application, first, timers, timeline, outgoing);
+        ScheduleTimers(application, first, timers, enteredStage, slaTimers, timeline, outgoing);
         return outgoing;
     }
 
     /// <summary>
-    /// One timer per TimeElapsed automation on the stage just entered, due <c>afterHours</c> after the entry. The timer
-    /// carries the entry's timeline id; when it fires, <see cref="RunAutomationsHandler"/> drops it if the application
-    /// has left that stage entry since, which is how leaving the stage cancels it.
+    /// One timer per TimeElapsed automation on the stage just entered, due <c>afterHours</c> after the entry, and one per
+    /// SlaBreached automation for that stage or any stage, due when the stage's time limit passes. The timer carries the
+    /// entry's timeline id; when it fires, <see cref="RunAutomationsHandler"/> drops it if the application has left that
+    /// stage entry since, which is how leaving the stage cancels it.
     /// </summary>
     private static void ScheduleTimers(
-        JobApplication application, AutomationTriggerEvent trigger, List<Automation> timers, List<ApplicationEvent> timeline, OutgoingMessages outgoing)
+        JobApplication application,
+        AutomationTriggerEvent trigger,
+        List<Automation> timers,
+        WorkflowStage? enteredStage,
+        List<Automation> slaTimers,
+        List<ApplicationEvent> timeline,
+        OutgoingMessages outgoing)
     {
         var entry = timeline.Find(e => e.Id == trigger.EventId);
         if (entry is null)
@@ -130,6 +143,18 @@ public static class AutomationEngine
             outgoing.Add(new RunAutomations(
                 application.OrganizationId, application.Id, TriggerType.TimeElapsed, automation.Trigger.StageId, entry.Id, due,
                 automation.Id, trigger.CausedByRunId).ScheduledAt(due));
+        }
+
+        if (enteredStage?.SlaDueAt(entry.OccurredAt) is not { } slaDue)
+        {
+            return;
+        }
+
+        foreach (var automation in slaTimers)
+        {
+            outgoing.Add(new RunAutomations(
+                application.OrganizationId, application.Id, TriggerType.SlaBreached, enteredStage.Id, entry.Id, slaDue,
+                automation.Id, trigger.CausedByRunId).ScheduledAt(slaDue));
         }
     }
 

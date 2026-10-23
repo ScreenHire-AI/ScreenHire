@@ -6175,6 +6175,13 @@
             "items": {
               "$ref": "#/components/schemas/ApplicationFileSummary"
             }
+          },
+          "slaDueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
@@ -6385,6 +6392,13 @@
                 "$ref": "#/components/schemas/IntegritySummary"
               }
             ]
+          },
+          "slaDueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
@@ -11249,7 +11263,8 @@
           "TimeElapsed",
           "CandidateReplied",
           "InterviewScheduled",
-          "Manual"
+          "Manual",
+          "SlaBreached"
         ]
       },
       "UpdateBrandingRequest": {
