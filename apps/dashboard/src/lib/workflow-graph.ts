@@ -4,7 +4,7 @@
 // so there is nothing to drag.
 import type { Edge, Node } from '@xyflow/svelte';
 import type { HiringWorkflow } from '@screenhire/api-client';
-import { describeAction, emailTemplateNames, operatorLabels, triggerLabels } from './workflow.js';
+import { describeAction, emailTemplateNames, followUpName, operatorLabels, triggerLabels } from './workflow.js';
 
 export type StepKind = 'stage' | 'trigger' | 'conditions' | 'action';
 
@@ -61,7 +61,9 @@ export function toGraph(
       node(triggerId, 0, y, {
         kind: 'trigger',
         title: automation.name,
-        detail: triggerLabels[automation.trigger.type] ?? automation.trigger.type,
+        detail: automation.trigger.questionnaireId
+          ? `${triggerLabels[automation.trigger.type]}: ${followUpName(workflow, automation.trigger.questionnaireId)}`
+          : (triggerLabels[automation.trigger.type] ?? automation.trigger.type),
         automation: index,
         path: `${path}.trigger`,
         disabled,

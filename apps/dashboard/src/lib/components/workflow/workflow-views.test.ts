@@ -114,6 +114,18 @@ describe('read-only workflow', () => {
     await expectNoAxeViolations(container);
   });
 
+  it('reads each follow-up questionnaire as its own panel', () => {
+    const followUp: HiringWorkflow = {
+      ...workflow,
+      followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
+    };
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: followUp, errors: [], mode: 'summary', tab: 'questionnaire' } } });
+
+    const panel = screen.getByRole('region', { name: 'Follow-up: Availability' });
+    expect(controls(panel)).toHaveLength(0);
+    expect(panel).toHaveTextContent('When could you start?');
+  });
+
   it('lists each problem in words in a Problems region, with nothing to fix and no controls', () => {
     const { container } = renderViews('summary', 'pipeline', [
       { path: 'stages[1].name', message: 'Give the stage a name.' },
@@ -174,6 +186,59 @@ describe('workflow builder', () => {
 
     expect(screen.getByRole('region', { name: 'Whole workflow' })).toHaveTextContent('When an application arrives: notify the team. (off)');
     await expectNoAxeViolations(container);
+  });
+
+  it('adds a follow-up questionnaire beside the apply form, with no file questions and a preview of its own', async () => {
+    const { container } = renderViews('editor', 'questionnaire');
+    const pane = screen.getByRole('tabpanel', { name: 'Questionnaire' });
+    const choices = within(pane).getByRole('group', { name: 'Questionnaire' });
+    expect(within(choices).getByRole('button', { name: 'Apply form' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(pane).getByRole('region', { name: 'Screening questions' })).toBeInTheDocument();
+
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Add follow-up questionnaire' }));
+
+    expect(within(choices).getByRole('button', { name: 'New questionnaire' })).toHaveAttribute('aria-pressed', 'true');
+    const name = within(pane).getByRole('textbox', { name: /^Name/ });
+    await fireEvent.input(name, { target: { value: 'Availability' } });
+    expect(within(choices).getByRole('button', { name: 'Availability' })).toBeInTheDocument();
+    const questions = within(pane).getByRole('region', { name: 'Questions' });
+    // The first question's id is unique across the workflow: the apply form already has `right_to_work`.
+    expect(questions).toHaveTextContent('answers.question');
+    const types = within(questions).getAllByRole('combobox', { name: 'Answer type' })[0]!;
+    expect(within(types).queryByRole('option', { name: 'File upload' })).toBeNull();
+    // The follow-up's page asks only its questions: no details and no resume.
+    const preview = within(pane).getByRole('region', { name: 'Candidate preview' });
+    expect(within(preview).queryByRole('textbox', { name: /Full name/ })).toBeNull();
+    await expectNoAxeViolations(container);
+
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Remove questionnaire' }));
+    expect(within(choices).queryByRole('button', { name: 'Availability' })).toBeNull();
+    expect(within(choices).getByRole('button', { name: 'Apply form' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('offers Send a questionnaire and the questionnaire trigger only with a follow-up to name', async () => {
+    const followUp: HiringWorkflow = {
+      ...workflow,
+      followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
+    };
+    const view = render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'editor' } } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Automations for Phone screen' }));
+    let sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    expect(within(sheet).queryByRole('option', { name: 'Send a questionnaire' })).toBeNull();
+    view.unmount();
+
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: followUp, errors: [], mode: 'editor' } } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Automations for Phone screen' }));
+    sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    const action = within(sheet).getByRole('combobox', { name: 'Action 1' });
+    await fireEvent.change(action, { target: { value: 'SendQuestionnaire' } });
+    expect((within(sheet).getByRole('combobox', { name: 'Questionnaire' }) as HTMLSelectElement).value).toBe('availability');
+
+    const trigger = within(sheet).getByRole('combobox', { name: 'Trigger' });
+    await fireEvent.change(trigger, { target: { value: 'QuestionnaireCompleted' } });
+    const pickers = within(sheet).getAllByRole('combobox', { name: 'Questionnaire' });
+    expect(within(pickers[0]!).getByRole('option', { name: 'Any follow-up questionnaire' })).toBeInTheDocument();
+    expect((pickers[0] as HTMLSelectElement).value).toBe('availability');
   });
 
   it('gives a review stage a scorecard of job-related criteria in a sheet, and an end stage none', async () => {

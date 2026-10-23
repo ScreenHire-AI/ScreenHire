@@ -5,10 +5,13 @@ export const emailTemplatesPath = '/v1/email-templates';
 
 /**
  * The templates a person can send by hand and a SendEmail automation can name: every one but the rejection email, which
- * only a Reject action sends (workflow-engine.md section 2).
+ * only a Reject action sends (workflow-engine.md section 2), and the follow-up questions email, which only a
+ * SendQuestionnaire action sends with its link.
  */
-export function sendableTemplates<Template extends Pick<EmailTemplateEntry, 'rejectOnly'>>(templates: readonly Template[]): Template[] {
-  return templates.filter((template) => !template.rejectOnly);
+export function sendableTemplates<Template extends Pick<EmailTemplateEntry, 'rejectOnly'> & { questionnaireOnly?: boolean }>(
+  templates: readonly Template[],
+): Template[] {
+  return templates.filter((template) => !template.rejectOnly && !template.questionnaireOnly);
 }
 
 /** A variable as a template writes it. */

@@ -2,6 +2,8 @@
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
+  import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
+  import ListChecksIcon from '@lucide/svelte/icons/list-checks';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import MailIcon from '@lucide/svelte/icons/mail';
   import PhoneIcon from '@lucide/svelte/icons/phone';
@@ -110,6 +112,11 @@
   const fileById = $derived(new Map((detail?.files ?? []).map((file) => [file.uploadId, file])));
   const resume = $derived(detail?.files.find((file) => file.questionId === 'resume'));
   const answers = $derived(detail?.answers.filter((answer) => answer.questionId !== 'resume') ?? []);
+  // Follow-up questionnaires an automation sent, with their answers once given, read against the questions as the
+  // candidate saw them (the request keeps a copy).
+  const followUps = $derived(detail?.followUps ?? []);
+  const followUpName = (requestId: string | null | undefined) =>
+    followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
   // A reviewer scores a stage that has a scorecard, that the application has reached, and that they have not scored yet;
   // the current stage first.
   const reached = $derived(
@@ -154,6 +161,11 @@
       case 'EmailSent':
         // The body is never kept on the timeline, only the subject the candidate received.
         return `Emailed "${entry.emailSubject ?? 'an update'}"`;
+      case 'QuestionnaireSent':
+        return `Sent the "${followUpName(entry.questionnaireRequestId)}" questionnaire`;
+      case 'QuestionnaireCompleted':
+        // The answers are the follow-up's panel to show.
+        return `Answered the "${followUpName(entry.questionnaireRequestId)}" questionnaire`;
     }
   }
 
@@ -166,6 +178,8 @@
     NoteAdded: StickyNoteIcon,
     ScorecardSubmitted: ClipboardCheckIcon,
     EmailSent: SendIcon,
+    QuestionnaireSent: ClipboardListIcon,
+    QuestionnaireCompleted: ListChecksIcon,
   };
 
   function actor(entry: ApplicationTimelineEntry): string | undefined {
@@ -330,6 +344,28 @@
               </SummaryList>
             {/if}
           </Panel>
+
+          {#each followUps as followUp (followUp.id)}
+            {@const asked = new Map(followUp.questions.map((question) => [question.id, question]))}
+            <Panel title={`Follow-up: ${followUp.name}`}>
+              {#if followUp.completedAt}
+                <p class="mb-3 text-muted-foreground">Answered <RelativeTime at={followUp.completedAt} /></p>
+                <SummaryList>
+                  {#each followUp.answers as answer (answer.questionId)}
+                    {@const question = asked.get(answer.questionId)}
+                    <SummaryItem label={question?.label ?? answer.questionId}>
+                      <span class="whitespace-pre-line">{answerText(answer, question)}</span>
+                    </SummaryItem>
+                  {/each}
+                </SummaryList>
+                {#if followUp.answers.length === 0}<p class="text-muted-foreground">No answers to the optional questions.</p>{/if}
+              {:else}
+                <p class="text-muted-foreground">
+                  Sent <RelativeTime at={followUp.lastSentAt} />{followUp.timesSent > 1 ? ` (${followUp.timesSent} times)` : ''}, not answered yet.
+                </p>
+              {/if}
+            </Panel>
+          {/each}
 
           {#if hasScorecards}
             <Panel title="Scorecards" count={scorecards.data?.data.length}>
