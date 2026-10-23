@@ -35,9 +35,16 @@ public sealed record ApplicationEmailResult(string Detail, ApplicationEvent? Eve
 public static class ApplicationEmails
 {
     /// <summary>
+    /// Whether <paramref name="templateId"/> skips an application in <paramref name="stage"/>: the stage-change email
+    /// never goes to one that has ended ("moved to the next step: Rejected" would be a rejection no Reject action
+    /// guarded). The API counts the skips when it queues a send; this method re-checks when it goes.
+    /// </summary>
+    public static bool Skips(string templateId, WorkflowStage? stage) =>
+        templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn;
+
+    /// <summary>
     /// Renders the organization's wording of <paramref name="templateId"/> for the candidate and sends it. Not sent: no
-    /// email sender, a template the organization deleted, or the stage-change email to an application that has ended
-    /// ("moved to the next step: Rejected" would be a rejection no Reject action guarded). The caller saves the entry.
+    /// email sender, a template the organization deleted, or a send that <see cref="Skips"/>. The caller saves the entry.
     /// </summary>
     public static async Task<ApplicationEmailResult> SendAsync(
         ScreenHireDbContext db,
@@ -59,7 +66,7 @@ public static class ApplicationEmails
         }
 
         var stage = job.Workflow.FindStage(application.CurrentStageId);
-        if (templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn)
+        if (Skips(templateId, stage))
         {
             return new("The application has ended, so the stage-change email was not sent.", null);
         }

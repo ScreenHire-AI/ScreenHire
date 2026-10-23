@@ -10,11 +10,10 @@
 </script>
 
 <script lang="ts">
-  import MailIcon from '@lucide/svelte/icons/mail';
   import { getListEmailTemplatesQueryKey, getPreviewApplicationEmailQueryKey } from '@screenhire/api-client/svelte-query';
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
+  import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
   import EmailSheet from '#lib/components/email-sheet.svelte';
-  import { Button } from '#lib/components/ui/button/index.js';
 
   // The Email sheet with sample data: the style guide has no API, so this example brings its own query client, filled in
   // advance and never refetched. Send has nowhere to go here, so it shows the failure line.
@@ -46,5 +45,5 @@
   let open = $state(false);
 </script>
 
-<Button variant="outline" onclick={() => (open = true)}><MailIcon aria-hidden="true" />Email 3</Button>
+<EmailSelectionButton count={3} onclick={() => (open = true)} />
 <EmailSheet bind:open {recipients} />

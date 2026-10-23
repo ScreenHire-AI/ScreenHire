@@ -89,14 +89,16 @@
   }
 
   // The preview follows the wording as it is typed, a moment after typing stops. A slower answer to older wording never
-  // replaces a newer one.
+  // replaces a newer one. With no wording yet there is nothing to show or test, and a line says so (E1, A3).
   const previewing = createPreviewEmailTemplate();
   let preview = $state<Preview | undefined>();
   let previewFailure = $state<string | undefined>();
   let sequence = 0;
+  const blank = $derived(!$form.subject.trim() && !$form.body.trim());
   $effect(() => {
     const draft = { subject: $form.subject, body: $form.body, templateId };
     const ticket = ++sequence;
+    if (blank) return;
     const timer = setTimeout(async () => {
       try {
         const response = await previewing.mutateAsync({ data: draft });
@@ -211,11 +213,15 @@
   <Panel title="Preview">
     {#snippet actions()}
       {#if sendingEnabled}
-        <Button variant="outline" onclick={sendTest} disabled={test.isPending}><SendIcon aria-hidden="true" />Send test</Button>
+        <Button variant="outline" onclick={sendTest} disabled={blank || test.isPending}><SendIcon aria-hidden="true" />Send test</Button>
       {/if}
     {/snippet}
     <div class="flex flex-col gap-3">
-      <EmailPreview {preview} failure={previewFailure} />
+      {#if blank}
+        <p class="text-muted-foreground">The email appears here as you write the subject and the message.</p>
+      {:else}
+        <EmailPreview {preview} failure={previewFailure} />
+      {/if}
       <p role="status" class="text-muted-foreground empty:hidden">{tested}</p>
       <FailureText message={testFailure} />
     </div>

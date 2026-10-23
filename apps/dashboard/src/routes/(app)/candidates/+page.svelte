@@ -1,10 +1,10 @@
 <script lang="ts">
-  import MailIcon from '@lucide/svelte/icons/mail';
   import { createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { matchesSearch } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
+  import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
   import EmailSheet from '#lib/components/email-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
@@ -13,10 +13,10 @@
   import SearchField from '#lib/components/search-field.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
   import { isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
   import { isHiringWriter } from '#lib/settings.js';
@@ -55,6 +55,9 @@
   );
   let emailOpen = $state(false);
   let emailed = $state('');
+  // Phones list the rows without checkboxes, so a selection only gets there from a wider window, and the header has no
+  // room for the button beside the search and the pill.
+  const phone = new IsMobile();
 </script>
 
 <svelte:head>
@@ -78,8 +81,8 @@
           <SearchField bind:value={search} label="Search candidates" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
           {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
-          {#if canEmail && selectedCount > 0}
-            <Button variant="outline" class="shrink-0" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />Email {selectedCount}</Button>
+          {#if canEmail && selectedCount > 0 && !phone.current}
+            <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
           {/if}
         {/snippet}
         {#if applications.isError}

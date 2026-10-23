@@ -162,7 +162,22 @@ internal static class EmailEndpoints
             row.UpdatedAt = now;
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        // Another person's first edit of this built-in added its row between the read above and this insert. This edit
+        // goes on top of theirs, as any later edit would.
+        catch (DbUpdateException exception) when (row is null && exception.IsUniqueViolation())
+        {
+            db.ChangeTracker.Clear();
+            var added = await db.EmailTemplates.SingleAsync(t => t.BuiltInId == templateId, cancellationToken);
+            added.Subject = request.Subject;
+            added.Body = request.Body;
+            added.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return TypedResults.Ok((await store.FindAsync(db, templateId, cancellationToken))!.ToEntry());
     }
 
@@ -303,8 +318,7 @@ internal static class EmailEndpoints
         var skipped = 0;
         foreach (var row in applications)
         {
-            if (request.TemplateId == EmailTemplateIds.StageChange
-                && row.Workflow.FindStage(row.Application.CurrentStageId)?.Kind is StageKind.Rejected or StageKind.Withdrawn)
+            if (ApplicationEmails.Skips(request.TemplateId, row.Workflow.FindStage(row.Application.CurrentStageId)))
             {
                 skipped++;
                 continue;

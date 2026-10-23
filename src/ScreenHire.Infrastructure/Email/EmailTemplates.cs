@@ -109,7 +109,8 @@ public sealed partial class EmailTemplates
             }
             catch (Exception exception) when (exception is InvalidOperationException or FluidException or ArgumentException)
             {
-                problems.Add(new("body", $"The template does not render: {exception.Message}"));
+                // A fixed message: the exception's own text is the engine's, not something to show (dotnet-api.md).
+                problems.Add(new("body", "The template does not render. Simplify the last change and try again."));
             }
         }
 
@@ -161,6 +162,8 @@ public sealed partial class EmailTemplates
     /// </summary>
     internal static string ToHtml(string text)
     {
+        // Email clients ignore CSS variables, so the colours are literal: the Warm Grid --card and --foreground tokens
+        // (packages/ui/src/tokens.css), light theme.
         var html = new StringBuilder("<!doctype html>\n<html lang=\"en\">\n<body style=\"margin: 16px; background: #ffffff; color: #1c1b19; font-family: sans-serif; line-height: 1.5;\">\n");
         foreach (var paragraph in BlankLines().Split(text).Where(p => p.Trim().Length > 0))
         {

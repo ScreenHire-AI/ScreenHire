@@ -1,10 +1,10 @@
 <script lang="ts">
-  import MailIcon from '@lucide/svelte/icons/mail';
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
+  import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
   import EmailSheet from '#lib/components/email-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
@@ -142,7 +142,7 @@
           </DropdownMenu.Content>
         </DropdownMenu.Root>
         {#if canEmail && !isIntegrityFiltered(integrityFilter)}
-          <Button variant="outline" class="shrink-0" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />Email {selected.length}</Button>
+          <EmailSelectionButton count={selected.length} onclick={() => (emailOpen = true)} />
         {/if}
       {/if}
     {/if}
