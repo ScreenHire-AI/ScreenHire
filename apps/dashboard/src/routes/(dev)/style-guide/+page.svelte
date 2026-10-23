@@ -21,6 +21,7 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
+  import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -173,19 +174,17 @@
 <ShortcutsDialog bind:open={shortcutsOpen} />
 <SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
-<!-- The confirm dialog's shape, as CloseJobDialog and LeaveDialog draw it (section 9). -->
-<Dialog.Root bind:open={confirmOpen}>
-  <Dialog.Content class="sm:max-w-md">
-    <Dialog.Header>
-      <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
-      <Dialog.Description>The careers page stops taking applications and every board is asked to remove the job, for good.</Dialog.Description>
-    </Dialog.Header>
-    <Dialog.Footer>
-      <Dialog.Close class={buttonVariants({ variant: 'outline', size: 'lg' })}>Keep it open</Dialog.Close>
-      <Button variant="destructive" size="lg" onclick={() => (confirmOpen = false)}><CircleXIcon aria-hidden="true" />Close &amp; remove everywhere</Button>
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title="Close this job and remove it everywhere?"
+  description="The careers page stops taking applications and every board is asked to remove the job, for good."
+  cancelLabel="Keep it open"
+  confirmLabel="Close & remove everywhere"
+  failure="Could not close the job"
+  onconfirm={async () => {}}
+>
+  {#snippet icon()}<CircleXIcon aria-hidden="true" />{/snippet}
+</ConfirmDialog>
 
 <main class="flex min-h-screen flex-col">
   <HeaderBand title="Style guide" wide>

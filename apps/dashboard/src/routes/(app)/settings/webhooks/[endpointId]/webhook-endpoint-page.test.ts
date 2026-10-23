@@ -77,7 +77,7 @@ afterEach(() => {
 });
 
 describe('webhook endpoint page', () => {
-  it('shows the delivery log with a status label for each delivery, and the events in words', async () => {
+  it('shows the delivery log with a status label for each delivery, and the event types as codes, like the log', async () => {
     renderPage(endpoint());
 
     const deliveries = await screen.findByRole('region', { name: 'Deliveries' });
@@ -88,8 +88,8 @@ describe('webhook endpoint page', () => {
     expect(within(deliveries).getAllByText('HTTP 500, Receiver unavailable').length).toBeGreaterThan(0);
 
     const events = screen.getByRole('region', { name: 'Events' });
-    expect(within(events).getByText('Application submitted')).toBeInTheDocument();
-    expect(within(events).getByText('Job stage changed')).toBeInTheDocument();
+    expect(within(events).getByText('application.submitted')).toBeInTheDocument();
+    expect(within(events).getByText('job.stage_changed')).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 

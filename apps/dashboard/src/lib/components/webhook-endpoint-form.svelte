@@ -120,8 +120,7 @@
           {#each types as type (type)}
             <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
               <input type="checkbox" name="events" value={type} bind:group={$form.events} class="size-4 shrink-0 accent-primary" />
-              <span>{eventLabel(type)}</span>
-              <span class="min-w-0 truncate font-mono text-code text-muted-foreground">{type}</span>
+              {eventLabel(type)}
             </label>
           {/each}
         {/if}

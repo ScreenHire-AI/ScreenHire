@@ -108,10 +108,7 @@
             <div class="flex items-start gap-4">
               <div class="flex min-w-0 flex-1 flex-col gap-1">
                 <Field.Label for="consistency-check">Compare each application's sources</Field.Label>
-                <Field.Description id="consistency-check-hint">
-                  Sends the resume, answers and any LinkedIn export the candidate uploaded to ScreenHire's AI provider, to find claims that
-                  contradict each other.
-                </Field.Description>
+                <Field.Description id="consistency-check-hint">Sends the resume, answers and any uploaded LinkedIn export to ScreenHire's AI provider.</Field.Description>
               </div>
               <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} aria-describedby="consistency-check-hint" class="mt-1" />
             </div>

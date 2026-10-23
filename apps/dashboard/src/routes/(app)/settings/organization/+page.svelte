@@ -17,6 +17,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -129,9 +130,7 @@
       <Panel title="Careers page">
         <SummaryList>
           <SummaryItem label="Address">
-            <a href={detail.careersUrl} target="_blank" rel="noopener" class="inline-flex max-w-full items-center gap-1.5 break-all text-primary underline underline-offset-2">
-              {detail.careersUrl}<ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="sr-only">(opens in a new tab)</span>
-            </a>
+            <span class="flex min-w-0"><TruncatedText text={detail.careersUrl} href={detail.careersUrl} icon={ExternalLinkIcon} underlined class="text-primary" /></span>
           </SummaryItem>
           <SummaryItem label="Data region">{region(detail)}</SummaryItem>
           <SummaryItem label="Created"><RelativeTime at={detail.createdAt} /></SummaryItem>

@@ -40,7 +40,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { deliveryStatus, endpointStatus, eventLabel } from '#lib/webhooks.js';
+  import { deliveryStatus, endpointStatus } from '#lib/webhooks.js';
   import type { PageProps } from './$types';
 
   // One webhook endpoint (workflow-engine.md section 8), on the detail template: whether it is on, its delivery log with
@@ -283,12 +283,9 @@
 
         <div class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-2">
           <Panel title="Events" count={detail.events.length}>
-            <ul class="flex flex-col gap-2">
+            <ul class="flex flex-col gap-2" aria-label="Event types">
               {#each detail.events as type (type)}
-                <li class="flex min-w-0 flex-col">
-                  <span>{eventLabel(type)}</span>
-                  <span class="font-mono text-code break-all text-muted-foreground">{type}</span>
-                </li>
+                <li class="min-w-0 font-mono text-code break-all">{type}</li>
               {/each}
             </ul>
           </Panel>
