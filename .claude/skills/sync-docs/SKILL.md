@@ -19,6 +19,8 @@ hand-kept table:
 node scripts/docs-bundle.mjs sources <changed file>...
 ```
 
+A folder argument prints the concepts that list any file in it, which helps after a change across a whole folder.
+
 ## Anchors
 
 Each row is a list in a doc that must match a source exactly.

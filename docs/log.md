@@ -9,7 +9,7 @@ shows, and `sources:` names the code it describes, so `node scripts/docs-bundle.
 change touches. `DocsBundleTests` checks all of it in `pnpm verify`.
 
 No file was split or moved, so every `docs/...` path cited from code, skills, rules and migrations still holds. The
-largest doc is about 630 lines, and the architecture docs and the design system are cited by section number.
+largest doc is about 690 lines, and the architecture docs and the design system are cited by section number.
 `README.md` became the start-here guide by audience. Its MVP status (built, faked locally, owner actions, known gaps)
 moved to `status.md`, and its decision log became `adr/index.md`. The roadmap and the status were brought up to date
 with the "Platform: team, API access and webhooks" and "Team, collaboration and communication" workflows.

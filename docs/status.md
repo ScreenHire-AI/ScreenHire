@@ -54,7 +54,8 @@ hidden rather than an error.
 | Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
 | IP data | Configured ranges for the RFC 5737 documentation addresses; an ip2asn file and a Tor exit list are optional and absent |
 | Storage, bot challenge, malware scan | Azurite; Turnstile unconfigured (recorded as "not checked", the honeypot still works); `NoMalwareScanner`, which records every file as "not scanned" |
-| Not built | Identity verification and liveness (phase 2, the control is disabled), interview integrity (phase 3), the cross-employer Signal Network (built, flagged off until legal review), candidate replies and an inbox |
+| Built, flagged off | The cross-employer Signal Network, off until legal review (ADR-0005) |
+| Not built | Identity verification and liveness (phase 2, the control is disabled), interview integrity (phase 3), candidate replies and an inbox |
 
 ## Owner actions
 

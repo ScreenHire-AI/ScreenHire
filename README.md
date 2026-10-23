@@ -3,7 +3,8 @@
 An affordable applicant tracking system for small hiring teams that knows who is really applying: it detects bots,
 impersonators and AI-generated applications and explains every signal in plain language. Evidence, never verdicts.
 
-- **Docs:** [`docs/index.md`](docs/index.md) is the map; [`docs/README.md`](docs/README.md) says where to start. The MVP status, decisions (ADRs), architecture, design system and research are all listed there.
+- **Docs:** [`docs/index.md`](docs/index.md) is the map; [`docs/README.md`](docs/README.md) says where to start.
+  The MVP status, decisions (ADRs), architecture, design system and research are all listed there.
 - **Agent guide:** [`CLAUDE.md`](CLAUDE.md).
 
 ## Quick start

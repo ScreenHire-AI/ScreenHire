@@ -37,7 +37,7 @@ code change name the docs to re-check.
 ## Decision
 
 Adopt OKF v0.2 for `docs/`, for the same two reasons. **We expect no reading benefit at today's size**: ScreenHire's
-docs are about 5,400 lines in 37 docs, much smaller than Kangentic's, where the measurement found none.
+docs are about 5,900 lines in 37 docs, much smaller than Kangentic's, where the measurement found none.
 
 1. Every markdown file under `docs/` except `index.md` and `log.md` is a concept with frontmatter: `type` (Guide,
    Reference, Design, Decision, Audit or Research), `title` (the concept's H1), a one-line `description`, optional
@@ -49,7 +49,7 @@ docs are about 5,400 lines in 37 docs, much smaller than Kangentic's, where the 
 4. `sources:` stay narrow: the files a concept describes, never a folder, so a change to one file flags only the
    concepts that describe it. `node scripts/docs-bundle.mjs sources <path>` prints the concepts that list a file, and
    `/sync-docs` starts from it.
-5. No file was split. A split pays only where questions split, and the largest file here is about 630 lines. The
+5. No file was split. A split pays only where questions split, and the largest file here is about 690 lines. The
    architecture docs, the design system and CLAUDE.md's non-negotiables are cited by section number (§10.9, S1), so
    they keep their numbering, and the design system's review checklist stays whole for the `design-review` agent.
 6. `docs/README.md` became the start-here guide. The MVP status moved to `docs/status.md`, and the decision log is
