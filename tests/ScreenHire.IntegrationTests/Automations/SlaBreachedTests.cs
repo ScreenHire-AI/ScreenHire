@@ -83,6 +83,61 @@ public sealed class SlaBreachedTests(AppHostFixture fixture)
         (await other.GetAsync("/v1/applications")).Body.EnumerateArray().Should().NotContain(a => a.GetProperty("id").GetGuid() == application);
     }
 
+    // Leaving a stage and coming back is a new entry with its own timer; the first entry's timer runs nothing. A timer
+    // scheduled under a shorter limit than the stage has now is dropped (workflow-engine.md section 8).
+    [Fact]
+    public async Task A_breach_runs_only_for_the_current_entry_and_its_current_limit()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await AutomationSamples.JobWithAutomationsAsync(recruiter, "Time limit re-entry", Reminder());
+        var application = (await recruiter.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"))).Id();
+        foreach (var stage in new[] { "screening", "applied", "screening" })
+        {
+            (await recruiter.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = stage })).Expect(HttpStatusCode.OK);
+        }
+
+        var entries = (await recruiter.GetAsync($"/v1/applications/{application}/timeline")).Body.EnumerateArray()
+            .Where(e => e.TryGetProperty("toStageId", out var to) && to.GetString() == "screening")
+            .Select(e => (Id: e.GetProperty("id").GetGuid(), Due: e.GetProperty("occurredAt").GetDateTimeOffset().AddDays(3)))
+            .ToList();
+        entries.Should().HaveCount(2);
+        var (left, current) = (entries[0], entries[1]);
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await WolverineStore.WaitUntilAsync(
+            async () => (await store.ScheduledTimesAsync(application.ToString(), Ct)).Count == 2, "each screening entry to schedule its own timer", Ct);
+
+        await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        var bus = publisher.Services.GetRequiredService<IMessageBus>();
+        var handledBefore = await store.CountHandledAsync(application.ToString(), Ct, ".RunAutomations");
+        await bus.PublishAsync(new RunAutomations(recruiter.OrganizationId, application, TriggerType.SlaBreached, "screening", left.Id, left.Due, "reply-reminder"));
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(application.ToString(), Ct, ".RunAutomations") >= handledBefore + 1,
+            "the worker to handle the timer of the entry the application left", Ct);
+        (await recruiter.GetAsync($"/v1/applications/{application}/automation-runs")).Body.EnumerateArray()
+            .Should().NotContain(r => r.GetProperty("automationId").GetString() == "reply-reminder");
+
+        await bus.PublishAsync(new RunAutomations(recruiter.OrganizationId, application, TriggerType.SlaBreached, "screening", current.Id, current.Due, "reply-reminder"));
+        var run = await AutomationSamples.WaitForRunAsync(recruiter, application, "reply-reminder", "Completed");
+        run.GetProperty("eventId").GetGuid().Should().Be(current.Id);
+        (await recruiter.GetAsync($"/v1/applications/{application}/tasks")).Count().Should().Be(1);
+
+        // A second application whose timer was scheduled when screening's limit was two days: it is three now, so the
+        // timer is early and runs nothing.
+        var early = (await recruiter.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"))).Id();
+        (await recruiter.PostAsync($"/v1/applications/{early}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
+        var entry = (await recruiter.GetAsync($"/v1/applications/{early}/timeline")).Body[1];
+        var earlyHandled = await store.CountHandledAsync(early.ToString(), Ct, ".RunAutomations");
+        await bus.PublishAsync(new RunAutomations(
+            recruiter.OrganizationId, early, TriggerType.SlaBreached, "screening", entry.GetProperty("id").GetGuid(),
+            entry.GetProperty("occurredAt").GetDateTimeOffset().AddDays(2), "reply-reminder"));
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(early.ToString(), Ct, ".RunAutomations") >= earlyHandled + 1,
+            "the worker to handle the early timer", Ct);
+        (await recruiter.GetAsync($"/v1/applications/{early}/automation-runs")).Body.EnumerateArray()
+            .Should().NotContain(r => r.GetProperty("automationId").GetString() == "reply-reminder");
+        (await recruiter.GetAsync($"/v1/applications/{early}/tasks")).Count().Should().Be(0);
+    }
+
     // A time limit measures the team's delay, so an accommodation never skips the reminder.
     [Fact]
     public async Task A_breach_reminds_the_team_about_a_candidate_with_an_accommodation()
