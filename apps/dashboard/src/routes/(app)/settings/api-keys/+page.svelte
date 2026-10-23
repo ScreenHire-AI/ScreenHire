@@ -41,7 +41,8 @@
   const queryClient = useQueryClient();
   const sidebar = Sidebar.useSidebar();
   const keys = createListApiKeys();
-  const create = createCreateApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, keysPath) } }));
+  // gcTime 0: the response holds the token, so the mutation cache drops it as soon as the page goes, dialog open or not.
+  const create = createCreateApiKey(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, keysPath) } }));
   const revoke = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, keysPath) } }));
 
   const list = $derived(keys.data?.data ?? []);

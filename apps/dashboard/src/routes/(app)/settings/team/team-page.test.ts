@@ -281,6 +281,17 @@ describe('team page', () => {
 
       expect(within(dialog).queryByRole('checkbox')).toBeNull();
     });
+
+    it('are flagged when the keys could not be loaded, so none is left working unseen', async () => {
+      const fetchMock = renderPage('Owner', { ...routes, 'GET /v1/organization/api-keys': () => new Response(null, { status: 403 }) });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/api-keys', expect.anything()));
+      const menu = await openMenu('Actions for Jordan Lee');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
+
+      expect(await within(dialog).findByText(/Their API keys could not be checked/)).toBeInTheDocument();
+      expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    });
   });
 
   it('removes nobody when the person backs out of the confirmation', async () => {

@@ -369,6 +369,8 @@
       <input type="checkbox" bind:checked={revokeTheirKeys} class="size-4 shrink-0 accent-primary" />
       Also revoke the {removingKeys.length === 1 ? 'API key' : `${removingKeys.length} API keys`} they created
     </label>
+  {:else if keys.isError}
+    <p class="text-muted-foreground">Their API keys could not be checked. Keys they created keep working until you revoke them in API keys.</p>
   {/if}
 </ConfirmDialog>
 

@@ -62,7 +62,8 @@
   );
   const update = createUpdateWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
   const remove = createDeleteWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
-  const rotate = createRotateWebhookSecret(() => ({ mutation: { onSettled: settled } }));
+  // gcTime 0: the response holds the new signing secret, so the mutation cache drops it as soon as the page goes.
+  const rotate = createRotateWebhookSecret(() => ({ mutation: { gcTime: 0, onSettled: settled } }));
   const replay = createReplayWebhookDelivery(() => ({ mutation: { onSettled: settled } }));
 
   const detail = $derived(endpoint.data?.data);
@@ -194,7 +195,6 @@
 
     <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
       <p role="status" class="sr-only">{announcement}</p>
-      <FailureText message={actionFailure} />
 
       <!-- Why it is off comes first in the page's order, so one column starts with it. From lg it sits at the top of the
            side column, and the main column spans both of the side column's rows (section 7). -->
@@ -209,7 +209,7 @@
         {/if}
 
         <div class="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
+          <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
             {#if deliveries.isError}
               <div class="p-4">
                 <QueryError message={describeError(deliveries.error, 'Could not load the deliveries')} onretry={() => deliveries.refetch()} inset />
@@ -319,8 +319,11 @@
   {/if}
 {/snippet}
 
+<!-- Turning the endpoint on or off decides whether deliveries go out, so its failure sits with them (S3). -->
 {#snippet deliveriesFooter()}
-  {#if replayFailure}
+  {#if actionFailure}
+    <FailureText message={actionFailure} />
+  {:else if replayFailure}
     <FailureText message={replayFailure} />
   {:else}
     <p class="text-muted-foreground">Turn the endpoint on to replay deliveries.</p>

@@ -161,6 +161,17 @@ describe('webhook endpoint page', () => {
     );
   });
 
+  it('says in the deliveries panel when turning the endpoint on fails', async () => {
+    renderPage(endpoint({ enabled: false, disabledReason: 'Ten deliveries in a row failed.' }), {
+      [`PUT /v1/webhooks/${endpointId}`]: () => Response.json({ detail: 'The address no longer resolves.' }, { status: 409 }),
+    });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Turn on' }));
+
+    const deliveries = screen.getByRole('region', { name: 'Deliveries' });
+    expect(await within(deliveries).findByText('The address no longer resolves.')).toBeInTheDocument();
+  });
+
   it('offers no Turn on and no failure reason while the endpoint is on', async () => {
     renderPage(endpoint());
     await screen.findAllByText('application.submitted');

@@ -11,7 +11,8 @@
   // A new webhook endpoint, on the form template. The API answers with its signing secret, shown once here before the
   // endpoint's page opens.
   const queryClient = useQueryClient();
-  const create = createCreateWebhookEndpoint(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/webhooks') } }));
+  // gcTime 0: the response holds the signing secret, so the mutation cache drops it as soon as the page goes.
+  const create = createCreateWebhookEndpoint(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, '/v1/webhooks') } }));
 
   let secret = $state('');
   let secretOpen = $state(false);

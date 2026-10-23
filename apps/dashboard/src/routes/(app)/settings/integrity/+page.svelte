@@ -23,6 +23,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
+  import { locales } from '#lib/dates.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
 
@@ -79,7 +80,7 @@
     }
   });
 
-  const tokens = new Intl.NumberFormat();
+  const tokens = new Intl.NumberFormat(locales);
 </script>
 
 <svelte:head>
