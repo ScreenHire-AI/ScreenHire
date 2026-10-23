@@ -615,6 +615,32 @@ public sealed class DefinitionValidatorTests
         errors.Should().OnlyContain(e => e.Message.Contains("never counts against the candidate", StringComparison.Ordinal));
     }
 
+    // The reach of "at one remove" is the signal rule's: a negated tag rule depends on the breach's tag as much as a
+    // positive one, and once a breach-tag reader moves applications, its stage's triggers, every stage exit and every
+    // stage-less reviewer decision count too.
+    [Fact]
+    public void A_time_limit_breach_reaches_negated_tag_rules_and_the_stages_its_readers_move_into()
+    {
+        var mail = new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change");
+        var stages = HiringWorkflow.Default.Stages.Select(s => s.Id == "interview" ? s with { Scorecard = Scorecard.DefaultInterview } : s).ToList();
+        var tagger = Automation(null, ReminderAction(ActionType.AddTag), "late", new AutomationTrigger(TriggerType.SlaBreached, "screening"));
+        var negated = Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral", Negate: true)),
+            mail, "no-referral", new AutomationTrigger(TriggerType.ApplicationSubmitted));
+
+        Paths(Workflow(automations: [tagger, negated])).Should().Equal("automations[1].actions[0]");
+        Paths(Workflow(automations: [negated])).Should().BeEmpty("without a breach the same rule is ordinary");
+
+        var advance = Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "overdue")),
+            new AutomationAction(ActionType.MoveToStage, StageId: "interview"), "advance");
+        var onInterview = Automation(null, mail, "on-interview", new AutomationTrigger(TriggerType.StageEntered, "interview"));
+        var onExit = Automation(null, mail, "on-exit", new AutomationTrigger(TriggerType.StageExited, "applied"));
+        var onDecision = Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "A reviewer said no"), "on-decision",
+            new AutomationTrigger(TriggerType.ReviewerDecision));
+
+        Paths(Workflow(stages: stages, automations: [tagger, advance, onInterview, onExit, onDecision]))
+            .Should().Equal("automations[2].actions[0]", "automations[3].actions[0]", "automations[4].actions[0]");
+    }
+
     // On a stage a signal routes into, the breach is signal-driven too: it may assign or tag, as any such automation.
     [Fact]
     public void A_time_limit_breach_on_a_stage_a_signal_routes_into_follows_the_integrity_guardrail()

@@ -472,6 +472,13 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - An `SlaBreached` automation counts as signal-driven on a stage a signal moves applications into, and with no stage
   once any signal-driven automation moves applications, like `ReviewerDecision`. There it may only assign a reviewer
   or add a tag: `NotifyTeam` and `CreateTask` are outside guardrail 1's list.
+- "At one remove" from a breach reaches as far as it does for a signal (`DrivenAutomations`, one walk for both): a
+  negated tag rule counts once a breach adds any tag, and once a breach-tag reader moves applications, that stage's
+  triggers, every `StageExited` automation and every stage-less `ReviewerDecision` count too. Narrower would be
+  friendlier, but the stage a move leaves is unknowable at save time, and one rule for both keeps the validator and the
+  guardrail it shadows in step. Only the breach itself is promised to run for a candidate with an accommodation: a
+  chained automation with a timing condition or a `TimeElapsed` trigger is skipped as guardrail 4 says, which drops a
+  reminder and never harms anyone.
 - The candidates page offers no bulk email on the Overdue view, as on an integrity view: a "not moving forward"
   email to every overdue candidate would count the team's delay against them. One candidate at a time is still a
   person's decision.
