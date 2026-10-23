@@ -117,6 +117,56 @@ public sealed class ScorecardTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_scorecard_without_a_recommendation_or_with_a_rating_left_blank_is_refused_and_stores_nothing()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var application = await InInterviewAsync(recruiter);
+        var url = $"/v1/applications/{application}/scorecards";
+
+        // A missing enum would otherwise bind to its first member, StrongNo or NotDemonstrated, and a scorecard is final.
+        var noRecommendation = await recruiter.PostAsync(url, new JsonObject { ["stageId"] = "interview", ["ratings"] = new JsonArray() });
+        var blankRating = await recruiter.PostAsync(url, new JsonObject
+        {
+            ["stageId"] = "interview",
+            ["ratings"] = new JsonArray(new JsonObject { ["criterionId"] = "role_skills" }),
+            ["recommendation"] = "Yes",
+        });
+
+        noRecommendation.Status.Should().Be(HttpStatusCode.BadRequest);
+        blankRating.Status.Should().Be(HttpStatusCode.BadRequest);
+        (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        (await recruiter.GetAsync($"/v1/applications/{application}/automation-runs")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_retry_after_the_workflow_changed_returns_the_stored_scorecard_with_the_criteria_as_they_were()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var (job, application) = await JobAndApplicationInInterviewAsync(recruiter);
+        var body = Scorecard("interview", "Yes", ("role_skills", "Demonstrated"), ("problem_solving", "PartlyDemonstrated"));
+        var created = (await recruiter.PostAsync($"/v1/applications/{application}/scorecards", body)).Expect(HttpStatusCode.Created);
+
+        // Rename one criterion and drop the other from the job's interview scorecard.
+        var current = (await recruiter.GetAsync($"/v1/jobs/{job}")).Expect(HttpStatusCode.OK);
+        var workflow = JsonNode.Parse(current.At("workflow").GetRawText())!.AsObject();
+        var criteria = workflow["stages"]!.AsArray().Single(s => s!["id"]!.GetValue<string>() == "interview")!["scorecard"]!["criteria"]!.AsArray();
+        criteria.Single(c => c!["id"]!.GetValue<string>() == "role_skills")!["label"] = "Platform skills";
+        criteria.Remove(criteria.Single(c => c!["id"]!.GetValue<string>() == "problem_solving"));
+        (await recruiter.PutAsync($"/v1/jobs/{job}/workflow", new JsonObject
+        {
+            ["workflow"] = workflow, ["expectedWorkflowVersion"] = current.At("workflowVersion").GetInt32(),
+        })).Expect(HttpStatusCode.OK);
+
+        var retried = (await recruiter.PostAsync($"/v1/applications/{application}/scorecards", body)).Expect(HttpStatusCode.OK);
+
+        retried.Id().Should().Be(created.Id());
+        var listed = (await recruiter.GetAsync($"/v1/applications/{application}/scorecards")).Expect(HttpStatusCode.OK);
+        listed.Count().Should().Be(1);
+        listed.Text("0.ratings.0.label").Should().Be("Skills the role needs");
+        listed.Text("0.ratings.1.criterionId").Should().Be("problem_solving");
+    }
+
+    [Fact]
     public async Task Another_organization_cannot_read_or_submit_a_scorecard_and_a_viewer_only_reads()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
@@ -136,12 +186,14 @@ public sealed class ScorecardTests(AppHostFixture fixture)
     }
 
     // A job whose workflow tags a yes from the interview, and an application moved into Interview.
-    private static async Task<Guid> InInterviewAsync(Tenant recruiter)
+    private static async Task<Guid> InInterviewAsync(Tenant recruiter) => (await JobAndApplicationInInterviewAsync(recruiter)).Application;
+
+    private static async Task<(Guid Job, Guid Application)> JobAndApplicationInInterviewAsync(Tenant recruiter)
     {
         var job = await AutomationSamples.JobWithAutomationsAsync(recruiter, "Platform Engineer", AdvanceOnYes());
         var application = (await recruiter.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"))).Id();
         (await recruiter.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
-        return application;
+        return (job, application);
     }
 
     private static JsonObject Scorecard(string stageId, string recommendation, params (string Criterion, string Rating)[] ratings) => new()
