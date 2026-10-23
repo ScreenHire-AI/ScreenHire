@@ -17,6 +17,7 @@
     errorsAt,
     errorsUnder,
     factsFor,
+    followUpsOf,
     hasTimeLimit,
     moveItem,
     newAction,
@@ -26,6 +27,7 @@
     removeAt,
     ruleOperand,
     triggerLabels,
+    triggerMayHaveQuestionnaire,
     triggerMayHaveStage,
     triggerNeedsStage,
     triggerTypes,
@@ -64,12 +66,23 @@
   const optionalStages = $derived(timed ? workflow.stages.filter(hasTimeLimit) : workflow.stages.filter((stage) => stage.scorecard));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
   const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
+  // A completed questionnaire fires on one follow-up, or any; SendQuestionnaire names one. Without follow-ups, the action
+  // is not offered (A3), unless this automation already has it.
+  const followUps = $derived(followUpsOf(workflow));
+  const offeredActions = (current: ActionType) =>
+    actionsFor(automation.trigger.type, current).filter((type) => type !== 'SendQuestionnaire' || followUps.length > 0 || type === current);
   function setTrigger(type: TriggerType) {
     const current = automation.trigger.stageId;
     // A passed time limit keeps the automation's stage when that stage has a limit, so it stays in its lane.
     const keepsStage = type === 'SlaBreached' && workflow.stages.some((stage) => stage.id === current && hasTimeLimit(stage));
     const stageId = triggerNeedsStage(type) ? (current ?? workflow.stages[0]?.id ?? '') : keepsStage ? current : undefined;
-    automation.trigger = { type, ...(stageId !== undefined && { stageId }), ...(type === 'TimeElapsed' && { afterHours: automation.trigger.afterHours ?? 48 }) };
+    const questionnaireId = triggerMayHaveQuestionnaire(type) ? followUps[0]?.id : undefined;
+    automation.trigger = {
+      type,
+      ...(stageId !== undefined && { stageId }),
+      ...(type === 'TimeElapsed' && { afterHours: automation.trigger.afterHours ?? 48 }),
+      ...(questionnaireId !== undefined && { questionnaireId }),
+    };
   }
 
   function addRule() {
@@ -147,6 +160,25 @@
             {#each optionalStages as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
             {#if automation.trigger.stageId && !optionalStages.some((stage) => stage.id === automation.trigger.stageId)}
               <option value={automation.trigger.stageId}>{automation.trigger.stageId}</option>
+            {/if}
+          </select>
+        </label>
+      {/if}
+      {#if triggerMayHaveQuestionnaire(automation.trigger.type)}
+        <label class={labelClass}>
+          Questionnaire
+          <select
+            class={selectClass}
+            bind:value={
+              () => automation.trigger.questionnaireId ?? '',
+              (questionnaireId) =>
+                (automation.trigger = questionnaireId ? { type: automation.trigger.type, questionnaireId } : { type: automation.trigger.type })
+            }
+          >
+            <option value="">Any follow-up questionnaire</option>
+            {#each followUps as followUp (followUp.id)}<option value={followUp.id}>{followUp.name || followUp.id}</option>{/each}
+            {#if automation.trigger.questionnaireId && !followUps.some((followUp) => followUp.id === automation.trigger.questionnaireId)}
+              <option value={automation.trigger.questionnaireId}>{automation.trigger.questionnaireId}</option>
             {/if}
           </select>
         </label>
@@ -259,9 +291,9 @@
                 value={action.type}
                 aria-invalid={actionErrors.length > 0 || undefined}
                 aria-describedby={describedBy(actionErrors.length > 0 && `${uid}-action-${actionIndex}-errors`)}
-                onchange={(event) => (automation.actions[actionIndex] = newAction(event.currentTarget.value as ActionType, workflow.stages))}
+                onchange={(event) => (automation.actions[actionIndex] = newAction(event.currentTarget.value as ActionType, workflow.stages, followUps))}
               >
-                {#each actionsFor(automation.trigger.type, action.type) as type (type)}<option value={type}>{actionLabels[type] ?? type}</option>{/each}
+                {#each offeredActions(action.type) as type (type)}<option value={type}>{actionLabels[type] ?? type}</option>{/each}
               </select>
             </label>
             {#if field === 'emailTemplate'}
@@ -271,6 +303,16 @@
                   {#each emailChoices as template (template.id)}<option value={template.id}>{template.name}</option>{/each}
                   {#if action.emailTemplate && !emailChoices.some((template) => template.id === action.emailTemplate)}
                     <option value={action.emailTemplate}>A deleted template</option>
+                  {/if}
+                </select>
+              </label>
+            {:else if field === 'questionnaireId'}
+              <label class={labelClass}>
+                {actionFieldLabels[field]}
+                <select class={selectClass} bind:value={action.questionnaireId}>
+                  {#each followUps as followUp (followUp.id)}<option value={followUp.id}>{followUp.name || followUp.id}</option>{/each}
+                  {#if action.questionnaireId && !followUps.some((followUp) => followUp.id === action.questionnaireId)}
+                    <option value={action.questionnaireId}>{action.questionnaireId}</option>
                   {/if}
                 </select>
               </label>

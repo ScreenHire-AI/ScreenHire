@@ -11,6 +11,7 @@ namespace ScreenHire.Api.Contracts;
 /// <c>eventId</c>: The trigger event: a timeline entry, or a manual run's request id.
 /// <c>chain</c>: The automations whose actions led to this run, nearest first.
 /// <c>detail</c>: Why it was skipped, blocked or failed.
+/// <c>triggerQuestionnaireId</c>: For a QuestionnaireCompleted trigger, the follow-up questionnaire that was answered.
 /// </remarks>
 public sealed record AutomationRunEntry(
     Guid Id,
@@ -31,7 +32,8 @@ public sealed record AutomationRunEntry(
     string? Detail,
     IReadOnlyList<AutomationActionEntry> Actions,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? FinishedAt);
+    DateTimeOffset? FinishedAt,
+    string? TriggerQuestionnaireId = null);
 
 public sealed record AutomationActionEntry(int Index, AutomationAction Action, AutomationActionStatus Status, string? Detail, DateTimeOffset? FinishedAt);
 
@@ -107,7 +109,7 @@ internal static class AutomationMappings
         new(run.Id, run.ApplicationId, run.JobId, run.AutomationId, run.AutomationName, run.WorkflowVersion, run.Trigger, run.TriggerStageId,
             run.EventId, run.EventOccurredAt, run.Chain, run.ActorUserId, run.Facts, run.RuleResults, run.Status, run.Detail,
             [.. actions.OrderBy(a => a.Index).Select(a => new AutomationActionEntry(a.Index, a.Action, a.Status, a.Detail, a.FinishedAt))],
-            run.CreatedAt, run.FinishedAt);
+            run.CreatedAt, run.FinishedAt, run.TriggerQuestionnaireId);
 
     public static AutomationIssue ToIssue(this AutomationRun run) =>
         new(run.Id, run.ApplicationId, run.JobId, run.AutomationId, run.AutomationName, run.Status, run.Detail, run.CreatedAt);

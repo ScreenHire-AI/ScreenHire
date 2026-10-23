@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,7 @@ namespace ScreenHire.Infrastructure.Persistence;
 /// Postgres row-level security, whose session settings <see cref="TenantSessionInterceptor"/> sets from
 /// <see cref="Tenant"/>.
 /// </summary>
-public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, Guid>
+public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, Guid>, IDataProtectionKeyContext
 {
     /// <summary>The name of the query filter that scopes tenant-owned rows to <see cref="ITenantContext.OrganizationId"/>.</summary>
     public const string TenantFilter = "Tenant";
@@ -115,6 +116,14 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<SignalNetworkEntry> SignalNetworkEntries => Set<SignalNetworkEntry>();
 
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
+
+    public DbSet<QuestionnaireRequest> QuestionnaireRequests => Set<QuestionnaireRequest>();
+
+    /// <summary>
+    /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).
+    /// Not tenant-owned: the keys protect every organization's cookies and links alike.
+    /// </summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     // Read by the query filters. EF evaluates context members per query, so each query sees the current tenant.
     private Guid? CurrentOrganizationId => Tenant.OrganizationId;

@@ -14,6 +14,7 @@ internal sealed class AutomationRunConfiguration : IEntityTypeConfiguration<Auto
         builder.Property(r => r.AutomationName).HasMaxLength(120);
         builder.Property(r => r.Trigger).HasConversion<string>().HasMaxLength(30);
         builder.Property(r => r.TriggerStageId).HasMaxLength(40);
+        builder.Property(r => r.TriggerQuestionnaireId).HasMaxLength(40);
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(r => r.Detail).HasMaxLength(1000);
         builder.Property(r => r.Facts).HasJsonColumn();

@@ -38,4 +38,6 @@ export interface AutomationRunEntry {
   createdAt: string;
   /** @nullable */
   finishedAt: string | null;
+  /** @nullable */
+  triggerQuestionnaireId?: string | null;
 }

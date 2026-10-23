@@ -60,7 +60,7 @@ public sealed class DomainOptions
     /// Feeds, the public job-board API and Google's Indexing API all link here.
     /// </summary>
     public string CareersBoardUrl(string organizationSlug) =>
-        $"{Scheme}://{CareersHostPattern.Replace("{CareersDomain}", CareersDomain, StringComparison.Ordinal).Replace("{tenant}", organizationSlug, StringComparison.Ordinal)}";
+        Application.Applications.CareersSiteOptions.BoardUrl(Scheme, CareersHostPattern, CareersDomain, organizationSlug);
 
     /// <summary>A job's page on its tenant's careers board: the URL boards link to and Google indexes.</summary>
     public string CareersJobUrl(string organizationSlug, string jobSlug) => $"{CareersBoardUrl(organizationSlug)}/jobs/{jobSlug}";

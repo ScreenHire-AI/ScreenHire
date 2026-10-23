@@ -242,10 +242,11 @@ if (frontends != FrontendMode.None)
 
     // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
     // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
-    // The careers server and the API read the same ScreenHire:Domains settings, so the canonical, sitemap, feed, job-board
-    // API and Google URLs the API builds are these tenant hosts.
+    // The careers server, the API and the worker read the same ScreenHire:Domains settings, so the canonical, sitemap,
+    // feed, job-board API and Google URLs the API builds, and the follow-up questionnaire links the worker emails, are
+    // these tenant hosts.
     var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
-    foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api })
+    foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api, worker })
     {
         resource.WithEnvironment("ScreenHire__Domains__CareersDomain", careersDomain)
             .WithEnvironment("ScreenHire__Domains__CareersHostPattern", "{tenant}.{CareersDomain}");

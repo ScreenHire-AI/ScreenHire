@@ -86,6 +86,39 @@ const application: ApplicationDetail = {
     { id: resumeId, questionId: 'resume', uploadId: resumeUpload, fileName: 'Casey Morgan CV.pdf', contentType: 'application/pdf', sizeBytes: 48_000, scanStatus: 'NotScanned', uploadedAt: '2026-10-20T09:00:00Z' },
     { id: '01a157d4-0000-7000-8000-000000000305', questionId: 'portfolio', uploadId: portfolioUpload, fileName: 'portfolio.pdf', contentType: 'application/pdf', sizeBytes: 90_000, scanStatus: 'Infected', uploadedAt: '2026-10-20T09:00:00Z' },
   ],
+  followUps: [
+    {
+      id: '01a157d4-0000-7000-8000-000000000310',
+      questionnaireId: 'availability',
+      name: 'Availability',
+      firstSentAt: '2026-10-20T10:00:00Z',
+      lastSentAt: '2026-10-20T10:00:00Z',
+      expiresAt: '2026-11-03T10:00:00Z',
+      timesSent: 1,
+      completedAt: '2026-10-20T12:00:00Z',
+      // The questions as the candidate saw them: the job's workflow may have changed since.
+      questions: [
+        { id: 'start_date', type: 'ShortText', label: 'When could you start?', required: true },
+        { id: 'forklift_licence', type: 'YesNo', label: 'Do you hold a forklift licence?', required: true },
+      ],
+      answers: [
+        { questionId: 'start_date', value: 'Next month' },
+        { questionId: 'forklift_licence', value: 'no' },
+      ],
+    },
+    {
+      id: '01a157d4-0000-7000-8000-000000000311',
+      questionnaireId: 'references',
+      name: 'References',
+      firstSentAt: '2026-10-20T10:00:00Z',
+      lastSentAt: '2026-10-21T10:00:00Z',
+      expiresAt: '2026-11-04T10:00:00Z',
+      timesSent: 2,
+      completedAt: null,
+      questions: [],
+      answers: [],
+    },
+  ],
 };
 
 const entry = (overrides: Partial<ApplicationTimelineEntry>): ApplicationTimelineEntry => ({
@@ -189,6 +222,33 @@ describe('application page', () => {
     expect(within(region).getByText('"Ask about the notice period."')).toBeInTheDocument();
   });
 
+  it('shows each follow-up questionnaire with its answers, and its sends and answers in the activity', async () => {
+    stubApi({
+      [`GET /v1/applications/${applicationId}/timeline`]: () =>
+        Response.json([
+          ...timeline,
+          entry({ type: 'QuestionnaireSent', occurredAt: '2026-10-20T11:40:00Z', automationRunId: '01a157d4-0000-7000-8000-000000000312', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
+          entry({ type: 'QuestionnaireCompleted', occurredAt: '2026-10-20T12:00:00Z', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
+        ]),
+    });
+    renderPage();
+
+    const answered = await screen.findByRole('region', { name: 'Follow-up: Availability' });
+    const rows = within(answered)
+      .getAllByRole('term')
+      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
+    expect(rows).toEqual([
+      ['When could you start?', 'Next month'],
+      ['Do you hold a forklift licence?', 'No'],
+    ]);
+    expect(answered).toHaveTextContent(/Answered/);
+    expect(await screen.findByRole('region', { name: 'Follow-up: References' })).toHaveTextContent(/Sent .* \(2 times\), not answered yet\./);
+
+    const activity = await screen.findByRole('region', { name: 'Activity' });
+    await within(activity).findByText(/Answered the "Availability" questionnaire/);
+    expect(within(activity).getByText(/Sent the "Availability" questionnaire/)).toBeInTheDocument();
+  });
+
   it('shows the integrity panel first, waiting for the checks', async () => {
     renderPage();
     const panel = await screen.findByRole('region', { name: 'Integrity' });
@@ -199,7 +259,7 @@ describe('application page', () => {
     await screen.findByRole('region', { name: 'Tasks' });
     await screen.findByRole('region', { name: 'Automations' });
     const panels = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
-    expect(panels).toEqual(['Integrity', 'Resume', 'Answers', 'Declarations', 'Tasks', 'Tags', 'Automations', 'Review log', 'Activity']);
+    expect(panels).toEqual(['Integrity', 'Resume', 'Answers', 'Follow-up: Availability', 'Follow-up: References', 'Declarations', 'Tasks', 'Tags', 'Automations', 'Review log', 'Activity']);
   });
 
   it('adds a note from Activity, in a sheet', async () => {

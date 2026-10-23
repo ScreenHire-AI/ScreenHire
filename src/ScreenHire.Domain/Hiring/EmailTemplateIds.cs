@@ -2,7 +2,7 @@ namespace ScreenHire.Domain.Hiring;
 
 /// <summary>
 /// The email templates a <see cref="ActionType.SendEmail"/> or <see cref="ActionType.Reject"/> action, or a person
-/// sending by hand, can name. Three are built in, and every organization may edit their wording; an organization's own
+/// sending by hand, can name. Four are built in, and every organization may edit their wording; an organization's own
 /// templates (<see cref="EmailTemplate"/>) are named by their id as a Guid string. The validator checks the shape of an
 /// id; the API checks that an organization template exists when a person saves a workflow that names it.
 /// </summary>
@@ -20,11 +20,23 @@ public static class EmailTemplateIds
     /// </summary>
     public const string ApplicationRejected = "application-rejected";
 
+    /// <summary>
+    /// Asks the candidate to answer a follow-up questionnaire, with the signed link to it. Only a SendQuestionnaire action
+    /// sends it, because the link belongs to one questionnaire request: never a SendEmail action or a person by hand.
+    /// </summary>
+    public const string QuestionnaireRequest = "questionnaire-request";
+
     /// <summary>The built-in templates, in the order the dashboard lists them.</summary>
-    public static IReadOnlyList<string> BuiltIn { get; } = [ApplicationReceived, StageChange, ApplicationRejected];
+    public static IReadOnlyList<string> BuiltIn { get; } = [ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected];
 
     public static IReadOnlySet<string> All { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { ApplicationReceived, StageChange, ApplicationRejected };
+        new HashSet<string>(StringComparer.Ordinal) { ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected };
+
+    /// <summary>
+    /// Whether only an automation action sends <paramref name="id"/>: the rejection email (Reject) and the follow-up
+    /// questions email (SendQuestionnaire). A person never sends either by hand, and SendEmail never names one.
+    /// </summary>
+    public static bool IsActionOnly(string id) => id is ApplicationRejected or QuestionnaireRequest;
 
     /// <summary>Whether <paramref name="id"/> names one of an organization's own templates: a Guid in its 36-character form.</summary>
     public static bool IsOrganizationTemplate(string id) => Guid.TryParseExact(id, "D", out _);

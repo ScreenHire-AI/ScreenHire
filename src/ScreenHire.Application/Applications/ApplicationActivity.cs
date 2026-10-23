@@ -21,3 +21,11 @@ public sealed record ApplicationTagsChanged(Guid OrganizationId, Guid Applicatio
 /// </summary>
 public sealed record ScorecardSubmitted(
     Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid ScorecardId, Guid EventId, DateTimeOffset SubmittedAt) : ITenantEvent;
+
+/// <summary>
+/// The candidate answered a follow-up questionnaire. Ids only: open dashboards refetch the application, whose answers
+/// stay behind the API, and its timeline. The QuestionnaireCompleted automations it fires run in the worker, from the
+/// <c>RunAutomations</c> published with it.
+/// </summary>
+public sealed record QuestionnaireAnswered(
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid RequestId, Guid EventId, DateTimeOffset AnsweredAt) : ITenantEvent;

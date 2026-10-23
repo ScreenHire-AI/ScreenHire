@@ -12,4 +12,6 @@ export interface AutomationTrigger {
   stageId?: string | null;
   /** @nullable */
   afterHours?: number | null;
+  /** @nullable */
+  questionnaireId?: string | null;
 }

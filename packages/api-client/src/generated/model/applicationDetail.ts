@@ -7,6 +7,7 @@
 import type { AiUseDeclaration } from './aiUseDeclaration.ts';
 import type { ApplicationAnswer } from './applicationAnswer.ts';
 import type { ApplicationFileSummary } from './applicationFileSummary.ts';
+import type { ApplicationFollowUp } from './applicationFollowUp.ts';
 import type { ApplicationSource } from './applicationSource.ts';
 import type { ApplicationStage } from './applicationStage.ts';
 import type { CandidateSummary } from './candidateSummary.ts';
@@ -32,6 +33,7 @@ export interface ApplicationDetail {
   source: ApplicationSource;
   answers: ApplicationAnswer[];
   files: ApplicationFileSummary[];
+  followUps: ApplicationFollowUp[];
   /** @nullable */
   slaDueAt?: string | null;
 }

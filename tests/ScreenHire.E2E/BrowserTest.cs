@@ -75,16 +75,24 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     /// Replaces <see cref="Page"/> with one in a fresh context that runs no JavaScript, like a browser with scripts
     /// turned off, for journeys that must work on plain HTML.
     /// </summary>
-    protected async Task WithoutJavaScriptAsync()
+    protected Task WithoutJavaScriptAsync() => NewContextAsync(javaScript: false);
+
+    /// <summary>
+    /// Replaces <see cref="Page"/> with one in a fresh context that runs JavaScript again, for a journey that hands over
+    /// from a page without scripts (a candidate) to one that needs them (the dashboard). Cookies start empty.
+    /// </summary>
+    protected Task WithJavaScriptAsync() => NewContextAsync(javaScript: true);
+
+    private async Task NewContextAsync(bool javaScript)
     {
         if (context is not null)
         {
             await context.DisposeAsync();
         }
 
-        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false, Locale = Locale });
+        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = javaScript, Locale = Locale });
         Page = await context.NewPageAsync();
-        javaScriptEnabled = false;
+        javaScriptEnabled = javaScript;
     }
 
     /// <summary>Runs axe on the current page and fails with a readable list of every WCAG 2.2 AA violation.</summary>

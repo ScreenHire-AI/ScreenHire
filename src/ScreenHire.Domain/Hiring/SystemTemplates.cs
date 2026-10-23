@@ -17,10 +17,16 @@ public static class SystemTemplates
     /// <summary>Version 2 with default scorecards on Screening, Technical exercise and Interviews (migration <c>AddScorecards</c>).</summary>
     public static readonly Guid SoftwareEngineerVersion3 = new("0199e8a0-0000-7000-8000-000000000103");
 
+    /// <summary>Version 3 with its right-to-work automation firing on the application (migration <c>AddFollowUpQuestionnaires</c>).</summary>
+    public static readonly Guid SoftwareEngineerVersion4 = new("0199e8a0-0000-7000-8000-000000000104");
+
     public static readonly Guid HourlyRole = new("0199e8a0-0000-7000-8000-000000000002");
 
     public static readonly Guid HourlyRoleVersion1 = new("0199e8a0-0000-7000-8000-000000000201");
 
     /// <summary>Version 1 with default scorecards on Phone screen and Interview (migration <c>AddScorecards</c>).</summary>
     public static readonly Guid HourlyRoleVersion2 = new("0199e8a0-0000-7000-8000-000000000202");
+
+    /// <summary>Version 2 with its right-to-work automation firing on the application (migration <c>AddFollowUpQuestionnaires</c>).</summary>
+    public static readonly Guid HourlyRoleVersion3 = new("0199e8a0-0000-7000-8000-000000000203");
 }

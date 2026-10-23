@@ -320,10 +320,11 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
   (the migration skips creating it when it does);
 - give `screenhire_app` a login and password, which the migration creates as `NOLOGIN` (the Development seed does it
   locally), and give the API and the worker only that role's connection string, `ConnectionStrings:screenhire-app`;
-- persist the ASP.NET Core Data Protection key ring and protect it at rest. The session, external-sign-in and
-  antiforgery cookies are encrypted with it, so a key ring that lives only in a container signs everyone out on every
-  restart, and a second replica cannot read the first one's cookies. Locally the default key ring in the user profile
-  survives restarts;
+- protect the ASP.NET Core Data Protection key ring at rest. The session, external-sign-in and antiforgery cookies are
+  encrypted with it. The ring is kept in Postgres (`data_protection_keys`, `AddScreenHireDataProtection`) and shared
+  by every API instance and the worker, which signs follow-up questionnaire links with it (workflow-engine.md §8), so it
+  survives restarts; its keys are stored as Data Protection writes them, so add a key vault or certificate
+  (`ProtectKeysWith...`);
 - list its reverse proxies in `ScreenHire:Auth:TrustedProxies`;
 - set `ScreenHire:ApiKeys:PermitsPerMinute` for the number of API instances, because each one counts a key's requests
   on its own;

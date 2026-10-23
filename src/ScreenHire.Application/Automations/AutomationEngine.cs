@@ -47,7 +47,8 @@ public static class AutomationEngine
         var workflow = job.Workflow;
 
         var candidates = triggers
-            .SelectMany(trigger => AutomationEvaluator.Triggered(workflow, trigger.Trigger, trigger.StageId).Select(automation => (trigger, automation)))
+            .SelectMany(trigger => AutomationEvaluator.Triggered(workflow, trigger.Trigger, trigger.StageId, trigger.QuestionnaireId)
+                .Select(automation => (trigger, automation)))
             .Where(c => onlyAutomationId is null || c.automation.Id == onlyAutomationId)
             .ToList();
         var timers = enteredStageId is null
@@ -79,6 +80,13 @@ public static class AutomationEngine
 
         if (candidates.Count > 0)
         {
+            // Answers: the apply form's, and each answered follow-up's, which FromTimeline counts only for triggers after
+            // its completion entry.
+            var followUps = await db.QuestionnaireRequests.AsNoTracking()
+                .Where(r => r.ApplicationId == application.Id && r.CompletedEventId != null)
+                .ToListAsync(cancellationToken);
+            var sources = FactSources.Of(application, followUps);
+
             // The validator ran when the workflow was saved, but its rules can tighten after that. A workflow that no
             // longer passes runs nothing and shows up as an issue instead (the guardrails hold at run time too).
             var errors = DefinitionValidator.Validate(workflow);
@@ -87,7 +95,7 @@ public static class AutomationEngine
             foreach (var (trigger, automation) in candidates)
             {
                 // Timing facts are switched off for an application with an accommodation: not evaluated, and not stored.
-                var facts = AutomationFacts.FromTimeline(timeline, trigger.EventId, trigger.Trigger, trigger.OccurredAt);
+                var facts = AutomationFacts.FromTimeline(timeline, trigger.EventId, trigger.Trigger, trigger.OccurredAt, sources);
                 if (application.AccommodationRequested)
                 {
                     facts = facts with { HoursInStage = null };

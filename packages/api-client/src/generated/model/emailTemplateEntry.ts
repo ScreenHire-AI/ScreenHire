@@ -19,4 +19,5 @@ export interface EmailTemplateEntry {
   body: string;
   /** @nullable */
   updatedAt: string | null;
+  questionnaireOnly?: boolean;
 }

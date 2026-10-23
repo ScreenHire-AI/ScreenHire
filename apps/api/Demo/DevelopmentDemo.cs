@@ -70,7 +70,7 @@ internal sealed partial class DevelopmentDemo(
     public const string ClosedJobSlug = DemoCandidates.SupportEngineer;
 
     /// <summary>The careers notice version the demo applicants "saw" (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-20.4";
+    public const string PrivacyNoticeVersion = "2026-10-23.1";
 
     /// <summary>The seeded open jobs that get the candidate emails, and the boards each is posted to (null: every board).</summary>
     public static IReadOnlyList<(string Slug, IReadOnlyList<string>? Boards)> OpenJobs { get; } =
@@ -236,7 +236,7 @@ internal sealed partial class DevelopmentDemo(
         }
 
         var source = await db.HiringTemplateVersions.AsNoTracking()
-            .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion3, cancellationToken);
+            .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion4, cancellationToken);
         var definition = source.Definition with
         {
             Workflow = source.Definition.Workflow with { Automations = [.. source.Definition.Workflow.Automations, .. CandidateEmails] },

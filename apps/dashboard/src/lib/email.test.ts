@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { describeQueued, emailCount, insertAt, sendableTemplates, variableTag } from './email.js';
 
 describe('email', () => {
-  it('never offers the rejection email for sending by hand', () => {
+  it('never offers the rejection email or the follow-up questions email for sending by hand', () => {
     const templates = [
       { id: 'application-received', rejectOnly: false },
       { id: 'application-rejected', rejectOnly: true },
+      { id: 'questionnaire-request', rejectOnly: false, questionnaireOnly: true },
       { id: '0199f0c4-0000-7000-8000-000000000001', rejectOnly: false },
     ];
     expect(sendableTemplates(templates).map((template) => template.id)).toEqual(['application-received', '0199f0c4-0000-7000-8000-000000000001']);

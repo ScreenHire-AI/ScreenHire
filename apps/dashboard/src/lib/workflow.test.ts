@@ -7,11 +7,14 @@ import {
   describePath,
   errorsUnder,
   factsFor,
+  followUpQuestionTypes,
   idFrom,
   laneOf,
   moveItem,
   newAction,
   newAutomation,
+  newFollowUp,
+  newQuestion,
   newRule,
   operatorsFor,
   problemErrors,
@@ -227,5 +230,58 @@ describe('scorecards and the reviewer decision', () => {
       const text = defaultScorecard(kind).criteria.map((criterion) => `${criterion.label} ${criterion.guidance ?? ''}`).join(' ');
       expect(text).not.toMatch(/personalit|emotion|honest|truthful|culture fit|integrity/i);
     }
+  });
+});
+
+describe('follow-up questionnaires', () => {
+  const withFollowUp: HiringWorkflow = {
+    ...workflow,
+    followUpQuestionnaires: [
+      {
+        id: 'availability',
+        name: 'Availability',
+        questions: [{ id: 'question', type: 'YesNo', label: 'Forklift licence?', required: true, knockout: { disqualifyingAnswer: false } }],
+      },
+    ],
+    automations: [
+      {
+        id: 'send',
+        name: 'Send it',
+        trigger: { type: 'StageEntered', stageId: 'screening' },
+        conditions: null,
+        actions: [{ type: 'SendQuestionnaire', questionnaireId: 'availability' }],
+      },
+      { id: 'answered', name: 'Answered', trigger: { type: 'QuestionnaireCompleted', questionnaireId: 'availability' }, conditions: null, actions: [{ type: 'AddTag', tag: 'answered' }] },
+    ],
+  };
+
+  it("offers a follow-up's answers as facts, named by their questionnaire", () => {
+    const fact = factsFor(withFollowUp).find((option) => option.fact === 'answers.question');
+    expect(fact).toMatchObject({ label: 'Answer (Availability): Forklift licence?', type: 'YesNo' });
+    expect(factsFor(withFollowUp).find((option) => option.fact === 'application.source')?.values?.map((value) => value.value)).toEqual(['CareersSite', 'Recruiter']);
+  });
+
+  it('gives a new question an id no questionnaire of the workflow uses', () => {
+    expect(newQuestion(withFollowUp).id).toBe('question_2');
+    expect(newFollowUp(withFollowUp)).toMatchObject({ id: 'questionnaire', name: 'New questionnaire', questions: [{ id: 'question_2' }] });
+  });
+
+  it('starts a SendQuestionnaire action on the first follow-up, and says what each part does', () => {
+    expect(newAction('SendQuestionnaire', withFollowUp.stages, withFollowUp.followUpQuestionnaires ?? [])).toEqual({ type: 'SendQuestionnaire', questionnaireId: 'availability' });
+    expect(summarize(withFollowUp.automations[0]!, withFollowUp)).toBe('When a candidate enters Screening: send the "Availability" questionnaire.');
+    expect(summarize(withFollowUp.automations[1]!, withFollowUp)).toBe('When the candidate answers "Availability": add the tag "answered".');
+    expect(summarize({ ...withFollowUp.automations[1]!, trigger: { type: 'QuestionnaireCompleted' } }, withFollowUp)).toBe(
+      'When a follow-up questionnaire is answered: add the tag "answered".',
+    );
+  });
+
+  it("names a follow-up's problems by the questionnaire and its question", () => {
+    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].name')).toBe('Questionnaire "Availability"');
+    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].questions[0].id')).toBe('Question "Forklift licence?" in "Availability"');
+  });
+
+  it('offers every answer type but a file upload on a follow-up', () => {
+    expect(followUpQuestionTypes).not.toContain('File');
+    expect(followUpQuestionTypes).toContain('YesNo');
   });
 });

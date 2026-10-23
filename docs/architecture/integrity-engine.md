@@ -570,8 +570,8 @@ assessment, shown next to it as context; it is never a reason on its own.
   device duplicate check; the network, identity, honeypot and duplicate checks still run.
 - The device-check basis follows where the job is, not where the candidate is, because there is no other footing
   before submission. A remote job with no country takes `DeviceCheck:Default`.
-- Session tokens need the API's Data Protection keys to be kept and shared across instances in production (an owner
-  action); locally the default key ring is enough.
+- Session tokens use the Data Protection key ring the API instances and the worker share in Postgres
+  (`AddScreenHireDataProtection`), so they read on every instance.
 - The apply page's JavaScript budget rose from about 20 KB to about 22 KB brotli for the module.
 
 - Content forensics read only `.pdf` and `.docx` files. Word 97 (`.doc`), `.rtf` and images are recorded as unsupported,

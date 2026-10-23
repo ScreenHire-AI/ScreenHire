@@ -91,6 +91,8 @@ import type {
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
+  PublicQuestionnaire,
+  PublicQuestionnaireAnswers,
   PublishJobRequest,
   RemoveApplicationTagParams,
   SandboxBoardListing,
@@ -2179,6 +2181,232 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getSubmitPublicApplicationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getPublicQuestionnaireResponse200 = {
+  data: PublicQuestionnaire
+  status: 200
+}
+
+export type getPublicQuestionnaireResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicQuestionnaireResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicQuestionnaireResponseSuccess = (getPublicQuestionnaireResponse200) & {
+  headers: Headers;
+};
+export type getPublicQuestionnaireResponseError = (getPublicQuestionnaireResponse404 | getPublicQuestionnaireResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicQuestionnaireUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/questionnaires/${token}`
+}
+
+export const getPublicQuestionnaire = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicQuestionnaireResponseSuccess> => {
+
+  return apiQueryFetch<getPublicQuestionnaireResponseSuccess>(getGetPublicQuestionnaireUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicQuestionnaireQueryKey = (organizationSlug: string,
+    token: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'questionnaires',token
+    ] as const;
+    }
+
+
+export const getGetPublicQuestionnaireQueryOptions = <TData = Awaited<ReturnType<typeof getPublicQuestionnaire>>, TError = ErrorType<void>>(organizationSlug: string,
+    token: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicQuestionnaire>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicQuestionnaireQueryKey(organizationSlug,token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicQuestionnaire>>> = ({ signal }) => getPublicQuestionnaire(organizationSlug,token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicQuestionnaire>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicQuestionnaireQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicQuestionnaire>>>
+export type GetPublicQuestionnaireQueryError = ErrorType<void>
+
+
+
+export function createGetPublicQuestionnaire<TData = Awaited<ReturnType<typeof getPublicQuestionnaire>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    token: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicQuestionnaire>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicQuestionnaireQueryOptions(organizationSlug(),
+    token(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type answerPublicQuestionnaireResponse204 = {
+  data: void
+  status: 204
+}
+
+export type answerPublicQuestionnaireResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type answerPublicQuestionnaireResponse404 = {
+  data: void
+  status: 404
+}
+
+export type answerPublicQuestionnaireResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type answerPublicQuestionnaireResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type answerPublicQuestionnaireResponse429 = {
+  data: void
+  status: 429
+}
+
+export type answerPublicQuestionnaireResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type answerPublicQuestionnaireResponseSuccess = (answerPublicQuestionnaireResponse204) & {
+  headers: Headers;
+};
+export type answerPublicQuestionnaireResponseError = (answerPublicQuestionnaireResponse400 | answerPublicQuestionnaireResponse404 | answerPublicQuestionnaireResponse409 | answerPublicQuestionnaireResponse410 | answerPublicQuestionnaireResponse429 | answerPublicQuestionnaireResponse503) & {
+  headers: Headers;
+};
+
+export const getAnswerPublicQuestionnaireUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/questionnaires/${token}`
+}
+
+export const answerPublicQuestionnaire = async (organizationSlug: string,
+    token: string,
+    publicQuestionnaireAnswers: PublicQuestionnaireAnswers, options?: Parameters<typeof apiQueryFetch>[1]): Promise<answerPublicQuestionnaireResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<answerPublicQuestionnaireResponseSuccess>(getAnswerPublicQuestionnaireUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicQuestionnaireAnswers)
+  }
+);}
+
+
+
+
+
+export const getAnswerPublicQuestionnaireMutationKey = () => ['answerPublicQuestionnaire'] as const;
+
+export const getAnswerPublicQuestionnaireMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof answerPublicQuestionnaire>>, TError,AnswerPublicQuestionnaireMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof answerPublicQuestionnaire>>, TError,AnswerPublicQuestionnaireMutationVariables, TContext> => {
+
+const mutationKey = getAnswerPublicQuestionnaireMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof answerPublicQuestionnaire>>, AnswerPublicQuestionnaireMutationVariables> = (props) => {
+          const {organizationSlug,token,data} = props ?? {};
+
+          return  answerPublicQuestionnaire(organizationSlug,token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnswerPublicQuestionnaireMutationResult = NonNullable<Awaited<ReturnType<typeof answerPublicQuestionnaire>>>
+    export type AnswerPublicQuestionnaireMutationBody = PublicQuestionnaireAnswers
+    export type AnswerPublicQuestionnaireMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type AnswerPublicQuestionnaireMutationVariables = {organizationSlug: string;token: string;data: PublicQuestionnaireAnswers}
+
+    export const createAnswerPublicQuestionnaire = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof answerPublicQuestionnaire>>, TError,AnswerPublicQuestionnaireMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof answerPublicQuestionnaire>>,
+        TError,
+        AnswerPublicQuestionnaireMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAnswerPublicQuestionnaireMutationOptions(options?.()) }), queryClient);
     }
 
 export type listJobsResponse200 = {

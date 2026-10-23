@@ -57,6 +57,30 @@ internal sealed class ApplicationEventConfiguration : IEntityTypeConfiguration<A
     }
 }
 
+internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfiguration<QuestionnaireRequest>
+{
+    public void Configure(EntityTypeBuilder<QuestionnaireRequest> builder)
+    {
+        builder.Property(r => r.QuestionnaireId).HasMaxLength(40);
+        builder.Property(r => r.QuestionnaireName).HasMaxLength(80);
+        builder.Property(r => r.Questions).HasJsonColumn();
+        builder.Property(r => r.Answers).HasJsonColumn();
+        // Optimistic concurrency on xmin: two answers to one link racing each other give one success and one conflict.
+        builder.Property<uint>("Version").IsRowVersion();
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // One request per application and questionnaire: sending again finds it, and two sends racing hit this index.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.QuestionnaireId }).IsUnique();
+    }
+}
+
 internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfiguration<ApplicationScorecard>
 {
     public void Configure(EntityTypeBuilder<ApplicationScorecard> builder)

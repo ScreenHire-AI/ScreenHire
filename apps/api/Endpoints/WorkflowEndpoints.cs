@@ -51,7 +51,7 @@ internal static class WorkflowEndpoints
 
         var facts = request.Facts ?? AutomationFacts.None;
         var chain = request.Chain?.Where(id => id is not null).ToList() ?? [];
-        var results = AutomationEvaluator.Triggered(request.Workflow, trigger.Type, trigger.StageId)
+        var results = AutomationEvaluator.Triggered(request.Workflow, trigger.Type, trigger.StageId, trigger.QuestionnaireId)
             .Select(automation =>
             {
                 var evaluation = AutomationEvaluator.Evaluate(automation, facts, request.AccommodationRequested, chain);

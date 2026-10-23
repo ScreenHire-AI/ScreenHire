@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();
+builder.AddScreenHireDataProtection();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
 builder.AddScreenHireApiKeys();
@@ -83,6 +84,7 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
+app.MapPublicQuestionnaireEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();

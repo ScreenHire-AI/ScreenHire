@@ -48,8 +48,9 @@ public sealed record ApplicationSummary(
 /// <remarks>
 /// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>answers</c> are
 /// keyed by question id as automation conditions read them (<c>answers.{questionId}</c>); a file answer's value is the
-/// upload id of one of <c>files</c>. <c>slaDueAt</c> is when the application passes its stage's time limit, as on
-/// <c>ApplicationSummary</c>.
+/// upload id of one of <c>files</c>. <c>followUps</c> are the follow-up questionnaires automations sent, oldest first,
+/// with their answers once the candidate gave them. <c>slaDueAt</c> is when the application passes its stage's time
+/// limit, as on <c>ApplicationSummary</c>.
 /// </remarks>
 public sealed record ApplicationDetail(
     Guid Id,
@@ -67,7 +68,25 @@ public sealed record ApplicationDetail(
     ApplicationSource Source,
     IReadOnlyList<ApplicationAnswer> Answers,
     IReadOnlyList<ApplicationFileSummary> Files,
+    IReadOnlyList<ApplicationFollowUp> FollowUps,
     DateTimeOffset? SlaDueAt = null);
+
+/// <summary>
+/// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
+/// once it is, <c>questions</c> are the questions as the candidate saw them, so the answers read the same after the
+/// workflow changes.
+/// </summary>
+public sealed record ApplicationFollowUp(
+    Guid Id,
+    string QuestionnaireId,
+    string Name,
+    DateTimeOffset FirstSentAt,
+    DateTimeOffset LastSentAt,
+    DateTimeOffset ExpiresAt,
+    int TimesSent,
+    DateTimeOffset? CompletedAt,
+    IReadOnlyList<Question> Questions,
+    IReadOnlyList<ApplicationAnswer> Answers);
 
 /// <summary>A file the candidate uploaded. <c>scanStatus</c> is the malware scan's result; <c>NotScanned</c> means no scanner is configured.</summary>
 public sealed record ApplicationFileSummary(
@@ -80,6 +99,8 @@ public sealed record ApplicationFileSummary(
 /// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <c>ScorecardSubmitted</c>, the scorecard, the stage it
 /// rates and the reviewer's overall recommendation (a <c>Recommendation</c> name, as automations read it).
 /// <c>emailTemplateId</c>, <c>emailSubject</c>: For <c>EmailSent</c>, the template and the subject the candidate received.
+/// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <c>QuestionnaireSent</c> and <c>QuestionnaireCompleted</c>,
+/// the follow-up questionnaire and the request in the application's <c>followUps</c>.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -96,7 +117,9 @@ public sealed record ApplicationTimelineEntry(
     string? StageId,
     string? Recommendation,
     string? EmailTemplateId = null,
-    string? EmailSubject = null);
+    string? EmailSubject = null,
+    string? QuestionnaireId = null,
+    Guid? QuestionnaireRequestId = null);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
@@ -146,12 +169,17 @@ internal static class ApplicationMappings
             application.SlaDueAt(job));
 
     public static ApplicationDetail ToDetail(
-        this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files) =>
+        this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files,
+        IReadOnlyList<QuestionnaireRequest> followUps) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
             application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
             application.Source,
-            application.Answers, [.. files.Select(f => f.ToSummary())], application.SlaDueAt(job));
+            application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job));
+
+    public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
+        new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,
+            request.TimesSent, request.CompletedAt, request.Questions, request.Answers);
 
     public static ApplicationFileSummary ToSummary(this ApplicationFile file) =>
         new(file.Id, file.QuestionId, file.UploadId, file.FileName, file.ContentType, file.SizeBytes, file.ScanStatus, file.UploadedAt);
@@ -159,7 +187,8 @@ internal static class ApplicationMappings
     public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry) =>
         new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note,
             entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId, entry.Data.StageId,
-            entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject);
+            entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
+            entry.Data.QuestionnaireRequestId);
 }
 
 internal sealed class CreateApplicationRequestValidator : AbstractValidator<CreateApplicationRequest>

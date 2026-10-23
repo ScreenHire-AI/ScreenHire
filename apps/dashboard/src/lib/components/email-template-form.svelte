@@ -44,7 +44,11 @@
 
   const builtIn = untrack(() => template?.builtIn ?? false);
   const templateId = untrack(() => template?.id);
-  const usable = $derived(variables.filter((variable) => !variable.rejectOnly || template?.rejectOnly));
+  const usable = $derived(
+    variables.filter(
+      (variable) => (!variable.rejectOnly || template?.rejectOnly) && (!variable.questionnaireOnly || template?.questionnaireOnly),
+    ),
+  );
 
   const schema = z.object({
     name: builtIn ? z.string() : z.string().trim().min(1, 'Enter a name.').max(100, 'Keep the name to 100 characters or fewer.'),

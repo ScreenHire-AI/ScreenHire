@@ -18,6 +18,25 @@ namespace ScreenHire.Application.Applications;
 public sealed record SendApplicationEmail(Guid OrganizationId, Guid ApplicationId, string TemplateId, Guid SendId, Guid ActorUserId)
     : ITenantMessage;
 
+/// <summary>
+/// An automation action's email to an application's candidate (SendEmail, Reject, SendQuestionnaire), queued through the
+/// outbox in the action's own transaction. It leaves only if the action commits, so an action that is retried after a
+/// conflict (two automations changing one application at once) sends one email, not two. <see cref="SendId"/> becomes
+/// the timeline entry's id, so a redelivered message sends nothing twice. The action checked the template and the
+/// stage; the handler checks again when it sends.
+/// </summary>
+/// <remarks>
+/// <c>reason</c>: The rejection email's reason. <c>questionnaireLink</c>: The follow-up questions email's signed link.
+/// </remarks>
+public sealed record SendAutomationEmail(
+    Guid OrganizationId,
+    Guid ApplicationId,
+    string TemplateId,
+    Guid SendId,
+    Guid AutomationRunId,
+    string? Reason = null,
+    string? QuestionnaireLink = null) : ITenantMessage;
+
 /// <summary>An email went to an application's candidate and is on its timeline: open dashboards refetch its activity.</summary>
 public sealed record ApplicationEmailed(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset SentAt) : ITenantEvent;
 
@@ -43,7 +62,9 @@ public static class ApplicationEmails
         templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn;
 
     /// <summary>
-    /// Renders the organization's wording of <paramref name="templateId"/> for the candidate and sends it. Not sent: no
+    /// Renders the organization's wording of <paramref name="templateId"/> for the candidate and sends it, with
+    /// <paramref name="reason"/> for the rejection email and <paramref name="questionnaireLink"/> for the follow-up
+    /// questions email. Not sent: no
     /// email sender, a template the organization deleted, or a send that <see cref="Skips"/>. The caller saves the entry.
     /// </summary>
     public static async Task<ApplicationEmailResult> SendAsync(
@@ -54,6 +75,7 @@ public static class ApplicationEmails
         Job job,
         string templateId,
         string? reason,
+        string? questionnaireLink,
         Guid eventId,
         Guid? actorUserId,
         Guid? automationRunId,
@@ -82,7 +104,7 @@ public static class ApplicationEmails
             templateId,
             template.Content,
             candidate.Email,
-            new EmailTemplateModel(candidate.FullName, job.Title, organization.Name, stage?.Name, reason),
+            new EmailTemplateModel(candidate.FullName, job.Title, organization.Name, stage?.Name, reason, questionnaireLink),
             cancellationToken);
         var entry = application.EmailSent(eventId, templateId, sent.Subject, now, actorUserId, automationRunId);
         db.ApplicationEvents.Add(entry);
@@ -113,9 +135,10 @@ public static partial class SendApplicationEmailHandler
         }
 
         var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken);
-        if (application is null || message.TemplateId == EmailTemplateIds.ApplicationRejected)
+        if (application is null || EmailTemplateIds.IsActionOnly(message.TemplateId))
         {
-            // Gone since it was queued, or the rejection email, which only a Reject action sends (the API refuses it too).
+            // Gone since it was queued, or an email only an action sends: the rejection email (Reject) or the follow-up
+            // questions email (SendQuestionnaire). The API refuses both too.
             LogNotSent(logger, message.SendId, "the application or the template cannot be sent to");
             return outgoing;
         }
@@ -123,7 +146,7 @@ public static partial class SendApplicationEmailHandler
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         var now = time.GetUtcNow();
         var result = await ApplicationEmails.SendAsync(
-            db, email, store, application, job, message.TemplateId, reason: null, message.SendId, message.ActorUserId, automationRunId: null, now, cancellationToken);
+            db, email, store, application, job, message.TemplateId, reason: null, questionnaireLink: null, message.SendId, message.ActorUserId, automationRunId: null, now, cancellationToken);
         if (result.Event is null)
         {
             LogNotSent(logger, message.SendId, result.Detail);
@@ -136,4 +159,52 @@ public static partial class SendApplicationEmailHandler
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Email send {SendId} was not sent: {Reason}")]
     private static partial void LogNotSent(ILogger logger, Guid sendId, string reason);
+}
+
+/// <summary>
+/// Sends one email an automation action queued, in the worker, linked to its run on the timeline. Idempotent like a
+/// person's send: the send id is the timeline entry's id. The email goes before the entry commits, so a crash between
+/// the two can repeat it once.
+/// </summary>
+public static partial class SendAutomationEmailHandler
+{
+    public static async Task<OutgoingMessages> Handle(
+        SendAutomationEmail message,
+        ScreenHireDbContext db,
+        TransactionalEmail email,
+        EmailTemplateStore store,
+        TimeProvider time,
+        ILogger<SendAutomationEmail> logger,
+        CancellationToken cancellationToken)
+    {
+        var outgoing = new OutgoingMessages();
+        if (await db.ApplicationEvents.AnyAsync(e => e.Id == message.SendId, cancellationToken))
+        {
+            return outgoing; // sent already
+        }
+
+        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken);
+        if (application is null)
+        {
+            LogNotSent(logger, message.SendId, message.AutomationRunId, "the application was deleted");
+            return outgoing;
+        }
+
+        var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+        var now = time.GetUtcNow();
+        var result = await ApplicationEmails.SendAsync(
+            db, email, store, application, job, message.TemplateId, message.Reason, message.QuestionnaireLink, message.SendId,
+            actorUserId: null, message.AutomationRunId, now, cancellationToken);
+        if (result.Event is null)
+        {
+            LogNotSent(logger, message.SendId, message.AutomationRunId, result.Detail);
+            return outgoing;
+        }
+
+        outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now));
+        return outgoing;
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Automation email {SendId} of run {RunId} was not sent: {Reason}")]
+    private static partial void LogNotSent(ILogger logger, Guid sendId, Guid runId, string reason);
 }

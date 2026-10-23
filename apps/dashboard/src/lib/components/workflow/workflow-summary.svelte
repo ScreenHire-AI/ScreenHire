@@ -7,7 +7,8 @@
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { aiUseLabels, emailTemplateNames, isTerminal, questionTypeLabels, stageKindLabels, summarize } from '#lib/workflow.js';
+  import type { Question } from '@screenhire/api-client';
+  import { aiUseLabels, emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, stageKindLabels, summarize } from '#lib/workflow.js';
   import { rowClass } from './controls.js';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
@@ -28,6 +29,7 @@
   const steps = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const questions = $derived(workflow.questionnaire.questions);
+  const followUps = $derived(followUpsOf(workflow));
   const scored = $derived(workflow.stages.filter((stage) => stage.scorecard));
   const days = (count: number) => `${count}-day limit`;
 </script>
@@ -108,6 +110,27 @@
   </Panel>
 </Tabs.Content>
 
+{#snippet questionList(list: readonly Question[])}
+  <ol class="flex flex-col">
+    {#each list as question, index (question.id)}
+      <li class={['flex gap-3', rowClass]}>
+        <StepMarker>{index + 1}</StepMarker>
+        <div class="flex min-w-0 flex-col gap-1.5 pt-1">
+          <span class="font-semibold break-words">{question.label}</span>
+          {#if question.helpText}<span class="text-muted-foreground">{question.helpText}</span>{/if}
+          <span class="flex flex-wrap gap-1.5">
+            <Badge variant="muted">{questionTypeLabels[question.type]}</Badge>
+            {#if question.required}<Badge variant="muted">Required</Badge>{/if}
+            {#if question.knockout}<Badge variant="muted">Knockout if {question.knockout.disqualifyingAnswer ? 'yes' : 'no'}</Badge>{/if}
+            {#each question.options ?? [] as option (option.id)}<Badge variant="muted">{option.label}</Badge>{/each}
+          </span>
+          {#if question.knockout?.reason}<span class="text-muted-foreground">{question.knockout.reason}</span>{/if}
+        </div>
+      </li>
+    {/each}
+  </ol>
+{/snippet}
+
 <Tabs.Content value="questionnaire">
   <div class="flex flex-wrap items-start gap-5">
     <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-5">
@@ -118,26 +141,14 @@
         {#if questions.length === 0}
           <p class="text-muted-foreground">No questions. Every form still asks for a resume.</p>
         {:else}
-          <ol class="flex flex-col">
-            {#each questions as question, index (question.id)}
-              <li class={['flex gap-3', rowClass]}>
-                <StepMarker>{index + 1}</StepMarker>
-                <div class="flex min-w-0 flex-col gap-1.5 pt-1">
-                  <span class="font-semibold break-words">{question.label}</span>
-                  {#if question.helpText}<span class="text-muted-foreground">{question.helpText}</span>{/if}
-                  <span class="flex flex-wrap gap-1.5">
-                    <Badge variant="muted">{questionTypeLabels[question.type]}</Badge>
-                    {#if question.required}<Badge variant="muted">Required</Badge>{/if}
-                    {#if question.knockout}<Badge variant="muted">Knockout if {question.knockout.disqualifyingAnswer ? 'yes' : 'no'}</Badge>{/if}
-                    {#each question.options ?? [] as option (option.id)}<Badge variant="muted">{option.label}</Badge>{/each}
-                  </span>
-                  {#if question.knockout?.reason}<span class="text-muted-foreground">{question.knockout.reason}</span>{/if}
-                </div>
-              </li>
-            {/each}
-          </ol>
+          {@render questionList(questions)}
         {/if}
       </Panel>
+      {#each followUps as followUp (followUp.id)}
+        <Panel title={`Follow-up: ${followUp.name || followUp.id}`} count={followUp.questions.length}>
+          {@render questionList(followUp.questions)}
+        </Panel>
+      {/each}
     </div>
     <Panel title="Candidate preview" class="flex-[1_1_320px] lg:sticky lg:top-4">
       <QuestionnairePreview {questions} />
