@@ -23,6 +23,9 @@
   let { workflow, errors, actions }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; actions?: GraphActions } = $props();
 
   const nodeTypes = { step: StepNodeView };
+  // It opens at full size from the top left, where reading order starts: zoomed out to fit, a node's buttons would be
+  // under the 24px target size (WCAG 2.5.8). Fit the whole workflow is the controls' choice to make.
+  const initialViewport = { x: 24, y: 24, zoom: 1 };
   // The organization's template names, for "Send the ... email".
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
@@ -57,7 +60,7 @@
     };
   }
 
-  // Built before the first render, so fitView frames the real graph; rebuilt on every change after that.
+  // Built before the first render; rebuilt on every change after that.
   const initial = untrack(project);
   nodes = initial.nodes;
   edges = initial.edges;
@@ -79,7 +82,7 @@
     bind:nodes
     bind:edges
     {nodeTypes}
-    fitView
+    {initialViewport}
     colorMode={preferences.theme}
     panOnScroll
     nodesDraggable={false}

@@ -128,8 +128,8 @@
   <PipelineView bind:workflow {errors} onopen={openLane} onscorecard={openScorecard} />
 </Tabs.Content>
 <Tabs.Content value="graph">
-  <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph fits its view to the size
-       it mounts at, which is nothing while hidden. -->
+  <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph measures its nodes when
+       it mounts, which it cannot do while hidden. -->
   <Panel title="Stages and automations" flush>
     {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} actions={graphActions} />{/if}
   </Panel>

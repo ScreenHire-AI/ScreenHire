@@ -104,7 +104,7 @@
 </Tabs.Content>
 
 <Tabs.Content value="graph">
-  <!-- Mounted only while shown, as in the builder: the graph fits its view to the size it mounts at. -->
+  <!-- Mounted only while shown, as in the builder: the graph measures its nodes when it mounts. -->
   <Panel title="Stages and automations" flush>
     {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} />{/if}
   </Panel>

@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Roadmap"
-description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (the editable workflow builder, interview scheduling, adding candidates by hand with server search and reports), later items, and what must exist before real customers."
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (interview scheduling, adding candidates by hand with server search and reports), later items, and what must exist before real customers."
 tags: [roadmap, planning]
 ---
 # Roadmap
@@ -16,16 +16,14 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Design system v0.2 in the dashboard: gate stability, demo questionnaires and answers, the foundation, components and a style guide, the app shell, an inline resume preview, every page, and a visual design pass in `/task-review` ([design system](design/design-system.md), ADR-0010) | "Design system v0.2" | #22 to #33 |
 | Webhook subscriptions, organization API keys for the hiring API, team members with invitations and organization switching ([sign-in and tenancy](architecture/sign-in-and-tenancy.md), [workflow engine](architecture/workflow-engine.md) §5, ADR-0011) | "Platform: team, API access and webhooks" | #36 to #38 |
 | Settings screens; notes, tags, tasks, a Run button for manual automations and a notification tray; scorecards that raise the "reviewer decision" trigger; editable email templates with manual and bulk email ([email](architecture/email.md), [workflow engine](architecture/workflow-engine.md) §8); the docs as an Open Knowledge Format bundle (ADR-0012) | "Team, collaboration and communication" | #39 to #42, and the docs restructure |
-
-The "Workflow builder" workflow is in flight: follow-up questionnaires, with answers as automation facts, are built; stage SLAs and the editable graph are next in it.
+| Acting on stage SLAs (the "time limit passes" trigger and an Overdue status); follow-up questionnaires sent by an automation, with answers as automation facts; a workflow graph you build in, by keyboard as well as pointer ([workflow engine](architecture/workflow-engine.md) §4 and §8) | "Workflow builder" | #44, #45, and the editable graph |
 
 ## Next
 
 | # | Work | Workflow | Why now |
 |---|---|---|---|
-| 1 | Workflow builder: follow-up questionnaires with the send-questionnaire action and their trigger, an editable xyflow graph, acting on stage SLAs | "Workflow builder" | The graph is read-only today ([workflow engine](architecture/workflow-engine.md) §8). Follow-up questionnaires and answer facts are built; the graph and SLAs follow. The Run button and the "reviewer decision" trigger shipped with the collaboration workflow |
-| 2 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
-| 3 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
+| 1 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
+| 2 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
 
 ## Later
 

@@ -259,7 +259,7 @@ Atlassian's surfaces.
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
-| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
+| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area. The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
 bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,
@@ -288,6 +288,8 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 | Tables | Rows become two-line list items | Scroll inside the panel; first column sticks | Full | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
+On a phone the workflow graph is for reading: its nodes have no buttons, one line says to edit in Pipeline, and the
+Pipeline view does the editing.
 Checked at 360, 768, 1024, 1440 and 1920px.
 
 ## 9. Flow
@@ -425,6 +427,10 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - WCAG 2.2 AA. A 2px `primary` focus ring with a 2px offset on every interactive element, never removed.
 - Targets at least 24px with a mouse (2.5.8) and 44px on touch. Text at least 4.5:1; large text and boundaries 3:1.
 - Every drag has a non-drag alternative (Move to stage). Every shortcut has a visible control.
+- A canvas of nodes (the workflow graph) makes each node a tab stop with the focus ring and a label that says what it
+  is. Tab reaches the buttons inside a node; the arrow keys, Home and End move between nodes in reading order, and
+  whatever takes the focus scrolls into view. Text in a node is clamped, with the full value in a tooltip that takes
+  no tab stop of its own.
 - Motion 120 to 180ms for hover and popovers, 200 to 240ms for sheets; `prefers-reduced-motion` turns it off.
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.

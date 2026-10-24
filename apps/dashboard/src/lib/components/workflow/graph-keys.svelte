@@ -5,7 +5,9 @@
   // The graph's keyboard path (design system section 17, WCAG 2.1.1): on a focused node the arrow keys, Home and End move
   // to another node in reading order, and whatever takes the focus, a node or a button in one, is panned into view.
   // Svelte Flow's own pan on focus covers only the node itself, so it is off and this does both. It must sit inside
-  // SvelteFlow, whose context useSvelteFlow reads; `root` is the element around the graph.
+  // SvelteFlow, whose context useSvelteFlow reads; `root` is the element around the graph. The browser scrolls a clipped
+  // box to show what Tab focuses, which would shift the canvas under Svelte Flow's own pan, so that scroll is undone and
+  // the pan does the showing.
   let { root, nodes }: { root: HTMLElement | undefined; nodes: () => readonly StepNode[] } = $props();
 
   const flow = useSvelteFlow();
@@ -24,7 +26,19 @@
       element.querySelector<HTMLElement>(`.svelte-flow__node[data-id="${CSS.escape(next)}"]`)?.focus();
     }
 
+    function unscroll(from: EventTarget | null) {
+      for (let box = from instanceof HTMLElement ? from : null; box && box !== element.parentElement; box = box.parentElement) {
+        if (box.scrollLeft !== 0) box.scrollLeft = 0;
+        if (box.scrollTop !== 0) box.scrollTop = 0;
+      }
+    }
+
+    function onscroll(event: Event) {
+      if (event.target instanceof HTMLElement && element.contains(event.target)) unscroll(event.target);
+    }
+
     function onfocusin(event: FocusEvent) {
+      unscroll(event.target instanceof HTMLElement ? event.target.parentElement : null);
       const node = nodeOf(event.target);
       const pane = element.querySelector('.svelte-flow')?.getBoundingClientRect();
       const placed = node?.dataset.id ? flow.getInternalNode(node.dataset.id) : undefined;
@@ -38,7 +52,9 @@
 
     element.addEventListener('keydown', onkeydown);
     element.addEventListener('focusin', onfocusin);
+    element.addEventListener('scroll', onscroll, true);
     return () => {
+      element.removeEventListener('scroll', onscroll, true);
       element.removeEventListener('keydown', onkeydown);
       element.removeEventListener('focusin', onfocusin);
     };
