@@ -60,3 +60,8 @@
 .svelte-flow .svelte-flow__edge-text {
   @apply text-caption;
 }
+
+/* A graph node is a tab stop: its focus ring follows the node box's corners (design system section 17). */
+.svelte-flow .svelte-flow__node-step {
+  border-radius: var(--radius-lg);
+}

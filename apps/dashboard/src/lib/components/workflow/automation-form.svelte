@@ -39,7 +39,8 @@
 
   // One automation: trigger, conditions, actions (workflow-engine.md §2). Every part shows the API validator's messages
   // for its own path, so a guardrail refusal appears on the action it is about. Automations follow each other in the
-  // sheet, divided by rules; conditions and actions are wells inside one.
+  // sheet, divided by rules; conditions and actions are wells inside one. The graph's Edit on a node opens this form at
+  // that node's part: its first control carries the part's path in `data-focus`.
   let {
     automation = $bindable(),
     index,
@@ -120,7 +121,7 @@
   <div class="grid gap-2.5 @md:grid-cols-[1fr_auto]">
     <label class={labelClass}>
       Name
-      <Input bind:value={automation.name} maxlength={120} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
+      <Input bind:value={automation.name} maxlength={120} data-focus={path} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
     </label>
     <label class="flex items-center gap-2 pointer-coarse:min-h-11 self-end pb-1.5 text-body font-semibold">
       <input type="checkbox" class={checkboxClass} bind:checked={() => automation.enabled !== false, (on) => (automation.enabled = on)} />
@@ -134,7 +135,7 @@
     <div class="grid gap-2 @xl:grid-cols-3">
       <label class={labelClass}>
         Trigger
-        <select class={selectClass} value={automation.trigger.type} onchange={(event) => setTrigger(event.currentTarget.value as TriggerType)}>
+        <select class={selectClass} value={automation.trigger.type} data-focus={`${path}.trigger`} onchange={(event) => setTrigger(event.currentTarget.value as TriggerType)}>
           {#each triggerTypes as type (type)}<option value={type}>{triggerLabels[type]}</option>{/each}
         </select>
       </label>
@@ -212,7 +213,7 @@
             <div class="grid items-end gap-2 @2xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
               <label class={labelClass}>
                 Fact <span class="sr-only">for condition {ruleIndex + 1}</span>
-                <select class={selectClass} value={rule.fact} onchange={(event) => setFact(ruleIndex, event.currentTarget.value)}>
+                <select class={selectClass} value={rule.fact} data-focus={ruleIndex === 0 ? `${path}.conditions` : undefined} onchange={(event) => setFact(ruleIndex, event.currentTarget.value)}>
                   {#if !fact}<option value={rule.fact}>{rule.fact}</option>{/if}
                   {#each facts as option (option.fact)}<option value={option.fact}>{option.label}</option>{/each}
                 </select>
@@ -289,6 +290,7 @@
               <select
                 class={selectClass}
                 value={action.type}
+                data-focus={actionPath}
                 aria-invalid={actionErrors.length > 0 || undefined}
                 aria-describedby={describedBy(actionErrors.length > 0 && `${uid}-action-${actionIndex}-errors`)}
                 onchange={(event) => (automation.actions[actionIndex] = newAction(event.currentTarget.value as ActionType, workflow.stages, followUps))}

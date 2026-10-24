@@ -109,11 +109,19 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Edit Route for review" })).ToBeVisibleAsync();
         await Expect(Page.Locator(".svelte-flow")).ToContainTextAsync("Add the tag \"needs-review\"");
-        // Framed in the pane, not just present: the view fits the graph once it is shown.
+        // Framed in the pane, not just present: the view starts at the top left, where this automation's row begins.
         var pane = (await Page.Locator(".svelte-flow").BoundingBoxAsync())!;
         var edit = (await Page.GetByRole(AriaRole.Button, new() { Name = "Edit Route for review" }).BoundingBoxAsync())!;
         edit.X.Should().BeInRange(pane.X, pane.X + pane.Width - edit.Width);
         edit.Y.Should().BeInRange(pane.Y, pane.Y + pane.Height - edit.Height);
+        // The zoom toolbar floats over the canvas's bottom left; the first column starts right of it, so it covers no node.
+        var toolbar = (await Page.Locator("[data-graph-controls]").BoundingBoxAsync())!;
+        foreach (var node in await Page.Locator(".svelte-flow__node").AllAsync())
+        {
+            var box = (await node.BoundingBoxAsync())!;
+            var overlaps = box.X < toolbar.X + toolbar.Width && toolbar.X < box.X + box.Width && box.Y < toolbar.Y + toolbar.Height && toolbar.Y < box.Y + box.Height;
+            overlaps.Should().BeFalse($"the zoom toolbar should not cover the node \"{await node.GetAttributeAsync("aria-label")}\"");
+        }
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-light");
 
@@ -275,6 +283,116 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-builder-390");
+    }
+
+    [Fact]
+    public async Task A_recruiter_builds_an_automation_in_the_graph_with_the_keyboard_and_finds_it_in_the_pipeline()
+    {
+        const string Blank = "Leave this out rather than sending it blank.";
+        var email = await OnboardAsync();
+        using (var session = new ApiSession(Fixture))
+        {
+            await session.SignInWithDevSsoAsync(email, Ct);
+            var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = "Support agent" }, Ct), HttpStatusCode.Created);
+            await Page.SetViewportSizeAsync(1440, 1040);
+            await SignInAsync(email);
+            await Page.GotoAsync(DashboardUrl($"/templates/{template.GetProperty("id").GetGuid()}"));
+        }
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Support agent");
+        await ExpectValidationAsync("No problems found");
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
+        var graph = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Graph" });
+        ILocator Node(string name) => graph.GetByRole(AriaRole.Group, new() { Name = name, Exact = true });
+
+        // From here on, the keyboard only: Tab into the graph, the arrow keys from node to node.
+        await TabUntilFocusedAsync(Node("Whole workflow"));
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(Node("Stage 2: Screening")).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Add automation to Screening" })).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Enter");
+
+        // The Pipeline view's own form, opened at the new automation's name, its trigger set to entering Screening.
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Screening" });
+        var name = sheet.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true });
+        await Expect(name).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Control+A");
+        await Page.Keyboard.TypeAsync("Fast-track referrals");
+        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Trigger" })).ToHaveValueAsync("StageEntered");
+        await TabUntilFocusedAsync(sheet.GetByRole(AriaRole.Button, new() { Name = "Add condition" }));
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(sheet.GetByLabel("Fact for condition 1")).ToHaveValueAsync("application.tags");
+        await TabUntilFocusedAsync(sheet.GetByRole(AriaRole.Textbox, new() { NameRegex = new Regex("^Value") }), backwards: true);
+        await Page.Keyboard.TypeAsync("referral");
+        // The action it starts with adds a tag, and the tag is still blank.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(sheet).ToBeHiddenAsync();
+
+        // The focus is back on the new automation, and the problem shows on the node it is about.
+        await Expect(Node("When: Fast-track referrals")).ToBeFocusedAsync();
+        await ExpectProblemAsync(Blank);
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await Expect(Node("If: All of 1 condition, Fast-track referrals")).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("ArrowRight");
+        var action = Node("Then, action 1: Add the tag \"\", Fast-track referrals, 1 problem to fix");
+        await Expect(action).ToBeFocusedAsync();
+        await Expect(action).ToContainTextAsync(Blank);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-workflow-graph-problem-1440");
+
+        // Its Edit opens the same form at that action.
+        await Page.Keyboard.PressAsync("Tab");
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Action 1" })).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(sheet.GetByRole(AriaRole.Textbox, new() { Name = "Tag", Exact = true })).ToBeFocusedAsync();
+        await Page.Keyboard.TypeAsync("fast-track");
+        await ExpectValidationAsync("No problems found");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(sheet).ToBeHiddenAsync();
+        await Expect(Node("Then, action 1: Add the tag \"fast-track\", Fast-track referrals")).ToBeVisibleAsync();
+        await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Edit Add the tag \"fast-track\" in Fast-track referrals" })).ToBeFocusedAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-workflow-graph-edit-1440");
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Listitem, new() { Name = "Stage 2: Screening" }))
+            .ToContainTextAsync("When a candidate enters Screening, if 1 condition holds: add the tag \"fast-track\".");
+
+        // The graph at a laptop's and a tablet's width, and on a phone, where it is for reading. It opens at full size.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
+        await Page.Mouse.MoveAsync(0, 0);
+        foreach (var (width, height) in new[] { (1024, 900), (768, 1024) })
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Add automation to Screening" })).ToBeVisibleAsync();
+            await ExpectNoSidewaysScrollAsync();
+            await SaveScreenshotAsync(Page, $"dashboard-workflow-graph-{width}");
+        }
+        await Page.SetViewportSizeAsync(390, 844);
+        await Expect(graph).ToContainTextAsync("On a phone the graph is for reading. Edit in Pipeline.");
+        await Expect(graph.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Edit|Add automation|Remove) ") })).ToHaveCountAsync(0);
+        await Expect(Node("When: Fast-track referrals")).ToBeAttachedAsync();
+        await ExpectNoSidewaysScrollAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-workflow-graph-390");
+    }
+
+    // Presses Tab (or Shift+Tab) until `target` has the focus, as a keyboard user would, and fails if it never does.
+    private async Task TabUntilFocusedAsync(ILocator target, bool backwards = false)
+    {
+        for (var i = 0; i < 30; i++)
+        {
+            if (await target.EvaluateAsync<bool>("element => element === document.activeElement"))
+            {
+                return;
+            }
+            await Page.Keyboard.PressAsync(backwards ? "Shift+Tab" : "Tab");
+        }
+        await Expect(target).ToBeFocusedAsync();
     }
 
     private async Task ExpectNoSidewaysScrollAsync() =>

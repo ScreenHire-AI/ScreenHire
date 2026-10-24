@@ -12,7 +12,7 @@
 </script>
 
 <!-- A toolbar that floats over the canvas: the raised layer (section 6). -->
-<Panel position="bottom-left" class="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-raised">
+<Panel position="bottom-left" data-graph-controls class="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-raised">
   <IconButton label="Zoom in" onclick={() => flow.zoomIn()}><ZoomInIcon /></IconButton>
   <IconButton label="Zoom out" onclick={() => flow.zoomOut()}><ZoomOutIcon /></IconButton>
   <IconButton label="Fit the whole workflow" onclick={() => flow.fitView()}><MaximizeIcon /></IconButton>

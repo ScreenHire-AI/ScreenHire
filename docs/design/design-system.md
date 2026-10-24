@@ -68,7 +68,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **W2** Sentence case. No all-caps text except acronyms. Monospace only for codes, ids and key caps.
 - **W3** No dot separators or strings of metadata. Facts are muted pills or a labelled facts row.
 - **W4** Labels, not instructions. A description gets one line, or none if the title says it. A fact appears once
-  per screen.
+  per screen. A builder's validation message is the exception: it shows in "Problems to fix" and again on the control
+  or graph node it is about, because the panel says what is wrong and the control says where.
 - **W5** Copy follows section 12 and `.claude/rules/writing-style.md`.
 
 **Status, counts and time**
@@ -259,7 +260,7 @@ Atlassian's surfaces.
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
-| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area |
+| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area. The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W4) |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
 bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,
@@ -288,6 +289,8 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 | Tables | Rows become two-line list items | Scroll inside the panel; first column sticks | Full | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
+On a phone the workflow graph is for reading: its nodes have no buttons, one line says to edit in Pipeline, and the
+Pipeline view does the editing.
 Checked at 360, 768, 1024, 1440 and 1920px.
 
 ## 9. Flow
@@ -350,7 +353,7 @@ in a development build, shows every component in each state, and its test fails 
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon, the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
 | Sheet | shadcn `Sheet` (`NoteSheet`, `MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
-| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis; the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
+| Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
 | Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the verify mark and colour (T1) |
 | Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a detail page a last item, With a note, opens the move in a sheet with a note |
@@ -425,6 +428,10 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - WCAG 2.2 AA. A 2px `primary` focus ring with a 2px offset on every interactive element, never removed.
 - Targets at least 24px with a mouse (2.5.8) and 44px on touch. Text at least 4.5:1; large text and boundaries 3:1.
 - Every drag has a non-drag alternative (Move to stage). Every shortcut has a visible control.
+- A canvas of nodes (the workflow graph) makes each node a tab stop with the focus ring and a label that says what it
+  is. Tab reaches the buttons inside a node; the arrow keys, Home and End move between nodes in reading order, and
+  whatever takes the focus scrolls into view. Text in a node is clamped, with the full value in a tooltip that takes
+  no tab stop of its own.
 - Motion 120 to 180ms for hover and popovers, 200 to 240ms for sheets; `prefers-reduced-motion` turns it off.
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.

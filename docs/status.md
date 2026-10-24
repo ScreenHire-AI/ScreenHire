@@ -10,7 +10,8 @@ sources:
 
 Snapshot 2026-10-23, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
 workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
-collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012). The whole product
+collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012) and the "Workflow
+builder" workflow (PRs #44, #45 and the editable graph). The whole product
 runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
@@ -32,7 +33,9 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations make, a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40 |
 | Scorecards | Job-related criteria per stage on a fixed labelled scale and a required recommendation, nothing summed; submitting one raises the "reviewer decision" trigger | #41 |
 | Email | Organization email templates (Liquid subject, plain-text message, live preview, a test send), email to one candidate or a selection, the rejection email only with Reject ([email](architecture/email.md)) | #42 |
-| Follow-up questionnaires | Answers and the application's source as automation facts, so a knockout can match; follow-up questionnaires in a workflow, sent by a SendQuestionnaire automation through a signed, time-limited link to a careers page that works without JavaScript; answering one fires the "questionnaire answered" trigger ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)) | "Workflow builder", in progress |
+| Follow-up questionnaires | Answers and the application's source as automation facts, so a knockout can match; follow-up questionnaires in a workflow, sent by a SendQuestionnaire automation through a signed, time-limited link to a careers page that works without JavaScript; answering one fires the "questionnaire answered" trigger ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)) | #45 |
+| Stage time limits | A stage's time limit (SLA) passing fires the "time limit passes" trigger, which may only remind the team, and an application past it shows an Overdue badge | #44 |
+| Workflow graph | The builder's graph edits the same draft as the Pipeline view: add an automation to a stage or the whole workflow, open its form at any node, remove it, and draw a "move to a stage" link; every node is a tab stop, the arrow keys move between nodes, and a validation problem shows on its node. On a phone the graph is for reading ([workflow engine](architecture/workflow-engine.md#4-builder-ux-dashboard)) | the editable graph task |
 | Settings | Organization, Team, Careers branding, Integrity, API keys, Webhooks and Email templates screens for Owners and Admins | #39, #42 |
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |

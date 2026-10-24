@@ -36,6 +36,14 @@ sources:
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
   - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
+  - resource: apps/dashboard/src/lib/workflow-graph.ts
+  - resource: apps/dashboard/src/lib/components/workflow/workflow-graph.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/step-node.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/graph-keys.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/graph-controls.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/workflow-editor.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-list.svelte
   - resource: apps/dashboard/src/lib/sla.ts
@@ -139,9 +147,28 @@ validation result is a status badge beside the page title.
   has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
   workflow" lane. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
-- **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): stages
-  along the top, one row per automation from trigger to conditions to actions, edges to the stages it fires on and
-  moves into. Nodes are not draggable or focusable; each automation node's Edit button opens its form.
+- **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): a
+  "Whole workflow" lane and the stages along the top, one row per automation from trigger to conditions to actions,
+  edges from the lane or stage it fires on and to the stage it moves into. It stays a projection: no node position is
+  stored, because a stored layout would change the definition and every save of a job's workflow is a new version. The
+  layout is automatic, each row as tall as its tallest node can be, so nodes never overlap. It opens at full size from
+  the top left, where reading order starts: fitted to the pane, a node's buttons would fall under the 24px target size
+  (WCAG 2.5.8), so fitting is the zoom controls' choice. The first column starts right of the zoom toolbar, and a
+  node that takes the focus under the toolbar is panned out from under it. The graph edits the same
+  draft as the Pipeline view, through the same form:
+  - a lane or stage node's "Add automation" adds one there (`addAutomation`) and opens its form at the name;
+  - every automation node's Edit opens that automation's form, the drawer's own `automation-form.svelte`, at the
+    node's part (its trigger, its conditions or that action), so every trigger, condition and action the form offers,
+    the questionnaire and time-limit ones included, is built from the graph;
+  - a trigger node's Remove takes the automation out (`removeAutomation`);
+  - a "move to a stage" action points at its stage through the form's Stage field, or by drawing a link from the
+    action to a stage (`connect`), which is a pointer shortcut only.
+
+  Every node is a tab stop with the focus ring, Tab reaches the buttons in it, and the arrow keys, Home and End move
+  between nodes in reading order (`neighbour`); whatever takes the focus is panned into view. A validation message
+  shows on the node its path names, an automation's own messages on its trigger node, as it does on the form control.
+  Closing the form returns the focus to the graph. On a phone the graph is for reading, with no buttons, and says to
+  edit in Pipeline. A version that cannot be edited draws the same graph with no buttons.
 - **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, as a question list
   (`question-list.svelte`) beside a live preview rendered by the shared components in `packages/ui/src/questions`, the
   ones the careers pages render. The apply form's preview starts with the candidate's details and the resume; a
