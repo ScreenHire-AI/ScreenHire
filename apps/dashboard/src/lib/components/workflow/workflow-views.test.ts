@@ -2,9 +2,10 @@
 // result beside its title.
 import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
+import { stubViewport } from '../../../test-support/viewport.js';
 import WorkflowHarness from '../../../test-support/workflow-harness.svelte';
 import ValidationBadge from './validation-badge.svelte';
 
@@ -147,12 +148,13 @@ describe('read-only workflow', () => {
     expect(screen.queryByRole('region', { name: 'Problems' })).toBeNull();
   });
 
-  it('draws the graph without Edit buttons', () => {
+  it('draws the graph with focusable nodes and no buttons that edit', () => {
     renderViews('summary', 'graph');
 
     const pane = screen.getByRole('tabpanel', { name: 'Graph' });
     expect(within(pane).getByRole('region', { name: 'Stages and automations' })).toBeInTheDocument();
-    expect(within(pane).queryByRole('button', { name: /^Edit / })).toBeNull();
+    expect(within(pane).getByRole('group', { name: 'When: Tag screened' })).toHaveAttribute('tabindex', '0');
+    expect(within(pane).queryByRole('button', { name: /^(Edit|Add automation|Remove) / })).toBeNull();
   });
 });
 
@@ -277,5 +279,76 @@ describe('workflow builder', () => {
     expect(within(criteria).getAllByRole('listitem')).toHaveLength(3);
     expect(within(stages).getByText('Scorecard: 3 criteria and a recommendation')).toBeInTheDocument();
     await expectNoAxeViolations(container);
+  });
+});
+
+describe('workflow graph in the builder', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const graph = () => screen.getByRole('tabpanel', { name: 'Graph' });
+
+  it('adds an automation to a stage and opens its form at its name, the one the Pipeline view uses', async () => {
+    const { container } = renderViews('editor', 'graph');
+    await expectNoAxeViolations(container);
+
+    await fireEvent.click(within(graph()).getByRole('button', { name: 'Add automation to Phone screen' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    const name = within(sheet).getByRole('textbox', { name: 'Name' }) as HTMLInputElement;
+    expect(name.value).toBe('New automation');
+    await vi.waitFor(() => expect(name).toHaveFocus());
+    expect(within(sheet).getAllByRole('article')).toHaveLength(1);
+    expect((within(sheet).getByRole('combobox', { name: 'Trigger' }) as HTMLSelectElement).value).toBe('StageEntered');
+    expect(within(graph()).getByRole('group', { name: 'When: New automation' })).toBeInTheDocument();
+  });
+
+  it("opens an action's form at that action from its node's Edit", async () => {
+    renderViews('editor', 'graph');
+
+    await fireEvent.click(within(graph()).getByRole('button', { name: 'Edit Add the tag "screened" in Tag screened' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    await vi.waitFor(() => expect(within(sheet).getByRole('combobox', { name: 'Action 1' })).toHaveFocus());
+  });
+
+  it('shows a validation problem on its node, as its form control does', () => {
+    renderViews('editor', 'graph', [{ path: 'automations[0].actions[0].tag', message: 'Give the tag a name.' }]);
+
+    const node = within(graph()).getByRole('group', { name: 'Then, action 1: Add the tag "screened", Tag screened, 1 problem to fix' });
+    expect(node).toHaveTextContent('Give the tag a name.');
+    expect(node.querySelector('[data-shape="square"]')).not.toBeNull();
+  });
+
+  it('removes an automation from its trigger node and moves the focus to its stage', async () => {
+    renderViews('editor', 'graph');
+
+    await fireEvent.click(within(graph()).getByRole('button', { name: 'Remove Tag screened' }));
+
+    expect(within(graph()).queryByRole('group', { name: /Tag screened/ })).toBeNull();
+    await vi.waitFor(() => expect(within(graph()).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveFocus());
+  });
+
+  it('moves between nodes in reading order with the arrow keys', async () => {
+    renderViews('editor', 'graph');
+    const lane = within(graph()).getByRole('group', { name: 'Whole workflow' });
+    lane.focus();
+
+    await fireEvent.keyDown(lane, { key: 'ArrowRight' });
+    expect(within(graph()).getByRole('group', { name: 'Stage 1: Applied' })).toHaveFocus();
+    await fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
+    expect(within(graph()).getByRole('group', { name: 'When: Tag screened' })).toHaveFocus();
+    await fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+    expect(within(graph()).getByRole('group', { name: 'Then, action 1: Add the tag "screened", Tag screened' })).toHaveFocus();
+    await fireEvent.keyDown(document.activeElement!, { key: 'Home' });
+    expect(lane).toHaveFocus();
+  });
+
+  it('is for reading on a phone, where editing stays in the Pipeline view', () => {
+    stubViewport(390);
+    renderViews('editor', 'graph');
+
+    expect(graph()).toHaveTextContent('On a phone the graph is for reading. Edit in Pipeline.');
+    expect(within(graph()).queryByRole('button', { name: /^(Edit|Add automation|Remove) / })).toBeNull();
+    expect(within(graph()).getByRole('group', { name: 'When: Tag screened' })).toBeInTheDocument();
   });
 });
