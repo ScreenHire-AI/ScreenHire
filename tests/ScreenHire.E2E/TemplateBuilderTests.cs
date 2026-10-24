@@ -114,6 +114,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var edit = (await Page.GetByRole(AriaRole.Button, new() { Name = "Edit Route for review" }).BoundingBoxAsync())!;
         edit.X.Should().BeInRange(pane.X, pane.X + pane.Width - edit.Width);
         edit.Y.Should().BeInRange(pane.Y, pane.Y + pane.Height - edit.Height);
+        // The zoom toolbar floats over the canvas's bottom left; the first column starts right of it, so it covers no node.
+        var toolbar = (await Page.Locator("[data-graph-controls]").BoundingBoxAsync())!;
+        foreach (var node in await Page.Locator(".svelte-flow__node").AllAsync())
+        {
+            var box = (await node.BoundingBoxAsync())!;
+            var overlaps = box.X < toolbar.X + toolbar.Width && toolbar.X < box.X + box.Width && box.Y < toolbar.Y + toolbar.Height && toolbar.Y < box.Y + box.Height;
+            overlaps.Should().BeFalse($"the zoom toolbar should not cover the node \"{await node.GetAttributeAsync("aria-label")}\"");
+        }
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-light");
 
