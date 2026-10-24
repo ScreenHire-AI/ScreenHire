@@ -18,7 +18,7 @@
   import IconButton from '#lib/components/icon-button.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import type { StepNode } from '#lib/workflow-graph.js';
+  import { NODE_WIDTH, type StepNode } from '#lib/workflow-graph.js';
   import ProblemMark from './problem-mark.svelte';
 
   // One node of the workflow graph, itself a tab stop (the graph moves between nodes with the arrow keys). Its buttons
@@ -39,8 +39,9 @@
 
 <Handle type="target" position={Position.Left} isConnectable={linksIn} />
 <div
+  style:width="{NODE_WIDTH}px"
   class={[
-    'flex w-[220px] flex-col gap-1 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
+    'flex flex-col gap-1 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
     data.kind === 'stage' || data.kind === 'lane' ? 'border-foreground/40' : 'border-border',
     data.problems.length > 0 ? 'border-status-verify-mark' : '',
     // An automation that is off keeps full-contrast text (X1): a dashed edge and ", off" in its label say so.

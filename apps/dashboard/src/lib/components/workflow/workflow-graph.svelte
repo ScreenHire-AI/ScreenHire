@@ -23,15 +23,16 @@
   let { workflow, errors, actions }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; actions?: GraphActions } = $props();
 
   const nodeTypes = { step: StepNodeView };
-  // It opens at full size from the top left, where reading order starts: zoomed out to fit, a node's buttons would be
-  // under the 24px target size (WCAG 2.5.8). Fit the whole workflow is the controls' choice to make.
-  const initialViewport = { x: 24, y: 24, zoom: 1 };
   // The organization's template names, for "Send the ... email".
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
   const phone = new IsMobile();
   const touch = new MediaQuery('pointer: coarse');
   const editing = $derived(phone.current ? undefined : actions);
+  // It opens at full size from the top left, where reading order starts: zoomed out to fit, a node's buttons would be
+  // under the 24px target size (WCAG 2.5.8). Fitting the whole workflow is the controls' choice. The first column
+  // starts right of the zoom toolbar (bottom left, wider on touch), so the toolbar never covers a node at the start.
+  const initialViewport = { x: touch.current ? 96 : 84, y: 24, zoom: 1 };
 
   // Svelte Flow binds the arrays (it writes measured sizes back), so they are state rather than derived.
   let nodes = $state.raw<StepNode[]>([]);

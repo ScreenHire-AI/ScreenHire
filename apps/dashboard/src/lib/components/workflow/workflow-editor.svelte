@@ -5,7 +5,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { laneOf, newAutomation, removeAt } from '#lib/workflow.js';
+  import { laneOf, removeAt } from '#lib/workflow.js';
   import { LANE_NODE, addAutomation, connect, removeAutomation, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
@@ -116,9 +116,9 @@
   }
 
   function addToDrawer() {
-    const automation = newAutomation(workflow, drawerLane);
-    workflow.automations = [...workflow.automations, automation];
-    drawerIds = [...drawerIds, automation.id];
+    const added = addAutomation(workflow, drawerLane);
+    workflow.automations = added.workflow.automations;
+    drawerIds = [...drawerIds, added.id];
   }
 </script>
 

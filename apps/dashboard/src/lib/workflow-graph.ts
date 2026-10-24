@@ -46,7 +46,7 @@ export interface GraphOptions {
   touch?: boolean;
 }
 
-/** The node box's width in step-node.svelte, and the room between columns. */
+/** The node box's width, which step-node.svelte sets from this, and the room between columns. */
 export const NODE_WIDTH = 220;
 const COLUMN = NODE_WIDTH + 50;
 const ROW_GAP = 56;
