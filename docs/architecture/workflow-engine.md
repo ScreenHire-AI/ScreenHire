@@ -40,6 +40,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-graph.svelte
   - resource: apps/dashboard/src/lib/components/workflow/step-node.svelte
   - resource: apps/dashboard/src/lib/components/workflow/graph-keys.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/graph-controls.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-editor.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
@@ -152,7 +153,8 @@ validation result is a status badge beside the page title.
   stored, because a stored layout would change the definition and every save of a job's workflow is a new version. The
   layout is automatic, each row as tall as its tallest node can be, so nodes never overlap. It opens at full size from
   the top left, where reading order starts: fitted to the pane, a node's buttons would fall under the 24px target size
-  (WCAG 2.5.8), so fitting is the zoom controls' choice. The graph edits the same
+  (WCAG 2.5.8), so fitting is the zoom controls' choice. The first column starts right of the zoom toolbar, and a
+  node that takes the focus under the toolbar is panned out from under it. The graph edits the same
   draft as the Pipeline view, through the same form:
   - a lane or stage node's "Add automation" adds one there (`addAutomation`) and opens its form at the name;
   - every automation node's Edit opens that automation's form, the drawer's own `automation-form.svelte`, at the
