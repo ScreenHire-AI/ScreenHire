@@ -68,7 +68,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **W2** Sentence case. No all-caps text except acronyms. Monospace only for codes, ids and key caps.
 - **W3** No dot separators or strings of metadata. Facts are muted pills or a labelled facts row.
 - **W4** Labels, not instructions. A description gets one line, or none if the title says it. A fact appears once
-  per screen.
+  per screen. A builder's validation message is the exception: it shows in "Problems to fix" and again on the control
+  or graph node it is about, because the panel says what is wrong and the control says where.
 - **W5** Copy follows section 12 and `.claude/rules/writing-style.md`.
 
 **Status, counts and time**
@@ -259,7 +260,7 @@ Atlassian's surfaces.
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
-| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area. The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about as well as in the builder's "Problems to fix" panel, as it does under its form control: the panel says what is wrong, the node where (not a W4 repeat) |
+| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area. The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W4) |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
 bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,

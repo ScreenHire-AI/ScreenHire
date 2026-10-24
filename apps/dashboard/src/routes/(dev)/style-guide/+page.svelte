@@ -541,6 +541,12 @@
             <SummaryItem label="Time ago"><RelativeTime at={ago(3 * hour)} /></SummaryItem>
             <SummaryItem label="Date in a table"><DateText at={ago(9 * day)} /></SummaryItem>
             <SummaryItem label="Truncated"><TruncatedText text="Senior product designer, design systems and accessibility, North America" /></SummaryItem>
+            <SummaryItem label="Truncated, two lines">
+              <TruncatedText
+                lines={2}
+                text="Send the follow-up questionnaire about availability, notice period, preferred start date and the right to work"
+              />
+            </SummaryItem>
             <SummaryItem label="Truncated link">
               <TruncatedText text="samuel.okonkwo-hartley@careers.example.com" href="mailto:samuel.okonkwo-hartley@careers.example.com" icon={MailIcon} underlined />
             </SummaryItem>

@@ -116,6 +116,26 @@ describe('toGraph', () => {
     expect(nodeHeight(data, false, true)).toBe(nodeHeight(data, false, false));
   });
 
+  it("draws the time-limit and questionnaire automations: from a stage's limit or the lane, and naming the questionnaire", () => {
+    const followUps: HiringWorkflow = {
+      ...workflow,
+      followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
+      automations: [
+        { id: 'late', name: 'Late', trigger: { type: 'SlaBreached', stageId: 'screening' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Overdue' }] },
+        { id: 'any-late', name: 'Any late', trigger: { type: 'SlaBreached' }, conditions: null, actions: [{ type: 'CreateTask', note: 'Chase' }] },
+        { id: 'ask', name: 'Ask', trigger: { type: 'StageEntered', stageId: 'screening' }, conditions: null, actions: [{ type: 'SendQuestionnaire', questionnaireId: 'availability' }] },
+        { id: 'answered', name: 'Answered', trigger: { type: 'QuestionnaireCompleted', questionnaireId: 'availability' }, conditions: null, actions: [{ type: 'AddTag', tag: 'answered' }] },
+      ],
+    };
+    const graph = toGraph(followUps);
+    const node = (id: string) => graph.nodes.find((candidate) => candidate.id === id)!;
+
+    expect(links(graph)).toEqual(expect.arrayContaining(['stage:screening>late:trigger', `${LANE_NODE}>any-late:trigger`, `${LANE_NODE}>answered:trigger`]));
+    expect(node('late:trigger').data.detail).toBe("A stage's time limit passes");
+    expect(node('ask:action:0').data.title).toBe('Send the "Availability" questionnaire');
+    expect(node('answered:trigger').data.detail).toBe('A follow-up questionnaire is answered: Availability');
+  });
+
   it('is a projection: the same workflow gives the same graph', () => {
     expect(toGraph(workflow)).toEqual(toGraph(structuredClone(workflow)));
   });
