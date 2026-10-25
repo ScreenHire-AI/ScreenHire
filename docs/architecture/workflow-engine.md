@@ -535,9 +535,8 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
 **The candidate's rating** (ADR-0013 decision 13, `RatingRule`) is one to five stars from people's scorecards:
 
 - Each answered rating question maps onto 1 to 5. A 1 to 5 answer counts as it is. A 1 to 10 answer is spread so that
-  1 counts as 1 and 10 as 5 (`1 + (n - 1) * 4 / 9`). A rating Yes counts as 5 and No as 1. The task brief said "a 1 to
-  10 answer halved"; halving puts a 1 at 0.5, off the scale the same sentence names, so the rule follows the approved
-  Candidate-Rating board instead.
+  1 counts as 1 and 10 as 5 (`1 + (n - 1) * 4 / 9`). A rating Yes counts as 5 and No as 1. Halving a 1 to 10 answer
+  would put a 1 at 0.5, off the scale, so the spread keeps both ends on it.
 - Each scorecard counts once, as the mean of its answered rating questions; the rating is the mean of those, to one
   decimal, halves away from zero, with the number of scorecards that counted. This differs from a flat mean of every
   answer: the rating opens to each scorecard with its own number (4.3, 3.7 and 4.3 make 4.1), which only a mean of
@@ -550,8 +549,9 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
 - No automation reads it: `DefinitionValidator` refuses a condition on it with the reason.
 - A reviewer sees it only after giving their own (`ReviewerGate`). A reviewer is a member with an open Review task
   (`ApplicationTaskKind.Review`, made by AssignReviewer) assigned to them on the application that their scorecards have
-  not answered: answered means a scorecard of theirs for the stage the review was assigned in (the task's `stageId`),
-  or any scorecard of theirs submitted since. Until then the API leaves the rating (`AfterYourScorecard`, no number),
+  not answered. A review in a stage with a scorecard is answered only by their scorecard for that stage (the task's
+  `stageId`), so scoring another stage does not show it. A review in a stage without a scorecard, or one made before
+  tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned. Until then the API leaves the rating (`AfterYourScorecard`, no number),
   the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. A
   Review task for the whole team holds nothing back, and neither does an API key. Ticking the task done also shows it.
 - The rating is on `ApplicationSummary` and `ApplicationDetail`, so the job's table, the candidates list and the

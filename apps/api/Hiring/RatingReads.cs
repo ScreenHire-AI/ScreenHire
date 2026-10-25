@@ -84,11 +84,20 @@ internal static class RatingReads
             return [];
         }
 
+        // Whether each review's stage has a scorecard decides what answers it, so read the jobs' workflows.
+        var reviewed = reviews.Select(r => r.ApplicationId).Distinct().ToList();
+        var workflows = await db.Applications.AsNoTracking()
+            .Where(a => reviewed.Contains(a.Id))
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { a.Id, j.Workflow })
+            .ToDictionaryAsync(x => x.Id, x => x.Workflow, cancellationToken);
         var mine = given.ToLookup(g => g.ApplicationId, g => g.Scorecard);
         return
         [
             .. reviews.GroupBy(r => r.ApplicationId)
-                .Where(g => ReviewerGate.Withholds(g.Select(r => new OpenReview(r.StageId, r.CreatedAt)), mine[g.Key]))
+                .Where(g => ReviewerGate.Withholds(
+                    g.Select(r => new OpenReview(
+                        r.StageId, r.CreatedAt, r.StageId is { } stage && workflows[g.Key].FindStage(stage)?.Scorecard is not null)),
+                    mine[g.Key]))
                 .Select(g => g.Key),
         ];
     }

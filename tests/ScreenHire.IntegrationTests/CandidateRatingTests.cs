@@ -162,6 +162,38 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         (await recruiter.GetAsync(Scorecards(application))).Count().Should().Be(1);
     }
 
+    // Scoring an earlier stage after the review was asked for does not answer the review of a stage with a scorecard.
+    [Fact]
+    public async Task A_scorecard_for_another_stage_does_not_answer_a_review()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        var job = await AutomationSamples.JobWithAutomationsAsync(owner, "Platform Engineer", new JsonObject
+        {
+            ["id"] = "ask-review",
+            ["name"] = "Ask for a review",
+            ["trigger"] = new JsonObject { ["type"] = "StageEntered", ["stageId"] = "interview" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "AssignReviewer", ["assigneeUserId"] = recruiter.UserId }),
+        });
+        var application = (await owner.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"))).Id();
+        (await owner.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
+        (await owner.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
+        await AutomationSamples.WaitForRunAsync(owner, application, "ask-review", "Completed");
+        var candidate = (await owner.GetAsync($"/v1/applications/{application}")).Id("candidate.id");
+        var url = Scorecards(application);
+        (await owner.PostAsync(url, Submission("interview", "Yes", InterviewRatings(5, 5, 5)))).Expect(HttpStatusCode.Created);
+
+        (await recruiter.PostAsync(url, Submission("screening", "Yes", Answer("role_requirements", rating: 4)))).Expect(HttpStatusCode.Created);
+
+        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "AfterYourScorecard - x0");
+        (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(1, "they read only their own screening scorecard");
+
+        (await recruiter.PostAsync(url, Submission("interview", "Yes", InterviewRatings(3)))).Expect(HttpStatusCode.Created);
+
+        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "Rated 4.0 x3");
+        (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(3);
+    }
+
     [Fact]
     public async Task Marking_the_review_task_done_shows_the_reviewer_the_rating()
     {

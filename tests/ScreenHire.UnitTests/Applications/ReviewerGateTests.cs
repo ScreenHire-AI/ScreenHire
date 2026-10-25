@@ -17,7 +17,7 @@ public sealed class ReviewerGateTests
     [Fact]
     public void An_open_review_holds_the_rating_back_until_its_stage_is_scored()
     {
-        OpenReview[] review = [new("interview", Assigned)];
+        OpenReview[] review = [new("interview", Assigned, StageHasScorecard: true)];
 
         ReviewerGate.Withholds(review, []).Should().BeTrue();
         ReviewerGate.Withholds(review, [new GivenScorecard("interview", Assigned.AddHours(1))]).Should().BeFalse();
@@ -26,32 +26,41 @@ public sealed class ReviewerGateTests
     [Fact]
     public void An_earlier_stage_s_scorecard_does_not_answer_a_new_review()
     {
-        OpenReview[] review = [new("interview", Assigned)];
+        OpenReview[] review = [new("interview", Assigned, StageHasScorecard: true)];
 
         ReviewerGate.Withholds(review, [new GivenScorecard("screening", Assigned.AddDays(-2))]).Should().BeTrue();
+    }
+
+    // Scoring another stage after the review was asked for does not open the stage under review.
+    [Fact]
+    public void A_later_scorecard_for_another_stage_does_not_answer_a_review_of_a_scored_stage()
+    {
+        OpenReview[] review = [new("interview", Assigned, StageHasScorecard: true)];
+
+        ReviewerGate.Withholds(review, [new GivenScorecard("screening", Assigned.AddHours(1))]).Should().BeTrue();
     }
 
     // A reminder after the reviewer already scored the stage holds nothing back.
     [Fact]
     public void A_review_of_a_stage_already_scored_is_answered()
     {
-        ReviewerGate.Withholds([new OpenReview("interview", Assigned)], [new GivenScorecard("interview", Assigned.AddDays(-1))]).Should().BeFalse();
+        ReviewerGate.Withholds([new OpenReview("interview", Assigned, StageHasScorecard: true)], [new GivenScorecard("interview", Assigned.AddDays(-1))]).Should().BeFalse();
     }
 
     // A review asked for in a stage with no scorecard (Applied) is answered by the reviewer's next scorecard anywhere.
     [Fact]
     public void A_review_in_a_stage_without_a_scorecard_is_answered_by_the_next_scorecard()
     {
-        OpenReview[] review = [new("applied", Assigned)];
+        OpenReview[] review = [new("applied", Assigned, StageHasScorecard: false)];
 
         ReviewerGate.Withholds(review, [new GivenScorecard("screening", Assigned.AddHours(2))]).Should().BeFalse();
-        ReviewerGate.Withholds([new OpenReview(null, Assigned)], [new GivenScorecard("screening", Assigned.AddHours(2))]).Should().BeFalse();
+        ReviewerGate.Withholds([new OpenReview(null, Assigned, StageHasScorecard: false)], [new GivenScorecard("screening", Assigned.AddHours(2))]).Should().BeFalse();
     }
 
     [Fact]
     public void Every_open_review_must_be_answered()
     {
-        OpenReview[] reviews = [new("screening", Assigned), new("interview", Assigned.AddDays(3))];
+        OpenReview[] reviews = [new("screening", Assigned, StageHasScorecard: true), new("interview", Assigned.AddDays(3), StageHasScorecard: true)];
 
         ReviewerGate.Withholds(reviews, [new GivenScorecard("screening", Assigned.AddHours(1))]).Should().BeTrue();
     }
