@@ -126,6 +126,23 @@ public sealed class DevelopmentDemoTests
         }
     }
 
+    // The seeded scorecards answer the default workflow's built-in scorecards, so each must fit its stage's, and the team's
+    // own scorecard must be one the library would save.
+    [Fact]
+    public void The_demo_scorecards_fit_their_stages_and_make_ratings()
+    {
+        var library = DemoScorecards.TechnicalInterview(Guid.CreateVersion7(), DateTimeOffset.UnixEpoch);
+        DefinitionValidator.ValidateScorecardQuestions(library.Questions, "questions").Should().BeEmpty();
+        library.Questions.Select(q => q.Type).Distinct().Should().HaveCount(Enum.GetValues<ScorecardQuestionType>().Length, "it shows every answer kind");
+
+        foreach (var seeded in DemoScorecards.All)
+        {
+            var scorecard = HiringWorkflow.Default.FindStage(seeded.StageId)!.Scorecard!;
+            ScorecardAnswers.Check(scorecard, seeded.Answers).Should().BeEmpty(seeded.CandidateEmail);
+            RatingRule.Of(ScorecardAnswers.Keep(scorecard, seeded.Answers)).Should().NotBeNull();
+        }
+    }
+
     private static IReadOnlyList<Question> QuestionnaireOf(string slug) =>
         DemoQuestionnaires.All.Single(q => q.Slug == slug).Questionnaire.Questions;
 }

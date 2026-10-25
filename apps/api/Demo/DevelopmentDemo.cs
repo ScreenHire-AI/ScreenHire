@@ -49,6 +49,10 @@ namespace ScreenHire.Api.Demo;
 /// moved through their stages, with notes.</item>
 /// <item>Notes on one .NET candidate (<see cref="SeedNotesAsync"/>): Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan and
 /// edits the note, so the candidate's Activity shows mentions and an edited note and Mailpit has the mention emails.</item>
+/// <item>Scorecards (<see cref="SeedScorecardsAsync"/>): Brightwater's own "Technical interview" scorecard, with every answer
+/// kind, on the .NET job's Interview stage; scorecards from Avery Quinn and Jordan Ellis on three candidates, so the job
+/// tables show ratings and "Not rated yet"; and a review for Avery on Priya Natarajan, whose rating Avery then reads as
+/// "Rating after your scorecard". Seeded history: it fires no ReviewerDecision automation.</item>
 /// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.
 /// It stays open until all its candidates have applied, so a start that failed one leaves it for the next start.</item>
 /// </list>
@@ -171,6 +175,7 @@ internal sealed partial class DevelopmentDemo(
         }
 
         await TryAsync(() => SeedNotesAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedScorecardsAsync(stoppingToken), stoppingToken);
         await TryAsync(() => CloseAsync(ClosedJobSlug, stoppingToken), stoppingToken);
         LogSeeded(logger, applicants, candidates);
     }
@@ -233,6 +238,99 @@ internal sealed partial class DevelopmentDemo(
         }
 
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+    }
+
+    // The demo's scorecards (DemoScorecards), through the same domain methods as the scorecard endpoint. Seeded history
+    // publishes no RunAutomations: a ReviewerDecision automation would move demo candidates on after every start. A
+    // candidate who already has a scorecard is left alone, and so is a library scorecard or a job stage already set up.
+    private async Task SeedScorecardsAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken, signedIn: DevelopmentDataSeeder.DemoOwnerEmail) is not { Owner: { } avery } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var library = DemoScorecards.TechnicalInterview(step.OrganizationId, step.Now);
+        var own = await db.ScorecardTemplates.SingleOrDefaultAsync(t => t.Name == library.Name, cancellationToken);
+        if (own is null)
+        {
+            own = library;
+            db.ScorecardTemplates.Add(own);
+        }
+
+        // The .NET job's Interview stage takes the team's scorecard, as picking it in the workflow builder would.
+        var dotnet = await db.Jobs.SingleOrDefaultAsync(j => j.Slug == SyntheticApplicantsJobSlug, cancellationToken);
+        if (dotnet is { Status: not JobStatus.Closed } && dotnet.Workflow.FindStage("interview") is { } interview && interview.ScorecardTemplateId != own.Key)
+        {
+            dotnet.ReviseWorkflow(dotnet.Workflow with
+            {
+                Stages = [.. dotnet.Workflow.Stages.Select(s => s.Id == interview.Id ? s with { ScorecardTemplateId = own.Key, Scorecard = own.ToScorecard() } : s)],
+            }, step.Now);
+            await step.Outbox.PublishAsync(new JobWorkflowChanged(dotnet.OrganizationId, dotnet.Id, dotnet.WorkflowVersion, step.Now));
+        }
+
+        var reviewers = new Dictionary<string, Guid>(StringComparer.Ordinal);
+        foreach (var email in DemoScorecards.All.Select(s => s.ReviewerEmail).Distinct(StringComparer.Ordinal))
+        {
+            if (await UserIdAsync(db, email, cancellationToken) is { } id)
+            {
+                reviewers[email] = id;
+            }
+        }
+
+        var given = 0;
+        foreach (var group in DemoScorecards.All.GroupBy(s => s.CandidateEmail, StringComparer.Ordinal))
+        {
+            var normalized = Domain.Candidates.Candidate.Normalize(group.Key);
+            var found = await (
+                from a in db.Applications
+                join c in db.Candidates on a.CandidateId equals c.Id
+                join j in db.Jobs on a.JobId equals j.Id
+                where c.NormalizedEmail == normalized
+                select new { Application = a, Job = j }).SingleOrDefaultAsync(cancellationToken);
+            if (found is null || await db.ApplicationScorecards.AnyAsync(s => s.ApplicationId == found.Application.Id, cancellationToken))
+            {
+                continue;
+            }
+
+            foreach (var (seeded, index) in group.Select((s, i) => (s, i)))
+            {
+                if (found.Job.Workflow.FindStage(seeded.StageId) is not { Scorecard: not null } stage || !reviewers.TryGetValue(seeded.ReviewerEmail, out var reviewer))
+                {
+                    continue;
+                }
+
+                // A little apart and before now, oldest first, so Activity reads in the order they were given.
+                var at = step.Now.AddMinutes(-10 * (group.Count() - index));
+                var (scorecard, entry) = found.Application.SubmitScorecard(
+                    stage, reviewer, seeded.Answers, seeded.Recommendation, seeded.Note, found.Job.WorkflowVersion, at);
+                db.ApplicationScorecards.Add(scorecard);
+                db.ApplicationEvents.Add(entry);
+                await step.Outbox.PublishAsync(new ScorecardSubmitted(
+                    found.Application.OrganizationId, found.Application.Id, found.Application.JobId, scorecard.Id, entry.Id, at));
+                given++;
+            }
+
+            if (group.Key == DemoScorecards.ReviewForOwner)
+            {
+                // As AssignReviewer makes it: Avery has her own review to give, so the others' scorecards wait for it.
+                db.ApplicationTasks.Add(new Domain.Automations.ApplicationTask
+                {
+                    OrganizationId = found.Application.OrganizationId,
+                    ApplicationId = found.Application.Id,
+                    Kind = Domain.Automations.ApplicationTaskKind.Review,
+                    Note = "Review this application.",
+                    AssigneeUserId = avery,
+                    StageId = DemoScorecards.ReviewForOwnerStage,
+                    CreatedAt = step.Now,
+                });
+            }
+        }
+
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        LogScorecards(logger, given);
     }
 
     // Demo data is a convenience: a failed step is logged, never stops the API, and does not keep the next step from running.
@@ -723,6 +821,9 @@ internal sealed partial class DevelopmentDemo(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Development demo: {Applicants} synthetic applicants and {Candidates} demo candidates applied to Brightwater")]
     private static partial void LogSeeded(ILogger logger, int applicants, int candidates);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Development demo: {Scorecards} scorecards given on Brightwater candidates")]
+    private static partial void LogScorecards(ILogger logger, int scorecards);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Development demo: a step of the demo data could not be seeded")]
     private static partial void LogFailed(ILogger logger, Exception exception);
