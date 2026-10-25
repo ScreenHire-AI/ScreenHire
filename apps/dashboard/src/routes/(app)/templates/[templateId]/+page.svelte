@@ -55,7 +55,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { can } from '#lib/permissions.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
-  import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByNouns } from '#lib/templates.js';
+  import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
   import type { PageProps } from './$types';
@@ -339,6 +339,7 @@
                 items={use.usedBy.map((item) => ({ id: item.id, label: usageLabel(item), href: usageHref(item) }))}
                 one={usedByNouns.hiring.one}
                 other={usedByNouns.hiring.other}
+                empty={usedByLabel('hiring', 0)}
                 title="Used by"
                 description={detail.name}
               />

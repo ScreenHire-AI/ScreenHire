@@ -170,6 +170,16 @@
   });
   const tableRows = $derived(table.getRowModel().rows);
 
+  // A table wider than its panel (a tablet) scrolls sideways inside it, and the name column stays put (design system
+  // section 8). A stuck cell holds the name's row-covering link, so while the table scrolls the link covers the name
+  // cell only, as on the candidate table; while it fits, the whole row is the link (section 9).
+  let scrollerWidth = $state(0);
+  let tableWidth = $state(0);
+  let scrolledSideways = $state(false);
+  const overflowing = $derived(tableWidth > scrollerWidth + 1);
+  // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
+  const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
+
   const who = (row: TemplateRow) => actorName(row.lastUpdated, members, currentUserId);
 
   function clearFilters() {
@@ -181,7 +191,7 @@
 <Panel label={view.noun} flush footer={message || failure ? footer : undefined}>
   {#snippet tools()}
     <p class="min-w-0 flex-1 text-muted-foreground max-md:hidden"><TruncatedText text={view.sentence} /></p>
-    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} class="ml-auto flex-[0_1_15rem]" />
+    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
   {/snippet}
 
   <!-- On a phone the sentence moves under the header, where it has the width to read whole. -->
@@ -239,7 +249,7 @@
           {#snippet meta()}{#if row.lastUpdated.at}<DateText at={row.lastUpdated.at} />{/if}{/snippet}
           {#snippet facts()}
             {#if row.builtIn}<BuiltInBadge />{/if}
-            {#if row.usage}<Badge variant="muted">Used by {usedByLabel(kind, row.usage.usedBy.length).toLocaleLowerCase()}</Badge>{/if}
+            {#if row.usage?.usedBy.length}<Badge variant="muted">Used by {usedByLabel(kind, row.usage.usedBy.length).toLocaleLowerCase()}</Badge>{/if}
             {#if row.draft}<StatusBadge status="draft" label={`Draft ${row.draft}`} quiet />{/if}
           {/snippet}
         </ListItem>
@@ -247,8 +257,8 @@
     </ul>
   {:else}
     <!-- relative: the Actions header's sr-only label is absolute, and would escape the scroller and widen the page (F1). -->
-    <div class="relative overflow-x-auto">
-      <table aria-label={view.noun} class="w-full border-collapse text-left">
+    <div class="relative overflow-x-auto" bind:clientWidth={scrollerWidth} onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}>
+      <table aria-label={view.noun} bind:offsetWidth={tableWidth} class="w-full border-collapse text-left">
         <thead class="bg-muted">
           {#each table.getHeaderGroups() as group (group.id)}
             <tr>
@@ -257,6 +267,8 @@
                   {header}
                   class={[
                     header.id === 'name' && 'px-4.5',
+                    header.id === 'name' && overflowing && 'sticky left-0 z-[1] bg-muted',
+                    header.id === 'name' && overflowing && scrolledSideways && nameEdge,
                     header.id === 'actions' && 'w-14 px-4 text-right',
                     (header.id === 'updatedAt' || header.id === 'lastUsed') && 'text-right',
                   ]}
@@ -268,12 +280,15 @@
         <tbody>
           {#each tableRows as tableRow (tableRow.id)}
             <!-- The whole row is the link (section 9): the name's link covers it, and cells with controls sit above it. -->
-            <tr class="relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
+            <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
               {#each tableRow.getAllCells() as cell (cell.id)}
                 <td
                   class={[
                     'px-3 whitespace-nowrap',
                     cell.column.id === 'name' && 'max-w-72 px-4.5',
+                    // A stuck cell covers what scrolls under it, so it carries the row's hover tint itself.
+                    cell.column.id === 'name' && overflowing && 'sticky left-0 z-[1] bg-card group-hover:bg-muted',
+                    cell.column.id === 'name' && overflowing && scrolledSideways && nameEdge,
                     // The description or the subject takes the room the other columns leave, and is cut (F5, L1).
                     (cell.column.id === 'description' || cell.column.id === 'subject') && 'w-full max-w-0 min-w-40',
                     cell.column.id !== 'name' && 'text-muted-foreground',

@@ -58,6 +58,7 @@
     templateUsagePath,
     usageHref,
     usageLabel,
+    usedByLabel,
     usedByNouns,
   } from '#lib/templates.js';
   import { problemErrors } from '#lib/workflow.js';
@@ -276,6 +277,7 @@
               items={use.usedBy.map((item) => ({ id: item.id, label: usageLabel(item), href: usageHref(item) }))}
               one={usedByNouns.scorecards.one}
               other={usedByNouns.scorecards.other}
+              empty={usedByLabel('scorecards', 0)}
               title="Used by"
               description={detail.name}
             />

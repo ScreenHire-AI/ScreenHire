@@ -50,7 +50,7 @@
   import { can } from '#lib/permissions.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { copyName, maxNameLength, templateHref, templatesHref, templateUsagePath, usageHref, usageLabel, usedByNouns } from '#lib/templates.js';
+  import { copyName, maxNameLength, templateHref, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import type { PageProps } from './$types';
 
   // One email template in its editor (design system sections 7 and 22, builder): the header band with Built in for
@@ -226,6 +226,7 @@
               items={use.usedBy.map((item) => ({ id: `${item.id}:${item.automationId}`, label: usageLabel(item), href: usageHref(item) }))}
               one={usedByNouns.emails.one}
               other={usedByNouns.emails.other}
+              empty={usedByLabel('emails', 0)}
               title="Used by"
               description={detail.name}
             />

@@ -54,14 +54,16 @@
 
 <TopBar crumbs={[{ label: 'Templates', href: listHref }, { label: 'New email template' }]} back />
 
+{#snippet readOnlyReason()}
+  <!-- Read only says why and what to do (E3), in one line under the title. -->
+  <p>Ask an owner or admin to make email templates.</p>
+{/snippet}
+
 <main class={['flex flex-col', sidebar.isMobile && mayEdit && 'pb-28']}>
-  <HeaderBand title="New email template" actions={sidebar.isMobile || !mayEdit ? undefined : saveButton} />
+  <HeaderBand title="New email template" details={mayEdit ? undefined : readOnlyReason} actions={sidebar.isMobile || !mayEdit ? undefined : saveButton} />
   <div class="flex w-full flex-col gap-4 px-4 py-6 md:px-6">
     {#if !mayEdit}
-      <!-- Read only says why and what to do (E3). -->
-      <Panel title="Wording" class="max-w-form">
-        <p class="text-muted-foreground">Your role cannot make email templates. Ask an owner or admin of your organization.</p>
-      </Panel>
+      <!-- The header band says why there is nothing to fill in (E3). -->
     {:else if templates.isError}
       <Panel title="Wording" class="max-w-form">
         <QueryError message={describeError(templates.error, 'Could not load the variables')} onretry={() => templates.refetch()} inset />
