@@ -217,14 +217,14 @@ describe('application page', () => {
     renderPage();
 
     const tabs = await screen.findByRole('tablist', { name: 'Candidate sections' });
-    await waitFor(() => expect(within(tabs).getByRole('tab', { name: /^Integrity/ })).toHaveTextContent('Verification suggested'));
+    await waitFor(() => expect(within(tabs).getByRole('tab', { name: 'Integrity, Verification suggested' })).toBeInTheDocument());
     await waitFor(() =>
       expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
         'Overview',
         'Application',
         'Messages 0',
         'Scorecards 0',
-        'Integrity, Verification suggested',
+        'Integrity',
         'Activity 6',
       ]),
     );

@@ -96,7 +96,7 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         // The bot's level needs a look, so its Integrity tab carries a marker the genuine candidate's does not.
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationIds[1]}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(bot.FullName);
-        await Expect(Tab("Integrity")).ToHaveAccessibleNameAsync(new Regex(@"^Integrity\s*, Verification suggested"), new() { Timeout = 60_000 });
+        await Expect(Tab("Integrity")).ToHaveAccessibleNameAsync(new Regex(@"^Integrity, Verification suggested$"), new() { Timeout = 60_000 });
         var botTabs = await TabLabelsAsync();
 
         genuineTabs.Should().Equal(TabNames);
