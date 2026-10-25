@@ -99,7 +99,7 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         var rejected = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
             .Single(t => t.GetProperty("id").GetString() == "application-rejected");
         rejected.GetProperty("edited").GetBoolean().Should().BeTrue();
-        rejected.GetProperty("subject").GetString().Should().Be(DevelopmentDemo.RejectionEmailSubject);
+        rejected.GetProperty("subject").GetString().Should().Be("About your application for {{ jobTitle }}");
         rejected.GetProperty("lastUpdated").GetProperty("userId").GetString().Should().Be(avery);
         template.GetProperty("draftVersion").GetInt32().Should().Be(2, "the Templates page shows Jordan's draft");
     }
