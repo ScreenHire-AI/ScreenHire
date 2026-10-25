@@ -139,10 +139,14 @@ public sealed partial class RolePermissionsTests
             {
                 var name = OperationName().Match(statement);
                 var check = RoleCheck().Match(statement);
-                if (name.Success && check.Success)
+                if (!check.Success)
                 {
-                    routes.Add(name.Groups[1].Value, check.Groups[1].Value);
+                    continue;
                 }
+
+                // A guarded route without an operation name would slip past the catalogue, so it fails instead.
+                name.Success.Should().BeTrue($"every route a role check guards has a WithName, and one in {Path.GetFileName(file)} has none:{statement}");
+                routes.Add(name.Groups[1].Value, check.Groups[1].Value);
             }
         }
 
