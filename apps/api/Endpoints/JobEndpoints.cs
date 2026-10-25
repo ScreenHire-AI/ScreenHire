@@ -73,20 +73,8 @@ internal static class JobEndpoints
         return app;
     }
 
-    private static async Task<List<JobSummary>> ListJobs(ScreenHireDbContext db, CancellationToken cancellationToken)
-    {
-        var rows = await db.Jobs.AsNoTracking()
-            .OrderByDescending(j => j.CreatedAt)
-            .Select(j => new
-            {
-                Job = j,
-                LatestTemplateVersion = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => t.LatestPublishedVersion).FirstOrDefault(),
-            })
-            .ToListAsync(cancellationToken);
-        var changes = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.Job, [.. rows.Select(r => r.Job.Id.ToString("D"))], cancellationToken);
-
-        return [.. rows.Select(r => r.Job.ToSummary(changes.GetValueOrDefault(r.Job.Id.ToString("D")), r.LatestTemplateVersion))];
-    }
+    private static Task<List<JobSummary>> ListJobs(ScreenHireDbContext db, CancellationToken cancellationToken) =>
+        JobReads.ListAsync(db, new(), cancellationToken);
 
     // Every change to the job, newest first: its posting, its status and its workflow.
     private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetJobHistory(
