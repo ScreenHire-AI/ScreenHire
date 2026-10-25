@@ -64,6 +64,12 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         var ownerMemberId = await member.MemberIdAsync(owner.UserId);
         (await member.PutAsync($"/v1/organization/members/{ownerMemberId}/role", new JsonObject { ["role"] = "Viewer" }))
             .Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("Owners only");
+
+        // Deleting anyone's notes goes through the note routes, which need Add notes and tags.
+        (await owner.PutAsync($"/v1/organization/roles/{copy.Id()}", Update("Co-owner", "ViewHiring", "DeleteAnyNote")))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("permissions");
+        (await owner.PutAsync($"/v1/organization/roles/{copy.Id()}", Update("Co-owner", "ViewHiring", "AddNotesAndTags", "DeleteAnyNote")))
+            .Expect(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -170,6 +176,8 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = " interviewer ", ["copyFrom"] = "Viewer" }))
             .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("name");
         (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "viewer", ["copyFrom"] = "Viewer" }))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("name");
+        (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "Screener\nBcc: x", ["copyFrom"] = "Viewer" }))
             .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("name");
         (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "Screener" }))
             .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("copyFrom");
