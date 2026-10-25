@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Roadmap"
-description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (design system v0.3, questionnaire sections with progress and save-and-resume, the embeddable careers widget, interview scheduling, adding candidates by hand with server search and reports), later items, and what must exist before real customers."
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (design system v0.3, questionnaire sections with progress and save-and-resume, the embeddable careers widget, interview scheduling, adding candidates by hand with server search and reports, an MCP server for AI assistants), later items, and what must exist before real customers."
 tags: [roadmap, planning]
 ---
 # Roadmap
@@ -27,6 +27,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 | 3 | Embeddable careers widget: the job list and the apply flow in an iframe on a company's own site; a per-organization list of sites allowed to embed them (`frame-ancestors`, `'self'` today); a script that adds the frame and sizes it; the embedding site recorded as the source | not yet planned | Companies want candidates to apply without leaving their site. An iframe from ScreenHire's origin keeps the notice, telemetry and integrity checks intact, because the host page can neither read nor forge them (ADR-0003). The flow stays cookie-free inside the frame, since browsers block third-party cookies there |
 | 4 | Interview scheduling | not yet planned | Refused at save today. Decide first: build it, or Cal.com, Nylas or Cronofy (workflow engine, open questions) |
 | 5 | Add a candidate by hand, search on the server, basic reports (funnel, time to hire, source) | not yet planned | The API for adding a candidate exists with no screen; Ctrl K only filters what is loaded |
+| 6 | MCP server: a remote MCP endpoint on the API (`ModelContextProtocol.AspNetCore`, Apache-2.0) so a team's AI assistant can find jobs and candidates, read an application with its integrity reasons, add notes and tags, create tasks and move a candidate to a stage. It signs in with an organization API key and its Read or Write scope, and with OAuth for clients that only sign in that way | not yet planned | The hiring API and its keys exist, so the tools sit on the same endpoints and rules. Three rules carry over: integrity comes back as levels, reasons and evidence, never a score; no tool rejects a candidate, so rejection stays a person's decision (ADR-0004, and the automated-decision rules in [legal](research/legal.md)); and resume and answer text comes back marked as written by the candidate, because resumes carry hidden instructions aimed at AI screeners, which the integrity engine already flags. Every action lands in Activity with the key that made it |
 
 ## Later
 
