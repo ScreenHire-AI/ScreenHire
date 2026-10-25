@@ -107,7 +107,7 @@
 
 <!-- Each column is an inset (design system section 6). relative: the chips' sr-only labels are absolute, and without a
      positioned scroller they escape it and widen the page (F1). -->
-<div data-board class="relative min-h-0 flex-1 overflow-auto">
+<div data-pipeline-board class="relative min-h-0 flex-1 overflow-auto">
   <div class="flex h-full min-w-max items-start gap-3 p-3">
     {#each columns as column (column.stage.id)}
       {@const count = countIn(column.stage.id)}

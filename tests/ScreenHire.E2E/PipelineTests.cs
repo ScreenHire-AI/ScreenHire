@@ -36,15 +36,14 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
         await Expect(table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }) }))
             .ToContainTextAsync("Applied");
-        // The pipeline panel counts every candidate after its title.
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" }).Locator("header [data-slot='badge']"))
-            .ToHaveTextAsync(Candidates.Length.ToString(CultureInfo.InvariantCulture));
-        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Stage" }).GetByRole(AriaRole.Button, new() { Name = "All" }))
-            .ToHaveAttributeAsync("aria-pressed", "true");
-        // J moves the cursor to the next row and shows it in the side panel.
+        // The Candidates tab counts every candidate; the Stage filter starts on All.
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Candidates") }))
+            .ToContainTextAsync(Candidates.Length.ToString(CultureInfo.InvariantCulture));
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Stage: All" })).ToBeVisibleAsync();
+        // J moves the cursor to the next row, which takes the focus.
         await table.GetByRole(AriaRole.Link, new() { Name = Candidates[0] }).FocusAsync();
         await Page.Keyboard.PressAsync("j");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Selected candidate" })).ToContainTextAsync(Candidates[1]);
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = Candidates[1] })).ToBeFocusedAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-table-light");
 
@@ -87,6 +86,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(Page, scene.JobId);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") }).ClickAsync();
         var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" });
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Sandbox board");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Not posted to this board.");
@@ -98,6 +98,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(scene.Slug)).Should().Contain(scene.JobId.ToString(), "the sandbox board lists the job");
+        // The tab's count says how many boards the job is on, here all of them.
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution ?, posted on (\\d+) of \\1 boards$") })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-distribution-live-light");
 
@@ -191,6 +193,15 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = Candidates[0] }))
             .ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" })).ToHaveCountAsync(0);
+        // The filters are chips in one row with the Sort chip, which offers the headers' sorts (L2, section 8).
+        var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
+        foreach (var chip in new[] { "Stage: All", "Authenticity: All", "Sort" })
+        {
+            await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = chip, Exact = true })).ToBeVisibleAsync();
+        }
+
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-job-390-light");
 
         // The chips' sr-only labels sit inside their list items and must not widen the page.
         var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
@@ -242,20 +253,20 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
             if (width == 1440)
             {
-                // The pipeline's header at its fullest: a stage chosen and two rows ticked, then the longest filter label.
-                // Controls never wrap or push past the panel (F5); labels shorten instead.
+                // The pipeline at its fullest: a stage chosen, two rows ticked and an authenticity chip pressed. Controls
+                // never wrap or push past the panel (F5); the filter row scrolls inside it instead.
                 var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
-                await pipeline.GetByRole(AriaRole.Group, new() { Name = "Stage" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Applied") }).ClickAsync();
+                await pipeline.GetByRole(AriaRole.Button, new() { Name = "Stage: All" }).ClickAsync();
+                await Page.GetByRole(AriaRole.Menuitemradio, new() { NameRegex = new("^Applied") }).ClickAsync();
+                await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = "Stage: Applied" })).ToBeVisibleAsync();
                 await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {Candidates[0]}" }).CheckAsync();
                 await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {Candidates[1]}" }).CheckAsync();
-                await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = "Move 2 selected…" })).ToBeVisibleAsync();
-                (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits a stage and a selection");
+                await Expect(pipeline.GetByRole(AriaRole.Region, new() { Name = "Selected candidates" }).GetByRole(AriaRole.Button, new() { Name = "Move 2 selected…" }))
+                    .ToBeVisibleAsync();
+                (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits its search and view switch");
 
-                await pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity:") }).ClickAsync();
-                await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Verification suggested" }).ClickAsync();
-                await Page.Keyboard.PressAsync("Escape");
-                await Expect(pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity: Verification suggested") })).ToBeVisibleAsync();
-                (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits the longest filter label");
+                await pipeline.GetByRole(AriaRole.Group, new() { Name = "Authenticity" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Verification suggested") }).ClickAsync();
+                (await PageOverflowAsync(Page)).Should().Be(0, "the filter row scrolls inside the panel, never the page");
             }
         }
     }
@@ -342,7 +353,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     private async Task GoToJobAsync(IPage page, Guid jobId)
     {
         await page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
-        await Expect(page.GetByRole(AriaRole.Region, new() { Name = "Distribution" })).ToBeVisibleAsync();
+        await Expect(page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" })).ToBeVisibleAsync();
     }
 
     // The page's own /v1 proxy, with the page's cookies; the sandbox board's public listing needs no session.

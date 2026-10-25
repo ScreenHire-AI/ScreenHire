@@ -306,7 +306,7 @@ questionnaire preview shows the candidate base with `text-candidate-body`.
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
 | Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`), forms at 688px (`max-w-form`), and the details rail is 340px (`basis-rail`, `--container-rail`). If a layout needs a limit, the element gets a max-width, never the page |
-| Board columns | 296px; an empty or closed stage shrinks to 188px |
+| Board columns | 296px; an empty stage shrinks to 188px, and the stages that end a candidacy (Hired, Rejected, Withdrawn) share one 188px Closed column that counts each |
 
 ## 6. Layers
 
@@ -599,6 +599,13 @@ These join section 11 one by one, each when the build adds it to the style guide
   the fix. Calm rows say nothing. The board's empty and closed stages shrink so every stage fits, and the board
   scrolls inside itself. Workflow opens its own page from the header. Selected rows get a bar with Move and Email;
   with an authenticity filter on, Email hides and Rejected leaves Move (ADR-0004).
+  Built: the chips and the Stage filter sit on a row under the pipeline panel's header (S3), as words and counts with
+  no status icon (I2), and a phone has Stage, Authenticity and Sort chips above the list items. The tab is in the
+  address (`?tab=distribution`), and the count is the boards the job is on or on its way to. A posting whose checks
+  found issues is "did not take this job", never "refused": only a board's own answer is a refusal. On the board, the
+  closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.
+  In the table a calm AI assistance cell is empty, with its words for screen readers, and authenticity keeps its quiet
+  "No concerns" (T3).
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and
