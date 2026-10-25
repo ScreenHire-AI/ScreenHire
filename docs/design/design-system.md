@@ -640,7 +640,7 @@ These join section 11 one by one, each when the build adds it to the style guide
   say why. Its header's facts are People, Copied from and Last updated with History; Copy role and Delete role are in
   More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
   Built in beside its title and Copy role as the primary action. Both list the people with the role, each with the jobs
-  they see ("All jobs", or a count button that lists them) and Edit access.
+  they see ("All jobs", or a count button that lists them) and an Edit access on Team link.
   Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All jobs", or "2 jobs" for someone on Only jobs
   they're on. A member's menu holds Edit access, which opens one sheet for their role (a select, with what it can do
   below) and their jobs: All jobs ("Including jobs added later") or Only jobs they're on, then the jobs whose hiring
