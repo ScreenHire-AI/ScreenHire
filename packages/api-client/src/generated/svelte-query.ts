@@ -45,6 +45,7 @@ import type {
   ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
+  CreateApplicationTaskRequest,
   CreateEmailTemplateRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
@@ -6310,6 +6311,219 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getRemoveApplicationTagMutationOptions(options?.()) }), queryClient);
     }
 
+export type createApplicationTaskResponse201 = {
+  data: ApplicationTaskEntry
+  status: 201
+}
+
+export type createApplicationTaskResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createApplicationTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createApplicationTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createApplicationTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createApplicationTaskResponse429 = {
+  data: void
+  status: 429
+}
+
+export type createApplicationTaskResponseSuccess = (createApplicationTaskResponse201) & {
+  headers: Headers;
+};
+export type createApplicationTaskResponseError = (createApplicationTaskResponse400 | createApplicationTaskResponse401 | createApplicationTaskResponse403 | createApplicationTaskResponse404 | createApplicationTaskResponse429) & {
+  headers: Headers;
+};
+
+export const getCreateApplicationTaskUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tasks`
+}
+
+export const createApplicationTask = async (applicationId: string,
+    createApplicationTaskRequest: CreateApplicationTaskRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createApplicationTaskResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createApplicationTaskResponseSuccess>(getCreateApplicationTaskUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createApplicationTaskRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateApplicationTaskMutationKey = () => ['createApplicationTask'] as const;
+
+export const getCreateApplicationTaskMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createApplicationTask>>, TError,CreateApplicationTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createApplicationTask>>, TError,CreateApplicationTaskMutationVariables, TContext> => {
+
+const mutationKey = getCreateApplicationTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApplicationTask>>, CreateApplicationTaskMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  createApplicationTask(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateApplicationTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createApplicationTask>>>
+    export type CreateApplicationTaskMutationBody = CreateApplicationTaskRequest
+    export type CreateApplicationTaskMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateApplicationTaskMutationVariables = {applicationId: string;data: CreateApplicationTaskRequest}
+
+    export const createCreateApplicationTask = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createApplicationTask>>, TError,CreateApplicationTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createApplicationTask>>,
+        TError,
+        CreateApplicationTaskMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateApplicationTaskMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listApplicationTasksResponse200 = {
+  data: ApplicationTaskEntry[]
+  status: 200
+}
+
+export type listApplicationTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationTasksResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationTasksResponseSuccess = (listApplicationTasksResponse200) & {
+  headers: Headers;
+};
+export type listApplicationTasksResponseError = (listApplicationTasksResponse401 | listApplicationTasksResponse404) & {
+  headers: Headers;
+};
+
+export const getListApplicationTasksUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tasks`
+}
+
+export const listApplicationTasks = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApplicationTasksResponseSuccess> => {
+
+  return apiQueryFetch<listApplicationTasksResponseSuccess>(getListApplicationTasksUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApplicationTasksQueryKey = (applicationId: string,) => {
+    return [
+    'v1','applications',applicationId,'tasks'
+    ] as const;
+    }
+
+
+export const getListApplicationTasksQueryOptions = <TData = Awaited<ReturnType<typeof listApplicationTasks>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApplicationTasksQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApplicationTasks>>> = ({ signal }) => listApplicationTasks(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listApplicationTasks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListApplicationTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listApplicationTasks>>>
+export type ListApplicationTasksQueryError = ErrorType<void>
+
+
+
+export function createListApplicationTasks<TData = Awaited<ReturnType<typeof listApplicationTasks>>, TError = ErrorType<void>>(
+ applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListApplicationTasksQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
 export type downloadApplicationFileResponse401 = {
   data: void
   status: 401
@@ -10831,99 +11045,6 @@ export function createListAutomationRuns<TData = Awaited<ReturnType<typeof listA
 
 
   const query = createQuery(() => getListAutomationRunsQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
-export type listApplicationTasksResponse200 = {
-  data: ApplicationTaskEntry[]
-  status: 200
-}
-
-export type listApplicationTasksResponse401 = {
-  data: void
-  status: 401
-}
-
-export type listApplicationTasksResponse404 = {
-  data: void
-  status: 404
-}
-
-export type listApplicationTasksResponseSuccess = (listApplicationTasksResponse200) & {
-  headers: Headers;
-};
-export type listApplicationTasksResponseError = (listApplicationTasksResponse401 | listApplicationTasksResponse404) & {
-  headers: Headers;
-};
-
-export const getListApplicationTasksUrl = (applicationId: string,) => {
-
-
-
-
-  return `/v1/applications/${applicationId}/tasks`
-}
-
-export const listApplicationTasks = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApplicationTasksResponseSuccess> => {
-
-  return apiQueryFetch<listApplicationTasksResponseSuccess>(getListApplicationTasksUrl(applicationId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListApplicationTasksQueryKey = (applicationId: string,) => {
-    return [
-    'v1','applications',applicationId,'tasks'
-    ] as const;
-    }
-
-
-export const getListApplicationTasksQueryOptions = <TData = Awaited<ReturnType<typeof listApplicationTasks>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListApplicationTasksQueryKey(applicationId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApplicationTasks>>> = ({ signal }) => listApplicationTasks(applicationId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listApplicationTasks>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListApplicationTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listApplicationTasks>>>
-export type ListApplicationTasksQueryError = ErrorType<void>
-
-
-
-export function createListApplicationTasks<TData = Awaited<ReturnType<typeof listApplicationTasks>>, TError = ErrorType<void>>(
- applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationTasks>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getListApplicationTasksQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }

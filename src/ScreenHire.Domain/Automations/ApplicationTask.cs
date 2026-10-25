@@ -4,12 +4,16 @@ namespace ScreenHire.Domain.Automations;
 
 /// <summary>
 /// Something a person on the hiring team should do about one application: a review, a to-do, or a decision on a
-/// rejection an automation suggested. Automations create them (AssignReviewer, CreateTask, QueueForRejectionReview); a
+/// rejection an automation suggested. Automations create them (AssignReviewer, CreateTask, QueueForRejectionReview), and so
+/// can a person or an API key (<c>JobApplication.AddTask</c>); a
 /// task never changes the application by itself, which is how QueueForRejectionReview keeps a person in charge of every
 /// rejection that is not an opted-in knockout (workflow-engine.md §2, guardrail 2).
 /// </summary>
 public sealed class ApplicationTask : IApplicationScoped
 {
+    /// <summary>The longest note a person or an API key gives a task.</summary>
+    public const int MaxNoteLength = 2000;
+
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
     public Guid OrganizationId { get; init; }

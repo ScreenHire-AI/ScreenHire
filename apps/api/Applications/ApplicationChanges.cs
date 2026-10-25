@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -14,7 +15,7 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Applications;
 
 /// <summary>
-/// Changing an application: moving it, notes and tags. The hiring API's routes and the MCP tools both call these, so
+/// Changing an application: moving it, notes, tags and tasks. The hiring API's routes and the MCP tools both call these, so
 /// a change follows the same rules whichever way it arrives. The caller has already checked the permission
 /// (<see cref="HiringAuthorization"/>). Each returns the result its route answers with; the tenant and job-scope
 /// filters make another organization's application, or one on a job the reader cannot see, a 404.
@@ -161,6 +162,52 @@ internal static class ApplicationChanges
 
         return await ChangeTagsAsync(
             applicationId, outbox, tenant, time, (application, now) => application.RemoveTag(tag, now, tenant.UserId, user.ApiKeyId()), cancellationToken);
+    }
+
+    /// <summary>
+    /// A task for the hiring team about an application, from a person or an API key: the task, a timeline entry naming
+    /// who created it, and ApplicationTaskCreated so open dashboards show it. An assignee must be a member who can see
+    /// the candidate (<see cref="AudienceAsync"/>), as a mention must. It changes nothing about the application.
+    /// </summary>
+    public static async Task<Results<Created<ApplicationTaskEntry>, NotFound, ValidationProblem>> CreateTaskAsync(
+        Guid applicationId,
+        CreateApplicationTaskRequest request,
+        IValidator<CreateApplicationTaskRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var db = outbox.DbContext;
+        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == applicationId, cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        Guid[] assignees = request.AssigneeUserId is { } assignee ? [assignee] : [];
+        switch (await AudienceAsync(db, tenant, application.JobId, assignees, cancellationToken))
+        {
+            case JobAudience.NotMembers:
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem("assigneeUserId", "The assignee must be a member of this organization."));
+            case JobAudience.CannotSee:
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                    "assigneeUserId", "The assignee must be someone who can see this candidate. Add them to the job's hiring team first."));
+        }
+
+        var now = time.GetUtcNow();
+        var (task, entry) = application.AddTask(request.Note, request.AssigneeUserId, now, tenant.UserId, user.ApiKeyId());
+        db.ApplicationTasks.Add(task);
+        db.ApplicationEvents.Add(entry);
+        await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.Created($"/v1/applications/{application.Id}/tasks", task.ToEntry());
     }
 
     /// <summary>

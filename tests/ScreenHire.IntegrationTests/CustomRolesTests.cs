@@ -109,11 +109,12 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Data Engineer"));
         var application = await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
 
-        // Every membership row is a built-in role with no custom role, as every row from before custom roles is.
+        // Every membership row is a built-in role with no custom role, as every row from before custom roles is. Create
+        // tasks came later, with the task route, and went to every role that writes hiring data.
         string[] viewing = ["ViewHiring"];
         string[] recruiting =
         [
-            .. viewing, "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CompleteTasks", "EmailCandidates",
+            .. viewing, "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CreateTasks", "CompleteTasks", "EmailCandidates",
             "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
         ];
         string[] administering = [.. recruiting, "DeleteAnyNote", "EditEmailTemplates", "EditSettings", "ManageApiKeys", "ManageWebhooks", "ManageTeam"];

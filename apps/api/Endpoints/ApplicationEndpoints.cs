@@ -68,6 +68,10 @@ internal static class ApplicationEndpoints
             .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapPost("/{applicationId:guid}/tasks", CreateApplicationTask).WithName("CreateApplicationTask")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.CreateTasks)
+            .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -309,6 +313,17 @@ internal static class ApplicationEndpoints
         TimeProvider time,
         CancellationToken cancellationToken) =>
         ApplicationChanges.RemoveTagAsync(applicationId, tag, outbox, tenant, user, time, cancellationToken);
+
+    private static Task<Results<Created<ApplicationTaskEntry>, NotFound, ValidationProblem>> CreateApplicationTask(
+        Guid applicationId,
+        CreateApplicationTaskRequest request,
+        IValidator<CreateApplicationTaskRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken) =>
+        ApplicationChanges.CreateTaskAsync(applicationId, request, validator, outbox, tenant, user, time, cancellationToken);
 
     private static async Task<Results<Ok<List<ApplicationTimelineEntry>>, NotFound>> GetApplicationTimeline(
         Guid applicationId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken) =>

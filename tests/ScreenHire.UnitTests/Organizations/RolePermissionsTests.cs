@@ -30,6 +30,7 @@ public sealed partial class RolePermissionsTests
         ["DeleteApplicationNote"] = Permission.AddNotesAndTags,
         ["AddApplicationTag"] = Permission.AddNotesAndTags,
         ["RemoveApplicationTag"] = Permission.AddNotesAndTags,
+        ["CreateApplicationTask"] = Permission.CreateTasks,
         ["CompleteTask"] = Permission.CompleteTasks,
         ["SendEmails"] = Permission.EmailCandidates,
         ["SubmitScorecard"] = Permission.FillInScorecards,
@@ -94,12 +95,13 @@ public sealed partial class RolePermissionsTests
     [Fact]
     public void Built_in_roles_keep_exactly_the_access_they_had()
     {
-        // Written out, not derived: these are the sets the role-name checks allowed before custom roles.
+        // Written out, not derived: these are the sets the role-name checks allowed before custom roles, plus Create tasks,
+        // which came with the task route and went to every role that writes hiring data (custom roles do not get it).
         Permission[] viewer = [Permission.ViewHiring];
         Permission[] recruiter =
         [
             .. viewer, Permission.EditJobs, Permission.AddCandidates, Permission.MoveCandidates, Permission.AddNotesAndTags,
-            Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
+            Permission.CreateTasks, Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
             Permission.RunAutomations, Permission.EditHiringTemplates,
         ];
         Permission[] admin =

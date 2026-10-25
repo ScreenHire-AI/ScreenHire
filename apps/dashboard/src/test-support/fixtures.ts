@@ -14,12 +14,12 @@ import type {
 
 /** Every permission an Owner has, in catalogue order, as `GET /v1/auth/me` lists them. */
 const recruiterPermissions: Permission[] = [
-  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates',
+  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CreateTasks', 'CompleteTasks', 'EmailCandidates',
   'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates',
 ];
 
 export const ownerPermissions: Permission[] = [
-  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CompleteTasks',
+  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CreateTasks', 'CompleteTasks',
   'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates',
   'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners',
 ];

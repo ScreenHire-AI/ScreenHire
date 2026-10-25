@@ -29,6 +29,7 @@ import type {
   ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
+  CreateApplicationTaskRequest,
   CreateEmailTemplateRequest,
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
@@ -3564,6 +3565,126 @@ export const removeApplicationTag = async (applicationId: string,
 
 
 
+export type createApplicationTaskResponse201 = {
+  data: ApplicationTaskEntry
+  status: 201
+}
+
+export type createApplicationTaskResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createApplicationTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createApplicationTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createApplicationTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createApplicationTaskResponse429 = {
+  data: void
+  status: 429
+}
+
+export type createApplicationTaskResponseSuccess = (createApplicationTaskResponse201) & {
+  headers: Headers;
+};
+export type createApplicationTaskResponseError = (createApplicationTaskResponse400 | createApplicationTaskResponse401 | createApplicationTaskResponse403 | createApplicationTaskResponse404 | createApplicationTaskResponse429) & {
+  headers: Headers;
+};
+
+export type createApplicationTaskResponse = (createApplicationTaskResponseSuccess | createApplicationTaskResponseError)
+
+export const getCreateApplicationTaskUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tasks`
+}
+
+export const createApplicationTask = async (applicationId: string,
+    createApplicationTaskRequest: CreateApplicationTaskRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createApplicationTaskResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createApplicationTaskResponse>(getCreateApplicationTaskUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createApplicationTaskRequest)
+  }
+);}
+
+
+
+export type listApplicationTasksResponse200 = {
+  data: ApplicationTaskEntry[]
+  status: 200
+}
+
+export type listApplicationTasksResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationTasksResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationTasksResponseSuccess = (listApplicationTasksResponse200) & {
+  headers: Headers;
+};
+export type listApplicationTasksResponseError = (listApplicationTasksResponse401 | listApplicationTasksResponse404) & {
+  headers: Headers;
+};
+
+export type listApplicationTasksResponse = (listApplicationTasksResponseSuccess | listApplicationTasksResponseError)
+
+export const getListApplicationTasksUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/tasks`
+}
+
+export const listApplicationTasks = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationTasksResponse> => {
+
+  return apiFetch<listApplicationTasksResponse>(getListApplicationTasksUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type downloadApplicationFileResponse401 = {
   data: void
   status: 401
@@ -5968,51 +6089,6 @@ export const getListAutomationRunsUrl = (applicationId: string,) => {
 export const listAutomationRuns = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listAutomationRunsResponse> => {
 
   return apiFetch<listAutomationRunsResponse>(getListAutomationRunsUrl(applicationId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-export type listApplicationTasksResponse200 = {
-  data: ApplicationTaskEntry[]
-  status: 200
-}
-
-export type listApplicationTasksResponse401 = {
-  data: void
-  status: 401
-}
-
-export type listApplicationTasksResponse404 = {
-  data: void
-  status: 404
-}
-
-export type listApplicationTasksResponseSuccess = (listApplicationTasksResponse200) & {
-  headers: Headers;
-};
-export type listApplicationTasksResponseError = (listApplicationTasksResponse401 | listApplicationTasksResponse404) & {
-  headers: Headers;
-};
-
-export type listApplicationTasksResponse = (listApplicationTasksResponseSuccess | listApplicationTasksResponseError)
-
-export const getListApplicationTasksUrl = (applicationId: string,) => {
-
-
-
-
-  return `/v1/applications/${applicationId}/tasks`
-}
-
-export const listApplicationTasks = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationTasksResponse> => {
-
-  return apiFetch<listApplicationTasksResponse>(getListApplicationTasksUrl(applicationId),
   {
     ...options,
     method: 'GET'
