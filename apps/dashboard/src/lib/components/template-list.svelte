@@ -174,10 +174,10 @@
   }
 </script>
 
-<Panel label={`${view.label} templates`} flush footer={message || failure ? footer : undefined}>
+<Panel label={view.noun} flush footer={message || failure ? footer : undefined}>
   {#snippet tools()}
     <p class="min-w-0 flex-1 text-muted-foreground max-md:hidden"><TruncatedText text={view.sentence} /></p>
-    <SearchField bind:value={search} label={`Search ${view.label.toLocaleLowerCase()} templates`} class="ml-auto flex-[0_1_15rem]" />
+    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} class="ml-auto flex-[0_1_15rem]" />
   {/snippet}
 
   <!-- On a phone the sentence moves under the header, where it has the width to read whole. -->
@@ -226,7 +226,7 @@
       {/if}
     </Empty.Root>
   {:else if sidebar.isMobile}
-    <ul aria-label={`${view.label} templates`}>
+    <ul aria-label={view.noun}>
       {#each tableRows as tableRow (tableRow.id)}
         {@const row = tableRow.original}
         <ListItem href={row.href} title={row.name}>
@@ -242,7 +242,7 @@
   {:else}
     <!-- relative: the Actions header's sr-only label is absolute, and would escape the scroller and widen the page (F1). -->
     <div class="relative overflow-x-auto">
-      <table aria-label={`${view.label} templates`} class="w-full border-collapse text-left">
+      <table aria-label={view.noun} class="w-full border-collapse text-left">
         <thead class="bg-muted">
           {#each table.getHeaderGroups() as group (group.id)}
             <tr>

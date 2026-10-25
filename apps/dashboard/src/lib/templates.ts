@@ -7,11 +7,11 @@ export type TemplateKind = 'hiring' | 'scorecards' | 'emails';
 
 export const templateKinds: readonly TemplateKind[] = ['hiring', 'scorecards', 'emails'];
 
-/** The tab's label and the one sentence that says what its templates are for. */
-export const templateKindViews: Record<TemplateKind, { label: string; sentence: string }> = {
-  hiring: { label: 'Hiring', sentence: 'Where a job starts: its stages, questions, scorecards and automations.' },
-  scorecards: { label: 'Scorecards', sentence: "What reviewers fill in at a stage, and the questions behind the candidate's rating." },
-  emails: { label: 'Emails', sentence: 'What candidates receive, by hand or from an automation.' },
+/** The tab's label, what its templates are called, and the one sentence that says what they are for. */
+export const templateKindViews: Record<TemplateKind, { label: string; noun: string; sentence: string }> = {
+  hiring: { label: 'Hiring', noun: 'Hiring templates', sentence: 'Where a job starts: its stages, questions, scorecards and automations.' },
+  scorecards: { label: 'Scorecards', noun: 'Scorecards', sentence: "What reviewers fill in at a stage, and the questions behind the candidate's rating." },
+  emails: { label: 'Emails', noun: 'Email templates', sentence: 'What candidates receive, by hand or from an automation.' },
 };
 
 /** The longest name each kind takes (the API's limits). */
