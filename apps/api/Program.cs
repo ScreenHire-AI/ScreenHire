@@ -7,6 +7,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Api.Mcp;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
@@ -22,6 +23,7 @@ builder.AddScreenHireDataProtection();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
 builder.AddScreenHireApiKeys();
+builder.AddScreenHireMcp();
 builder.AddScreenHireApply();
 
 // Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
@@ -112,6 +114,7 @@ app.MapWebhookEndpoints();
 app.MapEmailEndpoints();
 app.MapSchemaEndpoints();
 app.MapRealtimeEndpoints();
+app.MapScreenHireMcp();
 
 if (app.Environment.IsDevelopment())
 {
