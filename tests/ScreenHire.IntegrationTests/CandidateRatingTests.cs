@@ -232,7 +232,7 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
     }
 
     // A job from the default hiring workflow with two automations on the interview stage: ask a review, and tag a decision.
-    private async Task<(Guid Job, Guid Application)> ApplicationWithReviewAsync(Tenant owner, Guid? assignee)
+    private static async Task<(Guid Job, Guid Application)> ApplicationWithReviewAsync(Tenant owner, Guid? assignee)
     {
         var assign = new JsonObject { ["type"] = "AssignReviewer" };
         if (assignee is { } userId)
