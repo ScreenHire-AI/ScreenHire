@@ -83,10 +83,12 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         // with its own name, not as a board that seems to stay Queued.
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
         await HeaderBand.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board("sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(organizationSlug)).Should().Contain(jobId.ToString(), "the sandbox board lists the job");
         await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Candidates") }).ClickAsync();
 
         // The recruiter keeps the job open while candidates apply; nothing below reloads it.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {JobTitle}" });
@@ -148,6 +150,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Close this job and remove it everywhere?" });
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Removed:");
         await Expect(Board("sandbox")).ToContainTextAsync("Removed:", WaitForBoard);
         await Expect(HeaderBand).ToContainTextAsync("Closed");

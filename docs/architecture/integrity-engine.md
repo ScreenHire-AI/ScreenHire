@@ -220,8 +220,9 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   Every action is audit-logged. No "reject" button sits in the integrity panel.
 
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
-  level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as plain text after the chip; a job's
-  Authenticity panel with its applicant count and a toggle per level with its count (each filters the table); the "Needs review" and "Verification suggested" saved views (authenticity above its
+  level and filterable from an "Integrity" menu on the Candidates list, with calm authenticity quiet, calm AI assistance
+  empty but for its words for screen readers, and the reason count as plain text after the chip; a job's authenticity
+  filter chips, one per level with its count, which filter the job's table and board; the "Needs review" and "Verification suggested" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
   page. The panel shows each assessment's summary, suggested next step (one quiet line for a calm result), reasons
   (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and

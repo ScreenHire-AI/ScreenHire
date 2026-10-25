@@ -1,5 +1,5 @@
 import type { WorkflowStage } from '@screenhire/api-client';
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
 import type { IntegrityFilter } from '#lib/integrity.js';
@@ -24,6 +24,8 @@ function renderPipeline(overrides: { stages?: WorkflowStage[]; integrityFilter?:
 
 const panel = () => screen.getByRole('region', { name: 'Pipeline' });
 const panelHeader = () => panel().querySelector('header')!;
+const filters = () => panel().querySelector<HTMLElement>('[data-filters]')!;
+const selectionBar = () => screen.getByRole('region', { name: 'Selected candidates' });
 const names = () =>
   within(screen.getByRole('table', { name: 'Candidates for Senior .NET Engineer' }))
     .getAllByRole('link')
@@ -37,15 +39,20 @@ afterEach(() => {
 });
 
 describe('job pipeline', () => {
-  it('titles the panel with its count, and holds search, the integrity filter and the view switch in its header (section 7)', () => {
+  it('holds the search and the view switch in its header, and the Stage filter and authenticity chips on a row under it', () => {
     renderPipeline();
     const header = panelHeader();
 
     expect(within(header).getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
-    expect(header.querySelector('[data-slot="badge"]')).toHaveTextContent(String(applications.length));
+    // The job's Candidates tab says how many; the panel does not say it again (W4).
+    expect(header.querySelector('[data-slot="badge"]')).toBeNull();
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
-    expect(within(header).getByRole('button', { name: /^Integrity: all/ })).toBeInTheDocument();
     expect(within(within(header).getByRole('group', { name: 'View' })).getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(header).queryByRole('button', { name: /^Integrity/ })).toBeNull();
+
+    expect(within(filters()).getByRole('button', { name: 'Stage: All' })).toBeInTheDocument();
+    // The fixtures have no assessment yet, so every candidate is waiting for checks.
+    expect(within(within(filters()).getByRole('group', { name: 'Authenticity' })).getByRole('button', { name: `Checks pending ${applications.length}` })).toBeInTheDocument();
   });
 
   it('gives the search its own row under the header on a phone, where the header has no room for it (F5)', () => {
@@ -58,15 +65,30 @@ describe('job pipeline', () => {
     expect(within(panelHeader()).getByRole('group', { name: 'View' })).toBeInTheDocument();
   });
 
-  it('filters by stage with a group of toggles on a row under the header, each with its count (T4)', async () => {
+  it('filters by stage from the Stage menu, each stage with its count (T4)', async () => {
     renderPipeline();
-    const group = within(panel()).getByRole('group', { name: 'Stage' });
 
-    expect(within(group).getByRole('button', { name: /^All\b/ })).toHaveAttribute('aria-pressed', 'true');
-    await fireEvent.click(within(group).getByRole('button', { name: /^Screening/ }));
+    await fireEvent.pointerDown(within(filters()).getByRole('button', { name: 'Stage: All' }), { button: 0, pointerType: 'mouse' });
+    const items = (await screen.findAllByRole('menuitemradio')).map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
+    expect(items).toEqual([
+      `All ${applications.length}`,
+      ...stages.map((stage) => `${stage.name} ${applications.filter((application) => application.stage.id === stage.id).length}`),
+    ]);
+    await fireEvent.click(screen.getByRole('menuitemradio', { name: /^Screening/ }));
 
-    expect(within(group).getByRole('button', { name: /^Screening/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(filters()).getByRole('button', { name: 'Stage: Screening' })).toBeInTheDocument();
     expect(names()).toEqual(['Jordan Lee']);
+  });
+
+  it('filters by an authenticity chip, and a new filter starts a new selection (ADR-0004)', async () => {
+    renderPipeline();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    expect(selectionBar()).toHaveTextContent('1 selected');
+
+    await fireEvent.click(within(filters()).getByRole('button', { name: /^Checks pending/ }));
+
+    expect(within(filters()).getByRole('button', { name: /^Checks pending/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
   });
 
   it('narrows the table by name, and moves only the ticked rows still shown', async () => {
@@ -74,12 +96,34 @@ describe('job pipeline', () => {
     for (const name of ['Casey Morgan', 'Jordan Lee']) {
       await fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
     }
-    expect(within(panelHeader()).getByRole('button', { name: 'Move 2 selected…' })).toBeInTheDocument();
+    expect(selectionBar()).toHaveTextContent('2 selected');
+    expect(within(selectionBar()).getByRole('button', { name: 'Move 2 selected…' })).toBeInTheDocument();
 
     await fireEvent.input(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'casey' } });
 
     expect(names()).toEqual(['Casey Morgan']);
-    expect(within(panelHeader()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
+    expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
+
+    await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Clear selection' }));
+    expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
+  });
+
+  it('keeps the ticked rows a search hides after moving the ones it shows', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ [`POST /v1/applications/${applications[0]!.id}/move`]: () => Response.json({}) })));
+    renderPipeline();
+    for (const name of ['Casey Morgan', 'Jordan Lee']) {
+      await fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
+    }
+    const search = within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' });
+    await fireEvent.input(search, { target: { value: 'casey' } });
+
+    await fireEvent.pointerDown(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Offer' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull());
+
+    await fireEvent.input(search, { target: { value: '' } });
+    expect(selectionBar()).toHaveTextContent('1 selected');
+    expect(screen.getByRole('checkbox', { name: 'Select Jordan Lee' })).toBeChecked();
   });
 
   it('says why the table is empty and offers to clear the filters (E1)', async () => {
@@ -104,7 +148,7 @@ describe('job pipeline', () => {
     renderPipeline({ stages: withEnds, integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
 
-    await fireEvent.pointerDown(within(panelHeader()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.pointerDown(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
 
     const items = (await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim());
     expect(items).toEqual(stages.map((stage) => stage.name));
@@ -114,15 +158,15 @@ describe('job pipeline', () => {
     canSendEmail();
     const { unmount } = renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
-    expect(await within(panelHeader()).findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
+    expect(await within(selectionBar()).findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
     renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
-    expect(within(panelHeader()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
+    expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(within(panelHeader()).queryByRole('button', { name: /^Email/ })).toBeNull();
+    expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
   it('keeps the board when its empty state clears a search', async () => {
@@ -130,22 +174,43 @@ describe('job pipeline', () => {
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
     await fireEvent.input(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'nobody' } });
 
-    expect(screen.getByText('No candidates match this search.')).toBeInTheDocument();
+    expect(screen.getByText('No candidates match these filters.')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
     expect(within(panelHeader()).getByRole('button', { name: 'Board' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it("hands the cursor's row to the page, which shows it in its side column", async () => {
+  it('offers the Stage, Authenticity and Sort chips in one row above the list on a phone (L2, section 8)', () => {
+    stubViewport(390);
     renderPipeline();
-    expect(screen.getByLabelText('Selected candidate')).toHaveTextContent('');
 
-    const link = screen.getByRole('link', { name: 'Jordan Lee' });
-    link.focus();
-    await fireEvent.focusIn(link);
+    expect(screen.queryByRole('table')).toBeNull();
+    const toolbar = screen.getByRole('button', { name: 'Sort' }).parentElement!;
+    expect(within(toolbar).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Stage: All', 'Authenticity: All', 'Sort']);
+  });
 
-    expect(screen.getByLabelText('Selected candidate')).toHaveTextContent('Jordan Lee');
+  it('keeps every move on a filtered board to one card: no ticks and no selection bar (ADR-0004)', async () => {
+    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
+
+    expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
+    expect(within(panel()).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
+    // Each card moves on its own, from its own menu: a person's decision about that candidate.
+    expect(screen.getByRole('button', { name: 'Move Casey Morgan to another stage' })).toBeInTheDocument();
+  });
+
+  it('filters the board by an authenticity level, with no Stage filter: its columns are the stages', async () => {
+    renderPipeline();
+    await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
+
+    expect(within(filters()).queryByRole('button', { name: /^Stage/ })).toBeNull();
+    await fireEvent.click(within(filters()).getByRole('button', { name: /^Review suggested/ }));
+
+    expect(screen.getByText('No candidates match these filters.')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
   });
 
   it('switches to the board with V or the view switch; the board keeps its keyboard and menu moves', async () => {
@@ -155,7 +220,7 @@ describe('job pipeline', () => {
     await fireEvent.keyDown(link, { key: 'v' });
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
-    expect(within(panel()).queryByRole('group', { name: 'Stage' })).toBeNull();
+    expect(within(panel()).queryByRole('button', { name: /^Stage:/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Move Casey Morgan to another stage' })).toBeInTheDocument();
 
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Table' }));

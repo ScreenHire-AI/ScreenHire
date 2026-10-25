@@ -36,6 +36,7 @@
     selectedIds = $bindable([]),
     emptyText = 'No candidates yet.',
     onclearfilters,
+    filters,
     sortId,
     sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, [
       'candidate',
@@ -63,6 +64,8 @@
     emptyText?: string;
     /** While the page filters the rows: the empty state's one action (E1). */
     onclearfilters?: () => void;
+    /** On a phone, the page's filters, in one row with the Sort chip above the list items (design system L2, section 8). */
+    filters?: Snippet;
     /** Names the table in the person's remembered sorts (`candidates`, `job-candidates`); without it the sort is forgotten. */
     sortId?: string;
     /**
@@ -242,7 +245,7 @@
       data-row-link
       href={`/applications/${application.id}`}
       text={application.candidateName}
-      class="max-w-56 font-bold text-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
+      class="max-w-56 font-semibold text-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
     />
   </span>
 {/snippet}
@@ -256,10 +259,11 @@
 {/snippet}
 
 {#snippet stageCell(application: ApplicationSummary)}
-  <!-- Overdue is a status, so it comes first in the cell (T2); the stage it is overdue in follows. -->
-  <span class="flex items-center gap-1.5">
+  <!-- Overdue is a status, so it comes first in the cell (T2); the stage it is overdue in follows as plain text, with no
+       pill (L1). -->
+  <span class="flex min-w-0 items-center gap-1.5">
     <OverdueBadge dueAt={application.slaDueAt} />
-    <Badge variant="muted">{application.stage.name}</Badge>
+    <TruncatedText text={application.stage.name} class="max-w-48" />
   </span>
 {/snippet}
 
@@ -331,11 +335,16 @@
 {/snippet}
 
 {#if phone.current}
+  <!-- List items have no headers, so the Sort chip offers the headers' choices, beside the page's filters (L2). The row
+       stays while a filter leaves nothing to list, so the filter can still change. The filters scroll rather than wrap
+       (F5), and the Sort chip stays in view at the end. -->
+  <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
+    <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{@render filters?.()}</div>
+    <SortMenu {table} class="shrink-0" />
+  </div>
   {#if rows.length === 0}
     {@render empty()}
   {:else}
-    <!-- List items have no headers, so the Sort chip offers the headers' choices (L2). -->
-    <div class="flex justify-end border-b border-border-subtle px-4 py-2"><SortMenu {table} /></div>
     <ul aria-label={label}>
       {#each rows as row (row.id)}
         {@render listItem(row.original)}

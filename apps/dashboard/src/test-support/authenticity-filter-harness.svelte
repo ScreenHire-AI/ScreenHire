@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { ApplicationSummary } from '@screenhire/api-client';
-  import IntegrityOverview from '#lib/components/integrity-overview.svelte';
+  import AuthenticityFilter from '#lib/components/authenticity-filter.svelte';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
 
-  // The overview bound to a filter, as the job page holds it, for component tests; the filter shows in an output.
-  let { applications }: { applications: readonly ApplicationSummary[] } = $props();
+  // The chips bound to a filter, as the job's pipeline holds it, for component tests; the filter shows in an output.
+  let { applications, menu = false }: { applications: readonly ApplicationSummary[]; menu?: boolean } = $props();
   let filter = $state<IntegrityFilter>({ ...noIntegrityFilter });
 </script>
 
 <Tooltip.Provider>
-  <IntegrityOverview {applications} bind:filter />
+  <AuthenticityFilter {applications} {filter} onchange={(next) => (filter = next)} {menu} />
   <output data-testid="filter">{JSON.stringify(filter)}</output>
 </Tooltip.Provider>

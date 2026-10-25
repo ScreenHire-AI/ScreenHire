@@ -144,3 +144,60 @@ export function boardRows(boards: readonly BoardSummary[], postings: readonly Jo
 
   return rows;
 }
+
+/**
+ * The Distribution tab's count (design system E2, "Distribution 7/8"): the boards the job is on or on its way to, out of
+ * every board listed. A pull board never confirms it shows the job, so a posting sent there counts as posted.
+ */
+export function postingCounts(rows: readonly BoardRow[]): { posted: number; total: number } {
+  return { posted: rows.filter((row) => row.posting && active.has(row.posting.state)).length, total: rows.length };
+}
+
+/** A problem with the job's postings, for a notice on the job page: what is wrong, naming each board, in words. */
+export interface PostingProblem {
+  kind: 'notTaken' | 'refused' | 'noAnswer';
+  boards: string[];
+  text: string;
+}
+
+const boardList = new Intl.ListFormat('en', { type: 'conjunction' });
+
+/**
+ * The postings that need fixes, one problem per kind, each naming every board it covers. The words never claim more than
+ * happened (docs/architecture/job-distribution.md): a posting whose checks found issues was never sent, so the board did
+ * not refuse it; only a board's own answer is a refusal, and a push board that did not answer is neither.
+ */
+export function postingProblems(rows: readonly BoardRow[]): PostingProblem[] {
+  const of = (state: JobPostingStatus['state']) => rows.filter((row) => row.posting?.state === state);
+  const problems: PostingProblem[] = [];
+  const notTaken = of('Draft');
+  if (notTaken.length > 0) {
+    const issues = notTaken.flatMap((row) => row.posting!.issues);
+    problems.push({
+      kind: 'notTaken',
+      boards: notTaken.map((row) => row.name),
+      text: `${boardList.format(notTaken.map((row) => row.name))} did not take this job.${issues.length > 0 ? ` ${issues.join(' ')}` : ''}`,
+    });
+  }
+
+  const refused = of('Rejected');
+  if (refused.length > 0) {
+    const reasons = refused.flatMap((row) => (row.posting!.lastError ? [`${row.name}: ${row.posting!.lastError}`] : []));
+    problems.push({
+      kind: 'refused',
+      boards: refused.map((row) => row.name),
+      text: `${boardList.format(refused.map((row) => row.name))} refused this job's posting.${reasons.length > 0 ? ` ${reasons.join(' ')}` : ''}`,
+    });
+  }
+
+  const noAnswer = of('Error');
+  if (noAnswer.length > 0) {
+    problems.push({
+      kind: 'noAnswer',
+      boards: noAnswer.map((row) => row.name),
+      text: `${boardList.format(noAnswer.map((row) => row.name))} did not answer. Retry to send it again.`,
+    });
+  }
+
+  return problems;
+}

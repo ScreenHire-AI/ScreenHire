@@ -31,6 +31,8 @@ async function openRowMenu(title: string) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // The table remembers its sort in the browser.
+  localStorage.clear();
 });
 
 describe('jobs page', () => {
@@ -45,6 +47,54 @@ describe('jobs page', () => {
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');
     expect(screen.getByRole('link', { name: 'New job' })).toHaveAttribute('href', '/jobs/new');
+  });
+
+  it('sorts by every column, opens on Last updated newest first, and remembers the sort (L2)', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
+    const { unmount } = renderPage();
+    const table = await screen.findByRole('table', { name: 'Jobs' });
+
+    const headers = within(table).getAllByRole('columnheader');
+    expect(headers.map((header) => header.textContent?.trim())).toEqual(['Status', 'Title', 'Location', 'Type', 'Published', 'Last updated', 'Actions']);
+    // Every column with a value is a sort button; the actions column is not.
+    expect(headers.slice(0, 6).every((header) => within(header).queryByRole('button'))).toBe(true);
+    expect(within(headers[6]!).queryByRole('button')).toBeNull();
+    expect(within(table).getByRole('columnheader', { name: 'Last updated' })).toHaveAttribute('aria-sort', 'descending');
+
+    await fireEvent.click(within(table).getByRole('button', { name: 'Title' }));
+    expect(within(table).getByRole('columnheader', { name: 'Title' })).toHaveAttribute('aria-sort', 'ascending');
+    expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Customer Success Lead', 'Senior .NET Engineer', 'Support Engineer']);
+
+    await fireEvent.click(within(table).getByRole('button', { name: 'Status' }));
+    expect((await dataRows()).map((row) => cellTexts(row)[0])).toEqual(['Open', 'Draft', 'Closed']);
+    expect(JSON.parse(localStorage.getItem('screenhire:sort:jobs')!)).toEqual({ id: 'status', desc: false });
+
+    unmount();
+    renderPage();
+    expect(within(await screen.findByRole('table', { name: 'Jobs' })).getByRole('columnheader', { name: 'Status' })).toHaveAttribute('aria-sort', 'ascending');
+  });
+
+  it('offers the same sorts in a Sort chip beside the status filter on a phone (L2)', async () => {
+    stubViewport(360);
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
+    renderPage();
+
+    await screen.findByRole('list', { name: 'Jobs' });
+    const sort = screen.getByRole('button', { name: 'Sort' });
+    expect(sort.parentElement).toContainElement(statusFilter());
+
+    await fireEvent.pointerDown(sort, { button: 0, pointerType: 'mouse' });
+    const choices = (await screen.findAllByRole('menuitemradio')).map((item) => item.textContent?.replace(/,.*$/, '').trim());
+    expect(choices).toEqual(['Status', 'Title', 'Location', 'Type', 'Published', 'Last updated']);
+    await fireEvent.click(screen.getByRole('menuitemradio', { name: /^Title/ }));
+
+    await waitFor(() =>
+      expect(within(screen.getByRole('list', { name: 'Jobs' })).getAllByRole('listitem').map((item) => within(item).getAllByRole('link')[0]!.textContent?.trim())).toEqual([
+        'Customer Success Lead',
+        'Senior .NET Engineer',
+        'Support Engineer',
+      ]),
+    );
   });
 
   it('filters by status and by a search of title, department and location', async () => {

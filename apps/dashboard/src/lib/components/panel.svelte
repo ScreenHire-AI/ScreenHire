@@ -17,6 +17,7 @@
     footer,
     children,
     flush = false,
+    fill = false,
     class: className,
     ...restProps
   }: HTMLAttributes<HTMLElement> & {
@@ -32,6 +33,8 @@
     footer?: Snippet;
     /** No body padding, for a table or a list that runs edge to edge. */
     flush?: boolean;
+    /** The body is a column that fills the panel's height, for content that scrolls inside itself (a board). */
+    fill?: boolean;
   } = $props();
 
   const id = $props.id();
@@ -61,7 +64,7 @@
     {/if}
   </header>
   {#if children}
-    <div class={cn('min-w-0 flex-1', !flush && 'px-4.5 py-4 max-md:px-4')}>{@render children()}</div>
+    <div class={cn('min-w-0 flex-1', fill && 'flex min-h-0 flex-col', !flush && 'px-4.5 py-4 max-md:px-4')}>{@render children()}</div>
   {/if}
   {#if footer}
     <div class="rounded-b-panel border-t border-border-subtle bg-muted px-4.5 py-3 max-md:px-4">{@render footer()}</div>
