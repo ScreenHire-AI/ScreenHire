@@ -47,6 +47,8 @@ namespace ScreenHire.Api.Demo;
 /// integrity level.</item>
 /// <item>The people in <see cref="DemoCandidates"/> apply to their jobs, answering every question of their job, and are
 /// moved through their stages, with notes.</item>
+/// <item>Notes on one .NET candidate (<see cref="SeedNotesAsync"/>): Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan and
+/// edits the note, so the candidate's Activity shows mentions and an edited note and Mailpit has the mention emails.</item>
 /// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.
 /// It stays open until all its candidates have applied, so a start that failed one leaves it for the next start.</item>
 /// </list>
@@ -168,8 +170,65 @@ internal sealed partial class DevelopmentDemo(
             candidates += await TryAsync(() => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.Moves, stoppingToken), stoppingToken) ? 1 : 0;
         }
 
+        await TryAsync(() => SeedNotesAsync(stoppingToken), stoppingToken);
         await TryAsync(() => CloseAsync(ClosedJobSlug, stoppingToken), stoppingToken);
         LogSeeded(logger, applicants, candidates);
+    }
+
+    /// <summary>The demo candidate whose Activity shows notes with mentions, one of them edited.</summary>
+    public const string NotedCandidateEmail = "joel.mensah@example.org";
+
+    // Notes with mentions on one .NET candidate, through the same domain methods and outbox as the notes endpoints, so the
+    // mentions reach Mailpit as emails: Jordan mentions Avery, and Avery mentions Jordan and then edits the note, so it
+    // says Edited. A candidate who already has notes is left alone.
+    private async Task SeedNotesAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { Owner: { } avery } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var email = Domain.Candidates.Candidate.Normalize(NotedCandidateEmail);
+        var application = await (
+            from a in db.Applications.AsNoTracking()
+            join c in db.Candidates on a.CandidateId equals c.Id
+            where c.NormalizedEmail == email
+            select a).SingleOrDefaultAsync(cancellationToken);
+        if (application is null
+            || await db.ApplicationNotes.AnyAsync(n => n.ApplicationId == application.Id, cancellationToken)
+            || await UserIdAsync(db, DevelopmentDataSeeder.DemoRecruiterEmail, cancellationToken) is not { } jordan)
+        {
+            return;
+        }
+
+        var earlier = step.Now.AddMinutes(-12);
+        var (jordansNote, jordansEntry) = application.AddNote(
+            $"{NoteMentions.Token(avery)}, the take-home is due Friday. Can you review it with me on Monday?", earlier, jordan);
+        var (averysNote, averysEntry) = application.AddNote(
+            $"Good detail on the billing ledger. {NoteMentions.Token(jordan)}, ask in the technical round how they tested the migration.",
+            earlier.AddMinutes(4), avery);
+        db.ApplicationNotes.AddRange(jordansNote, averysNote);
+        db.ApplicationEvents.AddRange(jordansEntry, averysEntry);
+        foreach (var (note, entry, mentioned) in new[] { (jordansNote, jordansEntry, avery), (averysNote, averysEntry, jordan) })
+        {
+            await step.Outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, entry.Id, entry.OccurredAt));
+            await step.Outbox.PublishAsync(new TeammateMentioned(
+                application.OrganizationId, application.Id, application.JobId, note.Id, note.Mentions.Single(m => m.UserId == mentioned).Id,
+                mentioned, note.AuthorUserId, entry.OccurredAt));
+        }
+
+        if (application.EditNote(
+                averysNote,
+                $"{averysNote.Text} And how long the move to Postgres took.",
+                step.Now, avery) is { Entry: var edited })
+        {
+            db.ApplicationEvents.Add(edited);
+            await step.Outbox.PublishAsync(new ApplicationNoteEdited(application.OrganizationId, application.Id, application.JobId, averysNote.Id, step.Now));
+        }
+
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
     // Demo data is a convenience: a failed step is logged, never stops the API, and does not keep the next step from running.
