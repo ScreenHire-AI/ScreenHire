@@ -53,7 +53,7 @@ public sealed record AutomationActionFailed(Guid OrganizationId, Guid ActionRunI
 /// </summary>
 public sealed record AutomationRunFinished(
     Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid RunId, string AutomationId, AutomationRunStatus Status, DateTimeOffset FinishedAt)
-    : ITenantEvent;
+    : IJobEvent;
 
 /// <summary>A NotifyTeam action ran: the dashboard shows the run's note to the hiring team.</summary>
-public sealed record TeamNotified(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid RunId, DateTimeOffset NotifiedAt) : ITenantEvent;
+public sealed record TeamNotified(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid RunId, DateTimeOffset NotifiedAt) : IJobEvent;

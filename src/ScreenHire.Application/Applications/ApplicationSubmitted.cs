@@ -17,7 +17,7 @@ namespace ScreenHire.Application.Applications;
 /// candidate details.
 /// </summary>
 public sealed record ApplicationSubmitted(
-    Guid OrganizationId, Guid ApplicationId, Guid JobId, string StageId, Guid EventId, DateTimeOffset SubmittedAt) : ITenantEvent;
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, string StageId, Guid EventId, DateTimeOffset SubmittedAt) : IJobEvent;
 
 /// <summary>
 /// Runs in the worker once per <see cref="ApplicationSubmitted"/>: the workflow engine's <c>ApplicationSubmitted</c>

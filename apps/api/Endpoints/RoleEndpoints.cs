@@ -297,6 +297,13 @@ internal static class TeamProblems
             detail: "You can only give, change or make a role that has nothing your own role does not.",
             statusCode: StatusCodes.Status403Forbidden);
 
+    /// <summary>A member on Only jobs they're on leaving someone with All jobs, directly or through Owner or Admin (ADR-0015).</summary>
+    public static ProblemHttpResult AllJobs() =>
+        TypedResults.Problem(
+            title: HiringAuthorization.NeedsAllJobsTitle,
+            detail: "You see only the jobs you're on, so you cannot give someone all jobs, or the Owner or Admin role, which see them all.",
+            statusCode: StatusCodes.Status403Forbidden);
+
     /// <summary>"Owners only" when the role is Owner-level, otherwise "More access than your role".</summary>
     public static ProblemHttpResult Refused(IReadOnlySet<Permission> role, string ownersDetail) =>
         TeamPolicy.IsOwnerLevel(role) ? OwnersOnly(ownersDetail) : MoreAccess();

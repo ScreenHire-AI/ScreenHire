@@ -10,6 +10,8 @@ internal sealed class OrganizationInvitationConfiguration : IEntityTypeConfigura
     {
         builder.Property(i => i.Email).HasMaxLength(256);
         builder.Property(i => i.Role).HasConversion<string>().HasMaxLength(20);
+        builder.Property(i => i.JobAccess).HasConversion<string>().HasMaxLength(20).HasDefaultValue(JobAccess.All).HasSentinel((JobAccess)(-1));
+        builder.ToTable(t => t.HasCheckConstraint("ck_organization_invitations_job_access", "job_access IN ('All', 'HiringTeamOnly')"));
         // No foreign key for custom_role_id (ADR-0014): the id is only ever resolved under row-level security, when the
         // invitation is written and again when it is accepted, and a key would let closed invitations keep a role from
         // being deleted forever. Open invitations block a deletion in RoleEndpoints instead.

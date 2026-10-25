@@ -9,7 +9,7 @@ namespace ScreenHire.Domain.Automations;
 /// the result and what happened to each action. <c>(ApplicationId, AutomationId, EventId)</c> is unique, so an event that
 /// is delivered or replayed twice runs each automation once.
 /// </summary>
-public sealed class AutomationRun : ITenantOwned
+public sealed class AutomationRun : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

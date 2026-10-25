@@ -13,7 +13,7 @@ namespace ScreenHire.Domain.Integrity;
 /// integrity data (<c>ScreenHire:Integrity:Retention:RawNetworkDays</c>). An application with the assistive-technology
 /// switch on keeps none: submission deletes its session.
 /// </remarks>
-public sealed class TelemetrySnapshot : ITenantOwned
+public sealed class TelemetrySnapshot : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

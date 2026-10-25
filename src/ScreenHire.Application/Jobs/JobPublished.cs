@@ -12,4 +12,4 @@ namespace ScreenHire.Application.Jobs;
 /// before them still deserializes.
 /// </remarks>
 public sealed record JobPublished(Guid OrganizationId, Guid JobId, DateTimeOffset PublishedAt, int Version = 1, Guid? JobVersionId = null)
-    : ITenantEvent;
+    : IJobEvent;

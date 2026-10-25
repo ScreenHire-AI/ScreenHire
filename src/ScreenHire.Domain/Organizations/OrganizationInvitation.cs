@@ -22,6 +22,9 @@ public sealed class OrganizationInvitation : ITenantOwned
     /// </summary>
     public Guid? CustomRoleId { get; init; }
 
+    /// <summary>The job access the person joins with (ADR-0015). All unless the inviter chose Only jobs they're on.</summary>
+    public JobAccess JobAccess { get; init; } = JobAccess.All;
+
     /// <summary>Hex SHA-256 of the token in the emailed link.</summary>
     public required string TokenHash { get; init; }
 

@@ -66,11 +66,27 @@ internal static class HiringAuthorization
 
                 var db = services.GetRequiredService<ScreenHireDbContext>();
                 var access = await RoleAccess.ForMemberAsync(db, organizationId, userId, invocation.HttpContext.RequestAborted);
-                return access is not null && access.Permissions.Contains(permission)
-                    ? await next(invocation)
-                    : Refused(permission);
+                if (access is null || !access.Permissions.Contains(permission))
+                {
+                    return Refused(permission);
+                }
+
+                // Keys and webhooks reach every job, so a member who sees only their own jobs cannot make one (ADR-0015).
+                return RolePermissions.NeedsAllJobs.Contains(permission) && !tenant.SeesAllJobs
+                    ? NeedsAllJobs(permission)
+                    : await next(invocation);
             })
             .ProducesProblem(StatusCodes.Status403Forbidden);
+
+    /// <summary>The 403 title when the permission needs All jobs and the member sees only their own.</summary>
+    public const string NeedsAllJobsTitle = "Needs all jobs";
+
+    /// <summary>The 403 for a <see cref="RolePermissions.NeedsAllJobs"/> permission asked for by a member on Only jobs they're on.</summary>
+    public static ProblemHttpResult NeedsAllJobs(Permission permission) =>
+        TypedResults.Problem(
+            title: NeedsAllJobsTitle,
+            detail: $"{RolePermissions.Definition(permission).Name} reaches every job, and you see only the jobs you're on. Ask an owner or admin.",
+            statusCode: StatusCodes.Status403Forbidden);
 
     /// <summary>The 403 for a role without <paramref name="permission"/>.</summary>
     public static ProblemHttpResult Refused(Permission permission) =>

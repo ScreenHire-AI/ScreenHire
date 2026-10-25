@@ -6,8 +6,9 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Tenancy;
 
 /// <summary>
-/// Sets the row-level security settings <c>app.tenant_id</c> and <c>app.user_id</c> transaction-locally for every
-/// command a <see cref="ScreenHireDbContext"/> runs, from its <see cref="ITenantContext"/>.
+/// Sets the row-level security settings <c>app.tenant_id</c>, <c>app.user_id</c>, <c>app.job_scope</c> and
+/// <c>app.member_id</c> transaction-locally for every command a <see cref="ScreenHireDbContext"/> runs, from its
+/// <see cref="ITenantContext"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -123,10 +124,12 @@ public sealed class TenantSessionInterceptor : DbCommandInterceptor
     }
 
     /// <summary>
-    /// The statement that sets both values. Ids are formatted from <see cref="Guid"/> (hex digits and dashes only), so
-    /// inlining them is safe; utility statements such as <c>DO</c> cannot take parameters.
+    /// The statement that sets every value. Ids are formatted from <see cref="Guid"/> (hex digits and dashes only), and
+    /// the job scope is one of two literals, so inlining them is safe; utility statements such as <c>DO</c> cannot take
+    /// parameters. <c>app.job_scope</c> is <c>all</c> or <c>team</c>: the job-scope policies (ADR-0015) show a job to
+    /// <c>team</c> only through <c>app.member_id</c>, so anything but an explicit <c>all</c> narrows.
     /// </summary>
     internal static string SessionSql(ITenantContext tenant) =>
         string.Create(CultureInfo.InvariantCulture,
-            $"DO $$BEGIN PERFORM set_config('app.tenant_id', '{tenant.OrganizationId}', true); PERFORM set_config('app.user_id', '{tenant.UserId}', true); END$$;\n");
+            $"DO $$BEGIN PERFORM set_config('app.tenant_id', '{tenant.OrganizationId}', true); PERFORM set_config('app.user_id', '{tenant.UserId}', true); PERFORM set_config('app.job_scope', '{(tenant.SeesAllJobs ? "all" : "team")}', true); PERFORM set_config('app.member_id', '{tenant.MemberId}', true); END$$;\n");
 }

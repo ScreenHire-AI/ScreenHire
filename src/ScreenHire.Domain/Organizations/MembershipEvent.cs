@@ -13,8 +13,15 @@ public sealed class MembershipEvent : ITenantOwned
 
     public required MembershipEventKind Kind { get; init; }
 
-    /// <summary>Who made the change. For <see cref="MembershipEventKind.Joined"/>, the person who accepted.</summary>
-    public required Guid ActorUserId { get; init; }
+    /// <summary>
+    /// Who made the change. For <see cref="MembershipEventKind.Joined"/>, the person who accepted. Null only when an
+    /// organization API key made it (<see cref="ActorApiKeyId"/>): a job a key creates starts with its template's
+    /// default hiring team.
+    /// </summary>
+    public required Guid? ActorUserId { get; init; }
+
+    /// <summary>The API key that made the change, when no person did.</summary>
+    public Guid? ActorApiKeyId { get; init; }
 
     /// <summary>The member the change is about; null for an invitation nobody has accepted yet.</summary>
     public Guid? MemberUserId { get; init; }
@@ -43,6 +50,21 @@ public sealed class MembershipEvent : ITenantOwned
     /// <summary>That custom role's name at the time.</summary>
     public string? CustomRoleName { get; init; }
 
+    /// <summary>The job access before the change, for <see cref="MembershipEventKind.JobAccessChanged"/>.</summary>
+    public JobAccess? PreviousJobAccess { get; init; }
+
+    /// <summary>
+    /// The job access after the change, for <see cref="MembershipEventKind.JobAccessChanged"/>, or the one an invitation
+    /// offers or a join starts with.
+    /// </summary>
+    public JobAccess? JobAccess { get; init; }
+
+    /// <summary>The job whose hiring team changed, for the hiring-team kinds. Its title is read through the job, under the reader's job access.</summary>
+    public Guid? JobId { get; init; }
+
+    /// <summary>The hiring template whose default hiring team changed, for the hiring-team kinds.</summary>
+    public Guid? HiringTemplateId { get; init; }
+
     public required DateTimeOffset OccurredAt { get; init; }
 }
 
@@ -61,4 +83,13 @@ public enum MembershipEventKind
     RoleUpdated,
 
     RoleDeleted,
+
+    /// <summary>A member's job access changed between All and Only jobs they're on (ADR-0015).</summary>
+    JobAccessChanged,
+
+    /// <summary>A member joined a job's hiring team (<see cref="MembershipEvent.JobId"/>) or a template's default one (<see cref="MembershipEvent.HiringTemplateId"/>).</summary>
+    AddedToHiringTeam,
+
+    /// <summary>A member left a job's hiring team or a template's default one.</summary>
+    RemovedFromHiringTeam,
 }

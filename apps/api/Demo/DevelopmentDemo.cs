@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
@@ -46,6 +47,8 @@ namespace ScreenHire.Api.Demo;
 /// <item>A custom role (<see cref="SeedInterviewerAsync"/>): Avery Quinn makes "Interviewer" from Viewer, with notes, tags and
 /// scorecards, and gives it to Robin Hale, whom the seeder adds as a Viewer, so Roles, the role's History and the
 /// membership log show a custom role.</item>
+/// <item>Hiring teams (<see cref="SeedHiringTeamsAsync"/>): Jordan Ellis is on every job's hiring team, and Robin Hale sees
+/// only the jobs he is on, which is "Senior .NET Engineer" alone, so signing in as Robin shows job access at work.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
@@ -161,6 +164,7 @@ internal sealed partial class DevelopmentDemo(
 
         await TryAsync(() => SeedHistoryAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedInterviewerAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedHiringTeamsAsync(stoppingToken), stoppingToken);
 
         foreach (var (slug, boards) in OpenJobs)
         {
@@ -435,6 +439,8 @@ internal sealed partial class DevelopmentDemo(
         if (signedIn is not null && await UserIdAsync(db, signedIn, cancellationToken) is { } user)
         {
             tenant.SetUser(user);
+            tenant.SetOrganization(organization.Id);
+            await Memberships.ResolveMemberScopeAsync(tenant, db, cancellationToken);
         }
 
         return new Step(services, outbox, organization.Id, owner, time.GetUtcNow());
@@ -720,6 +726,65 @@ internal sealed partial class DevelopmentDemo(
             member.AssignRole(OrganizationRole.Custom, role.Id);
         }
 
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>The one job Robin Hale's hiring teams give him: he sees it and nothing else.</summary>
+    public const string InterviewerJobSlug = DemoCandidates.SeniorDotnetEngineer;
+
+    // As Avery would set it up: Jordan on every job's hiring team, Robin on the .NET job's, then Robin moved to Only jobs
+    // they're on, each change in the membership log. Done once: an organization whose jobs have a team, or whose Robin
+    // is on Only jobs they're on already, is left as it is.
+    private async Task SeedHiringTeamsAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { Owner: { } owner } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var jordan = await UserIdAsync(db, DevelopmentDataSeeder.DemoRecruiterEmail, cancellationToken);
+        var robin = await UserIdAsync(db, DevelopmentDataSeeder.DemoInterviewerEmail, cancellationToken);
+        var members = await db.OrganizationMembers
+            .Where(m => m.OrganizationId == step.OrganizationId && (m.UserId == jordan || m.UserId == robin))
+            .ToListAsync(cancellationToken);
+        var recruiter = members.SingleOrDefault(m => m.UserId == jordan);
+        var interviewer = members.SingleOrDefault(m => m.UserId == robin);
+        if (recruiter is null || interviewer is null || interviewer.JobAccess == JobAccess.HiringTeamOnly
+            || await db.Jobs.AnyAsync(j => j.HiringTeam.Count > 0, cancellationToken))
+        {
+            return;
+        }
+
+        foreach (var job in await db.Jobs.ToListAsync(cancellationToken))
+        {
+            var change = job.SetHiringTeam(job.Slug == InterviewerJobSlug ? [recruiter.Id, interviewer.Id] : [recruiter.Id]);
+            foreach (var member in members.Where(m => change.Added.Contains(m.Id)))
+            {
+                db.MembershipEvents.Add(new MembershipEvent
+                {
+                    OrganizationId = step.OrganizationId,
+                    Kind = MembershipEventKind.AddedToHiringTeam,
+                    ActorUserId = owner,
+                    MemberUserId = member.UserId,
+                    JobId = job.Id,
+                    OccurredAt = step.Now,
+                });
+            }
+        }
+
+        interviewer.SetJobAccess(JobAccess.HiringTeamOnly);
+        db.MembershipEvents.Add(new MembershipEvent
+        {
+            OrganizationId = step.OrganizationId,
+            Kind = MembershipEventKind.JobAccessChanged,
+            ActorUserId = owner,
+            MemberUserId = interviewer.UserId,
+            PreviousJobAccess = JobAccess.All,
+            JobAccess = JobAccess.HiringTeamOnly,
+            OccurredAt = step.Now,
+        });
         await db.SaveChangesAsync(cancellationToken);
     }
 

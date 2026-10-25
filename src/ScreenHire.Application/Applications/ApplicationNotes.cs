@@ -5,16 +5,17 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Application.Applications;
 
 /// <summary>A note's author changed its text. Ids only: open dashboards refetch the timeline, which holds the text.</summary>
-public sealed record ApplicationNoteEdited(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid NoteId, DateTimeOffset EditedAt) : ITenantEvent;
+public sealed record ApplicationNoteEdited(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid NoteId, DateTimeOffset EditedAt) : IJobEvent;
 
 /// <summary>A note was deleted, and its text with it. Open dashboards refetch the timeline, where the note is gone.</summary>
-public sealed record ApplicationNoteDeleted(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid NoteId, DateTimeOffset DeletedAt) : ITenantEvent;
+public sealed record ApplicationNoteDeleted(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid NoteId, DateTimeOffset DeletedAt) : IJobEvent;
 
 /// <summary>
 /// A note mentioned a teammate who was not mentioned in it before: on adding the note, or by an edit. Never raised for
@@ -33,7 +34,7 @@ public sealed record TeammateMentioned(
     Guid MentionId,
     Guid MentionedUserId,
     Guid? AuthorUserId,
-    DateTimeOffset MentionedAt) : ITenantEvent;
+    DateTimeOffset MentionedAt) : IJobEvent;
 
 /// <summary>
 /// Where the dashboard lives, from the same <c>ScreenHire:Domains</c> settings as the API (ADR-0003): the worker needs it
@@ -126,13 +127,19 @@ public static partial class TeammateMentionedHandler
             return;
         }
 
-        // Narrowed to this organization: the members filter also shows a user's memberships elsewhere.
+        // Narrowed to this organization: the members filter also shows a user's memberships elsewhere. The worker sees
+        // every job, so whether the person still sees this one is checked here (ADR-0015): one taken off the job's
+        // hiring team since the note gets no email about its candidate.
         var member = await db.OrganizationMembers.AsNoTracking()
-            .AnyAsync(m => m.OrganizationId == message.OrganizationId && m.UserId == mention.UserId, cancellationToken);
+            .Where(m => m.OrganizationId == message.OrganizationId && m.UserId == mention.UserId)
+            .Select(m => new { m.Id, m.Role, m.JobAccess })
+            .SingleOrDefaultAsync(cancellationToken);
+        var team = await db.Jobs.AsNoTracking().Where(j => j.Id == message.JobId).Select(j => j.HiringTeam).SingleOrDefaultAsync(cancellationToken);
+        var seesJob = member is not null && team is not null && (JobAccessRules.SeesAllJobs(member.Role, member.JobAccess) || team.Contains(member.Id));
         var note = await db.ApplicationNotes.AsNoTracking().IgnoreAutoIncludes().SingleOrDefaultAsync(n => n.Id == mention.NoteId, cancellationToken);
-        if (!member || note is null || note.AuthorUserId == mention.UserId)
+        if (!seesJob || note is null || note.AuthorUserId == mention.UserId)
         {
-            LogNotSent(logger, mention.Id, "the person is not a member, or wrote the note");
+            LogNotSent(logger, mention.Id, "the person is not a member, cannot see the job, or wrote the note");
             return;
         }
 

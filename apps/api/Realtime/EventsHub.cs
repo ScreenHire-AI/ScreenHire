@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -15,14 +16,16 @@ public interface IEventsClient
 
 /// <summary>
 /// The real-time hub at <see cref="RealtimeSetup.HubPath"/>: the dashboard's signed-in session cookie authenticates it,
-/// each connection joins its organization's group, and a client may also subscribe to one record (a <c>job</c>) for
-/// events only that record's screen needs. Events reach it from the real-time queue (<see cref="TenantEventPusher{TEvent}"/>).
+/// each connection joins its organization's group and the groups of the jobs its member sees (<see cref="RealtimeGroups"/>),
+/// and a client may also subscribe to one record (a <c>job</c>) for events only that record's screen needs. Events reach
+/// it from the real-time queue (<see cref="TenantEventPusher{TEvent}"/>).
 /// </summary>
 /// <remarks>
 /// Every hub call runs in its own DI scope, which the request middleware never sees, so each call resolves its own
 /// tenant from the connection's user (<see cref="Memberships"/>). A connection keeps the groups it joined until it
 /// closes. Removing someone from an organization closes their connections into it (<see cref="RealtimeConnections"/>),
-/// and every connection closes when the session cookie expires (<c>CloseOnAuthenticationExpiration</c>).
+/// and every connection closes when the session cookie expires (<c>CloseOnAuthenticationExpiration</c>). A change to the
+/// jobs a member sees closes their connections too, except joining a hiring team, which adds the job's group to them.
 /// </remarks>
 [Authorize]
 internal sealed class EventsHub(ScreenHireDbContext db, TenantContext tenant, RealtimeConnections connections) : Hub<IEventsClient>
@@ -31,8 +34,21 @@ internal sealed class EventsHub(ScreenHireDbContext db, TenantContext tenant, Re
     {
         var organizationId = await ResolveOrganizationAsync()
             ?? throw new HubException("Set up your organization before connecting to live updates.");
-        connections.Add(Context, tenant.UserId!.Value, organizationId);
+        connections.Add(Context, tenant.UserId!.Value, organizationId, tenant.SeesAllJobs);
         await Groups.AddToGroupAsync(Context.ConnectionId, RealtimeGroups.Organization(organizationId), Context.ConnectionAborted);
+        if (tenant.SeesAllJobs)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, RealtimeGroups.AllJobs(organizationId), Context.ConnectionAborted);
+        }
+        else
+        {
+            // Read after the connection is listed, so a hiring team joined at this moment is either read here or adds
+            // its group to the listed connection (RealtimeConnections.JoinTeamAsync).
+            foreach (var jobId in await db.Jobs.AsNoTracking().Select(j => j.Id).ToListAsync(Context.ConnectionAborted))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, RealtimeGroups.Team(organizationId, jobId), Context.ConnectionAborted);
+            }
+        }
 
         // A removal that committed after the first check and closed this user's connections before this one was listed
         // would miss it. Checking again once it is listed closes that gap.

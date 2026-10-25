@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Distribution;
 /// after a delay and removes it after another; the times are set when the request arrives, and the board's status
 /// reads them against the clock.
 /// </summary>
-public sealed class SandboxListing : ITenantOwned
+public sealed class SandboxListing : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

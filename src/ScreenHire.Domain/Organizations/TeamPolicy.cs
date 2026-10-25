@@ -29,6 +29,14 @@ public static class TeamPolicy
     public static bool MayManageRole(IReadOnlySet<Permission> actor, IReadOnlySet<Permission>? before, IReadOnlySet<Permission>? after) =>
         actor.Contains(Permission.ManageTeam) && (before?.IsSubsetOf(actor) ?? true) && (after?.IsSubsetOf(actor) ?? true);
 
+    /// <summary>
+    /// The same subset rule for job access (ADR-0015): an actor who sees only their own jobs may not leave anyone seeing
+    /// every job, whether through All jobs or through the Owner or Admin role, which always see every job. An actor who
+    /// sees all jobs may give either.
+    /// </summary>
+    public static bool MayGiveJobAccess(bool actorSeesAllJobs, OrganizationRole role, JobAccess access) =>
+        actorSeesAllJobs || !JobAccessRules.SeesAllJobs(role, access);
+
     /// <summary>Whether a role with <paramref name="role"/> holds an Owner-only permission: whether refusing it is "Owners only".</summary>
     public static bool IsOwnerLevel(IReadOnlySet<Permission> role) =>
         role.Any(permission => RolePermissions.Definition(permission).OwnerOnly);

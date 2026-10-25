@@ -99,6 +99,7 @@ app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
+app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();

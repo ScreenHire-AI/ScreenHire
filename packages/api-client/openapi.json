@@ -4211,6 +4211,51 @@
         ]
       }
     },
+    "/v1/organization/members/{memberId}/jobs": {
+      "get": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "ListMemberJobs",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberJob"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/invitations": {
       "get": {
         "tags": [
@@ -4444,6 +4489,78 @@
         ]
       }
     },
+    "/v1/organization/members/{memberId}/job-access": {
+      "put": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "ChangeMemberJobAccess",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeMemberJobAccessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMember"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/members/{memberId}": {
       "delete": {
         "tags": [
@@ -4522,6 +4639,242 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/hiring-team": {
+      "get": {
+        "tags": [
+          "Hiring teams"
+        ],
+        "operationId": "GetJobHiringTeam",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HiringTeamMember"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Hiring teams"
+        ],
+        "operationId": "SetJobHiringTeam",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HiringTeamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HiringTeamMember"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/hiring-team": {
+      "get": {
+        "tags": [
+          "Hiring teams"
+        ],
+        "operationId": "GetHiringTemplateTeam",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HiringTeamMember"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Hiring teams"
+        ],
+        "operationId": "SetHiringTemplateTeam",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HiringTeamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HiringTeamMember"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -8861,6 +9214,25 @@
           null
         ]
       },
+      "ChangeMemberJobAccessRequest": {
+        "required": [
+          "jobAccess"
+        ],
+        "type": "object",
+        "properties": {
+          "jobAccess": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobAccess"
+              }
+            ]
+          }
+        },
+        "description": "Sets which jobs a member sees: all of them, or only the jobs whose hiring team they are on."
+      },
       "ChangeMemberRoleRequest": {
         "required": [
           "role"
@@ -9338,7 +9710,8 @@
           "role",
           "customRoleId",
           "roleName",
-          "permissions"
+          "permissions",
+          "seesAllJobs"
         ],
         "type": "object",
         "properties": {
@@ -9370,9 +9743,12 @@
             "items": {
               "$ref": "#/components/schemas/Permission"
             }
+          },
+          "seesAllJobs": {
+            "type": "boolean"
           }
         },
-        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014)."
+        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015)."
       },
       "CurrentUser": {
         "required": [
@@ -9773,6 +10149,66 @@
           }
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
+      },
+      "HiringTeamMember": {
+        "required": [
+          "memberId",
+          "userId",
+          "email",
+          "displayName",
+          "roleName",
+          "seesAllJobs"
+        ],
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "seesAllJobs": {
+            "type": "boolean"
+          }
+        },
+        "description": "A person on a job's hiring team, or on a hiring template's default one (ADR-0015). `memberId` is their\r\nmembership's id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they're on sees this job through this list."
+      },
+      "HiringTeamRequest": {
+        "required": [
+          "memberIds"
+        ],
+        "type": "object",
+        "properties": {
+          "memberIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "copyFromJobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Sets a hiring team to `memberIds`, the organization's member ids. For a job, `copyFromJobId` also brings\r\nover another job's team, which the caller must be able to see."
       },
       "HiringTemplateDefinition": {
         "required": [
@@ -10566,9 +11002,26 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "jobAccess": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobAccess"
+              }
+            ]
           }
         },
-        "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id."
+        "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\r\n`jobAccess`, All when it is left out."
+      },
+      "JobAccess": {
+        "enum": [
+          "All",
+          "HiringTeamOnly"
+        ],
+        "description": "Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation."
       },
       "JobBoardDepartment": {
         "required": [
@@ -11507,6 +11960,27 @@
         },
         "description": "A manual automation was queued. `eventId` keys its run: find it in the application's automation runs."
       },
+      "MemberJob": {
+        "required": [
+          "id",
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          }
+        },
+        "description": "A job whose hiring team a member is on, for their access sheet. Changed through the job's own hiring team."
+      },
       "MembershipEventKind": {
         "enum": [
           "Invited",
@@ -11516,7 +11990,10 @@
           "Removed",
           "RoleCreated",
           "RoleUpdated",
-          "RoleDeleted"
+          "RoleDeleted",
+          "JobAccessChanged",
+          "AddedToHiringTeam",
+          "RemovedFromHiringTeam"
         ]
       },
       "MembershipLogEntry": {
@@ -11532,7 +12009,14 @@
           "role",
           "customRoleId",
           "roleName",
-          "occurredAt"
+          "occurredAt",
+          "previousJobAccess",
+          "jobAccess",
+          "jobId",
+          "jobTitle",
+          "hiringTemplateId",
+          "hiringTemplateName",
+          "actorApiKeyId"
         ],
         "type": "object",
         "properties": {
@@ -11544,7 +12028,10 @@
             "$ref": "#/components/schemas/MembershipEventKind"
           },
           "actorUserId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "memberUserId": {
@@ -11610,9 +12097,62 @@
           "occurredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "previousJobAccess": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobAccess"
+              }
+            ]
+          },
+          "jobAccess": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobAccess"
+              }
+            ]
+          },
+          "jobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hiringTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "hiringTemplateName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorApiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "One entry in the organization's membership log. `actorUserId` made the change; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`."
+        "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\r\nAPI key did; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\r\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\r\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\r\njobs gets no entries about the others."
       },
       "MoveApplicationRequest": {
         "required": [
@@ -11808,7 +12348,8 @@
           "customRoleId",
           "roleName",
           "createdAt",
-          "expiresAt"
+          "expiresAt",
+          "jobAccess"
         ],
         "type": "object",
         "properties": {
@@ -11839,9 +12380,12 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "jobAccess": {
+            "$ref": "#/components/schemas/JobAccess"
           }
         },
-        "description": "An invitation nobody has accepted, revoked or let expire yet, and the role it offers."
+        "description": "An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers."
       },
       "Permission": {
         "enum": [
@@ -13690,7 +14234,10 @@
           "role",
           "customRoleId",
           "roleName",
-          "joinedAt"
+          "joinedAt",
+          "jobAccess",
+          "seesAllJobs",
+          "jobCount"
         ],
         "type": "object",
         "properties": {
@@ -13724,9 +14271,19 @@
           "joinedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "jobAccess": {
+            "$ref": "#/components/schemas/JobAccess"
+          },
+          "seesAllJobs": {
+            "type": "boolean"
+          },
+          "jobCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way."
+        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees."
       },
       "TelemetrySnapshotInput": {
         "required": [
@@ -14509,6 +15066,9 @@
     },
     {
       "name": "Team"
+    },
+    {
+      "name": "Hiring teams"
     },
     {
       "name": "API keys"

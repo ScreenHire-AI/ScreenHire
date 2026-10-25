@@ -250,7 +250,7 @@ internal static class ApplicationEndpoints
             return TypedResults.NotFound();
         }
 
-        if (await MentionProblemsAsync(db, tenant, request.Note, cancellationToken) is { } mentionProblems)
+        if (await MentionProblemsAsync(db, tenant, application.JobId, request.Note, cancellationToken) is { } mentionProblems)
         {
             return TypedResults.ValidationProblem(mentionProblems);
         }
@@ -295,7 +295,7 @@ internal static class ApplicationEndpoints
             return TypedResults.Problem(title: "Author only", detail: "Only the author can edit a note.", statusCode: StatusCodes.Status403Forbidden);
         }
 
-        if (await MentionProblemsAsync(db, tenant, request.Note, cancellationToken, note) is { } mentionProblems)
+        if (await MentionProblemsAsync(db, tenant, application.JobId, request.Note, cancellationToken, note) is { } mentionProblems)
         {
             return TypedResults.ValidationProblem(mentionProblems);
         }
@@ -387,11 +387,13 @@ internal static class ApplicationEndpoints
         return application is null || note is null ? null : (application, note);
     }
 
-    // Every mention a note adds names a member of this organization. One it already had may name someone who has left
-    // since, and stays, so an edit never fails for it. Narrowed to this organization explicitly: the members filter also
-    // shows the signed-in person's memberships in other organizations.
+    // Every mention a note adds names a member of this organization who can see the candidate: one who sees all jobs, or
+    // one on the job's hiring team (ADR-0015), so a mention never points someone at a candidate they cannot open. One it
+    // already had may name someone who has left since, or lost the job, and stays, so an edit never fails for it.
+    // Narrowed to this organization explicitly: the members filter also shows the signed-in person's memberships in
+    // other organizations.
     private static async Task<Dictionary<string, string[]>?> MentionProblemsAsync(
-        ScreenHireDbContext db, ITenantContext tenant, string text, CancellationToken cancellationToken, ApplicationNote? existing = null)
+        ScreenHireDbContext db, ITenantContext tenant, Guid jobId, string text, CancellationToken cancellationToken, ApplicationNote? existing = null)
     {
         var mentioned = NoteMentions.Parse(text).Except(existing?.Mentions.Select(m => m.UserId) ?? []).ToList();
         if (mentioned.Count == 0)
@@ -400,8 +402,18 @@ internal static class ApplicationEndpoints
         }
 
         var members = await db.OrganizationMembers.AsNoTracking()
-            .CountAsync(m => m.OrganizationId == tenant.OrganizationId && mentioned.Contains(m.UserId), cancellationToken);
-        return members == mentioned.Count ? null : ValidationExtensions.Problem("note", "A mention must name a member of this organization.");
+            .Where(m => m.OrganizationId == tenant.OrganizationId && mentioned.Contains(m.UserId))
+            .Select(m => new { m.Id, m.Role, m.JobAccess })
+            .ToListAsync(cancellationToken);
+        if (members.Count != mentioned.Count)
+        {
+            return ValidationExtensions.Problem("note", "A mention must name a member of this organization.");
+        }
+
+        var team = await db.Jobs.AsNoTracking().Where(j => j.Id == jobId).Select(j => j.HiringTeam).SingleAsync(cancellationToken);
+        return members.All(m => JobAccessRules.SeesAllJobs(m.Role, m.JobAccess) || team.Contains(m.Id))
+            ? null
+            : ValidationExtensions.Problem("note", "A mention must name someone who can see this candidate. Add them to the job's hiring team first.");
     }
 
     // A card and an email for each teammate newly mentioned, never for the note's own author.

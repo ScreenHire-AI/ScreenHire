@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Automations;
 /// task never changes the application by itself, which is how QueueForRejectionReview keeps a person in charge of every
 /// rejection that is not an opted-in knockout (workflow-engine.md §2, guardrail 2).
 /// </summary>
-public sealed class ApplicationTask : ITenantOwned
+public sealed class ApplicationTask : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

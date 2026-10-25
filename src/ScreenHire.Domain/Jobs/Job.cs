@@ -70,6 +70,30 @@ public sealed class Job : ITenantOwned
 
     public JobStatus Status { get; private set; } = JobStatus.Draft;
 
+    /// <summary>
+    /// The hiring team: the organization member ids (<see cref="OrganizationMember.Id"/>) of the people who work on this
+    /// job. A member on Only jobs they're on sees the job, and everything under it, only while they are here (ADR-0015).
+    /// Member ids rather than user ids, so someone who leaves and rejoins gets a new id and no old team counts again.
+    /// Kept on the job's own row, so a new job carries its creator from the first insert.
+    /// </summary>
+    public List<Guid> HiringTeam { get; private set; } = [];
+
+    /// <summary>
+    /// Replaces the hiring team with <paramref name="memberIds"/>, without duplicates, and returns who joined and who
+    /// left. The caller has checked that every id is a current member.
+    /// </summary>
+    public HiringTeamChange SetHiringTeam(IEnumerable<Guid> memberIds)
+    {
+        var after = memberIds.Distinct().ToList();
+        var change = new HiringTeamChange([.. after.Except(HiringTeam)], [.. HiringTeam.Except(after)]);
+        if (!change.IsEmpty)
+        {
+            HiringTeam = after;
+        }
+
+        return change;
+    }
+
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? UpdatedAt { get; private set; }
@@ -281,4 +305,10 @@ public enum EmploymentType
     Contract,
     Temporary,
     Internship,
+}
+
+/// <summary>Who joined (<paramref name="Added"/>) and who left (<paramref name="Removed"/>) a hiring team, by member id.</summary>
+public sealed record HiringTeamChange(IReadOnlyList<Guid> Added, IReadOnlyList<Guid> Removed)
+{
+    public bool IsEmpty => Added.Count == 0 && Removed.Count == 0;
 }

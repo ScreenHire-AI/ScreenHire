@@ -25,10 +25,12 @@ public sealed record CurrentUser(Guid Id, string Email, string DisplayName, Curr
 /// <summary>
 /// The organization the signed-in user works in, their role there (a built-in one, or Custom with <c>customRoleId</c>),
 /// its name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;
-/// the API checks the same permissions on every request (ADR-0014).
+/// the API checks the same permissions on every request (ADR-0014). <c>seesAllJobs</c> is false for a member on Only
+/// jobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015).
 /// </summary>
 public sealed record CurrentOrganization(
-    Guid Id, string Name, string Slug, OrganizationRole Role, Guid? CustomRoleId, string RoleName, IReadOnlyList<Permission> Permissions);
+    Guid Id, string Name, string Slug, OrganizationRole Role, Guid? CustomRoleId, string RoleName, IReadOnlyList<Permission> Permissions,
+    bool SeesAllJobs);
 
 /// <summary>
 /// One of the signed-in user's organizations, for the organization switcher, with their role there. <c>roleName</c> is

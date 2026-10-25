@@ -6,21 +6,21 @@ namespace ScreenHire.Application.Applications;
 /// A person or an API key added a note to an application's timeline. <see cref="EventId"/> is the timeline entry; the
 /// note's text stays behind the API, so open dashboards refetch the timeline to read it.
 /// </summary>
-public sealed record ApplicationNoteAdded(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset AddedAt) : ITenantEvent;
+public sealed record ApplicationNoteAdded(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset AddedAt) : IJobEvent;
 
 /// <summary>
 /// A person or an API key added a tag to an application or took one off. Ids only: dashboards refetch the
 /// application and the lists that filter by tag. An automation's AddTag action raises nothing of its own; its
 /// <see cref="Automations.AutomationRunFinished"/> refreshes the same screens.
 /// </summary>
-public sealed record ApplicationTagsChanged(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset ChangedAt) : ITenantEvent;
+public sealed record ApplicationTagsChanged(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset ChangedAt) : IJobEvent;
 
 /// <summary>
 /// A reviewer submitted a stage's scorecard. Ids only: open dashboards refetch the application's scorecards and timeline.
 /// The ReviewerDecision automations it fires run in the worker, from the <c>RunAutomations</c> published with it.
 /// </summary>
 public sealed record ScorecardSubmitted(
-    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid ScorecardId, Guid EventId, DateTimeOffset SubmittedAt) : ITenantEvent;
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid ScorecardId, Guid EventId, DateTimeOffset SubmittedAt) : IJobEvent;
 
 /// <summary>
 /// The candidate answered a follow-up questionnaire. Ids only: open dashboards refetch the application, whose answers
@@ -28,4 +28,4 @@ public sealed record ScorecardSubmitted(
 /// <c>RunAutomations</c> published with it.
 /// </summary>
 public sealed record QuestionnaireAnswered(
-    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid RequestId, Guid EventId, DateTimeOffset AnsweredAt) : ITenantEvent;
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid RequestId, Guid EventId, DateTimeOffset AnsweredAt) : IJobEvent;

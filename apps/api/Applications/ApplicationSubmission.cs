@@ -51,7 +51,12 @@ internal static class ApplicationSubmission
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
-        var candidate = await db.Candidates.SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
+        // One person is one candidate in an organization, however many jobs they apply to, so the lookup by email sees
+        // past the job scope: a member on Only jobs they're on adding someone who applied to another job attaches the new
+        // application to that candidate. The tenant filter stays, and candidates keep tenant-only row-level security for
+        // this (ADR-0015). Once added, the candidate is visible to them through this job, with this job's application only.
+        var candidate = await db.Candidates.IgnoreQueryFilters([ScreenHireDbContext.JobScopeFilter])
+            .SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
         if (candidate is null)
         {
             candidate = Candidate.Create(job.OrganizationId, input.FirstName, input.LastName, input.Email, input.Phone, now);

@@ -6,7 +6,7 @@ namespace ScreenHire.Domain.Applications;
 /// A file a candidate uploaded with an application, such as their resume: the answer to a file question. The bytes
 /// live in blob storage under <see cref="BlobName"/>; this row is what the application knows about them.
 /// </summary>
-public sealed class ApplicationFile : ITenantOwned
+public sealed class ApplicationFile : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

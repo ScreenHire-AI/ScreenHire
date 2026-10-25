@@ -6,7 +6,7 @@ namespace ScreenHire.Domain.Applications;
 /// One entry of an application's timeline. Append-only: the database lets the application role insert and read these
 /// rows but never change or delete one, so the timeline is a record of what happened (workflow-engine.md §6).
 /// </summary>
-public sealed class ApplicationEvent : ITenantOwned
+public sealed class ApplicationEvent : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
