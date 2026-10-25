@@ -24,4 +24,8 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
         await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
         return message;
     }
+
+    /// <summary>Sends <paramref name="message"/> as it is: ScreenHire's own wording to a teammate, not a template.</summary>
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken) =>
+        (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
 }

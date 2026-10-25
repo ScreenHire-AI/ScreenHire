@@ -41,4 +41,10 @@ export interface ApplicationTimelineEntry {
   questionnaireId?: string | null;
   /** @nullable */
   questionnaireRequestId?: string | null;
+  /** @nullable */
+  noteId?: string | null;
+  /** @nullable */
+  noteEditedAt?: string | null;
+  /** @nullable */
+  actorApiKeyName?: string | null;
 }

@@ -101,6 +101,11 @@ public sealed record ApplicationFileSummary(
 /// <c>emailTemplateId</c>, <c>emailSubject</c>: For <c>EmailSent</c>, the template and the subject the candidate received.
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <c>QuestionnaireSent</c> and <c>QuestionnaireCompleted</c>,
 /// the follow-up questionnaire and the request in the application's <c>followUps</c>.
+/// <c>note</c>: For <c>NoteAdded</c>, the note's latest text, or null once it was deleted; for <c>StageChanged</c>, the
+/// move's note. A mention in a note is <c>@[userId]</c>, a member's user id; the dashboard shows their current name.
+/// <c>noteId</c>: For <c>NoteAdded</c>, <c>NoteEdited</c> and <c>NoteDeleted</c>, the note, as the note routes name it.
+/// <c>noteEditedAt</c>: For <c>NoteAdded</c>, when the note's text last changed; null if it never did.
+/// <c>actorApiKeyName</c>: The name of the API key in <c>actorApiKeyId</c>, so a key's notes show who wrote them.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -119,7 +124,18 @@ public sealed record ApplicationTimelineEntry(
     string? EmailTemplateId = null,
     string? EmailSubject = null,
     string? QuestionnaireId = null,
-    Guid? QuestionnaireRequestId = null);
+    Guid? QuestionnaireRequestId = null,
+    Guid? NoteId = null,
+    DateTimeOffset? NoteEditedAt = null,
+    string? ActorApiKeyName = null);
+
+/// <summary>A note as it stands: its latest text, its author and when it was written and last edited.</summary>
+/// <remarks>
+/// <c>text</c>: A mention is <c>@[userId]</c>. <c>authorUserId</c>, <c>authorApiKeyId</c>: The person or the API key
+/// that wrote it. <c>editedAt</c>: Null for a note never edited.
+/// </remarks>
+public sealed record ApplicationNoteDetail(
+    Guid Id, Guid ApplicationId, string Text, Guid? AuthorUserId, Guid? AuthorApiKeyId, DateTimeOffset CreatedAt, DateTimeOffset? EditedAt);
 
 /// <summary>
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
@@ -139,8 +155,16 @@ public sealed record CandidateInput(string FullName, string Email, string? Phone
 /// </summary>
 public sealed record MoveApplicationRequest(string ToStageId, string? Note = null);
 
-/// <summary>A note from the hiring team on an application, kept on its timeline with the author and the time.</summary>
+/// <summary>
+/// A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member
+/// as <c>@[userId]</c>: they get a notification and an email that never quotes the note.
+/// </summary>
 public sealed record AddApplicationNoteRequest(string Note);
+
+/// <summary>
+/// The note's new text. Only its author edits a note; a mention the new text adds notifies only the person added.
+/// </summary>
+public sealed record EditApplicationNoteRequest(string Note);
 
 /// <summary>A tag to add to an application. Tags compare ignoring case; conditions read them as <c>application.tags</c>.</summary>
 public sealed record AddApplicationTagRequest(string Tag);
@@ -184,11 +208,21 @@ internal static class ApplicationMappings
     public static ApplicationFileSummary ToSummary(this ApplicationFile file) =>
         new(file.Id, file.QuestionId, file.UploadId, file.FileName, file.ContentType, file.SizeBytes, file.ScanStatus, file.UploadedAt);
 
-    public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry) =>
-        new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId, entry.Data.Note,
-            entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId, entry.Data.StageId,
-            entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
-            entry.Data.QuestionnaireRequestId);
+    /// <summary>
+    /// <paramref name="note"/> is the note a <c>NoteAdded</c> entry names, or null once it was deleted, and
+    /// <paramref name="apiKeyName"/> the name of the key that made the change.
+    /// </summary>
+    public static ApplicationTimelineEntry ToTimelineEntry(this ApplicationEvent entry, ApplicationNote? note = null, string? apiKeyName = null)
+    {
+        var added = entry.Type == ApplicationEventType.NoteAdded;
+        return new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId,
+            added ? note?.Text : entry.Data.Note, entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId,
+            entry.Data.StageId, entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
+            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName);
+    }
+
+    public static ApplicationNoteDetail ToDetail(this ApplicationNote note) =>
+        new(note.Id, note.ApplicationId, note.Text, note.AuthorUserId, note.AuthorApiKeyId, note.CreatedAt, note.EditedAt);
 }
 
 internal sealed class CreateApplicationRequestValidator : AbstractValidator<CreateApplicationRequest>
@@ -216,6 +250,15 @@ internal sealed class MoveApplicationRequestValidator : AbstractValidator<MoveAp
 internal sealed class AddApplicationNoteRequestValidator : AbstractValidator<AddApplicationNoteRequest>
 {
     public AddApplicationNoteRequestValidator()
+    {
+        RuleFor(r => r.Note).NotEmpty().Must(note => !string.IsNullOrWhiteSpace(note)).WithMessage("Write the note first.")
+            .MaximumLength(JobApplication.MaxNoteLength);
+    }
+}
+
+internal sealed class EditApplicationNoteRequestValidator : AbstractValidator<EditApplicationNoteRequest>
+{
+    public EditApplicationNoteRequestValidator()
     {
         RuleFor(r => r.Note).NotEmpty().Must(note => !string.IsNullOrWhiteSpace(note)).WithMessage("Write the note first.")
             .MaximumLength(JobApplication.MaxNoteLength);

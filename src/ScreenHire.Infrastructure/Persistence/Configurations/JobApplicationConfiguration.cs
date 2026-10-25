@@ -126,3 +126,36 @@ internal sealed class ApplicationFileConfiguration : IEntityTypeConfiguration<Ap
         builder.HasIndex(f => new { f.OrganizationId, f.ApplicationId, f.QuestionId }).IsUnique();
     }
 }
+
+internal sealed class ApplicationNoteConfiguration : IEntityTypeConfiguration<ApplicationNote>
+{
+    public void Configure(EntityTypeBuilder<ApplicationNote> builder)
+    {
+        builder.Property(n => n.Text).HasMaxLength(JobApplication.MaxNoteLength);
+
+        // Two people editing or deleting one note at once: one wins, the other gets a conflict (xmin, as on applications).
+        builder.Property<uint>("Version").IsRowVersion();
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(n => new { n.OrganizationId, n.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(n => n.Mentions).WithOne()
+            .HasForeignKey(m => new { m.OrganizationId, m.NoteId })
+            .HasPrincipalKey(n => new { n.OrganizationId, n.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(n => n.Mentions).AutoInclude();
+
+        builder.HasAlternateKey(n => new { n.OrganizationId, n.Id });
+        builder.HasIndex(n => new { n.OrganizationId, n.ApplicationId });
+    }
+}
+
+internal sealed class ApplicationNoteMentionConfiguration : IEntityTypeConfiguration<ApplicationNoteMention>
+{
+    public void Configure(EntityTypeBuilder<ApplicationNoteMention> builder)
+    {
+        // A person is mentioned once per note, however often the text names them.
+        builder.HasIndex(m => new { m.OrganizationId, m.NoteId, m.UserId }).IsUnique();
+    }
+}

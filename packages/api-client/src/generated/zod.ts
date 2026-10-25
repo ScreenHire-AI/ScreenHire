@@ -3309,7 +3309,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -3324,7 +3324,10 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "emailTemplateId": zod.string().nullish(),
   "emailSubject": zod.string().nullish(),
   "questionnaireId": zod.string().nullish(),
-  "questionnaireRequestId": zod.uuid().nullish()
+  "questionnaireRequestId": zod.uuid().nullish(),
+  "noteId": zod.uuid().nullish(),
+  "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "actorApiKeyName": zod.string().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -3335,11 +3338,11 @@ export const AddApplicationNoteParams = zod.object({
 
 export const AddApplicationNoteBody = zod.object({
   "note": zod.string()
-}).describe('A note from the hiring team on an application, kept on its timeline with the author and the time.')
+}).describe('A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member\r\nas `@[userId]`: they get a notification and an email that never quotes the note.')
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'IntegrityAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -3354,8 +3357,39 @@ export const AddApplicationNoteResponse = zod.object({
   "emailTemplateId": zod.string().nullish(),
   "emailSubject": zod.string().nullish(),
   "questionnaireId": zod.string().nullish(),
-  "questionnaireRequestId": zod.uuid().nullish()
+  "questionnaireRequestId": zod.uuid().nullish(),
+  "noteId": zod.uuid().nullish(),
+  "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "actorApiKeyName": zod.string().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
+
+
+export const EditApplicationNoteParams = zod.object({
+  "applicationId": zod.uuid(),
+  "noteId": zod.uuid()
+})
+
+export const EditApplicationNoteBody = zod.object({
+  "note": zod.string()
+}).describe('The note\'s new text. Only its author edits a note; a mention the new text adds notifies only the person added.')
+
+export const EditApplicationNoteResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "text": zod.string(),
+  "authorUserId": zod.uuid().nullable(),
+  "authorApiKeyId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "editedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A note as it stands: its latest text, its author and when it was written and last edited.')
+
+
+export const DeleteApplicationNoteParams = zod.object({
+  "applicationId": zod.uuid(),
+  "noteId": zod.uuid()
+})
+
+export const DeleteApplicationNoteResponse = zod.void()
 
 
 export const AddApplicationTagParams = zod.object({

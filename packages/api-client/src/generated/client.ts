@@ -12,6 +12,7 @@ import type {
   ApiMeta,
   ApplicationDetail,
   ApplicationIntegrity,
+  ApplicationNoteDetail,
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
@@ -34,6 +35,7 @@ import type {
   CurrentOrganization,
   CurrentUser,
   DismissIntegrityAssessmentRequest,
+  EditApplicationNoteRequest,
   EmailPreview,
   EmailTemplateDraft,
   EmailTemplateEntry,
@@ -3082,6 +3084,150 @@ return apiFetch<addApplicationNoteResponse>(getAddApplicationNoteUrl(application
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(addApplicationNoteRequest)
+  }
+);}
+
+
+
+export type editApplicationNoteResponse200 = {
+  data: ApplicationNoteDetail
+  status: 200
+}
+
+export type editApplicationNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type editApplicationNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type editApplicationNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type editApplicationNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type editApplicationNoteResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type editApplicationNoteResponse429 = {
+  data: void
+  status: 429
+}
+
+export type editApplicationNoteResponseSuccess = (editApplicationNoteResponse200) & {
+  headers: Headers;
+};
+export type editApplicationNoteResponseError = (editApplicationNoteResponse400 | editApplicationNoteResponse401 | editApplicationNoteResponse403 | editApplicationNoteResponse404 | editApplicationNoteResponse409 | editApplicationNoteResponse429) & {
+  headers: Headers;
+};
+
+export type editApplicationNoteResponse = (editApplicationNoteResponseSuccess | editApplicationNoteResponseError)
+
+export const getEditApplicationNoteUrl = (applicationId: string,
+    noteId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/notes/${noteId}`
+}
+
+export const editApplicationNote = async (applicationId: string,
+    noteId: string,
+    editApplicationNoteRequest: EditApplicationNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<editApplicationNoteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<editApplicationNoteResponse>(getEditApplicationNoteUrl(applicationId,noteId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(editApplicationNoteRequest)
+  }
+);}
+
+
+
+export type deleteApplicationNoteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteApplicationNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteApplicationNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteApplicationNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteApplicationNoteResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type deleteApplicationNoteResponse429 = {
+  data: void
+  status: 429
+}
+
+export type deleteApplicationNoteResponseSuccess = (deleteApplicationNoteResponse204) & {
+  headers: Headers;
+};
+export type deleteApplicationNoteResponseError = (deleteApplicationNoteResponse401 | deleteApplicationNoteResponse403 | deleteApplicationNoteResponse404 | deleteApplicationNoteResponse409 | deleteApplicationNoteResponse429) & {
+  headers: Headers;
+};
+
+export type deleteApplicationNoteResponse = (deleteApplicationNoteResponseSuccess | deleteApplicationNoteResponseError)
+
+export const getDeleteApplicationNoteUrl = (applicationId: string,
+    noteId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/notes/${noteId}`
+}
+
+export const deleteApplicationNote = async (applicationId: string,
+    noteId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteApplicationNoteResponse> => {
+
+  return apiFetch<deleteApplicationNoteResponse>(getDeleteApplicationNoteUrl(applicationId,noteId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
   }
 );}
 
