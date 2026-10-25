@@ -26,7 +26,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
 
         (await writer.ToolNamesAsync()).Should().Equal([.. ReadTools.Concat(WriteTools).Order(StringComparer.Ordinal)]);
         (await reader.ToolNamesAsync()).Should().Equal(ReadTools);
-        writer.ServerInfo.Name.Should().Be("ScreenHire");
+        writer.ServerInfo?.Name.Should().Be("ScreenHire");
         writer.ServerInstructions.Should().Contain("candidateWritten").And.Contain("Rejected");
     }
 
