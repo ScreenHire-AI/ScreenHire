@@ -19,6 +19,11 @@ public sealed partial class ChangeLabelsTests
         Map(Workflow, "questionTypeLabels").Should().BeEquivalentTo(Enum.GetValues<QuestionType>().ToDictionary(t => t.ToString(), ChangeLabels.Question));
 
     [Fact]
+    public void Scorecard_answer_kinds_match_the_dashboard() =>
+        Map(Workflow, "scorecardQuestionTypeLabels").Should().BeEquivalentTo(
+            Enum.GetValues<ScorecardQuestionType>().ToDictionary(t => t.ToString(), ChangeLabels.ScorecardKind));
+
+    [Fact]
     public void Stage_kinds_match_the_dashboard() =>
         Map(Workflow, "stageKindLabels").Should().BeEquivalentTo(Enum.GetValues<StageKind>().ToDictionary(k => k.ToString(), ChangeLabels.Stage));
 

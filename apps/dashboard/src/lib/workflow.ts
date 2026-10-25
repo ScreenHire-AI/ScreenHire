@@ -16,7 +16,7 @@ import type {
   Question,
   QuestionType,
   Recommendation,
-  Scorecard,
+  ScorecardQuestionType,
   StageKind,
   TeamMember,
   TriggerType,
@@ -101,7 +101,10 @@ export const allQuestions = (workflow: HiringWorkflow): Question[] => [
 export const followUpName = (workflow: HiringWorkflow, id: string | null | undefined): string =>
   followUpsOf(workflow).find((followUp) => followUp.id === id)?.name || id || '?';
 
-/** The labelled rating scale of every scorecard (CriterionRating). Categories, never summed into a score. */
+/**
+ * The labelled scale of v0.2 scorecards (CriterionRating), kept so the scorecards submitted then read as they were.
+ * Those labels were never numbers, so they never count toward the candidate's rating.
+ */
 export type Rating = NonNullable<CriterionRating>;
 
 export const ratingLabels: Record<Rating, string> = {
@@ -110,8 +113,6 @@ export const ratingLabels: Record<Rating, string> = {
   Demonstrated: 'Demonstrated',
   StronglyDemonstrated: 'Strongly demonstrated',
 };
-
-export const ratings = Object.keys(ratingLabels) as Rating[];
 
 /** A reviewer's overall recommendation; automations test it as `reviewer.recommendation`. */
 export const recommendationLabels: Record<Recommendation, string> = {
@@ -122,33 +123,6 @@ export const recommendationLabels: Record<Recommendation, string> = {
 };
 
 export const recommendations = Object.keys(recommendationLabels) as Recommendation[];
-
-/**
- * What a new scorecard starts with: the job, never the person (CLAUDE.md non-negotiable 3). The same criteria as the
- * default workflow's (Scorecard.DefaultScreening and DefaultInterview in HiringWorkflow.cs).
- */
-export function defaultScorecard(kind: StageKind): Scorecard {
-  return kind === 'Applied' || kind === 'Screening'
-    ? {
-        criteria: [
-          { id: 'role_requirements', label: "Meets the role's requirements", guidance: 'The experience, qualifications or licences the job description asks for.' },
-          { id: 'relevant_experience', label: 'Relevant experience', guidance: "Work they have done that is like this job's work." },
-        ],
-      }
-    : {
-        criteria: [
-          { id: 'role_skills', label: 'Skills the role needs', guidance: 'The skills in the job description, shown in examples or answers.' },
-          { id: 'problem_solving', label: 'Problem solving', guidance: "How they work through a problem taken from this job's work." },
-          { id: 'work_knowledge', label: 'Knowledge of the work', guidance: 'What they know about the tools, methods or rules this job uses.' },
-        ],
-      };
-}
-
-/** A new, empty criterion with an id unique in `scorecard`. */
-export const newCriterion = (scorecard: Scorecard) => ({
-  id: idFrom('criterion', scorecard.criteria.map((criterion) => criterion.id), 'criterion'),
-  label: 'New criterion',
-});
 
 /** Actions v1 runs. RequestVerification and ScheduleInterview are refused at save, so not offered. */
 export const actionLabels: Partial<Record<ActionType, string>> = {
@@ -239,6 +213,18 @@ export const questionTypeLabels: Record<QuestionType, string> = {
   Number: 'Number',
   Url: 'Link',
   File: 'File',
+};
+
+/** A scorecard question's answer kind as the answer menu names it; the Rating kinds sit under its Rating heading. */
+export const scorecardQuestionTypeLabels: Record<ScorecardQuestionType, string> = {
+  YesNo: 'Yes or no',
+  SingleChoice: 'Choice',
+  MultiChoice: 'Multi-choice',
+  ShortText: 'Short text',
+  LongText: 'Long text',
+  Rating5: '1 to 5',
+  Rating10: '1 to 10',
+  RatingYesNo: 'Yes or no',
 };
 
 export const operatorLabels: Record<ConditionOperator, string> = {

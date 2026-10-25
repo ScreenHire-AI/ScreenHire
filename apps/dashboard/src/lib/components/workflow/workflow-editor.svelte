@@ -11,7 +11,7 @@
   import PipelineView from './pipeline-view.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
-  import ScorecardBuilder from './scorecard-builder.svelte';
+  import ScorecardPicker from './scorecard-picker.svelte';
   import SimulatePanel from './simulate-panel.svelte';
   import type { GraphActions } from './step-node.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
@@ -167,11 +167,11 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl">
     <Sheet.Header>
       <Sheet.Title>Scorecard: {workflow.stages[scorecardIndex]?.name ?? ''}</Sheet.Title>
-      <Sheet.Description>Rate the skills, experience and work the job needs, never personality, emotion or honesty.</Sheet.Description>
+      <Sheet.Description>Choose one from the library. A job keeps its own copy of the questions.</Sheet.Description>
     </Sheet.Header>
     <div class="@container px-4 pb-4">
       {#if scorecardIndex >= 0}
-        <ScorecardBuilder bind:stage={workflow.stages[scorecardIndex]!} index={scorecardIndex} {errors} />
+        <ScorecardPicker bind:stage={workflow.stages[scorecardIndex]!} index={scorecardIndex} {errors} />
       {/if}
     </div>
   </Sheet.Content>

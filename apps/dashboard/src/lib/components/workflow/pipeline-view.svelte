@@ -28,6 +28,7 @@
   } from '#lib/workflow.js';
   import { labelClass, rowClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
+  import ScorecardName from './scorecard-name.svelte';
 
   // The default builder view (workflow-engine.md §4): the stages in order, each with the automations that fire on it,
   // and a panel for the automations that belong to no one stage. Stages reorder with buttons, not dragging (WCAG 2.5.7).
@@ -134,15 +135,14 @@
             </div>
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
             {@render summaries(stage.id)}
-            {#if stage.scorecard && !isTerminal(stage.kind)}
-              {@const criteria = stage.scorecard.criteria.length}
-              <p class="text-muted-foreground">Scorecard: {criteria} {criteria === 1 ? 'criterion' : 'criteria'} and a recommendation</p>
+            {#if (stage.scorecard || stage.scorecardTemplateId) && !isTerminal(stage.kind)}
+              <p class="text-muted-foreground">Scorecard: <ScorecardName {stage} /></p>
             {/if}
             <div class="flex flex-wrap gap-2">
               {@render automationsButton(stage.id, stage.name, 'lg')}
               <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
-              {#if !isTerminal(stage.kind) || stage.scorecard}
-                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Edit scorecard <span class="sr-only">for {stage.name}</span></Button>
+              {#if !isTerminal(stage.kind) || stage.scorecard || stage.scorecardTemplateId}
+                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Scorecard <span class="sr-only">for {stage.name}</span></Button>
               {/if}
             </div>
           </div>

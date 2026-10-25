@@ -34,6 +34,7 @@
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import Rating from '#lib/components/rating.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
@@ -240,7 +241,11 @@
   {:else}
     <Tabs.Root bind:value={() => tab, selectTab}>
       <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs}>
-        {#snippet status()}<OverdueBadge dueAt={detail.slaDueAt} />{/snippet}
+        {#snippet status()}
+          <OverdueBadge dueAt={detail.slaDueAt} />
+          <!-- The candidate's rating, from people's scorecards only (ADR-0013); it opens to each scorecard. -->
+          <Rating rating={detail.rating} scorecards={scorecards.data?.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
+        {/snippet}
       </HeaderBand>
 
       <div class="@container w-full px-4 py-5 md:px-6 md:py-6">
@@ -296,6 +301,7 @@
                 {members}
                 {currentUserId}
                 announcement={scorecardAnnouncement}
+                withheld={detail.rating?.state === 'AfterYourScorecard'}
                 onfill={editable && scoreable.length > 0 ? () => (scorecardOpen = true) : undefined}
               />
             {/if}

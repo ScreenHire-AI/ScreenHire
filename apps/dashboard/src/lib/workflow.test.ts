@@ -2,7 +2,6 @@ import type { HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
   actionsFor,
-  defaultScorecard,
   describeAction,
   describePath,
   errorsUnder,
@@ -202,7 +201,7 @@ describe('stage time limits', () => {
 describe('scorecards and the reviewer decision', () => {
   const reviewed: HiringWorkflow = {
     ...workflow,
-    stages: workflow.stages.map((stage) => (stage.id === 'screening' ? { ...stage, scorecard: defaultScorecard('Screening') } : stage)),
+    stages: workflow.stages.map((stage) => (stage.id === 'screening' ? { ...stage, scorecardTemplateId: 'screening' } : stage)),
     automations: [
       { id: 'any', name: 'Any', trigger: { type: 'ReviewerDecision' }, conditions: null, actions: [{ type: 'AddTag', tag: 'reviewed' }] },
       { id: 'screen', name: 'Screen', trigger: { type: 'ReviewerDecision', stageId: 'screening' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
@@ -222,13 +221,6 @@ describe('scorecards and the reviewer decision', () => {
     expect(laneOf(reviewed.automations[1]!)).toBe('screening');
     expect(summarize(reviewed.automations[1]!, reviewed)).toBe('When a reviewer records a decision on Screening: add the tag "screened".');
     expect(summarize(reviewed.automations[0]!, reviewed)).toBe('When a reviewer records a decision: add the tag "reviewed".');
-  });
-
-  it('starts a scorecard with criteria about the job, never the person', () => {
-    for (const kind of ['Screening', 'Interview', 'Assessment'] as const) {
-      const text = defaultScorecard(kind).criteria.map((criterion) => `${criterion.label} ${criterion.guidance ?? ''}`).join(' ');
-      expect(text).not.toMatch(/personalit|emotion|honest|truthful|culture fit|integrity/i);
-    }
   });
 });
 

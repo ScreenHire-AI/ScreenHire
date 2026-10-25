@@ -574,7 +574,7 @@ describe('application page', () => {
   });
 
   describe('scorecards', () => {
-    // The job with an interview scorecard; the application reached Interview (the timeline) and is back in Screening.
+    // The job's copy of an interview scorecard; the application reached Interview (the timeline) and is back in Screening.
     const scoredJob = {
       ...job,
       workflow: {
@@ -583,10 +583,24 @@ describe('application page', () => {
           stage.id === 'interview'
             ? {
                 ...stage,
+                scorecardTemplateId: 'interview',
                 scorecard: {
-                  criteria: [
-                    { id: 'role_skills', label: 'Skills the role needs', guidance: 'The skills in the job description.' },
-                    { id: 'problem_solving', label: 'Problem solving' },
+                  name: 'Interview',
+                  questions: [
+                    { id: 'role_skills', type: 'Rating5', label: 'Skills the role needs', required: false, guidance: 'The skills in the job description.' },
+                    { id: 'problem_solving', type: 'Rating10', label: 'Problem solving', required: true },
+                    { id: 'finished', type: 'RatingYesNo', label: 'Finished in the time', required: false },
+                    {
+                      id: 'next',
+                      type: 'MultiChoice',
+                      label: 'Next interview covers',
+                      required: false,
+                      options: [
+                        { id: 'design', label: 'System design' },
+                        { id: 'testing', label: 'Testing' },
+                      ],
+                    },
+                    { id: 'notes', type: 'LongText', label: 'Notes on the exercise', required: false },
                   ],
                 },
               }
@@ -598,21 +612,46 @@ describe('application page', () => {
       id: '01a157d4-0000-7000-8000-000000000310',
       stageId: 'interview',
       reviewerUserId: teammate,
-      ratings: [
-        { criterionId: 'role_skills', label: 'Skills the role needs', rating: 'StronglyDemonstrated' },
-        { criterionId: 'problem_solving', label: 'Problem solving', rating: null },
+      answers: [
+        { questionId: 'role_skills', label: 'Skills the role needs', type: 'Rating5', rating: 5 },
+        { questionId: 'problem_solving', label: 'Problem solving', type: 'Rating10', rating: 7 },
+        { questionId: 'finished', label: 'Finished in the time', type: 'RatingYesNo', value: 'yes' },
+        {
+          questionId: 'next',
+          label: 'Next interview covers',
+          type: 'MultiChoice',
+          values: ['design', 'testing'],
+          options: [
+            { id: 'design', label: 'System design' },
+            { id: 'testing', label: 'Testing' },
+          ],
+        },
+        { questionId: 'notes', label: 'Notes on the exercise', type: 'LongText' },
       ],
+      rating: 4.6,
+      ratings: [],
       recommendation: 'StrongYes',
       note: 'Clear walk-through of the design.',
       workflowVersion: 1,
       timelineEventId: '01a157d4-0000-7000-8000-000000000311',
       submittedAt: '2026-10-20T11:45:00Z',
     };
+    // A v0.2 scorecard reads as it was given: labelled ratings, which never count toward the rating.
+    const older: ScorecardEntry = {
+      ...submitted,
+      id: '01a157d4-0000-7000-8000-000000000312',
+      stageId: 'screening',
+      answers: [],
+      rating: null,
+      ratings: [{ criterionId: 'role_requirements', label: "Meets the role's requirements", rating: 'Demonstrated' }],
+      recommendation: 'Yes',
+      note: null,
+    };
 
-    it('shows each scorecard with its reviewer and its ratings in words, never a number', async () => {
+    it('shows each scorecard with its reviewer and each answer, and a v0.2 scorecard as it was', async () => {
       stubApi({
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
-        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([submitted]),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([older, submitted]),
       });
       renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
@@ -624,15 +663,48 @@ describe('application page', () => {
         .getAllByRole('term')
         .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
       expect(rows).toEqual([
-        ['Skills the role needs', 'Strongly demonstrated'],
-        ['Problem solving', 'Not rated'],
+        ["Meets the role's requirements", 'Demonstrated'],
+        ['Skills the role needs', '5 of 5'],
+        ['Problem solving', '7 of 10'],
+        ['Finished in the time', 'Yes'],
+        ['Next interview covers', 'System design, Testing'],
+        ['Notes on the exercise', 'Not answered'],
       ]);
       expect(panel).toHaveTextContent('"Clear walk-through of the design."');
-      // A rating or a recommendation is never a figure or a percentage.
-      expect(within(panel).getByRole('list', { name: 'Scorecards' }).querySelector('dl')?.textContent).not.toMatch(/\d|%/);
     });
 
-    it('fills a scorecard in a sheet: ratings by criterion, and the recommendation is required', async () => {
+    it("shows the candidate's rating beside the title and opens it to each scorecard", async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, rating: { state: 'Rated', value: 4.6, scorecards: 1 } }),
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([older, submitted]),
+      });
+      renderPage('overview');
+
+      const rating = await screen.findByRole('button', { name: 'Rated 4.6 out of 5 from 1 scorecard' });
+      expect(within(rating).getByRole('img', { name: '4.6 of 5 stars' })).toBeInTheDocument();
+      await fireEvent.click(rating);
+      const list = (await screen.findByText('From 1 scorecard')).closest<HTMLElement>('[data-slot="popover-content"]')!;
+      expect(list).toHaveTextContent('Robin Ashby');
+      expect(list).toHaveTextContent('4.6');
+      // Only scorecards that count: the v0.2 one has no number.
+      expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+    });
+
+    it('says the rating comes after your scorecard while you have a review to give', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, rating: { state: 'AfterYourScorecard', scorecards: 0 } }),
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+      await within(panel).findByText('Other scorecards show after you submit yours.');
+      expect(screen.getByText('Rating after your scorecard')).toBeInTheDocument();
+      expect(screen.queryByRole('img', { name: /of 5 stars/ })).not.toBeInTheDocument();
+    });
+
+    it('fills a scorecard in a sheet: every kind answers its own way, and required questions and the recommendation are required', async () => {
       const fetch = stubApi({
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
         [`POST /v1/applications/${applicationId}/scorecards`]: () => Response.json({ ...submitted, reviewerUserId: user.id }, { status: 201 }),
@@ -646,18 +718,32 @@ describe('application page', () => {
       expect(within(sheet).queryByText(/integrity/i)).not.toBeInTheDocument();
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
       await within(sheet).findByText('Choose a recommendation.');
+      expect(within(sheet).getByText('Answer this question.')).toBeInTheDocument();
       expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
 
-      await fireEvent.click(within(within(sheet).getByRole('group', { name: 'Skills the role needs' })).getByRole('radio', { name: 'Demonstrated' }));
-      await fireEvent.click(within(within(sheet).getByRole('group', { name: /^Recommendation/ })).getByRole('radio', { name: 'Strong yes' }));
-      await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: '  Good depth.  ' } });
+      const group = (name: RegExp) => within(sheet).getByRole('group', { name });
+      expect(within(group(/^Skills the role needs/)).getAllByRole('radio')).toHaveLength(5);
+      expect(within(group(/^Problem solving/)).getAllByRole('radio')).toHaveLength(10);
+      await fireEvent.click(within(group(/^Skills the role needs/)).getByRole('radio', { name: '4' }));
+      await fireEvent.click(within(group(/^Problem solving/)).getByRole('radio', { name: '10, High' }));
+      await fireEvent.click(within(group(/^Finished in the time/)).getByRole('radio', { name: 'No' }));
+      await fireEvent.click(within(group(/^Next interview covers/)).getByRole('checkbox', { name: 'Testing' }));
+      await fireEvent.input(within(sheet).getByLabelText('Notes on the exercise'), { target: { value: '  Tidy code.  ' } });
+      await fireEvent.click(within(group(/^Overall recommendation/)).getByRole('radio', { name: 'Strong yes' }));
+      await fireEvent.input(within(sheet).getByLabelText('Note for the team'), { target: { value: '  Good depth.  ' } });
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
 
       await within(panel).findByText('Scorecard for Interview saved.');
       const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/scorecards') && init?.method === 'POST');
       expect(JSON.parse(String(post![1]!.body))).toEqual({
         stageId: 'interview',
-        ratings: [{ criterionId: 'role_skills', rating: 'Demonstrated' }],
+        answers: [
+          { questionId: 'role_skills', rating: 4 },
+          { questionId: 'problem_solving', rating: 10 },
+          { questionId: 'finished', value: 'no' },
+          { questionId: 'next', values: ['testing'] },
+          { questionId: 'notes', value: 'Tidy code.' },
+        ],
         recommendation: 'StrongYes',
         note: 'Good depth.',
       });

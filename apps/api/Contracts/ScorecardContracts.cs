@@ -41,10 +41,10 @@ public sealed record ScorecardAnswerEntry(
     string QuestionId,
     string Label,
     ScorecardQuestionType Type,
-    string? Value,
-    IReadOnlyList<string>? Values,
-    int? Rating,
-    IReadOnlyList<QuestionOption>? Options);
+    string? Value = null,
+    IReadOnlyList<string>? Values = null,
+    int? Rating = null,
+    IReadOnlyList<QuestionOption>? Options = null);
 
 /// <summary>A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.</summary>
 public sealed record ScorecardRating(string CriterionId, string Label, CriterionRating? Rating);

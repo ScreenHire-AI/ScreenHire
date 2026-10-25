@@ -15,6 +15,7 @@
   import { rowClass } from './controls.js';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
+  import ScorecardName from './scorecard-name.svelte';
   import SimulatePanel from './simulate-panel.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
 
@@ -33,7 +34,7 @@
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const questions = $derived(workflow.questionnaire.questions);
   const followUps = $derived(followUpsOf(workflow));
-  const scored = $derived(workflow.stages.filter((stage) => stage.scorecard));
+  const scored = $derived(workflow.stages.filter((stage) => stage.scorecard || stage.scorecardTemplateId));
   const days = (count: number) => `${count}-day limit`;
   let mode = $state<'edit' | 'preview'>('edit');
 </script>
@@ -91,11 +92,12 @@
           {#each scored as stage (stage.id)}
             <li class={['flex flex-col gap-2', rowClass]}>
               <h3 class="text-heading break-words">{stage.name}</h3>
+              <p class="text-muted-foreground"><ScorecardName {stage} /></p>
               <ol class="flex flex-col gap-1.5">
-                {#each stage.scorecard?.criteria ?? [] as criterion (criterion.id)}
+                {#each stage.scorecard?.questions ?? [] as question (question.id)}
                   <li class="flex flex-col">
-                    <span class="font-semibold break-words">{criterion.label}</span>
-                    {#if criterion.guidance}<span class="text-muted-foreground">{criterion.guidance}</span>{/if}
+                    <span class="font-semibold break-words">{question.label}</span>
+                    {#if question.guidance}<span class="text-muted-foreground">{question.guidance}</span>{/if}
                   </li>
                 {/each}
               </ol>

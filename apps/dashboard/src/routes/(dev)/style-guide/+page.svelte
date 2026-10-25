@@ -62,6 +62,8 @@
   import LevelScale from '#lib/components/level-scale.svelte';
   import MentionField from '#lib/components/mention-field.svelte';
   import NoteText from '#lib/components/note-text.svelte';
+  import Rating from '#lib/components/rating.svelte';
+  import RatingAnswer from '#lib/components/rating-answer.svelte';
   import ScorecardList from '#lib/components/scorecard-list.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
@@ -94,7 +96,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
-  import { applyFormKinds } from '#lib/form-builder.js';
+  import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
   import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/integrity.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -102,7 +104,7 @@
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import EmailSheetDemo, { demoEmail } from './email-sheet-demo.svelte';
-  import FormBuilderDemo, { scorecardKinds } from './form-builder-demo.svelte';
+  import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
 
@@ -141,6 +143,9 @@
     { id: 'interview', label: 'Interview', count: 2 },
   ];
   let toggleChoice = $state('all');
+  let ratingFive = $state('4');
+  let ratingTen = $state('');
+  let ratingYesNo = $state('yes');
 
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
@@ -249,11 +254,14 @@
       id: 's1',
       stageId: 'interview',
       reviewerUserId: 'u2',
-      ratings: [
-        { criterionId: 'role_skills', label: 'Skills the role needs', rating: 'StronglyDemonstrated' },
-        { criterionId: 'problem_solving', label: 'Problem solving', rating: 'Demonstrated' },
-        { criterionId: 'work_knowledge', label: 'Knowledge of the work', rating: null },
+      answers: [
+        { questionId: 'problem_solving', label: 'Problem solving', type: 'Rating5', rating: 5 },
+        { questionId: 'dotnet', label: '.NET and C#', type: 'Rating10', rating: 8 },
+        { questionId: 'finished', label: 'Did they finish the exercise in the time?', type: 'RatingYesNo', value: 'yes' },
+        { questionId: 'notes', label: 'Notes on the exercise', type: 'LongText' },
       ],
+      rating: 4.6,
+      ratings: [],
       recommendation: 'StrongYes',
       note: 'Walked through the cache design and its trade-offs.',
       workflowVersion: 1,
@@ -954,6 +962,44 @@
         <section aria-label="Form builder" class="flex min-w-0 flex-[999_1_520px] flex-col">
           <FormBuilderDemo />
         </section>
+        <Panel title="Rating answer" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <span id="sg-rating-five" class="font-semibold">Problem solving</span>
+              <RatingAnswer type="Rating5" labelledby="sg-rating-five" bind:value={ratingFive} />
+            </div>
+            <div class="flex flex-col gap-2">
+              <span id="sg-rating-ten" class="font-semibold">.NET and C#</span>
+              <RatingAnswer type="Rating10" labelledby="sg-rating-ten" bind:value={ratingTen} />
+            </div>
+            <div class="flex flex-col gap-2">
+              <span id="sg-rating-yes" class="font-semibold">Did they finish the exercise in the time?</span>
+              <RatingAnswer type="RatingYesNo" labelledby="sg-rating-yes" bind:value={ratingYesNo} />
+            </div>
+          </div>
+        </Panel>
+        <Panel title="Rating" class="flex-[1_1_320px]">
+          <dl class="flex flex-col gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+              <dt class="text-muted-foreground">On a candidate</dt>
+              <dd>
+                <Rating rating={{ state: 'Rated', value: 4.6, scorecards: 1 }} scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+              </dd>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <dt class="text-muted-foreground">In a table</dt>
+              <dd><Rating rating={{ state: 'Rated', value: 3.7, scorecards: 2 }} /></dd>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <dt class="text-muted-foreground">None yet</dt>
+              <dd><Rating rating={{ state: 'NotRated', scorecards: 0 }} /></dd>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <dt class="text-muted-foreground">Your review first</dt>
+              <dd><Rating rating={{ state: 'AfterYourScorecard', scorecards: 0 }} /></dd>
+            </div>
+          </dl>
+        </Panel>
         <Panel title="Answer menu" class="flex-[1_1_320px]">
           <div class="flex flex-wrap gap-2">
             <AnswerMenu groups={applyFormKinds} onselect={() => {}}>

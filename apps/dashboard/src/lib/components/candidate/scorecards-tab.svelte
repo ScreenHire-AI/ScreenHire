@@ -9,7 +9,8 @@
   import { describeError } from '#lib/query.js';
 
   // The scorecards reviewers submitted, with Fill scorecard while a reached stage with a scorecard is left to score
-  // (design system section 11). The scorecards task upgrades it with answer kinds and the candidate's rating.
+  // (design system section 11). A reviewer with their own scorecard to give reads only theirs until they give it: the
+  // API leaves the others out, so they cannot anchor the review (ADR-0013), and the panel says so.
   let {
     scorecards,
     error,
@@ -18,6 +19,7 @@
     members,
     currentUserId,
     announcement,
+    withheld = false,
     onfill,
   }: {
     /** Undefined while they load. */
@@ -28,6 +30,8 @@
     members: readonly TeamMember[] | undefined;
     currentUserId: string | undefined;
     announcement: string;
+    /** The reader has a review to give: the others' scorecards show once they submit theirs. */
+    withheld?: boolean;
     /** Opens the scorecard sheet; only for a role that changes hiring data, while a stage is left to score. */
     onfill?: () => void;
   } = $props();
@@ -52,9 +56,10 @@
       </div>
     {:else if scorecards.length > 0}
       <ScorecardList {scorecards} {stageName} {members} {currentUserId} />
-    {:else}
+    {:else if !withheld}
       <p class="text-muted-foreground">No scorecards yet.</p>
     {/if}
+    {#if withheld && !error}<p class="text-muted-foreground">Other scorecards show after you submit yours.</p>{/if}
     <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
   </div>
 </Panel>

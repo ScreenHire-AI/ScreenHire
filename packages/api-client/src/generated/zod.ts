@@ -5259,13 +5259,13 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "questionId": zod.string(),
   "label": zod.string(),
   "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
-  "value": zod.string().nullable(),
-  "values": zod.array(zod.string()).nullable(),
-  "rating": zod.int().nullable(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "rating": zod.int().nullish(),
   "options": zod.array(zod.object({
   "id": zod.string(),
   "label": zod.string()
-})).nullable()
+})).nullish()
 }).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
   "rating": zod.number().nullable(),
   "ratings": zod.array(zod.object({
@@ -5306,13 +5306,13 @@ export const SubmitScorecardResponse = zod.object({
   "questionId": zod.string(),
   "label": zod.string(),
   "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
-  "value": zod.string().nullable(),
-  "values": zod.array(zod.string()).nullable(),
-  "rating": zod.int().nullable(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "rating": zod.int().nullish(),
   "options": zod.array(zod.object({
   "id": zod.string(),
   "label": zod.string()
-})).nullable()
+})).nullish()
 }).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
   "rating": zod.number().nullable(),
   "ratings": zod.array(zod.object({

@@ -6,6 +6,7 @@
   import { get } from 'svelte/store';
   import DateText from '#lib/components/date-text.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
+  import Rating from '#lib/components/rating.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
@@ -317,6 +318,10 @@
       {/if}
       {#if ai && ai.level.rank > 0}
         <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
+      {/if}
+      {#if application.rating?.state === 'Rated'}
+        <!-- relative: above the item's link, so the count's tooltip opens on tap. -->
+        <span class="relative"><Rating rating={application.rating} /></span>
       {/if}
       {#if stages && moves}
         <span class="relative ml-auto">{@render moveCell(application)}</span>

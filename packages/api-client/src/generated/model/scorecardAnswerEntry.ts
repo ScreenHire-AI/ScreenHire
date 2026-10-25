@@ -17,11 +17,11 @@ export interface ScorecardAnswerEntry {
   label: string;
   type: ScorecardQuestionType;
   /** @nullable */
-  value: string | null;
+  value?: string | null;
   /** @nullable */
-  values: string[] | null;
+  values?: string[] | null;
   /** @nullable */
-  rating: number | null;
+  rating?: number | null;
   /** @nullable */
-  options: QuestionOption[] | null;
+  options?: QuestionOption[] | null;
 }

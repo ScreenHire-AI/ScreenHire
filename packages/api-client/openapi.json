@@ -12186,11 +12186,7 @@
         "required": [
           "questionId",
           "label",
-          "type",
-          "value",
-          "values",
-          "rating",
-          "options"
+          "type"
         ],
         "type": "object",
         "properties": {
