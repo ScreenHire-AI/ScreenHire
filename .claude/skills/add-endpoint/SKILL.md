@@ -68,7 +68,8 @@ internal static class MetaEndpoints
 - **Hiring API route** (jobs, applications, candidates, templates): `.AllowApiKeys()` on the group in place of
   `.RequireAuthorization()`, which also accepts an organization API key and applies the per-key rate limit (ADR-0011).
   The tenant is then the key's organization with no user, so `ITenantContext.UserId` may be null; never dereference it.
-  Writes still call `.RequireHiringRole()`, which checks the key's `Write` scope. Anything else stays session-only.
+  Writes still call `.RequirePermission(Permission.X)`, which checks the key's `Write` scope for a hiring write.
+  Anything else stays session-only.
 - **Never filter by organization yourself, and never take an organization id from the route, query or body.** The
   named query filter `Tenant` and row-level security scope every query on an `ITenantOwned` entity. A handler that
   needs the current organization's id reads `ITenantContext.OrganizationId`. Never call `IgnoreQueryFilters()`.

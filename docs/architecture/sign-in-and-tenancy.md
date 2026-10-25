@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Sign-in, organizations and tenant isolation"
-description: "Identity providers and email links, abuse controls, API key authentication, configured domains, organizations, roles, team members and invitations, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
+description: "Identity providers and email links, abuse controls, API key authentication, configured domains, organizations, permission checks, built-in and custom roles, team members and invitations, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
 tags: [auth, tenancy, rls, team]
 sources:
   - resource: apps/api/Auth/Antiforgery.cs
@@ -15,15 +15,18 @@ sources:
   - resource: apps/api/Auth/MagicLinks.cs
   - resource: apps/api/Auth/Memberships.cs
   - resource: apps/api/Auth/MicrosoftIssuer.cs
+  - resource: apps/api/Auth/RoleAccess.cs
   - resource: apps/api/Auth/ReturnUrls.cs
   - resource: apps/api/Auth/SecuritySchemes.cs
   - resource: apps/api/Auth/TenantResolutionMiddleware.cs
   - resource: src/ScreenHire.Domain/Organizations/RolePermissions.cs
   - resource: apps/api/Endpoints/AuthEndpoints.cs
   - resource: apps/api/Endpoints/TeamEndpoints.cs
+  - resource: apps/api/Endpoints/RoleEndpoints.cs
   - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
   - resource: apps/api/Configuration/DomainOptions.cs
   - resource: src/ScreenHire.Domain/Organizations/ApiKey.cs
+  - resource: src/ScreenHire.Domain/Organizations/CustomRole.cs
   - resource: src/ScreenHire.Domain/Organizations/ITenantOwned.cs
   - resource: src/ScreenHire.Domain/Organizations/MembershipEvent.cs
   - resource: src/ScreenHire.Domain/Organizations/Organization.cs
@@ -35,6 +38,8 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSessionInterceptor.cs
   - resource: apps/apphost/DevSso/config.json
   - resource: apps/dashboard/src/lib/auth.ts
+  - resource: apps/dashboard/src/lib/permissions.ts
+  - resource: apps/dashboard/src/lib/settings.ts
 ---
 # Sign-in, organizations and tenant isolation
 
@@ -56,7 +61,7 @@ organization API key in place of the session ("API keys" below).
 | Route | What it does |
 |---|---|
 | `GET /v1/auth/providers` | The configured providers and whether email links work. Issues the antiforgery token. |
-| `GET /v1/auth/me` | The signed-in user and their organization, or 401. Issues the antiforgery token either way. |
+| `GET /v1/auth/me` | The signed-in user and their organization, with their role and every permission it gives them, or 401. Issues the antiforgery token either way. |
 | `GET /v1/auth/challenge/{provider}?returnUrl=` | Redirects to the provider (authorization code + PKCE). |
 | `GET /v1/auth/signin-{provider}` | The handler's redirect URI. The provider returns here with a code. |
 | `GET /v1/auth/callback?returnUrl=` | Links or creates the user, signs them in, redirects to the dashboard. |
@@ -64,7 +69,7 @@ organization API key in place of the session ("API keys" below).
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
 | `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
 | `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
-| `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. |
+| `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |
 
@@ -118,8 +123,8 @@ waits for SMTP; moving the send to a worker message is a later change.
 
 ## API keys
 
-Integrators call the hiring API with an organization API key instead of a session (ADR-0011). Owners and Admins
-manage keys in a session, on the dashboard's Settings > API keys page, which shows a new key once.
+Integrators call the hiring API with an organization API key instead of a session (ADR-0011). A role with Manage
+API keys (Owners and Admins) manages keys in a session, on the dashboard's Settings > API keys page, which shows a new key once.
 
 | Route | What it does |
 |---|---|
@@ -147,8 +152,10 @@ manage keys in a session, on the dashboard's Settings > API keys page, which sho
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.
-- **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequireHiringRole` where a person needs
-  a writing role, and a read-only key gets 403 "Read-only key".
+- **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequirePermission` for the hiring
+  writes (`RolePermissions.HiringWrites`), what a Recruiter does, and a read-only key gets 403 "Read-only key". Every
+  other permission refuses a key ("Not for API keys"). Creating a Write key needs every hiring write in the creator's
+  role, so a key never carries more than the person who made it (ADR-0014).
 - **Antiforgery** is skipped for a request the key scheme authenticated: it carries no cookie to forge with.
 - **Rate limit.** The `api-key` rate-limiter policy on the hiring groups gives each key a fixed window per minute of
   `ScreenHire:ApiKeys:PermitsPerMinute` (default 600), or the lower `permitsPerMinute` set on the key, and answers 429
@@ -183,34 +190,58 @@ set it. It is per user, not per session, so it follows them to every device, and
 connections into the organization they left (`docs/architecture/realtime.md`). Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
-a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Owners and Admins) renames the
+a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Edit settings) renames the
 organization and leaves the slug, because boards and candidates already link to its careers address.
 `GET /v1/organization` gives any member the name, slug, home region and `careersUrl`, the careers board built from
 `ScreenHire:Domains` (`DomainOptions.CareersBoardUrl`), so the dashboard never builds a careers host itself.
 
-Roles are recorded and returned by `GET /v1/auth/me`. Every route that changes hiring data (jobs, templates,
-applications) calls `RequireHiringRole()` (`apps/api/Auth/HiringAuthorization.cs`): Owners, Admins and Recruiters may
-write, Viewers only read, and anyone else gets 403. Routes that change the organization itself (its name, careers branding,
-integrity settings, team, email templates, API keys and webhooks) call `RequireOrganizationAdmin()`: Owners and Admins only. The role is read per request, so a role change or a removal
-takes effect on the member's next request. Removing a member also closes their open real-time connections into the
-organization at once (`RealtimeConnections`, `docs/architecture/realtime.md`).
+**Permissions, not role names** (ADR-0014). A member has one role: Owner, Admin, Recruiter or Viewer, or `Custom` with
+`custom_role_id` naming one of the organization's own roles. `GET /v1/auth/me` returns the role, its name and every
+permission it gives. Every route that changes data calls `RequirePermission(Permission.X)`
+(`apps/api/Auth/HiringAuthorization.cs`), which reads the member's role through `RoleAccess` on each request, so a role
+change, or a change to what a custom role allows, takes effect on the member's next request. A role without the
+permission gets 403 "Not in your role", whose detail names the permission ("Your role does not include Move
+candidates."). Removing a member also closes their open real-time connections into the organization at once
+(`RealtimeConnections`, `docs/architecture/realtime.md`).
 
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
-do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. It describes those checks
-exactly and enforces nothing yet: every route `RequireHiringRole` guards is a hiring permission that Owners, Admins and
-Recruiters have, every route `RequireOrganizationAdmin` guards is an organization permission that Owners and Admins
-have, Manage Owners is `TeamPolicy`'s Owner-only rule, and every member sees hiring data. `RolePermissionsTests` reads
-each guarded route from `apps/api/Endpoints` and fails when a route has no permission or a role's set drifts from its
-check. `GET /v1/organization/roles` serves the catalogue to any member; the dashboard's Roles page and the Invite sheet
-read it.
+do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
+every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
+Owner-only (`OwnerOnly`): no custom role holds it. `RolePermissionsTests` reads each guarded route from
+`apps/api/Endpoints`, fails when a route has no permission or a different one, and holds the built-in roles to the exact
+sets the role-name checks used to allow, so no existing member's access changed. `GET /v1/organization/roles` serves the
+catalogue, with the organization's custom roles, to any member.
 
-The dashboard follows the same rule. **Settings** is one sidebar item for Owners and Admins only; it opens the Settings
-menu (Organization, Team, Roles, Branding, Integrity, API keys, Webhooks and, until the Templates page takes them, Email
-templates, under `/settings/*`), and the command palette lists the same pages. The settings layout tells anyone else who
-opens one by its address that only owners and admins can change settings. The Team page
-offers only what `TeamPolicy` allows (`apps/dashboard/src/lib/settings.ts` mirrors it): an Admin sees no Owner role and
-no actions on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active
-API keys they created as well (ADR-0011). The API stays the judge.
+**Custom roles** (`custom_roles`, `CustomRole`) start as a copy of a role, built-in or custom, and change on their own
+page. A copy never keeps an Owner-only permission, and reading a role drops one again, so a stored row cannot grant it.
+Names are 1 to 50 characters, unique in the organization ignoring case (`normalized_name`), and never a built-in role's
+name. Built-in roles never change. A role somebody has, or an open invitation offers, cannot be deleted: 409 "Role in
+use" says how many. Each create, change and delete runs under the member lock, lands in the membership log and in the
+role's change history ([change-history.md](change-history.md)). A custom role's description is generated from its
+permissions (`RolePermissions.Summarize`), so it always says what the role allows.
+
+The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
+for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
+Integrity, API keys, Webhooks and, until the Templates page takes them, Email templates, under `/settings/*`), each page
+behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
+same pages. The settings layout tells anyone who opens another page by its address that their role cannot change it.
+Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
+The Team page offers only what `TeamPolicy` allows (`settings.ts` mirrors it): an Admin sees no Owner role and no actions
+on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active API keys they
+created as well, for a role that manages keys (ADR-0011). The API stays the judge.
+
+### Roles
+
+`apps/api/Endpoints/RoleEndpoints.cs`, under `/v1/organization/roles`:
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /` | Any member | The roles: the built-in ones, most access first, then the organization's by name, each with its permissions, how many people have it and Last updated; and every permission's group, name, description and flags. |
+| `GET /{roleId}` | Any member | One custom role, with what it was copied from. Another organization's id is 404. |
+| `GET /{roleId}/history` | Any member | The role's change history, newest first. |
+| `POST /` | Manage the team | Makes a role by copying `copyFrom` (a built-in role) or `copyFromRoleId` (a custom one). |
+| `PUT /{roleId}` | Manage the team | Renames it and sets its permissions. An Owner-only permission, or one without See jobs and candidates, is 400. |
+| `DELETE /{roleId}` | Manage the team | Deletes it, or 409 while anyone has it or an open invitation offers it. |
 
 ### Team members and invitations
 
@@ -218,18 +249,20 @@ API keys they created as well (ADR-0011). The API stays the judge.
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /members` | Any member | The organization's members with their email, name and role. |
-| `GET /roles` | Any member | The permission catalogue: each built-in role's description and permissions, and each permission's group, name and description. |
-| `PUT /members/{memberId}/role` | Owner, Admin | Gives a member another role. |
-| `DELETE /members/{memberId}` | Owner, Admin | Removes a member. |
-| `GET /invitations` | Owner, Admin | Open invitations: not accepted, revoked or expired. |
-| `POST /invitations` | Owner, Admin | Invites an address with a role and emails the link. 404 when no email sender is configured. |
-| `DELETE /invitations/{invitationId}` | Owner, Admin | Revokes an open invitation. |
-| `GET /membership-log` | Owner, Admin | The latest 200 entries of the membership log. |
+| `GET /members` | Any member | The organization's members with their email, name, role and role name. |
+| `PUT /members/{memberId}/role` | Manage the team | Gives a member another role: a built-in one, or `Custom` with `customRoleId`. |
+| `DELETE /members/{memberId}` | Manage the team | Removes a member. |
+| `GET /invitations` | Manage the team | Open invitations: not accepted, revoked or expired. |
+| `POST /invitations` | Manage the team | Invites an address with a role, built-in or custom, and emails the link. 404 when no email sender is configured. |
+| `DELETE /invitations/{invitationId}` | Manage the team | Revokes an open invitation. |
+| `GET /membership-log` | Manage the team | The latest 200 entries of the membership log. |
 
-`TeamPolicy` (`src/ScreenHire.Domain/Organizations`) says who may give which role: Owners manage everyone; Admins
-manage Admins, Recruiters and Viewers but cannot make anyone an Owner, change an Owner's role or remove an Owner. That
-refusal is a 403 "Owners only". Nobody can demote or remove the last Owner (409 "Last owner"). Every change runs under a
+`TeamPolicy` (`src/ScreenHire.Domain/Organizations`) says who may give which role, by permissions: an actor with
+Manage the team may give, take away, make, change or delete a role only when it holds nothing their own role does not.
+For the built-in roles that is the old rule: Owners manage everyone; Admins manage Admins, Recruiters, Viewers and every
+custom role but cannot make anyone an Owner, change an Owner's role or remove an Owner. Refusing an Owner-level role is
+a 403 "Owners only"; any other refusal is 403 "More access than your role". A role in a request that is not one of the
+organization's is 400 on `customRoleId`. Nobody can demote or remove the last Owner (409 "Last owner"). Every change runs under a
 per-organization advisory lock, so two Owners demoting each other at once cannot leave the organization with none.
 An address that is already a member gets 409 on invite. A team route narrows `organization_members` to the current
 organization itself, because the filter and the `own_memberships` policy also show the user's memberships elsewhere.
@@ -249,7 +282,8 @@ like a sign-in link, so the token never sits in the outbox's message table. Invi
 rate limit.
 
 **The membership log** (`membership_events`) records every invitation, revocation, join by invitation, role change and
-removal with who did it, who it was about and the roles before and after. Two membership facts have no entry: the
+removal with who did it, who it was about and the roles before and after, a custom role by its id and its name at the
+time; and every custom role made, changed (`RoleUpdated`, with the old name after a rename) or deleted. Two membership facts have no entry: the
 founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
 already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
@@ -294,6 +328,12 @@ Two layers, so one mistake is not a breach.
    delete policies match drafts only.
 
    `api_keys` (migration `AddApiKeys`) follows the `jobs` pattern too, without `DELETE` for `screenhire_app`.
+
+   `custom_roles` (migration `AddCustomRoles`) follows the `jobs` pattern. `organization_members.custom_role_id` points at
+   it with a composite foreign key on `(organization_id, custom_role_id)`, restricting deletes, so a member can only hold
+   a role of their own organization. `organization_invitations.custom_role_id` has no foreign key (ADR-0014): it is only
+   resolved under row-level security, when the invitation is written and again when it is accepted, and open
+   invitations block the role's deletion instead. Both tables check that `role` is `Custom` exactly when the id is set.
 
    `change_records` (migration `AddChangeHistory`), the history of templates and jobs, follows the `jobs` pattern and
    is append-only: `screenhire_app` has no `UPDATE` or `DELETE` on it ([change-history.md](change-history.md)).
@@ -368,6 +408,7 @@ listed on its login page.
 |---|---|---|
 | Avery Quinn | `avery@brightwater.example.com` | Owner of Brightwater Studio (seeded) |
 | Jordan Ellis | `jordan@brightwater.example.com` | Recruiter at Brightwater Studio (seeded) |
+| Robin Hale | `robin@brightwater.example.com` | Viewer at Brightwater Studio (seeded), made an Interviewer by the local demo |
 | Sam Rivera | `sam@example.org` | A new user, until they onboard |
 | Unverified address | Avery's address, `email_verified: false` | Refused, as an unverified provider would be |
 | Any email address | what you type | A new user, or the existing one with that email |
