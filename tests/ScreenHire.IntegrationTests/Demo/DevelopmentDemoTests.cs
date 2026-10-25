@@ -94,6 +94,14 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             .Single(t => t.GetProperty("name").GetString() == "Interview invitation");
         (await HistoryAsync(owner, $"/v1/email-templates/{email.GetProperty("id").GetString()}/history"))
             .Select(e => (e.By, e.Lines[0])).Should().Equal((avery, "changed the subject"), (avery, "created the template"));
+
+        // A built-in the team edited, for the Templates page's Reset to original.
+        var rejected = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
+            .Single(t => t.GetProperty("id").GetString() == "application-rejected");
+        rejected.GetProperty("edited").GetBoolean().Should().BeTrue();
+        rejected.GetProperty("subject").GetString().Should().Be(DevelopmentDemo.RejectionEmailSubject);
+        rejected.GetProperty("lastUpdated").GetProperty("userId").GetString().Should().Be(avery);
+        template.GetProperty("draftVersion").GetInt32().Should().Be(2, "the Templates page shows Jordan's draft");
     }
 
     [Fact]
