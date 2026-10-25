@@ -18,6 +18,7 @@ sources:
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs
   - resource: apps/dashboard/src/lib/components/email-sheet.svelte
+  - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
 ---
 # Email to candidates
 
@@ -99,6 +100,17 @@ workflow, or a hiring template, still names. A template deleted anyway (a race) 
 - **Hidden without a sender.** With no `IEmailSender` (no Mailpit connection locally, no provider in production),
   `sendingEnabled` is false, the dashboard hides every send control, and `POST /v1/emails` is a 404. Templates can
   still be edited.
+
+## Email to the team
+
+Sign-in links and invitations go out inside the request, because their tokens must never sit in the outbox's message
+table. A mention in a note has no secret, so its email goes through the outbox like a candidate's: the API publishes
+`TeammateMentioned` with the note, and the worker's `TeammateMentionedHandler` sends one fixed email in ScreenHire's
+own words (`MentionEmail`), not an organization template. It says who mentioned the person and on which candidate and
+job, links to the note on the candidate's Activity tab (`ScreenHire:Domains:AppHost`, which the AppHost gives the
+worker too), and never quotes the note, so candidate details stay in ScreenHire. The mention's row records the send,
+so a redelivered message sends nothing; a mention removed, a note deleted or a person who left before the worker gets
+to it gets no email.
 
 ## Not built
 

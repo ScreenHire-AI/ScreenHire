@@ -112,7 +112,7 @@ numbers are made up.
 
 | Job | Status | Boards | What is in it |
 |---|---|---|---|
-| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note |
+| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited |
 | Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview |
 | Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note) |
 | Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Three candidates who went through the stages: one Hired, one Rejected and one Withdrawn, each with the recruiter's notes. Its careers page answers "This job has closed" |
@@ -163,14 +163,14 @@ makes have no history until someone edits them.
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, and the Status filter
    counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification suggested".
 2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The Authenticity panel counts the seven applicants
-   by level, each level's toggle filters the table to it, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
+   by level, each level's toggle filters the table to it, and each row has its chip. Open Jordan Vale and its Integrity tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
    percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and
    "Same resume file" shared with Alex Reed and Morgan Hale, then Sam Okafor, who used AI within the job's policy and
    raises no concern.
 3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The
-   Activity panel records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
+   rail's Stage changes and Activity records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
    to Robin within a second or two. Every candidate's "We received your application" email is there too, and the
    Screening and Interview emails for the designer and frontend candidates.
 4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** opens the form with everything the
@@ -184,7 +184,9 @@ makes have no history until someone edits them.
 6. **Take it down (15 s).** On the job page, open **More actions**, choose **Close & remove everywhere** and confirm. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
-Extras if there is time: Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
+Extras if there is time: Joel Mensah's notes (type @ in the note box to mention a teammate; the mention emails are in
+Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
+from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
 the Templates page and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.

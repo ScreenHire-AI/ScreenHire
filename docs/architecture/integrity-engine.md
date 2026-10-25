@@ -217,16 +217,20 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 
 - **Recruiter**: assessment chips on every candidate card (`Authenticity: Review suggested · 3 reasons`), a detail
   panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add review note*.
-  Every action is audit-logged. No "reject" button sits in the integrity panel.
+  Every action is audit-logged. No "reject" button sits in the integrity panel, the candidate's Integrity tab.
 
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
   level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as plain text after the chip; a job's
   Authenticity panel with its applicant count and a toggle per level with its count (each filters the table); the "Needs review" and "Verification suggested" saved views (authenticity above its
-  lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
-  page. The panel shows each assessment's summary, suggested next step (one quiet line for a calm result), reasons
-  (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
-  counter-evidence, the job's AI policy and any dismissal. The candidate's AI declaration is in the page's Declarations
-  panel, not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
+  lowest level, not dismissed; AI assistance is information, not a queue); and the candidate's Integrity tab, marked
+  with a dot when authenticity is above its lowest level and not dismissed. The tab shows each assessment's level on
+  its three-step scale, a summary card per kind of check (Network, Identity, Automation and Content always; Files for
+  `Document` and Form activity for `Behavioural` only when they found something, kept apart because the levels count
+  categories apart), its summary, suggested next step (one quiet line for a calm result), reasons
+  (signals that count toward the level) and context signals, each expanding, with their evidence drawn by kind (§10.1) and
+  counter-evidence, the job's AI policy and any dismissal. Overview repeats the suggested next step while the level
+  needs a look, with "Not a reason to reject on its own". The candidate's AI declaration is on the Application tab,
+  not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
   log panel beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until
   phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
   `IntegrityAssessed` refetches the chips, overview and panel live. AI chips take the AI colour and the sparkles icon at

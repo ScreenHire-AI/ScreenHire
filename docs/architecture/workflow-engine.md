@@ -5,6 +5,7 @@ description: "Hiring templates and per-job workflow definitions: stages, scoreca
 tags: [workflow, automations, webhooks, scorecards, questionnaires]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringWorkflow.cs
+  - resource: src/ScreenHire.Domain/Applications/ApplicationNote.cs
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
@@ -453,7 +454,13 @@ tasks for the signed-in person and the whole team (no assignee), oldest first; `
 once, and raises `ApplicationTaskCompleted`; it never changes the application, so a rejection review is still decided
 by a person moving the candidate. Anyone whose role changes hiring data may complete any of the organization's tasks;
 the team shares the work. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
-automation reads) and add or remove tags (`POST` and `DELETE /v1/applications/{id}/tags`, `TagAdded` and `TagRemoved`
+automation reads), and edit and delete them (`PUT` and `DELETE /v1/applications/{id}/notes/{noteId}`; only the author
+edits, and the author, an Owner or an Admin deletes, which the API checks against the role in this organization). A
+note's text lives in `application_notes`, never in the append-only timeline: its `NoteAdded`, `NoteEdited` and
+`NoteDeleted` entries name it by `noteId`, so deleting a note erases its text, earlier edits included, and leaves only who
+deleted it and when. A mention is `@[userId]` in the text and a row in `application_note_mentions`; each person a note
+newly mentions, other than its author, gets `TeammateMentioned`, which is a card in their open dashboards and, through
+the worker, one email that says who and where and never quotes the note. People also add or remove tags (`POST` and `DELETE /v1/applications/{id}/tags`, `TagAdded` and `TagRemoved`
 entries). The facts snapshot replays additions and removals in timeline order, ignoring case, so a removed tag is gone
 from every later evaluation. No automation action removes a tag. A Manual automation runs from the application's
 Automations panel, which sends a new `Idempotency-Key` with each click.

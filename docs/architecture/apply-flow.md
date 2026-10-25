@@ -124,7 +124,7 @@ Reviewers download a file the same way, without the bytes passing through the AP
 candidate's file name, so storage serves the document as a download and never renders it on the storage origin. A
 file whose scan is `Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
 
-The dashboard's file viewer (a file row's View, in a full-window dialog) and the resume preview it replaces read a PDF
+The dashboard's file viewer (a file row's View, in a full-window dialog; a page never embeds a preview) reads a PDF
 through the same route, in one component, `FileFrame`: it fetches the redirect target (storage's CORS rule allows
 `GET`) and hands the bytes to a viewer in an `<iframe sandbox="allow-scripts" srcdoc>`. The frame has an opaque
 origin, so nothing in it can reach the dashboard's cookies, DOM or API, and its document allows only its own script and
@@ -198,7 +198,7 @@ questionnaires have no file questions, so there is no upload island.
 ## 9. Owner actions before production
 
 - Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts and `GET`
-  from the dashboard host (the resume preview), and a lifecycle rule that deletes unclaimed uploads (blobs with no
+  from the dashboard host (the file viewer), and a lifecycle rule that deletes unclaimed uploads (blobs with no
   application) after a day. Development does the first two at startup
   (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
 - Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
