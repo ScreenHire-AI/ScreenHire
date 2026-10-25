@@ -133,6 +133,26 @@ public sealed class DefinitionChangesTests
     }
 
     [Fact]
+    public void A_webhook_is_recorded_by_its_host_so_a_token_in_its_address_never_is()
+    {
+        const string token = "T0KEN-in-the-address";
+        var hook = new Automation("hook", "Tell the hiring channel", new AutomationTrigger(TriggerType.ApplicationSubmitted), null,
+            [new AutomationAction(ActionType.CallWebhook, Url: $"https://hooks.example.com/services/{token}?key={token}")]);
+        var before = HiringWorkflow.Default with { Automations = [hook] };
+        var rotated = hook with { Actions = [new AutomationAction(ActionType.CallWebhook, Url: "https://hooks.example.com/services/another")] };
+        var moved = hook with { Actions = [new AutomationAction(ActionType.CallWebhook, Url: "https://hooks.example.org/x")] };
+
+        var added = DefinitionChanges.Describe(HiringWorkflow.Default, before);
+        var changed = DefinitionChanges.Describe(before, before with { Automations = [rotated] });
+        var otherHost = DefinitionChanges.Describe(before, before with { Automations = [moved] });
+
+        added[0].Details.Should().Contain(new ChangeDetail("Then", null, "Call a webhook: hooks.example.com"));
+        Sentences(changed).Should().Equal("changed the webhook address of Tell the hiring channel");
+        otherHost[0].Details.Should().Equal(new ChangeDetail("Then", "Call a webhook: hooks.example.com", "Call a webhook: hooks.example.org"));
+        System.Text.Json.JsonSerializer.Serialize(added.Concat(changed).Concat(otherHost)).Should().NotContain(token);
+    }
+
+    [Fact]
     public void A_follow_up_questionnaire_added_whole_is_one_line_listing_its_questions()
     {
         var followUp = new FollowUpQuestionnaire("availability", "Availability", [new Question("start", QuestionType.ShortText, "When could you start?")]);

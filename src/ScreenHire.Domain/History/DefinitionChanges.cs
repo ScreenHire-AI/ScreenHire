@@ -282,6 +282,13 @@ public static class DefinitionChanges
                 {
                     lines.Add(ChangeLine.Of("changed the automation ", b.Name, details: details));
                 }
+
+                if (left.GetValueOrDefault("Then") == right.GetValueOrDefault("Then")
+                    && !WebhookUrls(a).SequenceEqual(WebhookUrls(b), StringComparer.Ordinal))
+                {
+                    // Only the part of a webhook's address that history leaves out changed: say so, without it.
+                    lines.Add(ChangeLine.Of("changed the webhook address of ", b.Name));
+                }
             });
         if (Reordered(before.Automations, after.Automations, a => a.Id))
         {
@@ -365,7 +372,8 @@ public static class DefinitionChanges
             ActionType.MoveToStage => action.StageId is { } stageId ? workflow.FindStage(stageId)?.Name ?? stageId : null,
             ActionType.AddTag => action.Tag,
             ActionType.NotifyTeam or ActionType.CreateTask => action.Note,
-            ActionType.CallWebhook or ActionType.ScheduleInterview => action.Url,
+            ActionType.CallWebhook => Host(action.Url),
+            ActionType.ScheduleInterview => action.Url,
             ActionType.QueueForRejectionReview => action.Reason,
             _ => null,
         };
@@ -376,6 +384,13 @@ public static class DefinitionChanges
 
         return value is { Length: > 0 } ? $"{label}: {value}" : label;
     }
+
+    // A webhook's address is often its secret (a token in the path or the query), and history keeps every line for
+    // good, so it records the host alone. A booking link is sent to candidates, so it is recorded whole.
+    private static string? Host(string? url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : null;
+
+    private static IEnumerable<string> WebhookUrls(Automation automation) =>
+        automation.Actions.Where(a => a.Type == ActionType.CallWebhook).Select(a => a.Url ?? "");
 
     private static List<ChangeDetail> PostingDefaultsDetails(PostingDefaults before, PostingDefaults after)
     {

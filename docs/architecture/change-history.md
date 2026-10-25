@@ -94,6 +94,10 @@ webhook endpoint's signing secret and an invitation's token hash cannot reach th
 when a tracked entity has a secret-like property, and `ChangeHistoryTests` checks the stored lines against a real key,
 its hash and a webhook secret.
 
+A tracked definition can hold a secret too: a webhook's address often carries its token in the path or the query. A
+"Call a webhook" action is recorded by its host alone, and a change to the rest of the address is the line "changed
+the webhook address of" the automation, with no values (`DefinitionChanges`).
+
 ## Isolation
 
 `change_records` is tenant-owned (`ITenantOwned`, the `Tenant` query filter) with forced row-level security and the
