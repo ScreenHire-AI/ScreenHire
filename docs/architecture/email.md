@@ -48,7 +48,8 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited in Sett
 A template is a Liquid subject and a Liquid plain-text body (Fluid, ADR-0008). The body is text, not HTML: the email's
 HTML part is built from the rendered text (a paragraph per blank line, links that show their own address, everything
 else encoded), and the text part is the rendered text itself. So a template cannot carry a hidden link, a tracking
-image or a script, and a candidate's name cannot inject markup.
+image or a script, and a candidate's name cannot inject markup. The rendered subject is one line, cut at 1,000
+characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
 
 `EmailTemplates.Validate` checks wording on every save, preview and test send:
 
@@ -92,7 +93,7 @@ The worker's `SendApplicationEmailHandler` sends the stored copy exactly as it i
 entry with the template id, the subject and `emailId`, the copy. The entry's id is the send's id too, so a redelivered
 message finds the entry and sends nothing. As with the `SendEmail` action, a crash between the send and the commit can
 repeat one email. A send that cannot go when the worker reaches it (the application was removed, its copy with it, or
-it ended and the email is the stage-change email) is dropped with a warning in the worker's log and no timeline entry,
+it ended and the email is the stage-change email, or the worker has no email sender) is dropped with a warning in the worker's log and no timeline entry,
 and the worker deletes the copy of an email it did not send: Activity and Messages list emails that went out. A
 message queued before copies were kept has none, and is dropped the same way.
 
