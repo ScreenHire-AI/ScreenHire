@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import ReorderHarness from '../../test-support/reorder-harness.svelte';
 
@@ -22,11 +22,13 @@ describe('reorder grip', () => {
   });
 
   it('moves an item from the menu and gives the focus back to its grip', async () => {
-    render(ReorderHarness);
+    const onreorder = vi.fn();
+    render(ReorderHarness, { props: { onreorder } });
 
     await fireEvent.click(grip('Notice period'));
     await fireEvent.click(await screen.findByRole('menuitem', { name: 'Move to top' }));
 
+    expect(onreorder.mock.calls).toEqual([['Questions', ['Notice period', 'Your CV', 'Right to work']]]);
     expect(names('Questions')).toEqual(['Notice period', 'Your CV', 'Right to work']);
     await waitFor(() => expect(grip('Notice period')).toHaveFocus());
   });
@@ -41,7 +43,8 @@ describe('reorder grip', () => {
   });
 
   it('picks the item up with Space, moves it with the arrow keys and drops it with Space', async () => {
-    render(ReorderHarness);
+    const onreorder = vi.fn();
+    render(ReorderHarness, { props: { onreorder } });
 
     grip('Your CV').focus();
     await fireEvent.keyDown(grip('Your CV'), { key: ' ' });
@@ -52,6 +55,8 @@ describe('reorder grip', () => {
     await fireEvent.keyDown(document.activeElement!, { key: ' ' });
 
     await waitFor(() => expect(grip('Your CV')).toHaveFocus());
+    // The list reports the order it ends on.
+    expect(onreorder).toHaveBeenLastCalledWith('Questions', ['Right to work', 'Notice period', 'Your CV']);
     // Picked up again, the arrow keys still move it: the grip switched the drag back on.
     await fireEvent.keyDown(grip('Your CV'), { key: ' ' });
     await waitFor(() => expect(document.activeElement).toHaveAttribute('aria-label', 'Your CV'));
