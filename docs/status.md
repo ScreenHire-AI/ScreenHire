@@ -97,7 +97,8 @@ brackets.
   its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
   until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's
   `security.allowedDomains` for careers behind a CDN (#11); keep access logs for 30 days or less (#11). Set
-  `PUBLIC_APP_URL` so the marketing site's "Start free" reaches sign-in (#6).
+  `PUBLIC_APP_URL` so the marketing site's "Start free" reaches sign-in (#6). Give the worker
+  `ScreenHire:Domains:AppHost` as well as the API, or mention emails are skipped with a warning (#55).
 - **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18).
