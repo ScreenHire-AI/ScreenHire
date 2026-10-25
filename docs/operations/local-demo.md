@@ -112,7 +112,7 @@ numbers are made up.
 
 | Job | Status | Boards | What is in it |
 |---|---|---|---|
-| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited |
+| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited. His Messages tab has the "Interview invitation" email Avery changed for him alone, with a sentence about his billing ledger answer that the template does not have |
 | Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview |
 | Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note) |
 | Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Three candidates who went through the stages: one Hired, one Rejected and one Withdrawn, each with the recruiter's notes. Its careers page answers "This job has closed" |
@@ -184,7 +184,7 @@ makes have no history until someone edits them.
 6. **Take it down (15 s).** On the job page, open **More actions**, choose **Close & remove everywhere** and confirm. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
-Extras if there is time: Joel Mensah's notes (type @ in the note box to mention a teammate; the mention emails are in
+Extras if there is time: Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
 the Templates page and its builder (questions, automations and the guardrail that refuses an

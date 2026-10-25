@@ -72,8 +72,10 @@ public enum ApplicationEventType
 /// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
 /// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <see cref="ApplicationEventType.ScorecardSubmitted"/>, the
 /// scorecard, the stage it rates and its overall recommendation, which a ReviewerDecision automation reads as a fact.
-/// <c>emailTemplateId</c>, <c>emailSubject</c>: For <see cref="ApplicationEventType.EmailSent"/>, the template and the
-/// subject as the candidate received it. The body is never kept here.
+/// <c>emailTemplateId</c>, <c>emailSubject</c>, <c>emailId</c>: For <see cref="ApplicationEventType.EmailSent"/>, the
+/// template it started from (null for a blank email), the subject as the candidate received it, and the copy of the email
+/// as it went (<see cref="ApplicationEmail"/>), which holds the body. Emails sent before copies were kept have no
+/// <c>emailId</c>; the body is never kept here.
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <see cref="ApplicationEventType.QuestionnaireSent"/> and
 /// <see cref="ApplicationEventType.QuestionnaireCompleted"/>, the follow-up questionnaire and the request that carries
 /// its link and, once completed, its answers. The answers are never kept here.
@@ -98,4 +100,5 @@ public sealed record ApplicationEventData(
     string? EmailSubject = null,
     string? QuestionnaireId = null,
     Guid? QuestionnaireRequestId = null,
-    Guid? NoteId = null);
+    Guid? NoteId = null,
+    Guid? EmailId = null);

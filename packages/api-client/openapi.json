@@ -6166,30 +6166,21 @@
       }
     },
     "/v1/emails/preview": {
-      "get": {
+      "post": {
         "tags": [
           "Email"
         ],
         "operationId": "PreviewApplicationEmail",
-        "parameters": [
-          {
-            "name": "applicationId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationEmailDraft"
+              }
             }
           },
-          {
-            "name": "templateId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -6274,6 +6265,93 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/emails/{emailId}": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "GetSentEmail",
+        "parameters": [
+          {
+            "name": "emailId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentEmail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/candidates/{candidateId}/emails": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "ListCandidateEmails",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateEmailEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Unauthorized"
@@ -6733,6 +6811,27 @@
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
+      },
+      "ApplicationEmailDraft": {
+        "required": [
+          "applicationId",
+          "subject",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "description": "Wording for one email, rendered with the candidate of `applicationId`, before a person sends it."
       },
       "ApplicationEventType": {
         "enum": [
@@ -7276,6 +7375,13 @@
               "null",
               "string"
             ]
+          },
+          "emailId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -7918,7 +8024,9 @@
           "email",
           "phone",
           "createdAt",
-          "applications"
+          "applications",
+          "firstName",
+          "lastName"
         ],
         "type": "object",
         "properties": {
@@ -7947,20 +8055,83 @@
             "items": {
               "$ref": "#/components/schemas/ApplicationSummary"
             }
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A candidate and every application they made to the organization."
       },
+      "CandidateEmailEntry": {
+        "required": [
+          "id",
+          "applicationId",
+          "jobTitle",
+          "templateId",
+          "subject",
+          "actorUserId",
+          "automationRunId",
+          "sentAt",
+          "kept"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "actorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "automationRunId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kept": {
+            "type": "boolean"
+          }
+        },
+        "description": "One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\r\nfor an email sent before ScreenHire kept each email's copy: only its subject is known."
+      },
       "CandidateInput": {
         "required": [
-          "fullName",
           "email"
         ],
         "type": "object",
         "properties": {
-          "fullName": {
-            "type": "string"
-          },
           "email": {
             "type": "string"
           },
@@ -7969,8 +8140,27 @@
               "null",
               "string"
             ]
+          },
+          "firstName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fullName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "The candidate of an application a person or an API key adds."
       },
       "CandidateSummary": {
         "required": [
@@ -7978,7 +8168,9 @@
           "fullName",
           "email",
           "phone",
-          "createdAt"
+          "createdAt",
+          "firstName",
+          "lastName"
         ],
         "type": "object",
         "properties": {
@@ -8001,6 +8193,15 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A candidate: one person per email address within the organization."
@@ -8790,7 +8991,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Counts for one form field. `fieldId` is a question id or one of the form's own fields (`fullName`, ...)."
+        "description": "Counts for one form field. `fieldId` is a question id or one of the form's own fields (`firstName`, ...)."
       },
       "FollowUpQuestionnaire": {
         "required": [
@@ -11029,7 +11230,7 @@
         "type": "object",
         "properties": {
           "candidate": {
-            "$ref": "#/components/schemas/CandidateInput"
+            "$ref": "#/components/schemas/PublicCandidateInput"
           },
           "privacyNoticeVersion": {
             "type": "string"
@@ -11140,6 +11341,34 @@
           }
         },
         "description": "The careers-page colours derived from the organization's brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`."
+      },
+      "PublicCandidateInput": {
+        "required": [
+          "firstName",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone."
       },
       "PublicJob": {
         "required": [
@@ -11908,8 +12137,7 @@
       },
       "SendEmailsRequest": {
         "required": [
-          "applicationIds",
-          "templateId"
+          "applicationIds"
         ],
         "type": "object",
         "properties": {
@@ -11921,10 +12149,71 @@
             }
           },
           "templateId": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "body": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Sends one of the organization's templates to the candidates of these applications, one email each."
+        "description": "An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\r\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\r\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\r\nA blank email has wording and no template id."
+      },
+      "SentEmail": {
+        "required": [
+          "id",
+          "applicationId",
+          "templateId",
+          "to",
+          "subject",
+          "html",
+          "text",
+          "sentAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part."
       },
       "SignalCategory": {
         "enum": [

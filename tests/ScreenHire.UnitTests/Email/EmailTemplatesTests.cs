@@ -1,3 +1,4 @@
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Email;
 
@@ -21,6 +22,57 @@ public sealed class EmailTemplatesTests
         email.Subject.Should().Be(subject);
         email.TextBody.Should().StartWith("Hi Sam Rivera,").And.Contain("Brightwater");
         email.HtmlBody.Should().Contain("<p>Hi Sam Rivera,</p>").And.Contain("Warehouse lead");
+    }
+
+    [Fact]
+    public void An_email_can_greet_the_candidate_by_their_first_name_and_use_their_last()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("For {{ firstName }} {{ lastName }}", "Hi {{ firstName }}, {{ candidateName }}."),
+            "sam@example.com", Sam with { FirstName = "Sam", LastName = "Rivera" });
+
+        email.Subject.Should().Be("For Sam Rivera");
+        email.TextBody.Should().StartWith("Hi Sam, Sam Rivera.");
+    }
+
+    // A subject's wording is at most 200 characters, but variables can render it far longer, and a kept copy holds 1000.
+    [Fact]
+    public void A_subject_that_variables_make_too_long_is_cut_to_what_a_kept_copy_holds()
+    {
+        var longName = new string('n', 300);
+        var email = Templates.Render(
+            new EmailTemplateContent(string.Concat(Enumerable.Repeat("{{ candidateName }} ", 10)), "Hi."),
+            "sam@example.com", Sam with { CandidateName = longName });
+
+        email.Subject.Length.Should().Be(ApplicationEmail.MaxSubjectLength);
+        email.Subject.Should().StartWith(longName + " " + longName);
+    }
+
+    [Fact]
+    public void A_cut_subject_never_ends_half_way_through_a_character()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("{{ candidateName }}", "Hi."), "sam@example.com",
+            Sam with { CandidateName = new string('n', ApplicationEmail.MaxSubjectLength - 1) + "\U0001F600" });
+
+        email.Subject.Should().Be(new string('n', ApplicationEmail.MaxSubjectLength - 1));
+    }
+
+    // A candidate from before the name was split has their whole name as the first name and no last name.
+    [Fact]
+    public void A_candidate_with_one_name_is_greeted_by_all_of_it()
+    {
+        var email = Templates.Render(new EmailTemplateContent("Hi", "Hi {{ firstName }}{{ lastName }}."), "sam@example.com", Sam);
+
+        email.TextBody.Should().StartWith("Hi Sam Rivera.");
+    }
+
+    [Fact]
+    public void Wording_a_person_writes_by_hand_may_use_the_names_but_not_an_actions_own_variables()
+    {
+        Templates.Validate(null, new EmailTemplateContent("Hi {{ firstName }}", "{{ lastName }} {{ candidateName }}")).Should().BeEmpty();
+        Templates.Validate(null, new EmailTemplateContent("Hi", "{{ reason }}")).Should().ContainSingle(p => p.Field == "body");
+        Templates.Validate(null, new EmailTemplateContent("Hi", "{{ questionnaireLink }}")).Should().ContainSingle(p => p.Field == "body");
     }
 
     [Fact]

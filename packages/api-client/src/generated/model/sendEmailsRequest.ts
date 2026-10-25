@@ -6,9 +6,17 @@
  */
 
 /**
- * Sends one of the organization's templates to the candidates of these applications, one email each.
+ * An email to the candidates of these applications, one each, rendered for each candidate. Give the wording
+ * (`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it
+ * stands, or both: then the wording goes, changed for this send only, and the template id records where it started.
+ * A blank email has wording and no template id.
  */
 export interface SendEmailsRequest {
   applicationIds: string[];
-  templateId: string;
+  /** @nullable */
+  templateId?: string | null;
+  /** @nullable */
+  subject?: string | null;
+  /** @nullable */
+  body?: string | null;
 }

@@ -27,6 +27,7 @@ import type {
   ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
+  ApplicationEmailDraft,
   ApplicationIntegrity,
   ApplicationNoteDetail,
   ApplicationSummary,
@@ -37,6 +38,7 @@ import type {
   AutomationRunEntry,
   BoardSummary,
   CandidateDetail,
+  CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberRoleRequest,
@@ -89,7 +91,6 @@ import type {
   OrganizationIntegritySettings,
   OrganizationProfile,
   PendingInvitation,
-  PreviewApplicationEmailParams,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -105,6 +106,7 @@ import type {
   SandboxBoardListing,
   ScorecardEntry,
   SendEmailsRequest,
+  SentEmail,
   SignInMethods,
   SimulateWorkflowRequest,
   SubmitScorecardRequest,
@@ -11750,29 +11752,36 @@ export type previewApplicationEmailResponseError = (previewApplicationEmailRespo
   headers: Headers;
 };
 
-export const getPreviewApplicationEmailUrl = (params: PreviewApplicationEmailParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getPreviewApplicationEmailUrl = () => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/v1/emails/preview?${stringifiedParams}` : `/v1/emails/preview`
+  return `/v1/emails/preview`
 }
 
-export const previewApplicationEmail = async (params: PreviewApplicationEmailParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<previewApplicationEmailResponseSuccess> => {
+export const previewApplicationEmail = async (applicationEmailDraft: ApplicationEmailDraft, options?: Parameters<typeof apiQueryFetch>[1]): Promise<previewApplicationEmailResponseSuccess> => {
 
-  return apiQueryFetch<previewApplicationEmailResponseSuccess>(getPreviewApplicationEmailUrl(params),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<previewApplicationEmailResponseSuccess>(getPreviewApplicationEmailUrl(),
   {
     ...options,
-    method: 'GET'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(applicationEmailDraft)
   }
 );}
 
@@ -11780,53 +11789,50 @@ export const previewApplicationEmail = async (params: PreviewApplicationEmailPar
 
 
 
-export const getPreviewApplicationEmailQueryKey = (params?: PreviewApplicationEmailParams,) => {
-    return [
-    'v1','emails','preview', ...(params ? [params] : [])
-    ] as const;
+export const getPreviewApplicationEmailMutationKey = () => ['previewApplicationEmail'] as const;
+
+export const getPreviewApplicationEmailMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError,PreviewApplicationEmailMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError,PreviewApplicationEmailMutationVariables, TContext> => {
+
+const mutationKey = getPreviewApplicationEmailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewApplicationEmail>>, PreviewApplicationEmailMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewApplicationEmail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewApplicationEmailMutationResult = NonNullable<Awaited<ReturnType<typeof previewApplicationEmail>>>
+    export type PreviewApplicationEmailMutationBody = ApplicationEmailDraft
+    export type PreviewApplicationEmailMutationError = ErrorType<HttpValidationProblemDetails | void>
+    export type PreviewApplicationEmailMutationVariables = {data: ApplicationEmailDraft}
+
+    export const createPreviewApplicationEmail = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError,PreviewApplicationEmailMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof previewApplicationEmail>>,
+        TError,
+        PreviewApplicationEmailMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getPreviewApplicationEmailMutationOptions(options?.()) }), queryClient);
     }
-
-
-export const getPreviewApplicationEmailQueryOptions = <TData = Awaited<ReturnType<typeof previewApplicationEmail>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params: PreviewApplicationEmailParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPreviewApplicationEmailQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewApplicationEmail>>> = ({ signal }) => previewApplicationEmail(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PreviewApplicationEmailQueryResult = NonNullable<Awaited<ReturnType<typeof previewApplicationEmail>>>
-export type PreviewApplicationEmailQueryError = ErrorType<HttpValidationProblemDetails | void>
-
-
-
-export function createPreviewApplicationEmail<TData = Awaited<ReturnType<typeof previewApplicationEmail>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
- params: () =>  PreviewApplicationEmailParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof previewApplicationEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getPreviewApplicationEmailQueryOptions(params(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
 
 export type sendEmailsResponse202 = {
   data: EmailsQueued
@@ -11941,6 +11947,192 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getSendEmailsMutationOptions(options?.()) }), queryClient);
     }
+
+export type getSentEmailResponse200 = {
+  data: SentEmail
+  status: 200
+}
+
+export type getSentEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSentEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getSentEmailResponseSuccess = (getSentEmailResponse200) & {
+  headers: Headers;
+};
+export type getSentEmailResponseError = (getSentEmailResponse401 | getSentEmailResponse404) & {
+  headers: Headers;
+};
+
+export const getGetSentEmailUrl = (emailId: string,) => {
+
+
+
+
+  return `/v1/emails/${emailId}`
+}
+
+export const getSentEmail = async (emailId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getSentEmailResponseSuccess> => {
+
+  return apiQueryFetch<getSentEmailResponseSuccess>(getGetSentEmailUrl(emailId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSentEmailQueryKey = (emailId: string,) => {
+    return [
+    'v1','emails',emailId
+    ] as const;
+    }
+
+
+export const getGetSentEmailQueryOptions = <TData = Awaited<ReturnType<typeof getSentEmail>>, TError = ErrorType<void>>(emailId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getSentEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSentEmailQueryKey(emailId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSentEmail>>> = ({ signal }) => getSentEmail(emailId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: emailId !== null && emailId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getSentEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSentEmailQueryResult = NonNullable<Awaited<ReturnType<typeof getSentEmail>>>
+export type GetSentEmailQueryError = ErrorType<void>
+
+
+
+export function createGetSentEmail<TData = Awaited<ReturnType<typeof getSentEmail>>, TError = ErrorType<void>>(
+ emailId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getSentEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetSentEmailQueryOptions(emailId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listCandidateEmailsResponse200 = {
+  data: CandidateEmailEntry[]
+  status: 200
+}
+
+export type listCandidateEmailsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listCandidateEmailsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listCandidateEmailsResponseSuccess = (listCandidateEmailsResponse200) & {
+  headers: Headers;
+};
+export type listCandidateEmailsResponseError = (listCandidateEmailsResponse401 | listCandidateEmailsResponse404) & {
+  headers: Headers;
+};
+
+export const getListCandidateEmailsUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/emails`
+}
+
+export const listCandidateEmails = async (candidateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listCandidateEmailsResponseSuccess> => {
+
+  return apiQueryFetch<listCandidateEmailsResponseSuccess>(getListCandidateEmailsUrl(candidateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCandidateEmailsQueryKey = (candidateId: string,) => {
+    return [
+    'v1','candidates',candidateId,'emails'
+    ] as const;
+    }
+
+
+export const getListCandidateEmailsQueryOptions = <TData = Awaited<ReturnType<typeof listCandidateEmails>>, TError = ErrorType<void>>(candidateId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listCandidateEmails>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCandidateEmailsQueryKey(candidateId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCandidateEmails>>> = ({ signal }) => listCandidateEmails(candidateId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: candidateId !== null && candidateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listCandidateEmails>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListCandidateEmailsQueryResult = NonNullable<Awaited<ReturnType<typeof listCandidateEmails>>>
+export type ListCandidateEmailsQueryError = ErrorType<void>
+
+
+
+export function createListCandidateEmails<TData = Awaited<ReturnType<typeof listCandidateEmails>>, TError = ErrorType<void>>(
+ candidateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listCandidateEmails>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListCandidateEmailsQueryOptions(candidateId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type getHiringTemplateDefinitionSchemaResponse200 = {
   data: void

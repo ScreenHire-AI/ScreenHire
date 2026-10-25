@@ -276,18 +276,37 @@ public sealed class JobApplication : ITenantOwned
     }
 
     /// <summary>
-    /// The timeline event for an email sent to the candidate. <paramref name="eventId"/> is the send's own id, so a
-    /// redelivered send finds its event and records nothing twice.
+    /// The copy of an email to the candidate, rendered for them, before it goes. <paramref name="sendId"/> is the send's
+    /// own id, created once, so a redelivered send finds its copy and its timeline entry.
     /// </summary>
-    public ApplicationEvent EmailSent(
-        Guid eventId, string templateId, string subject, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
+    public ApplicationEmail PrepareEmail(
+        Guid sendId, string? templateId, string to, string subject, string textBody, string htmlBody, DateTimeOffset now) =>
         new()
         {
-            Id = eventId,
+            Id = sendId,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            TemplateId = templateId,
+            To = to,
+            Subject = subject,
+            TextBody = textBody,
+            HtmlBody = htmlBody,
+            CreatedAt = now,
+        };
+
+    /// <summary>
+    /// The timeline event for an email that went to the candidate. It takes the copy's id, the send's own id, so a
+    /// redelivered send finds its event and records nothing twice, and it points at the copy, which holds the body.
+    /// </summary>
+    public ApplicationEvent EmailSent(ApplicationEmail email, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
+        new()
+        {
+            Id = email.Id,
             OrganizationId = OrganizationId,
             ApplicationId = Id,
             Type = ApplicationEventType.EmailSent,
-            Data = new ApplicationEventData(AutomationRunId: automationRunId, EmailTemplateId: templateId, EmailSubject: subject),
+            Data = new ApplicationEventData(
+                AutomationRunId: automationRunId, EmailTemplateId: email.TemplateId, EmailSubject: email.Subject, EmailId: email.Id),
             ActorUserId = actorUserId,
             OccurredAt = now,
         };

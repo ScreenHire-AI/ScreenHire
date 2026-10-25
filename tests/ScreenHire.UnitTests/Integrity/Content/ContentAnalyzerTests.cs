@@ -94,7 +94,7 @@ public sealed class ContentAnalyzerTests
     public async Task The_same_candidate_answering_twice_is_never_a_duplicate()
     {
         var harness = new IntegrityHarness(WithMotivation);
-        var candidate = Domain.Candidates.Candidate.Create(harness.Job.OrganizationId, "Dana Whitfield", "dana@example.com", null, IntegrityHarness.Start);
+        var candidate = Domain.Candidates.Candidate.Create(harness.Job.OrganizationId, "Dana", "Whitfield", "dana@example.com", null, IntegrityHarness.Start);
         var records = new InMemoryContentRecords();
         var analyzer = new AnswerAnalyzer(records);
 
@@ -231,7 +231,7 @@ public sealed class ContentAnalyzerTests
     // An application with one resume file and nothing read yet.
     private static Task<IntegrityContext> ContextWithFileAsync(IntegrityHarness harness)
     {
-        var candidate = Domain.Candidates.Candidate.Create(harness.Job.OrganizationId, "Dana Whitfield", "dana@example.com", null, IntegrityHarness.Start);
+        var candidate = Domain.Candidates.Candidate.Create(harness.Job.OrganizationId, "Dana", "Whitfield", "dana@example.com", null, IntegrityHarness.Start);
         var (application, _) = JobApplication.Submit(harness.Job, candidate, false, AiUseDeclaration.DidNotUse, null, IntegrityHarness.Start, null);
         var file = new ApplicationFile
         {

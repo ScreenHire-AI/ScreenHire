@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Application.Applications;
 using ScreenHire.IntegrationTests.Automations;
 using ScreenHire.IntegrationTests.Messaging;
+using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Realtime;
 using Wolverine;
 
@@ -167,13 +169,47 @@ public sealed class EmailTests(AppHostFixture fixture)
         await using (var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct))
         {
             await publisher.Services.GetRequiredService<IMessageBus>()
-                .PublishAsync(new SendApplicationEmail(owner.OrganizationId, application, "application-received", sendId, owner.UserId));
+                .PublishAsync(new SendApplicationEmail(owner.OrganizationId, application, sendId, owner.UserId));
             await WolverineStore.WaitUntilAsync(
                 async () => await store.CountHandledAsync(sendId.ToString(), Ct, nameof(SendApplicationEmail)) >= 2, "the worker to handle the send again", Ct);
         }
 
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().ContainSingle("the second delivery found the timeline entry and sent nothing");
         EmailEntries(await owner.GetAsync($"/v1/applications/{application}/timeline")).Should().ContainSingle();
+    }
+
+    // The worker checks again when it sends: a kept copy that started from an email only an action sends (which the API
+    // never stores) goes nowhere, leaves no timeline entry, and is not kept.
+    [Fact]
+    public async Task The_worker_drops_a_copy_of_an_email_only_an_action_sends()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = (await owner.CreateJobAsync(Samples.RemoteJob("Worker guard"))).Id();
+        var email = ApiSession.NewEmail("guarded");
+        var application = (await owner.CreateApplicationAsync(job, email)).Id();
+        var sendId = Guid.CreateVersion7();
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using (var db = await fixture.CreateDbContextAsync(tenant, Ct))
+        {
+            var row = await db.Applications.SingleAsync(a => a.Id == application, Ct);
+            db.ApplicationEmails.Add(row.PrepareEmail(sendId, "application-rejected", email, "Not this time", "No.", "<p>No.</p>", DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await using (var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct))
+        {
+            await publisher.Services.GetRequiredService<IMessageBus>()
+                .PublishAsync(new SendApplicationEmail(owner.OrganizationId, application, sendId, owner.UserId));
+            await WolverineStore.WaitUntilAsync(
+                async () => await store.CountHandledAsync(sendId.ToString(), Ct, nameof(SendApplicationEmail)) >= 1, "the worker to handle the send", Ct);
+        }
+
+        (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().BeEmpty();
+        EmailEntries(await owner.GetAsync($"/v1/applications/{application}/timeline")).Should().BeEmpty();
+        await using var check = await fixture.CreateDbContextAsync(tenant, Ct);
+        (await check.ApplicationEmails.AnyAsync(e => e.Id == sendId, Ct)).Should().BeFalse("the copy of an email that never went is not kept");
     }
 
     // Workflow-engine.md §2: the rejection email goes only with Reject, and stage-change never tells an ended application
@@ -189,12 +225,19 @@ public sealed class EmailTests(AppHostFixture fixture)
 
         (await owner.PostAsync("/v1/emails", Send("application-rejected", [application]))).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("templateId");
-        (await owner.GetAsync($"/v1/emails/preview?applicationId={application}&templateId=application-rejected")).Expect(HttpStatusCode.BadRequest);
+        // Wording a person writes by hand cannot use the rejection email's reason, nor start from that template.
+        (await owner.PostAsync("/v1/emails", Wording("Your application", "{{ reason }}", applications: [application])))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("body");
+        (await owner.PostAsync("/v1/emails", Wording("Your application", "Not this time.", applications: [application], templateId: "application-rejected")))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("templateId");
+        (await owner.PostAsync("/v1/emails/preview", Draft(application, "Your application", "{{ reason }}"))).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("body");
 
         // The follow-up questions email carries a link made for one request, so only SendQuestionnaire sends it.
         (await owner.PostAsync("/v1/emails", Send("questionnaire-request", [application]))).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("templateId");
-        (await owner.GetAsync($"/v1/emails/preview?applicationId={application}&templateId=questionnaire-request")).Expect(HttpStatusCode.BadRequest);
+        (await owner.PostAsync("/v1/emails/preview", Draft(application, "More questions", "{{ questionnaireLink }}"))).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("body");
 
         var queued = (await owner.PostAsync("/v1/emails", Send("stage-change", [application]))).Expect(HttpStatusCode.Accepted);
         queued.At("queued").GetInt32().Should().Be(0);
@@ -202,16 +245,113 @@ public sealed class EmailTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_preview_for_a_candidate_uses_their_application()
+    public async Task The_preview_renders_unsent_wording_with_the_candidates_own_details()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var job = (await owner.CreateJobAsync(Samples.RemoteJob("Preview job"))).Id();
-        var application = (await owner.CreateApplicationAsync(job, ApiSession.NewEmail("preview"), "Robin Ellis")).Id();
+        var application = (await CreateNamedApplicationAsync(owner, job, ApiSession.NewEmail("preview"), "Robin", "Ellis")).Id();
 
-        var preview = (await owner.GetAsync($"/v1/emails/preview?applicationId={application}&templateId=stage-change")).Expect(HttpStatusCode.OK);
+        var preview = (await owner.PostAsync("/v1/emails/preview", Draft(application, "Next steps for {{ jobTitle }}", "Hi {{ firstName }} {{ lastName }}, you are in {{ stageName }}.")))
+            .Expect(HttpStatusCode.OK);
 
-        preview.Text("subject").Should().Be("An update on your application for Preview job");
-        preview.Text("text").Should().Contain("Hi Robin Ellis").And.Contain("the next step: Applied");
+        preview.Text("subject").Should().Be("Next steps for Preview job");
+        preview.Text("text").Should().Contain("Hi Robin Ellis, you are in Applied.");
+        preview.Text("html").Should().Contain("<p>Hi Robin Ellis, you are in Applied.</p>");
+        (await owner.PostAsync("/v1/emails/preview", Draft(application, "Hi", "{{ nope }}"))).Expect(HttpStatusCode.BadRequest);
+    }
+
+    // The email composer (roadmap item 2): a template changed for one send goes to each candidate rendered with their own
+    // details, the template stays as it was, and each candidate's copy is kept as it went, for Messages.
+    [Fact]
+    public async Task A_template_changed_for_one_send_reaches_each_candidate_as_written_and_is_kept_as_it_went()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        var template = (await owner.PostAsync("/v1/email-templates", Wording("Interview for {{ jobTitle }}", "Hi {{ firstName }}, let us talk.", "Interview invitation")))
+            .Expect(HttpStatusCode.Created).Text("id");
+        var job = (await owner.CreateJobAsync(Samples.RemoteJob("Changed email"))).Id();
+        var casey = ApiSession.NewEmail("changed-casey");
+        var riley = ApiSession.NewEmail("changed-riley");
+        var applications = new[]
+        {
+            (await CreateNamedApplicationAsync(owner, job, casey, "Casey", "Morgan")).Id(),
+            (await owner.CreateApplicationAsync(job, riley, "Riley Chen")).Id(),
+        };
+
+        var queued = (await owner.PostAsync("/v1/emails", Wording(
+                $"Interview {marker} for {{{{ jobTitle }}}}", "Hi {{ firstName }}, your portfolio stood out.\n\nLet us talk.", applications, template)))
+            .Expect(HttpStatusCode.Accepted);
+        queued.At("queued").GetInt32().Should().Be(2);
+
+        var toCasey = await WaitForSubjectAsync(casey, marker);
+        toCasey.Subject.Should().Be($"Interview {marker} for Changed email");
+        toCasey.Text.Should().Contain("Hi Casey, your portfolio stood out.");
+        // A candidate from before the name was split (one name, kept whole) is greeted by all of it.
+        (await WaitForSubjectAsync(riley, marker)).Text.Should().Contain("Hi Riley Chen, your portfolio stood out.");
+
+        var unchanged = (await owner.GetAsync($"/v1/email-templates/{template}")).Expect(HttpStatusCode.OK);
+        unchanged.Text("subject").Should().Be("Interview for {{ jobTitle }}");
+        unchanged.Text("body").Should().Be("Hi {{ firstName }}, let us talk.");
+
+        var entry = await SentEntryAsync(owner, applications[0]);
+        entry.GetProperty("emailTemplateId").GetString().Should().Be(template);
+        var emailId = entry.GetProperty("emailId").GetGuid();
+        var copy = (await owner.GetAsync($"/v1/emails/{emailId}")).Expect(HttpStatusCode.OK);
+        copy.Text("subject").Should().Be($"Interview {marker} for Changed email");
+        copy.Text("text").Should().Contain("Hi Casey, your portfolio stood out.");
+        copy.Text("html").Should().Contain("<p>Hi Casey, your portfolio stood out.</p>");
+        copy.Text("to").Should().Be(casey);
+        copy.Text("templateId").Should().Be(template);
+
+        var rileysCopy = (await owner.GetAsync($"/v1/emails/{(await SentEntryAsync(owner, applications[1])).GetProperty("emailId").GetGuid()}"))
+            .Expect(HttpStatusCode.OK);
+        rileysCopy.Text("text").Should().Contain("Hi Riley Chen,", "each candidate's own copy is kept");
+    }
+
+    // Messages lists every email to the candidate, about any of their applications, newest first, and a blank email
+    // has no template. Viewers read the copies; API keys do not, because the email routes are for people only.
+    [Fact]
+    public async Task A_candidates_emails_across_their_applications_are_listed_newest_first_for_people_only()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        var address = ApiSession.NewEmail("messages");
+        var first = (await CreateNamedApplicationAsync(owner, (await owner.CreateJobAsync(Samples.RemoteJob("First job"))).Id(), address, "Sam", "Taylor")).Id();
+        var second = (await CreateNamedApplicationAsync(owner, (await owner.CreateJobAsync(Samples.RemoteJob("Second job"))).Id(), address, "Sam", "Taylor")).Id();
+        var candidate = (await owner.GetAsync($"/v1/applications/{first}")).Expect(HttpStatusCode.OK).Text("candidate.id");
+
+        (await owner.PostAsync("/v1/emails", Wording($"First {marker}", "Hi {{ firstName }}.", [first]))).Expect(HttpStatusCode.Accepted);
+        await WaitForSubjectAsync(address, $"First {marker}");
+        await SentEntryAsync(owner, first);
+        (await owner.PostAsync("/v1/emails", Wording($"Second {marker}", "Hello again, {{ firstName }}.", [second]))).Expect(HttpStatusCode.Accepted);
+        await WaitForSubjectAsync(address, $"Second {marker}");
+        await SentEntryAsync(owner, second);
+
+        var listed = (await viewer.GetAsync($"/v1/candidates/{candidate}/emails")).Expect(HttpStatusCode.OK);
+        listed.Count().Should().Be(2);
+        listed.Text("0.subject").Should().Be($"Second {marker}");
+        listed.Text("0.jobTitle").Should().Be("Second job");
+        listed.Text("1.subject").Should().Be($"First {marker}");
+        listed.At("1.templateId").ValueKind.Should().Be(JsonValueKind.Null, "a blank email has no template");
+        listed.At("1.kept").GetBoolean().Should().BeTrue();
+        listed.Text("1.actorUserId").Should().Be(owner.UserId.ToString());
+        var emailId = listed.Text("0.id");
+        (await viewer.GetAsync($"/v1/emails/{emailId}")).Expect(HttpStatusCode.OK).Text("text").Should().Contain("Hello again, Sam.");
+
+        var token = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))
+            .Expect(HttpStatusCode.Created).Text("token");
+        using var key = new HttpClient(new SocketsHttpHandler { UseCookies = false }) { BaseAddress = fixture.GetEndpoint("api") };
+        key.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using (var byKey = await key.GetAsync($"/v1/emails/{emailId}", Ct))
+        {
+            byKey.IsSuccessStatusCode.Should().BeFalse("an API key reads no email");
+        }
+
+        using (var listByKey = await key.GetAsync($"/v1/candidates/{candidate}/emails", Ct))
+        {
+            listByKey.IsSuccessStatusCode.Should().BeFalse("an API key reads no email");
+        }
     }
 
     [Fact]
@@ -246,7 +386,12 @@ public sealed class EmailTests(AppHostFixture fixture)
         (await ours.PostAsync("/v1/emails", Send(theirTemplate, [theirApplication]))).Expect(HttpStatusCode.BadRequest);
         (await ours.PostAsync("/v1/emails", Send("stage-change", [theirApplication]))).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("applicationIds");
-        (await ours.GetAsync($"/v1/emails/preview?applicationId={theirApplication}&templateId=stage-change")).Expect(HttpStatusCode.NotFound);
+        (await ours.PostAsync("/v1/emails/preview", Draft(theirApplication, "Hi", "Hello"))).Expect(HttpStatusCode.NotFound);
+        (await theirs.PostAsync("/v1/emails", Send("stage-change", [theirApplication]))).Expect(HttpStatusCode.Accepted);
+        var theirEmail = (await SentEntryAsync(theirs, theirApplication)).GetProperty("emailId").GetGuid();
+        var theirCandidate = (await theirs.GetAsync($"/v1/applications/{theirApplication}")).Expect(HttpStatusCode.OK).Text("candidate.id");
+        (await ours.GetAsync($"/v1/emails/{theirEmail}")).Expect(HttpStatusCode.NotFound);
+        (await ours.GetAsync($"/v1/candidates/{theirCandidate}/emails")).Expect(HttpStatusCode.NotFound);
         (await ours.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(4);
     }
 
@@ -311,6 +456,45 @@ public sealed class EmailTests(AppHostFixture fixture)
         }
 
         return wording;
+    }
+
+    // A send of wording a person wrote, started from `templateId` or blank.
+    private static JsonObject Wording(string subject, string body, IEnumerable<Guid> applications, string? templateId = null) => new()
+    {
+        ["subject"] = subject,
+        ["body"] = body,
+        ["templateId"] = templateId,
+        ["applicationIds"] = new JsonArray([.. applications.Select(id => JsonValue.Create(id))]),
+    };
+
+    private static JsonObject Draft(Guid applicationId, string subject, string body) =>
+        new() { ["applicationId"] = applicationId, ["subject"] = subject, ["body"] = body };
+
+    private static async Task<ApiResult> CreateNamedApplicationAsync(Tenant owner, Guid jobId, string email, string firstName, string lastName) =>
+        (await owner.PostAsync($"/v1/jobs/{jobId}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["firstName"] = firstName, ["lastName"] = lastName, ["email"] = email },
+        })).Expect(HttpStatusCode.Created);
+
+    // The application's EmailSent entry, once the worker has committed it: Mailpit gets the email just before.
+    private static async Task<JsonElement> SentEntryAsync(Tenant owner, Guid applicationId)
+    {
+        var entry = default(JsonElement);
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                var entries = EmailEntries(await owner.GetAsync($"/v1/applications/{applicationId}/timeline"));
+                if (entries.Count == 0)
+                {
+                    return false;
+                }
+
+                entry = entries[^1].Clone();
+                return true;
+            },
+            "the email's timeline entry",
+            Ct);
+        return entry;
     }
 
     private static JsonObject Send(string templateId, IEnumerable<Guid> applicationIds) => new()

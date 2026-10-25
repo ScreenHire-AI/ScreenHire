@@ -97,7 +97,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
     {
         var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
         var job = TestData.NewJob(organization, "applied-to");
-        var candidate = Candidate.Create(organization.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var candidate = Candidate.Create(organization.Id, "Casey", "Morgan", "casey.morgan@example.com", null, Now);
         var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
         await using (var db = await ContextAsync(organization.Id))
         {
@@ -117,6 +117,36 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         (await check.ApplicationEvents.CountAsync(Ct)).Should().Be(1);
     }
 
+    // A kept email is the email as it went, so it is never changed; the worker may delete the copy of one it does not
+    // send. Another organization does not see it.
+    [Fact]
+    public async Task Kept_emails_are_never_changed_and_stay_with_their_organization()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var job = TestData.NewJob(organization, "emailed");
+        var candidate = Candidate.Create(organization.Id, "Casey", "Morgan", "casey.morgan@example.com", null, Now);
+        var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
+        var copy = application.PrepareEmail(Guid.CreateVersion7(), null, candidate.Email, "A question", "Hi Casey,", "<p>Hi Casey,</p>", Now);
+        await using (var db = await ContextAsync(organization.Id))
+        {
+            db.Jobs.Add(job);
+            db.Candidates.Add(candidate);
+            db.Applications.Add(application);
+            db.ApplicationEvents.AddRange(submitted, application.EmailSent(copy, Now, null));
+            db.ApplicationEmails.Add(copy);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var update = () => ExecuteAsync(organization.Id, "UPDATE application_emails SET subject = 'Something else'");
+
+        (await update.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        await using var check = await ContextAsync(organization.Id);
+        (await check.ApplicationEmails.SingleAsync(Ct)).Subject.Should().Be("A question");
+        await using var outside = await ContextAsync(other.Id);
+        (await outside.ApplicationEmails.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0, "row-level security hides it even without the query filter");
+    }
+
     // A submitted scorecard is final: one person's judgement, kept as given. Another organization does not see it.
     [Fact]
     public async Task Scorecards_can_be_added_and_read_by_their_organization_but_never_changed_or_deleted()
@@ -124,7 +154,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
         var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
         var job = TestData.NewJob(organization, "scored");
-        var candidate = Candidate.Create(organization.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var candidate = Candidate.Create(organization.Id, "Casey", "Morgan", "casey.morgan@example.com", null, Now);
         var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
         var (scorecard, entry) = application.SubmitScorecard(
             job.Workflow.FindStage("interview")!,
@@ -158,7 +188,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
         var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
         var job = TestData.NewJob(organization, "noted");
-        var candidate = Candidate.Create(organization.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var candidate = Candidate.Create(organization.Id, "Casey", "Morgan", "casey.morgan@example.com", null, Now);
         var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
         var (note, entry) = application.AddNote($"Ask {NoteMentions.Token(Guid.CreateVersion7())}.", Now, null);
         await using (var db = await ContextAsync(organization.Id))
@@ -364,7 +394,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
     {
         var mine = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
         var theirs = await fixture.CreateOrganizationAsync(org => [TestData.NewJob(org, "theirs")], Ct);
-        var candidate = Candidate.Create(mine.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var candidate = Candidate.Create(mine.Id, "Casey", "Morgan", "casey.morgan@example.com", null, Now);
         await using var db = await ContextAsync(mine.Id);
         db.Candidates.Add(candidate);
         await db.SaveChangesAsync(Ct);
@@ -388,7 +418,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
     {
         var mine = await fixture.CreateOrganizationAsync(org => [TestData.NewJob(org, "mine")], Ct);
         var theirs = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
-        var theirCandidate = Candidate.Create(theirs.Id, "Sam Taylor", "sam.taylor@example.com", null, Now);
+        var theirCandidate = Candidate.Create(theirs.Id, "Sam", "Taylor", "sam.taylor@example.com", null, Now);
         await using (var theirDb = await ContextAsync(theirs.Id))
         {
             theirDb.Candidates.Add(theirCandidate);
@@ -397,7 +427,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
 
         await using var db = await ContextAsync(mine.Id);
         var job = await db.Jobs.AsNoTracking().SingleAsync(Ct);
-        var stand = new Candidate { Id = theirCandidate.Id, OrganizationId = mine.Id, FullName = "Stand-in", Email = "stand-in@example.com" };
+        var stand = new Candidate { Id = theirCandidate.Id, OrganizationId = mine.Id, Email = "stand-in@example.com" };
         var (application, _) = JobApplication.Submit(job, stand, false, AiUseDeclaration.NotProvided, null, Now, null);
         db.Applications.Add(application);
         var save = () => db.SaveChangesAsync(Ct);

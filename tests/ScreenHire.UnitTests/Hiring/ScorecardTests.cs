@@ -261,7 +261,7 @@ public sealed class ScorecardTests
     {
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Platform engineer", Slug = "platform-engineer" };
-        var candidate = Candidate.Create(organization, "Alex Rivera", "alex@example.com", null, Monday);
+        var candidate = Candidate.Create(organization, "Alex", "Rivera", "alex@example.com", null, Monday);
         var (application, _) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Monday, Reviewer);
         return (application, job);
     }

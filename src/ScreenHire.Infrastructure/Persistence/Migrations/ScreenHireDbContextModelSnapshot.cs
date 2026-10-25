@@ -127,6 +127,61 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("html_body");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("TemplateId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("template_id");
+
+                    b.Property<string>("TextBody")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text_body");
+
+                    b.Property<string>("To")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_application_emails");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_application_emails_organization_id_application_id");
+
+                    b.ToTable("application_emails", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -864,11 +919,22 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
 
-                    b.Property<string>("FullName")
+                    b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
+                        .HasColumnName("first_name");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(301)
+                        .HasColumnType("character varying(301)")
                         .HasColumnName("full_name");
+
+                    b.Property<string>("LastName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_name");
 
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
@@ -2905,6 +2971,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationEmail", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_emails_applications_organization_id_application");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationEvent", b =>

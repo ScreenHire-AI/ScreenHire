@@ -204,7 +204,7 @@ public sealed class TelemetryRulesTests
         var template = HiringTemplate.Create(organization, "Engineer", null, new HiringTemplateDefinition(workflow, PostingDefaults.None), Now, null);
         template.Publish(template.Versions[0], Now, null);
         job.UseTemplate(template.Versions[0]);
-        var candidate = Candidate.Create(organization, "Casey Morgan", "casey@example.com", null, Now);
+        var candidate = Candidate.Create(organization, "Casey", "Morgan", "casey@example.com", null, Now);
         var (application, _) = JobApplication.Submit(
             job, candidate, accommodation, AiUseDeclaration.NotProvided, null, Now, null,
             new ApplicationIntake(ApplicationSource.CareersSite, [], "2026-10-20.3", false, BotCheckResult.NotChecked));

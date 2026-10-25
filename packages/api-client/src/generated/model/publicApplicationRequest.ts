@@ -6,7 +6,7 @@
  */
 import type { AiUseDeclaration } from './aiUseDeclaration.ts';
 import type { ApplicationAnswer } from './applicationAnswer.ts';
-import type { CandidateInput } from './candidateInput.ts';
+import type { PublicCandidateInput } from './publicCandidateInput.ts';
 import type { TelemetrySnapshotInput } from './telemetrySnapshotInput.ts';
 
 /**
@@ -14,7 +14,7 @@ import type { TelemetrySnapshotInput } from './telemetrySnapshotInput.ts';
  * created if new; an existing candidate's details are never changed by a public submission.
  */
 export interface PublicApplicationRequest {
-  candidate: CandidateInput;
+  candidate: PublicCandidateInput;
   privacyNoticeVersion: string;
   /** @nullable */
   answers?: ApplicationAnswer[] | null;

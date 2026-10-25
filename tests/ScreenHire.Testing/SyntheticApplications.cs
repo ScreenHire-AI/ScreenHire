@@ -49,7 +49,10 @@ public static class SyntheticApplications
 
         var body = new JsonObject
         {
-            ["candidate"] = new JsonObject { ["fullName"] = applicant.FullName, ["email"] = applicant.Email, ["phone"] = applicant.Phone },
+            ["candidate"] = new JsonObject
+            {
+                ["firstName"] = applicant.FirstName, ["lastName"] = applicant.LastName, ["email"] = applicant.Email, ["phone"] = applicant.Phone,
+            },
             ["privacyNoticeVersion"] = PrivacyNoticeVersion,
             ["answers"] = submitted,
             // The default workflow wants AI use disclosed, so an applicant who did not say is sent as "did not use".

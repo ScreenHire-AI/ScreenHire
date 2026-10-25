@@ -72,7 +72,7 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
             [.. FixedFields, .. Domain.Applications.ApplicationForm.QuestionsFor(job.Workflow).Select(q => q.Id)],
             StringComparer.Ordinal);
 
-    private static readonly string[] FixedFields = ["fullName", "email", "phone", "aiUseDetails"];
+    private static readonly string[] FixedFields = ["firstName", "lastName", "email", "phone", "aiUseDetails"];
 
     /// <summary>The device-check basis where <paramref name="job"/> is: its locations and the countries it hires from.</summary>
     public static DeviceCheckBasis DeviceCheckFor(Job job, IntegrityOptions options) =>

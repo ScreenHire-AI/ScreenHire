@@ -24,7 +24,7 @@ export const SendPublicTelemetryBody = zod.object({
   "blurCount": zod.int(),
   "activeMilliseconds": zod.int(),
   "autofilled": zod.boolean()
-}).describe('Counts for one form field. `fieldId` is a question id or one of the form\'s own fields (`fullName`, ...).')),
+}).describe('Counts for one form field. `fieldId` is a question id or one of the form\'s own fields (`firstName`, ...).')),
   "page": zod.object({
   "visibilityChanges": zod.int(),
   "automationMarkers": zod.array(zod.string())
@@ -385,10 +385,11 @@ export const submitPublicApplicationBodyDeviceCheckConsentDefault = false;
 
 export const SubmitPublicApplicationBody = zod.object({
   "candidate": zod.object({
-  "fullName": zod.string(),
+  "firstName": zod.string(),
   "email": zod.string(),
+  "lastName": zod.string().nullish(),
   "phone": zod.string().nullish()
-}),
+}).describe('The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone.'),
   "privacyNoticeVersion": zod.string(),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
@@ -419,7 +420,7 @@ export const SubmitPublicApplicationBody = zod.object({
   "blurCount": zod.int(),
   "activeMilliseconds": zod.int(),
   "autofilled": zod.boolean()
-}).describe('Counts for one form field. `fieldId` is a question id or one of the form\'s own fields (`fullName`, ...).')),
+}).describe('Counts for one form field. `fieldId` is a question id or one of the form\'s own fields (`firstName`, ...).')),
   "page": zod.object({
   "visibilityChanges": zod.int(),
   "automationMarkers": zod.array(zod.string())
@@ -3014,10 +3015,12 @@ export const createApplicationBodyAiUseDeclarationDefault = `NotProvided`;
 
 export const CreateApplicationBody = zod.object({
   "candidate": zod.object({
-  "fullName": zod.string(),
   "email": zod.string(),
-  "phone": zod.string().nullish()
-}),
+  "phone": zod.string().nullish(),
+  "firstName": zod.string().nullish(),
+  "lastName": zod.string().nullish(),
+  "fullName": zod.string().nullish()
+}).describe('The candidate of an application a person or an API key adds.'),
   "accommodationRequested": zod.boolean().default(createApplicationBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish()
@@ -3035,7 +3038,9 @@ export const CreateApplicationResponse = zod.object({
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullable(),
-  "createdAt": zod.iso.datetime({"offset":true})
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3147,7 +3152,9 @@ export const GetApplicationResponse = zod.object({
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullable(),
-  "createdAt": zod.iso.datetime({"offset":true})
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3236,7 +3243,9 @@ export const MoveApplicationResponse = zod.object({
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullable(),
-  "createdAt": zod.iso.datetime({"offset":true})
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3328,7 +3337,8 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "questionnaireRequestId": zod.uuid().nullish(),
   "noteId": zod.uuid().nullish(),
   "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
-  "actorApiKeyName": zod.string().nullish()
+  "actorApiKeyName": zod.string().nullish(),
+  "emailId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -3361,7 +3371,8 @@ export const AddApplicationNoteResponse = zod.object({
   "questionnaireRequestId": zod.uuid().nullish(),
   "noteId": zod.uuid().nullish(),
   "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
-  "actorApiKeyName": zod.string().nullish()
+  "actorApiKeyName": zod.string().nullish(),
+  "emailId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -3413,7 +3424,9 @@ export const AddApplicationTagResponse = zod.object({
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullable(),
-  "createdAt": zod.iso.datetime({"offset":true})
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3501,7 +3514,9 @@ export const RemoveApplicationTagResponse = zod.object({
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullable(),
-  "createdAt": zod.iso.datetime({"offset":true})
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3582,7 +3597,9 @@ export const ListCandidatesResponseItem = zod.object({
   "fullName": zod.string(),
   "email": zod.string(),
   "phone": zod.string().nullable(),
-  "createdAt": zod.iso.datetime({"offset":true})
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate: one person per email address within the organization.')
 export const ListCandidatesResponse = zod.array(ListCandidatesResponseItem)
 
@@ -3621,7 +3638,9 @@ export const GetCandidateResponse = zod.object({
   "aiAssistanceDismissed": zod.boolean()
 }).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
-}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.'))
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable()
 }).describe('A candidate and every application they made to the organization.')
 
 
@@ -5441,10 +5460,11 @@ export const SendTestEmailResponse = zod.object({
 }).describe('A test send went to the signed-in person\'s own address.')
 
 
-export const PreviewApplicationEmailQueryParams = zod.object({
+export const PreviewApplicationEmailBody = zod.object({
   "applicationId": zod.uuid(),
-  "templateId": zod.string()
-})
+  "subject": zod.string(),
+  "body": zod.string()
+}).describe('Wording for one email, rendered with the candidate of `applicationId`, before a person sends it.')
 
 export const PreviewApplicationEmailResponse = zod.object({
   "subject": zod.string(),
@@ -5455,13 +5475,49 @@ export const PreviewApplicationEmailResponse = zod.object({
 
 export const SendEmailsBody = zod.object({
   "applicationIds": zod.array(zod.uuid()),
-  "templateId": zod.string()
-}).describe('Sends one of the organization\'s templates to the candidates of these applications, one email each.')
+  "templateId": zod.string().nullish(),
+  "subject": zod.string().nullish(),
+  "body": zod.string().nullish()
+}).describe('An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\r\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\r\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\r\nA blank email has wording and no template id.')
 
 export const SendEmailsResponse = zod.object({
   "queued": zod.int(),
   "skipped": zod.int()
 }).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\r\ncandidate whose application has ended. Each sent email appears in its application\'s activity.')
+
+
+export const GetSentEmailParams = zod.object({
+  "emailId": zod.uuid()
+})
+
+export const GetSentEmailResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "templateId": zod.string().nullable(),
+  "to": zod.string(),
+  "subject": zod.string(),
+  "html": zod.string(),
+  "text": zod.string(),
+  "sentAt": zod.iso.datetime({"offset":true})
+}).describe('An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part.')
+
+
+export const ListCandidateEmailsParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const ListCandidateEmailsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "templateId": zod.string().nullable(),
+  "subject": zod.string(),
+  "actorUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "sentAt": zod.iso.datetime({"offset":true}),
+  "kept": zod.boolean()
+}).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\r\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
+export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
 
 
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()
