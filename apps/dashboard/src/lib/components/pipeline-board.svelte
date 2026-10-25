@@ -1,8 +1,6 @@
 <script lang="ts" module>
-  import { setKeyboardDragTrigger } from 'svelte-dnd-action';
-
   // Space picks a card up for a keyboard drag; Enter opens it, as it does everywhere else in the dashboard.
-  setKeyboardDragTrigger('space');
+  import '#lib/dnd.js';
 </script>
 
 <script lang="ts">

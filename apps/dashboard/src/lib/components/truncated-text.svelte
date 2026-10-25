@@ -27,6 +27,8 @@
     class?: string;
     /** -1 inside a card that is itself the tab stop, such as a board card. */
     tabindex?: number;
+    /** A link's click, such as closing the sheet it sits in. */
+    onclick?: (event: MouseEvent) => void;
   } & Record<`data-${string}`, unknown> = $props();
 
   let element = $state<HTMLElement | null>(null);

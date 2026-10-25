@@ -18,6 +18,7 @@ sources:
   - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
   - resource: apps/api/Applications/ApplicantUploads.cs
   - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
+  - resource: apps/dashboard/src/lib/components/file-frame.svelte
 ---
 # Careers apply flow
 
@@ -123,12 +124,13 @@ Reviewers download a file the same way, without the bytes passing through the AP
 candidate's file name, so storage serves the document as a download and never renders it on the storage origin. A
 file whose scan is `Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
 
-The dashboard's resume preview reads a PDF through the same route: it fetches the redirect target (storage's CORS rule
-allows `GET`) and hands the bytes to a viewer in an `<iframe sandbox="allow-scripts" srcdoc>`. The frame has an opaque
+The dashboard's file viewer (a file row's View, in a full-window dialog) and the resume preview it replaces read a PDF
+through the same route, in one component, `FileFrame`: it fetches the redirect target (storage's CORS rule allows
+`GET`) and hands the bytes to a viewer in an `<iframe sandbox="allow-scripts" srcdoc>`. The frame has an opaque
 origin, so nothing in it can reach the dashboard's cookies, DOM or API, and its document allows only its own script and
 stylesheet by hash (`default-src 'none'`). The viewer is pdf.js, bundled into that one script by
 `apps/dashboard/file-viewer-plugin.ts`; it draws pages to canvases, keeps their text for screen readers, and sends back
-only its height and page count. Other file types are offered as downloads only.
+only its height and page count. Other file types, images included, are offered as downloads only.
 
 ## 4. Submission
 

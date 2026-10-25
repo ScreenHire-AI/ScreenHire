@@ -2,8 +2,12 @@
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import BotIcon from '@lucide/svelte/icons/bot';
   import CircleXIcon from '@lucide/svelte/icons/circle-x';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+  import FileTextIcon from '@lucide/svelte/icons/file-text';
+  import GlobeIcon from '@lucide/svelte/icons/globe';
+  import HourglassIcon from '@lucide/svelte/icons/hourglass';
   import InboxIcon from '@lucide/svelte/icons/inbox';
   import KeyboardIcon from '@lucide/svelte/icons/keyboard';
   import MailIcon from '@lucide/svelte/icons/mail';
@@ -13,19 +17,28 @@
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SunIcon from '@lucide/svelte/icons/sun';
+  import TimerIcon from '@lucide/svelte/icons/timer';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UserRoundIcon from '@lucide/svelte/icons/user-round';
+  import UsersIcon from '@lucide/svelte/icons/users';
   import type { ApplicationFileSummary, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
+  import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
   import DateText from '#lib/components/date-text.svelte';
+  import DetailLayout from '#lib/components/detail-layout.svelte';
+  import DetailsRailSection from '#lib/components/details-rail-section.svelte';
+  import DetailsRail from '#lib/components/details-rail.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import FileRow from '#lib/components/file-row.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
@@ -34,12 +47,15 @@
   import LastUpdated from '#lib/components/last-updated.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
+  import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ResumePreview from '#lib/components/resume-preview.svelte';
   import ScorecardList from '#lib/components/scorecard-list.svelte';
@@ -50,6 +66,8 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
+  import SummaryBand from '#lib/components/summary-band.svelte';
+  import SummaryCard from '#lib/components/summary-card.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TagList from '#lib/components/tag-list.svelte';
@@ -67,16 +85,18 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
-  import * as Table from '#lib/components/ui/table/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { hour, day, minute } from '#lib/dates.js';
+  import { formatDate, hour, day, minute } from '#lib/dates.js';
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
+  import EditPreviewDemo from './edit-preview-demo.svelte';
   import EmailSheetDemo, { demoEmail } from './email-sheet-demo.svelte';
+  import ReorderDemo from './reorder-demo.svelte';
+  import SortTableDemo from './sort-table-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
   // width to see the section 8 sizes; the components respond to the frame, not the window. Development builds only.
@@ -116,6 +136,38 @@
 
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
+
+  // A record's tabs (section 21): counts in the count badge, a state in the count where one fits, a marker where not.
+  const candidateTabs: RecordTab[] = [
+    { value: 'overview', label: 'Overview' },
+    { value: 'application', label: 'Application' },
+    { value: 'messages', label: 'Messages', count: 3 },
+    { value: 'scorecards', label: 'Scorecards', count: 0 },
+    { value: 'integrity', label: 'Integrity', marker: { label: 'verification suggested', tone: 'verify' } },
+    { value: 'activity', label: 'Activity', count: 10 },
+  ];
+  const jobTabs: RecordTab[] = [
+    { value: 'candidates', label: 'Candidates', count: 24 },
+    { value: 'distribution', label: 'Distribution', count: 7, of: 8, countLabel: 'posted on 7 of 8 boards' },
+    { value: 'details', label: 'Details' },
+  ];
+  let candidateTab = $state('overview');
+  let jobTab = $state('distribution');
+
+  // Twelve weeks of a metric, oldest first, for the metric cards.
+  const weeks = (values: number[]): MetricPoint[] =>
+    values.map((value, index) => ({ label: `Week of ${formatDate(ago((values.length - 1 - index) * 7 * day))}`, value }));
+
+  // Behind a count (T4): two items list as they are; past 10 the sheet offers a search.
+  const usedBy: CountItem[] = [
+    { id: 'j1', label: 'Senior product designer', href: '#count-button' },
+    { id: 'j2', label: 'Support engineer', href: '#count-button' },
+  ];
+  const manyJobs: CountItem[] = [
+    'Account executive', 'Backend engineer', 'Customer success lead', 'Data analyst', 'Designer, brand', 'Frontend engineer',
+    'Marketing manager', 'Office coordinator', 'Product manager', 'QA engineer', 'Recruiter', 'Site reliability engineer',
+    'Support engineer', 'Technical writer',
+  ].map((label, index) => ({ id: `m${index}`, label, href: '#count-button' }));
 
   // Every status in design system section 3.2, by its row: the icon alone tells them apart.
   const statuses: { status: StatusName; label: string }[] = [
@@ -681,29 +733,8 @@
         </figure>
       </Panel>
 
-      <Panel title="Table" count={people.length} flush>
-        <div class="overflow-x-auto">
-          <Table.Root>
-            <Table.Header>
-              <Table.Row class="bg-muted hover:bg-muted">
-                <Table.Head class="px-4">Candidate</Table.Head>
-                <Table.Head>Authenticity</Table.Head>
-                <Table.Head>Stage</Table.Head>
-                <Table.Head>Applied</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each people as person (person.id)}
-                <Table.Row class="h-12">
-                  <Table.Cell class="px-4"><a href="#table" class="font-semibold text-foreground no-underline hover:underline">{person.name}</a></Table.Cell>
-                  <Table.Cell><StatusBadge status={person.status} label={person.label} quiet={person.status === 'done'} /></Table.Cell>
-                  <Table.Cell>{person.stage}</Table.Cell>
-                  <Table.Cell><DateText at={person.at} /></Table.Cell>
-                </Table.Row>
-              {/each}
-            </Table.Body>
-          </Table.Root>
-        </div>
+      <Panel title="Table" count={4} flush>
+        <SortTableDemo />
       </Panel>
 
       <Panel title="Search field" flush>
@@ -809,6 +840,108 @@
           </div>
         </figure>
       </Panel>
+
+      <Panel title="Tabs">
+        <div class="flex flex-col gap-4">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A candidate: counts in the count badge, and a marker where no count fits</figcaption>
+            <div class="overflow-hidden rounded-lg bg-secondary">
+              <Tabs.Root bind:value={candidateTab}>
+                <div class="border-b border-border bg-card px-4 pt-2 md:px-6"><RecordTabs label="Candidate sections" tabs={candidateTabs} /></div>
+              </Tabs.Root>
+            </div>
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A job: the state in the count, posted on 7 of 8 boards</figcaption>
+            <div class="overflow-hidden rounded-lg bg-secondary">
+              <Tabs.Root bind:value={jobTab}>
+                <div class="border-b border-border bg-card px-4 pt-2 md:px-6"><RecordTabs label="Job sections" tabs={jobTabs} /></div>
+              </Tabs.Root>
+            </div>
+          </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Notice">
+        <div class="flex flex-col gap-3">
+          <Notice href="#notice" link="Fix on Distribution"><span class="font-semibold">Adzuna refused this job's posting.</span> It stays off Adzuna until it is fixed.</Notice>
+          <Notice href="#notice" link="Fix in Branding">The careers page could not be published: the logo is missing.</Notice>
+        </div>
+      </Panel>
+
+      <Panel title="Summary card" flush>
+        <SummaryBand>
+          <SummaryCard icon={GlobeIcon} title="Network" count="2 signals" description="A hosting provider's network, in a different country from theirs." />
+          <SummaryCard icon={UserRoundIcon} title="Identity" count="1 signal" description="Shares an email, phone, device and resume with 2 other applications." />
+          <SummaryCard icon={BotIcon} title="Automation" count="No signals" description="Nothing automated was seen while they applied." />
+          <SummaryCard icon={FileTextIcon} title="Content" count="1 signal" description="Resume and answers give different years of experience." href="#summary-card" />
+        </SummaryBand>
+      </Panel>
+
+      <Panel title="Metric card" flush>
+        <SummaryBand>
+          <MetricCard icon={UsersIcon} title="Applicants this week" value="16" change={7} period="last week" better="up" points={weeks([4, 7, 6, 9, 8, 10, 7, 11, 12, 10, 9, 16])} href="#metric-card" />
+          <MetricCard icon={TimerIcon} title="Time to hire, days" value="21" change={-3} period="last month" better="down" points={weeks([30, 28, 29, 27, 26, 27, 25, 24, 24, 23, 24, 21])} />
+          <MetricCard icon={HourglassIcon} title="Overdue now" value="3" change={2} period="last week" better="down" points={weeks([0, 2, 0, 2, 4, 2, 4, 2, 4, 4, 1, 3])} />
+        </SummaryBand>
+      </Panel>
+
+      <!-- The details rail as a detail page holds it: on the page itself, beside the tabs' panels, never inside a panel (S4). -->
+      <section aria-label="Details rail">
+        <DetailLayout>
+          {#snippet rail()}
+            <DetailsRail>
+              <DetailsRailSection title="Details">
+                <SummaryList>
+                  <SummaryItem label="Job"><TruncatedText text="Senior product designer" href="#details-rail" underlined /></SummaryItem>
+                  <SummaryItem label="Applied"><RelativeTime at={ago(12 * minute)} /></SummaryItem>
+                  <SummaryItem label="Source">Careers page</SummaryItem>
+                </SummaryList>
+              </DetailsRailSection>
+              <DetailsRailSection title="Files">
+                <FileRow {applicationId} file={files.clean} description="Jordan Ellis, Senior product designer" />
+              </DetailsRailSection>
+              <DetailsRailSection title="Tags">
+                <div class="flex flex-wrap gap-1.5"><Badge variant="muted">Referral</Badge></div>
+              </DetailsRailSection>
+            </DetailsRail>
+          {/snippet}
+          <Panel title="Details rail, beside a tab's panel"><p>The selected tab's content.</p></Panel>
+        </DetailLayout>
+      </section>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="File row and file viewer" class="flex-[999_1_520px]">
+          <div class="flex flex-col gap-4">
+            <FileRow {applicationId} file={files.clean} description="Jordan Ellis, Senior product designer" />
+            <FileRow {applicationId} file={files.long} />
+            <FileRow {applicationId} file={files.image} />
+            <FileRow {applicationId} file={files.word} />
+            <FileRow {applicationId} file={files.pending} />
+            <FileRow {applicationId} file={files.infected} />
+          </div>
+        </Panel>
+        <div class="flex flex-[1_1_320px] flex-col gap-5">
+          <Panel title="Count button">
+            <dl class="flex flex-wrap gap-x-8 gap-y-3">
+              <Fact label="Used by"><CountButton items={usedBy} one="job" other="jobs" title="Used by" description="Technical interview" /></Fact>
+              <Fact label="Open in"><CountButton items={manyJobs} one="job" other="jobs" title="Open in" description="Brightwater engineering" /></Fact>
+            </dl>
+          </Panel>
+          <Panel title="Built in badge">
+            <p class="flex flex-wrap items-center gap-2"><span class="font-semibold">Software engineer</span><BuiltInBadge /></p>
+          </Panel>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Edit / Preview switch" class="flex-[999_1_520px]">
+          <EditPreviewDemo />
+        </Panel>
+        <Panel title="Reorder grip" flush class="flex-[1_1_320px]">
+          <ReorderDemo />
+        </Panel>
+      </div>
 
       <Panel title="Integrity chip and evidence">
         <div class="flex flex-col gap-4">

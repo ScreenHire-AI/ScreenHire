@@ -1,7 +1,7 @@
 import { renderSnippet } from '@tanstack/svelte-table';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
@@ -14,6 +14,11 @@ import ApplicationTable from './application-table.svelte';
 const headerTexts = () => screen.getAllByRole('columnheader').map((header) => header.textContent?.trim());
 const dataRows = () => screen.getAllByRole('row').filter((row) => within(row).queryAllByRole('cell').length > 1);
 const rowOf = (name: string) => screen.getByRole('link', { name }).closest('tr')!;
+
+// A remembered sort lives in localStorage, which outlasts each test.
+beforeEach(() => {
+  localStorage.clear();
+});
 
 afterEach(() => {
   preferences.setShortcutsEnabled(true);
@@ -92,9 +97,28 @@ describe('candidate table', () => {
     expect(names()).toEqual(['Casey Morgan', 'Sam Taylor', 'Jordan Lee']);
     expect(header()).toHaveAttribute('aria-sort', 'ascending');
 
+    // A third click reverses it again: a sorted table never goes back to unsorted (L2).
     await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
-    expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
-    expect(header()).not.toHaveAttribute('aria-sort');
+    expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
+    expect(header()).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it("remembers the person's sort for the table named by sortId", async () => {
+    const rows = [
+      { ...applications[0]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
+      { ...applications[1]!, integrity: null },
+      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
+    ];
+    const props = { applications: rows, extraColumns: integrityColumns, sortId: 'job-candidates' };
+    const first = render(WithTooltips, { props: { component: ApplicationTable, props } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
+    expect(JSON.parse(localStorage.getItem('screenhire:sort:job-candidates')!)).toEqual({ id: 'authenticity', desc: false });
+    first.unmount();
+
+    render(WithTooltips, { props: { component: ApplicationTable, props } });
+    expect(screen.getByRole('columnheader', { name: /Authenticity/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 
   it('moves the cursor with J and K, focusing and tinting the row', async () => {
