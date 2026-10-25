@@ -7,9 +7,11 @@
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
- * Invites a person by email to join the organization with a role.
+ * Invites a person by email to join the organization with a role: a built-in one, or Custom with its id.
  */
 export interface InvitationRequest {
   email: string;
   role: null | OrganizationRole;
+  /** @nullable */
+  customRoleId?: string | null;
 }

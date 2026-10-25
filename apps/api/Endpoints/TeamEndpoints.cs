@@ -16,9 +16,10 @@ namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
 /// The signed-in user's organization's team: its members and their roles, invitations by email, and the membership
-/// log. Every member can see who is on the team; Owners and Admins manage it, within <see cref="TeamPolicy"/>, and
-/// nobody can remove or demote the last Owner. Every change writes a <see cref="MembershipEvent"/>. Accepting an
-/// invitation is a sign-in, so it lives in <see cref="AuthEndpoints"/>.
+/// log. Every member can see who is on the team; a role with Manage the team manages it, within <see cref="TeamPolicy"/>
+/// (nobody gives a role with more access than their own), and nobody can remove or demote the last Owner. Every change
+/// writes a <see cref="MembershipEvent"/>. The roles themselves are <see cref="RoleEndpoints"/>. Accepting an invitation
+/// is a sign-in, so it lives in <see cref="AuthEndpoints"/>.
 /// </summary>
 internal static class TeamEndpoints
 {
@@ -29,43 +30,47 @@ internal static class TeamEndpoints
     {
         var group = app.MapGroup("/v1/organization").WithTags("Team").RequireAuthorization();
         group.MapGet("/members", ListMembers).WithName("ListTeamMembers").Produces(StatusCodes.Status401Unauthorized);
-        // What each built-in role can do. The same for every organization, and read by the Roles page and Invite.
-        group.MapGet("/roles", ListRoles).WithName("ListRoles").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/invitations", ListInvitations).WithName("ListInvitations")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/membership-log", ListMembershipLog).WithName("ListMembershipLog")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
 
         var mutations = group.MapGroup("").RequireAntiforgeryToken();
         mutations.MapPut("/members/{memberId:guid}/role", ChangeMemberRole).WithName("ChangeMemberRole")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
         mutations.MapDelete("/members/{memberId:guid}", RemoveMember).WithName("RemoveMember")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
         // Sends email, so it counts against the same per-IP limit as the sign-in links.
         mutations.MapPost("/invitations", CreateInvitation).WithName("CreateInvitation")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageTeam)
             .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy)
             .Produces(StatusCodes.Status401Unauthorized);
         mutations.MapDelete("/invitations/{invitationId:guid}", RevokeInvitation).WithName("RevokeInvitation")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
-    private static Ok<RoleCatalogue> ListRoles() => TypedResults.Ok(TeamMappings.ToCatalogue());
-
     private static async Task<Ok<List<TeamMember>>> ListMembers(
-        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await (
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        var members = await (
             from member in InOrganization(db, tenant).AsNoTracking()
             join user in db.Users on member.UserId equals user.Id
             orderby member.CreatedAt
-            select new TeamMember(member.Id, user.Id, user.Email ?? "", user.DisplayName ?? user.Email ?? "", member.Role, member.CreatedAt))
-            .ToListAsync(cancellationToken));
+            select new { member.Id, member.UserId, user.Email, user.DisplayName, member.Role, member.CustomRoleId, member.CreatedAt })
+            .ToListAsync(cancellationToken);
+        var names = await RoleAccess.CustomNamesAsync(db, cancellationToken);
+        return TypedResults.Ok(members
+            .Select(m => new TeamMember(
+                m.Id, m.UserId, m.Email ?? "", m.DisplayName ?? m.Email ?? "", m.Role, m.CustomRoleId,
+                RoleAccess.NameOf(m.Role, m.CustomRoleId, names), m.CreatedAt))
+            .ToList());
+    }
 
     private static async Task<Ok<List<PendingInvitation>>> ListInvitations(
         ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
@@ -75,7 +80,8 @@ internal static class TeamEndpoints
             .Where(i => i.AcceptedAt == null && i.RevokedAt == null && i.ExpiresAt > now)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
-        return TypedResults.Ok(invitations.Select(i => i.ToPending()).ToList());
+        var names = await RoleAccess.CustomNamesAsync(db, cancellationToken);
+        return TypedResults.Ok(invitations.Select(i => i.ToPending(RoleAccess.NameOf(i.Role, i.CustomRoleId, names))).ToList());
     }
 
     private static async Task<Ok<List<MembershipLogEntry>>> ListMembershipLog(ScreenHireDbContext db, CancellationToken cancellationToken)
@@ -96,7 +102,6 @@ internal static class TeamEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
-        var role = request.Role!.Value;
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, tenant.OrganizationId!.Value, cancellationToken);
         var members = await InOrganization(db, tenant).ToListAsync(cancellationToken);
@@ -105,13 +110,21 @@ internal static class TeamEndpoints
             return TypedResults.NotFound();
         }
 
-        if (members.SingleOrDefault(m => m.UserId == tenant.UserId) is not { } actor
-            || !TeamPolicy.MayChange(actor.Role, member.Role, role))
+        if (await RoleAccess.ForRoleAsync(db, request.Role!.Value, request.CustomRoleId, cancellationToken) is not { } to)
         {
-            return OwnersOnly("Only an owner can make someone an owner or change an owner's role.");
+            return UnknownRole();
         }
 
-        if (member.Role != role)
+        var from = await HeldAsync(db, member.Role, member.CustomRoleId, cancellationToken);
+        if (members.All(m => m.UserId != tenant.UserId)
+            || !TeamPolicy.MayChange(await ActorAsync(db, tenant, cancellationToken), from.Permissions, to.Permissions))
+        {
+            return TeamProblems.Refused(
+                new HashSet<Permission>([.. from.Permissions, .. to.Permissions]),
+                "Only an owner can make someone an owner or change an owner's role.");
+        }
+
+        if (!member.Holds(to.Role, to.CustomRoleId))
         {
             if (IsLastOwner(members, member))
             {
@@ -122,13 +135,17 @@ internal static class TeamEndpoints
             {
                 OrganizationId = member.OrganizationId,
                 Kind = MembershipEventKind.RoleChanged,
-                ActorUserId = actor.UserId,
+                ActorUserId = tenant.UserId!.Value,
                 MemberUserId = member.UserId,
-                PreviousRole = member.Role,
-                Role = role,
+                PreviousRole = from.Role,
+                PreviousCustomRoleId = from.CustomRoleId,
+                PreviousCustomRoleName = CustomName(from),
+                Role = to.Role,
+                CustomRoleId = to.CustomRoleId,
+                CustomRoleName = CustomName(to),
                 OccurredAt = time.GetUtcNow(),
             });
-            member.Role = role;
+            member.AssignRole(to.Role, to.CustomRoleId);
             await db.SaveChangesAsync(cancellationToken);
         }
 
@@ -137,7 +154,8 @@ internal static class TeamEndpoints
             .Select(u => new { u.Email, u.DisplayName })
             .SingleAsync(cancellationToken);
         return TypedResults.Ok(new TeamMember(
-            member.Id, member.UserId, user.Email ?? "", user.DisplayName ?? user.Email ?? "", member.Role, member.CreatedAt));
+            member.Id, member.UserId, user.Email ?? "", user.DisplayName ?? user.Email ?? "", member.Role, member.CustomRoleId, to.Name,
+            member.CreatedAt));
     }
 
     // Removing a member ends their access on their next request (Memberships.ResolveTenantAsync reads the membership
@@ -154,9 +172,11 @@ internal static class TeamEndpoints
             return TypedResults.NotFound();
         }
 
-        if (members.SingleOrDefault(m => m.UserId == tenant.UserId) is not { } actor || !TeamPolicy.MayRemove(actor.Role, member.Role))
+        var held = await HeldAsync(db, member.Role, member.CustomRoleId, cancellationToken);
+        if (members.All(m => m.UserId != tenant.UserId)
+            || !TeamPolicy.MayRemove(await ActorAsync(db, tenant, cancellationToken), held.Permissions))
         {
-            return OwnersOnly("Only an owner can remove an owner.");
+            return TeamProblems.Refused(held.Permissions, "Only an owner can remove an owner.");
         }
 
         if (IsLastOwner(members, member))
@@ -169,9 +189,11 @@ internal static class TeamEndpoints
         {
             OrganizationId = member.OrganizationId,
             Kind = MembershipEventKind.Removed,
-            ActorUserId = actor.UserId,
+            ActorUserId = tenant.UserId!.Value,
             MemberUserId = member.UserId,
-            PreviousRole = member.Role,
+            PreviousRole = held.Role,
+            PreviousCustomRoleId = held.CustomRoleId,
+            PreviousCustomRoleName = CustomName(held),
             OccurredAt = time.GetUtcNow(),
         });
         await db.SaveChangesAsync(cancellationToken);
@@ -199,19 +221,20 @@ internal static class TeamEndpoints
 
         var organizationId = tenant.OrganizationId!.Value;
         var userId = tenant.UserId!.Value;
-        var role = request.Role!.Value;
         var email = MagicLinks.NormalizeEmail(request.Email);
 
         // Under the member lock, so two invitations to one address at once cannot both stay open.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, organizationId, cancellationToken);
-        var actorRole = await InOrganization(db, tenant).AsNoTracking()
-            .Where(m => m.UserId == userId)
-            .Select(m => m.Role)
-            .SingleAsync(cancellationToken);
-        if (!TeamPolicy.MayAssign(actorRole, role))
+        if (await RoleAccess.ForRoleAsync(db, request.Role!.Value, request.CustomRoleId, cancellationToken) is not { } role)
         {
-            return OwnersOnly("Only an owner can invite another owner.");
+            return UnknownRole();
+        }
+
+        var actor = await ActorAsync(db, tenant, cancellationToken);
+        if (!TeamPolicy.MayAssign(actor, role.Permissions))
+        {
+            return TeamProblems.Refused(role.Permissions, "Only an owner can invite another owner.");
         }
 
         // Identity normalizes emails to upper case (UpperInvariantLookupNormalizer).
@@ -238,7 +261,8 @@ internal static class TeamEndpoints
         {
             OrganizationId = organizationId,
             Email = email,
-            Role = role,
+            Role = role.Role,
+            CustomRoleId = role.CustomRoleId,
             TokenHash = MagicLinks.Hash(token),
             InvitedByUserId = userId,
             CreatedAt = now,
@@ -250,18 +274,25 @@ internal static class TeamEndpoints
         var earlier = await db.OrganizationInvitations
             .Where(i => i.Email == email && i.AcceptedAt == null && i.RevokedAt == null && i.ExpiresAt > now)
             .ToListAsync(cancellationToken);
-        if (earlier.Any(i => !TeamPolicy.MayAssign(actorRole, i.Role)))
+        var replacing = new List<(OrganizationInvitation Invitation, RoleAccess Role)>();
+        foreach (var open in earlier)
         {
-            return OwnersOnly("Only an owner can replace an invitation to become an owner.");
+            var offered = await HeldAsync(db, open.Role, open.CustomRoleId, cancellationToken);
+            if (!TeamPolicy.MayAssign(actor, offered.Permissions))
+            {
+                return TeamProblems.Refused(offered.Permissions, "Only an owner can replace an invitation to become an owner.");
+            }
+
+            replacing.Add((open, offered));
         }
 
-        foreach (var replaced in earlier.Where(i => i.Revoke(now)))
+        foreach (var (replaced, offered) in replacing.Where(r => r.Invitation.Revoke(now)))
         {
-            db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.InvitationRevoked, replaced, userId, now));
+            db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.InvitationRevoked, replaced, offered, userId, now));
         }
 
         db.OrganizationInvitations.Add(invitation);
-        db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.Invited, invitation, userId, now));
+        db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.Invited, invitation, role, userId, now));
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
@@ -270,9 +301,10 @@ internal static class TeamEndpoints
         var inviterName = await db.Users.AsNoTracking()
             .Where(u => u.Id == userId).Select(u => u.DisplayName ?? u.Email ?? "A colleague").SingleAsync(cancellationToken);
         var link = domains.Value.AppUrl($"{Invitations.AcceptPath}#invitation={token}");
-        await emailSender.SendAsync(Invitations.Compose(email, organizationName, inviterName, role, link, lifetime), cancellationToken);
+        await emailSender.SendAsync(
+            Invitations.Compose(email, organizationName, inviterName, Invitations.RoleWords(role), link, lifetime), cancellationToken);
 
-        return TypedResults.Created($"/v1/organization/invitations/{invitation.Id}", invitation.ToPending());
+        return TypedResults.Created($"/v1/organization/invitations/{invitation.Id}", invitation.ToPending(role.Name));
     }
 
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> RevokeInvitation(
@@ -286,17 +318,14 @@ internal static class TeamEndpoints
             return TypedResults.NotFound(); // accepted, revoked and expired invitations are not in the pending list either
         }
 
-        var actorRole = await InOrganization(db, tenant).AsNoTracking()
-            .Where(m => m.UserId == userId)
-            .Select(m => m.Role)
-            .SingleAsync(cancellationToken);
-        if (!TeamPolicy.MayAssign(actorRole, invitation.Role))
+        var offered = await HeldAsync(db, invitation.Role, invitation.CustomRoleId, cancellationToken);
+        if (!TeamPolicy.MayAssign(await ActorAsync(db, tenant, cancellationToken), offered.Permissions))
         {
-            return OwnersOnly("Only an owner can revoke an invitation to become an owner.");
+            return TeamProblems.Refused(offered.Permissions, "Only an owner can revoke an invitation to become an owner.");
         }
 
         invitation.Revoke(now);
-        db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.InvitationRevoked, invitation, userId, now));
+        db.MembershipEvents.Add(InvitationEvent(MembershipEventKind.InvitationRevoked, invitation, offered, userId, now));
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -313,8 +342,24 @@ internal static class TeamEndpoints
     private static bool IsLastOwner(List<OrganizationMember> members, OrganizationMember member) =>
         member.Role == OrganizationRole.Owner && members.Count(m => m.Role == OrganizationRole.Owner) == 1;
 
+    /// <summary>The signed-in member's permissions; none when they are not a member.</summary>
+    private static async Task<IReadOnlySet<Permission>> ActorAsync(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        (await RoleAccess.ForMemberAsync(db, tenant.OrganizationId!.Value, tenant.UserId!.Value, cancellationToken))?.Permissions
+        ?? new HashSet<Permission>();
+
+    /// <summary>
+    /// A role somebody has or an invitation offers. Its custom role exists while anyone has it (a restricting foreign
+    /// key) or an open invitation offers it (RoleEndpoints refuses the deletion), so a missing one has no permissions.
+    /// </summary>
+    private static async Task<RoleAccess> HeldAsync(
+        ScreenHireDbContext db, OrganizationRole role, Guid? customRoleId, CancellationToken cancellationToken) =>
+        await RoleAccess.ForRoleAsync(db, role, customRoleId, cancellationToken)
+        ?? new RoleAccess(OrganizationRole.Custom, customRoleId, "", new HashSet<Permission>());
+
+    private static string? CustomName(RoleAccess role) => role.Role == OrganizationRole.Custom ? role.Name : null;
+
     private static MembershipEvent InvitationEvent(
-        MembershipEventKind kind, OrganizationInvitation invitation, Guid actorUserId, DateTimeOffset now) =>
+        MembershipEventKind kind, OrganizationInvitation invitation, RoleAccess role, Guid actorUserId, DateTimeOffset now) =>
         new()
         {
             OrganizationId = invitation.OrganizationId,
@@ -322,11 +367,14 @@ internal static class TeamEndpoints
             ActorUserId = actorUserId,
             InvitationId = invitation.Id,
             Role = invitation.Role,
+            CustomRoleId = invitation.CustomRoleId,
+            CustomRoleName = CustomName(role),
             OccurredAt = now,
         };
 
-    private static ProblemHttpResult OwnersOnly(string detail) =>
-        TypedResults.Problem(title: "Owners only", detail: detail, statusCode: StatusCodes.Status403Forbidden);
+    // A 400, not a 404: the member or invitation is there, and the role in the body is not one of this organization's.
+    private static ValidationProblem UnknownRole() =>
+        TypedResults.ValidationProblem(ValidationExtensions.Problem("customRoleId", "Choose one of this organization's roles."));
 
     private static Conflict<ProblemDetails> LastOwner(string detail) =>
         TypedResults.Conflict(new ProblemDetails { Title = "Last owner", Detail = detail, Status = StatusCodes.Status409Conflict });

@@ -9,6 +9,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -28,7 +29,7 @@ internal static class ApplicationEndpoints
         jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").Produces(StatusCodes.Status401Unauthorized);
         jobs.MapPost("/", CreateApplication).WithName("CreateApplication")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
@@ -37,23 +38,23 @@ internal static class ApplicationEndpoints
         applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.MoveCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline")
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/notes", AddApplicationNote).WithName("AddApplicationNote")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/tags", AddApplicationTag).WithName("AddApplicationTag")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapDelete("/{applicationId:guid}/tags", RemoveApplicationTag).WithName("RemoveApplicationTag")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")

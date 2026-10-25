@@ -52,11 +52,15 @@ internal static class Invitations
     }
 
     internal static EmailMessage Compose(
-        string to, string organizationName, string inviterName, OrganizationRole role, Uri link, TimeSpan lifetime)
+        string to, string organizationName, string inviterName, OrganizationRole role, Uri link, TimeSpan lifetime) =>
+        Compose(to, organizationName, inviterName, role.ToString().ToLowerInvariant(), link, lifetime);
+
+    /// <summary>The invitation email for a role as its name reads in a sentence: "viewer", or a custom role as typed.</summary>
+    internal static EmailMessage Compose(
+        string to, string organizationName, string inviterName, string roleName, Uri link, TimeSpan lifetime)
     {
         var days = (int)Math.Ceiling(lifetime.TotalDays);
         var duration = days == 1 ? "1 day" : $"{days} days";
-        var roleName = role.ToString().ToLowerInvariant();
         var text = $"""
             {inviterName} invited you to join {organizationName} on ScreenHire as {Article(roleName)} {roleName}.
 
@@ -67,7 +71,7 @@ internal static class Invitations
             The link signs you in as {to}. It works once, for the next {duration}. If you weren't expecting this, you can ignore this email.
             """;
         var html = $"""
-            <p>{Encode(inviterName)} invited you to join {Encode(organizationName)} on ScreenHire as {Article(roleName)} {roleName}.</p>
+            <p>{Encode(inviterName)} invited you to join {Encode(organizationName)} on ScreenHire as {Article(roleName)} {Encode(roleName)}.</p>
             <p><a href="{Encode(link.ToString())}">Accept the invitation</a></p>
             <p>The link signs you in as {Encode(to)}. It works once, for the next {duration}. If you weren't expecting this, you can ignore this email.</p>
             """;
@@ -76,7 +80,10 @@ internal static class Invitations
         return new EmailMessage(to, subject, text, html);
     }
 
-    private static string Article(string word) => word[0] is 'a' or 'e' or 'i' or 'o' or 'u' ? "an" : "a";
+    private static string Article(string word) => char.ToLowerInvariant(word[0]) is 'a' or 'e' or 'i' or 'o' or 'u' ? "an" : "a";
+
+    /// <summary>A role as it reads in the email: a built-in one in lower case, a custom one as its name is written.</summary>
+    internal static string RoleWords(RoleAccess role) => role.Role == OrganizationRole.Custom ? role.Name : role.Name.ToLowerInvariant();
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 }

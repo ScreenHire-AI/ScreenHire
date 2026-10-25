@@ -92,6 +92,23 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             .Select(e => (e.By, e.Lines[0])).Should().Equal((avery, "changed the subject"), (avery, "created the template"));
     }
 
+    [Fact]
+    public async Task Robin_hale_is_an_interviewer_by_a_custom_role_avery_made()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var members = (await GetAsync(owner, "/v1/organization/members")).EnumerateArray().ToList();
+        var avery = members.Single(m => m.GetProperty("displayName").GetString() == "Avery Quinn").GetProperty("userId").GetString();
+        var robin = members.Single(m => m.GetProperty("displayName").GetString() == "Robin Hale");
+
+        robin.GetProperty("role").GetString().Should().Be("Custom");
+        robin.GetProperty("roleName").GetString().Should().Be("Interviewer");
+        var role = await GetAsync(owner, $"/v1/organization/roles/{robin.GetProperty("customRoleId").GetString()}");
+        role.GetProperty("permissions").EnumerateArray().Select(p => p.GetString())
+            .Should().Equal("ViewHiring", "AddNotesAndTags", "FillInScorecards");
+        (await HistoryAsync(owner, $"/v1/organization/roles/{role.GetProperty("id").GetString()}/history"))
+            .Should().ContainSingle(e => e.By == avery && e.Lines.Contains("created the role from Viewer"));
+    }
+
     // Each entry's author and its lines' text, newest first.
     private static async Task<List<(string? By, List<string> Lines)>> HistoryAsync(ApiSession owner, string path) =>
         [.. (await GetAsync(owner, path)).GetProperty("entries").EnumerateArray().Select(e => (

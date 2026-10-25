@@ -45,10 +45,11 @@ import type {
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreateRoleRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
-  CurrentOrganization,
   CurrentUser,
+  CustomRoleDetail,
   DismissIntegrityAssessmentRequest,
   EmailPreview,
   EmailTemplateDraft,
@@ -58,6 +59,7 @@ import type {
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetRoleHistoryParams,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -82,6 +84,7 @@ import type {
   ManualAutomationQueued,
   MembershipLogEntry,
   MoveApplicationRequest,
+  MyOrganization,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationIntegritySettings,
@@ -119,6 +122,7 @@ import type {
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
   UpdateOrganizationRequest,
+  UpdateRoleRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -686,7 +690,7 @@ export function createGetCurrentUser<TData = Awaited<ReturnType<typeof getCurren
 
 
 export type listMyOrganizationsResponse200 = {
-  data: CurrentOrganization[]
+  data: MyOrganization[]
   status: 200
 }
 
@@ -7740,94 +7744,6 @@ export function createListTeamMembers<TData = Awaited<ReturnType<typeof listTeam
 
 
 
-export type listRolesResponse200 = {
-  data: RoleCatalogue
-  status: 200
-}
-
-export type listRolesResponse401 = {
-  data: void
-  status: 401
-}
-
-export type listRolesResponseSuccess = (listRolesResponse200) & {
-  headers: Headers;
-};
-export type listRolesResponseError = (listRolesResponse401) & {
-  headers: Headers;
-};
-
-export const getListRolesUrl = () => {
-
-
-
-
-  return `/v1/organization/roles`
-}
-
-export const listRoles = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listRolesResponseSuccess> => {
-
-  return apiQueryFetch<listRolesResponseSuccess>(getListRolesUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListRolesQueryKey = () => {
-    return [
-    'v1','organization','roles'
-    ] as const;
-    }
-
-
-export const getListRolesQueryOptions = <TData = Awaited<ReturnType<typeof listRoles>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListRolesQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoles>>> = ({ signal }) => listRoles({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listRoles>>>
-export type ListRolesQueryError = ErrorType<void>
-
-
-
-export function createListRoles<TData = Awaited<ReturnType<typeof listRoles>>, TError = ErrorType<void>>(
-  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getListRolesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
 export type listInvitationsResponse200 = {
   data: PendingInvitation[]
   status: 200
@@ -8447,6 +8363,622 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getRevokeInvitationMutationOptions(options?.()) }), queryClient);
     }
+
+export type listRolesResponse200 = {
+  data: RoleCatalogue
+  status: 200
+}
+
+export type listRolesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listRolesResponseSuccess = (listRolesResponse200) & {
+  headers: Headers;
+};
+export type listRolesResponseError = (listRolesResponse401) & {
+  headers: Headers;
+};
+
+export const getListRolesUrl = () => {
+
+
+
+
+  return `/v1/organization/roles`
+}
+
+export const listRoles = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listRolesResponseSuccess> => {
+
+  return apiQueryFetch<listRolesResponseSuccess>(getListRolesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRolesQueryKey = () => {
+    return [
+    'v1','organization','roles'
+    ] as const;
+    }
+
+
+export const getListRolesQueryOptions = <TData = Awaited<ReturnType<typeof listRoles>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRolesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoles>>> = ({ signal }) => listRoles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listRoles>>>
+export type ListRolesQueryError = ErrorType<void>
+
+
+
+export function createListRoles<TData = Awaited<ReturnType<typeof listRoles>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListRolesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createRoleResponse201 = {
+  data: CustomRoleDetail
+  status: 201
+}
+
+export type createRoleResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createRoleResponseSuccess = (createRoleResponse201) & {
+  headers: Headers;
+};
+export type createRoleResponseError = (createRoleResponse400 | createRoleResponse401 | createRoleResponse403) & {
+  headers: Headers;
+};
+
+export const getCreateRoleUrl = () => {
+
+
+
+
+  return `/v1/organization/roles`
+}
+
+export const createRole = async (createRoleRequest: CreateRoleRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createRoleResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createRoleResponseSuccess>(getCreateRoleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createRoleRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateRoleMutationKey = () => ['createRole'] as const;
+
+export const getCreateRoleMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createRole>>, TError,CreateRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createRole>>, TError,CreateRoleMutationVariables, TContext> => {
+
+const mutationKey = getCreateRoleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRole>>, CreateRoleMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRole(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createRole>>>
+    export type CreateRoleMutationBody = CreateRoleRequest
+    export type CreateRoleMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateRoleMutationVariables = {data: CreateRoleRequest}
+
+    export const createCreateRole = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createRole>>, TError,CreateRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createRole>>,
+        TError,
+        CreateRoleMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateRoleMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getRoleResponse200 = {
+  data: CustomRoleDetail
+  status: 200
+}
+
+export type getRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getRoleResponseSuccess = (getRoleResponse200) & {
+  headers: Headers;
+};
+export type getRoleResponseError = (getRoleResponse401 | getRoleResponse404) & {
+  headers: Headers;
+};
+
+export const getGetRoleUrl = (roleId: string,) => {
+
+
+
+
+  return `/v1/organization/roles/${roleId}`
+}
+
+export const getRole = async (roleId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getRoleResponseSuccess> => {
+
+  return apiQueryFetch<getRoleResponseSuccess>(getGetRoleUrl(roleId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRoleQueryKey = (roleId: string,) => {
+    return [
+    'v1','organization','roles',roleId
+    ] as const;
+    }
+
+
+export const getGetRoleQueryOptions = <TData = Awaited<ReturnType<typeof getRole>>, TError = ErrorType<void>>(roleId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getRole>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRoleQueryKey(roleId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRole>>> = ({ signal }) => getRole(roleId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: roleId !== null && roleId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getRole>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetRoleQueryResult = NonNullable<Awaited<ReturnType<typeof getRole>>>
+export type GetRoleQueryError = ErrorType<void>
+
+
+
+export function createGetRole<TData = Awaited<ReturnType<typeof getRole>>, TError = ErrorType<void>>(
+ roleId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getRole>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetRoleQueryOptions(roleId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateRoleResponse200 = {
+  data: CustomRoleDetail
+  status: 200
+}
+
+export type updateRoleResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateRoleResponseSuccess = (updateRoleResponse200) & {
+  headers: Headers;
+};
+export type updateRoleResponseError = (updateRoleResponse400 | updateRoleResponse401 | updateRoleResponse403 | updateRoleResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateRoleUrl = (roleId: string,) => {
+
+
+
+
+  return `/v1/organization/roles/${roleId}`
+}
+
+export const updateRole = async (roleId: string,
+    updateRoleRequest: UpdateRoleRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateRoleResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateRoleResponseSuccess>(getUpdateRoleUrl(roleId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateRoleRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateRoleMutationKey = () => ['updateRole'] as const;
+
+export const getUpdateRoleMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateRole>>, TError,UpdateRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateRole>>, TError,UpdateRoleMutationVariables, TContext> => {
+
+const mutationKey = getUpdateRoleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRole>>, UpdateRoleMutationVariables> = (props) => {
+          const {roleId,data} = props ?? {};
+
+          return  updateRole(roleId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateRole>>>
+    export type UpdateRoleMutationBody = UpdateRoleRequest
+    export type UpdateRoleMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateRoleMutationVariables = {roleId: string;data: UpdateRoleRequest}
+
+    export const createUpdateRole = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateRole>>, TError,UpdateRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateRole>>,
+        TError,
+        UpdateRoleMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateRoleMutationOptions(options?.()) }), queryClient);
+    }
+
+export type deleteRoleResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteRoleResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type deleteRoleResponseSuccess = (deleteRoleResponse204) & {
+  headers: Headers;
+};
+export type deleteRoleResponseError = (deleteRoleResponse401 | deleteRoleResponse403 | deleteRoleResponse404 | deleteRoleResponse409) & {
+  headers: Headers;
+};
+
+export const getDeleteRoleUrl = (roleId: string,) => {
+
+
+
+
+  return `/v1/organization/roles/${roleId}`
+}
+
+export const deleteRole = async (roleId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<deleteRoleResponseSuccess> => {
+
+  return apiQueryFetch<deleteRoleResponseSuccess>(getDeleteRoleUrl(roleId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteRoleMutationKey = () => ['deleteRole'] as const;
+
+export const getDeleteRoleMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteRole>>, TError,DeleteRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof deleteRole>>, TError,DeleteRoleMutationVariables, TContext> => {
+
+const mutationKey = getDeleteRoleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRole>>, DeleteRoleMutationVariables> = (props) => {
+          const {roleId} = props ?? {};
+
+          return  deleteRole(roleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRole>>>
+
+    export type DeleteRoleMutationError = ErrorType<void | ProblemDetails>
+    export type DeleteRoleMutationVariables = {roleId: string}
+
+    export const createDeleteRole = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteRole>>, TError,DeleteRoleMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof deleteRole>>,
+        TError,
+        DeleteRoleMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDeleteRoleMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getRoleHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getRoleHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getRoleHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getRoleHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getRoleHistoryResponseSuccess = (getRoleHistoryResponse200) & {
+  headers: Headers;
+};
+export type getRoleHistoryResponseError = (getRoleHistoryResponse400 | getRoleHistoryResponse401 | getRoleHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetRoleHistoryUrl = (roleId: string,
+    params?: GetRoleHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/roles/${roleId}/history?${stringifiedParams}` : `/v1/organization/roles/${roleId}/history`
+}
+
+export const getRoleHistory = async (roleId: string,
+    params?: GetRoleHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getRoleHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getRoleHistoryResponseSuccess>(getGetRoleHistoryUrl(roleId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRoleHistoryQueryKey = (roleId: string,
+    params?: GetRoleHistoryParams,) => {
+    return [
+    'v1','organization','roles',roleId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetRoleHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getRoleHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(roleId: string,
+    params?: GetRoleHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getRoleHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRoleHistoryQueryKey(roleId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoleHistory>>> = ({ signal }) => getRoleHistory(roleId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: roleId !== null && roleId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getRoleHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetRoleHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getRoleHistory>>>
+export type GetRoleHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetRoleHistory<TData = Awaited<ReturnType<typeof getRoleHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ roleId: () =>  string,
+    params?: () =>  GetRoleHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getRoleHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetRoleHistoryQueryOptions(roleId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listApiKeysResponse200 = {
   data: ApiKeySummary[]

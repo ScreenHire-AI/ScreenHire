@@ -11,6 +11,9 @@ public enum ChangeSubjectKind
     HiringTemplate,
     EmailTemplate,
     Job,
+
+    /// <summary>A custom role (<see cref="CustomRole"/>); built-in roles never change.</summary>
+    Role,
 }
 
 /// <summary>

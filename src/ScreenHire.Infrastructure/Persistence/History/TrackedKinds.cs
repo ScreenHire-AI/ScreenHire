@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
 
@@ -24,6 +25,7 @@ public static class TrackedKinds
         Track<HiringTemplateVersion>(ChangeSubjectKind.HiringTemplate, v => v.TemplateId.ToString("D"), TemplateVersionAsync),
         Track<EmailTemplate>(ChangeSubjectKind.EmailTemplate, t => t.Key, EmailTemplateAsync),
         Track<Job>(ChangeSubjectKind.Job, j => j.Id.ToString("D"), JobAsync),
+        Track<CustomRole>(ChangeSubjectKind.Role, r => r.Id.ToString("D"), RoleChanges.Describe),
     ];
 
     private static readonly Dictionary<Type, TrackedKind> ByType = All.ToDictionary(k => k.EntityType);

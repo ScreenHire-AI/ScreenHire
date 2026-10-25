@@ -3,9 +3,9 @@ using System.Text.Json.Nodes;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// Roles on the hiring routes (<c>RequireHiringRole</c>) and organization settings and webhooks (<c>RequireOrganizationAdmin</c>): a
-/// Viewer of an organization sees its jobs, templates and applications but changes none of them, and gets 403 with a
-/// problem body on every write.
+/// Permissions on the hiring routes, organization settings and webhooks (<c>RequirePermission</c>): a Viewer of an
+/// organization sees its jobs, templates and applications but changes none of them, and gets 403 with a problem body
+/// naming the permission on every write.
 /// </summary>
 public sealed class HiringRolesTests(AppHostFixture fixture)
 {
@@ -52,8 +52,9 @@ public sealed class HiringRolesTests(AppHostFixture fixture)
         ];
 
         writes.Select(w => w.Status).Should().AllBeEquivalentTo(HttpStatusCode.Forbidden);
-        writes[0].Text("title").Should().Be("Read-only role");
-        writes[^1].Text("title").Should().Be("Owners and admins only");
+        writes.Select(w => w.Text("title")).Should().AllBe("Not in your role");
+        writes[0].Text("detail").Should().Contain("Edit jobs", "the refusal names the permission the role lacks");
+        writes[^1].Text("detail").Should().Contain("Edit settings");
         var after = (await owner.GetAsync($"/v1/jobs/{job.Id()}")).Expect(HttpStatusCode.OK);
         after.Text("title").Should().Be("Data Engineer");
         after.Text("status").Should().Be("Open");

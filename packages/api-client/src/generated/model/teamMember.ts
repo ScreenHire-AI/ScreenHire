@@ -8,6 +8,7 @@ import type { OrganizationRole } from './organizationRole.ts';
 
 /**
  * A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.
+ * `role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.
  */
 export interface TeamMember {
   id: string;
@@ -15,5 +16,8 @@ export interface TeamMember {
   email: string;
   displayName: string;
   role: OrganizationRole;
+  /** @nullable */
+  customRoleId: string | null;
+  roleName: string;
   joinedAt: string;
 }

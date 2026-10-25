@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Distribution;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -24,7 +25,7 @@ internal static class DistributionEndpoints
         group.MapGet("/jobs/{jobId:guid}/postings", ListJobPostings).WithName("ListJobPostings").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/jobs/{jobId:guid}/postings/{boardId}/close", CloseJobPosting).WithName("CloseJobPosting")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 

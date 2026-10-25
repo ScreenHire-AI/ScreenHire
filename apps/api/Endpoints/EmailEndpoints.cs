@@ -8,6 +8,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
@@ -34,31 +35,31 @@ internal static class EmailEndpoints
         templates.MapGet("", ListEmailTemplates).WithName("ListEmailTemplates").Produces(StatusCodes.Status401Unauthorized);
         templates.MapPost("", CreateEmailTemplate).WithName("CreateEmailTemplate")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditEmailTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapGet("/{templateId}", GetEmailTemplate).WithName("GetEmailTemplate").Produces(StatusCodes.Status401Unauthorized);
         templates.MapGet("/{templateId}/history", GetEmailTemplateHistory).WithName("GetEmailTemplateHistory").Produces(StatusCodes.Status401Unauthorized);
         templates.MapPut("/{templateId}", UpdateEmailTemplate).WithName("UpdateEmailTemplate")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditEmailTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapDelete("/{templateId}", DeleteEmailTemplate).WithName("DeleteEmailTemplate")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditEmailTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapPost("/preview", PreviewEmailTemplate).WithName("PreviewEmailTemplate")
             .RequireAntiforgeryToken()
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapPost("/test", SendTestEmail).WithName("SendTestEmail")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditEmailTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
 
         var emails = app.MapGroup("/v1/emails").WithTags("Email").RequireAuthorization();
         emails.MapGet("/preview", PreviewApplicationEmail).WithName("PreviewApplicationEmail").Produces(StatusCodes.Status401Unauthorized);
         emails.MapPost("", SendEmails).WithName("SendEmails")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EmailCandidates)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }

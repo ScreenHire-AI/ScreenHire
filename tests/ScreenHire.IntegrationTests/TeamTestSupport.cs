@@ -40,6 +40,30 @@ internal static class TeamTestSupport
         return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
     }
 
+    /// <summary>
+    /// Makes the "Interviewer" custom role as <paramref name="owner"/>: copied from Viewer, then given Add notes and tags
+    /// and Fill in scorecards. Returns its id.
+    /// </summary>
+    public static async Task<Guid> CreateInterviewerAsync(this Tenant owner)
+    {
+        var id = (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "Interviewer", ["copyFrom"] = "Viewer" }))
+            .Expect(HttpStatusCode.Created).Id();
+        (await owner.PutAsync($"/v1/organization/roles/{id}", new JsonObject
+        {
+            ["name"] = "Interviewer",
+            ["permissions"] = new JsonArray("ViewHiring", "AddNotesAndTags", "FillInScorecards"),
+        })).Expect(HttpStatusCode.OK);
+        return id;
+    }
+
+    /// <summary>Has <paramref name="admin"/> give <paramref name="member"/> the custom role <paramref name="roleId"/>.</summary>
+    public static async Task GiveRoleAsync(this Tenant admin, Tenant member, Guid roleId)
+    {
+        var memberId = await admin.MemberIdAsync(member.UserId);
+        (await admin.PutAsync($"/v1/organization/members/{memberId}/role", new JsonObject { ["role"] = "Custom", ["customRoleId"] = roleId.ToString() }))
+            .Expect(HttpStatusCode.OK);
+    }
+
     /// <summary>The membership id of <paramref name="userId"/> in the list <paramref name="viewer"/> sees.</summary>
     public static async Task<Guid> MemberIdAsync(this Tenant viewer, Guid userId)
     {

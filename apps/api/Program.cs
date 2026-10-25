@@ -98,6 +98,7 @@ app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
+app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
