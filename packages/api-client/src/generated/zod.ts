@@ -4451,6 +4451,21 @@ export const ListTeamMembersResponseItem = zod.object({
 export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
 
 
+export const ListRolesResponse = zod.object({
+  "roles": zod.array(zod.object({
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
+  "description": zod.string(),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'))
+}).describe('A built-in role, most access first: one line on what it is for, and its permissions in catalogue order.')),
+  "permissions": zod.array(zod.object({
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'),
+  "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
+  "name": zod.string(),
+  "description": zod.string()
+}).describe('A permission in the order the Roles page lists it: its group, its name and one line on what it covers.'))
+}).describe('The built-in roles and what each can do: the permission catalogue (RolePermissions). It describes what the\r\nserver allows; it holds no organization\'s data.')
+
+
 export const ListInvitationsResponseItem = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),

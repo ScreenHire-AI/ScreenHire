@@ -469,6 +469,23 @@ public sealed class TeamTests(AppHostFixture fixture)
             .Should().Contain([("Avery Quinn", "Owner"), ("Jordan Ellis", "Recruiter")]);
     }
 
+    [Fact]
+    public async Task Any_member_reads_what_each_role_can_do()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+
+        var catalogue = (await viewer.GetAsync("/v1/organization/roles")).Expect(HttpStatusCode.OK);
+
+        catalogue.At("roles").EnumerateArray().Select(r => r.GetProperty("role").GetString())
+            .Should().Equal("Owner", "Admin", "Recruiter", "Viewer");
+        catalogue.At("roles").EnumerateArray().Last().GetProperty("permissions").EnumerateArray().Select(p => p.GetString())
+            .Should().Equal(["ViewHiring"], "a Viewer reads and changes nothing");
+        var moveCandidates = catalogue.At("permissions").EnumerateArray().Single(p => p.GetProperty("permission").GetString() == "MoveCandidates");
+        moveCandidates.GetProperty("group").GetString().Should().Be("Hiring");
+        moveCandidates.GetProperty("name").GetString().Should().Be("Move candidates");
+    }
+
     private static JsonObject Invite(string email, string role) => new() { ["email"] = email, ["role"] = role };
 
     private static JsonObject Role(string role) => new() { ["role"] = role };
