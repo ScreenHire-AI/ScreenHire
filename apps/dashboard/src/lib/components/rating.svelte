@@ -50,7 +50,12 @@
   </span>
 {/snippet}
 
-{#if !rated}
+{#if rating?.state === 'AfterYourScorecard' && !scorecards}
+  <!-- Short in a table cell (L1), the reason in the tooltip. -->
+  <Hint content={ratingWords(rating)}>
+    {#snippet children({ props })}<span {...props} class="text-muted-foreground">After yours</span>{/snippet}
+  </Hint>
+{:else if !rated}
   <span class="text-muted-foreground">{ratingWords(rating)}</span>
 {:else if scorecards}
   <Popover.Root>

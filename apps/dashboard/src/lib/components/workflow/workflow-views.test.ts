@@ -304,8 +304,8 @@ describe('workflow builder', () => {
     const { container } = renderViews('editor');
     const stages = screen.getByRole('region', { name: 'Stages' });
 
-    expect(within(stages).queryByRole('button', { name: 'Scorecard for Hired' })).toBeNull();
-    await fireEvent.click(within(stages).getByRole('button', { name: 'Scorecard for Phone screen' }));
+    expect(within(stages).queryByRole('button', { name: 'Choose scorecard for Hired' })).toBeNull();
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Choose scorecard for Phone screen' }));
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
     const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
     await within(sheet).findByRole('option', { name: 'Technical interview' });

@@ -59,7 +59,7 @@
     {:else if !withheld}
       <p class="text-muted-foreground">No scorecards yet.</p>
     {/if}
-    {#if withheld && !error}<p class="text-muted-foreground">Other scorecards show after you submit yours.</p>{/if}
+    {#if withheld && !error && scorecards}<p class="text-muted-foreground">Other scorecards show after you submit yours.</p>{/if}
     <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
   </div>
 </Panel>

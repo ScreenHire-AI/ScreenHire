@@ -142,7 +142,7 @@
               {@render automationsButton(stage.id, stage.name, 'lg')}
               <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
               {#if !isTerminal(stage.kind) || stage.scorecard || stage.scorecardTemplateId}
-                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Scorecard <span class="sr-only">for {stage.name}</span></Button>
+                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Choose scorecard <span class="sr-only">for {stage.name}</span></Button>
               {/if}
             </div>
           </div>

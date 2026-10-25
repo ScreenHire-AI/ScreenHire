@@ -34,6 +34,6 @@ describe('rating column', () => {
     const rows = [{ ...applications[0]!, rating: { state: 'AfterYourScorecard' as const, scorecards: 0 } }];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: [ratingColumn] } } });
 
-    expect(ratingCells()).toEqual(['Rating after your scorecard']);
+    expect(ratingCells()).toEqual(['After yours']);
   });
 });

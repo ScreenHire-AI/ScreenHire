@@ -47,7 +47,7 @@
       <ToggleGroup.Item
         value={choice.value}
         aria-label={scale.length > 0 && index === 0 ? `${choice.label}, Low` : scale.length > 0 && index === choices.length - 1 ? `${choice.label}, High` : undefined}
-        class="min-w-9 text-foreground"
+        class="min-w-9 text-foreground pointer-coarse:min-w-11"
       >
         {choice.label}
       </ToggleGroup.Item>
