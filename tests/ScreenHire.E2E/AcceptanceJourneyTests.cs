@@ -110,9 +110,10 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
 
         // The bot's evidence: what the form and the identity checks saw, the next step, and nothing that decides.
         await OpenApplicationAsync(table, bot.FullName);
-        var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" });
-        await Expect(authenticity).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        var panel = Page.GetByRole(AriaRole.Tabpanel);
+        var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true });
+        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(new() { Timeout = 60_000 });
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_WEBDRIVER", "AUTO_SUBMIT_VELOCITY", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID" })
         {
             await Expect(authenticity.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
@@ -127,11 +128,13 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         // 4. The genuine candidate: nothing to act on, so the recruiter moves them to Screening.
         await Page.GoBackAsync();
         await OpenApplicationAsync(table, genuine.FullName);
-        var genuinePanel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" })).ToContainTextAsync("Authenticity: No concerns", Assessed);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        var genuinePanel = Page.GetByRole(AriaRole.Tabpanel);
+        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true }).GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: No concerns") })).ToBeVisibleAsync(new() { Timeout = 60_000 });
         await Expect(genuinePanel).ToContainTextAsync("Suggested next step: No action needed.");
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {genuine.FullName}", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");
 
         // The template's automation emails the candidate, through the outbox, the worker and Mailpit.

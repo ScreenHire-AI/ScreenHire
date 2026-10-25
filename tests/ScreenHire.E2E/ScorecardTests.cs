@@ -26,6 +26,7 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Candidate);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Scorecards") }).ClickAsync();
         var scorecards = Region("Scorecards");
         await Expect(scorecards).ToContainTextAsync("No scorecards yet.");
         await scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill scorecard" }).ClickAsync();
@@ -48,10 +49,13 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(scorecards).ToContainTextAsync("Strong yes by you");
         await Expect(scorecards).ToContainTextAsync("Not rated");
         await Expect(scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill scorecard" })).ToHaveCountAsync(0);
+        // The automation's move shows in the rail's Stage and in Activity.
+        await Expect(Page.GetByRole(AriaRole.Complementary, new() { Name = "Details" })).ToContainTextAsync("Offer", new() { Timeout = 30_000 });
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         var activity = Region("Activity");
         await Expect(activity).ToContainTextAsync("Scorecard for Interview by you");
         await Expect(activity).ToContainTextAsync("Moved from Interview to Offer by an automation", new() { Timeout = 30_000 });
-        await Expect(Page.Locator("[data-slot=fact]", new() { Has = Page.GetByText("Stage", new() { Exact = true }) })).ToContainTextAsync("Offer");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Scorecards") }).ClickAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-scorecards");
 

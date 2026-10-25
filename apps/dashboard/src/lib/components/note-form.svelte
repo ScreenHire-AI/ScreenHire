@@ -40,7 +40,9 @@
 
   /** As the API allows it (JobApplication.MaxNoteLength), counted on the stored text. */
   const maxNoteLength = 2000;
-  const schema = z.object({ note: z.string().trim().min(1, 'Write the note first.') });
+  // Not `.trim()`: superforms stores the parsed value back into the field on a programmatic change, which cut the space
+  // after a picked mention and glued the next word to the name. The text is trimmed when it is saved.
+  const schema = z.object({ note: z.string().refine((text) => text.trim().length > 0, 'Write the note first.') });
   const id = $props.id();
   const fieldId = `note-${id}`;
   const saveKeys = isApple() ? ['⌘', 'Enter'] : ['Ctrl', 'Enter'];
@@ -51,7 +53,7 @@
   let field = $state<MentionField>();
   let textarea = $state<HTMLTextAreaElement | null>(null);
 
-  const { form, errors, enhance, submitting, submit, reset } = superForm(defaults({ note: initial.text }, zod4(schema)), {
+  const { form, errors, enhance, submitting, submit } = superForm(defaults({ note: initial.text }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -71,7 +73,8 @@
         : await addApplicationNote(applicationId, { note: stored });
       if (response.status === 200 || response.status === 201) {
         if (!note) {
-          reset({ data: { note: '' } });
+          // Superforms puts this form's data back into the field once onUpdate returns, so a reset() here would be undone.
+          form.data.note = '';
           picked = [];
         }
         await ondone(note ? 'Note saved.' : 'Note added.');

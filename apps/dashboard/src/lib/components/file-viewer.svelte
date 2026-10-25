@@ -48,7 +48,13 @@
         <DownloadIcon aria-hidden="true" />Download
       </Button>
     </header>
-    <div class="min-h-0 flex-1 overflow-auto bg-secondary px-4 py-6 md:px-6">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex: the pages scroll inside this box, so it takes focus to be scrolled with the keyboard (WCAG 2.1.1) -->
+    <div
+      role="region"
+      aria-label="Pages"
+      tabindex="0"
+      class="min-h-0 flex-1 overflow-auto bg-secondary px-4 py-6 focus-visible:-outline-offset-2 md:px-6"
+    >
       <!-- A page's width, with its loading and error states in the same column. -->
       <div class="mx-auto w-full max-w-204"><FileFrame {applicationId} {file} bind:pageCount /></div>
     </div>
