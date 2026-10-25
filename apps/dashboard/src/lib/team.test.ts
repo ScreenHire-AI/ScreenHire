@@ -1,5 +1,6 @@
 import type { TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
+import { interviewerRoleId, roleCatalogue } from '../test-support/fixtures.js';
 import { assignableMembers, assigneeText, personName } from './team.js';
 
 const member = (userId: string, displayName: string, role: TeamMember['role']): TeamMember => ({
@@ -8,10 +9,23 @@ const member = (userId: string, displayName: string, role: TeamMember['role']): 
   email: `${userId}@example.com`,
   displayName,
   role,
+  customRoleId: role === 'Custom' ? interviewerRoleId : null,
+  roleName: role === 'Custom' ? 'Interviewer' : role,
   joinedAt: '2026-10-20T09:00:00Z',
 });
 
-const members = [member('u1', 'Avery Quinn', 'Owner'), member('u2', 'Robin Ashby', 'Recruiter'), member('u3', 'Sam Lee', 'Viewer')];
+const members = [
+  member('u1', 'Avery Quinn', 'Owner'),
+  member('u2', 'Robin Ashby', 'Recruiter'),
+  member('u3', 'Sam Lee', 'Viewer'),
+  member('u4', 'Robin Hale', 'Custom'),
+];
+
+// A catalogue where Owners and Recruiters complete tasks and nobody else does.
+const roles = roleCatalogue.roles.map((role) => ({
+  ...role,
+  permissions: role.role === 'Owner' || role.role === 'Recruiter' ? [...role.permissions, 'CompleteTasks' as const] : role.permissions,
+}));
 
 describe('team', () => {
   it('names the signed-in person "you", members by name, and anyone else as a former teammate', () => {
@@ -26,7 +40,10 @@ describe('team', () => {
     expect(assigneeText('u2', members, 'u1')).toBe('For Robin Ashby');
   });
 
-  it('offers only members whose role can complete a task', () => {
-    expect(assignableMembers(members).map((m) => m.userId)).toEqual(['u1', 'u2']);
+  it('offers only members whose role can complete a task, built-in or custom', () => {
+    expect(assignableMembers(members, roles).map((m) => m.userId)).toEqual(['u1', 'u2']);
+    const withInterviewers = roles.map((role) => (role.role === 'Custom' ? { ...role, permissions: [...role.permissions, 'CompleteTasks' as const] } : role));
+    expect(assignableMembers(members, withInterviewers).map((m) => m.userId)).toEqual(['u1', 'u2', 'u4']);
+    expect(assignableMembers(members, [])).toEqual([]);
   });
 });

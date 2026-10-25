@@ -1,27 +1,93 @@
-import type { ApplicationSummary, BoardSummary, CurrentUser, JobPostingStatus, JobSummary, RoleCatalogue, WorkflowStage } from '@screenhire/api-client';
+import type {
+  ApplicationSummary,
+  BoardSummary,
+  CurrentUser,
+  JobPostingStatus,
+  JobSummary,
+  OrganizationRole,
+  Permission,
+  RoleCatalogue,
+  WorkflowStage,
+} from '@screenhire/api-client';
 
 /** Fictional data for component tests, shaped like the API's responses. */
+
+/** Every permission an Owner has, in catalogue order, as `GET /v1/auth/me` lists them. */
+export const ownerPermissions: Permission[] = [
+  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates',
+  'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings',
+  'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners',
+];
+
+/** What each built-in role has, as the API's catalogue says (RolePermissions.cs). */
+export const builtInPermissions: Record<Exclude<OrganizationRole, 'Custom'>, Permission[]> = {
+  Owner: ownerPermissions,
+  Admin: ownerPermissions.filter((permission) => permission !== 'ManageOwners'),
+  Recruiter: ownerPermissions.slice(0, 11),
+  Viewer: ['ViewHiring'],
+};
 
 export const user: CurrentUser = {
   id: '01a157d4-0000-7000-8000-0000000000aa',
   email: 'avery@brightwater.example.com',
   displayName: 'Avery Quinn',
-  organization: { id: '01a157d4-0000-7000-8000-0000000000bb', name: 'Brightwater Studio', slug: 'brightwater', role: 'Owner' },
+  organization: {
+    id: '01a157d4-0000-7000-8000-0000000000bb',
+    name: 'Brightwater Studio',
+    slug: 'brightwater',
+    role: 'Owner',
+    customRoleId: null,
+    roleName: 'Owner',
+    permissions: ownerPermissions,
+  },
 };
 
-/** Part of the API's permission catalogue (GET /v1/organization/roles): every role, three of the permissions. */
+/** `user` signed in with a built-in role instead, with that role's permissions. */
+export const userAs = (role: Exclude<OrganizationRole, 'Custom'>): CurrentUser => ({
+  ...user,
+  organization: { ...user.organization!, role, roleName: role, customRoleId: null, permissions: builtInPermissions[role] },
+});
+
+/** The custom role the fixtures use: an Interviewer copied from Viewer, who notes, tags and fills in scorecards. */
+export const interviewerRoleId = '01a157d4-0000-7000-8000-0000000000cc';
+
+/** `user` signed in with the Interviewer role. */
+export const interviewer: CurrentUser = {
+  ...user,
+  organization: {
+    ...user.organization!,
+    role: 'Custom',
+    customRoleId: interviewerRoleId,
+    roleName: 'Interviewer',
+    permissions: ['ViewHiring', 'AddNotesAndTags', 'FillInScorecards'],
+  },
+};
+
+const byScreenHire = { at: null, by: 'ScreenHire' } as const;
+
+/** Part of the API's permission catalogue (GET /v1/organization/roles): every built-in role, the Interviewer, five permissions. */
 export const roleCatalogue: RoleCatalogue = {
   roles: [
-    { role: 'Owner', description: 'Everything, including making and removing other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'ManageTeam', 'ManageOwners'] },
-    { role: 'Admin', description: 'Everything a Recruiter does, plus settings and the team.', permissions: ['ViewHiring', 'MoveCandidates', 'ManageTeam'] },
-    { role: 'Recruiter', description: 'Works the jobs.', permissions: ['ViewHiring', 'MoveCandidates'] },
-    { role: 'Viewer', description: 'Sees jobs and candidates and changes nothing.', permissions: ['ViewHiring'] },
+    { role: 'Owner', customRoleId: null, name: 'Owner', description: 'Everything, including making and removing other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam', 'ManageOwners'], people: 2, lastUpdated: byScreenHire },
+    { role: 'Admin', customRoleId: null, name: 'Admin', description: 'Everything a Recruiter does, plus settings and the team.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam'], people: 1, lastUpdated: byScreenHire },
+    { role: 'Recruiter', customRoleId: null, name: 'Recruiter', description: 'Works the jobs.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards'], people: 1, lastUpdated: byScreenHire },
+    { role: 'Viewer', customRoleId: null, name: 'Viewer', description: 'Sees jobs and candidates and changes nothing.', permissions: ['ViewHiring'], people: 0, lastUpdated: byScreenHire },
+    {
+      role: 'Custom',
+      customRoleId: interviewerRoleId,
+      name: 'Interviewer',
+      description: 'See jobs and candidates and fill in scorecards.',
+      permissions: ['ViewHiring', 'FillInScorecards'],
+      people: 1,
+      lastUpdated: { at: '2026-10-25T09:00:00Z', by: 'Member', userId: user.id, apiKeyId: null },
+    },
   ],
   permissions: [
-    { permission: 'ViewHiring', group: 'Hiring', name: 'See jobs and candidates', description: 'Jobs, candidates, their files, scorecards and integrity results.' },
-    { permission: 'MoveCandidates', group: 'Hiring', name: 'Move candidates', description: 'Move a candidate to another stage.' },
-    { permission: 'ManageTeam', group: 'Organization', name: 'Manage the team', description: 'Invite people, change roles and remove members, except Owners.' },
-    { permission: 'ManageOwners', group: 'Organization', name: 'Manage Owners', description: 'Make someone an Owner, or change or remove an Owner.' },
+    { permission: 'ViewHiring', group: 'Hiring', name: 'See jobs and candidates', description: 'Jobs, candidates, their files, scorecards and integrity results.', ownerOnly: false, everyRole: true },
+    { permission: 'MoveCandidates', group: 'Hiring', name: 'Move candidates', description: 'Move a candidate to another stage.', ownerOnly: false, everyRole: false },
+    { permission: 'FillInScorecards', group: 'Hiring', name: 'Fill in scorecards', description: 'Score a candidate at a stage.', ownerOnly: false, everyRole: false },
+    { permission: 'ManageTeam', group: 'Organization', name: 'Manage the team', description: 'Invite people, change roles and remove members, except Owners, and make roles.', ownerOnly: false, everyRole: false },
+    { permission: 'ManageOwners', group: 'Organization', name: 'Manage Owners', description: 'Make someone an Owner, or change or remove an Owner.', ownerOnly: true, everyRole: false },
   ],
 };
 

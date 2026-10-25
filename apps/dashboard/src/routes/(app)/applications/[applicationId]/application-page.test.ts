@@ -1,7 +1,7 @@
 import type { ApplicationDetail, ApplicationTaskEntry, ApplicationTimelineEntry, JobDetail, ScorecardEntry, TeamMember } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, jobId, stages, user } from '../../../../test-support/fixtures.js';
+import { apiStub, interviewer, jobId, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { pendingIntegrity } from '../../../../test-support/integrity-fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 // After the fixtures: the mock below reads `user`.
@@ -19,8 +19,8 @@ const teammate = '01a157d4-0000-7000-8000-0000000000cc';
 const taskId = '01a157d4-0000-7000-8000-000000000307';
 
 const members: TeamMember[] = [
-  { id: '01a157d4-0000-7000-8000-000000000308', userId: user.id, email: user.email, displayName: user.displayName, role: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
-  { id: '01a157d4-0000-7000-8000-000000000309', userId: teammate, email: 'robin@brightwater.example.com', displayName: 'Robin Ashby', role: 'Recruiter', joinedAt: '2026-10-02T09:00:00Z' },
+  { id: '01a157d4-0000-7000-8000-000000000308', userId: user.id, email: user.email, displayName: user.displayName, role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
+  { id: '01a157d4-0000-7000-8000-000000000309', userId: teammate, email: 'robin@brightwater.example.com', displayName: 'Robin Ashby', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-02T09:00:00Z' },
 ];
 
 const task: ApplicationTaskEntry = {
@@ -358,7 +358,7 @@ describe('application page', () => {
   });
 
   it('leaves out the controls that change hiring data for a viewer', async () => {
-    page.data.user = { ...user, organization: { ...user.organization!, role: 'Viewer' } };
+    page.data.user = userAs('Viewer');
     renderPage();
     const tasks = await screen.findByRole('region', { name: 'Tasks' });
     await within(tasks).findByText('Call the references.');
@@ -366,6 +366,19 @@ describe('application page', () => {
     expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Activity' })).queryByRole('button', { name: 'Add note' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
+  });
+
+  it('gives an Interviewer notes and tags but no Move, task or automation controls', async () => {
+    page.data.user = interviewer;
+    renderPage();
+    const tasks = await screen.findByRole('region', { name: 'Tasks' });
+    await within(tasks).findByText('Call the references.');
+
+    expect(within(screen.getByRole('region', { name: 'Activity' })).getByRole('button', { name: 'Add note' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Tags' })).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Move to stage, Casey Morgan' })).not.toBeInTheDocument();
+    expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 
@@ -494,7 +507,7 @@ describe('application page', () => {
       expect(within(panel).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
       cleanup();
 
-      page.data.user = { ...user, organization: { ...user.organization!, role: 'Viewer' } };
+      page.data.user = userAs('Viewer');
       stubApi({ [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob) });
       renderPage();
       const viewed = await screen.findByRole('region', { name: 'Scorecards' });

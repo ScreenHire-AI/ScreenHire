@@ -6,40 +6,60 @@ import ShieldUserIcon from '@lucide/svelte/icons/shield-user';
 import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 import UsersRoundIcon from '@lucide/svelte/icons/users-round';
 import WebhookIcon from '@lucide/svelte/icons/webhook';
-import type { OrganizationRole } from '@screenhire/api-client';
+import type { CurrentUser, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
+import { can } from '#lib/permissions.js';
 import type { LucideIcon } from '#lib/shell.js';
 
 /**
- * The Settings menu's pages (design system section 11), for Owners and Admins only: the sidebar's one Settings item opens
- * the first, and the command palette lists them all. Kept apart from `sections`, which every member sees and which the G
- * chords read. Email templates stay last until the Templates page takes them (section 22).
+ * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
+ * Settings item opens the first the person may use, and the command palette lists those. Kept apart from `sections`,
+ * which every member sees and which the G chords read. Email templates stay last until the Templates page takes them
+ * (section 22).
  */
-export const settingsSections: readonly { label: string; href: string; icon: LucideIcon }[] = [
-  { label: 'Organization', href: '/settings/organization', icon: Building2Icon },
-  { label: 'Team', href: '/settings/team', icon: UsersRoundIcon },
-  { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon },
-  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon },
-  { label: 'Integrity', href: '/settings/integrity', icon: ShieldCheckIcon },
-  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon },
-  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon },
-  { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon },
+export const settingsSections: readonly { label: string; href: string; icon: LucideIcon; permission: Permission }[] = [
+  { label: 'Organization', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings' },
+  { label: 'Team', href: '/settings/team', icon: UsersRoundIcon, permission: 'ManageTeam' },
+  { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam' },
+  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings' },
+  { label: 'Integrity', href: '/settings/integrity', icon: ShieldCheckIcon, permission: 'EditSettings' },
+  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys' },
+  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks' },
+  { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon, permission: 'EditEmailTemplates' },
 ];
 
-/** Whether the role manages the organization's settings: the API's `RequireOrganizationAdmin`. */
-export const isAdministrator = (role: OrganizationRole | null | undefined): boolean => role === 'Owner' || role === 'Admin';
+/** The Settings pages the person's role may use: none means no Settings item at all. */
+export const visibleSettingsSections = (user: CurrentUser | null | undefined) =>
+  settingsSections.filter((section) => can(user, section.permission));
 
-/** Every role, most powerful first. */
-export const roles: readonly OrganizationRole[] = ['Owner', 'Admin', 'Recruiter', 'Viewer'];
+/** The Settings page a path belongs to, such as Roles for `/settings/roles/compare`. */
+export const settingsSectionOf = (path: string) =>
+  settingsSections.find((section) => path === section.href || path.startsWith(`${section.href}/`));
 
-// The API's TeamPolicy (src/ScreenHire.Domain/Organizations/TeamPolicy.cs), so the page offers only what it allows. The
-// API stays the judge: it refuses anything else with 403 "Owners only", and the last Owner with 409.
+/**
+ * A role as one key: a built-in role's name in lower case (`viewer`), or a custom role's id. It is the role page's
+ * address (`/settings/roles/viewer`) and the value of every role picker.
+ */
+export const roleKey = (role: { role: OrganizationRole; customRoleId?: string | null }): string =>
+  role.role === 'Custom' ? (role.customRoleId ?? '') : role.role.toLowerCase();
 
-/** Whether `actor` may invite someone as, or move someone into, `role`. */
-export const mayAssign = (actor: OrganizationRole, role: OrganizationRole): boolean =>
-  actor === 'Owner' || (actor === 'Admin' && role !== 'Owner');
+/** The request body that gives the role with `key`. */
+export const roleFromKey = (roles: readonly RoleSummary[], key: string): { role: OrganizationRole; customRoleId: string | null } | undefined => {
+  const found = roles.find((role) => roleKey(role) === key);
+  return found && { role: found.role, customRoleId: found.customRoleId };
+};
 
-/** The roles `actor` may give. */
-export const assignableRoles = (actor: OrganizationRole): OrganizationRole[] => roles.filter((role) => mayAssign(actor, role));
+// The API's TeamPolicy (src/ScreenHire.Domain/Organizations/TeamPolicy.cs), so screens offer only what it allows: a person
+// whose role has Manage the team may give, take away or edit a role only when it holds nothing their own role does not.
+// For the built-in roles that is Owners managing everyone and Admins everyone but Owners. The API stays the judge: it
+// refuses anything else with 403 "Owners only" or "More access than your role", and the last Owner with 409.
 
-/** Whether `actor` may change the role of, or remove, a member who has `role`. */
-export const mayManage = (actor: OrganizationRole, role: OrganizationRole): boolean => mayAssign(actor, role);
+/** Whether someone with `actor` may invite someone as, or move someone into, a role with `role`. */
+export const mayAssign = (actor: readonly Permission[], role: readonly Permission[]): boolean =>
+  actor.includes('ManageTeam') && role.every((permission) => actor.includes(permission));
+
+/** Whether someone with `actor` may change the role of, or remove, a member whose role has `role`. */
+export const mayManage = mayAssign;
+
+/** The roles someone with `actor` may give, in the catalogue's order. */
+export const assignableRoles = (actor: readonly Permission[], roles: readonly RoleSummary[]): RoleSummary[] =>
+  roles.filter((role) => mayAssign(actor, role.permissions));

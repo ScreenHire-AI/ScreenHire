@@ -59,13 +59,3 @@ export function guardRedirect(routeId: string | null, user: CurrentUser | null, 
 
   return null;
 }
-
-/**
- * Whether the signed-in person's role can change hiring data: add notes and tags, run automations, complete tasks.
- * Viewers can read everything and change nothing (the API answers them 403), so their screens leave those controls
- * out (design system A3).
- */
-export function canChangeHiringData(user: CurrentUser | null | undefined): boolean {
-  const role = user?.organization?.role;
-  return role === 'Owner' || role === 'Admin' || role === 'Recruiter';
-}

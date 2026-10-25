@@ -3,7 +3,7 @@
   import type { TaskScope, TaskStatusFilter } from '@screenhire/api-client';
   import { createListTasks, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
-  import { canChangeHiringData } from '#lib/auth.js';
+  import { can } from '#lib/permissions.js';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -26,7 +26,7 @@
   const team = createListTeamMembers();
   const all = $derived(tasks.data?.data ?? []);
   const currentUserId = $derived(page.data.user?.id);
-  const editable = $derived(canChangeHiringData(page.data.user));
+  const editable = $derived(can(page.data.user, 'CompleteTasks'));
   const completion = createTaskCompletion();
   const panelTitle = $derived(status === 'Open' ? 'Open tasks' : 'Done');
 </script>

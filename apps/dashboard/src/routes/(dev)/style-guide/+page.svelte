@@ -226,8 +226,8 @@
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
   const sampleTeam = [
-    { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, joinedAt: ago(30 * day) },
-    { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, joinedAt: ago(20 * day) },
+    { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day) },
+    { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day) },
   ];
   const sampleTasks: TaskRow[] = [
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },

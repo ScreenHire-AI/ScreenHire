@@ -60,7 +60,7 @@
   function dropped(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {
     if (event.detail.info.trigger !== TRIGGERS.DROPPED_INTO_ZONE) return;
     const card = event.detail.items.find((item) => item.id === event.detail.info.id);
-    if (card && card.stage.id !== stage.id) void moves.move(card, stage);
+    if (card && card.stage.id !== stage.id && moves.allowed) void moves.move(card, stage);
   }
 
   function onfinalize(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {
@@ -78,7 +78,7 @@
   async function moveBy(card: Card, delta: number) {
     const index = stages.findIndex((stage) => stage.id === card.stage.id);
     const target = stages[index + delta];
-    if (!target) return;
+    if (!target || !moves.allowed) return;
     await moves.move(card, target);
     await tick();
     const focusable = document.querySelector<HTMLElement>(`[data-card-id="${card.id}"]`) ?? document.querySelector<HTMLElement>(`[data-closed-stage="${target.id}"]`);
@@ -124,7 +124,7 @@
         <ul
           aria-label={`${column.stage.name} stage`}
           class="relative flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2"
-          use:dndzone={{ ...zone, items: column.cards }}
+          use:dndzone={{ ...zone, items: column.cards, dragDisabled: !moves.allowed }}
           onconsider={(event) => replaceCards(column.stage.id, event.detail.items)}
           onfinalize={(event) => onfinalize(column.stage, event)}
         >
@@ -173,7 +173,7 @@
               <span class="flex items-center gap-2">
                 <span class="min-w-0 flex-1 truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
                 <span class="shrink-0">
-                  <MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
+                  {#if moves.allowed}<MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />{/if}
                 </span>
               </span>
             </li>

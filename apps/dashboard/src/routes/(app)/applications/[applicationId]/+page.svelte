@@ -25,7 +25,6 @@
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { page } from '$app/state';
-  import { canChangeHiringData } from '#lib/auth.js';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import ApplicationTags from '#lib/components/application-tags.svelte';
@@ -60,6 +59,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { sourceName } from '#lib/format.js';
   import { createMoves } from '#lib/moves.svelte.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
   import { createTaskCompletion } from '#lib/tasks.svelte.js';
@@ -81,8 +81,13 @@
   const queryClient = useQueryClient();
   const detail = $derived(application.data?.data);
   const currentUserId = $derived(page.data.user?.id);
-  // Viewers read; the controls that change hiring data are left out for them (A3).
-  const editable = $derived(canChangeHiringData(page.data.user));
+  // Every member reads; each control that changes hiring data shows only for a role with the permission its route
+  // needs (A3, ADR-0014), so an Interviewer can add a note and fill in a scorecard without being offered Move.
+  const mayMove = $derived(can(page.data.user, 'MoveCandidates'));
+  const mayNote = $derived(can(page.data.user, 'AddNotesAndTags'));
+  const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
+  const mayCompleteTasks = $derived(can(page.data.user, 'CompleteTasks'));
+  const mayRunAutomations = $derived(can(page.data.user, 'RunAutomations'));
   let noteOpen = $state(false);
   let moveNoteOpen = $state(false);
   let noteAnnouncement = $state('');
@@ -93,13 +98,13 @@
     () => detail?.jobId ?? '',
     () => ({ query: { enabled: Boolean(detail) } }),
   );
-  const moves = createMoves();
+  const moves = createMoves({ allowed: () => mayMove });
   const completion = createTaskCompletion();
   // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
   // Email shows only where this deployment can send it and the person may (A3).
   const emailTemplates = createListEmailTemplates();
-  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && editable);
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   let emailOpen = $state(false);
   // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
   let emailChosen = false;
@@ -228,7 +233,7 @@
 />
 
 {#snippet moveToStage()}
-  {#if detail && stages.length > 0}
+  {#if detail && stages.length > 0 && mayMove}
     <MoveToStage
       candidateName={detail.candidate.fullName}
       currentStageId={detail.stage.id}
@@ -237,7 +242,7 @@
       size="lg"
       disabled={moves.pending}
       onmove={(stage) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage)}
-      onnote={editable ? () => (moveNoteOpen = true) : undefined}
+      onnote={() => (moveNoteOpen = true)}
     />
   {/if}
 {/snippet}
@@ -255,7 +260,7 @@
   {#if !sidebar.isMobile}{@render moveToStage()}{/if}
 {/snippet}
 
-<main class={['flex flex-col', sidebar.isMobile && detail && stages.length > 0 && 'pb-28']}>
+<main class={['flex flex-col', sidebar.isMobile && detail && stages.length > 0 && mayMove && 'pb-28']}>
   {#if application.isError}
     {#if notFound}
       <HeaderBand title="Application not found" />
@@ -372,7 +377,7 @@
           {#if hasScorecards}
             <Panel title="Scorecards" count={scorecards.data?.data.length}>
               {#snippet actions()}
-                {#if editable && scoreable.length > 0}
+                {#if mayScore && scoreable.length > 0}
                   <Button variant="outline" onclick={() => (scorecardOpen = true)}><ClipboardCheckIcon aria-hidden="true" />Fill scorecard</Button>
                 {/if}
               {/snippet}
@@ -432,7 +437,7 @@
                   tasks={items.toReversed()}
                   {members}
                   {currentUserId}
-                  oncomplete={editable ? (task) => completion.complete(task) : undefined}
+                  oncomplete={mayCompleteTasks ? (task) => completion.complete(task) : undefined}
                   busy={completion.pending}
                 />
                 <FailureText message={completion.failure} />
@@ -441,9 +446,9 @@
             </Panel>
           {/if}
 
-          <ApplicationTags applicationId={detail.id} tags={detail.tags} {editable} />
+          <ApplicationTags applicationId={detail.id} tags={detail.tags} editable={mayNote} />
 
-          {#if editable && manualAutomations.length > 0}
+          {#if mayRunAutomations && manualAutomations.length > 0}
             <ManualAutomations applicationId={detail.id} automations={manualAutomations} />
           {/if}
 
@@ -451,7 +456,7 @@
 
           <Panel title="Activity" count={timeline.data ? activity.length : undefined}>
             {#snippet actions()}
-              {#if editable}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add note</Button>{/if}
+              {#if mayNote}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add note</Button>{/if}
             {/snippet}
             <div class="flex flex-col gap-3">
               {#if timeline.isError}
@@ -466,7 +471,7 @@
       </div>
     </div>
 
-    {#if sidebar.isMobile && stages.length > 0}
+    {#if sidebar.isMobile && stages.length > 0 && mayMove}
       <ActionBar>{@render moveToStage()}</ActionBar>
     {/if}
 
@@ -478,9 +483,13 @@
       />
     {/if}
 
-    {#if editable}
+    {#if mayNote}
       <NoteSheet bind:open={noteOpen} applicationId={detail.id} ondone={noteAdded} />
+    {/if}
+    {#if mayScore}
       <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} stages={scoreable} ondone={scorecardSubmitted} />
+    {/if}
+    {#if mayMove}
       <MoveNoteSheet
         bind:open={moveNoteOpen}
         candidateName={detail.candidate.fullName}

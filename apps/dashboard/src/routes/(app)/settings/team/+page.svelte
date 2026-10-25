@@ -4,7 +4,7 @@
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import UsersRoundIcon from '@lucide/svelte/icons/users-round';
   import XIcon from '@lucide/svelte/icons/x';
-  import type { HttpValidationProblemDetails, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
+  import type { HttpValidationProblemDetails, OrganizationRole, PendingInvitation, RoleSummary, TeamMember } from '@screenhire/api-client';
   import {
     ApiError,
     createChangeMemberRole,
@@ -55,16 +55,19 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { assignableRoles, mayManage, roles } from '#lib/settings.js';
+  import { assignableRoles, mayManage, roleFromKey, roleKey } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
 
-  // The team (sign-in-and-tenancy.md, "Team members and invitations"): members with their roles, and the invitations
-  // nobody has answered yet, on the list template. Owners manage everyone; admins everyone but owners (TeamPolicy). Your
-  // own row has no actions: handing over is done by another owner. Invite opens a sheet that describes each role from the
-  // API's permission catalogue and starts at Viewer, the least access (design system section 22).
+  // The team (sign-in-and-tenancy.md, "Team members and invitations"): members with their roles, built-in or custom, and
+  // the invitations nobody has answered yet, on the list template. A role shows by its name alone, with no Custom label
+  // (W6). Someone whose role has Manage the team gives only roles that hold nothing their own does not (TeamPolicy), so
+  // Owners manage everyone and Admins everyone but Owners. Your own row has no actions: handing over is done by another
+  // owner. Invite opens a sheet that describes each role from the API's catalogue and starts at Viewer, the least access
+  // (design system section 22).
   let { data }: PageProps = $props();
 
   const membersPath = '/v1/organization/members';
@@ -77,33 +80,48 @@
   const changeRole = createChangeMemberRole(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
   const remove = createRemoveMember(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
   const revoke = createRevokeInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
-  // Removing a member offers to revoke the API keys they created (ADR-0011): a key outlives its creator otherwise.
-  const keys = createListApiKeys();
+  // Removing a member offers to revoke the API keys they created (ADR-0011): a key outlives its creator otherwise. Only
+  // for a role that manages API keys; anyone else's removal leaves the keys to someone who does.
+  const mayRevokeKeys = $derived(can(data.user, 'ManageApiKeys'));
+  const keys = createListApiKeys(() => ({ query: { enabled: mayRevokeKeys } }));
   const revokeKey = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/api-keys') } }));
   const catalogue = createListRoles();
   const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
 
-  const actor = $derived<OrganizationRole>(data.user?.organization?.role ?? 'Viewer');
+  const actor = $derived(data.user?.organization?.permissions ?? []);
   const myId = $derived(data.user?.id);
   const memberList = $derived(members.data?.data ?? []);
   const invitationList = $derived(invitations.data?.data ?? []);
-  const offered = $derived(assignableRoles(actor));
-  const manageable = (member: TeamMember) => member.userId !== myId && mayManage(actor, member.role);
-  const roleDescription = (role: OrganizationRole) => catalogue.data?.data.roles.find((summary) => summary.role === role)?.description;
+  const roleList = $derived<RoleSummary[]>(catalogue.data?.data.roles ?? []);
+  const offered = $derived(assignableRoles(actor, roleList));
+  // A role is one key everywhere on the page: `viewer`, or a custom role's id (roleKey).
+  const roleOf = (held: { role: OrganizationRole; customRoleId?: string | null }) => roleList.find((role) => roleKey(role) === roleKey(held));
+  const mayHandle = (held: { role: OrganizationRole; customRoleId?: string | null }) => {
+    const role = roleOf(held);
+    return role !== undefined && mayManage(actor, role.permissions);
+  };
+  const manageable = (member: TeamMember) => member.userId !== myId && mayHandle(member);
+  // How a role reads in a sentence: a built-in one in lower case, a custom one as its name is written.
+  const roleWords = (role: RoleSummary) => (role.role === 'Custom' ? role.name : role.name.toLowerCase());
+  const article = (word: string) => (/^[aeiou]/i.test(word) ? 'an' : 'a');
 
   // Both tables sort (L2): people by name, roles by access (Owner first), dates newest first on the first click.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
-  const rank = (role: OrganizationRole) => roles.indexOf(role);
+  // The catalogue's order: built-in roles by access, then custom roles by name.
+  const rank = (held: { role: OrganizationRole; customRoleId?: string | null }) => {
+    const index = roleList.findIndex((role) => roleKey(role) === roleKey(held));
+    return index === -1 ? roleList.length : index;
+  };
   // `any`: one list mixes columns of different value types.
   const memberColumns: ColumnDef<typeof features, TeamMember, any>[] = [
     { id: 'name', header: 'Name', accessorFn: (member) => member.displayName, sortFn: 'alphanumeric' },
     { id: 'email', header: 'Email', accessorFn: (member) => member.email, sortFn: 'alphanumeric' },
-    { id: 'role', header: 'Role', accessorFn: (member) => rank(member.role), sortFn: 'basic', sortDescFirst: false },
+    { id: 'role', header: 'Role', accessorFn: (member) => rank(member), sortFn: 'basic', sortDescFirst: false },
     { id: 'joined', header: 'Joined', accessorFn: (member) => member.joinedAt, sortFn: 'basic', sortDescFirst: true },
   ];
   const invitationColumns: ColumnDef<typeof features, PendingInvitation, any>[] = [
     { id: 'email', header: 'Email', accessorFn: (invitation) => invitation.email, sortFn: 'alphanumeric' },
-    { id: 'role', header: 'Role', accessorFn: (invitation) => rank(invitation.role), sortFn: 'basic', sortDescFirst: false },
+    { id: 'role', header: 'Role', accessorFn: (invitation) => rank(invitation), sortFn: 'basic', sortDescFirst: false },
     { id: 'sent', header: 'Sent', accessorFn: (invitation) => invitation.createdAt, sortFn: 'basic', sortDescFirst: true },
     { id: 'expires', header: 'Expires', accessorFn: (invitation) => invitation.expiresAt, sortFn: 'basic' },
   ];
@@ -135,12 +153,13 @@
   // What the last action did, for screen readers; the lists show it to everyone else.
   let announcement = $state('');
 
-  async function setRole(member: TeamMember, role: OrganizationRole) {
-    if (role === member.role) return;
+  async function setRole(member: TeamMember, key: string) {
+    const role = roleList.find((candidate) => roleKey(candidate) === key);
+    if (!role || key === roleKey(member)) return;
     memberFailure = '';
     try {
-      await changeRole.mutateAsync({ memberId: member.id, data: { role } });
-      announcement = `${member.displayName} is now ${role === 'Admin' || role === 'Owner' ? 'an' : 'a'} ${role.toLowerCase()}.`;
+      await changeRole.mutateAsync({ memberId: member.id, data: { role: role.role, customRoleId: role.customRoleId } });
+      announcement = `${member.displayName} is now ${article(roleWords(role))} ${roleWords(role)}.`;
     } catch (error) {
       memberFailure = describeError(error, `Could not change ${member.displayName}'s role`);
     }
@@ -174,7 +193,7 @@
   }
 
   // The active keys the member being removed created, and whether to revoke them too (on unless the person unticks it).
-  const removingKeys = $derived(removing ? (keys.data?.data ?? []).filter((key) => !key.revokedAt && key.createdByUserId === removing!.userId) : []);
+  const removingKeys = $derived(removing && mayRevokeKeys ? (keys.data?.data ?? []).filter((key) => !key.revokedAt && key.createdByUserId === removing!.userId) : []);
   let revokeTheirKeys = $state(true);
   $effect(() => {
     if (removeOpen) revokeTheirKeys = true;
@@ -204,9 +223,10 @@
   let inviting = $state(false);
   const schema = CreateInvitationBody.extend({
     email: z.string().trim().min(1, 'Enter an email address.').max(256, 'Keep the address to 256 characters or fewer.'),
-    role: z.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
+    // The role's key (roleKey), which becomes the request's role and custom role id.
+    role: z.string().min(1, 'Choose a role.'),
   });
-  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'Viewer' as OrganizationRole }, zod4(schema)), {
+  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'viewer' }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -216,7 +236,13 @@
       if (!submitted.valid) return;
       try {
         const email = submitted.data.email.trim();
-        await invite.mutateAsync({ data: { email, role: submitted.data.role } });
+        const role = roleFromKey(roleList, submitted.data.role);
+        if (!role) {
+          submitted.valid = false;
+          submitted.errors.role = ['Choose a role.'];
+          return;
+        }
+        await invite.mutateAsync({ data: { email, ...role } });
         inviting = false;
         announcement = `Invitation sent to ${email}.`;
       } catch (error) {
@@ -236,7 +262,7 @@
   });
 
   $effect(() => {
-    if (inviting) reset({ data: { email: '', role: 'Viewer' } });
+    if (inviting) reset({ data: { email: '', role: 'viewer' } });
   });
 </script>
 
@@ -283,7 +309,7 @@
                   {#if member.userId === myId}<Badge variant="muted">You</Badge>{/if}
                 </span>
                 <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
-                <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.role}</Badge></span>
+                <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.roleName}</Badge></span>
               </div>
               {#if manageable(member)}{@render memberMenu(member)}{/if}
             </li>
@@ -311,7 +337,7 @@
                     </span>
                   </Table.Cell>
                   <Table.Cell class="w-full max-w-0 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
-                  <Table.Cell>{member.role}</Table.Cell>
+                  <Table.Cell class="max-w-48"><TruncatedText text={member.roleName} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
                 </Table.Row>
@@ -345,11 +371,11 @@
               <div class="flex min-w-0 flex-1 flex-col gap-1.5">
                 <span class="min-w-0 font-semibold break-all">{invitation.email}</span>
                 <span class="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="muted">{invitation.role}</Badge>
+                  <Badge variant="muted">{invitation.roleName}</Badge>
                   <Badge variant="muted">Expires <DateText at={invitation.expiresAt} /></Badge>
                 </span>
               </div>
-              {#if mayManage(actor, invitation.role)}{@render invitationMenu(invitation)}{/if}
+              {#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}
             </li>
           {/each}
         </ul>
@@ -369,10 +395,10 @@
               {#each sortedInvitations as invitation (invitation.id)}
                 <Table.Row class="h-12">
                   <Table.Cell class="w-full max-w-0 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
-                  <Table.Cell>{invitation.role}</Table.Cell>
+                  <Table.Cell class="max-w-48"><TruncatedText text={invitation.roleName} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={invitation.createdAt} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={invitation.expiresAt} /></Table.Cell>
-                  <Table.Cell class="pr-4.5 text-right">{#if mayManage(actor, invitation.role)}{@render invitationMenu(invitation)}{/if}</Table.Cell>
+                  <Table.Cell class="pr-4.5 text-right">{#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}</Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>
@@ -398,9 +424,9 @@
 {#snippet memberMenu(member: TeamMember)}
   <MoreMenu label={`Actions for ${member.displayName}`} size="icon" quiet onclosed={onMenuClosed}>
     <DropdownMenu.Label class="text-caption text-muted-foreground">Role</DropdownMenu.Label>
-    <DropdownMenu.RadioGroup value={member.role} onValueChange={(role) => setRole(member, role as OrganizationRole)}>
-      {#each offered as role (role)}
-        <DropdownMenu.RadioItem value={role} closeOnSelect>{role}</DropdownMenu.RadioItem>
+    <DropdownMenu.RadioGroup value={roleKey(member)} onValueChange={(key) => setRole(member, key)}>
+      {#each offered as role (roleKey(role))}
+        <DropdownMenu.RadioItem value={roleKey(role)} closeOnSelect>{role.name}</DropdownMenu.RadioItem>
       {/each}
     </DropdownMenu.RadioGroup>
     <DropdownMenu.Separator />
@@ -470,17 +496,17 @@
       <div class="flex flex-col gap-2">
         <div class="mb-1 flex items-baseline justify-between gap-3">
           <span id="invite-role-label" class="text-body font-medium">Role</span>
-          <a href="/settings/roles" class="text-caption underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">Compare roles</a>
+          <a href="/settings/roles/compare" class="text-caption underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">Compare roles</a>
         </div>
         <div role="radiogroup" aria-labelledby="invite-role-label" class="flex flex-col gap-2">
-          {#each offered as role (role)}
+          {#each offered as role (roleKey(role))}
             <label
               class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
             >
-              <input type="radio" name="role" value={role} bind:group={$form.role} class="mt-0.5 size-4 shrink-0 accent-primary" />
+              <input type="radio" name="role" value={roleKey(role)} bind:group={$form.role} class="mt-0.5 size-4 shrink-0 accent-primary" />
               <span class="flex min-w-0 flex-col gap-0.5">
-                <span class="font-semibold">{role}</span>
-                {#if roleDescription(role)}<span class="text-muted-foreground">{roleDescription(role)}</span>{/if}
+                <span class="font-semibold break-words">{role.name}</span>
+                <span class="text-muted-foreground">{role.description}</span>
               </span>
             </label>
           {/each}
