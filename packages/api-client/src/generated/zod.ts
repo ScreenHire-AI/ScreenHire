@@ -90,8 +90,9 @@ export const GetCurrentUserResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'))
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014).')])
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "seesAllJobs": zod.boolean()
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -146,8 +147,9 @@ export const CompleteOnboardingResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'))
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014).')])
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "seesAllJobs": zod.boolean()
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -166,8 +168,9 @@ export const AcceptInvitationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'))
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014).')])
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "seesAllJobs": zod.boolean()
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -186,8 +189,9 @@ export const SwitchOrganizationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'))
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014).')])
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "seesAllJobs": zod.boolean()
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -4701,9 +4705,24 @@ export const ListTeamMembersResponseItem = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "joinedAt": zod.iso.datetime({"offset":true})
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.')
+  "joinedAt": zod.iso.datetime({"offset":true}),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
+  "seesAllJobs": zod.boolean(),
+  "jobCount": zod.int()
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
 export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
+
+
+export const ListMemberJobsParams = zod.object({
+  "memberId": zod.uuid()
+})
+
+export const ListMemberJobsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "status": zod.enum(['Draft', 'Open', 'Closed'])
+}).describe('A job whose hiring team a member is on, for their access sheet. Changed through the job\'s own hiring team.')
+export const ListMemberJobsResponse = zod.array(ListMemberJobsResponseItem)
 
 
 export const ListInvitationsResponseItem = zod.object({
@@ -4713,16 +4732,18 @@ export const ListInvitationsResponseItem = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
-  "expiresAt": zod.iso.datetime({"offset":true})
-}).describe('An invitation nobody has accepted, revoked or let expire yet, and the role it offers.')
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')
+}).describe('An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers.')
 export const ListInvitationsResponse = zod.array(ListInvitationsResponseItem)
 
 
 export const CreateInvitationBody = zod.object({
   "email": zod.string(),
   "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
-  "customRoleId": zod.uuid().nullish()
-}).describe('Invites a person by email to join the organization with a role: a built-in one, or Custom with its id.')
+  "customRoleId": zod.uuid().nullish(),
+  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]).optional()
+}).describe('Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\r\n`jobAccess`, All when it is left out.')
 
 export const CreateInvitationResponse = zod.object({
   "id": zod.uuid(),
@@ -4731,14 +4752,15 @@ export const CreateInvitationResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
-  "expiresAt": zod.iso.datetime({"offset":true})
-}).describe('An invitation nobody has accepted, revoked or let expire yet, and the role it offers.')
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')
+}).describe('An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers.')
 
 
 export const ListMembershipLogResponseItem = zod.object({
   "id": zod.uuid(),
-  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted']),
-  "actorUserId": zod.uuid(),
+  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam']),
+  "actorUserId": zod.uuid().nullable(),
   "memberUserId": zod.uuid().nullable(),
   "invitationId": zod.uuid().nullable(),
   "previousRole": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
@@ -4747,8 +4769,15 @@ export const ListMembershipLogResponseItem = zod.object({
   "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string().nullable(),
-  "occurredAt": zod.iso.datetime({"offset":true})
-}).describe('One entry in the organization\'s membership log. `actorUserId` made the change; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`.')
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "previousJobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]),
+  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]),
+  "jobId": zod.uuid().nullable(),
+  "jobTitle": zod.string().nullable(),
+  "hiringTemplateId": zod.uuid().nullable(),
+  "hiringTemplateName": zod.string().nullable(),
+  "actorApiKeyId": zod.uuid().nullable()
+}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\r\nAPI key did; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\r\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\r\nor a hiring template\'s default team (`hiringTemplateId`, with its name now). A reader who sees only their own\r\njobs gets no entries about the others.')
 export const ListMembershipLogResponse = zod.array(ListMembershipLogResponseItem)
 
 
@@ -4769,8 +4798,34 @@ export const ChangeMemberRoleResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "joinedAt": zod.iso.datetime({"offset":true})
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.')
+  "joinedAt": zod.iso.datetime({"offset":true}),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
+  "seesAllJobs": zod.boolean(),
+  "jobCount": zod.int()
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+
+
+export const ChangeMemberJobAccessParams = zod.object({
+  "memberId": zod.uuid()
+})
+
+export const ChangeMemberJobAccessBody = zod.object({
+  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')])
+}).describe('Sets which jobs a member sees: all of them, or only the jobs whose hiring team they are on.')
+
+export const ChangeMemberJobAccessResponse = zod.object({
+  "id": zod.uuid(),
+  "userId": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "customRoleId": zod.uuid().nullable(),
+  "roleName": zod.string(),
+  "joinedAt": zod.iso.datetime({"offset":true}),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
+  "seesAllJobs": zod.boolean(),
+  "jobCount": zod.int()
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
 
 
 export const RemoveMemberParams = zod.object({
@@ -4785,6 +4840,76 @@ export const RevokeInvitationParams = zod.object({
 })
 
 export const RevokeInvitationResponse = zod.void()
+
+
+export const GetJobHiringTeamParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const GetJobHiringTeamResponseItem = zod.object({
+  "memberId": zod.uuid(),
+  "userId": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "roleName": zod.string(),
+  "seesAllJobs": zod.boolean()
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+export const GetJobHiringTeamResponse = zod.array(GetJobHiringTeamResponseItem)
+
+
+export const SetJobHiringTeamParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const SetJobHiringTeamBody = zod.object({
+  "memberIds": zod.array(zod.uuid()).nullable(),
+  "copyFromJobId": zod.uuid().nullish()
+}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\r\nover another job\'s team, which the caller must be able to see.')
+
+export const SetJobHiringTeamResponseItem = zod.object({
+  "memberId": zod.uuid(),
+  "userId": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "roleName": zod.string(),
+  "seesAllJobs": zod.boolean()
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+export const SetJobHiringTeamResponse = zod.array(SetJobHiringTeamResponseItem)
+
+
+export const GetHiringTemplateTeamParams = zod.object({
+  "templateId": zod.uuid()
+})
+
+export const GetHiringTemplateTeamResponseItem = zod.object({
+  "memberId": zod.uuid(),
+  "userId": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "roleName": zod.string(),
+  "seesAllJobs": zod.boolean()
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+export const GetHiringTemplateTeamResponse = zod.array(GetHiringTemplateTeamResponseItem)
+
+
+export const SetHiringTemplateTeamParams = zod.object({
+  "templateId": zod.uuid()
+})
+
+export const SetHiringTemplateTeamBody = zod.object({
+  "memberIds": zod.array(zod.uuid()).nullable(),
+  "copyFromJobId": zod.uuid().nullish()
+}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\r\nover another job\'s team, which the caller must be able to see.')
+
+export const SetHiringTemplateTeamResponseItem = zod.object({
+  "memberId": zod.uuid(),
+  "userId": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "roleName": zod.string(),
+  "seesAllJobs": zod.boolean()
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+export const SetHiringTemplateTeamResponse = zod.array(SetHiringTemplateTeamResponseItem)
 
 
 export const ListRolesResponse = zod.object({

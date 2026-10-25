@@ -4,14 +4,17 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { JobAccess } from './jobAccess.ts';
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
- * Invites a person by email to join the organization with a role: a built-in one, or Custom with its id.
+ * Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with
+ * `jobAccess`, All when it is left out.
  */
 export interface InvitationRequest {
   email: string;
   role: null | OrganizationRole;
   /** @nullable */
   customRoleId?: string | null;
+  jobAccess?: null | JobAccess;
 }

@@ -18,7 +18,7 @@ const member = (id: string, displayName: string, role: Exclude<OrganizationRole,
   role,
   customRoleId: null,
   roleName: role,
-  joinedAt: '2026-09-01T09:00:00Z',
+  joinedAt: '2026-09-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0,
 });
 
 const asAdmin = (teammate: TeamMember): TeamMember => ({ ...teammate, role: 'Admin', roleName: 'Admin' });
@@ -30,8 +30,8 @@ const admin = member('m-3', 'Casey Morgan', 'Admin');
 const recruiter = member('m-4', 'Jordan Lee', 'Recruiter');
 
 const invitations: PendingInvitation[] = [
-  { id: 'i-1', email: 'sam@example.com', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
-  { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
+  { id: 'i-1', email: 'sam@example.com', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z', jobAccess: 'All' as const },
+  { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z', jobAccess: 'All' as const },
 ];
 
 const as = (role: Exclude<OrganizationRole, 'Custom'>): { data: { user: CurrentUser } } => ({ data: { user: userAs(role) } });

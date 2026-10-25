@@ -2,9 +2,9 @@ import type { TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { insertMention, matchMembers, mentionedUserIds, mentionQuery, mentionToken, noteSegments, toDisplay, toStored } from '#lib/mentions.js';
 
-const robin: TeamMember = { id: 'm1', userId: '0199e8a0-0000-7000-8000-0000000000a1', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-01T09:00:00Z' };
-const rowan: TeamMember = { id: 'm2', userId: '0199e8a0-0000-7000-8000-0000000000a2', email: 'rowan@example.com', displayName: 'Rowan Ellis', role: 'Viewer', customRoleId: null, roleName: 'Viewer', joinedAt: '2026-10-01T09:00:00Z' };
-const avery: TeamMember = { id: 'm3', userId: '0199e8a0-0000-7000-8000-0000000000a3', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z' };
+const robin: TeamMember = { id: 'm1', userId: '0199e8a0-0000-7000-8000-0000000000a1', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 };
+const rowan: TeamMember = { id: 'm2', userId: '0199e8a0-0000-7000-8000-0000000000a2', email: 'rowan@example.com', displayName: 'Rowan Ellis', role: 'Viewer', customRoleId: null, roleName: 'Viewer', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 };
+const avery: TeamMember = { id: 'm3', userId: '0199e8a0-0000-7000-8000-0000000000a3', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 };
 const members = [robin, rowan, avery];
 
 describe('mentions', () => {

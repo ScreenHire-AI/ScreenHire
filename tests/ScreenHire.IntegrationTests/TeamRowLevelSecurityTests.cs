@@ -117,7 +117,7 @@ public sealed class TeamRowLevelSecurityTests(AppHostFixture fixture)
         var transaction = await connection.BeginTransactionAsync(Ct);
         if (organizationId is { } id)
         {
-            await using var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true)", connection, transaction);
+            await using var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection, transaction);
             setTenant.Parameters.AddWithValue("tenant", id.ToString());
             await setTenant.ExecuteNonQueryAsync(Ct);
         }

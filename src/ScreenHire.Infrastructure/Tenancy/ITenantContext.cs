@@ -70,6 +70,18 @@ public sealed class TenantContext : ITenantContext
         seesAllJobs = seesAll;
     }
 
+    /// <summary>
+    /// Makes <paramref name="organizationId"/> the tenant of a public route (a careers page, a feed, the public board),
+    /// which acts for the organization in its URL, never for whoever happens to be signed in: every job is in reach, and
+    /// the route itself shows only what is public. Without this a signed-in visitor would bring their own job access to
+    /// another organization's careers page and see none of its jobs.
+    /// </summary>
+    public void SetPublicOrganization(Guid organizationId)
+    {
+        SetOrganization(organizationId);
+        seesAllJobs = true;
+    }
+
     private void ClearMemberScope()
     {
         MemberId = null;

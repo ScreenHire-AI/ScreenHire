@@ -6,7 +6,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { page } from '$app/state';
-  import { can } from '#lib/permissions.js';
+  import { can, seesAllJobs } from '#lib/permissions.js';
   import { settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
   import type { LayoutProps } from './$types';
 
@@ -16,7 +16,10 @@
   let { data, children }: LayoutProps = $props();
 
   const section = $derived(settingsSectionOf(page.url.pathname));
-  const allowed = $derived(section ? can(data.user, section.permission) : visibleSettingsSections(data.user).length > 0);
+  const roleAllows = $derived(section ? can(data.user, section.permission) : visibleSettingsSections(data.user).length > 0);
+  // API keys and webhooks reach every job, so a person on Only jobs they're on cannot use them whatever their role says.
+  const jobsAllow = $derived(!section?.allJobs || seesAllJobs(data.user));
+  const allowed = $derived(roleAllows && jobsAllow);
 </script>
 
 <svelte:head>
@@ -31,10 +34,16 @@
   <main class="flex flex-col">
     <HeaderBand form title="Settings" />
     <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
-      <Panel title="Not in your role">
+      <Panel title={roleAllows ? 'Needs all jobs' : 'Not in your role'}>
         <Empty.Root>
           <Empty.Header>
-            <Empty.Description>Your role cannot change {section ? section.label.toLowerCase() : 'settings'}. Ask an owner or admin of your organization.</Empty.Description>
+            <Empty.Description>
+              {#if roleAllows}
+                {section?.label} reach every job, and you see only the jobs you're on. Ask an owner or admin of your organization.
+              {:else}
+                Your role cannot change {section ? section.label.toLowerCase() : 'settings'}. Ask an owner or admin of your organization.
+              {/if}
+            </Empty.Description>
           </Empty.Header>
           <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
         </Empty.Root>

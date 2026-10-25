@@ -17,6 +17,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         // hiring team is a column of the job's own row, so no policy here reads a table whose policy reads it back.
         // Candidates keep tenant-only row-level security: one person who applied to two jobs is one row, found by email
         // when they apply again, so the API filters them by job instead (ScreenHireDbContext.JobScopeFilter).
+        // change_records keeps tenant-only row-level security too: it names its subject by kind and id with no foreign key,
+        // a new job's history row is saved ahead of the job's own row, and a job's history is read only through the job
+        // (JobEndpoints.GetJobHistory loads the job first, so a hidden job is a 404).
         private const string SeesFunctions = """
             CREATE FUNCTION app_sees_all_jobs() RETURNS boolean LANGUAGE sql STABLE AS $$
                 SELECT COALESCE(current_setting('app.job_scope', true) = 'all', false)
@@ -110,9 +113,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     WHERE p.organization_id = indexing_notifications.organization_id AND p.id = indexing_notifications.posting_id))
                 WITH CHECK (app_sees_all_jobs() OR EXISTS (SELECT 1 FROM job_postings p
                     WHERE p.organization_id = indexing_notifications.organization_id AND p.id = indexing_notifications.posting_id));
-            CREATE POLICY job_scope ON change_records AS RESTRICTIVE FOR ALL TO screenhire_app
-                USING (CASE WHEN subject_kind = 'Job' THEN app_sees_job(organization_id, subject_id::uuid) ELSE true END)
-                WITH CHECK (CASE WHEN subject_kind = 'Job' THEN app_sees_job(organization_id, subject_id::uuid) ELSE true END);
             """;
 
         private const string DisableJobScope = """
@@ -141,7 +141,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             DROP POLICY IF EXISTS job_scope ON application_note_mentions;
             DROP POLICY IF EXISTS job_scope ON automation_action_runs;
             DROP POLICY IF EXISTS job_scope ON indexing_notifications;
-            DROP POLICY IF EXISTS job_scope ON change_records;
             DROP FUNCTION IF EXISTS app_sees_application(uuid, uuid);
             DROP FUNCTION IF EXISTS app_sees_job(uuid, uuid);
             DROP FUNCTION IF EXISTS app_sees_all_jobs();

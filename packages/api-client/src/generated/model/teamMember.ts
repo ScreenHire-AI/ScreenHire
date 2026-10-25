@@ -4,11 +4,14 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { JobAccess } from './jobAccess.ts';
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
  * A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.
  * `role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.
+ * `jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever
+ * it says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.
  */
 export interface TeamMember {
   id: string;
@@ -20,4 +23,7 @@ export interface TeamMember {
   customRoleId: string | null;
   roleName: string;
   joinedAt: string;
+  jobAccess: JobAccess;
+  seesAllJobs: boolean;
+  jobCount: number;
 }

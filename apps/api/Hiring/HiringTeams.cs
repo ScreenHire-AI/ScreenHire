@@ -83,17 +83,34 @@ internal static class HiringTeams
     }
 
     /// <summary>
-    /// After a job's team change commits: a member on Only jobs they're on who joined gets the job's group on their open
-    /// connections; one who left has their connections closed, so they reconnect without it and refetch. People who see
-    /// all jobs are in every job's events already.
+    /// Saves a job's team change with <paramref name="save"/> and moves open live-update connections to match. A member on
+    /// Only jobs they're on who joins gets the job's group before the save, because the save's own HiringTeamChanged can
+    /// reach the hub before this request runs on; if the save fails, their connections close, so they reconnect without
+    /// it. One who left has their connections closed after the save, so they reconnect without the job and refetch.
+    /// People who see all jobs are in every job's events already.
     /// </summary>
-    public static async Task UpdateConnectionsAsync(
+    public static async Task SaveAsync(
         RealtimeConnections connections, IReadOnlyDictionary<Guid, Member> members, HiringTeamChange change, Guid organizationId, Guid jobId,
-        CancellationToken cancellationToken)
+        Func<Task> save, CancellationToken cancellationToken)
     {
-        foreach (var member in change.Added.Where(members.ContainsKey).Select(id => members[id]).Where(m => !m.SeesAllJobs))
+        var joined = change.Added.Where(members.ContainsKey).Select(id => members[id]).Where(m => !m.SeesAllJobs).ToList();
+        foreach (var member in joined)
         {
             await connections.JoinTeamAsync(member.UserId, organizationId, jobId, cancellationToken);
+        }
+
+        try
+        {
+            await save();
+        }
+        catch
+        {
+            foreach (var member in joined)
+            {
+                connections.Close(member.UserId, organizationId);
+            }
+
+            throw;
         }
 
         foreach (var member in change.Removed.Where(members.ContainsKey).Select(id => members[id]).Where(m => !m.SeesAllJobs))

@@ -6,8 +6,8 @@ import ShieldUserIcon from '@lucide/svelte/icons/shield-user';
 import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 import UsersRoundIcon from '@lucide/svelte/icons/users-round';
 import WebhookIcon from '@lucide/svelte/icons/webhook';
-import type { CurrentUser, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
-import { can } from '#lib/permissions.js';
+import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
+import { can, seesAllJobs } from '#lib/permissions.js';
 import type { LucideIcon } from '#lib/shell.js';
 
 /**
@@ -16,20 +16,23 @@ import type { LucideIcon } from '#lib/shell.js';
  * which every member sees and which the G chords read. Email templates stay last until the Templates page takes them
  * (section 22).
  */
-export const settingsSections: readonly { label: string; href: string; icon: LucideIcon; permission: Permission }[] = [
+export const settingsSections: readonly { label: string; href: string; icon: LucideIcon; permission: Permission; allJobs?: true }[] = [
   { label: 'Organization', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings' },
   { label: 'Team', href: '/settings/team', icon: UsersRoundIcon, permission: 'ManageTeam' },
   { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings' },
   { label: 'Integrity', href: '/settings/integrity', icon: ShieldCheckIcon, permission: 'EditSettings' },
-  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys' },
-  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks' },
+  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', allJobs: true },
+  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', allJobs: true },
   { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon, permission: 'EditEmailTemplates' },
 ];
 
-/** The Settings pages the person's role may use: none means no Settings item at all. */
+/**
+ * The Settings pages the person's role may use: none means no Settings item at all. API keys and webhooks reach every
+ * job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs".
+ */
 export const visibleSettingsSections = (user: CurrentUser | null | undefined) =>
-  settingsSections.filter((section) => can(user, section.permission));
+  settingsSections.filter((section) => can(user, section.permission) && (!section.allJobs || seesAllJobs(user)));
 
 /** The Settings page a path belongs to, such as Roles for `/settings/roles/compare`. */
 export const settingsSectionOf = (path: string) =>
@@ -60,3 +63,14 @@ export const mayAssign = (actor: readonly Permission[], role: readonly Permissio
 /** The roles someone with `actor` may give, in the catalogue's order. */
 export const assignableRoles = (actor: readonly Permission[], roles: readonly RoleSummary[]): RoleSummary[] =>
   roles.filter((role) => mayAssign(actor, role.permissions));
+
+/** Whether a member with `role` and `access` sees every job: Owners and Admins always do (JobAccessRules on the API). */
+export const seesAllJobsWith = (role: OrganizationRole, access: JobAccess): boolean =>
+  role === 'Owner' || role === 'Admin' || access === 'All';
+
+/**
+ * The API's job-access subset rule (TeamPolicy.MayGiveJobAccess): someone who sees only their own jobs may not leave
+ * anyone seeing every job, through All jobs or through the Owner or Admin role.
+ */
+export const mayGiveJobAccess = (actorSeesAllJobs: boolean, role: OrganizationRole, access: JobAccess): boolean =>
+  actorSeesAllJobs || !seesAllJobsWith(role, access);

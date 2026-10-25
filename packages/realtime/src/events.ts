@@ -48,7 +48,7 @@ export const realtimeEventSchemas = {
   ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant }),
   ScorecardSubmitted: z.object({ organizationId: id, applicationId: id, jobId: id, scorecardId: id, eventId: id, submittedAt: instant }),
   QuestionnaireAnswered: z.object({ organizationId: id, applicationId: id, jobId: id, requestId: id, eventId: id, answeredAt: instant }),
-  ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, completedAt: instant }),
+  ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, completedAt: instant }),
   // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
   AutomationRunFinished: z.object({
     organizationId: id,
@@ -78,6 +78,8 @@ export const realtimeEventSchemas = {
     eventId: id,
     assessedAt: instant,
   }),
+  // Someone joined or left a job's hiring team (ADR-0015): the job's team, the Team page's job counts and the jobs list refetch.
+  HiringTeamChanged: z.object({ organizationId: id, jobId: id, changedAt: instant }),
   JobClosed: z.object({ organizationId: id, jobId: id, closedAt: instant }),
   // A job's postings changed (docs/architecture/job-distribution.md): the dashboard refetches GET /v1/jobs/{jobId}/postings.
   JobPostingsChanged: z.object({ organizationId: id, jobId: id, changedAt: instant }),

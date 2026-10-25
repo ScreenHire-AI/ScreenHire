@@ -494,7 +494,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
         await connection.OpenAsync(Ct);
         await using var transaction = await connection.BeginTransactionAsync(Ct);
-        await using (var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true)", connection, transaction))
+        await using (var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection, transaction))
         {
             setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
             await setTenant.ExecuteNonQueryAsync(Ct);

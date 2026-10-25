@@ -4,20 +4,26 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { JobAccess } from './jobAccess.ts';
 import type { MembershipEventKind } from './membershipEventKind.ts';
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
- * One entry in the organization's membership log. `actorUserId` made the change; `memberUserId` is who it is
+ * One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an
+ * API key did; `memberUserId` is who it is
  * about (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and
  * `role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,
  * RoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in
- * `previousRoleName`.
+ * `previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a
+ * join set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)
+ * or a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own
+ * jobs gets no entries about the others.
  */
 export interface MembershipLogEntry {
   id: string;
   kind: MembershipEventKind;
-  actorUserId: string;
+  /** @nullable */
+  actorUserId: string | null;
   /** @nullable */
   memberUserId: string | null;
   /** @nullable */
@@ -33,4 +39,16 @@ export interface MembershipLogEntry {
   /** @nullable */
   roleName: string | null;
   occurredAt: string;
+  previousJobAccess: null | JobAccess;
+  jobAccess: null | JobAccess;
+  /** @nullable */
+  jobId: string | null;
+  /** @nullable */
+  jobTitle: string | null;
+  /** @nullable */
+  hiringTemplateId: string | null;
+  /** @nullable */
+  hiringTemplateName: string | null;
+  /** @nullable */
+  actorApiKeyId: string | null;
 }

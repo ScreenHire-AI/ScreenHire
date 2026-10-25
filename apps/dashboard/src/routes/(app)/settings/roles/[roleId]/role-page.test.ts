@@ -22,7 +22,7 @@ const detail: CustomRoleDetail = {
 };
 
 const team: TeamMember[] = [
-  { id: 'm-1', userId: user.id, email: user.email, displayName: user.displayName, role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
+  { id: 'm-1', userId: user.id, email: user.email, displayName: user.displayName, role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
   {
     id: 'm-2',
     userId: 'user-robin',
@@ -31,7 +31,7 @@ const team: TeamMember[] = [
     role: 'Custom',
     customRoleId: interviewerRoleId,
     roleName: 'Interviewer',
-    joinedAt: '2026-10-02T09:00:00Z',
+    joinedAt: '2026-10-02T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0,
   },
 ];
 

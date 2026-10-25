@@ -116,7 +116,7 @@ public sealed class AutomationRowLevelSecurityTests(AppHostFixture fixture)
     {
         var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
         await connection.OpenAsync(Ct);
-        await using var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, false)", connection);
+        await using var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, false), set_config('app.job_scope', 'all', false)", connection);
         setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
         await setTenant.ExecuteNonQueryAsync(Ct);
         return connection;

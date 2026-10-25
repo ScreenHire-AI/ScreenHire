@@ -11,7 +11,7 @@ const member = (userId: string, displayName: string, role: TeamMember['role']): 
   role,
   customRoleId: role === 'Custom' ? interviewerRoleId : null,
   roleName: role === 'Custom' ? 'Interviewer' : role,
-  joinedAt: '2026-10-20T09:00:00Z',
+  joinedAt: '2026-10-20T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0,
 });
 
 const members = [

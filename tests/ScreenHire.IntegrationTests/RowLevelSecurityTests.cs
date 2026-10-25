@@ -38,7 +38,7 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
         await connection.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         await using var command = new NpgsqlCommand(
-            "SELECT set_config('app.tenant_id', @tenant, true); SELECT array_agg(slug ORDER BY slug) FROM jobs;", connection, transaction);
+            "SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true); SELECT array_agg(slug ORDER BY slug) FROM jobs;", connection, transaction);
         command.Parameters.AddWithValue("tenant", mine.Id.ToString());
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         await reader.NextResultAsync(cancellationToken);
@@ -55,7 +55,7 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
         await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(cancellationToken));
         await connection.OpenAsync(cancellationToken);
 
-        await using (var set = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true)", connection))
+        await using (var set = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection))
         {
             set.Parameters.AddWithValue("tenant", organization.Id.ToString());
             await set.ExecuteNonQueryAsync(cancellationToken);

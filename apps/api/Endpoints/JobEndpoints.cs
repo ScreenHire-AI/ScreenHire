@@ -212,14 +212,13 @@ internal static class JobEndpoints
         db.Jobs.Add(job);
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await HiringTeams.SaveAsync(connections, members, team, job.OrganizationId, job.Id, () => db.SaveChangesAsync(cancellationToken), cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             return TypedResults.Problem("Another job took this slug at the same moment; try again.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        await HiringTeams.UpdateConnectionsAsync(connections, members, team, job.OrganizationId, job.Id, cancellationToken);
         return TypedResults.Created($"/v1/jobs/{job.Id}", (await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
     }
 

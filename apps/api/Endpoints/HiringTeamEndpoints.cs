@@ -105,8 +105,8 @@ internal static class HiringTeamEndpoints
         {
             HiringTeams.Log(db, tenant, members, change, now, jobId: job.Id);
             await outbox.PublishAsync(new HiringTeamChanged(job.OrganizationId, job.Id, now));
-            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-            await HiringTeams.UpdateConnectionsAsync(connections, members, change, job.OrganizationId, job.Id, cancellationToken);
+            await HiringTeams.SaveAsync(
+                connections, members, change, job.OrganizationId, job.Id, () => outbox.SaveChangesAndFlushMessagesAsync(cancellationToken), cancellationToken);
         }
 
         return TypedResults.Ok(await HiringTeams.DescribeAsync(db, members, job.HiringTeam, cancellationToken));

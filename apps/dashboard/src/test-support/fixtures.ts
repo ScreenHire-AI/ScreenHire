@@ -44,6 +44,7 @@ export const user: CurrentUser = {
     customRoleId: null,
     roleName: 'Owner',
     permissions: ownerPermissions,
+    seesAllJobs: true,
   },
 };
 

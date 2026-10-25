@@ -7,15 +7,22 @@ namespace ScreenHire.IntegrationTests;
 internal static class TeamTestSupport
 {
     /// <summary>
-    /// Has <paramref name="inviter"/> invite a new address with <paramref name="role"/>, reads the invitation from Mailpit
-    /// and accepts it in a fresh session, as the invited person would. Dispose the result.
+    /// Has <paramref name="inviter"/> invite a new address with <paramref name="role"/> (and <paramref name="jobAccess"/>,
+    /// All when null), reads the invitation from Mailpit and accepts it in a fresh session, as the invited person would.
+    /// Dispose the result.
     /// </summary>
-    public static async Task<Tenant> InviteAndJoinAsync(this AppHostFixture fixture, Tenant inviter, string role, string? email = null)
+    public static async Task<Tenant> InviteAndJoinAsync(
+        this AppHostFixture fixture, Tenant inviter, string role, string? email = null, string? jobAccess = null)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         email ??= ApiSession.NewEmail(role.ToLowerInvariant());
-        (await inviter.PostAsync("/v1/organization/invitations", new JsonObject { ["email"] = email, ["role"] = role }))
-            .Expect(HttpStatusCode.Created);
+        var body = new JsonObject { ["email"] = email, ["role"] = role };
+        if (jobAccess is not null)
+        {
+            body["jobAccess"] = jobAccess;
+        }
+
+        (await inviter.PostAsync("/v1/organization/invitations", body)).Expect(HttpStatusCode.Created);
         var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, cancellationToken);
 
         var session = new ApiSession(fixture);
@@ -70,4 +77,11 @@ internal static class TeamTestSupport
         var members = (await viewer.GetAsync("/v1/organization/members")).Expect(HttpStatusCode.OK);
         return members.Body.EnumerateArray().Single(m => m.GetProperty("userId").GetGuid() == userId).GetProperty("id").GetGuid();
     }
+
+    /// <summary>Has <paramref name="editor"/> set <paramref name="jobId"/>'s hiring team to these members, and expects 200.</summary>
+    public static async Task<ApiResult> SetHiringTeamAsync(this Tenant editor, Guid jobId, params Guid[] memberIds) =>
+        (await editor.PutAsync($"/v1/jobs/{jobId}/hiring-team", new JsonObject
+        {
+            ["memberIds"] = new JsonArray([.. memberIds.Select(id => JsonValue.Create(id))]),
+        })).Expect(HttpStatusCode.OK);
 }
