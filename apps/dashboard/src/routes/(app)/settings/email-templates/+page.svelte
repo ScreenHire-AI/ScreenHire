@@ -86,7 +86,7 @@
                   <Table.Head class="px-4.5">Template</Table.Head>
                   <Table.Head>Subject</Table.Head>
                   <Table.Head>Type</Table.Head>
-                  <Table.Head class="pr-4.5 text-right">Changed</Table.Head>
+                  <Table.Head class="pr-4.5 text-right">Last updated</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -105,7 +105,7 @@
                     <Table.Cell class="w-full max-w-0 text-muted-foreground"><span class="flex min-w-0"><TruncatedText text={template.subject} /></span></Table.Cell>
                     <Table.Cell class="whitespace-nowrap">{kind(template)}</Table.Cell>
                     <Table.Cell class="pr-4.5 text-right text-muted-foreground">
-                      {#if template.updatedAt}<span class="relative"><DateText at={template.updatedAt} /></span>{/if}
+                      {#if template.lastUpdated.at}<span class="relative"><DateText at={template.lastUpdated.at} /></span>{/if}
                     </Table.Cell>
                   </Table.Row>
                 {/each}

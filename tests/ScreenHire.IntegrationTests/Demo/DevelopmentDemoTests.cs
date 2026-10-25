@@ -67,6 +67,38 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
     }
 
     [Fact]
+    public async Task The_template_a_job_and_an_email_template_have_history_by_two_people()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var members = (await GetAsync(owner, "/v1/organization/members")).EnumerateArray().ToList();
+        string UserId(string name) => members.Single(m => m.GetProperty("displayName").GetString() == name).GetProperty("userId").GetString()!;
+        var avery = UserId("Avery Quinn");
+        var jordan = UserId("Jordan Ellis");
+
+        var template = (await GetAsync(owner, "/v1/templates")).EnumerateArray().Single(t => t.GetProperty("name").GetString() == TemplateName);
+        var templateHistory = await HistoryAsync(owner, $"/v1/templates/{template.GetProperty("id").GetString()}/history");
+        templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("started version 2")
+            && e.Lines.Contains("added What is your notice period?") && e.Lines.Any(l => l.StartsWith("changed the time limit of Interview", StringComparison.Ordinal)));
+        templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("made What is your notice period? required"));
+        templateHistory.Should().Contain(e => e.By == avery && e.Lines.Contains("created the template from Software engineer"));
+
+        var draft = await FindJobAsync(owner, DraftJobSlug);
+        (await HistoryAsync(owner, $"/v1/jobs/{draft!.Value.GetProperty("id").GetString()}/history"))
+            .Should().Contain(e => e.By == jordan && e.Lines.Contains("changed the salary"));
+
+        var email = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
+            .Single(t => t.GetProperty("name").GetString() == "Interview invitation");
+        (await HistoryAsync(owner, $"/v1/email-templates/{email.GetProperty("id").GetString()}/history"))
+            .Select(e => (e.By, e.Lines[0])).Should().Equal((avery, "changed the subject"), (avery, "created the template"));
+    }
+
+    // Each entry's author and its lines' text, newest first.
+    private static async Task<List<(string? By, List<string> Lines)>> HistoryAsync(ApiSession owner, string path) =>
+        [.. (await GetAsync(owner, path)).GetProperty("entries").EnumerateArray().Select(e => (
+            e.GetProperty("userId").GetString(),
+            e.GetProperty("lines").EnumerateArray().Select(l => l.GetProperty("text").GetString()!).ToList()))];
+
+    [Fact]
     public async Task The_payments_job_is_a_draft()
     {
         using var owner = await SignedInOwnerAsync();

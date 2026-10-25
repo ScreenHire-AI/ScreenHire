@@ -34,13 +34,13 @@ afterEach(() => {
 });
 
 describe('jobs page', () => {
-  it('shows a row per job, status first, with its location, type and publish date, linking to the job', async () => {
+  it('shows a row per job, status first, with its location, type, publish date and last update, linking to the job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
     renderPage();
 
     expect((await dataRows()).map(cellTexts)).toEqual([
-      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '-', ''],
-      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', ''],
+      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '-', 'Oct 19, 2026', ''],
+      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');

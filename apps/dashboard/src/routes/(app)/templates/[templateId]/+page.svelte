@@ -5,13 +5,15 @@
     createCreateHiringTemplateVersion,
     createGetHiringTemplate,
     createGetHiringTemplateVersion,
+    createListTeamMembers,
     createPublishHiringTemplateVersion,
     createUpdateHiringTemplateVersion,
+    getGetHiringTemplateHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CheckIcon from '@lucide/svelte/icons/check';
   import CopyIcon from '@lucide/svelte/icons/copy';
-  import HistoryIcon from '@lucide/svelte/icons/history';
+  import LayersIcon from '@lucide/svelte/icons/layers';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import SaveIcon from '@lucide/svelte/icons/save';
   import SendIcon from '@lucide/svelte/icons/send';
@@ -19,8 +21,11 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -39,6 +44,7 @@
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
@@ -75,6 +81,16 @@
   const publish = createPublishHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const nextVersion = createCreateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const copy = createCreateHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
+
+  // Last updated and History (T6). A ScreenHire template says "by ScreenHire" and has no History: nobody can change it.
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  let historyOpen = $state(false);
+  const history = createHistoryPages(
+    (before) => getGetHiringTemplateHistoryQueryOptions(params.templateId, { before }),
+    () => historyOpen,
+  );
 
   const draft = createWorkflowDraft();
   $effect(() => {
@@ -245,7 +261,7 @@
             {#if versions.length > 1}
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
-                  <HistoryIcon aria-hidden="true" />Versions
+                  <LayersIcon aria-hidden="true" />Versions
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content align="end" class="w-56">{@render versionItems()}</DropdownMenu.Content>
               </DropdownMenu.Root>
@@ -254,8 +270,28 @@
             {@render primaryAction()}
           {/if}
         {/snippet}
+        {#snippet facts()}
+          <Fact label="Last updated">
+            <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => (historyOpen = true)} />
+          </Fact>
+        {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
       </HeaderBand>
+      {#if !detail.isSystem}
+        <HistorySheet
+          bind:open={historyOpen}
+          name={detail.name}
+          entries={history.entries}
+          error={history.error}
+          onretry={history.retry}
+          hasMore={history.hasMore}
+          loadingMore={history.loadingMore}
+          onmore={history.more}
+          {members}
+          {currentUserId}
+          note="Jobs keep the copy they started with; a change here reaches jobs created after it."
+        />
+      {/if}
 
       <div class={workArea}>
         {#if isDraft}

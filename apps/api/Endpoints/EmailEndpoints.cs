@@ -6,9 +6,11 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
@@ -35,6 +37,7 @@ internal static class EmailEndpoints
             .RequireOrganizationAdmin()
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapGet("/{templateId}", GetEmailTemplate).WithName("GetEmailTemplate").Produces(StatusCodes.Status401Unauthorized);
+        templates.MapGet("/{templateId}/history", GetEmailTemplateHistory).WithName("GetEmailTemplateHistory").Produces(StatusCodes.Status401Unauthorized);
         templates.MapPut("/{templateId}", UpdateEmailTemplate).WithName("UpdateEmailTemplate")
             .RequireAntiforgeryToken()
             .RequireOrganizationAdmin()
@@ -64,9 +67,10 @@ internal static class EmailEndpoints
         ScreenHireDbContext db, EmailTemplateStore store, IServiceProvider services, CancellationToken cancellationToken)
     {
         var list = await store.ListAsync(db, cancellationToken);
+        var changes = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.EmailTemplate, [.. list.Select(t => t.Id)], cancellationToken);
         return TypedResults.Ok(new EmailTemplateList(
             SendingEnabled(services),
-            [.. list.Select(t => t.ToEntry())],
+            [.. list.Select(t => t.ToEntry(changes.GetValueOrDefault(t.Id)))],
             [
                 .. EmailTemplates.Variables.Select(v => new EmailTemplateVariableEntry(v.Name, v.Label, false)),
                 new(EmailTemplates.Reason.Name, EmailTemplates.Reason.Label, true),
@@ -76,7 +80,31 @@ internal static class EmailEndpoints
 
     private static async Task<Results<Ok<EmailTemplateEntry>, NotFound>> GetEmailTemplate(
         string templateId, ScreenHireDbContext db, EmailTemplateStore store, CancellationToken cancellationToken) =>
-        await store.FindAsync(db, templateId, cancellationToken) is { } template ? TypedResults.Ok(template.ToEntry()) : TypedResults.NotFound();
+        await store.FindAsync(db, templateId, cancellationToken) is { } template
+            ? TypedResults.Ok(await EntryAsync(db, template, cancellationToken))
+            : TypedResults.NotFound();
+
+    // Every change to the template, newest first: a built-in's history outlives its row, which restoring deletes.
+    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetEmailTemplateHistory(
+        string templateId, Guid? before, int? limit, ScreenHireDbContext db, EmailTemplateStore store, CancellationToken cancellationToken)
+    {
+        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
+        {
+            return problem;
+        }
+
+        if (await store.FindAsync(db, templateId, cancellationToken) is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.EmailTemplate, templateId, before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
+    }
+
+    private static async Task<EmailTemplateEntry> EntryAsync(ScreenHireDbContext db, OrganizationEmailTemplate template, CancellationToken cancellationToken) =>
+        template.ToEntry(await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.EmailTemplate, template.Id, cancellationToken));
 
     private static async Task<Results<Created<EmailTemplateEntry>, ValidationProblem, ProblemHttpResult>> CreateEmailTemplate(
         CreateEmailTemplateRequest request,
@@ -109,7 +137,7 @@ internal static class EmailEndpoints
         db.EmailTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);
         var created = await store.FindAsync(db, template.Key, cancellationToken);
-        return TypedResults.Created($"/v1/email-templates/{template.Key}", created!.ToEntry());
+        return TypedResults.Created($"/v1/email-templates/{template.Key}", await EntryAsync(db, created!, cancellationToken));
     }
 
     // A built-in's first edit adds the organization's row; later edits change it.
@@ -179,21 +207,29 @@ internal static class EmailEndpoints
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        return TypedResults.Ok((await store.FindAsync(db, templateId, cancellationToken))!.ToEntry());
+        return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
     }
 
-    // An organization template goes, unless an automation names it. A built-in goes back to ScreenHire's wording.
+    // An organization template goes, unless an automation names it. A built-in goes back to ScreenHire's wording. Both
+    // delete through the change tracker, not ExecuteDelete, so the change history records them.
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteEmailTemplate(
         string templateId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (EmailTemplateIds.All.Contains(templateId))
         {
-            await db.EmailTemplates.Where(t => t.BuiltInId == templateId).ExecuteDeleteAsync(cancellationToken);
+            if (await db.EmailTemplates.SingleOrDefaultAsync(t => t.BuiltInId == templateId, cancellationToken) is { } reworded)
+            {
+                db.EmailTemplates.Remove(reworded);
+                await SaveDeletionAsync(db, cancellationToken);
+            }
+
             return TypedResults.NoContent();
         }
 
-        if (!Guid.TryParseExact(templateId, "D", out var rowId)
-            || !await db.EmailTemplates.AnyAsync(t => t.Id == rowId && t.BuiltInId == null, cancellationToken))
+        var row = Guid.TryParseExact(templateId, "D", out var rowId)
+            ? await db.EmailTemplates.SingleOrDefaultAsync(t => t.Id == rowId && t.BuiltInId == null, cancellationToken)
+            : null;
+        if (row is null)
         {
             return TypedResults.NotFound();
         }
@@ -206,8 +242,22 @@ internal static class EmailEndpoints
                 statusCode: StatusCodes.Status409Conflict);
         }
 
-        await db.EmailTemplates.Where(t => t.Id == rowId).ExecuteDeleteAsync(cancellationToken);
+        db.EmailTemplates.Remove(row);
+        await SaveDeletionAsync(db, cancellationToken);
         return TypedResults.NoContent();
+    }
+
+    // Someone else deleted the row at the same moment: the template is gone either way, and their deletion is recorded.
+    private static async Task SaveDeletionAsync(ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            db.ChangeTracker.Clear();
+        }
     }
 
     // Unsaved wording, with the sample candidate and the organization's own name.

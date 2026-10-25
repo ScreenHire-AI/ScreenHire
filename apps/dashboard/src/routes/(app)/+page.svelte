@@ -186,6 +186,7 @@
                 <Table.Head class="text-caption text-muted-foreground">Location</Table.Head>
                 <Table.Head class="text-caption text-muted-foreground">Type</Table.Head>
                 <Table.Head class="text-right text-caption text-muted-foreground">Published</Table.Head>
+                <Table.Head class="text-right text-caption text-muted-foreground whitespace-nowrap">Last updated</Table.Head>
                 <Table.Head class="w-14 px-4"><span class="sr-only">Actions</span></Table.Head>
               </Table.Row>
             </Table.Header>
@@ -211,6 +212,9 @@
                   </Table.Cell>
                   <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
                   <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
+                  <Table.Cell class="text-right text-muted-foreground tabular-nums">
+                    {#if job.lastUpdated.at}<span class="relative"><DateText at={job.lastUpdated.at} /></span>{/if}
+                  </Table.Cell>
                   <Table.Cell class="px-4 text-right">
                     {#if job.status !== 'Closed'}
                       <span class="relative inline-flex">{@render rowMenu(job)}</span>

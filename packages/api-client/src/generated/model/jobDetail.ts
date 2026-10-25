@@ -11,6 +11,7 @@ import type { JobPostingStatus } from './jobPostingStatus.ts';
 import type { JobSalary } from './jobSalary.ts';
 import type { JobStatus } from './jobStatus.ts';
 import type { JobTemplateSource } from './jobTemplateSource.ts';
+import type { LastUpdate } from './lastUpdate.ts';
 import type { WorkplaceType } from './workplaceType.ts';
 
 /**
@@ -45,4 +46,5 @@ export interface JobDetail {
   /** @nullable */
   closedAt: string | null;
   postings: JobPostingStatus[];
+  lastUpdated: LastUpdate;
 }

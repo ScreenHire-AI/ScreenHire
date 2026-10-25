@@ -6,6 +6,7 @@
  */
 import type { EmploymentType } from './employmentType.ts';
 import type { JobStatus } from './jobStatus.ts';
+import type { LastUpdate } from './lastUpdate.ts';
 import type { WorkplaceType } from './workplaceType.ts';
 
 /**
@@ -25,4 +26,5 @@ export interface JobSummary {
   /** @nullable */
   department: string | null;
   templateUpdateAvailable: boolean;
+  lastUpdated: LastUpdate;
 }

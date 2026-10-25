@@ -33,7 +33,8 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited in Sett
   (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
-  ScreenHire's wording. A built-in keeps its name.
+  ScreenHire's wording. A built-in keeps its name. Edits, restores and deletions go through the change tracker, so
+  each template's History records them ([change-history.md](change-history.md)).
 - **The organization's own.** An `email_templates` row with `built_in_id` null and a name. Automations and sends name it
   by its id, a Guid string.
 

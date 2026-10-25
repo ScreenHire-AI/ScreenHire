@@ -143,6 +143,12 @@ same people the integrity golden tests use ([integrity-engine.md](../architectur
 Templates: the two system templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the
 Software engineer pipeline and questionnaire plus the three candidate emails.
 
+Change history ([change-history.md](../architecture/change-history.md)): the demo makes its template, emails and jobs
+as Avery Quinn, so their History sheets name her. On top, Jordan Ellis starts version 2 of "Brightwater engineering"
+(a notice period question, then made required, and two more days for Interview) and changes the salary of "Backend
+Engineer (Payments)", and Avery adds an "Interview invitation" email template and edits its subject. The jobs `DevelopmentDataSeeder`
+makes have no history until someone edits them.
+
 ### What is seeded where
 
 | Layer | Runs | Adds |
@@ -193,7 +199,8 @@ Settings, as Avery (owners and admins only):
   from the row's menu.
 - **Email templates.** Open "Application received", change the subject, and the preview with the made-up Jordan Lee
   follows as you type; **Send test** lands in Mailpit with `[Test]` in front. Then, on a job's pipeline, tick a few
-  candidates and press **Email**: each gets the email in Mailpit, and it shows in their Activity.
+  candidates and press **Email**: each gets the email in Mailpit, and it shows in their Activity. Back on the template,
+  Last updated says "by you", and **History** shows "You changed the subject" with the old and new subject.
 - **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).

@@ -323,7 +323,8 @@ The data model and API from the jobs and templates task, and the engine that run
 - **Templates** have numbered versions: at most one draft, then published versions that never change. The system
   templates "Software engineer" and "Hourly role" ship in the `AddHiringModel` migration with no organization, and a
   later version of one ships as its own migration (`AddSoftwareEngineerTemplateVersion2`); an organization copies one
-  (`copyFromVersionId`) to customise it. `AddScorecards` ships "Software engineer" version 3 and "Hourly role"
+  (`copyFromVersionId`) to customise it, and the copy remembers its source (`copied_from_template_id`), so its history
+  starts "created the template from Software engineer" ([change-history.md](change-history.md)). `AddScorecards` ships "Software engineer" version 3 and "Hourly role"
   version 2, the earlier versions with default scorecards on their review stages; the default workflow (a job made
   without a template) has scorecards on Screening and Interview. `AddFollowUpQuestionnaires` ships "Software engineer"
   version 4 and "Hourly role" version 3, whose right-to-work automation fires on `ApplicationSubmitted`: it read an

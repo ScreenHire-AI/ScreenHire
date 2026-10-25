@@ -16,13 +16,7 @@ public sealed record OrganizationEmailTemplate(
 public sealed class EmailTemplateStore(EmailTemplates templates)
 {
     /// <summary>ScreenHire's names for the built-in templates, which organizations cannot rename.</summary>
-    public static IReadOnlyDictionary<string, string> BuiltInNames { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        [EmailTemplateIds.ApplicationReceived] = "Application received",
-        [EmailTemplateIds.StageChange] = "Moved to the next step",
-        [EmailTemplateIds.QuestionnaireRequest] = "Follow-up questions",
-        [EmailTemplateIds.ApplicationRejected] = "Not progressing",
-    };
+    public static IReadOnlyDictionary<string, string> BuiltInNames => EmailTemplateIds.Names;
 
     /// <summary>The built-in templates first, in their order, then the organization's own, oldest first.</summary>
     public async Task<List<OrganizationEmailTemplate>> ListAsync(ScreenHireDbContext db, CancellationToken cancellationToken)

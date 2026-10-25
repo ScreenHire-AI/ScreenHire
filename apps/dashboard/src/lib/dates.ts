@@ -53,6 +53,34 @@ export function timeSince(iso: string, now: number): string {
 /** A board's estimate, for a fact pill: `~20s`, `~1d`. */
 export const eta = (iso: string, now: number) => `~${timeUntil(iso, now)}`;
 
+const monthDay = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' });
+
+/** The local day an instant falls on, as a key for grouping: `2026-10-25`. */
+export function dayKey(iso: string): string {
+  const at = new Date(iso);
+  return `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(at.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * A day as a heading over that day's items, in the browser's locale: `Today`, `Yesterday`, `Oct 22`, or with the
+ * year for another year, `Oct 22, 2025`.
+ */
+export function dayLabel(iso: string, now: number): string {
+  const at = new Date(iso);
+  const today = new Date(now);
+  // A moment past this browser's clock, saved by a server whose clock runs ahead, is still today.
+  const days = Math.max(
+    0,
+    Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(at.getFullYear(), at.getMonth(), at.getDate())) / day),
+  );
+  if (days === 0 || days === 1) {
+    const word = relative.format(-days, 'day');
+    return word.charAt(0).toLocaleUpperCase(locales) + word.slice(1);
+  }
+
+  return at.getFullYear() === today.getFullYear() ? monthDay.format(at) : date.format(at);
+}
+
 /** Time ago in text: `now`, `5 minutes ago`, `yesterday`; the date once it is more than a week old. */
 export function timeAgo(iso: string, now: number): string {
   const elapsed = Math.max(0, now - Date.parse(iso));

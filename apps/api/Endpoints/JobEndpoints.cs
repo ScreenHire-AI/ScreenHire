@@ -9,8 +9,10 @@ using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
@@ -35,6 +37,7 @@ internal static class JobEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob")
             .RequireAntiforgeryToken()
             .RequireHiringRole()
@@ -78,8 +81,28 @@ internal static class JobEndpoints
                 LatestTemplateVersion = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => t.LatestPublishedVersion).FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
+        var changes = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.Job, [.. rows.Select(r => r.Job.Id.ToString("D"))], cancellationToken);
 
-        return [.. rows.Select(r => r.Job.ToSummary(r.LatestTemplateVersion))];
+        return [.. rows.Select(r => r.Job.ToSummary(changes.GetValueOrDefault(r.Job.Id.ToString("D")), r.LatestTemplateVersion))];
+    }
+
+    // Every change to the job, newest first: its posting, its status and its workflow.
+    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetJobHistory(
+        Guid jobId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
+        {
+            return problem;
+        }
+
+        if (!await db.Jobs.AnyAsync(j => j.Id == jobId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.Job, jobId.ToString("D"), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
     }
 
     private static async Task<Results<Ok<JobDetail>, NotFound>> GetJob(
@@ -643,6 +666,7 @@ internal static class JobEndpoints
     /// </summary>
     internal static async Task<JobDetail?> LoadDetailAsync(ScreenHireDbContext db, BoardRegistry boards, Guid jobId, CancellationToken cancellationToken)
     {
+        var subjectId = jobId.ToString("D");
         var row = await db.Jobs.AsNoTracking()
             .Where(j => j.Id == jobId)
             .Select(j => new
@@ -651,10 +675,16 @@ internal static class JobEndpoints
                 Latest = db.JobVersions.Where(v => v.JobId == j.Id).OrderByDescending(v => v.Version).Select(v => v.Snapshot).FirstOrDefault(),
                 Template = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => new { t.Name, t.LatestPublishedVersion }).FirstOrDefault(),
                 Postings = db.JobPostings.Where(p => p.JobId == j.Id).ToList(),
+                LastChange = db.ChangeRecords
+                    .Where(r => r.SubjectKind == ChangeSubjectKind.Job && r.SubjectId == subjectId)
+                    .OrderByDescending(r => r.Sequence)
+                    .Select(r => new ChangeStamp(r.OccurredAt, r.ActorUserId, r.ActorApiKeyId))
+                    .FirstOrDefault(),
             })
             .SingleOrDefaultAsync(cancellationToken);
 
-        return row?.Job.ToDetail(row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards));
+        return row?.Job.ToDetail(
+            row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards), row.LastChange);
     }
 
     private static async Task<string> FreeSlugAsync(ScreenHireDbContext db, string slug, CancellationToken cancellationToken)

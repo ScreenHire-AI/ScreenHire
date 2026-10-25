@@ -1,6 +1,7 @@
 using FluentValidation;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Email;
+using ScreenHire.Infrastructure.Persistence.History;
 
 namespace ScreenHire.Api.Contracts;
 
@@ -17,11 +18,12 @@ public sealed record EmailTemplateList(bool SendingEnabled, IReadOnlyList<EmailT
 /// <remarks>
 /// <c>rejectOnly</c>: only a Reject action sends it (the rejection email); a person cannot send it, and SendEmail cannot
 /// name it. <c>questionnaireOnly</c>: only a SendQuestionnaire action sends it (the follow-up questions email, whose link
-/// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording.
+/// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording, and
+/// <c>lastUpdated</c> says who changed it last, or ScreenHire for a built-in nobody has.
 /// </remarks>
 public sealed record EmailTemplateEntry(
     string Id, string Name, bool BuiltIn, bool Edited, bool RejectOnly, string Subject, string Body, DateTimeOffset? UpdatedAt,
-    bool QuestionnaireOnly = false);
+    LastUpdate LastUpdated, bool QuestionnaireOnly = false);
 
 /// <summary>
 /// A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.
@@ -61,9 +63,11 @@ public sealed record EmailsQueued(int Queued, int Skipped);
 
 internal static class EmailMappings
 {
-    public static EmailTemplateEntry ToEntry(this OrganizationEmailTemplate template) =>
+    public static EmailTemplateEntry ToEntry(this OrganizationEmailTemplate template, ChangeStamp? lastChange) =>
         new(template.Id, template.Name, template.BuiltIn, template.Edited, template.Id == EmailTemplateIds.ApplicationRejected,
-            template.Content.Subject, template.Content.Body, template.UpdatedAt, template.Id == EmailTemplateIds.QuestionnaireRequest);
+            template.Content.Subject, template.Content.Body, template.UpdatedAt,
+            lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.From(lastChange, template.UpdatedAt),
+            template.Id == EmailTemplateIds.QuestionnaireRequest);
 
     public static EmailPreview ToPreview(this EmailMessage message) => new(message.Subject, message.HtmlBody ?? "", message.TextBody);
 
