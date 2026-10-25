@@ -241,11 +241,6 @@ export const questionTypeLabels: Record<QuestionType, string> = {
   File: 'File',
 };
 
-export const questionTypes = Object.keys(questionTypeLabels) as QuestionType[];
-
-/** Question types a follow-up questionnaire offers: its page works without JavaScript and takes no uploads. */
-export const followUpQuestionTypes = questionTypes.filter((type) => type !== 'File');
-
 export const operatorLabels: Record<ConditionOperator, string> = {
   EqualTo: 'is',
   In: 'is one of',

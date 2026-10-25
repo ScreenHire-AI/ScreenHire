@@ -7,7 +7,6 @@ import {
   describePath,
   errorsUnder,
   factsFor,
-  followUpQuestionTypes,
   idFrom,
   laneOf,
   moveItem,
@@ -278,10 +277,5 @@ describe('follow-up questionnaires', () => {
   it("names a follow-up's problems by the questionnaire and its question", () => {
     expect(describePath(withFollowUp, 'followUpQuestionnaires[0].name')).toBe('Questionnaire "Availability"');
     expect(describePath(withFollowUp, 'followUpQuestionnaires[0].questions[0].id')).toBe('Question "Forklift licence?" in "Availability"');
-  });
-
-  it('offers every answer type but a file upload on a follow-up', () => {
-    expect(followUpQuestionTypes).not.toContain('File');
-    expect(followUpQuestionTypes).toContain('YesNo');
   });
 });

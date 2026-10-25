@@ -7,7 +7,7 @@ describe('answer kinds', () => {
       ['General', ['Yes or no', 'Choice', 'Multi-choice', 'Short text', 'Long text']],
       ['More', ['Number', 'Link', 'File']],
     ]);
-    expect(followUpKinds.flatMap((group) => group.kinds.map((kind) => kind.value))).not.toContain('File');
+    expect(followUpKinds.flatMap((group) => group.kinds.map((kind) => kind.value))).toEqual(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Number', 'Url']);
     expect(kindIn(applyFormKinds, 'SingleChoice')).toMatchObject({ options: 'circle' });
     expect(kindIn(applyFormKinds, 'MultiChoice')).toMatchObject({ options: 'square' });
     expect(kindIn(followUpKinds, 'File')).toBeUndefined();
