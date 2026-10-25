@@ -18,6 +18,9 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.Locations).HasJsonColumn();
         // Country codes as a native text[].
         builder.Property(j => j.ApplicantLocationRequirements);
+        // Member ids as a native uuid[] (ADR-0015). On the job's own row, so the job_scope policy that reads it needs no
+        // other table, and an insert that RETURNs xmin already passes it for the creator.
+        builder.PrimitiveCollection(j => j.HiringTeam).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]");
         builder.Property(j => j.SalaryCurrency).HasMaxLength(3);
         builder.Property(j => j.SalaryMin).HasPrecision(12, 2);
         builder.Property(j => j.SalaryMax).HasPrecision(12, 2);

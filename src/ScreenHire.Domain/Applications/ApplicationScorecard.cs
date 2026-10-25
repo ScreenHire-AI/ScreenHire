@@ -10,7 +10,7 @@ namespace ScreenHire.Domain.Applications;
 /// ReviewerDecision trigger, once. Nothing here reads integrity output. Its rating answers make the candidate's rating
 /// (<see cref="RatingRule"/>, ADR-0013), worked out when it is read and never stored.
 /// </summary>
-public sealed class ApplicationScorecard : ITenantOwned
+public sealed class ApplicationScorecard : IJobScoped
 {
     public const int MaxNoteLength = 2000;
 

@@ -34,6 +34,7 @@
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
+  import Picker from '#lib/components/picker.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import DetailLayout from '#lib/components/detail-layout.svelte';
   import DetailsRailSection from '#lib/components/details-rail-section.svelte';
@@ -233,14 +234,14 @@
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
   const sampleTeam = [
-    { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day) },
-    { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day) },
+    { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
+    { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
   ];
   // The mention example: a type-ahead of teammates; @ opens it. People's ids are user ids, as the API stores them.
   const mentionTeam = [
-    { id: 'm1', userId: '0199e8a0-0000-7000-8000-0000000000a1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day) },
-    { id: 'm2', userId: '0199e8a0-0000-7000-8000-0000000000a2', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day) },
-    { id: 'm3', userId: '0199e8a0-0000-7000-8000-0000000000a3', email: 'rowan@example.com', displayName: 'Rowan Ellis', role: 'Viewer' as const, customRoleId: null, roleName: 'Viewer', joinedAt: ago(10 * day) },
+    { id: 'm1', userId: '0199e8a0-0000-7000-8000-0000000000a1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
+    { id: 'm2', userId: '0199e8a0-0000-7000-8000-0000000000a2', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
+    { id: 'm3', userId: '0199e8a0-0000-7000-8000-0000000000a3', email: 'rowan@example.com', displayName: 'Rowan Ellis', role: 'Viewer' as const, customRoleId: null, roleName: 'Viewer', joinedAt: ago(10 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
   ];
   let mentionText = $state('Can you book the call once they confirm, @Ro');
   let mentionPicked = $state<PickedMention[]>([]);
@@ -567,6 +568,19 @@
               <DropdownMenu.Item variant="destructive">Close &amp; remove everywhere</DropdownMenu.Item>
             </MoreMenu>
           </div>
+        </Panel>
+        <Panel title="Picker" class="flex-[1_1_320px]">
+          <Picker
+            label="Add a person"
+            icon={UserPlusIcon}
+            options={[
+              { id: 'm2', label: 'Robin Hale', hint: "Interviewer, only jobs they're on" },
+              { id: 'm3', label: 'Rowan Ellis', hint: 'Viewer, all jobs' },
+            ]}
+            searchLabel="Search people"
+            empty="Nobody else to add."
+            onpick={() => {}}
+          />
         </Panel>
       </div>
 

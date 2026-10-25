@@ -83,7 +83,9 @@ internal static class TaskEndpoints
         var now = time.GetUtcNow();
         if (task.Complete(userId, now))
         {
-            await outbox.PublishAsync(new ApplicationTaskCompleted(task.OrganizationId, task.Id, task.ApplicationId, now));
+            var jobId = await db.Applications.AsNoTracking()
+                .Where(a => a.Id == task.ApplicationId).Select(a => a.JobId).SingleAsync(cancellationToken);
+            await outbox.PublishAsync(new ApplicationTaskCompleted(task.OrganizationId, task.Id, task.ApplicationId, jobId, now));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

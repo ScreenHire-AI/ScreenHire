@@ -308,7 +308,8 @@ internal static class AuthEndpoints
                 return false;
             }
 
-            db.OrganizationMembers.Add(OrganizationMember.Create(invitation.OrganizationId, userId, role.Role, now, role.CustomRoleId));
+            db.OrganizationMembers.Add(OrganizationMember.Create(
+                invitation.OrganizationId, userId, role.Role, now, role.CustomRoleId, invitation.JobAccess));
             db.MembershipEvents.Add(new MembershipEvent
             {
                 OrganizationId = invitation.OrganizationId,
@@ -319,6 +320,7 @@ internal static class AuthEndpoints
                 Role = role.Role,
                 CustomRoleId = role.CustomRoleId,
                 CustomRoleName = role.Role == OrganizationRole.Custom ? role.Name : null,
+                JobAccess = invitation.JobAccess,
                 OccurredAt = now,
             });
             await db.SaveChangesAsync(cancellationToken);
@@ -493,9 +495,14 @@ internal static class AuthEndpoints
                 .Where(o => o.Id == organizationId)
                 .Select(o => new { o.Id, o.Name, o.Slug })
                 .SingleAsync(cancellationToken);
+            var jobAccess = await db.OrganizationMembers.AsNoTracking()
+                .Where(m => m.OrganizationId == organizationId && m.UserId == user.Id)
+                .Select(m => m.JobAccess)
+                .SingleAsync(cancellationToken);
             organization = new CurrentOrganization(
                 found.Id, found.Name, found.Slug, role.Role, role.CustomRoleId, role.Name,
-                [.. RolePermissions.Permissions.Select(p => p.Permission).Where(role.Permissions.Contains)]);
+                [.. RolePermissions.Permissions.Select(p => p.Permission).Where(role.Permissions.Contains)],
+                JobAccessRules.SeesAllJobs(role.Role, jobAccess));
         }
 
         var email = user.Email ?? "";

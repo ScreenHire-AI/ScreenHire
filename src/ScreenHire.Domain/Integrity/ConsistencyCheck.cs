@@ -12,7 +12,7 @@ namespace ScreenHire.Domain.Integrity;
 /// The row is claimed (<see cref="ConsistencyCheckStatus.Running"/>) before the model is called and completed after, in
 /// separate transactions, so no database transaction is open while the model works.
 /// </remarks>
-public sealed class ConsistencyCheck : ITenantOwned
+public sealed class ConsistencyCheck : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

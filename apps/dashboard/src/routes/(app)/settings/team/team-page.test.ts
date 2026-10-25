@@ -18,7 +18,7 @@ const member = (id: string, displayName: string, role: Exclude<OrganizationRole,
   role,
   customRoleId: null,
   roleName: role,
-  joinedAt: '2026-09-01T09:00:00Z',
+  joinedAt: '2026-09-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0,
 });
 
 const asAdmin = (teammate: TeamMember): TeamMember => ({ ...teammate, role: 'Admin', roleName: 'Admin' });
@@ -30,8 +30,8 @@ const admin = member('m-3', 'Casey Morgan', 'Admin');
 const recruiter = member('m-4', 'Jordan Lee', 'Recruiter');
 
 const invitations: PendingInvitation[] = [
-  { id: 'i-1', email: 'sam@example.com', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
-  { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
+  { id: 'i-1', email: 'sam@example.com', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z', jobAccess: 'All' as const },
+  { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z', jobAccess: 'All' as const },
 ];
 
 const as = (role: Exclude<OrganizationRole, 'Custom'>): { data: { user: CurrentUser } } => ({ data: { user: userAs(role) } });
@@ -44,6 +44,7 @@ function renderPage(role: Exclude<OrganizationRole, 'Custom'>, routes: Parameter
       'GET /v1/organization/invitations': () => Response.json(invitations),
       'GET /v1/organization/api-keys': () => Response.json([]),
       'GET /v1/organization/roles': () => Response.json(roleCatalogue),
+      'GET /v1/organization/members/m-4/jobs': () => Response.json([{ id: 'j-1', title: 'Senior .NET Engineer', status: 'Open' }]),
       ...routes,
     }),
   );
@@ -137,18 +138,40 @@ describe('team page', () => {
     expect(screen.queryAllByRole('button', { name: /^Actions for/ })).toHaveLength(0);
   });
 
-  it('offers an Owner every role to give a member', async () => {
-    renderPage('Owner');
-    const menu = await openMenu('Actions for Jordan Lee');
+  // Edit access, from the row's menu: the sheet opens once the menu has closed.
+  async function openAccessSheet(name: string) {
+    const menu = await openMenu(`Actions for ${name}`);
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Edit access' }));
+    return screen.findByRole('dialog', { name: `${name}'s access` });
+  }
 
-    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Interviewer']);
+  const roleOptions = (sheet: HTMLElement) =>
+    within(within(sheet).getByRole('combobox', { name: 'Role' })).getAllByRole('option').map((option) => option.textContent?.trim());
+
+  it('says which jobs each member sees, in words: All jobs, or how many', async () => {
+    renderPage('Owner', {}, [owner, { ...recruiter, jobAccess: 'HiringTeamOnly', seesAllJobs: false, jobCount: 2 }]);
+    await screen.findAllByText('Jordan Lee');
+    const table = screen.getAllByRole('table')[0]!;
+
+    expect(within(table).getByRole('columnheader', { name: /Jobs/ })).toBeInTheDocument();
+    expect(within(within(table).getAllByRole('row')[1]!).getByText('All jobs')).toBeInTheDocument();
+    expect(within(table).getByText('2 jobs')).toBeInTheDocument();
+  });
+
+  it('offers an Owner every role to give a member in the access sheet', async () => {
+    renderPage('Owner');
+    const sheet = await openAccessSheet('Jordan Lee');
+
+    expect(roleOptions(sheet)).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Interviewer']);
+    expect(within(sheet).getByRole('combobox', { name: 'Role' })).toHaveValue('recruiter');
+    expect(await within(sheet).findByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', '/jobs/j-1');
+    await expectNoAxeViolations();
   });
 
   it('offers an Admin no Owner role to give a member', async () => {
     renderPage('Admin', {}, [asAdmin(owner), otherOwner, admin, recruiter]);
-    const menu = await openMenu('Actions for Jordan Lee');
 
-    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Admin', 'Recruiter', 'Viewer', 'Interviewer']);
+    expect(roleOptions(await openAccessSheet('Jordan Lee'))).toEqual(['Admin', 'Recruiter', 'Viewer', 'Interviewer']);
   });
 
   it('shows a custom role by its name alone, and gives it by its id', async () => {
@@ -160,24 +183,39 @@ describe('team page', () => {
 
     expect((await screen.findAllByText('Interviewer')).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Custom/)).not.toBeInTheDocument();
-    const menu = await openMenu('Actions for Jordan Lee');
-    await fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'Interviewer' }));
+    const sheet = await openAccessSheet('Jordan Lee');
+    await fireEvent.change(within(sheet).getByRole('combobox', { name: 'Role' }), { target: { value: interviewerRoleId } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save access' }));
 
     await waitFor(() => expect(bodies).toEqual([{ role: 'Custom', customRoleId: interviewerRoleId }]));
   });
 
-  it("changes a member's role from the menu", async () => {
-    const bodies: unknown[] = [];
+  it("changes a member's role and job access from the access sheet, then closes it", async () => {
+    const roles: unknown[] = [];
+    const access: unknown[] = [];
     renderPage('Owner', {
-      'PUT /v1/organization/members/m-4/role': (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json({ ...recruiter, role: 'Viewer' })),
+      'PUT /v1/organization/members/m-4/role': (init) => (roles.push(JSON.parse(String(init?.body))), Response.json({ ...recruiter, role: 'Viewer' })),
+      'PUT /v1/organization/members/m-4/job-access': (init) => (access.push(JSON.parse(String(init?.body))), Response.json(recruiter)),
     });
-    const menu = await openMenu('Actions for Jordan Lee');
+    const sheet = await openAccessSheet('Jordan Lee');
 
-    await fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'Viewer' }));
+    await fireEvent.change(within(sheet).getByRole('combobox', { name: 'Role' }), { target: { value: 'viewer' } });
+    await fireEvent.click(within(sheet).getByRole('radio', { name: /^Only jobs they're on/ }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save access' }));
 
-    await waitFor(() => expect(bodies).toEqual([{ role: 'Viewer', customRoleId: null }]));
-    // The menu closes after a pick, so it cannot cover the next control.
-    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    await waitFor(() => expect(roles).toEqual([{ role: 'Viewer', customRoleId: null }]));
+    await waitFor(() => expect(access).toEqual([{ jobAccess: 'HiringTeamOnly' }]));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('says Owners and Admins see all jobs instead of offering the choice', async () => {
+    renderPage('Owner');
+    const sheet = await openAccessSheet('Jordan Lee');
+
+    await fireEvent.change(within(sheet).getByRole('combobox', { name: 'Role' }), { target: { value: 'admin' } });
+
+    expect(within(sheet).getByText('Owners and Admins see all jobs.')).toBeInTheDocument();
+    expect(within(sheet).queryByRole('radiogroup', { name: 'Jobs' })).not.toBeInTheDocument();
   });
 
   describe('inviting', () => {
@@ -227,8 +265,23 @@ describe('team page', () => {
       await fireEvent.click(within(sheet).getByRole('radio', { name: /^Recruiter/ }));
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));
 
-      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Recruiter', customRoleId: null }]));
+      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Recruiter', customRoleId: null, jobAccess: 'All' }]));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('starts an invitation at All jobs, with Only jobs they are on one click away', async () => {
+      const bodies: unknown[] = [];
+      renderPage('Owner', {
+        'POST /v1/organization/invitations': (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(invitations[0], { status: 201 })),
+      });
+      const sheet = await openInviteSheet();
+
+      expect(within(sheet).getByRole('radio', { name: /^All jobs/ })).toBeChecked();
+      await fireEvent.input(within(sheet).getByLabelText('Email'), { target: { value: 'taylor@example.com' } });
+      await fireEvent.click(within(sheet).getByRole('radio', { name: /^Only jobs they're on/ }));
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));
+
+      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Viewer', customRoleId: null, jobAccess: 'HiringTeamOnly' }]));
     });
 
     it('asks for an email address before sending anything', async () => {

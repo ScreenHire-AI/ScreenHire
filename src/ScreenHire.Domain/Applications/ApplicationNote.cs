@@ -10,7 +10,7 @@ namespace ScreenHire.Domain.Applications;
 /// append-only and deleting a note must erase its words. Earlier text is never kept, so deleting this row erases the
 /// note, and only who deleted it and when remain.
 /// </summary>
-public sealed class ApplicationNote : ITenantOwned
+public sealed class ApplicationNote : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

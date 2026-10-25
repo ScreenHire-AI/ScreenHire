@@ -4,10 +4,11 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { JobAccess } from './jobAccess.ts';
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
- * An invitation nobody has accepted, revoked or let expire yet, and the role it offers.
+ * An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers.
  */
 export interface PendingInvitation {
   id: string;
@@ -18,4 +19,5 @@ export interface PendingInvitation {
   roleName: string;
   createdAt: string;
   expiresAt: string;
+  jobAccess: JobAccess;
 }

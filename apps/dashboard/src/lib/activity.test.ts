@@ -42,7 +42,7 @@ describe('activity', () => {
   it('says a note was deleted and by whom, never what it said', () => {
     const deleted = entries[4]!;
     expect(describeEvent(deleted, names)).toBe('Deleted a note');
-    expect(actorText(deleted, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt }], 'me')).toBe('by Avery Quinn');
+    expect(actorText(deleted, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt, jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 }], 'me')).toBe('by Avery Quinn');
   });
 
   it("names an API key's changes by the key", () => {

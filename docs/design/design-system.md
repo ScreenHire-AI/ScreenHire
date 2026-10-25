@@ -468,6 +468,7 @@ in a development build, shows every component in each state, and its test fails 
 | Answer menu | `AnswerMenu` on shadcn `DropdownMenu` | Picks a question's answer kind, each group under its heading and each kind with its icon; the current kind is ticked, and Add a question opens the same menu with nothing ticked. General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Application questions add More: Number, Link and File. A follow-up questionnaire offers the same without File, because its page takes no uploads. A scorecard offers General and Rating, each rating with a star: 1 to 5, 1 to 10, Yes or no |
 | Rating | `Rating`; `#lib/rating-column.ts` for a job's table | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from (in words in the count's tooltip), opening, from a small outline button (A6), to each scorecard that counts with its own number and recommendation. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer with a scorecard to give reads "Rating after your scorecard" ("After yours" in a table cell, the rest in its tooltip) until they submit their own; no automation acts on it. "Not rated yet" until a scorecard counts. A job's table has a Rating column, highest first, the unrated last |
 | Rating answer | `RatingAnswer` on shadcn `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale. Each button is a radio in the question's group; the chosen one takes `accent` (A6) and an inset ring in `accent-foreground`, so a chosen button is not told from a hovered one by a faint fill alone, and choosing it again clears an optional answer. A number scale never wraps: its buttons share the row equally, up to the control size, so 1 to 10 on a phone has buttons narrower than 44 px (still above WCAG 2.5.8's 24 px) and High stays under 10 |
+| Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
 
 ## 12. Words
 
@@ -593,6 +594,7 @@ These join section 11 one by one, each when the build adds it to the style guide
 | Component | Built on | Rules |
 |---|---|---|
 | Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
+| Choice card | native radio inputs in labelled cards (`MemberAccessSheet`, Invite on Team) | A choice of a few options, each a bordered card with its name and one muted line; the chosen card takes the `primary` edge and `accent` fill, and the whole card is the target. Used for a member's jobs: All jobs or Only jobs they're on |
 
 ## 22. Screens the v0.3 build changes
 
@@ -608,6 +610,10 @@ These join section 11 one by one, each when the build adds it to the style guide
   closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.
   In the table a calm AI assistance cell is empty, with its words for screen readers, and authenticity keeps its quiet
   "No concerns" (T3).
+  Hiring team: an outline button in the header with the team's count badge (T4), in More on a phone, opening a sheet
+  of the people on the job, each with their role, "Only jobs they're on" for someone who sees only their own (W6), a
+  remove button, and Add a person and Copy from another job (Pickers). Changes land on Save. Without Edit jobs the sheet lists the people and says why (E3). A hiring
+  template's header has Default hiring team as a fact whose count opens the same sheet, without Copy.
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and
@@ -649,7 +655,14 @@ These join section 11 one by one, each when the build adds it to the style guide
   and candidates, in every role; Manage Owners, Owner only; a permission the person's own role lacks) have a lock and
   say why. Its header's facts are People, Copied from and Last updated with History; Copy role and Delete role are in
   More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
-  Built in beside its title and Copy role as the primary action. Both list the people with the role.
+  Built in beside its title and Copy role as the primary action. Both list the people with the role, each with the jobs
+  they see ("All jobs", or a count button that lists them) and an Edit access on Team link.
+  Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All jobs", or "2 jobs" for someone on Only jobs
+  they're on. A member's menu holds Edit access, which opens one sheet for their role (a select, with what it can do
+  below) and their jobs: All jobs ("Including jobs added later") or Only jobs they're on, then the jobs whose hiring
+  team they are on as links, read only, with one line saying each job's Hiring team changes them (W6). For an Owner or
+  Admin the choice is a line saying they see all jobs. Invite asks the same, starting at All jobs. Someone who sees
+  only their own jobs is offered only Only jobs they're on (A3).
 - **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API

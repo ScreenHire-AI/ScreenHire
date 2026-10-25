@@ -25,6 +25,7 @@ import type {
   CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
+  ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
@@ -50,6 +51,8 @@ import type {
   GetJobHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
+  HiringTeamMember,
+  HiringTeamRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -72,6 +75,7 @@ import type {
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
+  MemberJob,
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
@@ -4585,6 +4589,51 @@ export const listTeamMembers = async ( options?: Parameters<typeof apiFetch>[1])
 
 
 
+export type listMemberJobsResponse200 = {
+  data: MemberJob[]
+  status: 200
+}
+
+export type listMemberJobsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listMemberJobsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listMemberJobsResponseSuccess = (listMemberJobsResponse200) & {
+  headers: Headers;
+};
+export type listMemberJobsResponseError = (listMemberJobsResponse401 | listMemberJobsResponse404) & {
+  headers: Headers;
+};
+
+export type listMemberJobsResponse = (listMemberJobsResponseSuccess | listMemberJobsResponseError)
+
+export const getListMemberJobsUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}/jobs`
+}
+
+export const listMemberJobs = async (memberId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listMemberJobsResponse> => {
+
+  return apiFetch<listMemberJobsResponse>(getListMemberJobsUrl(memberId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type listInvitationsResponse200 = {
   data: PendingInvitation[]
   status: 200
@@ -4824,6 +4873,76 @@ return apiFetch<changeMemberRoleResponse>(getChangeMemberRoleUrl(memberId),
 
 
 
+export type changeMemberJobAccessResponse200 = {
+  data: TeamMember
+  status: 200
+}
+
+export type changeMemberJobAccessResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeMemberJobAccessResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeMemberJobAccessResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeMemberJobAccessResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeMemberJobAccessResponseSuccess = (changeMemberJobAccessResponse200) & {
+  headers: Headers;
+};
+export type changeMemberJobAccessResponseError = (changeMemberJobAccessResponse400 | changeMemberJobAccessResponse401 | changeMemberJobAccessResponse403 | changeMemberJobAccessResponse404) & {
+  headers: Headers;
+};
+
+export type changeMemberJobAccessResponse = (changeMemberJobAccessResponseSuccess | changeMemberJobAccessResponseError)
+
+export const getChangeMemberJobAccessUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}/job-access`
+}
+
+export const changeMemberJobAccess = async (memberId: string,
+    changeMemberJobAccessRequest: ChangeMemberJobAccessRequest, options?: Parameters<typeof apiFetch>[1]): Promise<changeMemberJobAccessResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<changeMemberJobAccessResponse>(getChangeMemberJobAccessUrl(memberId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeMemberJobAccessRequest)
+  }
+);}
+
+
+
 export type removeMemberResponse204 = {
   data: void
   status: 204
@@ -4924,6 +5043,236 @@ export const revokeInvitation = async (invitationId: string, options?: Parameter
     method: 'DELETE'
 
 
+  }
+);}
+
+
+
+export type getJobHiringTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type getJobHiringTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobHiringTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobHiringTeamResponseSuccess = (getJobHiringTeamResponse200) & {
+  headers: Headers;
+};
+export type getJobHiringTeamResponseError = (getJobHiringTeamResponse401 | getJobHiringTeamResponse404) & {
+  headers: Headers;
+};
+
+export type getJobHiringTeamResponse = (getJobHiringTeamResponseSuccess | getJobHiringTeamResponseError)
+
+export const getGetJobHiringTeamUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/hiring-team`
+}
+
+export const getJobHiringTeam = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobHiringTeamResponse> => {
+
+  return apiFetch<getJobHiringTeamResponse>(getGetJobHiringTeamUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type setJobHiringTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type setJobHiringTeamResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setJobHiringTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setJobHiringTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setJobHiringTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setJobHiringTeamResponseSuccess = (setJobHiringTeamResponse200) & {
+  headers: Headers;
+};
+export type setJobHiringTeamResponseError = (setJobHiringTeamResponse400 | setJobHiringTeamResponse401 | setJobHiringTeamResponse403 | setJobHiringTeamResponse404) & {
+  headers: Headers;
+};
+
+export type setJobHiringTeamResponse = (setJobHiringTeamResponseSuccess | setJobHiringTeamResponseError)
+
+export const getSetJobHiringTeamUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/hiring-team`
+}
+
+export const setJobHiringTeam = async (jobId: string,
+    hiringTeamRequest: HiringTeamRequest, options?: Parameters<typeof apiFetch>[1]): Promise<setJobHiringTeamResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setJobHiringTeamResponse>(getSetJobHiringTeamUrl(jobId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(hiringTeamRequest)
+  }
+);}
+
+
+
+export type getHiringTemplateTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type getHiringTemplateTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringTemplateTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHiringTemplateTeamResponseSuccess = (getHiringTemplateTeamResponse200) & {
+  headers: Headers;
+};
+export type getHiringTemplateTeamResponseError = (getHiringTemplateTeamResponse401 | getHiringTemplateTeamResponse404) & {
+  headers: Headers;
+};
+
+export type getHiringTemplateTeamResponse = (getHiringTemplateTeamResponseSuccess | getHiringTemplateTeamResponseError)
+
+export const getGetHiringTemplateTeamUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/hiring-team`
+}
+
+export const getHiringTemplateTeam = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateTeamResponse> => {
+
+  return apiFetch<getHiringTemplateTeamResponse>(getGetHiringTemplateTeamUrl(templateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type setHiringTemplateTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type setHiringTemplateTeamResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setHiringTemplateTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setHiringTemplateTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setHiringTemplateTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setHiringTemplateTeamResponseSuccess = (setHiringTemplateTeamResponse200) & {
+  headers: Headers;
+};
+export type setHiringTemplateTeamResponseError = (setHiringTemplateTeamResponse400 | setHiringTemplateTeamResponse401 | setHiringTemplateTeamResponse403 | setHiringTemplateTeamResponse404) & {
+  headers: Headers;
+};
+
+export type setHiringTemplateTeamResponse = (setHiringTemplateTeamResponseSuccess | setHiringTemplateTeamResponseError)
+
+export const getSetHiringTemplateTeamUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/hiring-team`
+}
+
+export const setHiringTemplateTeam = async (templateId: string,
+    hiringTeamRequest: HiringTeamRequest, options?: Parameters<typeof apiFetch>[1]): Promise<setHiringTemplateTeamResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setHiringTemplateTeamResponse>(getSetHiringTemplateTeamUrl(templateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(hiringTeamRequest)
   }
 );}
 

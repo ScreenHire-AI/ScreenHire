@@ -7,7 +7,7 @@ namespace ScreenHire.Domain.Integrity;
 /// own metadata, and any text hidden from people. One row per file and extractor version, written once. The bytes stay in
 /// blob storage; this is the employer's record of what the file says, kept as long as the application.
 /// </summary>
-public sealed class ApplicationDocument : ITenantOwned
+public sealed class ApplicationDocument : IApplicationScoped
 {
     /// <summary>The longest visible text kept, in characters. A resume is a few thousand.</summary>
     public const int MaxTextLength = 60_000;

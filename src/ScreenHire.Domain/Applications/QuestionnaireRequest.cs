@@ -14,7 +14,7 @@ namespace ScreenHire.Domain.Applications;
 /// criteria's labels, so a later change to the workflow cannot make them unreadable. Integrity analysis does not read
 /// them; it reads the apply form only.
 /// </remarks>
-public sealed class QuestionnaireRequest : ITenantOwned
+public sealed class QuestionnaireRequest : IJobScoped
 {
     /// <summary>How long an emailed link stays open. Sending again issues a fresh one.</summary>
     public static readonly TimeSpan LinkLifetime = TimeSpan.FromDays(14);

@@ -20,6 +20,8 @@ Follow `/add-message` steps 1 and 3 for the record and how it is raised: a `publ
 change or returned from a worker handler. A worker handler is optional; without one the worker marks the event
 handled and drops it.
 
+- An event that carries a `JobId` implements `IJobEvent` instead, so it reaches only the members who see that job
+  (ADR-0015, `RealtimeGroups`); `RealtimeGroupsTests.Every_event_that_names_a_job_is_a_job_event` fails otherwise.
 - Every signed-in member of the organization receives the payload in their browser. Carry ids, statuses and times,
   never names, emails, answers or integrity evidence. The client refetches anything else through the REST API, which
   applies its own authorization.

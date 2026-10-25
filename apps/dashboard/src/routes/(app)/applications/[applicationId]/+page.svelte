@@ -10,6 +10,7 @@
     createListApplicationScorecards,
     createListCandidateEmails,
     createListEmailTemplates,
+    createGetJobHiringTeam,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -48,6 +49,7 @@
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
   import { authenticityLevels } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
+  import { membersWhoSee } from '#lib/hiring-team.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
@@ -98,6 +100,12 @@
     () => ({ query: { enabled: Boolean(detail) } }),
   );
   const moves = createMoves({ allowed: () => mayMove });
+  // A mention names only someone who can see this candidate (ADR-0015): everyone who sees all jobs, and the job's team.
+  const hiringTeam = createGetJobHiringTeam(
+    () => detail?.jobId ?? '',
+    () => ({ query: { enabled: Boolean(detail) } }),
+  );
+  const mentionable = $derived(members && hiringTeam.data ? membersWhoSee(members, hiringTeam.data.data.map((person) => person.memberId)) : undefined);
   // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
   // Email shows only where this deployment can send it and the person may (A3).
@@ -275,6 +283,7 @@
                 timelineError={timeline.error}
                 onretrytimeline={() => timeline.refetch()}
                 {members}
+                {mentionable}
                 {currentUserId}
                 {permissions}
                 {names}
@@ -330,6 +339,7 @@
                 error={timeline.error}
                 onretry={() => timeline.refetch()}
                 {members}
+                {mentionable}
                 {currentUserId}
                 {permissions}
                 {names}

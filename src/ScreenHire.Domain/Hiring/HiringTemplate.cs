@@ -1,3 +1,5 @@
+using ScreenHire.Domain.Jobs;
+
 namespace ScreenHire.Domain.Hiring;
 
 /// <summary>
@@ -34,6 +36,30 @@ public sealed class HiringTemplate
     public int? LatestPublishedVersion { get; private set; }
 
     public bool IsSystem => OrganizationId is null;
+
+    /// <summary>
+    /// The hiring team a new job from this template starts with, as organization member ids (ADR-0015). On the template,
+    /// not a version: it says who works on the jobs, not how they are run. A system template has none.
+    /// </summary>
+    public List<Guid> DefaultHiringTeam { get; private set; } = [];
+
+    /// <summary>Replaces the default hiring team and returns who joined and who left. System templates have none.</summary>
+    public HiringTeamChange SetDefaultHiringTeam(IEnumerable<Guid> memberIds)
+    {
+        if (IsSystem)
+        {
+            throw new InvalidOperationException("A system template has no default hiring team.");
+        }
+
+        var after = memberIds.Distinct().ToList();
+        var change = new HiringTeamChange([.. after.Except(DefaultHiringTeam)], [.. DefaultHiringTeam.Except(after)]);
+        if (!change.IsEmpty)
+        {
+            DefaultHiringTeam = after;
+        }
+
+        return change;
+    }
 
     /// <summary>
     /// When the organization archived it, or null. An archived template leaves the pickers and reads only; jobs started

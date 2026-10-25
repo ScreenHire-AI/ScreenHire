@@ -16,6 +16,7 @@ const member = signedIn({
   customRoleId: null,
   roleName: 'Owner',
   permissions: ['ViewHiring'],
+  seesAllJobs: true,
 });
 const newcomer = signedIn(null);
 const url = (path: string) => new URL(path, 'http://localhost:4323');

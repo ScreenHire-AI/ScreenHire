@@ -9,7 +9,7 @@ namespace ScreenHire.Domain.Integrity;
 /// candidate. Short-lived: the retention job deletes the row at <see cref="ExpiresAt"/>, and the signals derived from it
 /// keep only coarse facts (network operator, country), never the address.
 /// </summary>
-public sealed class SubmissionObservation : ITenantOwned
+public sealed class SubmissionObservation : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

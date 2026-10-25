@@ -155,7 +155,7 @@
           <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-semibold">{initials(member.displayName)}</span>
           <span class="flex min-w-0 flex-col">
             <span class="truncate font-semibold">{member.displayName}</span>
-            <span class="text-caption text-muted-foreground">{member.role}</span>
+            <span class="text-caption text-muted-foreground">{member.roleName}</span>
           </span>
         </li>
       {/each}

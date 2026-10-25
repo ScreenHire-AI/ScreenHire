@@ -156,8 +156,8 @@ table. A mention in a note has no secret, so its email goes through the outbox l
 own words (`MentionEmail`), not an organization template. It says who mentioned the person and on which candidate and
 job, links to the note on the candidate's Activity tab (`ScreenHire:Domains:AppHost`, which the AppHost gives the
 worker too), and never quotes the note, so candidate details stay in ScreenHire. The mention's row records the send,
-so a redelivered message sends nothing; a mention removed, a note deleted or a person who left before the worker gets
-to it gets no email.
+so a redelivered message sends nothing; a mention removed, a note deleted, a person who left, or one who no longer sees
+the job (ADR-0015) before the worker gets to it gets no email. A note can mention only someone who sees the candidate.
 
 ## Not built
 

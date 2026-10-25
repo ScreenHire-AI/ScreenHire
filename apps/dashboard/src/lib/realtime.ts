@@ -15,6 +15,7 @@ export const applicationsPath = '/v1/applications';
 export const candidatesPath = '/v1/candidates';
 export const templatesPath = '/v1/templates';
 export const tasksPath = '/v1/tasks';
+export const membersPath = '/v1/organization/members';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -34,6 +35,8 @@ export const invalidations: InvalidationMap = {
   JobPostingsChanged: [jobsPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
   JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath],
+  // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
+  HiringTeamChanged: [jobsPath, membersPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],

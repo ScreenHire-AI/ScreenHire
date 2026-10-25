@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Jobs;
 /// shows exactly what was published. The database lets the application role insert and read versions but never change
 /// or delete one.
 /// </summary>
-public sealed class JobVersion : ITenantOwned
+public sealed class JobVersion : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

@@ -6,6 +6,7 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Domain.Hiring;
@@ -121,6 +122,7 @@ internal static class JobEndpoints
         ITenantContext tenant,
         JobContentValidator validator,
         BoardRegistry boards,
+        RealtimeConnections connections,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -166,7 +168,15 @@ internal static class JobEndpoints
 
         var defaults = template?.Definition.PostingDefaults ?? PostingDefaults.None;
         var title = request.Title?.Trim() ?? "";
+        var jobId = Guid.CreateVersion7();
         var slug = request.Slug?.Trim() ?? await FreeSlugAsync(db, Slugs.FromTitle(title), cancellationToken);
+        if (request.Slug is null && !tenant.SeesAllJobs)
+        {
+            // A member on Only jobs they're on cannot see the other jobs' slugs, so a free-looking one may be taken. The
+            // end of the new job's id makes it the job's own; the slug can still change until the job is published.
+            slug = $"{slug}-{jobId.ToString("N")[^6..]}";
+        }
+
         var content = new JobSnapshot(
             title,
             slug,
@@ -190,17 +200,27 @@ internal static class JobEndpoints
         }
 
         var now = time.GetUtcNow();
-        var job = new Job { OrganizationId = tenant.OrganizationId!.Value, Title = content.Title, Slug = content.Slug, CreatedAt = now };
+        var job = new Job { Id = jobId, OrganizationId = tenant.OrganizationId!.Value, Title = content.Title, Slug = content.Slug, CreatedAt = now };
         job.Revise(content, now);
         if (template is not null)
         {
             job.UseTemplate(template, scorecards);
         }
 
+        // The job starts with its template's default hiring team and the person who creates it (ADR-0015), in the same
+        // insert: the creator's id is in the row, so even a member on Only jobs they're on sees the job they just made.
+        var members = await HiringTeams.MembersAsync(db, tenant, cancellationToken);
+        var defaultTeam = template is null
+            ? []
+            : await db.HiringTemplates.AsNoTracking()
+                .Where(t => t.Id == template.TemplateId).Select(t => t.DefaultHiringTeam).SingleAsync(cancellationToken);
+        var team = job.SetHiringTeam(defaultTeam.Where(members.ContainsKey).Concat(tenant.MemberId is { } creator ? [creator] : []));
+        HiringTeams.Log(db, tenant, members, team, now, jobId: job.Id);
+
         db.Jobs.Add(job);
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await HiringTeams.SaveAsync(connections, members, team, job.OrganizationId, job.Id, () => db.SaveChangesAsync(cancellationToken), cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {

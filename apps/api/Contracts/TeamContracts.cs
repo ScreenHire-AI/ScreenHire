@@ -1,4 +1,5 @@
 using FluentValidation;
+using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence.History;
 
@@ -7,31 +8,48 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>
 /// A member of the signed-in user's organization. <c>id</c> is the membership's id, which the member routes take.
 /// <c>role</c> is a built-in role or Custom, with <c>customRoleId</c> naming which; <c>roleName</c> is its name either way.
+/// <c>jobAccess</c> is their stored choice and <c>seesAllJobs</c> what applies: Owners and Admins see all jobs whatever
+/// it says (ADR-0015). <c>jobCount</c> counts the jobs whose hiring team they are on, among the jobs the reader sees.
 /// </summary>
 public sealed record TeamMember(
-    Guid Id, Guid UserId, string Email, string DisplayName, OrganizationRole Role, Guid? CustomRoleId, string RoleName, DateTimeOffset JoinedAt);
+    Guid Id, Guid UserId, string Email, string DisplayName, OrganizationRole Role, Guid? CustomRoleId, string RoleName, DateTimeOffset JoinedAt,
+    JobAccess JobAccess, bool SeesAllJobs, int JobCount);
+
+/// <summary>Sets which jobs a member sees: all of them, or only the jobs whose hiring team they are on.</summary>
+public sealed record ChangeMemberJobAccessRequest(JobAccess? JobAccess);
+
+/// <summary>A job whose hiring team a member is on, for their access sheet. Changed through the job's own hiring team.</summary>
+public sealed record MemberJob(Guid Id, string Title, JobStatus Status);
 
 /// <summary>Gives a member another role: a built-in one, or Custom with the custom role's id.</summary>
 public sealed record ChangeMemberRoleRequest(OrganizationRole? Role, Guid? CustomRoleId = null);
 
-/// <summary>Invites a person by email to join the organization with a role: a built-in one, or Custom with its id.</summary>
-public sealed record InvitationRequest(string Email, OrganizationRole? Role, Guid? CustomRoleId = null);
+/// <summary>
+/// Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with
+/// <c>jobAccess</c>, All when it is left out.
+/// </summary>
+public sealed record InvitationRequest(string Email, OrganizationRole? Role, Guid? CustomRoleId = null, JobAccess? JobAccess = null);
 
-/// <summary>An invitation nobody has accepted, revoked or let expire yet, and the role it offers.</summary>
+/// <summary>An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers.</summary>
 public sealed record PendingInvitation(
-    Guid Id, string Email, OrganizationRole Role, Guid? CustomRoleId, string RoleName, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt);
+    Guid Id, string Email, OrganizationRole Role, Guid? CustomRoleId, string RoleName, DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt,
+    JobAccess JobAccess);
 
 /// <summary>
-/// One entry in the organization's membership log. <c>actorUserId</c> made the change; <c>memberUserId</c> is who it is
+/// One entry in the organization's membership log. <c>actorUserId</c> made the change, or <c>actorApiKeyId</c> when an
+/// API key did; <c>memberUserId</c> is who it is
 /// about (null for an invitation not accepted yet and for a change to a role itself). <c>previousRole</c> and
 /// <c>role</c> are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,
 /// RoleUpdated and RoleDeleted, <c>customRoleId</c> and <c>roleName</c> are the role, and a rename keeps the old name in
-/// <c>previousRoleName</c>.
+/// <c>previousRoleName</c>. JobAccessChanged sets <c>previousJobAccess</c> and <c>jobAccess</c>; an invitation and a
+/// join set <c>jobAccess</c>. AddedToHiringTeam and RemovedFromHiringTeam name a job (<c>jobId</c>, with its title now)
+/// or a hiring template's default team (<c>hiringTemplateId</c>, with its name now). A reader who sees only their own
+/// jobs gets no entries about the others.
 /// </summary>
 public sealed record MembershipLogEntry(
     Guid Id,
     MembershipEventKind Kind,
-    Guid ActorUserId,
+    Guid? ActorUserId,
     Guid? MemberUserId,
     Guid? InvitationId,
     OrganizationRole? PreviousRole,
@@ -40,7 +58,14 @@ public sealed record MembershipLogEntry(
     OrganizationRole? Role,
     Guid? CustomRoleId,
     string? RoleName,
-    DateTimeOffset OccurredAt);
+    DateTimeOffset OccurredAt,
+    JobAccess? PreviousJobAccess,
+    JobAccess? JobAccess,
+    Guid? JobId,
+    string? JobTitle,
+    Guid? HiringTemplateId,
+    string? HiringTemplateName,
+    Guid? ActorApiKeyId);
 
 /// <summary>
 /// The organization's roles and what each can do: the four built-in ones, most access first, then its custom roles by
@@ -105,12 +130,14 @@ internal static class TeamMappings
         [.. RolePermissions.Permissions.Select(p => new PermissionSummary(p.Permission, p.Group, p.Name, p.Description, p.OwnerOnly, p.EveryRole))];
 
     public static PendingInvitation ToPending(this OrganizationInvitation invitation, string roleName) =>
-        new(invitation.Id, invitation.Email, invitation.Role, invitation.CustomRoleId, roleName, invitation.CreatedAt, invitation.ExpiresAt);
+        new(invitation.Id, invitation.Email, invitation.Role, invitation.CustomRoleId, roleName, invitation.CreatedAt, invitation.ExpiresAt,
+            invitation.JobAccess);
 
-    public static MembershipLogEntry ToLogEntry(this MembershipEvent entry) =>
+    public static MembershipLogEntry ToLogEntry(this MembershipEvent entry, string? jobTitle, string? templateName) =>
         new(entry.Id, entry.Kind, entry.ActorUserId, entry.MemberUserId, entry.InvitationId,
             entry.PreviousRole, entry.PreviousCustomRoleId, NameOf(entry.PreviousRole, entry.PreviousCustomRoleName),
-            entry.Role, entry.CustomRoleId, NameOf(entry.Role, entry.CustomRoleName), entry.OccurredAt);
+            entry.Role, entry.CustomRoleId, NameOf(entry.Role, entry.CustomRoleName), entry.OccurredAt,
+            entry.PreviousJobAccess, entry.JobAccess, entry.JobId, jobTitle, entry.HiringTemplateId, templateName, entry.ActorApiKeyId);
 
     private static string? NameOf(OrganizationRole? role, string? customName) =>
         role == OrganizationRole.Custom ? customName : customName ?? role?.ToString();
@@ -129,10 +156,17 @@ internal sealed class ChangeMemberRoleRequestValidator : AbstractValidator<Chang
     }
 }
 
+internal sealed class ChangeMemberJobAccessRequestValidator : AbstractValidator<ChangeMemberJobAccessRequest>
+{
+    public ChangeMemberJobAccessRequestValidator() =>
+        RuleFor(r => r.JobAccess).NotNull().WithMessage("Choose which jobs they see.").IsInEnum();
+}
+
 internal sealed class InvitationRequestValidator : AbstractValidator<InvitationRequest>
 {
     public InvitationRequestValidator()
     {
+        RuleFor(r => r.JobAccess).IsInEnum();
         RuleFor(r => r.Email).NotEmpty().MaximumLength(256)
             .Must(MagicLinkRequestValidator.IsBareAddress).WithMessage("Enter an email address, like name@example.com.");
         RuleFor(r => r.Role).NotNull().WithMessage("Choose a role.").IsInEnum();

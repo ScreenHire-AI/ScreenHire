@@ -173,8 +173,9 @@ internal static class PublicOrganizations
         {
             // Replaces a signed-in caller's own organization for this request: a public route acts for the organization
             // in its URL. Public routes read only what a careers page, feed or public board shows; the one write is an
-            // applicant's own application (PublicApplicationEndpoints).
-            tenant.SetOrganization(organization.Id);
+            // applicant's own application (PublicApplicationEndpoints). It sees every published job whatever job access
+            // the caller has in their own organization (ADR-0015).
+            tenant.SetPublicOrganization(organization.Id);
         }
 
         return organization;

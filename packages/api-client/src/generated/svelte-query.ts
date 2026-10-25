@@ -41,6 +41,7 @@ import type {
   CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
+  ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
   CreateApiKeyRequest,
   CreateApplicationRequest,
@@ -66,6 +67,8 @@ import type {
   GetJobHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
+  HiringTeamMember,
+  HiringTeamRequest,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -88,6 +91,7 @@ import type {
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
+  MemberJob,
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
@@ -8286,6 +8290,99 @@ export function createListTeamMembers<TData = Awaited<ReturnType<typeof listTeam
 
 
 
+export type listMemberJobsResponse200 = {
+  data: MemberJob[]
+  status: 200
+}
+
+export type listMemberJobsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listMemberJobsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listMemberJobsResponseSuccess = (listMemberJobsResponse200) & {
+  headers: Headers;
+};
+export type listMemberJobsResponseError = (listMemberJobsResponse401 | listMemberJobsResponse404) & {
+  headers: Headers;
+};
+
+export const getListMemberJobsUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}/jobs`
+}
+
+export const listMemberJobs = async (memberId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listMemberJobsResponseSuccess> => {
+
+  return apiQueryFetch<listMemberJobsResponseSuccess>(getListMemberJobsUrl(memberId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMemberJobsQueryKey = (memberId: string,) => {
+    return [
+    'v1','organization','members',memberId,'jobs'
+    ] as const;
+    }
+
+
+export const getListMemberJobsQueryOptions = <TData = Awaited<ReturnType<typeof listMemberJobs>>, TError = ErrorType<void>>(memberId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listMemberJobs>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMemberJobsQueryKey(memberId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMemberJobs>>> = ({ signal }) => listMemberJobs(memberId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: memberId !== null && memberId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listMemberJobs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMemberJobsQueryResult = NonNullable<Awaited<ReturnType<typeof listMemberJobs>>>
+export type ListMemberJobsQueryError = ErrorType<void>
+
+
+
+export function createListMemberJobs<TData = Awaited<ReturnType<typeof listMemberJobs>>, TError = ErrorType<void>>(
+ memberId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listMemberJobs>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListMemberJobsQueryOptions(memberId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
 export type listInvitationsResponse200 = {
   data: PendingInvitation[]
   status: 200
@@ -8711,6 +8808,121 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getChangeMemberRoleMutationOptions(options?.()) }), queryClient);
     }
 
+export type changeMemberJobAccessResponse200 = {
+  data: TeamMember
+  status: 200
+}
+
+export type changeMemberJobAccessResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeMemberJobAccessResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeMemberJobAccessResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeMemberJobAccessResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeMemberJobAccessResponseSuccess = (changeMemberJobAccessResponse200) & {
+  headers: Headers;
+};
+export type changeMemberJobAccessResponseError = (changeMemberJobAccessResponse400 | changeMemberJobAccessResponse401 | changeMemberJobAccessResponse403 | changeMemberJobAccessResponse404) & {
+  headers: Headers;
+};
+
+export const getChangeMemberJobAccessUrl = (memberId: string,) => {
+
+
+
+
+  return `/v1/organization/members/${memberId}/job-access`
+}
+
+export const changeMemberJobAccess = async (memberId: string,
+    changeMemberJobAccessRequest: ChangeMemberJobAccessRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<changeMemberJobAccessResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<changeMemberJobAccessResponseSuccess>(getChangeMemberJobAccessUrl(memberId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeMemberJobAccessRequest)
+  }
+);}
+
+
+
+
+
+export const getChangeMemberJobAccessMutationKey = () => ['changeMemberJobAccess'] as const;
+
+export const getChangeMemberJobAccessMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof changeMemberJobAccess>>, TError,ChangeMemberJobAccessMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof changeMemberJobAccess>>, TError,ChangeMemberJobAccessMutationVariables, TContext> => {
+
+const mutationKey = getChangeMemberJobAccessMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeMemberJobAccess>>, ChangeMemberJobAccessMutationVariables> = (props) => {
+          const {memberId,data} = props ?? {};
+
+          return  changeMemberJobAccess(memberId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeMemberJobAccessMutationResult = NonNullable<Awaited<ReturnType<typeof changeMemberJobAccess>>>
+    export type ChangeMemberJobAccessMutationBody = ChangeMemberJobAccessRequest
+    export type ChangeMemberJobAccessMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type ChangeMemberJobAccessMutationVariables = {memberId: string;data: ChangeMemberJobAccessRequest}
+
+    export const createChangeMemberJobAccess = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof changeMemberJobAccess>>, TError,ChangeMemberJobAccessMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof changeMemberJobAccess>>,
+        TError,
+        ChangeMemberJobAccessMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getChangeMemberJobAccessMutationOptions(options?.()) }), queryClient);
+    }
+
 export type removeMemberResponse204 = {
   data: void
   status: 204
@@ -8904,6 +9116,422 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getRevokeInvitationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getJobHiringTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type getJobHiringTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobHiringTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobHiringTeamResponseSuccess = (getJobHiringTeamResponse200) & {
+  headers: Headers;
+};
+export type getJobHiringTeamResponseError = (getJobHiringTeamResponse401 | getJobHiringTeamResponse404) & {
+  headers: Headers;
+};
+
+export const getGetJobHiringTeamUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/hiring-team`
+}
+
+export const getJobHiringTeam = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobHiringTeamResponseSuccess> => {
+
+  return apiQueryFetch<getJobHiringTeamResponseSuccess>(getGetJobHiringTeamUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobHiringTeamQueryKey = (jobId: string,) => {
+    return [
+    'v1','jobs',jobId,'hiring-team'
+    ] as const;
+    }
+
+
+export const getGetJobHiringTeamQueryOptions = <TData = Awaited<ReturnType<typeof getJobHiringTeam>>, TError = ErrorType<void>>(jobId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobHiringTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobHiringTeamQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobHiringTeam>>> = ({ signal }) => getJobHiringTeam(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getJobHiringTeam>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetJobHiringTeamQueryResult = NonNullable<Awaited<ReturnType<typeof getJobHiringTeam>>>
+export type GetJobHiringTeamQueryError = ErrorType<void>
+
+
+
+export function createGetJobHiringTeam<TData = Awaited<ReturnType<typeof getJobHiringTeam>>, TError = ErrorType<void>>(
+ jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobHiringTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetJobHiringTeamQueryOptions(jobId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type setJobHiringTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type setJobHiringTeamResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setJobHiringTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setJobHiringTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setJobHiringTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setJobHiringTeamResponseSuccess = (setJobHiringTeamResponse200) & {
+  headers: Headers;
+};
+export type setJobHiringTeamResponseError = (setJobHiringTeamResponse400 | setJobHiringTeamResponse401 | setJobHiringTeamResponse403 | setJobHiringTeamResponse404) & {
+  headers: Headers;
+};
+
+export const getSetJobHiringTeamUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/hiring-team`
+}
+
+export const setJobHiringTeam = async (jobId: string,
+    hiringTeamRequest: HiringTeamRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<setJobHiringTeamResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<setJobHiringTeamResponseSuccess>(getSetJobHiringTeamUrl(jobId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(hiringTeamRequest)
+  }
+);}
+
+
+
+
+
+export const getSetJobHiringTeamMutationKey = () => ['setJobHiringTeam'] as const;
+
+export const getSetJobHiringTeamMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setJobHiringTeam>>, TError,SetJobHiringTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof setJobHiringTeam>>, TError,SetJobHiringTeamMutationVariables, TContext> => {
+
+const mutationKey = getSetJobHiringTeamMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setJobHiringTeam>>, SetJobHiringTeamMutationVariables> = (props) => {
+          const {jobId,data} = props ?? {};
+
+          return  setJobHiringTeam(jobId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetJobHiringTeamMutationResult = NonNullable<Awaited<ReturnType<typeof setJobHiringTeam>>>
+    export type SetJobHiringTeamMutationBody = HiringTeamRequest
+    export type SetJobHiringTeamMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SetJobHiringTeamMutationVariables = {jobId: string;data: HiringTeamRequest}
+
+    export const createSetJobHiringTeam = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setJobHiringTeam>>, TError,SetJobHiringTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof setJobHiringTeam>>,
+        TError,
+        SetJobHiringTeamMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSetJobHiringTeamMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getHiringTemplateTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type getHiringTemplateTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringTemplateTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHiringTemplateTeamResponseSuccess = (getHiringTemplateTeamResponse200) & {
+  headers: Headers;
+};
+export type getHiringTemplateTeamResponseError = (getHiringTemplateTeamResponse401 | getHiringTemplateTeamResponse404) & {
+  headers: Headers;
+};
+
+export const getGetHiringTemplateTeamUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/hiring-team`
+}
+
+export const getHiringTemplateTeam = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringTemplateTeamResponseSuccess> => {
+
+  return apiQueryFetch<getHiringTemplateTeamResponseSuccess>(getGetHiringTemplateTeamUrl(templateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHiringTemplateTeamQueryKey = (templateId: string,) => {
+    return [
+    'v1','templates',templateId,'hiring-team'
+    ] as const;
+    }
+
+
+export const getGetHiringTemplateTeamQueryOptions = <TData = Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError = ErrorType<void>>(templateId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHiringTemplateTeamQueryKey(templateId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHiringTemplateTeam>>> = ({ signal }) => getHiringTemplateTeam(templateId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetHiringTemplateTeamQueryResult = NonNullable<Awaited<ReturnType<typeof getHiringTemplateTeam>>>
+export type GetHiringTemplateTeamQueryError = ErrorType<void>
+
+
+
+export function createGetHiringTemplateTeam<TData = Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError = ErrorType<void>>(
+ templateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetHiringTemplateTeamQueryOptions(templateId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type setHiringTemplateTeamResponse200 = {
+  data: HiringTeamMember[]
+  status: 200
+}
+
+export type setHiringTemplateTeamResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setHiringTemplateTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setHiringTemplateTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setHiringTemplateTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setHiringTemplateTeamResponseSuccess = (setHiringTemplateTeamResponse200) & {
+  headers: Headers;
+};
+export type setHiringTemplateTeamResponseError = (setHiringTemplateTeamResponse400 | setHiringTemplateTeamResponse401 | setHiringTemplateTeamResponse403 | setHiringTemplateTeamResponse404) & {
+  headers: Headers;
+};
+
+export const getSetHiringTemplateTeamUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/hiring-team`
+}
+
+export const setHiringTemplateTeam = async (templateId: string,
+    hiringTeamRequest: HiringTeamRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<setHiringTemplateTeamResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<setHiringTemplateTeamResponseSuccess>(getSetHiringTemplateTeamUrl(templateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(hiringTeamRequest)
+  }
+);}
+
+
+
+
+
+export const getSetHiringTemplateTeamMutationKey = () => ['setHiringTemplateTeam'] as const;
+
+export const getSetHiringTemplateTeamMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setHiringTemplateTeam>>, TError,SetHiringTemplateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof setHiringTemplateTeam>>, TError,SetHiringTemplateTeamMutationVariables, TContext> => {
+
+const mutationKey = getSetHiringTemplateTeamMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setHiringTemplateTeam>>, SetHiringTemplateTeamMutationVariables> = (props) => {
+          const {templateId,data} = props ?? {};
+
+          return  setHiringTemplateTeam(templateId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetHiringTemplateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof setHiringTemplateTeam>>>
+    export type SetHiringTemplateTeamMutationBody = HiringTeamRequest
+    export type SetHiringTemplateTeamMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SetHiringTemplateTeamMutationVariables = {templateId: string;data: HiringTeamRequest}
+
+    export const createSetHiringTemplateTeam = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setHiringTemplateTeam>>, TError,SetHiringTemplateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof setHiringTemplateTeam>>,
+        TError,
+        SetHiringTemplateTeamMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSetHiringTemplateTeamMutationOptions(options?.()) }), queryClient);
     }
 
 export type listRolesResponse200 = {

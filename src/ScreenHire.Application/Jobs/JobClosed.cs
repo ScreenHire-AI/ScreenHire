@@ -11,7 +11,7 @@ namespace ScreenHire.Application.Jobs;
 /// refreshes on it. The close transaction itself takes the job's board postings down (docs/architecture/
 /// job-distribution.md §5), so nothing here depends on this event arriving.
 /// </summary>
-public sealed record JobClosed(Guid OrganizationId, Guid JobId, DateTimeOffset ClosedAt) : ITenantEvent;
+public sealed record JobClosed(Guid OrganizationId, Guid JobId, DateTimeOffset ClosedAt) : IJobEvent;
 
 /// <summary>
 /// Runs in the worker once per <see cref="JobClosed"/>: reads the job back as its organization and records that the

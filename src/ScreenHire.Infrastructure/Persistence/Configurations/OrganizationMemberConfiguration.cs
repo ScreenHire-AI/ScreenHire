@@ -10,6 +10,9 @@ internal sealed class OrganizationMemberConfiguration : IEntityTypeConfiguration
     public void Configure(EntityTypeBuilder<OrganizationMember> builder)
     {
         builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20);
+        builder.Property(m => m.JobAccess).HasConversion<string>().HasMaxLength(20).HasDefaultValue(JobAccess.All).HasSentinel((JobAccess)(-1));
+        builder.Ignore(m => m.SeesAllJobs);
+        builder.ToTable(t => t.HasCheckConstraint("ck_organization_members_job_access", "job_access IN ('All', 'HiringTeamOnly')"));
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_organization_members_custom_role", "(role = 'Custom') = (custom_role_id IS NOT NULL)"));
 

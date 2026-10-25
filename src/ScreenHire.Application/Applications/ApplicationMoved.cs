@@ -16,7 +16,7 @@ namespace ScreenHire.Application.Applications;
 /// </summary>
 public sealed record ApplicationMoved(
     Guid OrganizationId, Guid ApplicationId, Guid JobId, string FromStageId, string ToStageId, Guid EventId, DateTimeOffset MovedAt)
-    : ITenantEvent;
+    : IJobEvent;
 
 /// <summary>
 /// Runs in the worker once per <see cref="ApplicationMoved"/>: the workflow engine's <c>StageExited</c> trigger for the

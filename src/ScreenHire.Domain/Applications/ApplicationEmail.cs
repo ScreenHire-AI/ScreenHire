@@ -10,7 +10,7 @@ namespace ScreenHire.Domain.Applications;
 /// stored when it goes. Never updated: the database lets the application role insert, read and delete these rows, and
 /// the worker deletes one only when it decides not to send it.
 /// </summary>
-public sealed class ApplicationEmail : ITenantOwned
+public sealed class ApplicationEmail : IApplicationScoped
 {
     /// <summary>The most a rendered subject may hold (one header line).</summary>
     public const int MaxSubjectLength = 1000;

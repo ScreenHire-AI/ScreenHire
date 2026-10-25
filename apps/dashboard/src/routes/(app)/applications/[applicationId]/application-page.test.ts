@@ -20,8 +20,8 @@ const teammate = '01a157d4-0000-7000-8000-0000000000cc';
 const taskId = '01a157d4-0000-7000-8000-000000000307';
 
 const members: TeamMember[] = [
-  { id: '01a157d4-0000-7000-8000-000000000308', userId: user.id, email: user.email, displayName: user.displayName, role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
-  { id: '01a157d4-0000-7000-8000-000000000309', userId: teammate, email: 'robin@brightwater.example.com', displayName: 'Robin Ashby', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-02T09:00:00Z' },
+  { id: '01a157d4-0000-7000-8000-000000000308', userId: user.id, email: user.email, displayName: user.displayName, role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
+  { id: '01a157d4-0000-7000-8000-000000000309', userId: teammate, email: 'robin@brightwater.example.com', displayName: 'Robin Ashby', role: 'Custom', customRoleId: '01a157d4-0000-7000-8000-0000000000cd', roleName: 'Interviewer', joinedAt: '2026-10-02T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
 ];
 
 const task: ApplicationTaskEntry = {
@@ -511,7 +511,7 @@ describe('application page', () => {
     field.setSelectionRange(15, 15);
     await fireEvent.input(field);
     const list = await within(activity).findByRole('listbox', { name: 'Teammates' });
-    expect(within(list).getAllByRole('option').map((option) => option.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['RA Robin Ashby Recruiter']);
+    expect(within(list).getAllByRole('option').map((option) => option.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['RA Robin Ashby Interviewer']);
     expect(field).toHaveAttribute('aria-activedescendant', within(list).getByRole('option').id);
     await fireEvent.keyDown(field, { key: 'Enter' });
     await waitFor(() => expect(field).toHaveValue('Great call, @Robin Ashby '));

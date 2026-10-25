@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -22,12 +23,19 @@ namespace ScreenHire.Infrastructure.Persistence;
 /// Primary EF Core context, including the ASP.NET Core Identity user store. Tenant isolation has two layers
 /// (ADR-0008): the named query filter <see cref="TenantFilter"/> on every <see cref="ITenantOwned"/> entity, and
 /// Postgres row-level security, whose session settings <see cref="TenantSessionInterceptor"/> sets from
-/// <see cref="Tenant"/>.
+/// <see cref="Tenant"/>. Job access (ADR-0015) narrows the same two layers: the named filter <see cref="JobScopeFilter"/>
+/// on jobs and everything under them, and the restrictive <c>job_scope</c> policies of migration <c>AddJobAccess</c>.
 /// </summary>
 public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, Guid>, IDataProtectionKeyContext
 {
     /// <summary>The name of the query filter that scopes tenant-owned rows to <see cref="ITenantContext.OrganizationId"/>.</summary>
     public const string TenantFilter = "Tenant";
+
+    /// <summary>
+    /// The name of the query filter that shows a member on Only jobs they're on just the jobs whose hiring team they are
+    /// on, and the rows under those jobs (ADR-0015). It is true for everyone who sees all jobs.
+    /// </summary>
+    public const string JobScopeFilter = "JobScope";
 
     public ScreenHireDbContext(DbContextOptions<ScreenHireDbContext> options, ITenantContext tenant)
         : base(options)
@@ -144,6 +152,11 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     private Guid? CurrentUserId => Tenant.UserId;
 
+    private bool SeesAllJobs => Tenant.SeesAllJobs;
+
+    // Guid.Empty is never a member's id, so an unresolved member matches no hiring team.
+    private Guid CurrentMemberId => Tenant.MemberId ?? Guid.Empty;
+
     // No OnConfiguring: shared options live in UseScreenHireConventions().
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -172,7 +185,52 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
             .HasQueryFilter(TenantFilter, t => t.OrganizationId == null || t.OrganizationId == CurrentOrganizationId);
         builder.Entity<HiringTemplateVersion>()
             .HasQueryFilter(TenantFilter, v => v.OrganizationId == null || v.OrganizationId == CurrentOrganizationId);
+
+        ApplyJobScope(builder);
     }
+
+    // Mirrors the job_scope row-level security policies (migration AddJobAccess). Each filter names its whole path to the
+    // job's hiring team instead of leaning on the parent's own filter, so it reads the same as its policy. Candidates are
+    // filtered here only: their table keeps tenant-only row-level security, because one person who applied to two jobs
+    // is one candidate row (ADR-0015).
+    private void ApplyJobScope(ModelBuilder builder)
+    {
+        builder.Entity<Job>().HasQueryFilter(JobScopeFilter, j => SeesAllJobs || j.HiringTeam.Contains(CurrentMemberId));
+
+        var jobScoped = typeof(ScreenHireDbContext).GetMethod(nameof(ScopeToJob), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var applicationScoped = typeof(ScreenHireDbContext).GetMethod(nameof(ScopeToApplication), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (typeof(IJobScoped).IsAssignableFrom(entityType.ClrType))
+            {
+                jobScoped.MakeGenericMethod(entityType.ClrType).Invoke(this, [builder]);
+            }
+            else if (typeof(IApplicationScoped).IsAssignableFrom(entityType.ClrType))
+            {
+                applicationScoped.MakeGenericMethod(entityType.ClrType).Invoke(this, [builder]);
+            }
+        }
+
+        builder.Entity<Candidate>().HasQueryFilter(JobScopeFilter, c => SeesAllJobs
+            || Applications.Any(a => a.CandidateId == c.Id && Jobs.Any(j => j.Id == a.JobId && j.HiringTeam.Contains(CurrentMemberId))));
+        builder.Entity<ApplicationNoteMention>().HasQueryFilter(JobScopeFilter, m => SeesAllJobs
+            || ApplicationNotes.Any(n => n.Id == m.NoteId
+                && Applications.Any(a => a.Id == n.ApplicationId && Jobs.Any(j => j.Id == a.JobId && j.HiringTeam.Contains(CurrentMemberId)))));
+        builder.Entity<AutomationActionRun>().HasQueryFilter(JobScopeFilter, r => SeesAllJobs
+            || AutomationRuns.Any(run => run.Id == r.RunId && Jobs.Any(j => j.Id == run.JobId && j.HiringTeam.Contains(CurrentMemberId))));
+        builder.Entity<IndexingNotification>().HasQueryFilter(JobScopeFilter, n => SeesAllJobs
+            || JobPostings.Any(p => p.Id == n.PostingId && Jobs.Any(j => j.Id == p.JobId && j.HiringTeam.Contains(CurrentMemberId))));
+    }
+
+    private void ScopeToJob<T>(ModelBuilder builder)
+        where T : class, IJobScoped =>
+        builder.Entity<T>().HasQueryFilter(JobScopeFilter, e => SeesAllJobs
+            || Jobs.Any(j => j.Id == e.JobId && j.HiringTeam.Contains(CurrentMemberId)));
+
+    private void ScopeToApplication<T>(ModelBuilder builder)
+        where T : class, IApplicationScoped =>
+        builder.Entity<T>().HasQueryFilter(JobScopeFilter, e => SeesAllJobs
+            || Applications.Any(a => a.Id == e.ApplicationId && Jobs.Any(j => j.Id == a.JobId && j.HiringTeam.Contains(CurrentMemberId))));
 
     // entity => entity.OrganizationId == this.CurrentOrganizationId
     private LambdaExpression OwnOrganizationOnly(Type entityType)

@@ -40,7 +40,7 @@ public sealed record SendAutomationEmail(
     string? QuestionnaireLink = null) : ITenantMessage;
 
 /// <summary>An email went to an application's candidate and is on its timeline: open dashboards refetch its activity.</summary>
-public sealed record ApplicationEmailed(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset SentAt) : ITenantEvent;
+public sealed record ApplicationEmailed(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset SentAt) : IJobEvent;
 
 /// <summary>
 /// What happened to one email to a candidate: sent, with its timeline entry, or not sent and why. <c>templateMissing</c>

@@ -24,6 +24,7 @@
     timelineError,
     onretrytimeline,
     members,
+    mentionable,
     currentUserId,
     permissions,
     names,
@@ -35,6 +36,8 @@
     timelineError?: unknown;
     onretrytimeline: () => void;
     members: readonly TeamMember[] | undefined;
+    /** The teammates a note may mention (ActivityPanel). */
+    mentionable?: readonly TeamMember[];
     currentUserId: string | undefined;
     /** What the person's role allows; each control shows only with the permission its route needs (ADR-0014). */
     permissions: readonly Permission[];
@@ -104,6 +107,7 @@
   error={timelineError}
   onretry={onretrytimeline}
   {members}
+  {mentionable}
   {currentUserId}
   {permissions}
   {names}

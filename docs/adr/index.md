@@ -16,12 +16,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0012: Docs as an Open Knowledge Format bundle](0012-docs-open-knowledge-format.md) - Why docs/ is an Open Knowledge Format v0.2 bundle with an index per folder, a routing description and narrow sources per concept, why no file was split, and that Kangentic measured no reading benefit at its size, so the reasons are growth and drift detection.
 * [ADR-0013: Design system v0.3, the work area first](0013-design-system-v0-3.md) - Design system v0.3, which amends v0.2: pages that fill the window, status icons instead of shapes, panels with a soft shadow, tabs and a details rail on detail pages, links that go somewhere and buttons that act, tables that sort, counts instead of lists, every fact in one home, and a candidate rating averaged from people's scorecards.
 * [ADR-0014: Permissions, not role names, and custom roles](0014-permissions-and-custom-roles.md) - The server checks the permission catalogue on every route instead of role names; organizations make custom roles by copying one; a member holds one role, built-in or custom; nobody gives a role with more access than their own; Owner-only permissions stay with Owners; API keys keep their scopes and are capped by their creator.
+* [ADR-0015: Job access through each job's hiring team](0015-job-access-through-hiring-teams.md) - A member sees all jobs, or only the jobs whose hiring team they are on; the scope is a transaction-local setting that restrictive row-level security policies and a JobScope query filter both apply; Owners, Admins, API keys and background work see every job; live updates go to per-job groups.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001 to 0004, 0006 to 0008, 0011 to 0014 | Accepted |
+| 0001 to 0004, 0006 to 0008, 0011 to 0015 | Accepted |
 | 0005 | Accepted with a gate: the Signal Network stays flagged off until a legal review and DPIA |
 | 0009 | Accepted, amended by 0010 |
 | 0010 | Accepted, amended by 0013 |

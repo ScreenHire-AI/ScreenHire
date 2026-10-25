@@ -17,4 +17,7 @@ export const MembershipEventKind = {
   RoleCreated: 'RoleCreated',
   RoleUpdated: 'RoleUpdated',
   RoleDeleted: 'RoleDeleted',
+  JobAccessChanged: 'JobAccessChanged',
+  AddedToHiringTeam: 'AddedToHiringTeam',
+  RemovedFromHiringTeam: 'RemovedFromHiringTeam',
 } as const;

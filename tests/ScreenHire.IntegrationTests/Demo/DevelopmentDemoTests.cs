@@ -121,6 +121,22 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             .Should().ContainSingle(e => e.By == avery && e.Lines.Contains("created the role from Viewer"));
     }
 
+    [Fact]
+    public async Task Robin_hale_sees_only_the_dotnet_job_through_its_hiring_team()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var robin = (await GetAsync(owner, "/v1/organization/members")).EnumerateArray()
+            .Single(m => m.GetProperty("displayName").GetString() == "Robin Hale");
+        robin.GetProperty("jobAccess").GetString().Should().Be("HiringTeamOnly");
+        robin.GetProperty("jobCount").GetInt32().Should().Be(1);
+        (await GetAsync(owner, "/v1/jobs")).GetArrayLength().Should().BeGreaterThan(1, "Avery, an Owner, sees every job");
+
+        using var session = new ApiSession(fixture);
+        await session.SignInWithDevSsoAsync("brightwater-interviewer", Ct);
+        (await GetAsync(session, "/v1/jobs")).EnumerateArray().Select(j => j.GetProperty("slug").GetString())
+            .Should().Equal(SeniorDotnetSlug);
+    }
+
     // Each entry's author and its lines' text, newest first.
     private static async Task<List<(string? By, List<string> Lines)>> HistoryAsync(ApiSession owner, string path) =>
         [.. (await GetAsync(owner, path)).GetProperty("entries").EnumerateArray().Select(e => (

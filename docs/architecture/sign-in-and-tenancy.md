@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Sign-in, organizations and tenant isolation"
-description: "Identity providers and email links, abuse controls, API key authentication, configured domains, organizations, permission checks, built-in and custom roles, team members and invitations, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
+description: "Identity providers and email links, abuse controls, API key authentication, configured domains, organizations, permission checks, built-in and custom roles, team members and invitations, job access through each job's hiring team, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
 tags: [auth, tenancy, rls, team]
 sources:
   - resource: apps/api/Auth/Antiforgery.cs
@@ -24,10 +24,14 @@ sources:
   - resource: apps/api/Endpoints/TeamEndpoints.cs
   - resource: apps/api/Endpoints/RoleEndpoints.cs
   - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
+  - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
+  - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
   - resource: src/ScreenHire.Domain/Organizations/ApiKey.cs
   - resource: src/ScreenHire.Domain/Organizations/CustomRole.cs
   - resource: src/ScreenHire.Domain/Organizations/ITenantOwned.cs
+  - resource: src/ScreenHire.Domain/Organizations/IJobScoped.cs
+  - resource: src/ScreenHire.Domain/Organizations/JobAccess.cs
   - resource: src/ScreenHire.Domain/Organizations/MembershipEvent.cs
   - resource: src/ScreenHire.Domain/Organizations/Organization.cs
   - resource: src/ScreenHire.Domain/Organizations/OrganizationInvitation.cs
@@ -41,6 +45,11 @@ sources:
   - resource: apps/dashboard/src/lib/auth.ts
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
+  - resource: apps/dashboard/src/lib/hiring-team.ts
+  - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/hiring-team-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/member-jobs.svelte
+  - resource: apps/dashboard/src/routes/(app)/settings/team/+page.svelte
   - resource: apps/dashboard/src/lib/moves.svelte.ts
   - resource: apps/dashboard/src/lib/components/new-role-sheet.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/+page.svelte
@@ -67,7 +76,7 @@ organization API key in place of the session ("API keys" below).
 | Route | What it does |
 |---|---|
 | `GET /v1/auth/providers` | The configured providers and whether email links work. Issues the antiforgery token. |
-| `GET /v1/auth/me` | The signed-in user and their organization, with their role and every permission it gives them, or 401. Issues the antiforgery token either way. |
+| `GET /v1/auth/me` | The signed-in user and their organization, with their role, every permission it gives them and whether they see all jobs, or 401. Issues the antiforgery token either way. |
 | `GET /v1/auth/challenge/{provider}?returnUrl=` | Redirects to the provider (authorization code + PKCE). |
 | `GET /v1/auth/signin-{provider}` | The handler's redirect URI. The provider returns here with a code. |
 | `GET /v1/auth/callback?returnUrl=` | Links or creates the user, signs them in, redirects to the dashboard. |
@@ -161,7 +170,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 - **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequirePermission` for the hiring
   writes (`RolePermissions.HiringWrites`), what a Recruiter does, and a read-only key gets 403 "Read-only key". Every
   other permission refuses a key ("Not for API keys"). Creating a Write key needs every hiring write in the creator's
-  role, so a key never carries more than the person who made it (ADR-0014).
+  role, so a key never carries more than the person who made it (ADR-0014). A member on Only jobs they're on creates no
+  key at all, because a key reads every job (ADR-0015).
 - **Antiforgery** is skipped for a request the key scheme authenticated: it carries no cookie to forge with.
 - **Rate limit.** The `api-key` rate-limiter policy on the hiring groups gives each key a fixed window per minute of
   `ScreenHire:ApiKeys:PermitsPerMinute` (default 600), or the lower `permitsPerMinute` set on the key, and answers 429
@@ -257,11 +267,13 @@ created as well, for a role that manages keys (ADR-0011). The API stays the judg
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /members` | Any member | The organization's members with their email, name, role and role name. |
+| `GET /members` | Any member | The organization's members with their email, name, role and role name, their job access, whether they see all jobs, and how many of the jobs the reader sees they are on. |
+| `GET /members/{memberId}/jobs` | Any member | The jobs whose hiring team the member is on, among those the reader sees. |
 | `PUT /members/{memberId}/role` | Manage the team | Gives a member another role: a built-in one, or `Custom` with `customRoleId`. |
+| `PUT /members/{memberId}/job-access` | Manage the team | Sets `All` or `HiringTeamOnly`. 400 for an Owner or Admin, who see all jobs anyway. |
 | `DELETE /members/{memberId}` | Manage the team | Removes a member. |
 | `GET /invitations` | Manage the team | Open invitations: not accepted, revoked or expired. |
-| `POST /invitations` | Manage the team | Invites an address with a role, built-in or custom, and emails the link. 404 when no email sender is configured. |
+| `POST /invitations` | Manage the team | Invites an address with a role, built-in or custom, and a job access (`All` unless it says `HiringTeamOnly`), and emails the link. 404 when no email sender is configured. |
 | `DELETE /invitations/{invitationId}` | Manage the team | Revokes an open invitation. |
 | `GET /membership-log` | Manage the team | The latest 200 entries of the membership log. |
 
@@ -291,11 +303,48 @@ rate limit.
 
 **The membership log** (`membership_events`) records every invitation, revocation, join by invitation, role change and
 removal with who did it, who it was about and the roles before and after, a custom role by its id and its name at the
-time; and every custom role made, changed (`RoleUpdated`, with the old name after a rename) or deleted. Two membership facts have no entry: the
+time; every custom role made, changed (`RoleUpdated`, with the old name after a rename) or deleted; and every job access
+change (`JobAccessChanged`) and person added to or removed from a hiring team (`AddedToHiringTeam`,
+`RemovedFromHiringTeam`, with the job or the hiring template). An invitation and a join record their job access. A job a
+key creates starts with its template's team, and those entries name the key (`actorApiKeyId`) instead of a person. The
+log shows job titles and template names as they are now, and leaves out entries about jobs the reader cannot see. Two membership facts have no entry: the
 founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
 already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
 record.
+
+### Job access
+
+ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of the people who work on it. A member's
+job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
+says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
+them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
+search and live updates leave it out. Existing members and new invitations start at All jobs.
+
+`apps/api/Endpoints/HiringTeamEndpoints.cs`, session only (a team decides who sees a job's candidates, which API keys do
+not change):
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /v1/jobs/{jobId}/hiring-team` | Anyone who sees the job | The people on the team, with their role name and whether they see all jobs. |
+| `PUT /v1/jobs/{jobId}/hiring-team` | Edit jobs | Sets the team to `memberIds`, plus another job's team when `copyFromJobId` names one the caller sees (400 otherwise). Someone who is not a member is 400. A member on Only jobs they're on cannot take themselves off (400). Raises `HiringTeamChanged`. |
+| `GET /v1/templates/{templateId}/hiring-team` | Any member | A hiring template's default team; empty for a ScreenHire template. |
+| `PUT /v1/templates/{templateId}/hiring-team` | Edit hiring templates | Sets it. 409 for a ScreenHire template, which has none. |
+
+`POST /v1/jobs` starts a job with its template's default team, current members only, and the person who creates it, in
+the same insert. Every person added or removed is a membership log entry, written under the member lock.
+
+The subset rule covers job access (`TeamPolicy.MayGiveJobAccess`): a member on Only jobs they're on cannot give All jobs,
+invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys and Manage webhooks need all
+jobs (`RolePermissions.NeedsAllJobs`). A mention names only someone who can see the candidate (400 otherwise), and the
+mention email is skipped for someone taken off the job since. Adding a candidate by hand to a job is 409 for a member on Only jobs they're on
+when that email is already a candidate only on jobs they cannot see.
+
+The dashboard: Team has a Jobs column ("All jobs" or "2 jobs"), and Edit access in a member's menu opens one sheet for
+their role and job access, which lists their jobs read only (`member-access-sheet.svelte`). The invite sheet asks for job
+access. The job page has a Hiring team button with its count (`hiring-team-sheet.svelte`), with Add a person and Copy
+from another job, and a hiring template its Default hiring team. The Role page shows each person's jobs. Settings leaves
+out API keys and Webhooks for someone on Only jobs they're on.
 
 ## Tenant isolation
 
@@ -346,6 +395,14 @@ Two layers, so one mistake is not a breach.
    `change_records` (migration `AddChangeHistory`), the history of templates and jobs, follows the `jobs` pattern and
    is append-only: `screenhire_app` has no `UPDATE` or `DELETE` on it ([change-history.md](change-history.md)).
 
+   Job access (migration `AddJobAccess`, ADR-0015) adds a `job_scope` policy, `AS RESTRICTIVE` and `TO screenhire_app`,
+   to `jobs` and every table under a job or an application. Restrictive policies are ANDed with `tenant_isolation`, so
+   they only narrow it. `jobs` shows a row when `app.job_scope` is `all` or `app.member_id` is in `hiring_team`; the
+   others ask `app_sees_job` or `app_sees_application`, or their parent row. `candidates` and `change_records` keep
+   tenant-only policies: a candidate is one row across jobs and is found by email when they apply again, so the API
+   filters candidates itself (`JobScope`), and a job's history is read only through the job. `JobAccessTests` checks that
+   every table with a `job_id` or `application_id` has the policy, and that the policies alone hide a job.
+
 `users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
 `OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.
@@ -354,22 +411,27 @@ The API and worker connect as `screenhire_app`, a role the migration creates wit
 Migrations run as the owner. In Development the API migrates with the owner's connection string and sets the role's
 password from the `screenhire-app` connection string on every start; production does both in its deploy step.
 
-`TenantSessionInterceptor` sets `app.tenant_id` and `app.user_id` with `set_config(..., true)` for every command:
+`TenantSessionInterceptor` sets `app.tenant_id`, `app.user_id`, `app.job_scope` and `app.member_id` with
+`set_config(..., true)` for every command:
 inside a transaction (every SaveChanges, because the context forces one) as its own command first, and outside one
 as a `DO` block in front of the query. The setting ends with the transaction, so a pooled connection never carries it
 into the next request.
+
+`app.job_scope` is `all` when there is no user (an API key, a worker handler, the careers pages, the seeders) and for a
+member who sees all jobs, and `team` otherwise. A user whose membership the request never resolved gets `team` with no
+member, and so no jobs: a path that forgets fails closed. The named query filter `JobScope` mirrors the policies.
 
 Who the tenant is:
 
 | Request | Tenant |
 |---|---|
-| Signed in | `TenantResolutionMiddleware`: the user's active organization (or first membership), read on every request |
-| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor |
-| Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization |
+| Signed in | `TenantResolutionMiddleware`: the user's active organization (or first membership) and their job access there, read on every request |
+| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor. Every job. |
+| Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization. Every job, whoever is signed in (`SetPublicOrganization`). |
 | Onboarding | The new organization, from just before it is saved |
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |
 | Switching organization | The chosen one, after a check that the user is a member of it |
-| Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn |
+| Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn. Every job. |
 
 ### Adding a tenant-owned table
 
@@ -416,7 +478,7 @@ listed on its login page.
 |---|---|---|
 | Avery Quinn | `avery@brightwater.example.com` | Owner of Brightwater Studio (seeded) |
 | Jordan Ellis | `jordan@brightwater.example.com` | Recruiter at Brightwater Studio (seeded) |
-| Robin Hale | `robin@brightwater.example.com` | Viewer at Brightwater Studio (seeded), made an Interviewer by the local demo |
+| Robin Hale | `robin@brightwater.example.com` | Viewer at Brightwater Studio (seeded), made an Interviewer on Only jobs they're on, with the Senior .NET Engineer job, by the local demo |
 | Sam Rivera | `sam@example.org` | A new user, until they onboard |
 | Unverified address | Avery's address, `email_verified: false` | Refused, as an unverified provider would be |
 | Any email address | what you type | A new user, or the existing one with that email |

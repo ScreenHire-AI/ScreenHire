@@ -14,7 +14,7 @@ namespace ScreenHire.Domain.Applications;
 /// Applications only move when a person moves them, or later when an automation the workflow validator accepted moves
 /// them. Nothing here rejects anyone on its own (CLAUDE.md non-negotiable 2).
 /// </remarks>
-public sealed class JobApplication : ITenantOwned
+public sealed class JobApplication : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

@@ -1,13 +1,13 @@
 <script lang="ts">
   import SendIcon from '@lucide/svelte/icons/send';
+  import ShieldUserIcon from '@lucide/svelte/icons/shield-user';
   import UserMinusIcon from '@lucide/svelte/icons/user-minus';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import UsersRoundIcon from '@lucide/svelte/icons/users-round';
   import XIcon from '@lucide/svelte/icons/x';
-  import type { HttpValidationProblemDetails, OrganizationRole, PendingInvitation, RoleSummary, TeamMember } from '@screenhire/api-client';
+  import type { HttpValidationProblemDetails, JobAccess, OrganizationRole, PendingInvitation, RoleSummary, TeamMember } from '@screenhire/api-client';
   import {
     ApiError,
-    createChangeMemberRole,
     createCreateInvitation,
     createListApiKeys,
     createListInvitations,
@@ -36,6 +36,7 @@
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import MemberAccessSheet from '#lib/components/member-access-sheet.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -55,9 +56,10 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { can } from '#lib/permissions.js';
+  import { page } from '$app/state';
+  import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { assignableRoles, mayAssign, roleFromKey, roleKey } from '#lib/settings.js';
+  import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
@@ -67,7 +69,8 @@
   // (W6). Someone whose role has Manage the team gives only roles that hold nothing their own does not (TeamPolicy), so
   // Owners manage everyone and Admins everyone but Owners. Your own row has no actions: handing over is done by another
   // owner. Invite opens a sheet that describes each role from the API's catalogue and starts at Viewer, the least access
-  // (design system section 22).
+  // (design system section 22). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
+  // Edit access changes the role and the job access together in one sheet.
   let { data }: PageProps = $props();
 
   const membersPath = '/v1/organization/members';
@@ -77,7 +80,6 @@
   const sidebar = Sidebar.useSidebar();
   const members = createListTeamMembers();
   const invitations = createListInvitations();
-  const changeRole = createChangeMemberRole(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
   const remove = createRemoveMember(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
   const revoke = createRevokeInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
   // Removing a member offers to revoke the API keys they created (ADR-0011): a key outlives its creator otherwise. Only
@@ -89,6 +91,7 @@
   const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
 
   const actor = $derived(data.user?.organization?.permissions ?? []);
+  const actorSeesAllJobs = $derived(seesAllJobs(data.user));
   const myId = $derived(data.user?.id);
   const memberList = $derived(members.data?.data ?? []);
   const invitationList = $derived(invitations.data?.data ?? []);
@@ -117,6 +120,8 @@
     { id: 'name', header: 'Name', accessorFn: (member) => member.displayName, sortFn: 'alphanumeric' },
     { id: 'email', header: 'Email', accessorFn: (member) => member.email, sortFn: 'alphanumeric' },
     { id: 'role', header: 'Role', accessorFn: (member) => rank(member), sortFn: 'basic', sortDescFirst: false },
+    // All jobs first, then by how many jobs they are on, most first.
+    { id: 'jobs', header: 'Jobs', accessorFn: (member) => (member.seesAllJobs ? Number.MAX_SAFE_INTEGER : member.jobCount), sortFn: 'basic', sortDescFirst: true },
     { id: 'joined', header: 'Joined', accessorFn: (member) => member.joinedAt, sortFn: 'basic', sortDescFirst: true },
   ];
   const invitationColumns: ColumnDef<typeof features, PendingInvitation, any>[] = [
@@ -125,7 +130,7 @@
     { id: 'sent', header: 'Sent', accessorFn: (invitation) => invitation.createdAt, sortFn: 'basic', sortDescFirst: true },
     { id: 'expires', header: 'Expires', accessorFn: (invitation) => invitation.expiresAt, sortFn: 'basic' },
   ];
-  const memberSort = createTableSort('team-members', { id: 'name', desc: false }, ['name', 'email', 'role', 'joined']);
+  const memberSort = createTableSort('team-members', { id: 'name', desc: false }, ['name', 'email', 'role', 'jobs', 'joined']);
   const invitationSort = createTableSort('team-invitations', { id: 'email', desc: false }, ['email', 'role', 'sent', 'expires']);
   const memberTable = createTable({
     ...tableSortOptions(() => memberSort),
@@ -153,17 +158,32 @@
   // What the last action did, for screen readers; the lists show it to everyone else.
   let announcement = $state('');
 
-  async function setRole(member: TeamMember, key: string) {
-    const role = roleList.find((candidate) => roleKey(candidate) === key);
-    if (!role || key === roleKey(member)) return;
-    memberFailure = '';
-    try {
-      await changeRole.mutateAsync({ memberId: member.id, data: { role: role.role, customRoleId: role.customRoleId } });
-      announcement = `${member.displayName} is now ${article(roleWords(role))} ${roleWords(role)}.`;
-    } catch (error) {
-      memberFailure = describeError(error, `Could not change ${member.displayName}'s role`);
-    }
+  // A count in a table is plain text (T4): which jobs, the access sheet lists.
+  const jobsText = (member: TeamMember) =>
+    member.seesAllJobs ? 'All jobs' : member.jobCount === 1 ? '1 job' : `${member.jobCount} jobs`;
+
+  // Edit access: the role and the job access in one sheet. Opened from the row's menu, or by the Role page's link
+  // (`?access=<memberId>`) once the team has loaded.
+  let editing = $state<TeamMember | null>(null);
+  let accessOpen = $state(false);
+  let openedFromLink = false;
+  let editChosen = false;
+
+  function askToEdit(member: TeamMember) {
+    editing = member;
+    editChosen = true;
   }
+
+  $effect(() => {
+    const wanted = page.url.searchParams.get('access');
+    if (!wanted || openedFromLink || !members.isSuccess || !catalogue.isSuccess) return;
+    openedFromLink = true;
+    const member = memberList.find((candidate) => candidate.id === wanted);
+    if (member && manageable(member)) {
+      editing = member;
+      accessOpen = true;
+    }
+  });
 
   // Remove and revoke confirm in a dialog (A2). The menu opens it once it has closed, so focus comes back to the menu.
   let removing = $state<TeamMember | null>(null);
@@ -177,7 +197,9 @@
       if (removing) removeOpen = true;
       else if (revoking) revokeOpen = true;
     }
+    if (editChosen) accessOpen = true;
     confirmChosen = false;
+    editChosen = false;
   }
 
   function askToRemove(member: TeamMember) {
@@ -225,8 +247,12 @@
     email: z.string().trim().min(1, 'Enter an email address.').max(256, 'Keep the address to 256 characters or fewer.'),
     // The role's key (roleKey), which becomes the request's role and custom role id.
     role: z.string().min(1, 'Choose a role.'),
+    jobAccess: z.enum(['All', 'HiringTeamOnly']),
   });
-  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'viewer' }, zod4(schema)), {
+  // A new invitation starts at All jobs, with Only jobs they're on one click away; someone who sees only their own jobs
+  // can offer only that (TeamPolicy.MayGiveJobAccess).
+  const startingAccess = (): JobAccess => (actorSeesAllJobs ? 'All' : 'HiringTeamOnly');
+  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'viewer', jobAccess: 'All' as JobAccess }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -242,7 +268,8 @@
           submitted.errors.role = ['Choose a role.'];
           return;
         }
-        await invite.mutateAsync({ data: { email, ...role } });
+        const jobAccess = seesAllJobsWith(role.role, 'HiringTeamOnly') ? 'All' : submitted.data.jobAccess;
+        await invite.mutateAsync({ data: { email, ...role, jobAccess } });
         inviting = false;
         announcement = `Invitation sent to ${email}.`;
       } catch (error) {
@@ -262,8 +289,12 @@
   });
 
   $effect(() => {
-    if (inviting) reset({ data: { email: '', role: 'viewer' } });
+    if (inviting) reset({ data: { email: '', role: 'viewer', jobAccess: startingAccess() } });
   });
+
+  const invitedRole = $derived(roleList.find((role) => roleKey(role) === $form.role));
+  const invitedSeesAll = $derived(invitedRole ? seesAllJobsWith(invitedRole.role, 'HiringTeamOnly') : false);
+  const inviteMayOfferAll = $derived(invitedRole ? mayGiveJobAccess(actorSeesAllJobs, invitedRole.role, 'All') : actorSeesAllJobs);
 </script>
 
 <svelte:head>
@@ -309,7 +340,7 @@
                   {#if member.userId === myId}<Badge variant="muted">You</Badge>{/if}
                 </span>
                 <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
-                <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.roleName}</Badge></span>
+                <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.roleName}</Badge><Badge variant="muted">{jobsText(member)}</Badge></span>
               </div>
               {#if manageable(member)}{@render memberMenu(member)}{/if}
             </li>
@@ -338,6 +369,7 @@
                   </Table.Cell>
                   <Table.Cell class="w-full max-w-0 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
                   <Table.Cell class="max-w-48 pr-4"><TruncatedText text={member.roleName} /></Table.Cell>
+                  <Table.Cell class="whitespace-nowrap tabular-nums">{jobsText(member)}</Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
                 </Table.Row>
@@ -423,12 +455,7 @@
 
 {#snippet memberMenu(member: TeamMember)}
   <MoreMenu label={`Actions for ${member.displayName}`} size="icon" quiet onclosed={onMenuClosed}>
-    <DropdownMenu.Label class="text-caption text-muted-foreground">Role</DropdownMenu.Label>
-    <DropdownMenu.RadioGroup value={roleKey(member)} onValueChange={(key) => setRole(member, key)}>
-      {#each offered as role (roleKey(role))}
-        <DropdownMenu.RadioItem value={roleKey(role)} closeOnSelect>{role.name}</DropdownMenu.RadioItem>
-      {/each}
-    </DropdownMenu.RadioGroup>
+    <DropdownMenu.Item onSelect={() => askToEdit(member)}><ShieldUserIcon aria-hidden="true" />Edit access</DropdownMenu.Item>
     <DropdownMenu.Separator />
     <DropdownMenu.Item variant="destructive" onSelect={() => askToRemove(member)}><UserMinusIcon aria-hidden="true" />Remove from team</DropdownMenu.Item>
   </MoreMenu>
@@ -471,6 +498,15 @@
   {#snippet icon()}<XIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
 
+<MemberAccessSheet
+  bind:open={accessOpen}
+  member={editing}
+  roles={offered}
+  permissions={catalogue.data?.data.permissions ?? []}
+  {actorSeesAllJobs}
+  onsaved={(message) => (announcement = message)}
+/>
+
 <Sheet.Root bind:open={inviting}>
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
@@ -512,6 +548,35 @@
           {/each}
         </div>
         <Field.Error errors={$errors.role?.map((message) => ({ message }))} />
+      </div>
+      <div class="flex flex-col gap-2">
+        <span id="invite-jobs-label" class="text-body font-medium">Jobs</span>
+        {#if invitedSeesAll}
+          <p class="text-muted-foreground">Owners and Admins see all jobs.</p>
+        {:else}
+          <div role="radiogroup" aria-labelledby="invite-jobs-label" class="flex flex-col gap-2">
+            {#if inviteMayOfferAll}
+              <label
+                class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
+              >
+                <input type="radio" name="jobAccess" value="All" bind:group={$form.jobAccess} class="mt-0.5 size-4 shrink-0 accent-primary" />
+                <span class="flex min-w-0 flex-col gap-0.5">
+                  <span class="font-semibold">All jobs</span>
+                  <span class="text-muted-foreground">Including jobs added later.</span>
+                </span>
+              </label>
+            {/if}
+            <label
+              class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
+            >
+              <input type="radio" name="jobAccess" value="HiringTeamOnly" bind:group={$form.jobAccess} class="mt-0.5 size-4 shrink-0 accent-primary" />
+              <span class="flex min-w-0 flex-col gap-0.5">
+                <span class="font-semibold">Only jobs they're on</span>
+                <span class="text-muted-foreground">Add them to each job's hiring team after they join.</span>
+              </span>
+            </label>
+          </div>
+        {/if}
       </div>
       <FailureText message={$errors._errors?.[0]} />
       <div class="flex justify-end gap-2">

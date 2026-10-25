@@ -12,7 +12,8 @@ public sealed record RealtimeEvent(string Type, object Data);
 
 /// <summary>
 /// The API's Wolverine handler for one <see cref="ITenantEvent"/> type from the real-time queue: pushes the event to its
-/// organization's group on <see cref="EventsHub"/> (or its record's subscribers, <see cref="RealtimeGroups.For"/>).
+/// organization's group on <see cref="EventsHub"/>, or to the members who see its job, or to its record's subscribers
+/// (<see cref="RealtimeGroups.For"/>).
 /// One instance per event type is registered in <c>ScreenHireMessaging.ConfigureApi</c>, so a new event needs no code
 /// here.
 /// </summary>
@@ -25,7 +26,7 @@ internal sealed class TenantEventPusher<TEvent> : MessageHandler<TEvent>
         ArgumentNullException.ThrowIfNull(context);
 
         var hub = context.Runtime.Services.GetRequiredService<IHubContext<EventsHub, IEventsClient>>();
-        return hub.Clients.Group(RealtimeGroups.For(message)).ReceiveEvent(new RealtimeEvent(typeof(TEvent).Name, message));
+        return hub.Clients.Groups(RealtimeGroups.For(message)).ReceiveEvent(new RealtimeEvent(typeof(TEvent).Name, message));
     }
 }
 

@@ -18,7 +18,28 @@ public sealed class OrganizationMember : ITenantOwned
     /// <summary>The organization's own role this member has; set exactly when <see cref="Role"/> is Custom.</summary>
     public Guid? CustomRoleId { get; private set; }
 
+    /// <summary>
+    /// All jobs, or only the jobs whose hiring team they are on (ADR-0015). Owners and Admins see all jobs whatever this
+    /// says; it applies to every other role. Existing members and new invitations start at All.
+    /// </summary>
+    public JobAccess JobAccess { get; private set; } = JobAccess.All;
+
+    /// <summary>Whether the member sees every job: their role is Owner or Admin, or their job access is All.</summary>
+    public bool SeesAllJobs => JobAccessRules.SeesAllJobs(Role, JobAccess);
+
     public required DateTimeOffset CreatedAt { get; init; }
+
+    /// <summary>Sets which jobs the member sees. Returns whether it changed.</summary>
+    public bool SetJobAccess(JobAccess access)
+    {
+        if (JobAccess == access)
+        {
+            return false;
+        }
+
+        JobAccess = access;
+        return true;
+    }
 
     /// <summary>Gives the member one role: a built-in, or a custom role by its id. A member never holds two.</summary>
     public void AssignRole(OrganizationRole role, Guid? customRoleId = null)
@@ -37,9 +58,10 @@ public sealed class OrganizationMember : ITenantOwned
 
     /// <summary>A new membership with <paramref name="role"/>.</summary>
     public static OrganizationMember Create(
-        Guid organizationId, Guid userId, OrganizationRole role, DateTimeOffset createdAt, Guid? customRoleId = null)
+        Guid organizationId, Guid userId, OrganizationRole role, DateTimeOffset createdAt, Guid? customRoleId = null,
+        JobAccess jobAccess = JobAccess.All)
     {
-        var member = new OrganizationMember { OrganizationId = organizationId, UserId = userId, CreatedAt = createdAt };
+        var member = new OrganizationMember { OrganizationId = organizationId, UserId = userId, CreatedAt = createdAt, JobAccess = jobAccess };
         member.AssignRole(role, customRoleId);
         return member;
     }

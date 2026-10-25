@@ -11,6 +11,8 @@ internal sealed class HiringTemplateConfiguration : IEntityTypeConfiguration<Hir
     {
         builder.Property(t => t.Name).HasMaxLength(120);
         builder.Property(t => t.Description).HasMaxLength(1000);
+        // Member ids as a native uuid[] (ADR-0015); always empty on a system template.
+        builder.PrimitiveCollection(t => t.DefaultHiringTeam).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]");
         builder.Ignore(t => t.Draft);
 
         // Null for a system template.

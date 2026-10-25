@@ -2,7 +2,7 @@ import type { JobDetail } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
-import { apiStub, applications, board, jobId, posting, stages } from '../../../../test-support/fixtures.js';
+import { apiStub, applications, board, jobId, posting, stages, user } from '../../../../test-support/fixtures.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -47,6 +47,7 @@ function stub(detail: JobDetail, routes: Parameters<typeof apiStub>[0] = {}) {
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(applications),
       'GET /v1/boards': () => Response.json(boards),
       'GET /v1/organization/members': () => Response.json([]),
+      [`GET /v1/jobs/${jobId}/hiring-team`]: () => Response.json([]),
       ...routes,
     }),
   );
@@ -65,6 +66,7 @@ async function openMoreActions() {
 afterEach(() => {
   vi.unstubAllGlobals();
   page.state = {};
+  page.data = {};
   (page as unknown as { url: URL }).url = new URL('http://dashboard.test/');
   navigation.goto.mockClear();
 });
@@ -77,6 +79,32 @@ function onDistributionTab() {
 const tab = (name: RegExp) => screen.getByRole('tab', { name });
 
 describe('job page', () => {
+  it('opens the hiring team from the header, with its count, and saves the people chosen', async () => {
+    const jordan = { id: 'm-2', userId: 'u-2', email: 'jordan@example.com', displayName: 'Jordan Ellis', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All', seesAllJobs: true, jobCount: 1 };
+    const robin = { id: 'm-3', userId: 'u-3', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Viewer', customRoleId: null, roleName: 'Viewer', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'HiringTeamOnly', seesAllJobs: false, jobCount: 0 };
+    const saved: unknown[] = [];
+    // Someone who edits jobs, and so the team.
+    page.data = { user };
+    stub(job, {
+      'GET /v1/organization/members': () => Response.json([jordan, robin]),
+      'GET /v1/jobs': () => Response.json([]),
+      [`GET /v1/jobs/${jobId}/hiring-team`]: () =>
+        Response.json([{ memberId: 'm-2', userId: 'u-2', email: 'jordan@example.com', displayName: 'Jordan Ellis', roleName: 'Recruiter', seesAllJobs: true }]),
+      [`PUT /v1/jobs/${jobId}/hiring-team`]: (init) => (saved.push(JSON.parse(String(init?.body))), Response.json([])),
+    });
+
+    const button = await screen.findByRole('button', { name: /^Hiring team/ });
+    await waitFor(() => expect(button).toHaveTextContent('1'));
+    await fireEvent.click(button);
+    const sheet = await screen.findByRole('dialog', { name: 'Hiring team' });
+    expect(await within(sheet).findByText('Jordan Ellis')).toBeInTheDocument();
+
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Remove Jordan Ellis from the hiring team' }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(saved).toEqual([{ memberIds: [], copyFromJobId: null }]));
+  });
+
   it('heads the page with the title, its status beside it and a labelled facts row', async () => {
     stub(job);
 
@@ -247,6 +275,7 @@ describe('job page', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
       'Edit details',
       'Edit workflow',
+      'Hiring team',
       'Close & remove everywhere',
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;

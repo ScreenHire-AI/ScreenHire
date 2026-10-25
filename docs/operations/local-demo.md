@@ -93,7 +93,7 @@ a user. No password anywhere.
 |---|---|
 | Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data |
 | Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio: works on jobs and candidates, but cannot change the team or the organization's settings |
-| Robin Hale (`robin@brightwater.example.com`) | Interviewer at Brightwater Studio, a custom role Avery made from Viewer: sees candidates, adds notes and tags and fills in scorecards, but is offered no Move and no Settings |
+| Robin Hale (`robin@brightwater.example.com`) | Interviewer at Brightwater Studio, a custom role Avery made from Viewer: sees candidates, adds notes and tags and fills in scorecards, but is offered no Move and no Settings. On Only jobs they're on, and on the Senior .NET Engineer job's hiring team, so that is the one job he sees |
 | Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. After the first time they keep the organization they made |
 | Any email address you type | A new user each time you use a new address: the way to show onboarding again |
 | Unverified address | Refused: the provider did not vouch for the address |
@@ -219,8 +219,13 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 - **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer
   included; **Compare roles** opens the table of what each role can do. **Roles** lists the four built-in roles and
   Interviewer, which Avery made from Viewer and gave to Robin: open it to see its permissions, its History ("created the
-  role from Viewer") and Robin under People. **New role** copies a role and opens the copy to change. Deleting
-  Interviewer is refused while Robin has it, saying so.
+  role from Viewer") and Robin under People, with "1 job". **New role** copies a role and opens the copy to change.
+  Deleting Interviewer is refused while Robin has it, saying so.
+- **Job access.** Team's Jobs column says "1 job" for Robin and "All jobs" for everyone else. **Edit access** in Robin's
+  menu opens his role and job access, with the Senior .NET Engineer job listed. On a job, **Hiring team** lists Jordan
+  (on every job) and, on the .NET job, Robin; **Add a person** and **Copy from another job** change it. Sign in as Robin
+  through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
+  candidates, saved views and My tasks hold only that job's.
 - **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
   http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
   back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.

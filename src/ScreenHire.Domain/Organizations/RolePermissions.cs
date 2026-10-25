@@ -107,6 +107,13 @@ public static class RolePermissions
         Permission.RunAutomations, Permission.EditHiringTemplates,
     ]);
 
+    /// <summary>
+    /// What only a person who sees every job may do, whatever their role allows (ADR-0015). An API key and a webhook
+    /// reach the whole organization's jobs, so a member on Only jobs they're on making one would see past their own
+    /// limit.
+    /// </summary>
+    public static IReadOnlySet<Permission> NeedsAllJobs { get; } = new HashSet<Permission>([Permission.ManageApiKeys, Permission.ManageWebhooks]);
+
     private static readonly Permission[] Administration =
     [
         Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
