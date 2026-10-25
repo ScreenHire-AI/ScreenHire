@@ -21,6 +21,7 @@
   import { chipOf } from '#lib/integrity.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
+  import { isOverdue } from '#lib/sla.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
@@ -36,7 +37,7 @@
     emptyText = 'No candidates yet.',
     onclearfilters,
     sortId,
-    sort = createTableSort(sortId, { id: 'applied', desc: true }),
+    sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }),
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -57,7 +58,10 @@
     onclearfilters?: () => void;
     /** Names the table in the person's remembered sorts (`candidates`, `job-candidates`); without it the sort is forgotten. */
     sortId?: string;
-    /** The sort, when the page needs it too. Opens newest first by Applied, unless the person chose another. */
+    /**
+     * The sort, when the page needs it too. A job's table (with `stages`) opens with the candidates needing attention
+     * first, every other table newest first by Applied (L2), unless the person chose another.
+     */
     sort?: TableSortState;
   } = $props();
 
@@ -67,12 +71,28 @@
     // Status first, right after the name (T2): the integrity columns, then the facts.
     ...extraColumns,
     ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
-    { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false, cell: ({ row }) => renderSnippet(stageCell, row.original) },
+    // On a job's table the Stage column sorts by attention: overdue rows first, the longest overdue at the top, then the
+    // rest in pipeline order. Overdue is the team's own delay (section 3.2), so the order never leans on integrity output.
+    {
+      id: 'stage',
+      header: 'Stage',
+      accessorFn: (application) => attentionRank(application),
+      enableSorting: Boolean(stages),
+      sortFn: 'basic',
+      cell: ({ row }) => renderSnippet(stageCell, row.original),
+    },
     { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
+
+  // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
+  function attentionRank(application: ApplicationSummary): number {
+    if (isOverdue(application, Date.now())) return Date.parse(application.slaDueAt!) - 1e15;
+    const position = stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1;
+    return position < 0 ? Number.MAX_SAFE_INTEGER : position;
+  }
 
   // Phones get two-line list items in place of the table (design system section 8), at the shell's own phone width.
   const phone = new IsMobile();

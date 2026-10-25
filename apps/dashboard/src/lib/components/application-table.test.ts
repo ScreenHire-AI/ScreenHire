@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
-import { applications } from '../../test-support/fixtures.js';
+import { applications, stages } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/integrity-fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
@@ -101,6 +101,31 @@ describe('candidate table', () => {
     await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
     expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
     expect(header()).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it("opens a job's table with the candidates needing attention first: overdue, longest first, then pipeline order", async () => {
+    const day = 86_400_000;
+    const due = (daysAgo: number) => new Date(Date.now() - daysAgo * day).toISOString();
+    const rows = [
+      { ...applications[0]!, slaDueAt: due(-3) },
+      { ...applications[1]!, slaDueAt: due(1) },
+      { ...applications[2]!, slaDueAt: due(2) },
+    ];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, stages } } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
+
+    expect(names()).toEqual(['Sam Taylor', 'Jordan Lee', 'Casey Morgan']);
+    expect(screen.getByRole('columnheader', { name: /Stage/ })).toHaveAttribute('aria-sort', 'ascending');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
+    expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
+  });
+
+  it('opens a table across jobs newest first by Applied, where Stage does not sort', () => {
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true } } });
+
+    expect(screen.getByRole('columnheader', { name: /Applied/ })).toHaveAttribute('aria-sort', 'descending');
+    expect(within(screen.getByRole('columnheader', { name: /Stage/ })).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it("remembers the person's sort for the table named by sortId", async () => {
