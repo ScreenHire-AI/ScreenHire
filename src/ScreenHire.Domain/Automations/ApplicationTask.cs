@@ -24,6 +24,12 @@ public sealed class ApplicationTask : ITenantOwned
     /// <summary>Who should do it, or null for anyone on the hiring team.</summary>
     public Guid? AssigneeUserId { get; init; }
 
+    /// <summary>
+    /// The stage the application was in when the task was made, for a review: a scorecard for that stage answers it
+    /// (<c>ReviewerGate</c>). Null on tasks made before tasks kept it.
+    /// </summary>
+    public string? StageId { get; init; }
+
     /// <summary>The automation run that created it.</summary>
     public Guid? AutomationRunId { get; init; }
 

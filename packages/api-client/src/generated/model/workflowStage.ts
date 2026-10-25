@@ -17,4 +17,6 @@ export interface WorkflowStage {
   /** @nullable */
   slaDays?: number | null;
   scorecard?: null | Scorecard;
+  /** @nullable */
+  scorecardTemplateId?: string | null;
 }

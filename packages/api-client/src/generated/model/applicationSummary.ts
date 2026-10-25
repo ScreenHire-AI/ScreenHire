@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ApplicationRating } from './applicationRating.ts';
 import type { ApplicationSource } from './applicationSource.ts';
 import type { ApplicationStage } from './applicationStage.ts';
 import type { IntegritySummary } from './integritySummary.ts';
@@ -26,4 +27,5 @@ export interface ApplicationSummary {
   integrity?: null | IntegritySummary;
   /** @nullable */
   slaDueAt?: string | null;
+  rating?: null | ApplicationRating;
 }

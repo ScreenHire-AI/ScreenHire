@@ -61,7 +61,7 @@ public static partial class DefinitionValidator
     public const int MaxAutomations = 50;
     public const int MaxRules = 20;
     public const int MaxActions = 10;
-    public const int MaxCriteria = 20;
+    public const int MaxScorecardQuestions = 20;
     public const int MaxFollowUpQuestionnaires = 10;
 
     // Question ids the apply form gives meaning to (ApplicationForm): its resume question is there even when the apply
@@ -78,7 +78,7 @@ public static partial class DefinitionValidator
             return errors;
         }
 
-        ValidateWorkflow(definition.Workflow, "workflow", errors);
+        ValidateWorkflow(definition.Workflow, "workflow", template: true, errors);
         ValidatePostingDefaults(definition.PostingDefaults, "postingDefaults", errors);
         return errors;
     }
@@ -86,11 +86,12 @@ public static partial class DefinitionValidator
     public static IReadOnlyList<DefinitionError> Validate(HiringWorkflow? workflow)
     {
         var errors = new List<DefinitionError>();
-        ValidateWorkflow(workflow, "", errors);
+        ValidateWorkflow(workflow, "", template: false, errors);
         return errors;
     }
 
-    private static void ValidateWorkflow(HiringWorkflow? workflow, string path, List<DefinitionError> errors)
+    // A hiring template's stages name library scorecards; a job's stages hold their own copies (workflow-engine.md §8).
+    private static void ValidateWorkflow(HiringWorkflow? workflow, string path, bool template, List<DefinitionError> errors)
     {
         if (workflow is null)
         {
@@ -98,7 +99,7 @@ public static partial class DefinitionValidator
             return;
         }
 
-        var stages = ValidateStages(workflow.Stages, Join(path, "stages"), errors);
+        var stages = ValidateStages(workflow.Stages, Join(path, "stages"), template, errors);
         var questions = ValidateQuestionnaire(workflow.Questionnaire, Join(path, "questionnaire"), errors);
         var followUps = ValidateFollowUps(workflow.FollowUpQuestionnaires, Join(path, "followUpQuestionnaires"), questions, errors);
 
@@ -115,7 +116,7 @@ public static partial class DefinitionValidator
     }
 
     private static Dictionary<string, WorkflowStage> ValidateStages(
-        IReadOnlyList<WorkflowStage>? stages, string path, List<DefinitionError> errors)
+        IReadOnlyList<WorkflowStage>? stages, string path, bool template, List<DefinitionError> errors)
     {
         var byId = new Dictionary<string, WorkflowStage>(StringComparer.Ordinal);
         if (stages is null || stages.Count == 0)
@@ -155,10 +156,7 @@ public static partial class DefinitionValidator
                 errors.Add(new(Join(stagePath, "slaDays"), "An SLA is between 1 and 365 days."));
             }
 
-            if (stage.Scorecard is not null)
-            {
-                ValidateScorecard(stage, Join(stagePath, "scorecard"), errors);
-            }
+            ValidateStageScorecard(stage, stagePath, template, errors);
         }
 
         // Applications start in the first stage, so it has to be the one Applied stage.
@@ -175,46 +173,105 @@ public static partial class DefinitionValidator
         return byId;
     }
 
-    private static void ValidateScorecard(WorkflowStage stage, string path, List<DefinitionError> errors)
+    private static void ValidateStageScorecard(WorkflowStage stage, string path, bool template, List<DefinitionError> errors)
     {
-        if (Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal())
+        if (!stage.HasScorecard())
         {
-            errors.Add(new(path, "A hired, rejected or withdrawn stage ends the application, so it has no scorecard."));
-        }
-
-        if (stage.Scorecard!.Criteria is not { Count: > 0 and <= MaxCriteria } criteria)
-        {
-            errors.Add(new(Join(path, "criteria"), $"A scorecard has between 1 and {MaxCriteria} criteria; leave the scorecard out for none."));
             return;
         }
 
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        for (var i = 0; i < criteria.Count; i++)
+        if (Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal())
         {
-            var criterionPath = $"{path}.criteria[{i}]";
-            if (criteria[i] is not { } criterion)
+            errors.Add(new(Join(path, stage.ScorecardTemplateId is null ? "scorecard" : "scorecardTemplateId"),
+                "A hired, rejected or withdrawn stage ends the application, so it has no scorecard."));
+        }
+
+        if (stage.ScorecardTemplateId is { } key && !BuiltInScorecards.IsWellFormed(key))
+        {
+            errors.Add(new(Join(path, "scorecardTemplateId"),
+                $"Unknown scorecard. Use one of {string.Join(", ", BuiltInScorecards.All.Select(b => b.Id))}, or the id of one of the organization's scorecards."));
+        }
+
+        if (template)
+        {
+            if (stage.Scorecard is not null)
             {
-                errors.Add(new(criterionPath, "A criterion is required."));
+                errors.Add(new(Join(path, "scorecard"),
+                    "A hiring template's stage names a scorecard from the library in scorecardTemplateId; each job copies its questions."));
+            }
+
+            return;
+        }
+
+        // A job's stage holds its own copy. One that only names a library scorecard is copied by the API when the job is
+        // saved, and the builder validates both kinds of workflow through this overload.
+        if (stage.Scorecard is not { } scorecard)
+        {
+            return;
+        }
+
+        ValidateText(scorecard.Name, Join(path, "scorecard.name"), ScorecardTemplate.MaxNameLength, required: true, errors);
+        errors.AddRange(ValidateScorecardQuestions(scorecard.Questions, Join(path, "scorecard.questions")));
+    }
+
+    /// <summary>
+    /// The problems with a scorecard's questions, at paths under <paramref name="path"/>: 1 to
+    /// <see cref="MaxScorecardQuestions"/> questions with unique ids, options on the choice kinds only, and nothing that
+    /// rates the person rather than the job. The library's scorecards and a job's copy share these rules.
+    /// </summary>
+    public static IReadOnlyList<DefinitionError> ValidateScorecardQuestions(IReadOnlyList<ScorecardQuestion>? questions, string path)
+    {
+        var errors = new List<DefinitionError>();
+        if (questions is not { Count: > 0 and <= MaxScorecardQuestions })
+        {
+            errors.Add(new(path, $"A scorecard asks between 1 and {MaxScorecardQuestions} questions; leave the scorecard out for none."));
+            return errors;
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < questions.Count; i++)
+        {
+            var questionPath = $"{path}[{i}]";
+            if (questions[i] is not { } question)
+            {
+                errors.Add(new(questionPath, "A question is required."));
                 continue;
             }
 
-            if (ValidateId(criterion.Id, Join(criterionPath, "id"), errors) && !ids.Add(criterion.Id))
+            if (ValidateId(question.Id, Join(questionPath, "id"), errors) && !ids.Add(question.Id))
             {
-                errors.Add(new(Join(criterionPath, "id"), $"Criterion id '{criterion.Id}' is used twice."));
+                errors.Add(new(Join(questionPath, "id"), $"Question id '{question.Id}' is used twice."));
             }
 
-            ValidateText(criterion.Label, Join(criterionPath, "label"), 120, required: true, errors);
-            ValidateText(criterion.Guidance, Join(criterionPath, "guidance"), 500, required: false, errors);
-            foreach (var (text, member) in new[] { (criterion.Label, "label"), (criterion.Guidance, "guidance") })
+            ValidateText(question.Label, Join(questionPath, "label"), 120, required: true, errors);
+            ValidateText(question.Guidance, Join(questionPath, "guidance"), 500, required: false, errors);
+            if (!Enum.IsDefined(question.Type))
+            {
+                errors.Add(new(Join(questionPath, "type"), "Unknown answer kind."));
+            }
+            else if (question.Type is ScorecardQuestionType.SingleChoice or ScorecardQuestionType.MultiChoice)
+            {
+                ValidateOptions(question.Options, Join(questionPath, "options"), errors);
+            }
+            else if (question.Options is { Count: > 0 })
+            {
+                errors.Add(new(Join(questionPath, "options"), "Only choice questions have options."));
+            }
+
+            var texts = new List<(string? Text, string Member)> { (question.Label, "label"), (question.Guidance, "guidance") };
+            texts.AddRange((question.Options ?? []).Select((o, n) => (o?.Label, $"options[{n}].label")));
+            foreach (var (text, member) in texts)
             {
                 if (text is not null && PersonalJudgement().Match(text) is { Success: true } match)
                 {
-                    errors.Add(new(Join(criterionPath, member),
-                        $"Rate what the job needs, such as a skill or experience, not \"{match.Value}\". Scorecards never rate " +
+                    errors.Add(new(Join(questionPath, member),
+                        $"Ask about what the job needs, such as a skill or experience, not \"{match.Value}\". Scorecards never rate " +
                         "personality, emotion or honesty (CLAUDE.md non-negotiable 3)."));
                 }
             }
         }
+
+        return errors;
     }
 
     private static Dictionary<string, Question> ValidateQuestionnaire(Questionnaire? questionnaire, string path, List<DefinitionError> errors)
@@ -563,7 +620,7 @@ public static partial class DefinitionValidator
         {
             // Optional: a decision on any stage's scorecard, or only on this one's.
             ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
-            if (stages.GetValueOrDefault(trigger.StageId) is { Scorecard: null } stage)
+            if (stages.GetValueOrDefault(trigger.StageId) is { } stage && !stage.HasScorecard())
             {
                 errors.Add(new(Join(path, "stageId"), $"{stage.Name} has no scorecard, so no reviewer decision is recorded there."));
             }
@@ -643,6 +700,15 @@ public static partial class DefinitionValidator
             if (rules[i] is not { } rule)
             {
                 errors.Add(new(rulePath, "A rule is required."));
+                continue;
+            }
+
+            if (FactSchema.IsRating(rule.Fact))
+            {
+                // Not an unknown fact: a refused one. The candidate's rating informs people and is never a condition.
+                errors.Add(new(Join(rulePath, "fact"),
+                    "The candidate's rating informs people, who decide: no automation acts on it or on a scorecard's answers (ADR-0013). " +
+                    "Use a ReviewerDecision trigger and reviewer.recommendation to act on one reviewer's recommendation."));
                 continue;
             }
 
@@ -1098,7 +1164,7 @@ public static partial class DefinitionValidator
     [GeneratedRegex("^[A-Z]{3}$")]
     private static partial Regex CurrencyCode();
 
-    // A backstop for criteria that rate the person rather than the job (CLAUDE.md non-negotiable 3). Whole words only,
+    // A backstop for scorecard questions that rate the person rather than the job (CLAUDE.md non-negotiable 3). Whole words only,
     // and not words with a fair job meaning: "data integrity", "energy sector knowledge", "character encoding" and
     // "statistical confidence" pass. It catches the obvious cases; a criterion's meaning is for the template builder's
     // guidance and review of system templates (workflow-engine.md §7).

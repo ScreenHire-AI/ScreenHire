@@ -41,6 +41,8 @@ public sealed partial class RolePermissionsTests
         ["CreateHiringTemplateVersion"] = Permission.EditHiringTemplates,
         ["UpdateHiringTemplateVersion"] = Permission.EditHiringTemplates,
         ["PublishHiringTemplateVersion"] = Permission.EditHiringTemplates,
+        ["CreateScorecardTemplate"] = Permission.EditHiringTemplates,
+        ["UpdateScorecardTemplate"] = Permission.EditHiringTemplates,
         ["CreateEmailTemplate"] = Permission.EditEmailTemplates,
         ["UpdateEmailTemplate"] = Permission.EditEmailTemplates,
         ["DeleteEmailTemplate"] = Permission.EditEmailTemplates,

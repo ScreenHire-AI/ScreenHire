@@ -103,7 +103,7 @@ public sealed class DefinitionChangesTests
             Stages = [.. before.Stages.Select(s => s.Id switch
             {
                 "screening" => s with { Name = "Phone screen", SlaDays = 5 },
-                "interview" => s with { SlaDays = 1, Scorecard = new Scorecard([.. s.Scorecard!.Criteria.Skip(1)]) },
+                "interview" => s with { SlaDays = 1, Scorecard = s.Scorecard! with { Questions = [.. s.Scorecard!.Questions.Skip(1)] } },
                 _ => s,
             })],
         };

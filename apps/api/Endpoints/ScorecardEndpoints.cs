@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Applications;
@@ -17,8 +18,9 @@ namespace ScreenHire.Api.Endpoints;
 /// <summary>
 /// Reviewers' scorecards on an application (workflow-engine.md §8). Tenant-scoped like every hiring route: another
 /// organization's application or scorecard is a 404. Submitting raises the ReviewerDecision trigger once, through the
-/// outbox, in the transaction that stores the scorecard. A scorecard holds a person's judgement of the job's criteria;
-/// it never shows or takes integrity output, and no automation it fires may reject (DefinitionValidator).
+/// outbox, in the transaction that stores the scorecard. A scorecard holds a person's judgement of the job's questions;
+/// it never shows or takes integrity output, and no automation it fires may reject (DefinitionValidator). A reviewer who
+/// still has their own scorecard to give reads only their own here (ADR-0013, <c>RatingReads</c>).
 /// </summary>
 internal static class ScorecardEndpoints
 {
@@ -35,17 +37,19 @@ internal static class ScorecardEndpoints
     }
 
     // Every scorecard on the application, oldest first, with who gave it. A key reads them too: they are the hiring
-    // team's judgements, not integrity evidence.
+    // team's judgements, not integrity evidence. A reviewer with their own scorecard still to give reads only their own,
+    // so the others cannot anchor them (ADR-0013); the application's rating says AfterYourScorecard meanwhile.
     private static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
-        Guid applicationId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))
         {
             return TypedResults.NotFound();
         }
 
+        var withheld = await RatingReads.WithheldAsync(db, applicationId, tenant.UserId, cancellationToken);
         var scorecards = await db.ApplicationScorecards.AsNoTracking()
-            .Where(s => s.ApplicationId == applicationId)
+            .Where(s => s.ApplicationId == applicationId && (!withheld || s.ReviewerUserId == tenant.UserId))
             .OrderBy(s => s.SubmittedAt).ThenBy(s => s.Id)
             .ToListAsync(cancellationToken);
         return TypedResults.Ok(scorecards.Select(s => s.ToEntry()).ToList());
@@ -84,10 +88,10 @@ internal static class ScorecardEndpoints
 
         // A retry is answered from the stored scorecard before the checks below, which read the job's current workflow:
         // an edit since the first request must not turn the same submission into an error.
-        var ratings = request.Ratings.ToDictionary(r => r.CriterionId, r => (CriterionRating?)r.Rating, StringComparer.Ordinal);
+        var answers = request.ToAnswers();
         if (await ExistingAsync(db, application.Id, request.StageId, reviewerUserId, cancellationToken) is { } existing)
         {
-            return Replay(existing, ratings, request);
+            return Replay(existing, answers, request);
         }
 
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
@@ -96,13 +100,13 @@ internal static class ScorecardEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("stageId", "The job's workflow has no scorecard for this stage."));
         }
 
-        var criteria = card.Criteria.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
-        for (var i = 0; i < request.Ratings.Count; i++)
+        if (ScorecardAnswers.Check(card, answers) is { Count: > 0 } errors)
         {
-            if (!criteria.Contains(request.Ratings[i].CriterionId))
-            {
-                return TypedResults.ValidationProblem(ValidationExtensions.Problem($"ratings[{i}].criterionId", "The stage's scorecard has no criterion with this id."));
-            }
+            // Each problem at its answer, or at the answers when the question was left out.
+            var index = request.Answers.Select((a, i) => (a.QuestionId, i)).ToDictionary(x => x.QuestionId, x => x.i, StringComparer.Ordinal);
+            return TypedResults.ValidationProblem(errors
+                .GroupBy(e => index.TryGetValue(e.QuestionId, out var i) ? $"answers[{i}]" : $"answers.{e.QuestionId}")
+                .ToDictionary(g => g.Key, g => g.Select(e => e.Message).ToArray()));
         }
 
         // A stage the application has been in: its first stage or one it was moved to. Scoring a stage it never reached
@@ -117,7 +121,7 @@ internal static class ScorecardEndpoints
         }
 
         var now = time.GetUtcNow();
-        var (scorecard, entry) = application.SubmitScorecard(stage, reviewerUserId, ratings, request.Recommendation, request.Note, job.WorkflowVersion, now);
+        var (scorecard, entry) = application.SubmitScorecard(stage, reviewerUserId, answers, request.Recommendation, request.Note, job.WorkflowVersion, now);
         db.ApplicationScorecards.Add(scorecard);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new RunAutomations(
@@ -134,7 +138,7 @@ internal static class ScorecardEndpoints
             db.ChangeTracker.Clear();
             var winner = await ExistingAsync(db, application.Id, stage.Id, reviewerUserId, cancellationToken)
                 ?? throw new InvalidOperationException("A scorecard conflicted on its unique index but none is stored.", exception);
-            return Replay(winner, ratings, request);
+            return Replay(winner, answers, request);
         }
 
         return TypedResults.Created($"/v1/applications/{application.Id}/scorecards", scorecard.ToEntry());
@@ -146,8 +150,8 @@ internal static class ScorecardEndpoints
             .SingleOrDefaultAsync(s => s.ApplicationId == applicationId && s.StageId == stageId && s.ReviewerUserId == reviewerUserId, cancellationToken);
 
     private static Results<Created<ScorecardEntry>, Ok<ScorecardEntry>, NotFound, ValidationProblem, ProblemHttpResult> Replay(
-        ApplicationScorecard existing, IReadOnlyDictionary<string, CriterionRating?> ratings, SubmitScorecardRequest request) =>
-        existing.SameAs(ratings, request.Recommendation, request.Note)
+        ApplicationScorecard existing, IReadOnlyDictionary<string, ScorecardAnswerValue> answers, SubmitScorecardRequest request) =>
+        existing.SameAs(answers, request.Recommendation, request.Note)
             ? TypedResults.Ok(existing.ToEntry())
             : TypedResults.Problem(
                 "You already submitted a scorecard for this stage. A scorecard is final; add a note to say more.",

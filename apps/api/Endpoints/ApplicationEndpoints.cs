@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
@@ -79,7 +80,7 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<List<ApplicationSummary>>, NotFound>> ListJobApplications(
-        Guid jobId, ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid jobId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
         if (job is null)
@@ -93,12 +94,14 @@ internal static class ApplicationEndpoints
             .Join(db.Candidates, a => a.CandidateId, c => c.Id, (a, c) => new { Application = a, Candidate = c })
             .ToListAsync(cancellationToken);
         var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
-        return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id))).ToList());
+        var ratings = await RatingReads.ForAsync(db, [.. rows.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
+        return TypedResults.Ok(rows.Select(r => r.Application.ToSummary(
+            job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id))).ToList());
     }
 
     // Every application in the organization, newest first: the dashboard's candidates table across jobs.
     private static async Task<List<ApplicationSummary>> ListApplications(
-        ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
+        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var rows = await db.Applications.AsNoTracking()
             .OrderByDescending(a => a.SubmittedAt)
@@ -106,7 +109,9 @@ internal static class ApplicationEndpoints
             .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new { x.Application, x.Job, Candidate = c })
             .ToListAsync(cancellationToken);
         var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
-        return [.. rows.Select(r => r.Application.ToSummary(r.Job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id)))];
+        var ratings = await RatingReads.ForAsync(db, [.. rows.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
+        return [.. rows.Select(r => r.Application.ToSummary(
+            r.Job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
     }
 
     // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
@@ -152,7 +157,7 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound>> GetApplication(
-        Guid applicationId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var row = await LoadAsync(db, applicationId, cancellationToken);
         if (row is not { } found)
@@ -161,7 +166,8 @@ internal static class ApplicationEndpoints
         }
 
         return TypedResults.Ok(found.Application.ToDetail(
-            found.Job, found.Candidate, await FilesOfAsync(db, applicationId, cancellationToken), await FollowUpsOfAsync(db, applicationId, cancellationToken)));
+            found.Job, found.Candidate, await FilesOfAsync(db, applicationId, cancellationToken), await FollowUpsOfAsync(db, applicationId, cancellationToken),
+            await RatingReads.ForAsync(db, applicationId, tenant.UserId, cancellationToken)));
     }
 
     // A person moves an application to any stage of its job's workflow. The timeline event and ApplicationMoved commit
@@ -215,7 +221,8 @@ internal static class ApplicationEndpoints
         }
 
         return TypedResults.Ok(application.ToDetail(
-            job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken)));
+            job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken),
+            await RatingReads.ForAsync(db, application.Id, tenant.UserId, cancellationToken)));
     }
 
     // A note from the hiring team: the note, a timeline entry naming it with its author, and ApplicationNoteAdded so open
@@ -435,7 +442,7 @@ internal static class ApplicationEndpoints
         }
 
         return await ChangeTagsAsync(
-            applicationId, outbox, time, (application, now) => application.AddTag(request.Tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
+            applicationId, outbox, tenant, time, (application, now) => application.AddTag(request.Tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
             cancellationToken);
     }
 
@@ -455,12 +462,13 @@ internal static class ApplicationEndpoints
         }
 
         return await ChangeTagsAsync(
-            applicationId, outbox, time, (application, now) => application.RemoveTag(tag, now, tenant.UserId, user.ApiKeyId()), cancellationToken);
+            applicationId, outbox, tenant, time, (application, now) => application.RemoveTag(tag, now, tenant.UserId, user.ApiKeyId()), cancellationToken);
     }
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ChangeTagsAsync(
         Guid applicationId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
         TimeProvider time,
         Func<JobApplication, DateTimeOffset, ApplicationEvent?> change,
         CancellationToken cancellationToken)
@@ -490,11 +498,12 @@ internal static class ApplicationEndpoints
         }
 
         return TypedResults.Ok(application.ToDetail(
-            job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken)));
+            job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken),
+            await RatingReads.ForAsync(db, application.Id, tenant.UserId, cancellationToken)));
     }
 
     private static async Task<Results<Ok<List<ApplicationTimelineEntry>>, NotFound>> GetApplicationTimeline(
-        Guid applicationId, ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid applicationId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))
         {
@@ -518,9 +527,16 @@ internal static class ApplicationEndpoints
         var keyNames = keyIds.Count == 0
             ? []
             : await db.ApiKeys.AsNoTracking().Where(k => keyIds.Contains(k.Id)).ToDictionaryAsync(k => k.Id, k => k.Name, cancellationToken);
+        // A reviewer with their own scorecard still to give sees that others submitted theirs, but not what they said
+        // (ADR-0013: nothing anchors them).
+        var withheld = await RatingReads.WithheldAsync(db, applicationId, tenant.UserId, cancellationToken);
         return TypedResults.Ok(events.Select(e => e.ToTimelineEntry(
             e.Data.NoteId is { } noteId ? notes.GetValueOrDefault(noteId) : null,
-            e.Data.ApiKeyId is { } keyId ? keyNames.GetValueOrDefault(keyId) : null)).ToList());
+            e.Data.ApiKeyId is { } keyId ? keyNames.GetValueOrDefault(keyId) : null))
+            .Select(entry => withheld && entry.Type == ApplicationEventType.ScorecardSubmitted && entry.ActorUserId != tenant.UserId
+                ? entry with { ScorecardId = null, Recommendation = null }
+                : entry)
+            .ToList());
     }
 
     // Sends a reviewer to a short-lived read link for one of the application's files, such as the resume. A file the
@@ -552,7 +568,7 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<CandidateDetail>, NotFound>> GetCandidate(
-        Guid candidateId, ClaimsPrincipal user, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid candidateId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var candidate = await db.Candidates.AsNoTracking().SingleOrDefaultAsync(c => c.Id == candidateId, cancellationToken);
         if (candidate is null)
@@ -566,9 +582,11 @@ internal static class ApplicationEndpoints
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .ToListAsync(cancellationToken);
         var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
+        var ratings = await RatingReads.ForAsync(db, [.. rows.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
-            [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id)))]));
+            [.. rows.Select(r => r.Application.ToSummary(
+                r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))]));
     }
 
     // Integrity output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:

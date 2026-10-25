@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
@@ -40,7 +41,7 @@ internal static class AutomationEndpoints
     }
 
     private static async Task<Results<Ok<List<AutomationRunEntry>>, NotFound>> ListAutomationRuns(
-        Guid applicationId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))
         {
@@ -54,7 +55,18 @@ internal static class AutomationEndpoints
         var runIds = runs.Select(r => r.Id).ToList();
         var actions = await db.AutomationActionRuns.AsNoTracking().Where(a => runIds.Contains(a.RunId)).ToListAsync(cancellationToken);
         var byRun = actions.ToLookup(a => a.RunId);
-        return TypedResults.Ok(runs.Select(r => r.ToEntry(byRun[r.Id])).ToList());
+        // A reviewer with their own scorecard still to give does not read another reviewer's recommendation here either
+        // (ADR-0013): not as the run's fact, nor as a condition that tested it.
+        var withheld = await RatingReads.WithheldAsync(db, applicationId, tenant.UserId, cancellationToken);
+        return TypedResults.Ok(runs.Select(r => r.ToEntry(byRun[r.Id]))
+            .Select(entry => withheld && entry.Trigger == TriggerType.ReviewerDecision && entry.ActorUserId != tenant.UserId
+                ? entry with
+                {
+                    Facts = entry.Facts with { ReviewerRecommendation = null },
+                    Rules = [.. entry.Rules.Where(rule => rule.Fact != FactSchema.ReviewerRecommendation)],
+                }
+                : entry)
+            .ToList());
     }
 
     // Blocked and failed runs, newest first: what the hiring team should look at.

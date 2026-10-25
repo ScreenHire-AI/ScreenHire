@@ -30,6 +30,7 @@ import type {
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreateScorecardTemplateRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
   CurrentOrganization,
@@ -44,6 +45,7 @@ import type {
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetScorecardTemplateHistoryParams,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -88,6 +90,8 @@ import type {
   RoleCatalogue,
   SandboxBoardListing,
   ScorecardEntry,
+  ScorecardTemplateDetail,
+  ScorecardTemplateSummary,
   SendEmailsRequest,
   SignInMethods,
   SimulateWorkflowRequest,
@@ -105,6 +109,7 @@ import type {
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
   UpdateOrganizationRequest,
+  UpdateScorecardTemplateRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -5493,6 +5498,319 @@ return apiFetch<submitScorecardResponse>(getSubmitScorecardUrl(applicationId),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(submitScorecardRequest)
+  }
+);}
+
+
+
+export type listScorecardTemplatesResponse200 = {
+  data: ScorecardTemplateSummary[]
+  status: 200
+}
+
+export type listScorecardTemplatesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listScorecardTemplatesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listScorecardTemplatesResponseSuccess = (listScorecardTemplatesResponse200) & {
+  headers: Headers;
+};
+export type listScorecardTemplatesResponseError = (listScorecardTemplatesResponse401 | listScorecardTemplatesResponse429) & {
+  headers: Headers;
+};
+
+export type listScorecardTemplatesResponse = (listScorecardTemplatesResponseSuccess | listScorecardTemplatesResponseError)
+
+export const getListScorecardTemplatesUrl = () => {
+
+
+
+
+  return `/v1/scorecard-templates`
+}
+
+export const listScorecardTemplates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listScorecardTemplatesResponse> => {
+
+  return apiFetch<listScorecardTemplatesResponse>(getListScorecardTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createScorecardTemplateResponse201 = {
+  data: ScorecardTemplateDetail
+  status: 201
+}
+
+export type createScorecardTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type createScorecardTemplateResponseSuccess = (createScorecardTemplateResponse201) & {
+  headers: Headers;
+};
+export type createScorecardTemplateResponseError = (createScorecardTemplateResponse400 | createScorecardTemplateResponse401 | createScorecardTemplateResponse403 | createScorecardTemplateResponse409 | createScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type createScorecardTemplateResponse = (createScorecardTemplateResponseSuccess | createScorecardTemplateResponseError)
+
+export const getCreateScorecardTemplateUrl = () => {
+
+
+
+
+  return `/v1/scorecard-templates`
+}
+
+export const createScorecardTemplate = async (createScorecardTemplateRequest: CreateScorecardTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createScorecardTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createScorecardTemplateResponse>(getCreateScorecardTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createScorecardTemplateRequest)
+  }
+);}
+
+
+
+export type getScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type getScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getScorecardTemplateResponseSuccess = (getScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type getScorecardTemplateResponseError = (getScorecardTemplateResponse401 | getScorecardTemplateResponse404 | getScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type getScorecardTemplateResponse = (getScorecardTemplateResponseSuccess | getScorecardTemplateResponseError)
+
+export const getGetScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}`
+}
+
+export const getScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getScorecardTemplateResponse> => {
+
+  return apiFetch<getScorecardTemplateResponse>(getGetScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type updateScorecardTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type updateScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type updateScorecardTemplateResponseSuccess = (updateScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type updateScorecardTemplateResponseError = (updateScorecardTemplateResponse400 | updateScorecardTemplateResponse401 | updateScorecardTemplateResponse403 | updateScorecardTemplateResponse404 | updateScorecardTemplateResponse409 | updateScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type updateScorecardTemplateResponse = (updateScorecardTemplateResponseSuccess | updateScorecardTemplateResponseError)
+
+export const getUpdateScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}`
+}
+
+export const updateScorecardTemplate = async (templateId: string,
+    updateScorecardTemplateRequest: UpdateScorecardTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateScorecardTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateScorecardTemplateResponse>(getUpdateScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateScorecardTemplateRequest)
+  }
+);}
+
+
+
+export type getScorecardTemplateHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getScorecardTemplateHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getScorecardTemplateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getScorecardTemplateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getScorecardTemplateHistoryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getScorecardTemplateHistoryResponseSuccess = (getScorecardTemplateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getScorecardTemplateHistoryResponseError = (getScorecardTemplateHistoryResponse400 | getScorecardTemplateHistoryResponse401 | getScorecardTemplateHistoryResponse404 | getScorecardTemplateHistoryResponse429) & {
+  headers: Headers;
+};
+
+export type getScorecardTemplateHistoryResponse = (getScorecardTemplateHistoryResponseSuccess | getScorecardTemplateHistoryResponseError)
+
+export const getGetScorecardTemplateHistoryUrl = (templateId: string,
+    params?: GetScorecardTemplateHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/scorecard-templates/${templateId}/history?${stringifiedParams}` : `/v1/scorecard-templates/${templateId}/history`
+}
+
+export const getScorecardTemplateHistory = async (templateId: string,
+    params?: GetScorecardTemplateHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getScorecardTemplateHistoryResponse> => {
+
+  return apiFetch<getScorecardTemplateHistoryResponse>(getGetScorecardTemplateHistoryUrl(templateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

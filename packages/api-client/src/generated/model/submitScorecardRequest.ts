@@ -4,8 +4,8 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { CriterionRatingInput } from './criterionRatingInput.ts';
 import type { Recommendation } from './recommendation.ts';
+import type { ScorecardAnswerInput } from './scorecardAnswerInput.ts';
 
 /**
  * A reviewer's scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each
@@ -13,7 +13,7 @@ import type { Recommendation } from './recommendation.ts';
  */
 export interface SubmitScorecardRequest {
   stageId: string;
-  ratings: CriterionRatingInput[];
+  answers: ScorecardAnswerInput[];
   recommendation: Recommendation;
   /** @nullable */
   note?: string | null;
