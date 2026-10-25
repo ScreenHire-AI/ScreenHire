@@ -312,7 +312,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
 
         var submit = await key.PostAsync($"/v1/applications/{application.Id()}/scorecards", new JsonObject
         {
-            ["stageId"] = "interview", ["ratings"] = new JsonArray(), ["recommendation"] = "Yes",
+            ["stageId"] = "interview", ["answers"] = new JsonArray(), ["recommendation"] = "Yes",
         });
 
         submit.Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("People only");

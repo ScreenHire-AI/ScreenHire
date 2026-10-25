@@ -128,7 +128,7 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
         var (scorecard, entry) = application.SubmitScorecard(
             job.Workflow.FindStage("interview")!,
-            Guid.CreateVersion7(), new Dictionary<string, CriterionRating?>(), Recommendation.Yes, null, job.WorkflowVersion, Now);
+            Guid.CreateVersion7(), new Dictionary<string, ScorecardAnswerValue>(), Recommendation.Yes, null, job.WorkflowVersion, Now);
         await using (var db = await ContextAsync(organization.Id))
         {
             db.Jobs.Add(job);

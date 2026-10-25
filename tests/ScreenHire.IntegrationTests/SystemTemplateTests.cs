@@ -36,6 +36,29 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         definition!.Workflow.Stages[0].Kind.Should().Be(StageKind.Applied);
     }
 
+    // Every stored version names built-in scorecards (migration AddScorecardTemplates) and holds no copy of their questions.
+    [Theory]
+    [MemberData(nameof(Templates))]
+    public async Task A_system_template_version_names_built_in_scorecards_and_holds_no_copy_of_them(Guid templateId, Guid versionId, int number, string name)
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+
+        var version = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{number}")).Expect(HttpStatusCode.OK);
+        var stages = version.At("definition.workflow.stages").EnumerateArray().ToList();
+        var named = stages.Where(s => s.Has("scorecardTemplateId")).ToDictionary(s => s.GetProperty("id").GetString()!, s => s.GetProperty("scorecardTemplateId").GetString()!);
+
+        version.Id().Should().Be(versionId);
+        stages.Should().OnlyContain(s => !s.Has("scorecard"), $"{name} version {number} is a template, which names its scorecards");
+        named.Values.Should().OnlyContain(id => BuiltInScorecards.Find(id) != null, "a system template can only name ScreenHire's own scorecards");
+        string[] expected = (templateId == SystemTemplates.SoftwareEngineer, number) switch
+        {
+            (true, >= 3) => ["screening", "technical-exercise", "engineering-interview"],
+            (false, >= 2) => ["phone-screen", "hourly-interview"],
+            _ => [],
+        };
+        named.Values.Should().BeEquivalentTo(expected);
+    }
+
     [Theory]
     [MemberData(nameof(Templates))]
     public async Task A_job_made_from_a_system_template_can_be_published_once_it_has_a_place(Guid templateId, Guid versionId, int number, string name)
