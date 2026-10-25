@@ -9,6 +9,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -45,6 +46,16 @@ internal static class ApplicationEndpoints
         applications.MapPost("/{applicationId:guid}/notes", AddApplicationNote).WithName("AddApplicationNote")
             .RequireAntiforgeryToken()
             .RequireHiringRole()
+            .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapPut("/{applicationId:guid}/notes/{noteId:guid}", EditApplicationNote).WithName("EditApplicationNote")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapDelete("/{applicationId:guid}/notes/{noteId:guid}", DeleteApplicationNote).WithName("DeleteApplicationNote")
+            .RequireAntiforgeryToken()
+            .RequireHiringRole()
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/tags", AddApplicationTag).WithName("AddApplicationTag")
             .RequireAntiforgeryToken()
@@ -207,8 +218,9 @@ internal static class ApplicationEndpoints
             job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken)));
     }
 
-    // A note from the hiring team: a timeline entry with its author, and ApplicationNoteAdded so open dashboards show it.
-    // It changes nothing else about the application, so it cannot race a move.
+    // A note from the hiring team: the note, a timeline entry naming it with its author, and ApplicationNoteAdded so open
+    // dashboards show it. Each teammate it mentions, other than its author, gets TeammateMentioned: a card on their open
+    // dashboards and an email from the worker. It changes nothing else about the application, so it cannot race a move.
     private static async Task<Results<Created<ApplicationTimelineEntry>, NotFound, ValidationProblem>> AddApplicationNote(
         Guid applicationId,
         AddApplicationNoteRequest request,
@@ -231,13 +243,179 @@ internal static class ApplicationEndpoints
             return TypedResults.NotFound();
         }
 
+        if (await MentionProblemsAsync(db, tenant, request.Note, cancellationToken) is { } mentionProblems)
+        {
+            return TypedResults.ValidationProblem(mentionProblems);
+        }
+
         var now = time.GetUtcNow();
-        var note = application.AddNote(request.Note, now, tenant.UserId, user.ApiKeyId());
-        db.ApplicationEvents.Add(note);
-        await outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, note.Id, now));
+        var (note, entry) = application.AddNote(request.Note, now, tenant.UserId, user.ApiKeyId());
+        db.ApplicationNotes.Add(note);
+        db.ApplicationEvents.Add(entry);
+        await outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, entry.Id, now));
+        await PublishMentionsAsync(outbox, application, note, note.Mentions, now);
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-        return TypedResults.Created($"/v1/applications/{application.Id}/timeline", note.ToTimelineEntry());
+        return TypedResults.Created(
+            $"/v1/applications/{application.Id}/timeline", entry.ToTimelineEntry(note, await ApiKeyNameAsync(db, user, cancellationToken)));
     }
+
+    // Only the author edits a note (NotePolicy), at any time. The note keeps its latest text only, the timeline gains a
+    // NoteEdited entry, and a mention the edit adds notifies only that person. The same text again changes nothing.
+    private static async Task<Results<Ok<ApplicationNoteDetail>, NotFound, ValidationProblem, ProblemHttpResult>> EditApplicationNote(
+        Guid applicationId,
+        Guid noteId,
+        EditApplicationNoteRequest request,
+        IValidator<EditApplicationNoteRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var db = outbox.DbContext;
+        if (await LoadNoteAsync(db, applicationId, noteId, cancellationToken) is not var (application, note))
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!NotePolicy.MayEdit(note, tenant.UserId, user.ApiKeyId()))
+        {
+            return TypedResults.Problem(title: "Author only", detail: "Only the author can edit a note.", statusCode: StatusCodes.Status403Forbidden);
+        }
+
+        if (await MentionProblemsAsync(db, tenant, request.Note, cancellationToken, note) is { } mentionProblems)
+        {
+            return TypedResults.ValidationProblem(mentionProblems);
+        }
+
+        var now = time.GetUtcNow();
+        if (application.EditNote(note, request.Note, now, tenant.UserId, user.ApiKeyId()) is var (entry, added))
+        {
+            db.ApplicationEvents.Add(entry);
+            // New rows, said so: a child with a key already set, added to a tracked note, would otherwise be taken for an
+            // existing row and updated.
+            db.ApplicationNoteMentions.AddRange(added);
+            await outbox.PublishAsync(new ApplicationNoteEdited(application.OrganizationId, application.Id, application.JobId, note.Id, now));
+            await PublishMentionsAsync(outbox, application, note, added, now);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return NoteConflict();
+            }
+            catch (DbUpdateException exception) when (exception.IsForeignKeyViolation() || exception.IsUniqueViolation())
+            {
+                // A mention added to a note deleted, or given the same mention, by a request that committed first.
+                return NoteConflict();
+            }
+        }
+
+        return TypedResults.Ok(note.ToDetail());
+    }
+
+    // The author, an Owner or an Admin deletes a note (NotePolicy). Its row goes, and its text and mentions with it; the
+    // timeline keeps a NoteDeleted entry saying who deleted it and when, never what it said.
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteApplicationNote(
+        Guid applicationId,
+        Guid noteId,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        if (await LoadNoteAsync(db, applicationId, noteId, cancellationToken) is not var (application, note))
+        {
+            return TypedResults.NotFound();
+        }
+
+        // The role in this organization: the members filter also shows the person's memberships in others.
+        var role = tenant.UserId is { } userId
+            ? await db.OrganizationMembers.AsNoTracking()
+                .Where(m => m.OrganizationId == tenant.OrganizationId && m.UserId == userId)
+                .Select(m => (OrganizationRole?)m.Role)
+                .SingleOrDefaultAsync(cancellationToken)
+            : null;
+        if (!NotePolicy.MayDelete(note, tenant.UserId, user.ApiKeyId(), role))
+        {
+            return TypedResults.Problem(
+                title: "Author, owners and admins only",
+                detail: "Only the note's author, an owner or an admin can delete a note.",
+                statusCode: StatusCodes.Status403Forbidden);
+        }
+
+        var now = time.GetUtcNow();
+        db.ApplicationEvents.Add(application.DeleteNote(note, now, tenant.UserId, user.ApiKeyId()));
+        db.ApplicationNotes.Remove(note);
+        await outbox.PublishAsync(new ApplicationNoteDeleted(application.OrganizationId, application.Id, application.JobId, note.Id, now));
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return NoteConflict();
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    private static ProblemHttpResult NoteConflict() =>
+        TypedResults.Problem("Someone changed this note at the same moment; refresh and try again.", statusCode: StatusCodes.Status409Conflict);
+
+    // The application and one of its notes, the note tracked for a change; null for another application's note, a deleted
+    // one or another organization's.
+    private static async Task<(JobApplication Application, ApplicationNote Note)?> LoadNoteAsync(
+        ScreenHireDbContext db, Guid applicationId, Guid noteId, CancellationToken cancellationToken)
+    {
+        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == applicationId, cancellationToken);
+        var note = application is null
+            ? null
+            : await db.ApplicationNotes.SingleOrDefaultAsync(n => n.Id == noteId && n.ApplicationId == applicationId, cancellationToken);
+        return application is null || note is null ? null : (application, note);
+    }
+
+    // Every mention a note adds names a member of this organization. One it already had may name someone who has left
+    // since, and stays, so an edit never fails for it. Narrowed to this organization explicitly: the members filter also
+    // shows the signed-in person's memberships in other organizations.
+    private static async Task<Dictionary<string, string[]>?> MentionProblemsAsync(
+        ScreenHireDbContext db, ITenantContext tenant, string text, CancellationToken cancellationToken, ApplicationNote? existing = null)
+    {
+        var mentioned = NoteMentions.Parse(text).Except(existing?.Mentions.Select(m => m.UserId) ?? []).ToList();
+        if (mentioned.Count == 0)
+        {
+            return null;
+        }
+
+        var members = await db.OrganizationMembers.AsNoTracking()
+            .CountAsync(m => m.OrganizationId == tenant.OrganizationId && mentioned.Contains(m.UserId), cancellationToken);
+        return members == mentioned.Count ? null : ValidationExtensions.Problem("note", "A mention must name a member of this organization.");
+    }
+
+    // A card and an email for each teammate newly mentioned, never for the note's own author.
+    private static async Task PublishMentionsAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, JobApplication application, ApplicationNote note,
+        IEnumerable<ApplicationNoteMention> mentions, DateTimeOffset now)
+    {
+        foreach (var mention in mentions.Where(m => m.UserId != note.AuthorUserId))
+        {
+            await outbox.PublishAsync(new TeammateMentioned(
+                application.OrganizationId, application.Id, application.JobId, note.Id, mention.Id, mention.UserId, note.AuthorUserId, now));
+        }
+    }
+
+    private static async Task<string?> ApiKeyNameAsync(ScreenHireDbContext db, ClaimsPrincipal user, CancellationToken cancellationToken) =>
+        user.ApiKeyId() is { } keyId
+            ? await db.ApiKeys.AsNoTracking().Where(k => k.Id == keyId).Select(k => k.Name).SingleOrDefaultAsync(cancellationToken)
+            : null;
 
     // A person or an API key tags an application. A tag it already has (ignoring case) changes nothing. The worker's
     // AddTag action writes the same row, so a clash is a 409, as a move is.
@@ -331,7 +509,18 @@ internal static class ApplicationEndpoints
             .OrderBy(e => e.OccurredAt)
             .ThenBy(e => e.Id)
             .ToListAsync(cancellationToken);
-        return TypedResults.Ok(events.Select(e => e.ToTimelineEntry()).ToList());
+        // A NoteAdded entry shows its note's latest text, or none once it was deleted; a key's change shows the key's name
+        // (a revoked key keeps its name).
+        var notes = await db.ApplicationNotes.AsNoTracking().IgnoreAutoIncludes()
+            .Where(n => n.ApplicationId == applicationId)
+            .ToDictionaryAsync(n => n.Id, cancellationToken);
+        var keyIds = events.Select(e => e.Data.ApiKeyId).OfType<Guid>().Distinct().ToList();
+        var keyNames = keyIds.Count == 0
+            ? []
+            : await db.ApiKeys.AsNoTracking().Where(k => keyIds.Contains(k.Id)).ToDictionaryAsync(k => k.Id, k => k.Name, cancellationToken);
+        return TypedResults.Ok(events.Select(e => e.ToTimelineEntry(
+            e.Data.NoteId is { } noteId ? notes.GetValueOrDefault(noteId) : null,
+            e.Data.ApiKeyId is { } keyId ? keyNames.GetValueOrDefault(keyId) : null)).ToList());
     }
 
     // Sends a reviewer to a short-lived read link for one of the application's files, such as the resume. A file the

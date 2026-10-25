@@ -34,7 +34,7 @@ public static class AutomationFailures
 
     /// <summary>
     /// Services the automation handlers take: the clock, transactional email (hidden when no sender is registered) and
-    /// the CallWebhook adapter. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
+    /// the CallWebhook adapter, and the dashboard's address for links in emails to the team. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
     /// the handlers has them.
     /// </summary>
     public static IServiceCollection AddScreenHireAutomations(this IServiceCollection services)
@@ -49,6 +49,7 @@ public static class AutomationFailures
         services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
         services.TryAddSingleton<IWebhookSender, HttpWebhookSender>();
         services.AddQuestionnaireLinks();
+        services.AddDashboardLinks();
         return services;
     }
 }

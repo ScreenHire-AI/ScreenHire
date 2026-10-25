@@ -53,7 +53,7 @@ describe('integrity panel', () => {
     renderPanel();
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: Verification suggested')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: 'Authenticity: Verification suggested, the highest of 3' })).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('3 observations from network and automation checks back each other up.');
     expect(authenticity).toHaveTextContent('Suggested next step: Confirm the candidate is who they say they are');
     expect(within(authenticity).getByRole('heading', { name: 'Reasons 3' })).toBeInTheDocument();
@@ -66,12 +66,42 @@ describe('integrity panel', () => {
     expect(counter).toHaveTextContent('Phone country: United Kingdom');
   });
 
+  it('shows a summary card per kind of check, marking the ones that fed the level and leaving the rest neutral', async () => {
+    serve(botIntegrity());
+    renderPanel();
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    const titles = [...authenticity.querySelectorAll('[data-slot="card-title"]')].map((title) => title.textContent?.trim());
+    expect(titles).toEqual(['Network', 'Identity', 'Automation', 'Content']);
+    const cards = [...authenticity.querySelectorAll('[data-slot="card"]')];
+    const network = cards.find((card) => card.textContent?.includes('Network'))!;
+    const identity = cards.find((card) => card.textContent?.includes('Identity'))!;
+    expect(network).toHaveTextContent('1 signal');
+    expect(network.querySelector('svg.lucide-triangle-alert')).toBeInTheDocument();
+    expect(identity).toHaveTextContent('Nothing found.');
+    expect(identity.querySelector('svg.lucide-triangle-alert')).not.toBeInTheDocument();
+  });
+
+  it('expands every reason at once and closes them again', async () => {
+    serve(botIntegrity());
+    renderPanel();
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    const reasons = () => [...authenticity.querySelectorAll('[data-signal] details')] as HTMLDetailsElement[];
+    expect(reasons().some((reason) => reason.open)).toBe(false);
+    await fireEvent.click(within(authenticity).getAllByRole('button', { name: 'Expand all' })[0]!);
+    await waitFor(() => expect(reasons().slice(0, 3).every((reason) => reason.open)).toBe(true));
+    await fireEvent.click(within(authenticity).getAllByRole('button', { name: 'Collapse all' })[0]!);
+    await waitFor(() => expect(reasons().slice(0, 3).some((reason) => reason.open)).toBe(false));
+  });
+
   it("shows AI assistance as information, with the job policy and not the candidate's declaration", async () => {
     serve(botIntegrity());
     renderPanel();
 
     const ai = await screen.findByRole('region', { name: 'AI assistance' });
-    expect(within(ai).getByRole('heading', { level: 3 })).toHaveTextContent('AI assistance');
+    expect(within(ai).getByRole('heading', { level: 2 })).toHaveTextContent('AI assistance');
+    expect(within(ai).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
     expect(ai).toHaveTextContent('Informational');
     expect(ai).toHaveTextContent('Job policy: Allowed with disclosure');
     // The declaration has its own place on the page, in Declarations (section 16).
@@ -90,7 +120,7 @@ describe('integrity panel', () => {
       expect(control.textContent).not.toMatch(/reject|decline|disqualif/i);
     }
     expect(container.textContent).not.toMatch(/%|score/i);
-    expect(section('Integrity')).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(container).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
   it('hides request verification until it exists', async () => {
@@ -99,7 +129,7 @@ describe('integrity panel', () => {
     await screen.findByRole('region', { name: 'Authenticity' });
 
     expect(screen.queryByRole('button', { name: /Request verification/ })).not.toBeInTheDocument();
-    expect(section('Integrity')).not.toHaveTextContent(/phase 2/i);
+    expect(document.body).not.toHaveTextContent(/phase 2/i);
   });
 
   it('keeps a calm next step as a quiet line and a concern in an inset', async () => {
@@ -131,7 +161,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Verified outside ScreenHire' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Video call on Monday.' } });
@@ -143,9 +173,10 @@ describe('integrity panel', () => {
     await within(log).findByText(/Dismissed authenticity: Verified outside ScreenHire/);
     expect(log).toHaveTextContent('by you');
     expect(log).toHaveTextContent('"Video call on Monday."');
-    // The level stays as assessed; the chip says it was dismissed and the button is gone.
+    // The level stays as assessed; the panel says who dismissed it and the button is gone.
     const authenticity = section('Authenticity');
-    expect(within(authenticity).getByText('Authenticity: Verification suggested, dismissed after review')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
+    expect(authenticity).toHaveTextContent(/Dismissed by you/);
     expect(within(authenticity).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
   });
 
@@ -155,7 +186,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Other reason' }));
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
@@ -171,7 +202,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
 
@@ -185,7 +216,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     let dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Explained by the candidate' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Said so on the phone.' } });
@@ -196,7 +227,7 @@ describe('integrity panel', () => {
 
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    await fireEvent.click(screen.getByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(within(section('Authenticity')).getByRole('button', { name: 'Dismiss' }));
     dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('radio', { name: 'The observations do not apply' })).toBeChecked();
     expect(within(dialog).getByLabelText('Note (optional)')).toHaveValue('');
@@ -261,7 +292,7 @@ describe('integrity panel', () => {
     renderPanel();
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: No concerns')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: 'Authenticity: No concerns, the lowest of 3' })).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('Suggested next step: No action needed.');
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
     expect(within(section('Review log')).getByText('No review actions yet.')).toBeInTheDocument();
@@ -279,7 +310,7 @@ describe('integrity panel', () => {
     await Promise.all((invalidations.IntegrityAssessed ?? []).map((path) => invalidatePath(client, path)));
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: Verification suggested')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
     expect(screen.queryByText(/Checks are still running/)).not.toBeInTheDocument();
   });
 

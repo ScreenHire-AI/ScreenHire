@@ -22,6 +22,20 @@ export const realtimeEventSchemas = {
   ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant }),
   // A note from the hiring team: ids only, the dashboard reads the note through GET /v1/applications/{id}/timeline.
   ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant }),
+  // A note's author changed its text, or someone deleted it (and its text): the timeline refetches.
+  ApplicationNoteEdited: z.object({ organizationId: id, applicationId: id, jobId: id, noteId: id, editedAt: instant }),
+  ApplicationNoteDeleted: z.object({ organizationId: id, applicationId: id, jobId: id, noteId: id, deletedAt: instant }),
+  // A note mentioned a teammate; only their dashboard shows a card. authorUserId is null when an API key wrote it.
+  TeammateMentioned: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    noteId: id,
+    mentionId: id,
+    mentionedUserId: id,
+    authorUserId: id.nullable(),
+    mentionedAt: instant,
+  }),
   ApplicationSubmitted: z.object({
     organizationId: id,
     applicationId: id,

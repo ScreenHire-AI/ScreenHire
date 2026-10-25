@@ -7,18 +7,19 @@ using ScreenHire.Application.Integrity;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The resume preview in a real browser (design system section 11): a candidate's PDF is drawn inline from the
-/// sandboxed viewer, and nothing in that frame can run script with the dashboard's origin, cookies, DOM or API. Each test
-/// signs in as a new person with a new organization.
+/// The file viewer in a real browser (design system sections 9 and 11): the candidate page never embeds a file, a
+/// resume opens from its row in the details rail in a dialog that fills the window, and the PDF is drawn in a sandboxed
+/// frame, where nothing in the file can run script with the dashboard's origin, cookies, DOM or API. Each test signs in as
+/// a new person with a new organization.
 /// </summary>
-public sealed class ResumePreviewTests(E2EFixture fixture) : BrowserTest(fixture)
+public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
 {
     private static readonly string[] Gb = ["GB"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_resume_is_drawn_inline_and_its_frame_cannot_reach_the_dashboard()
+    public async Task A_resume_opens_full_window_from_the_rail_and_its_frame_cannot_reach_the_dashboard()
     {
         var applicant = SyntheticApplicants.GenuineHuman;
         var (email, applicationId) = await ApplicationAsync(applicant);
@@ -30,11 +31,24 @@ public sealed class ResumePreviewTests(E2EFixture fixture) : BrowserTest(fixture
         await SignInAsync(email);
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
 
-        var resume = Page.GetByRole(AriaRole.Region, new() { Name = "Resume" });
-        await Expect(resume.GetByRole(AriaRole.Link, new() { Name = $"Download {applicant.ResumeFileName}" })).ToBeVisibleAsync();
-        await Expect(resume.GetByText("1 page", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        // The row is in the rail with its size, View and Download; the page itself embeds no preview.
+        var files = Page.GetByRole(AriaRole.Region, new() { Name = "Files", Exact = true });
+        await Expect(files.GetByRole(AriaRole.Link, new() { Name = $"Download {applicant.ResumeFileName}" })).ToBeVisibleAsync();
+        await Expect(Page.Locator("iframe")).ToHaveCountAsync(0);
 
-        var element = resume.Locator($"iframe[title='Preview of {applicant.ResumeFileName}']");
+        await files.GetByRole(AriaRole.Button, new() { Name = $"View {applicant.ResumeFileName}" }).ClickAsync();
+        var viewer = Page.GetByRole(AriaRole.Dialog, new() { Name = applicant.ResumeFileName });
+        await Expect(viewer).ToBeVisibleAsync();
+        await Expect(viewer.GetByText("1 page", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 30_000 });
+
+        // It fills the window, with Close and Download.
+        var box = (await viewer.BoundingBoxAsync())!;
+        box.Width.Should().BeApproximately(1440, 2, "the viewer fills the window's width");
+        box.Height.Should().BeApproximately(1040, 2, "the viewer fills the window's height");
+        await Expect(viewer.GetByRole(AriaRole.Button, new() { Name = "Close" })).ToBeVisibleAsync();
+        await Expect(viewer.GetByRole(AriaRole.Link, new() { Name = "Download" })).ToBeVisibleAsync();
+
+        var element = viewer.Locator($"iframe[title='Preview of {applicant.ResumeFileName}']");
         (await element.GetAttributeAsync("sandbox")).Should().Be("allow-scripts");
         (await element.BoundingBoxAsync())!.Height.Should().BeGreaterThan(500, "the frame grows to the page it drew");
         var frame = (await (await element.ElementHandleAsync()).ContentFrameAsync())!;
@@ -82,29 +96,40 @@ public sealed class ResumePreviewTests(E2EFixture fixture) : BrowserTest(fixture
         (await Page.EvaluateAsync<bool>("() => document.querySelector('iframe[sandbox]').contentDocument === null")).Should().BeTrue();
 
         await ExpectNoAccessibilityViolationsAsync();
-        await SaveScreenshotAsync(Page, "dashboard-resume-preview-light");
+        await SaveScreenshotAsync(Page, "dashboard-file-viewer-light");
 
-        // Dark (the system's choice) and a phone: the page still draws, the frame fits, and nothing scrolls sideways.
+        // Close closes it, and the candidate page has no preview on it again.
+        await viewer.GetByRole(AriaRole.Button, new() { Name = "Close" }).ClickAsync();
+        await Expect(viewer).ToHaveCountAsync(0);
+        await Expect(Page.Locator("iframe")).ToHaveCountAsync(0);
+
+        // Dark (the system's choice) and a phone: the page still draws, the viewer fits the window, nothing scrolls
+        // sideways, and Escape closes it too.
         await Page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
         await Page.SetViewportSizeAsync(360, 800);
         await Page.ReloadAsync();
         await Expect(Page.Locator("html")).ToHaveClassAsync(new Regex(@"\bdark\b"));
-        await Expect(resume.GetByText("1 page", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        await Page.GetByRole(AriaRole.Button, new() { Name = $"View {applicant.ResumeFileName}" }).ClickAsync();
+        viewer = Page.GetByRole(AriaRole.Dialog, new() { Name = applicant.ResumeFileName });
+        await Expect(viewer.Locator("iframe")).ToHaveCountAsync(1);
+        frame = (await (await viewer.Locator("iframe").ElementHandleAsync()).ContentFrameAsync())!;
+        await Expect(frame.Locator("section[aria-label='Page 1'] p")).ToContainTextAsync(firstWord);
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue();
-        (await element.BoundingBoxAsync())!.Width.Should().BeLessThan(360);
+        box = (await viewer.BoundingBoxAsync())!;
+        box.Width.Should().BeApproximately(360, 2);
+        box.Height.Should().BeApproximately(800, 2);
+        (await viewer.Locator("iframe").BoundingBoxAsync())!.Width.Should().BeLessThan(360);
         await ExpectNoAccessibilityViolationsAsync();
-
-        // The panel alone: a full-page capture taller than the viewport leaves the sandboxed frame unpainted.
-        var screenshot = Path.Combine(AppContext.BaseDirectory, "TestResults", "screenshots", "dashboard-resume-preview-dark-phone.png");
-        await resume.ScreenshotAsync(new() { Path = screenshot });
-        TestContext.Current.TestOutputHelper?.WriteLine($"Screenshot: {screenshot}");
+        await SaveScreenshotAsync(Page, "dashboard-file-viewer-dark-phone");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(viewer).ToHaveCountAsync(0);
     }
 
     // A new person and organization with one published job, and one applicant through the careers submission path,
     // whose resume the worker has finished scanning (NotScanned: no scanner in tests).
     private async Task<(string Email, Guid ApplicationId)> ApplicationAsync(SyntheticApplicant applicant)
     {
-        var email = ApiSession.NewEmail("e2e-resume");
+        var email = ApiSession.NewEmail("e2e-viewer");
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
         var slug = $"test-{Guid.NewGuid():N}";

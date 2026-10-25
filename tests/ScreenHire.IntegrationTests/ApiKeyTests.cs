@@ -56,6 +56,32 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_keys_note_shows_the_keys_name_and_the_key_edits_and_deletes_only_its_own_notes()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        await owner.PublishJobAsync(job.Id());
+        var application = (await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"))).Id();
+        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "ATS sync", ["Read", "Write"])).Text("token"));
+        var ownersNote = (await owner.PostAsync($"/v1/applications/{application}/notes", new JsonObject { ["note"] = "From a person." }))
+            .Expect(HttpStatusCode.Created).Id("noteId");
+
+        var added = (await key.PostAsync($"/v1/applications/{application}/notes", new JsonObject { ["note"] = "Synced from the ATS." }))
+            .Expect(HttpStatusCode.Created);
+        var keysNote = added.Id("noteId");
+
+        added.Text("actorApiKeyName").Should().Be("ATS sync");
+        (await owner.GetAsync($"/v1/applications/{application}/timeline")).Body.EnumerateArray()
+            .Should().Contain(e => e.GetProperty("type").GetString() == "NoteAdded" && e.GetProperty("actorApiKeyName").GetString() == "ATS sync",
+                "a person reading the timeline sees which key wrote the note");
+        (await key.PutAsync($"/v1/applications/{application}/notes/{keysNote}", new JsonObject { ["note"] = "Synced again." })).Expect(HttpStatusCode.OK);
+        (await key.PutAsync($"/v1/applications/{application}/notes/{ownersNote}", new JsonObject { ["note"] = "Taken over." })).Expect(HttpStatusCode.Forbidden);
+        (await key.DeleteAsync($"/v1/applications/{application}/notes/{ownersNote}")).Expect(HttpStatusCode.Forbidden);
+        (await key.DeleteAsync($"/v1/applications/{application}/notes/{keysNote}")).Expect(HttpStatusCode.NoContent);
+        (await owner.DeleteAsync($"/v1/applications/{application}/notes/{ownersNote}")).Expect(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task A_key_never_receives_integrity_levels_which_stay_with_the_person_reviewing()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -361,6 +387,8 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
             await ReadAsync(await SendAsync(HttpMethod.Post, path, body ?? new JsonObject()));
 
         public async Task<ApiResult> PutAsync(string path, JsonNode body) => await ReadAsync(await SendAsync(HttpMethod.Put, path, body));
+
+        public async Task<ApiResult> DeleteAsync(string path) => await ReadAsync(await SendAsync(HttpMethod.Delete, path));
 
         public void Dispose() => client.Dispose();
 

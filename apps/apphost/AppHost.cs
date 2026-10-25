@@ -276,13 +276,17 @@ if (frontends != FrontendMode.None)
             .WaitFor(api);
 
     // Sign-in cookies, OIDC redirect URIs and emailed links point at the dashboard, which reaches the API through its
-    // /v1 proxy. Its real endpoint, because ports are random in tests.
-    api.WithEnvironment("ScreenHire__Domains__AppHost", dashboard.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
+    // /v1 proxy. Its real endpoint, because ports are random in tests. The worker links to it from mention emails.
+    var appHost = dashboard.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    api.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
+    worker.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
 }
 else
 {
-    // No dashboard: the API serves its own sign-in redirects.
-    api.WithEnvironment("ScreenHire__Domains__AppHost", api.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
+    // No dashboard: the API serves its own sign-in redirects, and mention emails link to the same host.
+    var appHost = api.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    api.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
+    worker.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
 }
 
 api.WithEnvironment("ScreenHire__Domains__ApiHost", api.GetEndpoint("http").Property(EndpointProperty.HostAndPort));

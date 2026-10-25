@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// A hiring team organizing candidates in the dashboard: a note in Activity, a tag, the candidates list filtered by that
+/// A hiring team organizing candidates in the dashboard: a note in the Overview's box, a tag, the candidates list filtered by that
 /// tag, a manual automation run from the application with the team notified, and completing the task it made on My
 /// tasks. Signs in as a new person with a new organization, whose job has a Manual automation that creates a to-do and
 /// notifies the team.
@@ -26,17 +26,15 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(email);
 
-        // A note, in a sheet, lands in Activity with its author.
+        // A note, written in the box on Overview, lands in Activity with its author.
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Tagged);
         var activity = Region("Activity");
-        await activity.GetByRole(AriaRole.Button, new() { Name = "Add note", Exact = true }).ClickAsync();
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add a note" });
-        await sheet.GetByLabel("Note").FillAsync("Strong portfolio. Ask about the notice period.");
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Add note", Exact = true }).ClickAsync();
-        await Expect(sheet).ToBeHiddenAsync();
+        await activity.GetByLabel("Note for the hiring team").FillAsync("Strong portfolio. Ask about the notice period.");
+        await activity.GetByRole(AriaRole.Button, new() { Name = "Save note", Exact = true }).ClickAsync();
+        await Expect(activity.GetByLabel("Note for the hiring team")).ToHaveValueAsync("");
         await Expect(activity).ToContainTextAsync("Note by you");
-        await Expect(activity).ToContainTextAsync("\"Strong portfolio. Ask about the notice period.\"");
+        await Expect(activity).ToContainTextAsync("Strong portfolio. Ask about the notice period.");
 
         // A tag, as a pill with its own Remove button.
         var tags = Region("Tags");
@@ -65,7 +63,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Tagged);
         await Region("Automations").GetByRole(AriaRole.Button, new() { Name = "Run, Prepare the interview" }).ClickAsync();
         await Expect(Region("Automations")).ToContainTextAsync("Asked to run \"Prepare the interview\"");
-        await Expect(Region("Tasks")).ToContainTextAsync("Call the references.", new() { Timeout = 30_000 });
+        await Expect(Region("Next steps")).ToContainTextAsync("Call the references.", new() { Timeout = 30_000 });
         // Its NotifyTeam action reaches the open dashboard's notification tray, with the action's note.
         var notifications = Region("Notifications");
         await Expect(notifications).ToContainTextAsync("Interview prep has started.", new() { Timeout = 30_000 });

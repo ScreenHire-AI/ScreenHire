@@ -5,7 +5,9 @@ import type {
   ApplicationSummary,
   AuthenticityLevel,
   DismissReason,
+  IntegritySignalView,
   IntegritySummary,
+  SignalCategory,
   StageKind,
 } from '@screenhire/api-client';
 import type { QueryClient } from '@tanstack/svelte-query';
@@ -45,6 +47,38 @@ export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
 /** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
 export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
 export const aiAssistanceOrder = ['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const satisfies readonly AiAssistanceLevel[];
+
+/**
+ * The kinds of check the Integrity tab shows a summary card for (design system section 16). Network, Identity,
+ * Automation and Content always show; files and form activity only when they found something. Each is one of the
+ * engine's categories, kept apart because the engine counts independent categories to raise a level
+ * (integrity-engine.md section 10.1). The names say what was looked at, never what it means about the person: form
+ * activity (the telemetry aggregates) is neither "automation" nor "behaviour".
+ */
+export const checkKinds: readonly { category: SignalCategory; title: string; always: boolean }[] = [
+  { category: 'Network', title: 'Network', always: true },
+  { category: 'Identity', title: 'Identity', always: true },
+  { category: 'Automation', title: 'Automation', always: true },
+  { category: 'Content', title: 'Content', always: true },
+  { category: 'Document', title: 'Files', always: false },
+  { category: 'Behavioural', title: 'Form activity', always: false },
+];
+
+/** One kind of check: the reasons it found that count toward the level. */
+export interface CheckSummary {
+  category: SignalCategory;
+  title: string;
+  signals: IntegritySignalView[];
+}
+
+/** A card per kind of check, in the order of `checkKinds`, from an assessment's reasons. */
+export function checkSummaries(signals: readonly IntegritySignalView[]): CheckSummary[] {
+  const reasons = signals.filter((signal) => signal.countsTowardLevel);
+  return checkKinds
+    .map((kind) => ({ category: kind.category, title: kind.title, always: kind.always, signals: reasons.filter((signal) => signal.category === kind.category) }))
+    .filter((kind) => kind.always || kind.signals.length > 0)
+    .map(({ category, title, signals: found }) => ({ category, title, signals: found }));
+}
 
 /** An application whose checks have not finished: the API sends no integrity summary yet. */
 export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Checks pending', status: 'working', rank: -1 };

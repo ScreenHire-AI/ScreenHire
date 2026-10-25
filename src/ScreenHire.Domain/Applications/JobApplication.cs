@@ -185,13 +185,52 @@ public sealed class JobApplication : ITenantOwned
     }
 
     /// <summary>
-    /// A note from the hiring team, kept on the timeline with its author and time. It changes nothing else about the
-    /// application, and no automation reads it.
+    /// A note from the hiring team (<paramref name="text"/>, trimmed) and the timeline entry that records it with its
+    /// author and time. The entry names the note and never holds its text, so deleting the note erases it
+    /// (<see cref="ApplicationNote"/>). It changes nothing else about the application, and no automation reads it.
     /// </summary>
-    public ApplicationEvent AddNote(string note, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    public (ApplicationNote Note, ApplicationEvent Entry) AddNote(string text, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(note);
-        return NewEvent(ApplicationEventType.NoteAdded, new ApplicationEventData(Note: note.Trim(), ApiKeyId: actorApiKeyId), now, actorUserId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        var note = ApplicationNote.Create(this, text.Trim(), now, actorUserId, actorApiKeyId);
+        return (note, NewEvent(ApplicationEventType.NoteAdded, new ApplicationEventData(ApiKeyId: actorApiKeyId, NoteId: note.Id), now, actorUserId));
+    }
+
+    /// <summary>
+    /// Changes <paramref name="note"/>'s text and returns the timeline entry with the mentions the new text adds. Null
+    /// when the text is unchanged, which records nothing. The caller checks <see cref="NotePolicy.MayEdit"/>.
+    /// </summary>
+    public (ApplicationEvent Entry, IReadOnlyList<ApplicationNoteMention> Added)? EditNote(
+        ApplicationNote note, string text, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        EnsureOwn(note);
+        if (note.Edit(text.Trim(), now) is not { } added)
+        {
+            return null;
+        }
+
+        return (NewEvent(ApplicationEventType.NoteEdited, new ApplicationEventData(ApiKeyId: actorApiKeyId, NoteId: note.Id), now, actorUserId), added);
+    }
+
+    /// <summary>
+    /// The timeline entry for deleting <paramref name="note"/>: who and when, never the text. The caller removes the
+    /// note's row, which erases its text, and checks <see cref="NotePolicy.MayDelete"/>.
+    /// </summary>
+    public ApplicationEvent DeleteNote(ApplicationNote note, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        EnsureOwn(note);
+        return NewEvent(ApplicationEventType.NoteDeleted, new ApplicationEventData(ApiKeyId: actorApiKeyId, NoteId: note.Id), now, actorUserId);
+    }
+
+    private void EnsureOwn(ApplicationNote note)
+    {
+        if (note.ApplicationId != Id || note.OrganizationId != OrganizationId)
+        {
+            throw new InvalidOperationException($"Note {note.Id} is not on application {Id}.");
+        }
     }
 
     /// <summary>

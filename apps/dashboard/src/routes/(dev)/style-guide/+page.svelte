@@ -42,7 +42,6 @@
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileRow from '#lib/components/file-row.svelte';
-  import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
@@ -60,7 +59,9 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
-  import ResumePreview from '#lib/components/resume-preview.svelte';
+  import LevelScale from '#lib/components/level-scale.svelte';
+  import MentionField from '#lib/components/mention-field.svelte';
+  import NoteText from '#lib/components/note-text.svelte';
   import ScorecardList from '#lib/components/scorecard-list.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
@@ -94,7 +95,8 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import { applyFormKinds } from '#lib/form-builder.js';
-  import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
+  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/integrity.js';
+  import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
@@ -229,6 +231,14 @@
     { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, joinedAt: ago(30 * day) },
     { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, joinedAt: ago(20 * day) },
   ];
+  // The mention example: a type-ahead of teammates; @ opens it. People's ids are user ids, as the API stores them.
+  const mentionTeam = [
+    { id: 'm1', userId: '0199e8a0-0000-7000-8000-0000000000a1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, joinedAt: ago(30 * day) },
+    { id: 'm2', userId: '0199e8a0-0000-7000-8000-0000000000a2', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Recruiter' as const, joinedAt: ago(20 * day) },
+    { id: 'm3', userId: '0199e8a0-0000-7000-8000-0000000000a3', email: 'rowan@example.com', displayName: 'Rowan Ellis', role: 'Viewer' as const, joinedAt: ago(10 * day) },
+  ];
+  let mentionText = $state('Can you book the call once they confirm, @Ro');
+  let mentionPicked = $state<PickedMention[]>([]);
   const sampleTasks: TaskRow[] = [
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
@@ -589,36 +599,7 @@
             <SummaryItem label="Salary">$120,000 to $145,000 a year</SummaryItem>
           </SummaryList>
         </Panel>
-        <Panel title="File tile" class="flex-[1_1_320px]">
-          <div class="flex flex-col gap-3">
-            <FileTile {applicationId} file={files.clean}>
-              {#snippet facts()}<Badge variant="muted" class="tabular-nums">2 pages</Badge>{/snippet}
-            </FileTile>
-            <FileTile {applicationId} file={files.long} />
-            <FileTile {applicationId} file={files.image} />
-            <FileTile {applicationId} file={files.pending} />
-            <FileTile {applicationId} file={files.infected} />
-          </div>
-        </Panel>
       </div>
-
-      <Panel title="Resume preview">
-        <div class="flex flex-wrap items-start gap-x-6 gap-y-5">
-          <figure class="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">A PDF that does not load. A loaded one draws its pages in a sandboxed frame</figcaption>
-            <ResumePreview {applicationId} file={files.clean} />
-          </figure>
-          <figure class="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">A type with no preview</figcaption>
-            <ResumePreview {applicationId} file={files.word} />
-          </figure>
-          <figure class="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Withheld until the malware scan clears it</figcaption>
-            <ResumePreview {applicationId} file={files.pending} />
-            <ResumePreview {applicationId} file={files.infected} />
-          </figure>
-        </div>
-      </Panel>
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Key cap and tooltip" class="flex-[1_1_320px]">
@@ -768,6 +749,15 @@
         </Panel>
         <Panel title="Activity" class="flex-[1_1_320px]">
           <ActivityList label="Activity" items={activity} />
+        </Panel>
+        <Panel title="Mention" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <label for="style-guide-mention" class="text-caption font-semibold text-muted-foreground">Note for the hiring team</label>
+              <MentionField id="style-guide-mention" bind:value={mentionText} bind:picked={mentionPicked} members={mentionTeam} currentUserId={mentionTeam[0].userId} />
+            </div>
+            <NoteText text={`Good detail on the payments service. ${mentionToken(mentionTeam[1].userId)}, ask how they measured it.`} members={mentionTeam} editedAt={ago(2 * minute)} />
+          </div>
         </Panel>
       </div>
 
@@ -989,6 +979,8 @@
           <div class="flex flex-wrap gap-2">
             {#each Object.values(aiAssistanceLevels) as level (level.label)}<IntegrityChip kind="aiAssistance" {level} />{/each}
           </div>
+          <LevelScale levels={authenticityOrder.map((id) => authenticityLevels[id])} current={authenticityLevels.VerificationRecommended} name="Authenticity" />
+          <LevelScale levels={aiAssistanceOrder.map((id) => aiAssistanceLevels[id])} current={aiAssistanceLevels.NotIndicated} name="AI assistance" />
           <SignalEvidence evidence={quote} />
         </div>
       </Panel>

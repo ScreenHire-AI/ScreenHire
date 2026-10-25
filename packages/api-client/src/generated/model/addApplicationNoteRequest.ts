@@ -6,7 +6,8 @@
  */
 
 /**
- * A note from the hiring team on an application, kept on its timeline with the author and the time.
+ * A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member
+ * as `@[userId]`: they get a notification and an email that never quotes the note.
  */
 export interface AddApplicationNoteRequest {
   note: string;

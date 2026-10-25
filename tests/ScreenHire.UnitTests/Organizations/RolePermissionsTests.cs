@@ -25,6 +25,8 @@ public sealed partial class RolePermissionsTests
         ["CreateApplication"] = Permission.AddCandidates,
         ["MoveApplication"] = Permission.MoveCandidates,
         ["AddApplicationNote"] = Permission.AddNotesAndTags,
+        ["EditApplicationNote"] = Permission.AddNotesAndTags,
+        ["DeleteApplicationNote"] = Permission.AddNotesAndTags,
         ["AddApplicationTag"] = Permission.AddNotesAndTags,
         ["RemoveApplicationTag"] = Permission.AddNotesAndTags,
         ["CompleteTask"] = Permission.CompleteTasks,

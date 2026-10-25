@@ -19,4 +19,6 @@ export const ApplicationEventType = {
   EmailSent: 'EmailSent',
   QuestionnaireSent: 'QuestionnaireSent',
   QuestionnaireCompleted: 'QuestionnaireCompleted',
+  NoteEdited: 'NoteEdited',
+  NoteDeleted: 'NoteDeleted',
 } as const;
