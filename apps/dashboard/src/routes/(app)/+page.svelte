@@ -251,6 +251,7 @@
                       {header}
                       class={[
                         (header.id === 'status' || header.id === 'actions') && 'px-4',
+                        header.id === 'status' && 'sticky left-0 bg-muted',
                         header.id === 'actions' && 'w-14',
                         (header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
                       ]}
@@ -262,13 +263,16 @@
             <tbody>
               {#each rows as row (row.id)}
                 <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                     controls sit above it. -->
-                <tr class="relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
+                     controls sit above it. The Status column sticks while a tablet scrolls the table (section 8). It has
+                     no z-index, so the link's cover and the later cells' raised spans still paint above it. -->
+                <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
                   {#each row.getAllCells() as cell (cell.id)}
                     <td
                       class={[
                         'px-3 whitespace-nowrap',
                         (cell.column.id === 'status' || cell.column.id === 'actions') && 'px-4',
+                        // A stuck cell covers what scrolls under it, so it carries the row's hover itself.
+                        cell.column.id === 'status' && 'sticky left-0 bg-card group-hover:bg-muted',
                         // The title takes the room the other columns leave, and never less than 12rem: below that the
                         // table scrolls in the panel. A long one is cut, whole in its tooltip (F5).
                         cell.column.id === 'title' && 'w-full max-w-0 min-w-48',
