@@ -321,6 +321,17 @@ describe('workflow builder', () => {
     await expectNoAxeViolations(container);
     vi.unstubAllGlobals();
   });
+
+  it('says so, with a retry, when the scorecard library does not load', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/scorecard-templates': () => new Response(null, { status: 500 }) })));
+    renderViews('editor');
+    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Choose scorecard for Phone screen' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
+
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent('Could not load the scorecard library');
+    expect(within(sheet).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
 });
 
 describe('workflow graph in the builder', () => {

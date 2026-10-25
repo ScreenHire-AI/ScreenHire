@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { DefinitionError, ScorecardQuestion, WorkflowStage } from '@screenhire/api-client';
   import { createGetScorecardTemplate, createListScorecardTemplates } from '@screenhire/api-client/svelte-query';
+  import QueryError from '#lib/components/query-error.svelte';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { describeError } from '#lib/query.js';
   import { isRatingKind } from '#lib/scorecards.js';
   import { errorsAt, scorecardQuestionTypeLabels } from '#lib/workflow.js';
   import { labelClass, selectClass } from './controls.js';
@@ -53,9 +56,19 @@
     </select>
   </label>
   <FieldErrors id={`${uid}-errors`} {messages} />
+  {#if library.isError}
+    <QueryError message={describeError(library.error, 'Could not load the scorecard library')} onretry={() => library.refetch()} inset />
+  {/if}
 
   {#if choice === ''}
     <p class="text-body">No scorecard: reviewers record no decision in {stage.name}.</p>
+  {:else if chosen.isError}
+    <QueryError message={describeError(chosen.error, 'Could not load this scorecard')} onretry={() => chosen.refetch()} inset />
+  {:else if chosen.isPending && !stage.scorecard}
+    <div aria-hidden="true" class="flex flex-col gap-2">
+      {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
+    </div>
+    <p class="sr-only" role="status">Loading the scorecard…</p>
   {:else if questions.length > 0}
     <ol class="flex flex-col gap-2" aria-label="Questions">
       {#each questions as question (question.id)}

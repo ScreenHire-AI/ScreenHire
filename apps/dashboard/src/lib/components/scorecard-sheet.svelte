@@ -211,6 +211,7 @@
         <ToggleGroup.Root
           type="single"
           variant="outline"
+          size="lg"
           spacing={0}
           aria-labelledby={`${uid}-recommendation`}
           aria-describedby={missingRecommendation ? `${uid}-recommendation-error` : undefined}
