@@ -25,7 +25,6 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon },
 ];
 
-
 /** Whether the role manages the organization's settings: the API's `RequireOrganizationAdmin`. */
 export const isAdministrator = (role: OrganizationRole | null | undefined): boolean => role === 'Owner' || role === 'Admin';
 

@@ -58,53 +58,53 @@
         {:else}
           <!-- The grid needs about 42rem; a narrower panel, on a phone or beside the rail, lists each permission instead (F2). -->
           <div class="@container">
-          <div class="@2xl:hidden">
-            {#each groups as [group, permissions] (group)}
-              <h3 class="border-b border-border-subtle bg-muted px-4 py-2.5 text-caption font-semibold">{group}</h3>
-              <ul>
-                {#each permissions as permission (permission.permission)}
-                  <li class="flex min-w-0 flex-col gap-1.5 border-b border-border-subtle px-4 py-3">
-                    <span class="font-semibold">{permission.name}</span>
-                    <span class="text-muted-foreground">{permission.description}</span>
-                    <span class="flex flex-wrap gap-1.5">
-                      {#each roles.filter((role) => has(role, permission)) as role (role.role)}<Badge variant="muted">{role.role}</Badge>{/each}
-                    </span>
-                  </li>
-                {/each}
-              </ul>
-            {/each}
-          </div>
-          <div class="hidden overflow-x-auto @2xl:block">
-            <table class="w-full border-collapse text-left">
-              <thead class="bg-muted">
-                <tr>
-                  <th scope="col" class="h-11 border-b border-border px-4.5 text-caption font-semibold text-muted-foreground">Permission</th>
-                  <th scope="col" class="h-11 border-b border-border px-3 text-caption font-semibold text-muted-foreground">Covers</th>
-                  {#each roles as role (role.role)}
-                    <th scope="col" class="h-11 min-w-24 border-b border-border px-3 text-center text-caption font-semibold text-muted-foreground">{role.role}</th>
-                  {/each}
-                </tr>
-              </thead>
+            <div class="@2xl:hidden">
               {#each groups as [group, permissions] (group)}
-                <tbody>
-                  <tr>
-                    <th scope="rowgroup" colspan={roles.length + 2} class="h-10 border-b border-border-subtle bg-muted/50 px-4.5 text-caption font-semibold">{group}</th>
-                  </tr>
+                <h3 class="border-b border-border-subtle bg-muted px-4 py-2.5 text-caption font-semibold">{group}</h3>
+                <ul>
                   {#each permissions as permission (permission.permission)}
-                    <tr class="h-12 border-b border-border-subtle">
-                      <th scope="row" class="px-4.5 font-semibold whitespace-nowrap">{permission.name}</th>
-                      <td class="w-full max-w-0 px-3 text-muted-foreground"><TruncatedText text={permission.description} /></td>
-                      {#each roles as role (role.role)}
-                        <td class="px-3 text-center">
-                          {#if has(role, permission)}Yes{:else}<span class="text-muted-foreground">No</span>{/if}
-                        </td>
-                      {/each}
-                    </tr>
+                    <li class="flex min-w-0 flex-col gap-1.5 border-b border-border-subtle px-4 py-3">
+                      <span class="font-semibold">{permission.name}</span>
+                      <span class="text-muted-foreground">{permission.description}</span>
+                      <span class="flex flex-wrap gap-1.5">
+                        {#each roles.filter((role) => has(role, permission)) as role (role.role)}<Badge variant="muted">{role.role}</Badge>{/each}
+                      </span>
+                    </li>
                   {/each}
-                </tbody>
+                </ul>
               {/each}
-            </table>
-          </div>
+            </div>
+            <div class="hidden overflow-x-auto @2xl:block">
+              <table class="w-full border-collapse text-left">
+                <thead class="bg-muted">
+                  <tr>
+                    <th scope="col" class="h-11 border-b border-border px-4.5 text-caption font-semibold text-muted-foreground">Permission</th>
+                    <th scope="col" class="h-11 border-b border-border px-3 text-caption font-semibold text-muted-foreground">Covers</th>
+                    {#each roles as role (role.role)}
+                      <th scope="col" class="h-11 min-w-24 border-b border-border px-3 text-center text-caption font-semibold text-muted-foreground">{role.role}</th>
+                    {/each}
+                  </tr>
+                </thead>
+                {#each groups as [group, permissions] (group)}
+                  <tbody>
+                    <tr>
+                      <th scope="rowgroup" colspan={roles.length + 2} class="h-10 border-b border-border-subtle bg-muted/50 px-4.5 text-caption font-semibold">{group}</th>
+                    </tr>
+                    {#each permissions as permission (permission.permission)}
+                      <tr class="h-12 border-b border-border-subtle">
+                        <th scope="row" class="px-4.5 font-semibold whitespace-nowrap">{permission.name}</th>
+                        <td class="w-full max-w-0 px-3 text-muted-foreground"><TruncatedText text={permission.description} /></td>
+                        {#each roles as role (role.role)}
+                          <td class="px-3 text-center">
+                            {#if has(role, permission)}Yes{:else}<span class="text-muted-foreground">No</span>{/if}
+                          </td>
+                        {/each}
+                      </tr>
+                    {/each}
+                  </tbody>
+                {/each}
+              </table>
+            </div>
           </div>
         {/if}
       </Panel>
