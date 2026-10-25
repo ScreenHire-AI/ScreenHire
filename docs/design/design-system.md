@@ -592,6 +592,7 @@ These join section 11 one by one, each when the build adds it to the style guide
 | Component | Built on | Rules |
 |---|---|---|
 | Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
+| Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. Nothing left to pick is said in the list, never by disabling the button (A3) |
 
 ## 22. Screens the v0.3 build changes
 
@@ -607,6 +608,10 @@ These join section 11 one by one, each when the build adds it to the style guide
   closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.
   In the table a calm AI assistance cell is empty, with its words for screen readers, and authenticity keeps its quiet
   "No concerns" (T3).
+  Hiring team: an outline button in the header with the team's count badge (T4), in More on a phone, opening a sheet
+  of the people on the job, each with their role and what they see, a remove button, and Add a person and Copy from
+  another job (Pickers). Changes land on Save. Without Edit jobs the sheet lists the people and says why (E3). A hiring
+  template's header has Default hiring team as a fact whose count opens the same sheet, without Copy.
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and
@@ -633,7 +638,14 @@ These join section 11 one by one, each when the build adds it to the style guide
   and candidates, in every role; Manage Owners, Owner only; a permission the person's own role lacks) have a lock and
   say why. Its header's facts are People, Copied from and Last updated with History; Copy role and Delete role are in
   More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
-  Built in beside its title and Copy role as the primary action. Both list the people with the role.
+  Built in beside its title and Copy role as the primary action. Both list the people with the role, each with the jobs
+  they see ("All jobs", or a count button that lists them) and Edit access.
+  Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All jobs", or "2 jobs" for someone on Only jobs
+  they're on. A member's menu holds Edit access, which opens one sheet for their role (a select, with what it can do
+  below) and their jobs: All jobs ("Including jobs added later") or Only jobs they're on, then the jobs whose hiring
+  team they are on as links, read only, with one line saying each job's Hiring team changes them (W6). For an Owner or
+  Admin the choice is a line saying they see all jobs. Invite asks the same, starting at All jobs. Someone who sees
+  only their own jobs is offered only Only jobs they're on (A3).
 - **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API

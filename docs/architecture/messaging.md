@@ -134,11 +134,13 @@ the `DbContext` already run in one transaction with their outbox (`AutoApplyTran
 `ITenantEvent` marks an integration event that belongs to one organization (`OrganizationId`) and that its signed-in
 users may see. The API pushes every `ITenantEvent` to that organization's connected clients
 ([real-time updates](realtime.md)), so a feature task only defines the event and its Zod schema
-(`/add-realtime-event`). Events carry ids and the facts a client needs to refresh, never personal data.
+(`/add-realtime-event`). Events carry ids and the facts a client needs to refresh, never personal data. An event about one job, or anything under it,
+implements `IJobEvent` (`JobId`), and reaches only the members who see that job (ADR-0015).
 
 A worker handler connects as `screenhire_app` too, so it sees no tenant rows until it has a tenant. Every message that
 touches one organization's data implements `ITenantMessage` (`OrganizationId`); `ITenantEvent` extends it.
 `TenantMessageMiddleware` runs before each such handler and makes `OrganizationId` the tenant of the handler's scope,
+with every job in reach (a handler has no member, so job access never narrows it),
 and `TenantSessionInterceptor` then sets `app.tenant_id` inside the handler's transaction (`AutoApplyTransactions`
 gives each handler one). The tenant filter and row-level security scope the handler exactly as they scope a request.
 `JobPublishedHandler` reads its job back, so a missing tenant fails loudly and goes through the retry policy.

@@ -34,6 +34,7 @@
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
+  import Picker from '#lib/components/picker.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import DetailLayout from '#lib/components/detail-layout.svelte';
   import DetailsRailSection from '#lib/components/details-rail-section.svelte';
@@ -567,6 +568,19 @@
               <DropdownMenu.Item variant="destructive">Close &amp; remove everywhere</DropdownMenu.Item>
             </MoreMenu>
           </div>
+        </Panel>
+        <Panel title="Picker" class="flex-[1_1_320px]">
+          <Picker
+            label="Add a person"
+            icon={UserPlusIcon}
+            options={[
+              { id: 'm2', label: 'Robin Hale', hint: "Interviewer, only jobs they're on" },
+              { id: 'm3', label: 'Rowan Ellis', hint: 'Viewer, all jobs' },
+            ]}
+            searchLabel="Search people"
+            empty="Nobody else to add."
+            onpick={() => {}}
+          />
         </Panel>
       </div>
 

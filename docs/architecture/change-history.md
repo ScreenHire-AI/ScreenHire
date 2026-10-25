@@ -31,7 +31,8 @@ Anything people edit says who updated it last and how long ago, and its History 
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
 templates, email templates, scorecard templates, jobs and custom roles today. Built-in roles never change, so they
 have no history. It never holds
-candidate data, so it has no retention limit.
+candidate data, so it has no retention limit. A job's hiring team and a template's default team are left out: who
+was added or removed is the membership log's to record (ADR-0015).
 
 ## What is recorded
 
