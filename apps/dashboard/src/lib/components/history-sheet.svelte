@@ -11,7 +11,8 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { clock } from '#lib/clock.svelte.js';
   import { formatDateTime } from '#lib/dates.js';
-  import { actorName, groupByDay, initials, sentenceStart } from '#lib/history.js';
+  import { initials } from '#lib/format.js';
+  import { actorName, groupByDay, sentenceStart } from '#lib/history.js';
 
   // Every change to a template or a job (design system T6, section 11): newest first and grouped by day, who and when,
   // each change in words, with its values before and after on request. Plain data in, so a page passes its loaded pages
@@ -66,7 +67,7 @@
 {#snippet value(detail: HistoryDetail)}
   {@const paragraphs = detail.kind === 'Paragraphs' ? 'whitespace-pre-line' : ''}
   {#if detail.before !== null && detail.before === detail.after}
-    <span class={paragraphs}>Unchanged, {show(detail, detail.before)}</span>
+    <span class={paragraphs}>{show(detail, detail.before)}</span> <span class="text-muted-foreground">Unchanged</span>
   {:else if detail.before === null && detail.after !== null}
     <span class={['font-semibold', paragraphs]}>{show(detail, detail.after)}</span>
   {:else if detail.after === null && detail.before !== null}
@@ -78,7 +79,7 @@
 {/snippet}
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-xl">
+  <Sheet.Content side="right" class="@container w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header class="border-b border-border-subtle">
       <Sheet.Title>History</Sheet.Title>
       <Sheet.Description>{name}</Sheet.Description>
@@ -119,7 +120,8 @@
                   </span>
                 {/if}
                 <div class="flex min-w-0 flex-1 flex-col gap-1">
-                  <div class="flex items-baseline gap-3">
+                  <!-- In a narrow sheet the time goes under the change, so the words keep the width (F2). -->
+                  <div class="flex flex-col gap-0.5 @sm:flex-row @sm:items-baseline @sm:gap-3">
                     <div class="flex min-w-0 flex-1 flex-col gap-0.5 break-words">
                       {#each entry.lines as line, index (index)}
                         <p>

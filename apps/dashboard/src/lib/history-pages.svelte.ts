@@ -22,6 +22,14 @@ export function createHistoryPages<TResponse extends { data: HistoryPage }, TErr
     if (!enabled()) cursors = [undefined];
   });
 
+  // A change saved while older pages are loaded refetches them all, and the first page then starts at the new entry. The
+  // second page's cursor still points at the old first page's end, so the entry pushed off the first page would fall
+  // between the two: go back to the first page.
+  $effect(() => {
+    const next = queries[0]?.data?.data.nextBefore;
+    if (next !== undefined && cursors.length > 1 && next !== cursors[1]) cursors = [undefined];
+  });
+
   const last = () => queries[queries.length - 1];
 
   return {

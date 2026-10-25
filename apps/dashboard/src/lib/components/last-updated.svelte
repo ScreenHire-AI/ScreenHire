@@ -26,7 +26,8 @@
 
 <span class="inline-flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
   <span class="min-w-0"
-    >{#if value.at}<RelativeTime at={value.at} />{/if}{#if who}{value.at ? ' by ' : 'By '}{who}{/if}</span
+    >{#if value.at}<RelativeTime at={value.at} />{/if}{#if who}{value.at ? ' by ' : 'By '}<span class="whitespace-nowrap">{who}</span
+      >{/if}</span
   >
   {#if onhistory}
     <Button variant="outline" size="sm" aria-haspopup="dialog" onclick={onhistory}><HistoryIcon aria-hidden="true" />History</Button>

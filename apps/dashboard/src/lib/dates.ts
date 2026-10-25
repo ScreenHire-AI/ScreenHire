@@ -68,7 +68,11 @@ export function dayKey(iso: string): string {
 export function dayLabel(iso: string, now: number): string {
   const at = new Date(iso);
   const today = new Date(now);
-  const days = Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(at.getFullYear(), at.getMonth(), at.getDate())) / day);
+  // A moment past this browser's clock, saved by a server whose clock runs ahead, is still today.
+  const days = Math.max(
+    0,
+    Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(at.getFullYear(), at.getMonth(), at.getDate())) / day),
+  );
   if (days === 0 || days === 1) {
     const word = relative.format(-days, 'day');
     return word.charAt(0).toLocaleUpperCase(locales) + word.slice(1);

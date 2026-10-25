@@ -90,7 +90,7 @@ describe('history sheet', () => {
     const terms = within(sheet).getAllByRole('term').map((term) => term.textContent);
     expect(terms).toEqual(['Answer', 'Required']);
     const values = within(sheet).getAllByRole('definition').map((value) => value.textContent?.replace(/\s+/g, ' ').trim());
-    expect(values).toEqual(['1 to 5 to 1 to 10', 'Unchanged, on']);
+    expect(values).toEqual(['1 to 5 to 1 to 10', 'on Unchanged']);
   });
 
   it('offers older changes when there are more', async () => {

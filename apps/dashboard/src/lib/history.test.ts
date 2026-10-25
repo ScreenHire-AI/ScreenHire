@@ -1,6 +1,6 @@
 import type { HistoryEntry, TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { actorName, groupByDay, initials, joinPages, sentenceStart } from './history.js';
+import { actorName, groupByDay, joinPages, sentenceStart } from './history.js';
 
 const members: TeamMember[] = [
   { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
@@ -35,9 +35,7 @@ describe('history', () => {
     expect(joinPages([{ entries: [a, b], nextBefore: 'b' }, { entries: [b], nextBefore: null }, undefined]).map((e) => e.id)).toEqual(['a', 'b']);
   });
 
-  it('starts a sentence with a capital and makes initials', () => {
+  it('starts a sentence with a capital', () => {
     expect(sentenceStart('you')).toBe('You');
-    expect(initials('Avery Quinn')).toBe('AQ');
-    expect(initials('a former teammate')).toBe('AF');
   });
 });

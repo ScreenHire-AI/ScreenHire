@@ -26,15 +26,6 @@ export function actorName(actor: ChangeActor, members: readonly TeamMember[] | u
 /** The first letter in capitals, for a name that starts a sentence ("You changed the subject"). */
 export const sentenceStart = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-/** Up to two initials for an avatar: "Avery Quinn" is "AQ". */
-export function initials(name: string): string {
-  const words = name.split(/\s+/).filter(Boolean);
-  return words
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join('');
-}
-
 export interface HistoryDay {
   key: string;
   label: string;
@@ -53,7 +44,7 @@ export function groupByDay(entries: readonly HistoryEntry[], now: number): Histo
   return days;
 }
 
-/** The loaded pages' entries in order, each once: a change saved while paging can shift an entry onto the next page too. */
+/** The loaded pages' entries in order, each once: while a refetch after a save is in flight, two pages can share an entry. */
 export function joinPages(pages: readonly (HistoryPage | undefined)[]): HistoryEntry[] {
   const seen = new Set<string>();
   return pages.flatMap((page) => page?.entries ?? []).filter((entry) => !seen.has(entry.id) && Boolean(seen.add(entry.id)));
