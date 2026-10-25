@@ -1,5 +1,13 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
-import { createColumnHelper, createSortedRowModel, rowSortingFeature, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
+import {
+  createColumnHelper,
+  createSortedRowModel,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_basic,
+  tableFeatures,
+  type ColumnDef,
+} from '@tanstack/svelte-table';
 
 /**
  * The candidate table's TanStack Table setup, shared with code that adds columns. It sorts (a column with an accessor
@@ -10,7 +18,7 @@ import { createColumnHelper, createSortedRowModel, rowSortingFeature, sortFn_bas
 export const candidateTableFeatures = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
-  sortFns: { basic: sortFn_basic },
+  sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric },
 });
 
 export type CandidateTableFeatures = typeof candidateTableFeatures;

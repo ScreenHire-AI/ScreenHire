@@ -30,6 +30,8 @@
 
   let grip = $state<HTMLElement | null>(null);
   let open = $state(false);
+  // The tooltip stays shut while the menu is open, so it never covers the rows above the menu (A4).
+  let tooltipOpen = $state(false);
   const name = $derived(`Reorder ${label}`);
 
   // The press listeners sit on the grip itself, not on Svelte's delegated handlers at the document root: the list's drag
@@ -65,7 +67,7 @@
 </script>
 
 <DropdownMenu.Root bind:open>
-  <Tooltip.Root>
+  <Tooltip.Root bind:open={() => tooltipOpen && !open, (next) => (tooltipOpen = next)}>
     <Tooltip.Trigger>
       {#snippet child({ props })}
         <span

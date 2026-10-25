@@ -119,13 +119,36 @@ describe('candidate table', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
     expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
+
+    // Coming back to Stage from another column starts again with those needing attention first.
+    await fireEvent.click(screen.getByRole('button', { name: 'Applied' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
+    expect(names()).toEqual(['Sam Taylor', 'Jordan Lee', 'Casey Morgan']);
+    expect(screen.getByRole('columnheader', { name: /Stage/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 
-  it('opens a table across jobs newest first by Applied, where Stage does not sort', () => {
+  it('opens a table across jobs newest first by Applied, and sorts every column, Stage by its name', async () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true } } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
 
     expect(screen.getByRole('columnheader', { name: /Applied/ })).toHaveAttribute('aria-sort', 'descending');
-    expect(within(screen.getByRole('columnheader', { name: /Stage/ })).queryByRole('button')).not.toBeInTheDocument();
+    // Every column with a value has a sort button (L2); the checkbox column has none.
+    const sortable = screen.getAllByRole('columnheader').filter((header) => within(header).queryByRole('button'));
+    expect(sortable.map((header) => header.textContent?.trim())).toEqual(['Candidate', 'Job', 'Stage', 'Source', 'Applied']);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Candidate' }));
+    expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
+    expect(screen.getByRole('columnheader', { name: /Candidate/ })).toHaveAttribute('aria-sort', 'ascending');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
+    expect(dataRows().map((row) => within(row).getByText(/^(Applied|Screening)$/).textContent)).toEqual(['Applied', 'Applied', 'Screening']);
+  });
+
+  it('opens on its default when the remembered sort names a column the table does not have', () => {
+    localStorage.setItem('screenhire:sort:candidates', JSON.stringify({ id: 'tags', desc: false }));
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true, sortId: 'candidates' } } });
+
+    expect(screen.getByRole('columnheader', { name: /Applied/ })).toHaveAttribute('aria-sort', 'descending');
   });
 
   it("remembers the person's sort for the table named by sortId", async () => {

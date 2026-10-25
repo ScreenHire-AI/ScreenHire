@@ -21,8 +21,8 @@
   import { chipOf } from '#lib/integrity.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { isOverdue } from '#lib/sla.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
+  import { isOverdue } from '#lib/sla.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
   let {
@@ -37,7 +37,14 @@
     emptyText = 'No candidates yet.',
     onclearfilters,
     sortId,
-    sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }),
+    sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, [
+      'candidate',
+      ...extraColumns.flatMap((column) => (column.id ? [column.id] : [])),
+      ...(showJob ? ['job'] : []),
+      'stage',
+      'source',
+      'applied',
+    ]),
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -67,21 +74,26 @@
 
   const columns = $derived<CandidateColumn[]>([
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
-    { id: 'candidate', header: 'Candidate', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
+    // Every column sorts (L2); text columns by their words, A to Z first.
+    { id: 'candidate', header: 'Candidate', accessorFn: (application) => application.candidateName, sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
     // Status first, right after the name (T2): the integrity columns, then the facts.
     ...extraColumns,
-    ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
+    ...(showJob
+      ? [{ id: 'job', header: 'Job', accessorFn: (application) => application.jobTitle, sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn]
+      : []),
     // On a job's table the Stage column sorts by attention: overdue rows first, the longest overdue at the top, then the
     // rest in pipeline order. Overdue is the team's own delay (section 3.2), so the order never leans on integrity output.
+    // Across jobs there is no one pipeline order, so it sorts by the stage's name.
     {
       id: 'stage',
       header: 'Stage',
-      accessorFn: (application) => attentionRank(application),
-      enableSorting: Boolean(stages),
-      sortFn: 'basic',
+      accessorFn: (application) => (stages ? attentionRank(application) : application.stage.name),
+      sortFn: stages ? 'basic' : 'alphanumeric',
+      // The rank is a number, which TanStack would sort descending first; attention comes first.
+      sortDescFirst: false,
       cell: ({ row }) => renderSnippet(stageCell, row.original),
     },
-    { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
+    { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),

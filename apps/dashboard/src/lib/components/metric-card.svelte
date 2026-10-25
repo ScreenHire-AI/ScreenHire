@@ -103,7 +103,8 @@
         <div aria-hidden="true" class="relative h-12" {onpointermove} onpointerdown={onpointermove} onpointerleave={() => (pointed = null)}>
           <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" class="block size-full overflow-visible">
             <path d={area} class="fill-secondary" />
-            <path d={history} class="fill-none stroke-input" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+            <!-- At 3:1 or more against the card and the area under it, in both themes (X1). -->
+            <path d={history} class="fill-none stroke-muted-foreground/75" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
             <path d={current} class="fill-none stroke-primary" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke" />
           </svg>
           {#if readout !== null}

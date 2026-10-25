@@ -2,8 +2,8 @@
   // Every Lucide icon has this one component type.
   import type LucideIcon from '@lucide/svelte/icons/circle';
   import type { Snippet } from 'svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Card from '#lib/components/ui/card/index.js';
   import { cn } from '#lib/utils.js';
 
@@ -40,7 +40,7 @@
       </Card.Title>
       {#if badge || count}
         <!-- In a narrow card the badge or change drops under the title, so the title keeps its room. -->
-      <Card.Action class="row-span-1 self-center @max-3xs/card-header:col-start-1 @max-3xs/card-header:row-start-2 @max-3xs/card-header:justify-self-start">
+        <Card.Action class="row-span-1 self-center @max-3xs/card-header:col-start-1 @max-3xs/card-header:row-start-2 @max-3xs/card-header:justify-self-start">
           {#if badge}{@render badge()}{:else}<Badge variant="count">{count}</Badge>{/if}
         </Card.Action>
       {/if}

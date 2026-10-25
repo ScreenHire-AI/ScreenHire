@@ -4,6 +4,7 @@
   import DateText from '#lib/components/date-text.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
+  import { day, hour } from '#lib/dates.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
   // A sortable table (L1, L2) of hiring templates, as the Templates page lists them: the name with Built in after it, then
@@ -11,11 +12,10 @@
   type Template = { id: string; name: string; builtIn: boolean; jobs: number; updatedAt: string };
 
   const now = Date.now();
-  const day = 86_400_000;
   const templates: Template[] = [
     { id: 't1', name: 'Brightwater engineering', builtIn: false, jobs: 3, updatedAt: new Date(now - day).toISOString() },
     { id: 't2', name: 'Hourly role', builtIn: true, jobs: 2, updatedAt: new Date(now - 6 * day).toISOString() },
-    { id: 't3', name: 'Software engineer', builtIn: true, jobs: 1, updatedAt: new Date(now - 6 * day - 3_600_000).toISOString() },
+    { id: 't3', name: 'Software engineer', builtIn: true, jobs: 1, updatedAt: new Date(now - 6 * day - hour).toISOString() },
     { id: 't4', name: 'Summer interns 2025', builtIn: false, jobs: 0, updatedAt: new Date(now - 520 * day).toISOString() },
   ];
 

@@ -29,6 +29,7 @@
     label: string;
     /** An item's name, for its grip ("Reorder Your CV") and what is spoken when it moves. */
     itemLabel: (item: T) => string;
+    /** The new order. Set `items` to it: the list shows the move at once and keeps it until `items` changes. */
     onreorder: (next: T[]) => void;
     /** One item. Render `grip` where its handle goes. */
     item: Snippet<[value: T, grip: Snippet]>;
@@ -51,7 +52,14 @@
   let zone: { update: (options: Options<Entry>) => void; destroy: () => void } | undefined;
   let zoneOptions: Options<Entry>;
 
-  const withGrips = (options: Options<Entry>): Options<Entry> => ({ ...options, type, dragDisabled: !gripActive, zoneItemTabIndex: -1 });
+  // No drop-zone outline: the library's default is a yellow off the palette, and the moving item already shows where it is.
+  const withGrips = (options: Options<Entry>): Options<Entry> => ({
+    ...options,
+    type,
+    dragDisabled: !gripActive,
+    zoneItemTabIndex: -1,
+    dropTargetStyle: {},
+  });
 
   type ZoneEvents = { onconsider: (event: CustomEvent<DndEvent<Entry>>) => void; onfinalize: (event: CustomEvent<DndEvent<Entry>>) => void };
 

@@ -137,7 +137,7 @@
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
 
-  // A record's tabs (section 21): counts in the count badge, a state in the count where one fits, a marker where not.
+  // A record's tabs (section 11): counts in the count badge, a state in the count where one fits, a marker where not.
   const candidateTabs: RecordTab[] = [
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
@@ -864,8 +864,8 @@
 
       <Panel title="Notice">
         <div class="flex flex-col gap-3">
-          <Notice href="#notice" link="Fix on Distribution"><span class="font-semibold">Adzuna refused this job's posting.</span> It stays off Adzuna until it is fixed.</Notice>
-          <Notice href="#notice" link="Fix in Branding">The careers page could not be published: the logo is missing.</Notice>
+          <Notice href="#notice" link="Fix on Distribution"><span class="font-semibold">Adzuna refused this job's posting.</span> The job stays off that board until it is fixed.</Notice>
+          <Notice href="#notice" link="Fix in Branding">The careers page could not be published because the logo is missing.</Notice>
         </div>
       </Panel>
 
@@ -923,10 +923,13 @@
         </Panel>
         <div class="flex flex-[1_1_320px] flex-col gap-5">
           <Panel title="Count button">
-            <dl class="flex flex-wrap gap-x-8 gap-y-3">
-              <Fact label="Used by"><CountButton items={usedBy} one="job" other="jobs" title="Used by" description="Technical interview" /></Fact>
-              <Fact label="Open in"><CountButton items={manyJobs} one="job" other="jobs" title="Open in" description="Brightwater engineering" /></Fact>
-            </dl>
+            <!-- As in a header band's facts row: the clip hides each line's first rule, its margin keeps focus rings in. -->
+            <div class="-m-1 overflow-hidden p-1">
+              <dl class="flex flex-wrap gap-x-8 gap-y-3">
+                <Fact label="Used by"><CountButton items={usedBy} one="job" other="jobs" title="Used by" description="Technical interview" /></Fact>
+                <Fact label="Open in"><CountButton items={manyJobs} one="job" other="jobs" title="Open in" description="Brightwater engineering" /></Fact>
+              </dl>
+            </div>
           </Panel>
           <Panel title="Built in badge">
             <p class="flex flex-wrap items-center gap-2"><span class="font-semibold">Software engineer</span><BuiltInBadge /></p>

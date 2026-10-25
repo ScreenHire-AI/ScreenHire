@@ -13,9 +13,18 @@
   ]);
 </script>
 
-<ReorderList items={questions} key={(question) => question.id} label="Screening questions" itemLabel={(question) => question.label} onreorder={(next) => (questions = next)}>
+<!-- Rules between the rows only, and the last row's bottom corners rounded like the panel's, so its background does not
+     square them off. Rounded rather than clipped, so a picked-up row's focus ring shows whole. -->
+<ReorderList
+  items={questions}
+  key={(question) => question.id}
+  label="Screening questions"
+  itemLabel={(question) => question.label}
+  onreorder={(next) => (questions = next)}
+  class="divide-y divide-border-subtle [&>li:last-child>div]:rounded-b-panel"
+>
   {#snippet item(question, grip)}
-    <div class="flex min-w-0 items-center gap-2 border-b border-border-subtle bg-card py-2 pr-4 pl-2.5">
+    <div class="flex min-w-0 items-center gap-2 bg-card py-2 pr-4 pl-2.5">
       {@render grip()}
       <span class="flex min-w-0 flex-1"><TruncatedText text={question.label} class="font-semibold" /></span>
       <Badge variant="muted" class="shrink-0">{question.kind}</Badge>
