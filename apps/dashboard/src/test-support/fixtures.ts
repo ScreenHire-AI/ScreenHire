@@ -13,17 +13,22 @@ import type {
 /** Fictional data for component tests, shaped like the API's responses. */
 
 /** Every permission an Owner has, in catalogue order, as `GET /v1/auth/me` lists them. */
-export const ownerPermissions: Permission[] = [
+const recruiterPermissions: Permission[] = [
   'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates',
-  'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings',
-  'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners',
+  'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates',
+];
+
+export const ownerPermissions: Permission[] = [
+  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CompleteTasks',
+  'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates',
+  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners',
 ];
 
 /** What each built-in role has, as the API's catalogue says (RolePermissions.cs). */
 export const builtInPermissions: Record<Exclude<OrganizationRole, 'Custom'>, Permission[]> = {
   Owner: ownerPermissions,
   Admin: ownerPermissions.filter((permission) => permission !== 'ManageOwners'),
-  Recruiter: ownerPermissions.slice(0, 11),
+  Recruiter: recruiterPermissions,
   Viewer: ['ViewHiring'],
 };
 

@@ -17,11 +17,12 @@ internal sealed class OrganizationMemberConfiguration : IEntityTypeConfiguration
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(m => new { m.OrganizationId, m.UserId }).IsUnique();
         // On (organization_id, id), because foreign key checks bypass row-level security: a member can only hold a role
-        // of their own organization. Restrict: a role somebody has is not deleted (RoleEndpoints refuses it first).
+        // of their own organization. No action: a role somebody has is not deleted (RoleEndpoints refuses it first), and
+        // the check waits for the end of the statement, so deleting an organization's members and roles together works.
         builder.HasOne<CustomRole>().WithMany()
             .HasForeignKey(m => new { m.OrganizationId, m.CustomRoleId })
             .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.NoAction);
         // Finds a user's organizations at sign-in, before a tenant is chosen.
         builder.HasIndex(m => m.UserId);
     }

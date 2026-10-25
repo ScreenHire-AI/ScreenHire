@@ -19,8 +19,9 @@ sources:
 > [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard has the
 > v0.3 foundation: status icons, pages that fill the window, the surface shadow and the v0.3 labels, the shared v0.3
-> components and the form builder in section 11. Section 21 lists the components the v0.3 build still adds, and
-> section 22 the screens it changes.
+> components and the form builder in section 11. The candidate page is built: fixed tabs, the details rail, the file
+> viewer, and notes with mentions. Section 21 lists the components the v0.3 build still adds, and section 22 the
+> screens it changes.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -319,7 +320,7 @@ Atlassian's surfaces.
 |---|---|---|
 | Page | Layout only. Nothing readable sits on it. | `background` |
 | Surface | Header band, panels, tables, sidebar, top bar | `card`, 1px `border`; panels and cards add the soft surface shadow `shadow-surface`: `0 1px 2px rgb(28 27 25 / .06), 0 1px 3px rgb(28 27 25 / .04)`, and in dark mode `0 1px 2px rgb(0 0 0 / .5), 0 1px 3px rgb(0 0 0 / .3)` |
-| Inset | A well inside a surface: resume preview, board column | `secondary`, no edge |
+| Inset | A well inside a surface: a summary band, a list of reasons, a board column | `secondary`, no edge |
 | Raised | The one thing in hand: a dragged card, a toolbar stuck while scrolling | surface, edge, `0 4px 12px rgb(28 27 25 / .14)` |
 | Overlay | Menus, popovers, tooltips, sheets, dialogs, toasts | surface, edge, `0 16px 48px rgb(28 27 25 / .18)`; dialogs dim the page |
 
@@ -420,8 +421,6 @@ in a development build, shows every component in each state, and its test fails 
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
-| File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention. Replaced by the file row; the candidate page build removes its last uses |
-| Resume preview | Our component, in an inset, on `FileFrame` | Replaced by the file row and the file viewer, because a page never embeds a preview (section 9); the candidate page build removes it |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
@@ -431,12 +430,13 @@ in a development build, shows every component in each state, and its test fails 
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2) |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
-| Activity | Our component | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People show by name ("by Robin Ashby", "by you") |
+| Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, filtered by kind (All, Notes, Emails, Scorecards, Stage and tags) with a count on each, and opens with the note box; Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
+| Mention | `MentionField` on shadcn `Textarea`; `NoteForm` for the note box and editing in place; `NoteText` | @ opens the organization's members, without yourself, narrowing as you type: arrow keys move, Enter or Tab picks, Esc closes the list only. The list sits under the field, each member an avatar, name and role; the field points at it with `aria-controls` and `aria-activedescendant`, because a textarea cannot be a combobox. An @ button (Mention someone) starts one below `md`. Ctrl or Cmd Enter saves, hinted in the Save tooltip. A mention is stored as the member's user id and shows their current name ("@former teammate" once they leave). The person mentioned gets a notification card and an email that says who and where and never quotes the note; a mention an edit adds notifies only that person. Save is outline, because the page's primary is Move to stage (A1) |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
 | Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. An open task has a checkbox for a role that changes hiring data: ticking it marks the task done, with Undo for 10 seconds. On My tasks the candidate's name links to the application and the job is a pill |
 | Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. Questions are built in the form builder with the answer menu; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (section 21). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
-| Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon, the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
-| Sheet | shadcn `Sheet` (`NoteSheet`, `MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer (section 21) are sheets too |
+| Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
+| Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer (section 21) are sheets too |
 | History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
@@ -449,7 +449,7 @@ in a development build, shows every component in each state, and its test fails 
 | Email sheet | `EmailSheet` on shadcn `Sheet` | Email one candidate or a selection (section 9, in place). In the v0.3 build it becomes the email composer (section 21): start from a template or a blank email, change this one email, insert variables, and preview with the candidate's own details; Send is the one primary. The rejection email is never offered (section 16), and no bulk email while an integrity filter or view picked the rows |
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline); the rail shows the icon with a tooltip |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16; on a candidate the panel becomes the Integrity tab. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Integrity tab | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
 | Details rail | `DetailsRail` with `DetailsRailSection`s; `DetailLayout` places it | A detail page's 340px column on the right with the record's details, one surface whose sections each have a small heading; it never moves between tabs and folds under the header, before the content, below `lg` (section 7) |
 | Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in the count where one fits (Distribution 7/8, posted on 7 of 8 boards, which screen readers hear in words), and a small marker only where it does not (E2): a dot in the status's icon colour with its words for screen readers, never a status icon (I2). The list scrolls sideways, never wraps (F5) |
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
@@ -591,7 +591,6 @@ These join section 11 one by one, each when the build adds it to the style guide
 | Rating | Our component | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from, opening to each one. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer sees it only after submitting their own; no automation acts on it |
 | Rating answer | `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale |
 | Email composer | `Sheet`, and the reply box on the Messages tab | Start from a template or a blank email, change this one email, insert variables such as `firstName`, preview with the candidate's own details, then Send. It lands in Activity and Messages. Replaces the Email sheet |
-| Mention | The note field | @ mentions a teammate, who gets a notification card and an email that never quotes the note |
 | Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
 
 ## 22. Screens the v0.3 build changes
@@ -611,8 +610,8 @@ These join section 11 one by one, each when the build adds it to the style guide
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and
-  how long ago, and filters by kind. Only a note's author edits it; the author, an Owner or an Admin deletes it, after
-  a confirm. The details rail holds the job, contact, files and tags.
+  how long ago, and filters by kind. Only a note's author edits it; the author, or a role with Delete anyone's notes
+  (Owners and Admins), deletes it, after a confirm. The details rail holds the job, contact, files and tags.
 - **Templates:** one page with a tab per kind (Hiring, Scorecards, Emails). Each tab says in one sentence what its
   templates are for, each row says where it is used, and each editor has the Edit / Preview switch. A job keeps the
   copy of a template it started with. A built-in the team edited offers Reset to original in its menu.

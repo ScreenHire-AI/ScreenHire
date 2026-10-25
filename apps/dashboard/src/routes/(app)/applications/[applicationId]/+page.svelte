@@ -1,81 +1,81 @@
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
-  import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
-  import ListChecksIcon from '@lucide/svelte/icons/list-checks';
-  import InboxIcon from '@lucide/svelte/icons/inbox';
   import MailIcon from '@lucide/svelte/icons/mail';
-  import PhoneIcon from '@lucide/svelte/icons/phone';
-  import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
-  import TagIcon from '@lucide/svelte/icons/tag';
-  import TagsIcon from '@lucide/svelte/icons/tags';
-  import type { ApplicationAnswer, ApplicationTimelineEntry, Question } from '@screenhire/api-client';
   import {
     ApiError,
     createGetApplication,
+    createGetApplicationIntegrity,
     createGetApplicationTimeline,
     createGetJob,
     createListApplicationScorecards,
-    createListApplicationTasks,
     createListEmailTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { tick } from 'svelte';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
-  import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
-  import ApplicationTags from '#lib/components/application-tags.svelte';
+  import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
+  import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
+  import CandidateRail from '#lib/components/candidate/candidate-rail.svelte';
+  import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
+  import OverviewTab from '#lib/components/candidate/overview-tab.svelte';
+  import ScorecardsTab from '#lib/components/candidate/scorecards-tab.svelte';
+  import DetailLayout from '#lib/components/detail-layout.svelte';
   import EmailSheet from '#lib/components/email-sheet.svelte';
-  import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
-  import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
-  import ManualAutomations from '#lib/components/manual-automations.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
-  import NoteSheet from '#lib/components/note-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
-  import ResumePreview from '#lib/components/resume-preview.svelte';
+  import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
-  import ScorecardList from '#lib/components/scorecard-list.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
-  import SummaryItem from '#lib/components/summary-item.svelte';
-  import SummaryList from '#lib/components/summary-list.svelte';
-  import TaskList from '#lib/components/task-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { sourceName } from '#lib/format.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import { visibleEntries, type ActivityNames } from '#lib/activity.js';
+  import { authenticityLevels } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
-  import { createTaskCompletion } from '#lib/tasks.svelte.js';
-  import { personName } from '#lib/team.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
 
-  // ApplicationMoved, the note and tag events and AutomationRunFinished refetch the application, its timeline and its
-  // tasks live (#lib/realtime.ts).
+  // A candidate (design system sections 7 and 22): the header band with the same six tabs in the same order for
+  // everyone, and the details rail, which never moves. The tab is in the address (?tab=), so a link can open one: the
+  // Overview's "All in Activity", a mention email's link to the note. Each tab's body is its own component.
+  const tabs = ['overview', 'application', 'messages', 'scorecards', 'integrity', 'activity'] as const;
+  type Tab = (typeof tabs)[number];
+  const tab = $derived<Tab>(tabs.find((value) => value === page.url.searchParams.get('tab')) ?? 'overview');
+
+  function selectTab(value: string) {
+    const url = new URL(page.url.href);
+    if (value === 'overview') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', value);
+    url.hash = '';
+    void goto(url, { replace: true, reset: false });
+  }
+
+  // ApplicationMoved, the note and tag events and AutomationRunFinished refetch the application and its timeline live
+  // (#lib/realtime.ts); ScorecardSubmitted the scorecards, for every reviewer on the page.
   const application = createGetApplication(() => params.applicationId);
   const timeline = createGetApplicationTimeline(() => params.applicationId);
-  const tasks = createListApplicationTasks(() => params.applicationId);
-  // ScorecardSubmitted refetches them live, for every reviewer on the page.
   const scorecards = createListApplicationScorecards(() => params.applicationId);
-  // Names the people in Activity and Tasks.
+  // The Integrity tab's marker; the tab shares the query.
+  const integrity = createGetApplicationIntegrity(() => params.applicationId);
+  // Names the people in Activity, notes and mentions.
   const team = createListTeamMembers();
   const members = $derived(team.data?.data);
   const queryClient = useQueryClient();
@@ -83,14 +83,11 @@
   const currentUserId = $derived(page.data.user?.id);
   // Every member reads; each control that changes hiring data shows only for a role with the permission its route
   // needs (A3, ADR-0014), so an Interviewer can add a note and fill in a scorecard without being offered Move.
+  const permissions = $derived(page.data.user?.organization?.permissions ?? []);
   const mayMove = $derived(can(page.data.user, 'MoveCandidates'));
   const mayNote = $derived(can(page.data.user, 'AddNotesAndTags'));
   const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
-  const mayCompleteTasks = $derived(can(page.data.user, 'CompleteTasks'));
-  const mayRunAutomations = $derived(can(page.data.user, 'RunAutomations'));
-  let noteOpen = $state(false);
   let moveNoteOpen = $state(false);
-  let noteAnnouncement = $state('');
   let scorecardOpen = $state(false);
   let scorecardAnnouncement = $state('');
   // The job's workflow names the stages and labels the questions.
@@ -99,7 +96,6 @@
     () => ({ query: { enabled: Boolean(detail) } }),
   );
   const moves = createMoves({ allowed: () => mayMove });
-  const completion = createTaskCompletion();
   // Phones move the primary action to a bar at the bottom (design system section 8), on the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
   // Email shows only where this deployment can send it and the person may (A3).
@@ -113,22 +109,19 @@
   const workflow = $derived(job.data?.data.workflow);
   const manualAutomations = $derived((workflow?.automations ?? []).filter((automation) => automation.enabled && automation.trigger.type === 'Manual'));
   const stages = $derived(workflow?.stages ?? []);
-  const stageName = (id: string | null) => (id ? (stages.find((stage) => stage.id === id)?.name ?? id) : '');
+  const stageName = (id: string | null | undefined) => (id ? (stages.find((stage) => stage.id === id)?.name ?? id) : '');
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
-  const fileById = $derived(new Map((detail?.files ?? []).map((file) => [file.uploadId, file])));
-  const resume = $derived(detail?.files.find((file) => file.questionId === 'resume'));
-  const answers = $derived(detail?.answers.filter((answer) => answer.questionId !== 'resume') ?? []);
-  // Follow-up questionnaires an automation sent, with their answers once given, read against the questions as the
-  // candidate saw them (the request keeps a copy).
-  const followUps = $derived(detail?.followUps ?? []);
   const followUpName = (requestId: string | null | undefined) =>
-    followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
+    detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
+  const names: ActivityNames = { stageName, followUpName };
+  const entries = $derived(timeline.data?.data);
+
   // A reviewer scores a stage that has a scorecard, that the application has reached, and that they have not scored yet;
   // the current stage first.
   const reached = $derived(
     new Set([
       ...(detail ? [detail.stage.id] : []),
-      ...(timeline.data?.data ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').map((entry) => entry.toStageId),
+      ...(entries ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').map((entry) => entry.toStageId),
     ]),
   );
   const scoredByMe = $derived(new Set((scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId).map((card) => card.stageId)));
@@ -137,84 +130,35 @@
       .filter((stage) => stage.scorecard && reached.has(stage.id) && !scoredByMe.has(stage.id))
       .toSorted((a, b) => Number(b.id === detail?.stage.id) - Number(a.id === detail?.stage.id)),
   );
-  const hasScorecards = $derived(stages.some((stage) => stage.scorecard) || (scorecards.data?.data.length ?? 0) > 0);
 
-  function answerText(answer: ApplicationAnswer, question: Question | undefined): string {
-    const values = answer.values ?? (answer.value ? [answer.value] : []);
-    const options = new Map((question?.options ?? []).map((option) => [option.id, option.label]));
-    if (question?.type === 'YesNo') return values.map((value) => (value === 'yes' ? 'Yes' : value === 'no' ? 'No' : value)).join(', ');
-    return values.map((value) => options.get(value) ?? value).join(', ');
-  }
+  // Counts where a count fits, and a marker on Integrity when the level needs a look (E2).
+  const authenticity = $derived(integrity.data?.data.authenticity);
+  const marker = $derived.by((): RecordTab['marker'] => {
+    if (!authenticity || authenticity.dismissal) return undefined;
+    const level = authenticityLevels[authenticity.level];
+    if (level.rank === 0) return undefined;
+    return { label: level.label, tone: level.rank === 1 ? 'review' : 'verify' };
+  });
+  const recordTabs = $derived<RecordTab[]>([
+    { value: 'overview', label: 'Overview' },
+    { value: 'application', label: 'Application' },
+    { value: 'messages', label: 'Messages', count: entries?.filter((entry) => entry.type === 'EmailSent').length },
+    { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
+    { value: 'integrity', label: 'Integrity', marker },
+    { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length : undefined },
+  ]);
 
-  function describeEvent(entry: ApplicationTimelineEntry): string {
-    switch (entry.type) {
-      case 'Submitted':
-        return entry.actorUserId ? `Added to ${stageName(entry.toStageId)}` : `Applied on the careers page, into ${stageName(entry.toStageId)}`;
-      case 'StageChanged':
-        return `Moved from ${stageName(entry.fromStageId)} to ${stageName(entry.toStageId)}`;
-      case 'TagAdded':
-        return `Tagged "${entry.tag}"`;
-      case 'TagRemoved':
-        return `Removed the tag "${entry.tag}"`;
-      case 'NoteAdded':
-        return 'Note';
-      case 'IntegrityAssessed':
-        // Levels and evidence are the integrity panel's to show; the activity records only that the checks ran.
-        return 'Integrity checks ran';
-      case 'ScorecardSubmitted':
-        // The ratings and the recommendation are the Scorecards panel's to show.
-        return `Scorecard for ${stageName(entry.stageId ?? null)}`;
-      case 'EmailSent':
-        // The body is never kept on the timeline, only the subject the candidate received.
-        return `Emailed "${entry.emailSubject ?? 'an update'}"`;
-      case 'QuestionnaireSent':
-        return `Sent the "${followUpName(entry.questionnaireRequestId)}" questionnaire`;
-      case 'QuestionnaireCompleted':
-        // The answers are the follow-up's panel to show.
-        return `Answered the "${followUpName(entry.questionnaireRequestId)}" questionnaire`;
-    }
-  }
-
-  const eventIcons = {
-    Submitted: InboxIcon,
-    StageChanged: ArrowRightIcon,
-    TagAdded: TagIcon,
-    TagRemoved: TagsIcon,
-    IntegrityAssessed: ScanSearchIcon,
-    NoteAdded: StickyNoteIcon,
-    ScorecardSubmitted: ClipboardCheckIcon,
-    EmailSent: SendIcon,
-    QuestionnaireSent: ClipboardListIcon,
-    QuestionnaireCompleted: ListChecksIcon,
-  };
-
-  function actor(entry: ApplicationTimelineEntry): string | undefined {
-    if (entry.automationRunId) return 'by an automation';
-    if (entry.actorUserId) return `by ${personName(entry.actorUserId, members, currentUserId)}`;
-    if (entry.actorApiKeyId) return 'by an API key';
-    return undefined;
-  }
+  // A mention email links to its note (#note-{id} on Activity): once the timeline is in, the note scrolls into view.
+  $effect(() => {
+    const hash = page.url.hash;
+    if (tab !== 'activity' || !hash.startsWith('#note-') || !entries) return;
+    void tick().then(() => document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'center' }));
+  });
 
   async function scorecardSubmitted(message: string) {
     scorecardAnnouncement = message;
     await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`);
   }
-
-  async function noteAdded(message: string) {
-    noteAnnouncement = message;
-    await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}/timeline`);
-  }
-
-  const activity = $derived<Activity[]>(
-    (timeline.data?.data ?? []).toReversed().map((entry) => ({
-      id: entry.id,
-      icon: eventIcons[entry.type],
-      event: describeEvent(entry),
-      actor: actor(entry),
-      note: entry.note ?? undefined,
-      at: entry.occurredAt,
-    })),
-  );
 
   const notFound = $derived(application.error instanceof ApiError && application.error.status === 404);
 </script>
@@ -260,6 +204,10 @@
   {#if !sidebar.isMobile}{@render moveToStage()}{/if}
 {/snippet}
 
+{#snippet headerTabs()}
+  <RecordTabs label="Candidate sections" tabs={recordTabs} />
+{/snippet}
+
 <main class={['flex flex-col', sidebar.isMobile && detail && stages.length > 0 && mayMove && 'pb-28']}>
   {#if application.isError}
     {#if notFound}
@@ -282,10 +230,9 @@
     {/if}
   {:else if !detail}
     <div aria-hidden="true" class="@container border-b border-border bg-card">
-      <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
+      <div class="flex w-full flex-col gap-4 px-4 pt-5 md:px-6">
         <Skeleton class="h-8 w-64 max-w-full" />
-        <Skeleton class="h-4 w-80 max-w-full" />
-        <Skeleton class="h-10 w-96 max-w-full" />
+        <Skeleton class="h-11 w-96 max-w-full" />
       </div>
     </div>
     <div aria-hidden="true" class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
@@ -294,182 +241,90 @@
     </div>
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
-    <HeaderBand title={detail.candidate.fullName} actions={bandActions}>
-      {#snippet status()}<OverdueBadge dueAt={detail.slaDueAt} />{/snippet}
-      {#snippet details()}
-        <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
-        {#if detail.candidate.phone}
-          <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="text-muted-foreground pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
-        {/if}
-      {/snippet}
-      {#snippet facts()}
-        <Fact label="Stage">{detail.stage.name}</Fact>
-        <Fact label="Job"><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" /></Fact>
-        <Fact label="Applied"><RelativeTime at={detail.submittedAt} /></Fact>
-        <Fact label="Source">{sourceName(detail.source)}</Fact>
-      {/snippet}
-    </HeaderBand>
+    <Tabs.Root bind:value={() => tab, selectTab}>
+      <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs}>
+        {#snippet status()}<OverdueBadge dueAt={detail.slaDueAt} />{/snippet}
+      </HeaderBand>
 
-    <div class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
-      <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it. A failure shows in the
-           header band, beside Move to stage. -->
-      <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
-      <p role="status" class="sr-only">{emailed}</p>
+      <div class="@container w-full px-4 py-5 md:px-6 md:py-6">
+        <!-- A move that worked shows in the rail's Stage and in Activity, so only screen readers hear it. A failure shows
+             in the header band, beside Move to stage. -->
+        <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
+        <p role="status" class="sr-only">{emailed}</p>
 
-      <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
-           top of the side column, and the main column spans both of the side column's rows. -->
-      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-rail)] lg:grid-rows-[auto_1fr] lg:items-start">
-        <div class="min-w-0 lg:col-start-2 lg:row-start-1">
-          <IntegrityPanel applicationId={detail.id} />
-        </div>
-
-        <div class="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          <Panel title="Resume">
-            {#if resume}
-              <ResumePreview applicationId={detail.id} file={resume} />
-            {:else}
-              <p class="text-muted-foreground">No resume was uploaded.</p>
+        <!-- Only the selected tab's body is rendered: each loads what it shows, and a note's anchor is on the page once. -->
+        <DetailLayout>
+          {#snippet rail()}<CandidateRail {detail} editable={mayNote} />{/snippet}
+          <Tabs.Content value="overview" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'overview'}
+              <OverviewTab
+                {detail}
+                timeline={entries}
+                timelineError={timeline.error}
+                onretrytimeline={() => timeline.refetch()}
+                {members}
+                {currentUserId}
+                {permissions}
+                {names}
+                {questions}
+                {manualAutomations}
+              />
             {/if}
-          </Panel>
-
-          <Panel title="Answers">
-            {#if answers.length === 0}
-              <p class="text-muted-foreground">No questionnaire answers.</p>
-            {:else}
-              <SummaryList>
-                {#each answers as answer (answer.questionId)}
-                  {@const question = questions.get(answer.questionId)}
-                  {@const file = question?.type === 'File' && answer.value ? fileById.get(answer.value) : undefined}
-                  <SummaryItem label={question?.label ?? answer.questionId}>
-                    {#if file}
-                      <FileTile applicationId={detail.id} {file} />
-                    {:else}
-                      <span class="whitespace-pre-line">{answerText(answer, question)}</span>
-                    {/if}
-                  </SummaryItem>
-                {/each}
-              </SummaryList>
+          </Tabs.Content>
+          <Tabs.Content value="application" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'application'}
+              <ApplicationTab {detail} {questions} />
             {/if}
-          </Panel>
-
-          {#each followUps as followUp (followUp.id)}
-            {@const asked = new Map(followUp.questions.map((question) => [question.id, question]))}
-            <Panel title={`Follow-up: ${followUp.name}`}>
-              {#if followUp.completedAt}
-                <p class="mb-3 text-muted-foreground">Answered <RelativeTime at={followUp.completedAt} /></p>
-                <SummaryList>
-                  {#each followUp.answers as answer (answer.questionId)}
-                    {@const question = asked.get(answer.questionId)}
-                    <SummaryItem label={question?.label ?? answer.questionId}>
-                      <span class="whitespace-pre-line">{answerText(answer, question)}</span>
-                    </SummaryItem>
-                  {/each}
-                </SummaryList>
-                {#if followUp.answers.length === 0}<p class="text-muted-foreground">No answers to the optional questions.</p>{/if}
-              {:else}
-                <p class="text-muted-foreground">
-                  Sent <RelativeTime at={followUp.lastSentAt} />{followUp.timesSent > 1 ? ` (${followUp.timesSent} times)` : ''}, not answered yet.
-                </p>
-              {/if}
-            </Panel>
-          {/each}
-
-          {#if hasScorecards}
-            <Panel title="Scorecards" count={scorecards.data?.data.length}>
-              {#snippet actions()}
-                {#if mayScore && scoreable.length > 0}
-                  <Button variant="outline" onclick={() => (scorecardOpen = true)}><ClipboardCheckIcon aria-hidden="true" />Fill scorecard</Button>
-                {/if}
-              {/snippet}
-              <div class="flex flex-col gap-3">
-                {#if scorecards.isError}
-                  <QueryError message={describeError(scorecards.error, 'Could not load the scorecards')} onretry={() => scorecards.refetch()} inset />
-                {:else if scorecards.isPending}
-                  <div aria-hidden="true" class="flex gap-3">
-                    <Skeleton class="size-7 shrink-0 rounded-full" />
-                    <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
-                      <Skeleton class="h-4 w-1/2" />
-                      <Skeleton class="h-16 w-full" />
-                    </div>
-                  </div>
-                {:else if scorecards.data && scorecards.data.data.length > 0}
-                  <ScorecardList scorecards={scorecards.data.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
-                {:else}
-                  <p class="text-muted-foreground">No scorecards yet.</p>
-                {/if}
-                <p role="status" class="text-muted-foreground empty:hidden">{scorecardAnnouncement}</p>
-              </div>
-            </Panel>
-          {/if}
-
-          <Panel title="Declarations">
-            <SummaryList>
-              <SummaryItem label="AI use">
-                {detail.aiUseDeclaration === 'Used' ? 'Used AI' : detail.aiUseDeclaration === 'DidNotUse' ? 'Did not use AI' : 'Not asked or not answered'}{detail.aiUseDetails
-                  ? `: ${detail.aiUseDetails}`
-                  : ''}
-              </SummaryItem>
-              <SummaryItem label="Adjustments">{detail.accommodationRequested ? 'Asked for adjustments to the process' : 'None requested'}</SummaryItem>
-            </SummaryList>
-          </Panel>
-        </div>
-
-        <div class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-2">
-          {#if tasks.isError}
-            <Panel title="Tasks"><QueryError message={describeError(tasks.error, 'Could not load the tasks')} onretry={() => tasks.refetch()} inset /></Panel>
-          {:else if tasks.isPending}
-            <!-- Rows of the list's shape while it loads (E1); with no tasks the panel then leaves, as a calm state (T3). -->
-            <Panel title="Tasks">
-              <div aria-hidden="true" class="flex gap-3">
-                <Skeleton class="size-7 shrink-0 rounded-full" />
-                <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
-                  <Skeleton class="h-4 w-3/4" />
-                  <Skeleton class="h-5 w-32" />
-                </div>
-              </div>
-            </Panel>
-          {:else if tasks.data && tasks.data.data.length > 0}
-            {@const items = tasks.data.data}
-            <Panel title="Tasks" count={items.length}>
-              <div class="flex flex-col gap-3">
-                <TaskList
-                  label="Tasks"
-                  tasks={items.toReversed()}
-                  {members}
-                  {currentUserId}
-                  oncomplete={mayCompleteTasks ? (task) => completion.complete(task) : undefined}
-                  busy={completion.pending}
-                />
-                <FailureText message={completion.failure} />
-                <p role="status" class="sr-only">{completion.announcement}</p>
-              </div>
-            </Panel>
-          {/if}
-
-          <ApplicationTags applicationId={detail.id} tags={detail.tags} editable={mayNote} />
-
-          {#if mayRunAutomations && manualAutomations.length > 0}
-            <ManualAutomations applicationId={detail.id} automations={manualAutomations} />
-          {/if}
-
-          <ReviewLog applicationId={detail.id} />
-
-          <Panel title="Activity" count={timeline.data ? activity.length : undefined}>
-            {#snippet actions()}
-              {#if mayNote}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add note</Button>{/if}
-            {/snippet}
-            <div class="flex flex-col gap-3">
-              {#if timeline.isError}
-                <QueryError message={describeError(timeline.error, 'Could not load the activity')} onretry={() => timeline.refetch()} inset />
-              {:else}
-                <ActivityList label="Events" items={timeline.data && activity} />
-              {/if}
-              <p role="status" class="text-muted-foreground empty:hidden">{noteAnnouncement}</p>
-            </div>
-          </Panel>
-        </div>
+          </Tabs.Content>
+          <Tabs.Content value="messages" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'messages'}
+              <MessagesTab
+                {entries}
+                error={timeline.error}
+                onretry={() => timeline.refetch()}
+                {members}
+                {currentUserId}
+                onemail={canEmail ? () => (emailOpen = true) : undefined}
+              />
+            {/if}
+          </Tabs.Content>
+          <Tabs.Content value="scorecards" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'scorecards'}
+              <ScorecardsTab
+                scorecards={scorecards.data?.data}
+                error={scorecards.error}
+                onretry={() => scorecards.refetch()}
+                stageName={(id) => stageName(id)}
+                {members}
+                {currentUserId}
+                announcement={scorecardAnnouncement}
+                onfill={mayScore && scoreable.length > 0 ? () => (scorecardOpen = true) : undefined}
+              />
+            {/if}
+          </Tabs.Content>
+          <Tabs.Content value="integrity" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'integrity'}
+              <IntegrityPanel applicationId={detail.id} />
+              <ReviewLog applicationId={detail.id} />
+            {/if}
+          </Tabs.Content>
+          <Tabs.Content value="activity" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'activity'}
+              <ActivityPanel
+                applicationId={detail.id}
+                {entries}
+                error={timeline.error}
+                onretry={() => timeline.refetch()}
+                {members}
+                {currentUserId}
+                {permissions}
+                {names}
+              />
+            {/if}
+          </Tabs.Content>
+        </DetailLayout>
       </div>
-    </div>
+    </Tabs.Root>
 
     {#if sidebar.isMobile && stages.length > 0 && mayMove}
       <ActionBar>{@render moveToStage()}</ActionBar>
@@ -483,9 +338,6 @@
       />
     {/if}
 
-    {#if mayNote}
-      <NoteSheet bind:open={noteOpen} applicationId={detail.id} ondone={noteAdded} />
-    {/if}
     {#if mayScore}
       <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} stages={scoreable} ondone={scorecardSubmitted} />
     {/if}

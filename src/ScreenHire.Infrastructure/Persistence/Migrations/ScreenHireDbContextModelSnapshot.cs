@@ -253,6 +253,98 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("application_files", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<Guid?>("AuthorApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_api_key_id");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("EditedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("edited_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("text");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_application_notes");
+
+                    b.HasAlternateKey("OrganizationId", "Id")
+                        .HasName("ak_application_notes_organization_id_id");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_application_notes_organization_id_application_id");
+
+                    b.ToTable("application_notes", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNoteMention", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("EmailedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("emailed_at");
+
+                    b.Property<Guid>("NoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("note_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_application_note_mentions");
+
+                    b.HasIndex("OrganizationId", "NoteId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_application_note_mentions_organization_id_note_id_user_id");
+
+                    b.ToTable("application_note_mentions", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationScorecard", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2927,6 +3019,28 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_application_files_applications_organization_id_application_");
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNote", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_notes_applications_organization_id_application_");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNoteMention", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.ApplicationNote", null)
+                        .WithMany("Mentions")
+                        .HasForeignKey("OrganizationId", "NoteId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_application_note_mentions_application_notes_organization_id");
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationScorecard", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
@@ -3357,7 +3471,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("OrganizationId", "CustomRoleId")
                         .HasPrincipalKey("OrganizationId", "Id")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("fk_organization_members_custom_roles_organization_id_custom_ro");
                 });
 
@@ -3389,6 +3503,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ActiveOrganizationId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_users_organizations_active_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNote", b =>
+                {
+                    b.Navigation("Mentions");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Hiring.HiringTemplate", b =>

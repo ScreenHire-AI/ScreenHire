@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { readFrameMessage } from './protocol.js';
 
 // The document the resume preview's sandboxed frame runs, as file-viewer-plugin.ts builds it (a real bundle of pdf.js
-// and frame.ts). The frame's origin is opaque because of the iframe's sandbox (resume-preview.test.ts); this checks the
+// and frame.ts). The frame's origin is opaque because of the iframe's sandbox (file-frame.test.ts); this checks the
 // second wall, the policy: the viewer's own script and style by hash, and nothing else.
 const parsed = new DOMParser().parseFromString(viewerDocument, 'text/html');
 const sha256 = (text: string) => `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;

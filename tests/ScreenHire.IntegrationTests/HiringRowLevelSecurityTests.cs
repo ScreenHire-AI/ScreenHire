@@ -150,6 +150,43 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         (await outside.ApplicationScorecards.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0, "row-level security hides it even without the query filter");
     }
 
+    // A note and its mentions belong to their organization; the application role edits and deletes them (the note keeps
+    // its latest text only), and another organization sees neither, even without the query filter.
+    [Fact]
+    public async Task Notes_and_mentions_are_seen_and_changed_only_by_their_organization()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var job = TestData.NewJob(organization, "noted");
+        var candidate = Candidate.Create(organization.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
+        var (note, entry) = application.AddNote($"Ask {NoteMentions.Token(Guid.CreateVersion7())}.", Now, null);
+        await using (var db = await ContextAsync(organization.Id))
+        {
+            db.Jobs.Add(job);
+            db.Candidates.Add(candidate);
+            db.Applications.Add(application);
+            db.ApplicationEvents.AddRange(submitted, entry);
+            db.ApplicationNotes.Add(note);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var outside = await ContextAsync(other.Id);
+        (await outside.ApplicationNotes.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0, "row-level security hides it even without the query filter");
+        (await outside.ApplicationNoteMentions.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0);
+        await using (var db = await ContextAsync(organization.Id))
+        {
+            var stored = await db.ApplicationNotes.SingleAsync(Ct);
+            stored.Mentions.Should().ContainSingle("mentions load with their note");
+            db.ApplicationNotes.Remove(stored);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using var check = await ContextAsync(organization.Id);
+        (await check.ApplicationNotes.CountAsync(Ct)).Should().Be(0);
+        (await check.ApplicationNoteMentions.CountAsync(Ct)).Should().Be(0, "a note's mentions go with it");
+    }
+
     [Fact]
     public async Task A_template_version_can_change_while_it_is_a_draft_and_never_after_it_is_published()
     {

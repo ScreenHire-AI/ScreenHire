@@ -25,6 +25,8 @@ public sealed partial class RolePermissionsTests
         ["CreateApplication"] = Permission.AddCandidates,
         ["MoveApplication"] = Permission.MoveCandidates,
         ["AddApplicationNote"] = Permission.AddNotesAndTags,
+        ["EditApplicationNote"] = Permission.AddNotesAndTags,
+        ["DeleteApplicationNote"] = Permission.AddNotesAndTags,
         ["AddApplicationTag"] = Permission.AddNotesAndTags,
         ["RemoveApplicationTag"] = Permission.AddNotesAndTags,
         ["CompleteTask"] = Permission.CompleteTasks,
@@ -91,7 +93,7 @@ public sealed partial class RolePermissionsTests
         ];
         Permission[] admin =
         [
-            .. recruiter, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
+            .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
             Permission.ManageTeam,
         ];
         Permission[] owner = [.. admin, Permission.ManageOwners];
@@ -145,7 +147,8 @@ public sealed partial class RolePermissionsTests
     {
         RolePermissions.Permissions.Select(p => p.Permission).Should().BeEquivalentTo(Enum.GetValues<Permission>())
             .And.OnlyHaveUniqueItems();
-        Permission[] byRule = [Permission.ViewHiring, Permission.ManageOwners];
+        // Seeing hiring data has no write route, Manage Owners is TeamPolicy's, and deleting anyone's note is NotePolicy's.
+        Permission[] byRule = [Permission.ViewHiring, Permission.ManageOwners, Permission.DeleteAnyNote];
         Enum.GetValues<Permission>().Except(byRule).Should().OnlyContain(permission => Routes.ContainsValue(permission));
     }
 

@@ -131,11 +131,15 @@ public sealed class JobApplicationTests
     {
         var (application, _) = Submitted();
 
-        var note = application.AddNote("  Ask about the notice period.  ", Monday.AddHours(1), Recruiter);
+        var (note, entry) = application.AddNote("  Ask about the notice period.  ", Monday.AddHours(1), Recruiter);
 
-        note.Type.Should().Be(ApplicationEventType.NoteAdded);
-        note.Data.Should().Be(new ApplicationEventData(Note: "Ask about the notice period."));
-        note.ActorUserId.Should().Be(Recruiter);
+        note.Text.Should().Be("Ask about the notice period.");
+        note.AuthorUserId.Should().Be(Recruiter);
+        note.ApplicationId.Should().Be(application.Id);
+        note.EditedAt.Should().BeNull();
+        entry.Type.Should().Be(ApplicationEventType.NoteAdded);
+        entry.Data.Should().Be(new ApplicationEventData(NoteId: note.Id), "the timeline names the note and never holds its text");
+        entry.ActorUserId.Should().Be(Recruiter);
         application.CurrentStageId.Should().Be("applied");
         application.StageEnteredAt.Should().Be(Monday);
     }

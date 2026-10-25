@@ -119,8 +119,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 table: "organization_members",
                 columns: new[] { "organization_id", "custom_role_id" },
                 principalTable: "custom_roles",
-                principalColumns: new[] { "organization_id", "id" },
-                onDelete: ReferentialAction.Restrict);
+                principalColumns: new[] { "organization_id", "id" });
 
             migrationBuilder.Sql(EnableRowLevelSecurity);
         }

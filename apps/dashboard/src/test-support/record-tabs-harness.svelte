@@ -14,6 +14,7 @@
       { value: 'distribution', label: 'Distribution', count: 7, of: 8, countLabel: 'posted on 7 of 8 boards' },
       { value: 'integrity', label: 'Integrity', marker: { label: 'verification suggested', tone: 'verify' } },
       { value: 'details', label: 'Details' },
+      { value: 'activity', label: 'Activity', count: 3, marker: { label: 'review suggested', tone: 'review' } },
     ]}
   />
 </Tabs.Root>

@@ -130,7 +130,9 @@ connected as that user follows it on its next reconnect.
   `ApplicationMoved` to `/v1/jobs`, `/v1/applications` and `/v1/candidates`), and invalidates every TanStack Query
   query under each path. `apps/dashboard/src/lib/realtime.ts` holds the map. An event that needs more than a refetch
   goes through `LiveUpdates.onEvent`: the shell turns `TeamNotified` into a notification in its tray, after reading the
-  application and the run through the API, because the event carries ids only.
+  application and the run through the API, because the event carries ids only. `TeammateMentioned` reaches the whole
+  organization like every event, and only the dashboard of `mentionedUserId` shows its card; the worker's handler of the
+  same event sends the mention email.
 - `realtimeEventSchemas` has a Zod schema per event. `parseRealtimeEvent` ignores an unknown type, which a newer API may
   send, and throws on a known type that does not match its schema.
 
@@ -170,6 +172,7 @@ otherwise run.
 |---|---|
 | `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a WebSocket from another origin gets 403; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
 | `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none; editing a job's workflow raises `JobWorkflowChanged` with the new version to its own organization only; the worker's `IntegrityAssessed` reaches its own organization with ids and levels only; a note, a tag, a completed task and a submitted scorecard raise `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationTaskCompleted` and `ScorecardSubmitted` with ids only, to their own organization only |
+| `ApplicationNotesTests` (integration) | editing and deleting a note raise `ApplicationNoteEdited` and `ApplicationNoteDeleted`, and a mention raises `TeammateMentioned` with the mentioned person's id, ids only and to their own organization only |
 | `EmailTests` (integration) | a send to a selection raises `ApplicationEmailed` to its own organization once each email is on the timeline, and never to another |
 | `FollowUpQuestionnaireTests` (integration) | answering a follow-up questionnaire raises `QuestionnaireAnswered` with ids only, to its own organization only |
 | `AutomationRealtimeTests` (integration) | a NotifyTeam automation raises `TeamNotified` and `AutomationRunFinished` to its own organization, with ids and the status only, and never to another |

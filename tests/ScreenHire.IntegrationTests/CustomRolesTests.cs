@@ -110,14 +110,14 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
             .. viewing, "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CompleteTasks", "EmailCandidates",
             "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
         ];
-        string[] administering = [.. recruiting, "EditEmailTemplates", "EditSettings", "ManageApiKeys", "ManageWebhooks", "ManageTeam"];
+        string[] administering = [.. recruiting, "DeleteAnyNote", "EditEmailTemplates", "EditSettings", "ManageApiKeys", "ManageWebhooks", "ManageTeam"];
         string[] owning = [.. administering, "ManageOwners"];
         foreach (var (member, role, permissions) in new[] { (owner, "Owner", owning), (admin, "Admin", administering), (recruiter, "Recruiter", recruiting), (viewer, "Viewer", viewing) })
         {
             var me = (await member.GetAsync("/v1/auth/me")).Expect(HttpStatusCode.OK);
             me.Text("organization.role").Should().Be(role);
             me.At("organization.customRoleId").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
-            me.At("organization.permissions").EnumerateArray().Select(p => p.GetString()).Should().Equal(permissions, role);
+            me.At("organization.permissions").EnumerateArray().Select(p => p.GetString()).Should().BeEquivalentTo(permissions, role);
         }
 
         (await recruiter.PostAsync($"/v1/applications/{application.Id()}/notes", new JsonObject { ["note"] = "Recruiter note." }))

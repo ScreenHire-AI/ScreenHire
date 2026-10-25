@@ -63,9 +63,12 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         var tags = Page.GetByRole(AriaRole.Region, new() { Name = "Tags" });
         await Expect(tags).ToContainTextAsync("answered", new() { Timeout = 30_000 });
+        // The questionnaire and its answers are on the Application tab; the tag is in the rail on every tab.
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Application") }).ClickAsync();
         var followUp = Page.GetByRole(AriaRole.Region, new() { Name = "Follow-up: Availability" });
         await Expect(followUp).ToContainTextAsync("In two weeks");
         await Expect(followUp).ToContainTextAsync("Do you hold a forklift licence?");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         var activity = Page.GetByRole(AriaRole.Region, new() { Name = "Activity" });
         await Expect(activity).ToContainTextAsync("Answered the \"Availability\" questionnaire");
         await ExpectNoAccessibilityViolationsAsync();

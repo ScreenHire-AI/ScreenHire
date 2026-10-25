@@ -207,7 +207,8 @@ candidates."). Removing a member also closes their open real-time connections in
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
 every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
-Owner-only (`OwnerOnly`): no custom role holds it. `RolePermissionsTests` reads each guarded route from
+Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
+someone else wrote; Owners and Admins have it. `RolePermissionsTests` reads each guarded route from
 `apps/api/Endpoints`, fails when a route has no permission or a different one, and holds the built-in roles to the exact
 sets the role-name checks used to allow, so no existing member's access changed. `GET /v1/organization/roles` serves the
 catalogue, with the organization's custom roles, to any member.

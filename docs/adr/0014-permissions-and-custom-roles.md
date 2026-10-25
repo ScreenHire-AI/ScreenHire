@@ -56,6 +56,8 @@ fixed role would not fit the next organization either.
 
 - The dashboard reads the member's permissions from `GET /v1/auth/me` and shows each control by the permission its
   route needs. The API stays the judge.
+- Deleting someone else's note was a role-name rule ("the author, an Owner or an Admin"). It is now the permission
+  Delete anyone's notes, which Owners and Admins have, so their access is unchanged and a custom role can hold it.
 - Run automations is an accepted gap. A manual automation runs the actions the job's workflow defines, which may move
   or email the candidate, as ScreenHire. The people who edit jobs and hiring templates decide those actions, so running
   one does not need Move candidates or Email candidates.

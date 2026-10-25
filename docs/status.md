@@ -42,7 +42,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
 | Integrity | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
-| Dashboard | Every page on [design system v0.2](design/design-system.md) (ADR-0010): the shell with a sidebar, an icon rail and a phone sheet; jobs and their forms; the candidates list and job pipeline; the candidate page with an inline resume preview; templates and the workflow builder; live updates; integrity badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33 |
+| Dashboard | Every page on [design system v0.2](design/design-system.md) (ADR-0010): the shell with a sidebar, an icon rail and a phone sheet; jobs and their forms; the candidates list and job pipeline; the candidate page, now on v0.3 with fixed tabs, the details rail, the full-window file viewer and notes the team edits, deletes and @mentions in; templates and the workflow builder; live updates; integrity badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33 |
 | Demo data | The local demo fills every screen, with a questionnaire on every seeded job and answers for every candidate, and a second Brightwater member (Jordan Ellis, Recruiter) | #20, #23, #38 |
 | Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets, a visual design pass at three widths in `/task-review`, the docs as an Open Knowledge Format bundle (ADR-0012) | #4, #5, #6, #8, #22, #28 |
 
@@ -92,13 +92,14 @@ brackets.
   `IIpIntelligence` (#13). Set `ScreenHire:Integrity:DeviceHashKey` (32+ characters) in production (#13). Refresh the
   embedded disposable-domain list from time to time (#13).
 - **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
-  dashboard host (the resume preview, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
+  dashboard host (the file viewer, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
   malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
 - **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
   its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
   until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's
   `security.allowedDomains` for careers behind a CDN (#11); keep access logs for 30 days or less (#11). Set
-  `PUBLIC_APP_URL` so the marketing site's "Start free" reaches sign-in (#6).
+  `PUBLIC_APP_URL` so the marketing site's "Start free" reaches sign-in (#6). Give the worker
+  `ScreenHire:Domains:AppHost` as well as the API, or mention emails are skipped with a warning (#55).
 - **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18).

@@ -151,6 +151,27 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
     }
 
     [Fact]
+    public async Task A_dotnet_candidate_has_notes_that_mention_teammates_one_of_them_edited()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var me = (await owner.CurrentUserAsync(Ct))!.Value.GetProperty("id").GetGuid();
+        var application = (await ApplicantsAsync(owner, SeniorDotnetSlug))
+            .Single(a => a.GetProperty("candidateName").GetString() == "Joel Mensah");
+
+        var timeline = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}/timeline")).EnumerateArray().ToList();
+        var notes = timeline.Where(e => e.GetProperty("type").GetString() == "NoteAdded").ToList();
+
+        notes.Should().HaveCount(2);
+        notes.Should().ContainSingle(n => n.GetProperty("note").GetString()!.Contains($"@[{me}]"), "Jordan mentions Avery");
+        notes.Should().ContainSingle(n => n.GetProperty("actorUserId").GetGuid() == me && n.GetProperty("noteEditedAt").ValueKind == JsonValueKind.String,
+            "Avery's note mentions Jordan and was edited");
+        var moved = timeline.Where(e => e.GetProperty("type").GetString() is "Submitted" or "StageChanged")
+            .Max(e => e.GetProperty("occurredAt").GetDateTimeOffset());
+        notes.Should().OnlyContain(n => n.GetProperty("occurredAt").GetDateTimeOffset() > moved,
+            "the notes come after the candidate applied and was moved, so Overview's last five show them");
+    }
+
+    [Fact]
     public async Task Every_job_has_a_questionnaire()
     {
         using var owner = await SignedInOwnerAsync();

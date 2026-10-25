@@ -18,6 +18,8 @@ describe('record tabs', () => {
     expect(integrity.querySelector('[data-tab-marker]')).toHaveClass('bg-status-verify-mark');
     expect(integrity.querySelector('svg')).toBeNull();
     expect(screen.getByRole('tab', { name: 'Details' })).toBeInTheDocument();
+    // A marked tab with a count keeps the count in its name.
+    expect(screen.getByRole('tab', { name: 'Activity 3, review suggested' })).toBeInTheDocument();
     await expectNoAxeViolations(document.body);
   });
 });

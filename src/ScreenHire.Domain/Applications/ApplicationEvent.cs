@@ -52,6 +52,12 @@ public enum ApplicationEventType
 
     /// <summary>The candidate answered a follow-up questionnaire; it raises the QuestionnaireCompleted trigger.</summary>
     QuestionnaireCompleted,
+
+    /// <summary>A note's author changed its text. The note keeps only its latest text (<see cref="ApplicationNote"/>).</summary>
+    NoteEdited,
+
+    /// <summary>A note was deleted, its text with it: only who deleted it and when remain.</summary>
+    NoteDeleted,
 }
 
 /// <summary>
@@ -71,6 +77,9 @@ public enum ApplicationEventType
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <see cref="ApplicationEventType.QuestionnaireSent"/> and
 /// <see cref="ApplicationEventType.QuestionnaireCompleted"/>, the follow-up questionnaire and the request that carries
 /// its link and, once completed, its answers. The answers are never kept here.
+/// <c>noteId</c>: For <see cref="ApplicationEventType.NoteAdded"/>, <see cref="ApplicationEventType.NoteEdited"/> and
+/// <see cref="ApplicationEventType.NoteDeleted"/>, the note (<see cref="ApplicationNote"/>), which holds the text. A
+/// note's text is never kept here; <c>note</c> is a stage move's note.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -88,4 +97,5 @@ public sealed record ApplicationEventData(
     string? EmailTemplateId = null,
     string? EmailSubject = null,
     string? QuestionnaireId = null,
-    Guid? QuestionnaireRequestId = null);
+    Guid? QuestionnaireRequestId = null,
+    Guid? NoteId = null);

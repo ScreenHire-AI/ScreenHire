@@ -66,7 +66,7 @@ public sealed class TimeLimitTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Waiting);
         await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Overdue by 1 day");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Tasks", Exact = true })).ToContainTextAsync(Reminder, new() { Timeout = 30_000 });
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Next steps", Exact = true })).ToContainTextAsync(Reminder, new() { Timeout = 30_000 });
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-overdue-application");
     }

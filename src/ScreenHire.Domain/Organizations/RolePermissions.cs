@@ -28,6 +28,7 @@ public enum Permission
     ManageWebhooks,
     ManageTeam,
     ManageOwners,
+    DeleteAnyNote,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -66,7 +67,10 @@ public static class RolePermissions
             "Create, edit, post and close jobs, and change their workflows."),
         new(Permission.AddCandidates, PermissionGroup.Hiring, "Add candidates", "Add a candidate to a job by hand."),
         new(Permission.MoveCandidates, PermissionGroup.Hiring, "Move candidates", "Move a candidate to another stage."),
-        new(Permission.AddNotesAndTags, PermissionGroup.Hiring, "Add notes and tags", "Note and tag a candidate."),
+        new(Permission.AddNotesAndTags, PermissionGroup.Hiring, "Add notes and tags",
+            "Note and tag a candidate, and edit or delete your own notes."),
+        new(Permission.DeleteAnyNote, PermissionGroup.Hiring, "Delete anyone's notes",
+            "Delete a note someone else wrote, as well as your own."),
         new(Permission.CompleteTasks, PermissionGroup.Hiring, "Complete tasks", "Mark a candidate's task done."),
         new(Permission.EmailCandidates, PermissionGroup.Hiring, "Email candidates", "Send an email to one candidate or a selection."),
         new(Permission.FillInScorecards, PermissionGroup.Hiring, "Fill in scorecards", "Score a candidate at a stage."),
@@ -105,7 +109,7 @@ public static class RolePermissions
 
     private static readonly Permission[] Administration =
     [
-        Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
+        Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
         Permission.ManageTeam,
     ];
 
