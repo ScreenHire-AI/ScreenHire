@@ -29,6 +29,8 @@ internal static class TeamEndpoints
     {
         var group = app.MapGroup("/v1/organization").WithTags("Team").RequireAuthorization();
         group.MapGet("/members", ListMembers).WithName("ListTeamMembers").Produces(StatusCodes.Status401Unauthorized);
+        // What each built-in role can do. The same for every organization, and read by the Roles page and Invite.
+        group.MapGet("/roles", ListRoles).WithName("ListRoles").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/invitations", ListInvitations).WithName("ListInvitations")
             .RequireOrganizationAdmin()
             .Produces(StatusCodes.Status401Unauthorized);
@@ -53,6 +55,8 @@ internal static class TeamEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
+
+    private static Ok<RoleCatalogue> ListRoles() => TypedResults.Ok(TeamMappings.ToCatalogue());
 
     private static async Task<Ok<List<TeamMember>>> ListMembers(
         ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>

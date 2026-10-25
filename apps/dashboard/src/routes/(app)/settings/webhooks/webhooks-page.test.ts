@@ -26,7 +26,13 @@ const endpoint = (id: string, overrides: Partial<WebhookEndpointEntry> = {}): We
 function renderPage(endpoints: WebhookEndpointEntry[] | Response) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(apiStub({ 'GET /v1/webhooks': () => (endpoints instanceof Response ? endpoints : Response.json(endpoints)) })),
+    vi.fn(
+      apiStub({
+        'GET /v1/webhooks': () => (endpoints instanceof Response ? endpoints : Response.json(endpoints)),
+        'GET /v1/webhooks/event-types': () => Response.json(['application.submitted', 'job.closed']),
+        'GET /v1/meta': () => Response.json({ name: 'ScreenHire', version: '1.0.0', environment: 'Production', apiOrigin: 'https://api.example.com' }),
+      }),
+    ),
   );
   render(WithQueryClient, { props: { component: Page, props: {} } });
 }
@@ -36,6 +42,20 @@ afterEach(() => {
 });
 
 describe('webhooks page', () => {
+  it('says what webhooks are for, the events, how to check a message and where the reference is', async () => {
+    renderPage([endpoint('e1')]);
+    const panel = await screen.findByRole('region', { name: 'How webhooks work' });
+
+    expect(await within(panel).findByText('application.submitted')).toBeInTheDocument();
+    expect(within(panel).getByText('job.closed')).toBeInTheDocument();
+    expect(within(panel).getByText('ScreenHire-Signature: t=…,v1=…')).toBeInTheDocument();
+    expect(await within(panel).findByRole('link', { name: 'Webhooks in the API reference (opens in a new tab)' })).toHaveAttribute(
+      'href',
+      'https://api.example.com/scalar#tag/webhooks',
+    );
+    await expectNoAxeViolations();
+  });
+
   it('lists each endpoint by its description, or its address when it has none, linked to the endpoint', async () => {
     renderPage([
       endpoint('e1', { description: 'Applicant sync', events: ['application.submitted', 'application.moved'] }),

@@ -18,6 +18,7 @@ sources:
   - resource: apps/api/Auth/ReturnUrls.cs
   - resource: apps/api/Auth/SecuritySchemes.cs
   - resource: apps/api/Auth/TenantResolutionMiddleware.cs
+  - resource: src/ScreenHire.Domain/Organizations/RolePermissions.cs
   - resource: apps/api/Endpoints/AuthEndpoints.cs
   - resource: apps/api/Endpoints/TeamEndpoints.cs
   - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
@@ -157,6 +158,12 @@ manage keys in a session, on the dashboard's Settings > API keys page, which sho
 - **OpenAPI** declares two security schemes, `session` (the cookie) on every signed-in route and `apiKey` (HTTP
   bearer) as the alternative on the hiring API (`apps/api/Auth/SecuritySchemes.cs`), so Scalar and the generated
   client show them.
+- **The API reference** (Scalar at `/scalar`) and the OpenAPI file (`/openapi/v1.json`) are public in every
+  environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
+  public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
+  reference links from it. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
+  server are off (`apps/api/Program.cs`). `ApiReferenceTests` reaches both with the API in Production and checks the
+  first two.
 
 ## Domains
 
@@ -188,9 +195,19 @@ integrity settings, team, email templates, API keys and webhooks) call `RequireO
 takes effect on the member's next request. Removing a member also closes their open real-time connections into the
 organization at once (`RealtimeConnections`, `docs/architecture/realtime.md`).
 
-The dashboard follows the same rule. Its **Settings** group (Organization, Team, Careers branding, Integrity, API keys,
-Webhooks under `/settings/*`) is in the sidebar and the command palette for Owners and Admins only, and the settings
-layout tells anyone else who opens one by its address that only owners and admins can change settings. The Team page
+**The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
+do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. It describes those checks
+exactly and enforces nothing yet: every route `RequireHiringRole` guards is a hiring permission that Owners, Admins and
+Recruiters have, every route `RequireOrganizationAdmin` guards is an organization permission that Owners and Admins
+have, Manage Owners is `TeamPolicy`'s Owner-only rule, and every member sees hiring data. `RolePermissionsTests` reads
+each guarded route from `apps/api/Endpoints` and fails when a route has no permission or a role's set drifts from its
+check. `GET /v1/organization/roles` serves the catalogue to any member; the dashboard's Roles page and the Invite sheet
+read it.
+
+The dashboard follows the same rule. **Settings** is one sidebar item for Owners and Admins only; it opens the Settings
+menu (Organization, Team, Roles, Branding, Integrity, API keys, Webhooks and, until the Templates page takes them, Email
+templates, under `/settings/*`), and the command palette lists the same pages. The settings layout tells anyone else who
+opens one by its address that only owners and admins can change settings. The Team page
 offers only what `TeamPolicy` allows (`apps/dashboard/src/lib/settings.ts` mirrors it): an Admin sees no Owner role and
 no actions on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active
 API keys they created as well (ADR-0011). The API stays the judge.
@@ -202,6 +219,7 @@ API keys they created as well (ADR-0011). The API stays the judge.
 | Route | Who | What it does |
 |---|---|---|
 | `GET /members` | Any member | The organization's members with their email, name and role. |
+| `GET /roles` | Any member | The permission catalogue: each built-in role's description and permissions, and each permission's group, name and description. |
 | `PUT /members/{memberId}/role` | Owner, Admin | Gives a member another role. |
 | `DELETE /members/{memberId}` | Owner, Admin | Removes a member. |
 | `GET /invitations` | Owner, Admin | Open invitations: not accepted, revoked or expired. |

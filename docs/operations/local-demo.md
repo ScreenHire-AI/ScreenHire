@@ -191,10 +191,15 @@ second browser window on the same job to show live updates.
 
 Settings, as Avery (owners and admins only):
 
-- **Careers branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
+Settings is one item at the bottom of the sidebar; its pages share the Settings menu.
+
+- **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for; **Compare roles**
+  opens Roles, the table of what each role can do.
+- **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
   http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
   back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.
 - **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
+  Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
   from the row's menu.
 - **Email templates.** Open "Application received", change the subject, and the preview with the made-up Jordan Lee

@@ -1,4 +1,4 @@
-import type { ApplicationSummary, BoardSummary, CurrentUser, JobPostingStatus, JobSummary, WorkflowStage } from '@screenhire/api-client';
+import type { ApplicationSummary, BoardSummary, CurrentUser, JobPostingStatus, JobSummary, RoleCatalogue, WorkflowStage } from '@screenhire/api-client';
 
 /** Fictional data for component tests, shaped like the API's responses. */
 
@@ -7,6 +7,22 @@ export const user: CurrentUser = {
   email: 'avery@brightwater.example.com',
   displayName: 'Avery Quinn',
   organization: { id: '01a157d4-0000-7000-8000-0000000000bb', name: 'Brightwater Studio', slug: 'brightwater', role: 'Owner' },
+};
+
+/** Part of the API's permission catalogue (GET /v1/organization/roles): every role, three of the permissions. */
+export const roleCatalogue: RoleCatalogue = {
+  roles: [
+    { role: 'Owner', description: 'Everything, including making and removing other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'ManageTeam', 'ManageOwners'] },
+    { role: 'Admin', description: 'Everything a Recruiter does, plus settings and the team.', permissions: ['ViewHiring', 'MoveCandidates', 'ManageTeam'] },
+    { role: 'Recruiter', description: 'Works the jobs.', permissions: ['ViewHiring', 'MoveCandidates'] },
+    { role: 'Viewer', description: 'Sees jobs and candidates and changes nothing.', permissions: ['ViewHiring'] },
+  ],
+  permissions: [
+    { permission: 'ViewHiring', group: 'Hiring', name: 'See jobs and candidates', description: 'Jobs, candidates, their files, scorecards and integrity results.' },
+    { permission: 'MoveCandidates', group: 'Hiring', name: 'Move candidates', description: 'Move a candidate to another stage.' },
+    { permission: 'ManageTeam', group: 'Organization', name: 'Manage the team', description: 'Invite people, change roles and remove members, except Owners.' },
+    { permission: 'ManageOwners', group: 'Organization', name: 'Manage Owners', description: 'Make someone an Owner, or change or remove an Owner.' },
+  ],
 };
 
 export const jobs: JobSummary[] = [
