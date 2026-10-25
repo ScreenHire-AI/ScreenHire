@@ -21,6 +21,7 @@ const template: EmailTemplateEntry = {
   subject: 'An update on {{ jobTitle }}',
   body: 'Hi {{ candidateName }},',
   updatedAt: null,
+  lastUpdated: { at: null, by: 'ScreenHire' },
 };
 
 // The preview renders what the API returns for the wording it was sent.

@@ -7,13 +7,19 @@
     createDeleteEmailTemplate,
     createGetEmailTemplate,
     createListEmailTemplates,
+    createListTeamMembers,
     createUpdateEmailTemplate,
+    getGetEmailTemplateHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import EmailTemplateForm from '#lib/components/email-template-form.svelte';
+  import Fact from '#lib/components/fact.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -23,6 +29,7 @@
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { emailTemplatesPath } from '#lib/email.js';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import type { PageProps } from './$types';
 
@@ -40,6 +47,15 @@
   const list = $derived(templates.data?.data);
   const notFound = $derived(template.error instanceof ApiError && template.error.status === 404);
   const listHref = '/settings/email-templates';
+  // Last updated and History (T6): who changed the wording, named as the team list names them.
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  let historyOpen = $state(false);
+  const history = createHistoryPages(
+    (before) => getGetEmailTemplateHistoryQueryOptions(params.templateId, { before }),
+    () => historyOpen,
+  );
 
   async function save(value: { name: string | null; subject: string; body: string }) {
     await update.mutateAsync({ templateId: params.templateId, data: { subject: value.subject, body: value.body, name: value.name } });
@@ -106,7 +122,25 @@
           </MoreMenu>
         {/if}
       {/snippet}
+      {#snippet facts()}
+        <Fact label="Last updated">
+          <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
+        </Fact>
+      {/snippet}
     </HeaderBand>
+    <HistorySheet
+      bind:open={historyOpen}
+      name={detail.name}
+      entries={history.entries}
+      error={history.error}
+      onretry={history.retry}
+      hasMore={history.hasMore}
+      loadingMore={history.loadingMore}
+      onmore={history.more}
+      {members}
+      {currentUserId}
+      empty={detail.builtIn ? "ScreenHire's wording. Your team's changes show here." : 'No changes yet.'}
+    />
     <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
       {#key detail.id}
         <EmailTemplateForm

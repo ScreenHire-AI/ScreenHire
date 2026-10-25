@@ -12,6 +12,9 @@ public interface ITenantContext
 
     /// <summary>The signed-in user, or null. Lets a user read their own memberships before an organization is chosen.</summary>
     Guid? UserId { get; }
+
+    /// <summary>The organization API key the request authenticated with, or null. Change history records it as the actor.</summary>
+    Guid? ApiKeyId { get; }
 }
 
 /// <summary>
@@ -26,7 +29,11 @@ public sealed class TenantContext : ITenantContext
 
     public Guid? UserId { get; private set; }
 
+    public Guid? ApiKeyId { get; private set; }
+
     public void SetUser(Guid userId) => UserId = userId;
 
     public void SetOrganization(Guid organizationId) => OrganizationId = organizationId;
+
+    public void SetApiKey(Guid apiKeyId) => ApiKeyId = apiKeyId;
 }

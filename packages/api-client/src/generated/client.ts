@@ -39,9 +39,13 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  GetEmailTemplateHistoryParams,
+  GetHiringTemplateHistoryParams,
+  GetJobHistoryParams,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
+  HistoryPage,
   HttpValidationProblemDetails,
   InvitationAcceptance,
   InvitationRequest,
@@ -1548,6 +1552,70 @@ return apiFetch<updateJobResponse>(getUpdateJobUrl(jobId),
 
 
 
+export type getJobHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getJobHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getJobHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobHistoryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobHistoryResponseSuccess = (getJobHistoryResponse200) & {
+  headers: Headers;
+};
+export type getJobHistoryResponseError = (getJobHistoryResponse400 | getJobHistoryResponse401 | getJobHistoryResponse404 | getJobHistoryResponse429) & {
+  headers: Headers;
+};
+
+export type getJobHistoryResponse = (getJobHistoryResponseSuccess | getJobHistoryResponseError)
+
+export const getGetJobHistoryUrl = (jobId: string,
+    params?: GetJobHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/history?${stringifiedParams}` : `/v1/jobs/${jobId}/history`
+}
+
+export const getJobHistory = async (jobId: string,
+    params?: GetJobHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getJobHistoryResponse> => {
+
+  return apiFetch<getJobHistoryResponse>(getGetJobHistoryUrl(jobId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type publishJobResponse200 = {
   data: JobDetail
   status: 200
@@ -2239,6 +2307,70 @@ return apiFetch<updateHiringTemplateResponse>(getUpdateHiringTemplateUrl(templat
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateHiringTemplateRequest)
+  }
+);}
+
+
+
+export type getHiringTemplateHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getHiringTemplateHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getHiringTemplateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringTemplateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHiringTemplateHistoryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getHiringTemplateHistoryResponseSuccess = (getHiringTemplateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getHiringTemplateHistoryResponseError = (getHiringTemplateHistoryResponse400 | getHiringTemplateHistoryResponse401 | getHiringTemplateHistoryResponse404 | getHiringTemplateHistoryResponse429) & {
+  headers: Headers;
+};
+
+export type getHiringTemplateHistoryResponse = (getHiringTemplateHistoryResponseSuccess | getHiringTemplateHistoryResponseError)
+
+export const getGetHiringTemplateHistoryUrl = (templateId: string,
+    params?: GetHiringTemplateHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/templates/${templateId}/history?${stringifiedParams}` : `/v1/templates/${templateId}/history`
+}
+
+export const getHiringTemplateHistory = async (templateId: string,
+    params?: GetHiringTemplateHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateHistoryResponse> => {
+
+  return apiFetch<getHiringTemplateHistoryResponse>(getGetHiringTemplateHistoryUrl(templateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
@@ -5926,6 +6058,65 @@ export const deleteEmailTemplate = async (templateId: string, options?: Paramete
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getEmailTemplateHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getEmailTemplateHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getEmailTemplateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getEmailTemplateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getEmailTemplateHistoryResponseSuccess = (getEmailTemplateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getEmailTemplateHistoryResponseError = (getEmailTemplateHistoryResponse400 | getEmailTemplateHistoryResponse401 | getEmailTemplateHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getEmailTemplateHistoryResponse = (getEmailTemplateHistoryResponseSuccess | getEmailTemplateHistoryResponseError)
+
+export const getGetEmailTemplateHistoryUrl = (templateId: string,
+    params?: GetEmailTemplateHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/email-templates/${templateId}/history?${stringifiedParams}` : `/v1/email-templates/${templateId}/history`
+}
+
+export const getEmailTemplateHistory = async (templateId: string,
+    params?: GetEmailTemplateHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getEmailTemplateHistoryResponse> => {
+
+  return apiFetch<getEmailTemplateHistoryResponse>(getGetEmailTemplateHistoryUrl(templateId,params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

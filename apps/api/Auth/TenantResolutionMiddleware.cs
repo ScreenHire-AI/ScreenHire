@@ -15,6 +15,10 @@ internal sealed class TenantResolutionMiddleware(RequestDelegate next)
         if (context.User.ApiKeyOrganizationId() is { } organizationId)
         {
             tenant.SetOrganization(organizationId);
+            if (context.User.ApiKeyId() is { } apiKeyId)
+            {
+                tenant.SetApiKey(apiKeyId);
+            }
         }
         else
         {

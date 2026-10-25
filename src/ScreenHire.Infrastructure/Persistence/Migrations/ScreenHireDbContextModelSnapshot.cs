@@ -1113,6 +1113,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("CopiedFromTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_from_template_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1211,6 +1215,63 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasFilter("status = 'Draft'");
 
                     b.ToTable("hiring_template_versions", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.History.ChangeRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ActorApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_api_key_id");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<string>("Lines")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("lines");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequence"));
+
+                    b.Property<string>("SubjectId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectKind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("subject_kind");
+
+                    b.HasKey("Id")
+                        .HasName("pk_change_records");
+
+                    b.HasIndex("OrganizationId", "SubjectKind", "SubjectId", "Sequence")
+                        .IsDescending(false, false, false, true)
+                        .HasDatabaseName("ix_change_records_organization_id_subject_kind_subject_id_sequ");
+
+                    b.ToTable("change_records", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Integrity.AnswerFingerprint", b =>
@@ -2956,6 +3017,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_hiring_template_versions_hiring_templates_template_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.History.ChangeRecord", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_change_records_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Integrity.AnswerFingerprint", b =>

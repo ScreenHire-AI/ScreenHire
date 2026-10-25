@@ -1288,6 +1288,80 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/history": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "GetJobHistory",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/jobs/{jobId}/publish": {
       "post": {
         "tags": [
@@ -1997,6 +2071,80 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/history": {
+      "get": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "GetHiringTemplateHistory",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -5648,6 +5796,73 @@
         ]
       }
     },
+    "/v1/email-templates/{templateId}/history": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "GetEmailTemplateHistory",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates/preview": {
       "post": {
         "tags": [
@@ -7520,6 +7735,14 @@
         },
         "description": "A candidate: one person per email address within the organization."
       },
+      "ChangeActorKind": {
+        "enum": [
+          "Member",
+          "ApiKey",
+          "ScreenHire",
+          null
+        ]
+      },
       "ChangeMemberRoleRequest": {
         "required": [
           "role"
@@ -7538,6 +7761,14 @@
           }
         },
         "description": "Gives a member another role."
+      },
+      "ChangeValueKind": {
+        "enum": [
+          "Text",
+          "Paragraphs",
+          "Instant"
+        ],
+        "description": "How the screen shows a detail's values."
       },
       "ComparedText": {
         "required": [
@@ -8112,7 +8343,8 @@
           "rejectOnly",
           "subject",
           "body",
-          "updatedAt"
+          "updatedAt",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -8143,6 +8375,9 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           },
           "questionnaireOnly": {
             "type": "boolean",
@@ -8327,7 +8562,8 @@
           "latestPublishedVersion",
           "createdAt",
           "updatedAt",
-          "versions"
+          "versions",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -8370,9 +8606,12 @@
             "items": {
               "$ref": "#/components/schemas/HiringTemplateVersionSummary"
             }
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "A hiring template with its versions, oldest first."
+        "description": "A hiring template with its versions, oldest first. `lastUpdated` counts every version's changes."
       },
       "HiringTemplateSummary": {
         "required": [
@@ -8384,7 +8623,8 @@
           "latestPublishedVersionId",
           "draftVersion",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -8435,6 +8675,9 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
         "description": "A hiring template in a list. System templates ship with the product and are read-only."
@@ -8566,6 +8809,145 @@
         "externalDocs": {
           "description": "JSON Schema: Hiring workflow",
           "url": "/v1/schemas/hiring-workflow.json"
+        }
+      },
+      "HistoryDetail": {
+        "required": [
+          "label",
+          "before",
+          "after",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "after": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChangeValueKind"
+          }
+        },
+        "description": "A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format."
+      },
+      "HistoryEntry": {
+        "required": [
+          "id",
+          "at",
+          "by",
+          "userId",
+          "apiKeyId",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "$ref": "#/components/schemas/ChangeActorKind"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "apiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryLine"
+            }
+          }
+        },
+        "description": "Everything one save changed in the object: who, when, and a line per change."
+      },
+      "HistoryLine": {
+        "required": [
+          "text",
+          "parts",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryTextPart"
+            }
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryDetail"
+            }
+          }
+        },
+        "description": "One change in words, such as \"made Notes on the exercise optional\". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after."
+      },
+      "HistoryPage": {
+        "required": [
+          "entries",
+          "nextBefore"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        },
+        "description": "One page of an object's history, newest first. `nextBefore` is the cursor of the next page, or null after the last."
+      },
+      "HistoryTextPart": {
+        "required": [
+          "text",
+          "strong"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "strong": {
+            "type": "boolean"
+          }
         }
       },
       "HttpValidationProblemDetails": {
@@ -9167,7 +9549,8 @@
           "updatedAt",
           "publishedAt",
           "closedAt",
-          "postings"
+          "postings",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -9285,6 +9668,9 @@
             "items": {
               "$ref": "#/components/schemas/JobPostingStatus"
             }
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
         "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."
@@ -9549,7 +9935,8 @@
           "publishedAt",
           "employmentType",
           "department",
-          "templateUpdateAvailable"
+          "templateUpdateAvailable",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -9594,6 +9981,9 @@
           },
           "templateUpdateAvailable": {
             "type": "boolean"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
         "description": "A job as shown in the recruiter dashboard's list."
@@ -9753,6 +10143,47 @@
           }
         },
         "description": "Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2)."
+      },
+      "LastUpdate": {
+        "required": [
+          "at",
+          "by"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "by": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChangeActorKind"
+              }
+            ]
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "apiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "When a tracked object last changed and who changed it, the last fact in its header."
       },
       "LlmProvenance": {
         "required": [

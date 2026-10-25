@@ -29,6 +29,15 @@ public static class EmailTemplateIds
     /// <summary>The built-in templates, in the order the dashboard lists them.</summary>
     public static IReadOnlyList<string> BuiltIn { get; } = [ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected];
 
+    /// <summary>ScreenHire's names for the built-in templates, which organizations cannot rename.</summary>
+    public static IReadOnlyDictionary<string, string> Names { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [ApplicationReceived] = "Application received",
+        [StageChange] = "Moved to the next step",
+        [QuestionnaireRequest] = "Follow-up questions",
+        [ApplicationRejected] = "Not progressing",
+    };
+
     public static IReadOnlySet<string> All { get; } =
         new HashSet<string>(StringComparer.Ordinal) { ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected };
 

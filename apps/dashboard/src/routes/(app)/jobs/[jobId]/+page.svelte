@@ -4,7 +4,15 @@
   import SendIcon from '@lucide/svelte/icons/send';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
   import type { ApplicationSummary } from '@screenhire/api-client';
-  import { ApiError, createGetJob, createListBoards, createListJobApplications, createPublishJob } from '@screenhire/api-client/svelte-query';
+  import {
+    ApiError,
+    createGetJob,
+    createListBoards,
+    createListJobApplications,
+    createListTeamMembers,
+    createPublishJob,
+    getGetJobHistoryQueryOptions,
+  } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -13,9 +21,11 @@
   import DistributionPanel from '#lib/components/distribution-panel.svelte';
   import Fact from '#lib/components/fact.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
   import IntegrityOverview from '#lib/components/integrity-overview.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -33,6 +43,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { boardRows } from '#lib/distribution.js';
   import { employmentLabel, formatSalary, sourceLabel } from '#lib/format.js';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { chipOf, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
@@ -53,6 +64,15 @@
   const publish = createPublishJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
 
   const detail = $derived(job.data?.data);
+  // Last updated and History (T6): every change to the posting, its status and its workflow.
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  let historyOpen = $state(false);
+  const history = createHistoryPages(
+    (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
+    () => historyOpen,
+  );
   const stages = $derived(detail?.workflow.stages ?? []);
   const all = $derived(applications.data?.data ?? []);
   const boardCount = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings).length : 0);
@@ -176,8 +196,23 @@
             </span>
           </Fact>
         {/if}
+        <Fact label="Last updated">
+          <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
+        </Fact>
       {/snippet}
     </HeaderBand>
+    <HistorySheet
+      bind:open={historyOpen}
+      name={detail.title}
+      entries={history.entries}
+      error={history.error}
+      onretry={history.retry}
+      hasMore={history.hasMore}
+      loadingMore={history.loadingMore}
+      onmore={history.more}
+      {members}
+      {currentUserId}
+    />
 
     <!-- The detail template (section 7): a main column and a side column, in a 1280px container (S6). -->
     <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">

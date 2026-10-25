@@ -5,9 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { HiringTemplateVersionSummary } from './hiringTemplateVersionSummary.ts';
+import type { LastUpdate } from './lastUpdate.ts';
 
 /**
- * A hiring template with its versions, oldest first.
+ * A hiring template with its versions, oldest first. `lastUpdated` counts every version's changes.
  */
 export interface HiringTemplateDetail {
   id: string;
@@ -21,4 +22,5 @@ export interface HiringTemplateDetail {
   /** @nullable */
   updatedAt: string | null;
   versions: HiringTemplateVersionSummary[];
+  lastUpdated: LastUpdate;
 }

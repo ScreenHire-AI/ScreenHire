@@ -15,7 +15,7 @@
   import SunIcon from '@lucide/svelte/icons/sun';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import type { ApplicationFileSummary, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -28,8 +28,10 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import FileTile from '#lib/components/file-tile.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import IntegrityChip from '#lib/components/integrity-chip.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -178,6 +180,62 @@
     { id: 'n1', title: 'Priya Natarajan, Product Designer', detail: 'A referral arrived. Call within a day.', href: '/style-guide' },
   ]);
   let sheetOpen = $state(false);
+  let historyOpen = $state(false);
+  const part = (text: string, strong = false) => ({ text, strong });
+  const sampleHistory: HistoryEntry[] = [
+    {
+      id: 'h1',
+      at: ago(20 * minute),
+      by: 'Member',
+      userId: 'u2',
+      apiKeyId: null,
+      lines: [
+        {
+          text: 'changed Years of experience from Short answer to Number',
+          parts: [part('changed '), part('Years of experience', true), part(' from Short answer to Number')],
+          details: [
+            { label: 'Answer', before: 'Short answer', after: 'Number', kind: 'Text' },
+            { label: 'Required', before: 'on', after: 'on', kind: 'Text' },
+          ],
+        },
+        {
+          text: 'added Did they finish the exercise in the time?',
+          parts: [part('added '), part('Did they finish the exercise in the time?', true)],
+          details: [{ label: 'Answer', before: null, after: 'Yes or no', kind: 'Text' }],
+        },
+      ],
+    },
+    {
+      id: 'h2',
+      at: ago(3 * hour),
+      by: 'Member',
+      userId: 'u1',
+      apiKeyId: null,
+      lines: [{ text: 'made Notes on the exercise optional', parts: [part('made '), part('Notes on the exercise', true), part(' optional')], details: [] }],
+    },
+    {
+      id: 'h3',
+      at: ago(3 * day),
+      by: 'Member',
+      userId: 'u1',
+      apiKeyId: null,
+      lines: [
+        {
+          text: 'renamed the template from Tech interview to Technical interview',
+          parts: [part('renamed the template from Tech interview to '), part('Technical interview', true)],
+          details: [],
+        },
+      ],
+    },
+    {
+      id: 'h4',
+      at: ago(3 * day + hour),
+      by: 'ScreenHire',
+      userId: null,
+      apiKeyId: null,
+      lines: [{ text: 'created the template from Software engineer', parts: [part('created the template from '), part('Software engineer', true)], details: [] }],
+    },
+  ];
 
   const quote: Evidence = {
     kind: 'Quote',
@@ -693,6 +751,27 @@
               </form>
             </Sheet.Content>
           </Sheet.Root>
+        </Panel>
+        <Panel title="History sheet" class="flex-[1_1_320px]">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">The last fact of a header (T6), with History opening the sheet</figcaption>
+            <dl class="flex flex-wrap gap-x-8 gap-y-3">
+              <Fact label="Last updated">
+                <LastUpdated value={{ at: ago(20 * minute), by: 'Member', userId: 'u2' }} members={sampleTeam} currentUserId="u1" onhistory={() => (historyOpen = true)} />
+              </Fact>
+              <Fact label="Last updated">
+                <LastUpdated value={{ at: null, by: 'ScreenHire' }} members={sampleTeam} currentUserId="u1" />
+              </Fact>
+            </dl>
+          </figure>
+          <HistorySheet
+            bind:open={historyOpen}
+            name="Technical interview"
+            entries={sampleHistory}
+            members={sampleTeam}
+            currentUserId="u1"
+            note="Jobs keep the copy they started with; a change here reaches jobs created after it."
+          />
         </Panel>
       </div>
 

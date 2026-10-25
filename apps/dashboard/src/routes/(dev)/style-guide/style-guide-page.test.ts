@@ -58,6 +58,7 @@ const panels: Record<string, string[]> = {
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],
+  'History sheet': ['History sheet'],
   'Action bar': ['Action bar'],
   'Relative time, truncated text': ['Time and long text'],
   'Table date': ['Time and long text'],

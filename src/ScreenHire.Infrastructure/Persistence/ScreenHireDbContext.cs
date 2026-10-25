@@ -8,6 +8,7 @@ using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
@@ -104,6 +105,9 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<IntegritySettings> IntegritySettings => Set<IntegritySettings>();
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
+
+    /// <summary>Every change to the configuration people edit (<c>ChangeHistoryInterceptor</c>); append-only.</summary>
+    public DbSet<ChangeRecord> ChangeRecords => Set<ChangeRecord>();
 
     public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
 
