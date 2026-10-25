@@ -12,7 +12,8 @@
   // A stage's scorecard (workflow-engine.md section 8): one from the library, ScreenHire's built-ins or the team's own,
   // shown here as it asks. A hiring template's stage names it; a job copies its questions when the workflow is saved,
   // so a later edit in the library never changes what this job's candidates are asked. Questions are written in the
-  // library's scorecard editor, not here. Changing the choice changes nothing until Save.
+  // library scorecard, not here: its editor comes with the Templates page, and until then through the API. Changing the
+  // choice changes nothing until Save.
   let { stage = $bindable(), index, errors }: { stage: WorkflowStage; index: number; errors: readonly DefinitionError[] } = $props();
 
   const uid = $props.id();

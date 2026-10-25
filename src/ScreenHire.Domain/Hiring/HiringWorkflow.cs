@@ -199,6 +199,13 @@ public enum ScorecardQuestionType
     RatingYesNo,
 }
 
+public static class ScorecardQuestionTypes
+{
+    /// <summary>Whether answers of this kind count toward the candidate's rating (<c>RatingRule</c>).</summary>
+    public static bool IsRating(this ScorecardQuestionType type) =>
+        type is ScorecardQuestionType.Rating5 or ScorecardQuestionType.Rating10 or ScorecardQuestionType.RatingYesNo;
+}
+
 /// <summary>
 /// A v0.2 reviewer's rating of one criterion, on the labelled scale scorecards had before answer kinds. Kept so the
 /// scorecards submitted then read as they were. They never count toward the candidate's rating: these labels were never

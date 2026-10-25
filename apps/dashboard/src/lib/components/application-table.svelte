@@ -319,8 +319,8 @@
       {#if ai && ai.level.rank > 0}
         <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
       {/if}
-      {#if application.rating?.state === 'Rated'}
-        <!-- relative: above the item's link, so the count's tooltip opens on tap. -->
+      {#if application.rating?.state === 'Rated' || application.rating?.state === 'AfterYourScorecard'}
+        <!-- relative: above the item's link, so the count's or "After yours"'s tooltip opens on tap. -->
         <span class="relative"><Rating rating={application.rating} /></span>
       {/if}
       {#if stages && moves}

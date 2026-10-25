@@ -8,6 +8,7 @@ import StarIcon from '@lucide/svelte/icons/star';
 import TextAlignStartIcon from '@lucide/svelte/icons/text-align-start';
 import TextCursorInputIcon from '@lucide/svelte/icons/text-cursor-input';
 import ToggleLeftIcon from '@lucide/svelte/icons/toggle-left';
+import { ratingKinds } from '#lib/scorecards.js';
 import type { LucideIcon } from '#lib/shell.js';
 import { questionTypeLabels, scorecardQuestionTypeLabels } from '#lib/workflow.js';
 
@@ -64,7 +65,7 @@ export const scorecardKinds: readonly AnswerKindGroup<ScorecardQuestionType>[] =
   { label: 'General', kinds: generalKinds },
   {
     label: 'Rating',
-    kinds: (['Rating5', 'Rating10', 'RatingYesNo'] as const).map((value) => ({
+    kinds: ratingKinds.map((value) => ({
       value,
       label: scorecardQuestionTypeLabels[value],
       icon: StarIcon,

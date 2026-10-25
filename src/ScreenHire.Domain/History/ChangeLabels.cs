@@ -40,7 +40,7 @@ public static class ChangeLabels
 
     /// <summary>A scorecard question's answer kind with its group for a rating, as the answer button reads: "Rating, 1 to 5".</summary>
     public static string ScorecardAnswer(ScorecardQuestionType type) =>
-        type is ScorecardQuestionType.Rating5 or ScorecardQuestionType.Rating10 or ScorecardQuestionType.RatingYesNo
+        type.IsRating()
             ? $"Rating, {ScorecardKind(type)}"
             : ScorecardKind(type);
 

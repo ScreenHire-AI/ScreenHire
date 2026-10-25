@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyFormKinds, duplicateId, followUpKinds, insertAt, kindIn } from './form-builder.js';
+import StarIcon from '@lucide/svelte/icons/star';
+import { applyFormKinds, duplicateId, followUpKinds, insertAt, kindIn, scorecardKinds } from './form-builder.js';
 
 describe('answer kinds', () => {
   it('offers every question type on the apply form, General first, and no File in a follow-up', () => {
@@ -11,6 +12,17 @@ describe('answer kinds', () => {
     expect(kindIn(applyFormKinds, 'SingleChoice')).toMatchObject({ options: 'circle' });
     expect(kindIn(applyFormKinds, 'MultiChoice')).toMatchObject({ options: 'square' });
     expect(kindIn(followUpKinds, 'File')).toBeUndefined();
+  });
+
+  it('offers a scorecard General and Rating, each rating with a star, and the rating Yes or no its fixed choices', () => {
+    expect(scorecardKinds.map((group) => [group.label, group.kinds.map((kind) => kind.label)])).toEqual([
+      ['General', ['Yes or no', 'Choice', 'Multi-choice', 'Short text', 'Long text']],
+      ['Rating', ['1 to 5', '1 to 10', 'Yes or no']],
+    ]);
+    expect(scorecardKinds[1].kinds.every((kind) => kind.icon === StarIcon)).toBe(true);
+    expect(kindIn(scorecardKinds, 'RatingYesNo')).toMatchObject({ fixed: ['Yes', 'No'] });
+    expect(kindIn(scorecardKinds, 'Rating10')?.fixed).toBeUndefined();
+    expect(kindIn(scorecardKinds, 'Number')).toBeUndefined();
   });
 });
 

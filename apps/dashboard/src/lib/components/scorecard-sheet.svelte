@@ -219,7 +219,9 @@
           bind:value={() => recommendation, (next) => (recommendation = (next as Recommendation) ?? '')}
         >
           {#each recommendations as value (value)}
-            <ToggleGroup.Item {value} class="text-foreground">{recommendationLabels[value]}</ToggleGroup.Item>
+            <ToggleGroup.Item {value} class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground"
+              >{recommendationLabels[value]}</ToggleGroup.Item
+            >
           {/each}
         </ToggleGroup.Root>
         {#if missingRecommendation}<Field.Error id={`${uid}-recommendation-error`} errors={[{ message: 'Choose a recommendation.' }]} />{/if}

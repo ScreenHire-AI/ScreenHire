@@ -163,8 +163,10 @@ validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
-  team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, in the
-  form builder (`scorecard-builder.svelte`), never in the workflow. A stage that ends the application offers no
+  team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
+  the workflow. The library's own editor comes with the Templates page (roadmap); until then a team's own scorecard is
+  made through `/v1/scorecard-templates`, and the form builder it will use (`scorecard-builder.svelte`) is in the style
+  guide. A stage that ends the application offers no
   scorecard. Automations whose trigger
   has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
   workflow" lane. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts

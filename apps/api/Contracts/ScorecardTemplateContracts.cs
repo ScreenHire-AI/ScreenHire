@@ -42,7 +42,7 @@ internal static class ScorecardTemplateMappings
         new(scorecard.Key, scorecard.Name, false, scorecard.CopiedFrom, scorecard.Questions, LastUpdate.From(lastChange, scorecard.UpdatedAt));
 
     private static int RatingQuestions(IReadOnlyList<ScorecardQuestion> questions) =>
-        questions.Count(q => q.Type is ScorecardQuestionType.Rating5 or ScorecardQuestionType.Rating10 or ScorecardQuestionType.RatingYesNo);
+        questions.Count(q => q.Type.IsRating());
 }
 
 internal sealed class CreateScorecardTemplateRequestValidator : AbstractValidator<CreateScorecardTemplateRequest>

@@ -5,6 +5,7 @@
   import Hint from '#lib/components/hint.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Popover from '#lib/components/ui/popover/index.js';
+  import { sentenceStart } from '#lib/history.js';
   import { formatRating, ratingWords, scorecardCount, starFills } from '#lib/scorecards.js';
   import { personName } from '#lib/team.js';
   import { recommendationLabels } from '#lib/workflow.js';
@@ -62,7 +63,7 @@
     <!-- Named by its own text, so what it says and what a screen reader hears match (WCAG 2.5.3): "Rated 4.1 out of 5
          from 3 scorecards", the words around the shown numbers kept for screen readers. -->
     <Popover.Trigger
-      class="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-1.5 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
+      class="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-input px-2 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
     >
       {@render stars(rated.value, true)}
       <span class="sr-only">Rated</span>
@@ -79,7 +80,8 @@
         {#each counting as scorecard (scorecard.id)}
           <li class="flex items-center gap-2 border-b border-border-subtle py-1.5 last:border-b-0">
             <span class="flex min-w-0 flex-1 flex-col">
-              <span class="truncate font-semibold">{personName(scorecard.reviewerUserId, members, currentUserId)}</span>
+              <!-- A name heading its row, so "you" starts with a capital (W2). -->
+              <span class="truncate font-semibold">{sentenceStart(personName(scorecard.reviewerUserId, members, currentUserId))}</span>
               <span class="truncate text-caption text-muted-foreground">{stageName(scorecard.stageId)}</span>
             </span>
             <span class="tabular-nums">{formatRating(scorecard.rating!)}</span>
