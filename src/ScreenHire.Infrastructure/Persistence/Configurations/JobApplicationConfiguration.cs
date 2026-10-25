@@ -152,6 +152,22 @@ internal sealed class ApplicationNoteConfiguration : IEntityTypeConfiguration<Ap
     }
 }
 
+internal sealed class ApplicationEmailConfiguration : IEntityTypeConfiguration<ApplicationEmail>
+{
+    public void Configure(EntityTypeBuilder<ApplicationEmail> builder)
+    {
+        builder.Property(e => e.TemplateId).HasMaxLength(40);
+        builder.Property(e => e.To).HasMaxLength(320);
+        builder.Property(e => e.Subject).HasMaxLength(ApplicationEmail.MaxSubjectLength);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(e => new { e.OrganizationId, e.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(e => new { e.OrganizationId, e.ApplicationId });
+    }
+}
+
 internal sealed class ApplicationNoteMentionConfiguration : IEntityTypeConfiguration<ApplicationNoteMention>
 {
     public void Configure(EntityTypeBuilder<ApplicationNoteMention> builder)

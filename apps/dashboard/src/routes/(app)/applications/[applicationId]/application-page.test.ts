@@ -1,4 +1,4 @@
-import type { ApplicationDetail, ApplicationTaskEntry, ApplicationTimelineEntry, JobDetail, ScorecardEntry, TeamMember } from '@screenhire/api-client';
+import type { ApplicationDetail, ApplicationTaskEntry, CandidateEmailEntry, ApplicationTimelineEntry, JobDetail, ScorecardEntry, TeamMember } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId, stages, user } from '../../../../test-support/fixtures.js';
@@ -12,6 +12,7 @@ import Page from './+page.svelte';
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
 
 const applicationId = '01a157d4-0000-7000-8000-000000000300';
+const candidateId = '01a157d4-0000-7000-8000-000000000304';
 const resumeId = '01a157d4-0000-7000-8000-000000000301';
 const resumeUpload = '01a157d4-0000-7000-8000-000000000302';
 const portfolioUpload = '01a157d4-0000-7000-8000-000000000303';
@@ -65,7 +66,7 @@ const application: ApplicationDetail = {
   id: applicationId,
   jobId,
   jobTitle: 'Senior .NET Engineer',
-  candidate: { id: '01a157d4-0000-7000-8000-000000000304', fullName: 'Casey Morgan', email: 'casey.morgan@example.com', phone: null, createdAt: '2026-10-20T09:00:00Z' },
+  candidate: { id: candidateId, fullName: 'Casey Morgan', firstName: 'Casey', lastName: 'Morgan', email: 'casey.morgan@example.com', phone: null, createdAt: '2026-10-20T09:00:00Z' },
   stage: { id: 'screening', name: 'Screening', kind: 'Screening' },
   workflowVersion: 1,
   accommodationRequested: true,
@@ -168,6 +169,7 @@ const reads = {
   [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([]),
   [`GET /v1/jobs/${jobId}`]: () => Response.json(job),
   [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...pendingIntegrity(), applicationId }),
+  [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([]),
   'GET /v1/organization/members': () => Response.json(members),
 };
 
@@ -426,19 +428,67 @@ describe('application page', () => {
     expect(within(activity).getByText(/Sent the "Availability" questionnaire/)).toBeInTheDocument();
   });
 
-  it('lists the emails sent to the candidate on Messages, newest first', async () => {
+  it('lists every email to the candidate on Messages, newest first, each opening to the email as it went', async () => {
+    const kept = '01a157d4-0000-7000-8000-000000000390';
+    const old = '01a157d4-0000-7000-8000-000000000391';
+    const emails: CandidateEmailEntry[] = [
+      {
+        id: kept,
+        applicationId,
+        jobTitle: 'Senior .NET Engineer',
+        templateId: null,
+        subject: 'Next steps for Senior .NET Engineer',
+        actorUserId: teammate,
+        automationRunId: null,
+        sentAt: '2026-10-20T10:01:00Z',
+        kept: true,
+      },
+      {
+        id: old,
+        applicationId,
+        jobTitle: 'Senior .NET Engineer',
+        templateId: 'application-received',
+        subject: 'Application received',
+        actorUserId: null,
+        automationRunId: null,
+        sentAt: '2026-10-20T09:02:00Z',
+        kept: false,
+      },
+    ];
     stubApi({
-      [`GET /v1/applications/${applicationId}/timeline`]: () =>
-        Response.json([
-          ...timeline,
-          entry({ type: 'EmailSent', occurredAt: '2026-10-20T09:02:00Z', emailSubject: 'Application received' }),
-          entry({ type: 'EmailSent', occurredAt: '2026-10-20T10:01:00Z', actorUserId: teammate, emailSubject: 'Next steps for Senior .NET Engineer' }),
-        ]),
+      [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json(emails),
+      [`GET /v1/emails/${kept}`]: () =>
+        Response.json({
+          id: kept,
+          applicationId,
+          templateId: null,
+          to: 'casey.morgan@example.com',
+          subject: 'Next steps for Senior .NET Engineer',
+          html: '<p>Hi Casey,</p>',
+          text: 'Hi Casey,',
+          sentAt: '2026-10-20T10:01:00Z',
+        }),
     });
     renderPage('messages');
     const messages = await screen.findByRole('region', { name: 'Messages' });
+    const list = await within(messages).findByRole('list', { name: 'Emails' });
 
-    await waitFor(() => expect(lines(messages)).toEqual(['Next steps for Senior .NET Engineer by Robin Ashby', 'Application received']));
+    const rows = within(list).getAllByRole('button');
+    expect(rows.map((row) => row.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      expect.stringContaining('Next steps for Senior .NET Engineer by Robin Ashby'),
+      expect.stringContaining('Application received'),
+    ]);
+    expect(within(screen.getByRole('tablist', { name: 'Candidate sections' })).getByRole('tab', { name: /Messages/ })).toHaveTextContent('2');
+
+    await fireEvent.click(rows[0]!);
+    expect(rows[0]).toHaveAttribute('aria-expanded', 'true');
+    await waitFor(() => expect(messages.querySelector('[data-email-subject]')).toHaveTextContent('Next steps for Senior .NET Engineer'));
+
+    await fireEvent.click(rows[1]!);
+    expect(within(messages).getByText(/Only the subject was kept/)).toBeInTheDocument();
+    // Candidates cannot reply into ScreenHire yet, and the tab does not say they can; a viewer gets no email box.
+    expect(messages).not.toHaveTextContent(/repl/i);
+    expect(within(messages).queryByRole('form')).not.toBeInTheDocument();
   });
 
   it('shows the Integrity tab with its checks and the review log', async () => {

@@ -8,7 +8,8 @@
   let { questions, followUp = false }: { questions: readonly Question[]; followUp?: boolean } = $props();
 
   let answers = $state<Record<string, AnswerValue | undefined>>({});
-  let fullName = $state('');
+  let firstName = $state('');
+  let lastName = $state('');
   let email = $state('');
   let phone = $state('');
 </script>
@@ -18,7 +19,8 @@
 <div class="candidate-preview flex flex-col gap-4 rounded-lg bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
   {#if !followUp}
     <p class="text-caption text-candidate-chip-foreground">Your details</p>
-    <TextField name="preview-fullName" label="Full name" required autocomplete="off" bind:value={fullName} />
+    <TextField name="preview-firstName" label="First name" required autocomplete="off" bind:value={firstName} />
+    <TextField name="preview-lastName" label="Last name" autocomplete="off" bind:value={lastName} />
     <TextField name="preview-email" label="Email" type="email" required autocomplete="off" bind:value={email} />
     <TextField name="preview-phone" label="Phone" type="tel" autocomplete="off" bind:value={phone} />
   {/if}

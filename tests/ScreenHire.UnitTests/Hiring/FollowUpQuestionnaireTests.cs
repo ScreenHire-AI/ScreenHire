@@ -297,7 +297,7 @@ public sealed class FollowUpQuestionnaireTests
     {
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Warehouse lead", Slug = "warehouse-lead" };
-        var candidate = Candidate.Create(organization, "Sam Rivera", "sam@example.com", null, Start);
+        var candidate = Candidate.Create(organization, "Sam", "Rivera", "sam@example.com", null, Start);
         return JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Start, null,
             new ApplicationIntake(ApplicationSource.CareersSite, answers)).Application;
     }

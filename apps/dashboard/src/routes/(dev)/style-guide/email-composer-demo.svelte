@@ -10,35 +10,46 @@
 </script>
 
 <script lang="ts">
-  import { getListEmailTemplatesQueryKey, getPreviewApplicationEmailQueryKey } from '@screenhire/api-client/svelte-query';
+  import { getListEmailTemplatesQueryKey } from '@screenhire/api-client/svelte-query';
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
+  import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
-  import EmailSheet from '#lib/components/email-sheet.svelte';
 
-  // The Email sheet with sample data: the style guide has no API, so this example brings its own query client, filled in
-  // advance and never refetched. Send has nowhere to go here, so it shows the failure line.
+  // The email composer with sample data, in its sheet: the style guide has no API, so this example brings its own query
+  // client, filled in advance and never refetched. Preview and Send have nowhere to go here, so they show their failure
+  // lines.
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false }, mutations: { retry: false } } });
   const recipients = [
     { id: 'demo-application-1', candidateName: 'Samuel Okonkwo-Hartley' },
     { id: 'demo-application-2', candidateName: 'Priya Raman' },
     { id: 'demo-application-3', candidateName: 'Lena Fischer' },
   ];
+  const lastUpdated = { by: 'ScreenHire', at: null };
   client.setQueryData(getListEmailTemplatesQueryKey(), {
     status: 200,
     headers: new Headers(),
     data: {
       sendingEnabled: true,
-      variables: [],
+      variables: [
+        { name: 'candidateName', label: 'Full name', rejectOnly: false },
+        { name: 'firstName', label: 'First name', rejectOnly: false },
+        { name: 'lastName', label: 'Last name', rejectOnly: false },
+        { name: 'jobTitle', label: 'Job title', rejectOnly: false },
+      ],
       templates: [
-        { id: 'application-received', name: 'Application received', builtIn: true, edited: false, rejectOnly: false, subject: '', body: '', updatedAt: null },
-        { id: 'stage-change', name: 'Moved to the next step', builtIn: true, edited: false, rejectOnly: false, subject: '', body: '', updatedAt: null },
+        {
+          id: 'application-received',
+          name: 'Application received',
+          builtIn: true,
+          edited: false,
+          rejectOnly: false,
+          subject: 'We received your application for {{ jobTitle }}',
+          body: 'Hi {{ firstName }},\n\nThank you for applying for {{ jobTitle }}.',
+          updatedAt: null,
+          lastUpdated,
+        },
       ],
     },
-  });
-  client.setQueryData(getPreviewApplicationEmailQueryKey({ applicationId: recipients[0]!.id, templateId: 'application-received' }), {
-    status: 200,
-    headers: new Headers(),
-    data: demoEmail,
   });
   setQueryClientContext(client);
 
@@ -46,4 +57,4 @@
 </script>
 
 <EmailSelectionButton count={3} onclick={() => (open = true)} />
-<EmailSheet bind:open {recipients} />
+<EmailComposerSheet bind:open {recipients} />

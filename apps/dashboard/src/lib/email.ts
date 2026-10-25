@@ -1,4 +1,4 @@
-import type { EmailTemplateEntry } from '@screenhire/api-client';
+import type { EmailTemplateEntry, EmailTemplateVariableEntry } from '@screenhire/api-client';
 
 /** The API path every email template query sits under, for `invalidatePath`. */
 export const emailTemplatesPath = '/v1/email-templates';
@@ -12,6 +12,14 @@ export function sendableTemplates<Template extends Pick<EmailTemplateEntry, 'rej
   templates: readonly Template[],
 ): Template[] {
   return templates.filter((template) => !template.rejectOnly && !template.questionnaireOnly);
+}
+
+/**
+ * The variables an email a person writes may use: every one but the rejection email's reason and the follow-up questions
+ * email's link, which only their actions fill in.
+ */
+export function sendableVariables(variables: readonly EmailTemplateVariableEntry[]): EmailTemplateVariableEntry[] {
+  return variables.filter((variable) => !variable.rejectOnly && !variable.questionnaireOnly);
 }
 
 /** A variable as a template writes it. */

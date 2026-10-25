@@ -41,6 +41,24 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
         var secondToken = TokenIn(second.Single(m => !m.Text.Contains(token, StringComparison.Ordinal)).Text, slug);
 
         var detail = await WaitForAsync(recruiter, applicationId, d => d.At("followUps.0.timesSent").GetInt32() == 2, "the second send");
+
+        // The team's copy of each email keeps everything but the signed link, which lets whoever holds it answer as the
+        // candidate.
+        // Mailpit gets each email just before the worker commits its timeline entry, so wait for the entries.
+        var emails = default(ApiResult)!;
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                emails = (await recruiter.GetAsync($"/v1/candidates/{detail.Text("candidate.id")}/emails")).Expect(HttpStatusCode.OK);
+                return emails.Count() >= 2;
+            },
+            "both emails on the timeline",
+            Ct);
+        var copy = (await recruiter.GetAsync($"/v1/emails/{emails.Text("0.id")}")).Expect(HttpStatusCode.OK);
+        copy.Text("subject").Should().Be("A few more questions about your application for Follow-up journey");
+        copy.Text("text").Should().Contain("[the candidate's link, not kept in this copy]");
+        copy.Text("text").Should().NotContain(token).And.NotContain(secondToken).And.NotContain("/questionnaires/");
+        copy.Text("html").Should().NotContain("/questionnaires/");
         detail.Count("followUps").Should().Be(1, "one request per application and questionnaire");
         detail.Text("followUps.0.questionnaireId").Should().Be("availability");
         detail.At("followUps.0.completedAt").ValueKind.Should().Be(JsonValueKind.Null);
@@ -297,7 +315,7 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
     {
         var response = await careers.PostAsJsonAsync($"/v1/public/organizations/{slug}/jobs/{job}/applications", new JsonObject
         {
-            ["candidate"] = new JsonObject { ["fullName"] = "Robin Ellis", ["email"] = email },
+            ["candidate"] = new JsonObject { ["firstName"] = "Robin", ["lastName"] = "Ellis", ["email"] = email },
             ["privacyNoticeVersion"] = "2026-10-20",
             ["answers"] = new JsonArray(),
             ["aiUseDeclaration"] = "DidNotUse",

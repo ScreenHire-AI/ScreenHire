@@ -226,7 +226,7 @@ describe('workflow builder', () => {
     // The follow-up's page asks only its questions: no details and no resume.
     await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
     expect(within(pane).queryByRole('region', { name: 'Questions' })).toBeNull();
-    expect(within(pane).queryByRole('textbox', { name: /Full name/ })).toBeNull();
+    expect(within(pane).queryByRole('textbox', { name: /First name/ })).toBeNull();
     expect(within(pane).getAllByRole('textbox', { name: /^New question/ })).toHaveLength(3);
     await fireEvent.click(within(pane).getByRole('button', { name: 'Edit' }));
 

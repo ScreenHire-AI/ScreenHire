@@ -213,7 +213,7 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         var noName = await recruiter.PostAsync($"/v1/jobs/{job.Id()}/applications", Candidate("", CandidateEmail));
 
         badEmail.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("candidate.email");
-        noName.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("candidate.fullName");
+        noName.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("candidate.fullName", "the older single field is kept whole, so it cannot be blank");
         (await recruiter.GetAsync($"/v1/jobs/{job.Id()}/applications")).Count().Should().Be(0);
     }
 
@@ -231,6 +231,40 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         using var move = await visitor.PostAsync($"/v1/applications/{id}/move", new { toStageId = "screening" }, cancellationToken);
 
         new[] { candidates, application, timeline, create, move }.Select(r => r.StatusCode).Should().AllBeEquivalentTo(HttpStatusCode.Unauthorized);
+    }
+
+    // The name in two parts, as the apply form asks; the older single fullName is kept whole as the first name, the way
+    // candidates from before the split are kept, so nobody's name is split by guesswork. One or the other, not both.
+    [Fact]
+    public async Task A_candidate_is_named_by_first_and_last_name_or_by_one_name_kept_whole()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = (await recruiter.CreateJobAsync(Samples.RemoteJob("Names"))).Id();
+
+        var split = (await recruiter.PostAsync($"/v1/jobs/{job}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["firstName"] = "Casey", ["lastName"] = "Morgan", ["email"] = ApiSession.NewEmail("split") },
+        })).Expect(HttpStatusCode.Created);
+        split.Text("candidate.firstName").Should().Be("Casey");
+        split.Text("candidate.lastName").Should().Be("Morgan");
+        split.Text("candidate.fullName").Should().Be("Casey Morgan");
+
+        var whole = (await recruiter.PostAsync($"/v1/jobs/{job}/applications", Candidate("Riley Ann Chen", ApiSession.NewEmail("whole"))))
+            .Expect(HttpStatusCode.Created);
+        whole.Text("candidate.firstName").Should().Be("Riley Ann Chen");
+        whole.At("candidate.lastName").ValueKind.Should().Be(JsonValueKind.Null);
+        whole.Text("candidate.fullName").Should().Be("Riley Ann Chen");
+
+        var both = await recruiter.PostAsync($"/v1/jobs/{job}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["firstName"] = "Sam", ["fullName"] = "Sam Taylor", ["email"] = ApiSession.NewEmail("both") },
+        });
+        both.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("candidate.firstName");
+        var neither = await recruiter.PostAsync($"/v1/jobs/{job}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["email"] = ApiSession.NewEmail("neither") },
+        });
+        neither.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("candidate.firstName");
     }
 
     private static JsonObject Candidate(string fullName, string email) =>

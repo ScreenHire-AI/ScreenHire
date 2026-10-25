@@ -73,7 +73,7 @@ public sealed class AutomationRowLevelSecurityTests(AppHostFixture fixture)
     private async Task<(JobApplication Application, AutomationRun Run)> SeedRunAsync(Organization organization)
     {
         var job = TestData.NewJob(organization, $"automated-{Guid.NewGuid():N}");
-        var candidate = Candidate.Create(organization.Id, "Casey Morgan", "casey.morgan@example.com", null, Now);
+        var candidate = Candidate.Create(organization.Id, "Casey", "Morgan", "casey.morgan@example.com", null, Now);
         var (application, submitted) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null);
         var automation = new Automation("tag", "Tag", new AutomationTrigger(TriggerType.Manual), null, [new AutomationAction(ActionType.AddTag, Tag: "x")]);
         var trigger = new AutomationTriggerEvent(organization.Id, application.Id, job.Id, TriggerType.Manual, null, Guid.CreateVersion7(), Now);

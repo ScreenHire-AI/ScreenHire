@@ -37,7 +37,8 @@ export const invalidations: InvalidationMap = {
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationEmailed: [applicationsPath],
+  // The application's Activity, and the candidate's Messages (every email to them).
+  ApplicationEmailed: [applicationsPath, candidatesPath],
   ApplicationNoteAdded: [applicationsPath],
   ApplicationNoteEdited: [applicationsPath],
   ApplicationNoteDeleted: [applicationsPath],

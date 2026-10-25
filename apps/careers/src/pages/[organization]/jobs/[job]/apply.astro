@@ -175,7 +175,8 @@ const answerText = (questionId: string): string => {
               </label>
             )}
             <p class="text-[13.5px] text-candidate-muted-foreground">{aiIntro}</p>
-            <TextField name="fullName" label="Full name" value={state.fullName} error={errors.fullName} required autocomplete="name" maxlength={MAX_NAME} />
+            <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} />
+            <TextField name="lastName" label="Last name" value={state.lastName} error={errors.lastName} autocomplete="family-name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
             <TextField name="phone" label="Phone" type="tel" inputmode="tel" value={state.phone} error={errors.phone} autocomplete="tel" maxlength={MAX_PHONE} />
             {questionsOn('details', questions).map((question) => (
@@ -200,7 +201,7 @@ const answerText = (questionId: string): string => {
               </div>
               <dl class="mt-1 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
                 <dt class="text-candidate-muted-foreground">Name</dt>
-                <dd>{state.fullName}</dd>
+                <dd>{[state.firstName, state.lastName].filter(Boolean).join(' ')}</dd>
                 <dt class="text-candidate-muted-foreground">Email</dt>
                 <dd class="break-all">{state.email}</dd>
                 <dt class="text-candidate-muted-foreground">Phone</dt>

@@ -53,6 +53,8 @@ namespace ScreenHire.Api.Demo;
 /// kind, on the .NET job's Interview stage; scorecards from Avery Quinn and Jordan Ellis on three candidates, so the job
 /// tables show ratings and "Not rated yet"; and a review for Avery on Priya Natarajan, whose rating Avery then reads as
 /// "Rating after your scorecard". Seeded history: it fires no ReviewerDecision automation.</item>
+/// <item>One email changed for one send (<see cref="SeedOneOffEmailAsync"/>): Avery emails the same candidate the "Interview
+/// invitation" template with an extra sentence, so Messages shows the email as it went while the template stays as it was.</item>
 /// <item>"Support Engineer" is closed and taken down everywhere, so a closed job, its 410 page and removed postings show.
 /// It stays open until all its candidates have applied, so a start that failed one leaves it for the next start.</item>
 /// </list>
@@ -176,6 +178,7 @@ internal sealed partial class DevelopmentDemo(
 
         await TryAsync(() => SeedNotesAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedScorecardsAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedOneOffEmailAsync(stoppingToken), stoppingToken);
         await TryAsync(() => CloseAsync(ClosedJobSlug, stoppingToken), stoppingToken);
         LogSeeded(logger, applicants, candidates);
     }
@@ -331,6 +334,53 @@ internal sealed partial class DevelopmentDemo(
 
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         LogScorecards(logger, given);
+    }
+
+    /// <summary>The sentence the demo's one-off email adds to the "Interview invitation" template for one send.</summary>
+    public const string OneOffEmailSentence = "Your answer about the billing ledger stood out, and we would like to hear more about it.";
+
+    // One email changed for one send (the email composer), on the noted candidate: Avery starts from the "Interview
+    // invitation" template and adds a sentence, through the same rendering and outbox as POST /v1/emails, so Messages shows
+    // the changed email once the worker sends it, the template stays as it was, and Mailpit has it. A candidate who already
+    // has a copy of that template is left alone.
+    private async Task SeedOneOffEmailAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { Owner: { } avery } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var email = Domain.Candidates.Candidate.Normalize(NotedCandidateEmail);
+        var row = await (
+            from a in db.Applications.AsNoTracking()
+            join c in db.Candidates.AsNoTracking() on a.CandidateId equals c.Id
+            join j in db.Jobs.AsNoTracking() on a.JobId equals j.Id
+            where c.NormalizedEmail == email
+            select new { Application = a, Candidate = c, Job = j }).SingleOrDefaultAsync(cancellationToken);
+        var template = await db.EmailTemplates.AsNoTracking().SingleOrDefaultAsync(t => t.Name == InterviewEmailName, cancellationToken);
+        if (row is null || template is null)
+        {
+            return;
+        }
+
+        var templateId = template.Key;
+        if (await db.ApplicationEmails.AnyAsync(e => e.ApplicationId == row.Application.Id && e.TemplateId == templateId, cancellationToken))
+        {
+            return;
+        }
+
+        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == step.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
+        var body = template.Body.Replace(
+            "We would like to invite you to an interview.", $"{OneOffEmailSentence} We would like to invite you to an interview.", StringComparison.Ordinal);
+        var copy = ApplicationEmails.Prepare(
+            step.Services.GetRequiredService<EmailTemplates>(), row.Application, row.Candidate, row.Job.Title, organization,
+            row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name, templateId, new EmailTemplateContent(template.Subject, body),
+            Guid.CreateVersion7(), step.Now);
+        db.ApplicationEmails.Add(copy);
+        await step.Outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, avery));
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
     // Demo data is a convenience: a failed step is logged, never stops the API, and does not keep the next step from running.
@@ -580,7 +630,7 @@ internal sealed partial class DevelopmentDemo(
                 {
                     var template = EmailTemplate.CreateCustom(
                         step.OrganizationId, InterviewEmailName, "Interview for {{ jobTitle }}",
-                        "Hi {{ candidateName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
+                        "Hi {{ firstName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
                         "Someone from our team will contact you within two working days to find a time that suits you.\n\n{{ organizationName }}",
                         step.Now);
                     db.EmailTemplates.Add(template);
@@ -752,7 +802,7 @@ internal sealed partial class DevelopmentDemo(
             applicant.HoneypotFilled,
             BotCheckResult.NotChecked);
         var created = await ApplicationSubmission.SubmitAsync(
-            step.Outbox, job, new Contracts.CandidateInput(applicant.FullName, applicant.Email, applicant.Phone),
+            step.Outbox, job, new ApplicationSubmission.CandidateDetails(applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone),
             new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),
             intake, [upload], step.Now, actorUserId: null, cancellationToken,
             new SubmissionSession(applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint, step.Now - applicant.TimeToComplete, applicant.AutomationMarkers),

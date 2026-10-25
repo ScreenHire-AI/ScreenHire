@@ -101,7 +101,8 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByText("Saved. The job's workflow is now version 2.")).ToBeVisibleAsync();
 
         await GoToAsync("careers", $"/{job.OrganizationSlug}/jobs/{job.JobSlug}/apply");
-        await Page.GetByLabel("Full name").FillAsync("Casey Morgan");
+        await Page.GetByLabel("First name").FillAsync("Casey");
+        await Page.GetByLabel("Last name").FillAsync("Morgan");
         await Page.GetByLabel("Email").FillAsync("casey.morgan@example.com");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
 

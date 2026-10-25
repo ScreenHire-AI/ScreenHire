@@ -6,7 +6,7 @@
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import AuthenticityFilter from '#lib/components/authenticity-filter.svelte';
-  import EmailSheet from '#lib/components/email-sheet.svelte';
+  import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -221,7 +221,7 @@
 </Panel>
 
 {#if canEmail}
-  <EmailSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
+  <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 
 {#snippet searchField(className: string)}

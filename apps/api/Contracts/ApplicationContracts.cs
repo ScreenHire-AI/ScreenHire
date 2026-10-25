@@ -7,11 +7,24 @@ using ScreenHire.Domain.Jobs;
 namespace ScreenHire.Api.Contracts;
 
 /// <summary>A candidate: one person per email address within the organization.</summary>
-public sealed record CandidateSummary(Guid Id, string FullName, string Email, string? Phone, DateTimeOffset CreatedAt);
+/// <remarks>
+/// <c>fullName</c> is the first name, then the last name when there is one. A candidate from before the name was split
+/// has their whole name as <c>firstName</c> and no <c>lastName</c>.
+/// </remarks>
+public sealed record CandidateSummary(
+    Guid Id, string FullName, string Email, string? Phone, DateTimeOffset CreatedAt, string FirstName, string? LastName);
 
 /// <summary>A candidate and every application they made to the organization.</summary>
+/// <remarks><c>fullName</c>, <c>firstName</c>, <c>lastName</c>: as on <see cref="CandidateSummary"/>.</remarks>
 public sealed record CandidateDetail(
-    Guid Id, string FullName, string Email, string? Phone, DateTimeOffset CreatedAt, IReadOnlyList<ApplicationSummary> Applications);
+    Guid Id,
+    string FullName,
+    string Email,
+    string? Phone,
+    DateTimeOffset CreatedAt,
+    IReadOnlyList<ApplicationSummary> Applications,
+    string FirstName,
+    string? LastName);
 
 /// <summary>A stage of the job's workflow, as an application sees it.</summary>
 public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
@@ -134,7 +147,9 @@ public sealed record ApplicationFileSummary(
 /// <c>actorApiKeyId</c>: The organization API key that made the change (ADR-0011); null otherwise.
 /// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <c>ScorecardSubmitted</c>, the scorecard, the stage it
 /// rates and the reviewer's overall recommendation (a <c>Recommendation</c> name, as automations read it).
-/// <c>emailTemplateId</c>, <c>emailSubject</c>: For <c>EmailSent</c>, the template and the subject the candidate received.
+/// <c>emailTemplateId</c>, <c>emailSubject</c>, <c>emailId</c>: For <c>EmailSent</c>, the template it started from (null for a
+/// blank email), the subject the candidate received, and the email as it went, for <c>GET /v1/emails/{emailId}</c>; null
+/// for an email sent before each email was kept.
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <c>QuestionnaireSent</c> and <c>QuestionnaireCompleted</c>,
 /// the follow-up questionnaire and the request in the application's <c>followUps</c>.
 /// <c>note</c>: For <c>NoteAdded</c>, the note's latest text, or null once it was deleted; for <c>StageChanged</c>, the
@@ -163,7 +178,8 @@ public sealed record ApplicationTimelineEntry(
     Guid? QuestionnaireRequestId = null,
     Guid? NoteId = null,
     DateTimeOffset? NoteEditedAt = null,
-    string? ActorApiKeyName = null);
+    string? ActorApiKeyName = null,
+    Guid? EmailId = null);
 
 /// <summary>A note as it stands: its latest text, its author and when it was written and last edited.</summary>
 /// <remarks>
@@ -183,7 +199,18 @@ public sealed record CreateApplicationRequest(
     AiUseDeclaration AiUseDeclaration = AiUseDeclaration.NotProvided,
     string? AiUseDetails = null);
 
-public sealed record CandidateInput(string FullName, string Email, string? Phone = null);
+/// <summary>The candidate of an application a person or an API key adds.</summary>
+/// <remarks>
+/// <c>firstName</c> and the optional <c>lastName</c> are the candidate's name. <c>fullName</c> is the older single field:
+/// it is kept whole as the first name, with no last name, the way candidates from before the name was split are kept,
+/// because nobody's name is split by guesswork. Send <c>firstName</c> or <c>fullName</c>, not both.
+/// </remarks>
+public sealed record CandidateInput(
+    string Email, string? Phone = null, string? FirstName = null, string? LastName = null, string? FullName = null)
+{
+    /// <summary>The name as it is stored: <c>fullName</c> becomes the first name.</summary>
+    internal (string First, string? Last) Name => FirstName is { } first ? (first, LastName) : (FullName ?? "", null);
+}
 
 /// <summary>
 /// Moves an application to another stage of its job's workflow. Only people move applications here. The optional
@@ -208,7 +235,7 @@ public sealed record AddApplicationTagRequest(string Tag);
 internal static class ApplicationMappings
 {
     public static CandidateSummary ToSummary(this Candidate candidate) =>
-        new(candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt);
+        new(candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt, candidate.FirstName, candidate.LastName);
 
     /// <summary>The application's stage in <paramref name="job"/>'s workflow, falling back to the bare id.</summary>
     public static ApplicationStage StageIn(this JobApplication application, Job job) =>
@@ -256,7 +283,7 @@ internal static class ApplicationMappings
         return new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId,
             added ? note?.Text : entry.Data.Note, entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId,
             entry.Data.StageId, entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
-            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName);
+            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId);
     }
 
     public static ApplicationNoteDetail ToDetail(this ApplicationNote note) =>
@@ -268,7 +295,17 @@ internal sealed class CreateApplicationRequestValidator : AbstractValidator<Crea
     public CreateApplicationRequestValidator()
     {
         RuleFor(r => r.Candidate).NotNull();
-        RuleFor(r => r.Candidate.FullName).NotEmpty().MaximumLength(200).When(r => r.Candidate is not null);
+        RuleFor(r => r.Candidate).Must(c => (c.FirstName is null) != (c.FullName is null))
+            .OverridePropertyName("Candidate.FirstName")
+            .WithMessage("Give the candidate's firstName, or the older fullName, not both.")
+            .When(r => r.Candidate is not null);
+        RuleFor(r => r.Candidate.FirstName).NotEmpty().MaximumLength(Candidate.MaxNamePartLength)
+            .When(r => r.Candidate is { FirstName: not null });
+        RuleFor(r => r.Candidate.LastName).MaximumLength(Candidate.MaxNamePartLength).When(r => r.Candidate is not null);
+        RuleFor(r => r.Candidate.LastName).Null().WithMessage("A lastName goes with firstName: fullName is kept whole.")
+            .When(r => r.Candidate is { FullName: not null });
+        RuleFor(r => r.Candidate.FullName).NotEmpty().MaximumLength(Candidate.MaxFirstNameLength)
+            .When(r => r.Candidate is { FullName: not null });
         RuleFor(r => r.Candidate.Email).NotEmpty().MaximumLength(320).EmailAddress().When(r => r.Candidate is not null);
         RuleFor(r => r.Candidate.Phone).MaximumLength(50).When(r => r.Candidate is not null);
         RuleFor(r => r.AiUseDeclaration).IsInEnum();
