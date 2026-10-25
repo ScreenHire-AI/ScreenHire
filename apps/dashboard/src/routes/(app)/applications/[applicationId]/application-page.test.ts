@@ -682,7 +682,6 @@ describe('application page', () => {
       renderPage('overview');
 
       const rating = await screen.findByRole('button', { name: 'Rated 4.6 out of 5 from 1 scorecard' });
-      expect(within(rating).getByRole('img', { name: '4.6 of 5 stars' })).toBeInTheDocument();
       await fireEvent.click(rating);
       const list = (await screen.findByText('From 1 scorecard')).closest<HTMLElement>('[data-slot="popover-content"]')!;
       expect(list).toHaveTextContent('Robin Ashby');

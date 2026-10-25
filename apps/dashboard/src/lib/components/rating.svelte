@@ -32,8 +32,13 @@
   const counting = $derived((scorecards ?? []).filter((scorecard) => scorecard.rating != null));
 </script>
 
-{#snippet stars(value: number)}
-  <span role="img" aria-label={`${formatRating(value)} of 5 stars`} class="inline-flex gap-px">
+{#snippet stars(value: number, hidden = false)}
+  <span
+    role={hidden ? undefined : 'img'}
+    aria-label={hidden ? undefined : `${formatRating(value)} of 5 stars`}
+    aria-hidden={hidden || undefined}
+    class="inline-flex gap-px"
+  >
     {#each starFills(value) as fill, index (index)}
       <span class="relative inline-flex size-4 text-muted-foreground">
         <StarIcon class="size-4" aria-hidden="true" />
@@ -49,13 +54,17 @@
   <span class="text-muted-foreground">{ratingWords(rating)}</span>
 {:else if scorecards}
   <Popover.Root>
+    <!-- Named by its own text, so what it says and what a screen reader hears match (WCAG 2.5.3): "Rated 4.1 out of 5
+         from 3 scorecards", the words around the shown numbers kept for screen readers. -->
     <Popover.Trigger
-      aria-label={ratingWords(rating)}
       class="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-1.5 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
     >
-      {@render stars(rated.value)}
+      {@render stars(rated.value, true)}
+      <span class="sr-only">Rated</span>
       <span class="font-semibold tabular-nums">{formatRating(rated.value)}</span>
+      <span class="sr-only">out of 5 from</span>
       <span class="inline-flex items-center gap-0.5 text-muted-foreground"><ClipboardCheckIcon class="size-3.5" aria-hidden="true" />{rated.count}</span>
+      <span class="sr-only">{rated.count === 1 ? 'scorecard' : 'scorecards'}</span>
     </Popover.Trigger>
     <Popover.Content align="start" class="w-80">
       <Popover.Header>
@@ -81,11 +90,11 @@
     <span class="font-semibold tabular-nums">{formatRating(rated.value)}</span>
     <Hint content={`From ${scorecardCount(rated.count)}`}>
       {#snippet children({ props })}
-        <span {...props} class="inline-flex items-center gap-0.5 text-muted-foreground"
-          ><ClipboardCheckIcon class="size-3.5" aria-hidden="true" /><span aria-hidden="true">{rated.count}</span><span class="sr-only"
-            >{`from ${scorecardCount(rated.count)}`}</span
-          ></span
-        >
+        <span {...props} class="inline-flex items-center gap-0.5 text-muted-foreground">
+          <ClipboardCheckIcon class="size-3.5" aria-hidden="true" />
+          <span aria-hidden="true">{rated.count}</span>
+          <span class="sr-only">from {scorecardCount(rated.count)}</span>
+        </span>
       {/snippet}
     </Hint>
   </span>

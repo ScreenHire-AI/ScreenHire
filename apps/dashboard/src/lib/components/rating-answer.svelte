@@ -32,7 +32,7 @@
   );
 </script>
 
-<div class={cn('inline-flex max-w-full flex-col gap-1', className)}>
+<div class={cn('inline-flex w-fit max-w-full flex-col gap-1 self-start', className)}>
   <ToggleGroup.Root
     type="single"
     variant="outline"

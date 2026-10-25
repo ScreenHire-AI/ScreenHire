@@ -57,9 +57,8 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(scorecards).ToContainTextAsync("Testing");
         var rating = Page.GetByRole(AriaRole.Button, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });
         await Expect(rating).ToBeVisibleAsync();
-        await Expect(rating.GetByRole(AriaRole.Img, new() { Name = "4.7 of 5 stars" })).ToBeVisibleAsync();
         await rating.ClickAsync();
-        await Expect(Page.GetByText("From 1 scorecard")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill scorecard" })).ToHaveCountAsync(0);
         // The automation's move shows in the rail's Stage and in Activity.
