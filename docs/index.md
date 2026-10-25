@@ -9,7 +9,7 @@ Read the lines below, open the folder or doc whose line answers the question, an
 
 * [ScreenHire documentation](README.md) - Where to start reading by audience (trying the demo, building a feature, changing UI, reviewing, planning), what ScreenHire is, who it is for and why it exists, and a pointer to index.md, the map of every concept.
 * [MVP status](status.md) - What is built and in which PR, the acceptance journey that walks it end to end, the local stand-in for each external integration, every owner action (accounts, keys, legal reviews) needed before real use, and the known gaps.
-* [Roadmap](roadmap.md) - The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (design system v0.3, questionnaire sections with progress and save-and-resume, the embeddable careers widget, interview scheduling, adding candidates by hand with server search and reports, an MCP server for AI assistants), later items, and what must exist before real customers.
+* [Roadmap](roadmap.md) - The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (design system v0.3 and what its review added, questionnaire sections with progress and save-and-resume, the embeddable careers widget, interview scheduling, adding candidates by hand with server search and reports, access to chosen jobs only, an MCP server for AI assistants, organization branding, a talent pool), later items, and what must exist before real customers.
 
 ## How it is built
 
