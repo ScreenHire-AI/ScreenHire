@@ -39,15 +39,18 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    | A3 | `disabled` on a control whose feature does not exist yet (a "phase" or "coming soon" hint beside it) |
    | S1 | `<fieldset disabled>` or disabled inputs used to show read-only data |
    | K1 | `<kbd>` outside a tooltip, menu or the shortcuts dialog; a footer of shortcut hints |
-   | S4 | a card or panel inside another card or panel |
-   | S6 | a page's content container (`<main>`) with no max-width |
+   | S4 | a card or panel inside another card or panel (summary cards on a panel's summary band are allowed, section 6) |
+   | S6 | `max-w-page`, `page-wide` or another max-width on a page's content container (pages fill the window); a long paragraph with no 72ch measure |
    | F2 | fixed widths on content elements (not menus, graph nodes or board columns); no `@container` where a component's layout changes with its width |
    | T5 | dates formatted by hand or with a fixed locale (`toLocaleDateString('en-GB')`, format strings) |
    | I1 | icons from anything but `@lucide/svelte`; text characters or emoji used as icons |
+   | L1 | `font-mono`, a pill or a `Badge` other than a status badge inside a table cell; a second line under a row's name |
+   | A5 | a link (`<a>`, `href`) whose handler opens a sheet, menu or dialog; `goto(` in a button's handler |
 
-   Then read each changed page against the rest of the checklist: the template and header band (S1, S2), panels and
-   their titles (S3), one primary action (A1), status first and quiet calm states (T1 to T4), words (W4), sizes and
-   touch (F1 to F5), states (E1), access (X1).
+   Then read each changed page against the rest of the checklist: the template and header band (S1, S2, S7), panels and
+   their titles (S3), actions, links and buttons (A1 to A8), status first and quiet calm states (T1 to T4), Last
+   updated and History (T6), words and where each fact lives (W4, W6), tables and sorting (L1, L2), sizes and touch
+   (F1 to F5), states and notices (E1 to E3), access (X1).
 4. Leave G1 (integrity) to the `integrity-guardrails` agent; report it only if you see it and it was not obviously
    covered.
 5. A component the catalogue (section 11) names but the code lacks (a tooltip, a key cap, the sidebar) is one finding

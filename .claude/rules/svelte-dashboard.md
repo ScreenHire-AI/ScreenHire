@@ -58,7 +58,7 @@ new route is the `/add-dashboard-page` skill.
   (`text-body`, `text-caption`, ...), never Tailwind's defaults (`text-sm`) or `tracking-*`. A new `--text-*` token
   also joins `typeScale` in `#lib/utils.ts`, or `cn()` reads it as a colour and drops it; a new named radius
   (`rounded-panel`) joins `radii` there for the same reason.
-- Status is a shape mark, a colour and a text label, always all three (design system section 3.2). Colour alone
+- Status is its icon, a colour and a text label, always all three (design system section 3.2). Colour alone
   fails WCAG 1.4.1.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
   reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves

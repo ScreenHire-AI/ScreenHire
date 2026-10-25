@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "ScreenHire design system"
-description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status marks, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI and employer branding."
+description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI, employer branding, and the components and screens the v0.3 build adds."
 tags: [design-system, ui, checklist]
 sources:
   - resource: packages/ui/src/tokens.css
@@ -10,9 +10,10 @@ sources:
 ---
 # ScreenHire design system
 
-> Status: **v0.2 (2026-10-20)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
-> [ADR-0010](../adr/0010-design-system-v0-2.md). Visual reference: the owner's "ScreenHire design v0.2 review" canvas;
-> where it and this file differ, this file wins.
+> Status: **v0.3 (2026-10-25)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
+> [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
+> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is still
+> built to v0.2: section 21 lists the components the v0.3 build adds, and section 22 the screens it changes.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -27,13 +28,21 @@ design, change this file (and its ADR when a decision changes); everything else 
 1. **Keep it simple.** The fewest words, elements and styles that do the job. If the screen already says it, cut it.
 2. **Scan first.** One glance answers "what needs me?". Calm states stay quiet.
 3. **Readable by default.** Body 14px, nothing under 12px. Sentence case. Monospace only for codes and keys.
-4. **Clickable looks clickable.** Buttons look pressable. Links underline. Badges and pills are never clickable.
-5. **Status first, then facts.** The signal people scan for comes first, as a badge. Facts follow as pills.
-6. **Clear layers.** Every section is a panel with its title inside. Panels in a row align.
+4. **Links go somewhere, buttons do something.** A link is underlined text that takes you to a page, tab or record. A
+   button has a border or a fill and acts, or opens a sheet, menu or dialog. Badges and pills are never clickable.
+5. **Status first, then facts.** The signal people scan for comes first, as a badge. Facts follow in a labelled facts
+   row, or as plain text in a table.
+6. **Clear layers.** Every section is a panel with its title inside, lifted off the page by a soft shadow. Panels in a
+   row align.
 7. **Same pattern, same place.** One page template per job and one component catalogue. New patterns join the
    catalogue first.
-8. **Fluid at every size.** Flex and grid, never fixed widths, from phone to wide desktop. Controls never wrap.
+8. **Fluid at every size.** Pages fill the window; only text keeps a measure. Flex and grid, never fixed widths, from
+   phone to wide desktop. Controls never wrap.
 9. **Evidence, not verdicts** (ADR-0004). A level, its reasons and a next step. Never a score or a reject button.
+10. **Works out of the box, customizable when needed.** Every area ships a default that needs no setup: templates,
+    email, branding and roles. Customizing is opt-in, reversible and shown next to the default.
+11. **Every fact has one home.** Mark the exception, never the default. Design for the count, not the example: a list
+    that can grow shows how many.
 
 ## 2. Review checklist
 
@@ -42,14 +51,19 @@ Authors check their screens against this list, and the `design-review` agent rep
 **Structure**
 
 - **S1** The page uses a template from section 7 (list, detail, read-only, form, builder).
-- **S2** One header band: title, the status badge beside it when there is one, the primary action on the right, then
-  the facts row or tabs.
+- **S2** One header band: title, its status badges beside it, the primary action on the right, then the facts row or
+  tabs. A description is one plain sentence. On anything people edit, Last updated is the last fact, with History
+  beside it (T6).
 - **S3** Every section is a panel with its title inside a fixed-height header. Nothing readable sits on the page
   background.
 - **S4** Panels in a row share a top edge. No card inside a card.
-- **S5** Insets only inside a surface. Shadows only on raised and overlay layers.
-- **S6** Each page's content container has a max-width of 1280px (lists may reach 1536px at 2xl). Content elements
-  get a max-width, never a fixed width.
+- **S5** Insets only inside a surface. Panels and cards take the soft surface shadow; raised and overlay layers take
+  theirs (section 6). Nothing else casts a shadow.
+- **S6** Pages fill the window: a page's content container has no max-width, and tables and boards never stop short.
+  Text keeps a measure: a long paragraph stops at 72 characters and a form at 688px, while short sentences, callouts
+  and notices use the full width. Content elements get a max-width, never a fixed width.
+- **S7** No side column beside a table or a board: secondary things move to a tab, a sheet or the header. A detail
+  page holds its content in tabs in a fixed order, with the details rail on the right (section 7).
 
 **Actions**
 
@@ -59,33 +73,58 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A3** A feature that does not exist yet is hidden, not shown disabled. Disabled is only for a control this screen
   can enable (Save until the form is valid), with the reason beside it.
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
-- **A5** Only buttons and links look clickable. Links in text underline; navigation and names in lists underline
-  on hover. Badges, pills and counts are never clickable.
+- **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
+  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet, and a
+  button never navigates. Badges, pills and counts are never clickable, except a count button in a header (T4).
+- **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
+  (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
+  column header is the one bare text button, marked by its sort icon (L2). A button never looks like a badge.
+- **A7** Reorder by dragging a grip. Clicking the grip opens Move up, Move down, Move to top and Move to bottom, and
+  Space with the arrow keys moves it. No up and down arrow buttons.
+- **A8** An editor whose result someone else sees (a questionnaire, a scorecard, an email template, a careers page)
+  has an Edit / Preview switch at the top, with a pencil and an eye. Preview shows the result at its real size and adds
+  no sentence about itself; a window icon beside the switch pops it out, and the window follows the edits. Editor and
+  preview never share the screen.
 
 **Words and type**
 
 - **W1** Text sizes come from the type tokens (section 4). Nothing under 12px. No pixel font sizes in markup.
 - **W2** Sentence case. No all-caps text except acronyms. Monospace only for codes, ids and key caps.
-- **W3** No dot separators or strings of metadata. Facts are muted pills or a labelled facts row.
-- **W4** Labels, not instructions. A description gets one line, or none if the title says it. A fact appears once
-  per screen. A builder's validation message is the exception: it shows in "Problems to fix" and again on the control
-  or graph node it is about, because the panel says what is wrong and the control says where.
+- **W3** No dot separators or strings of metadata. A header's facts sit in a labelled facts row (section 7); a
+  table's sit in their own columns (L1).
+- **W4** Labels, not instructions: a control's label is one to three words. A description gets one line, or none if
+  the title says it, and no sentence repeats what the screen already shows. A fact appears once per screen. A
+  builder's validation message is the exception: it shows in "Problems to fix" and again on the control or graph node
+  it is about, because the panel says what is wrong and the control says where.
 - **W5** Copy follows section 12 and `.claude/rules/writing-style.md`.
+- **W6** Every fact has one home. Before a label goes beside a name, in a table, header, card or list, ask in order.
+  Is it the default? Show nothing, and mark only the exception (Built in, never Custom). Does the screen already show
+  it? Leave it there (an edited built-in shows in Last updated, by a person instead of ScreenHire). Is it a state? It
+  goes in the column or fact it describes, as a badge (a draft beside the version). Is it something to do? It goes in
+  the menu (Reset to original). Is it detail? A tooltip or the record's page. A label people have to ask about is the
+  wrong label or in the wrong place.
 
 **Status, counts and time**
 
-- **T1** Status is a badge: shape mark, colour and label, always all three, except AI assistance, which is
-  information and has no mark (section 3.2). Status colours mean status only.
+- **T1** Status is a badge: its icon, colour and label, always all three (section 3.2). The icon alone tells statuses
+  apart. Status colours mean status only.
 - **T2** Status comes first in its group: beside the title, or first in the row.
-- **T3** In lists and tables, calm states are quiet (mark and muted text). Only states that need attention get a
-  filled badge.
-- **T4** Counts are wide pills right after their label. Steps are square markers on a line. They never share a shape.
+- **T3** In lists and tables, calm states are quiet (icon and muted text). Only states that need attention get a
+  filled badge. Waiting states (Sent, Queued, Scanning) are grey: nobody needs to act.
+- **T4** Design for the count, not the example: wherever a list can grow, show how many (2 hiring templates). In a
+  header the count is a button that opens a sheet listing each item as a link, with search past 10. On a control (a
+  tab, a filter chip, a button, a sidebar item) the count sits in the grey count badge after its label; in a table it
+  is plain text. Steps are square markers on a line. Counts and steps never share a shape.
 - **T5** Times follow section 13: time ago in text, dates in tables, the browser's locale, the exact time on hover.
+- **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
+  Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
+  say "by ScreenHire". History opens a sheet with every change, newest first and grouped by day: who, when and what,
+  with before and after on request.
 
 **Icons and shortcuts**
 
 - **I1** Lucide only, at the sizes in section 14. Navigation and main buttons have an icon and a label.
-- **I2** Status shapes appear only for status, never as decoration or for ordinary views.
+- **I2** Status icons appear only in status badges, never as decoration or for ordinary views (section 14).
 - **K1** Shortcut hints appear in tooltips, menus, the `?` dialog and Ctrl K, as `Kbd` key caps. No always-on hint
   bar. Single-key shortcuts can be turned off.
 
@@ -101,11 +140,28 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **F5** Controls never wrap. Long text truncates (`min-w-0`, ellipsis) with the full value in a tooltip.
 - **E1** Loading shows skeletons of the same shape. Empty states say why and offer the one action. Errors use
   `QueryError`.
+- **E2** A problem says what is wrong and where to fix it, in words, in a notice on the page where people will see it.
+  A tab shows its state in its count where a count fits (Distribution 7/8), and a small marker only where it does not.
+- **E3** Read-only says why and what to do. Editable shows its controls.
+
+**Tables**
+
+- **L1** Two text styles. The row's name is semibold on one line, with at most one badge after it (Built in, You).
+  Every other cell is one line of body text, cut with an ellipsis and shown in full in a tooltip, so rows keep one
+  height. No code font, pills or icons in cells except status badges and a person's avatar. A template variable reads
+  as a muted word (job title). The row opens the record.
+- **L2** Every table sorts. Each column header is a button: its text and a faint up-down icon, which becomes an arrow
+  on the sorted column, and a second click reverses it. A table opens on one default sort: things people edit by Last
+  updated, newest first; people, keys and endpoints by name; a job's candidates with those needing attention first. A
+  table with a natural order (roles, by access) keeps it until someone sorts. The dashboard remembers each person's
+  sort. On a phone a Sort chip beside the filters offers the same choices. A fixed grid, such as the permissions
+  table, does not sort.
 
 **Integrity and access** (the `integrity-guardrails` agent owns the first)
 
 - **G1** No score or percentage, no reject control, AI assistance styled as information, and every result keeps its
-  next step (section 16).
+  next step (section 16). The candidate's scorecard rating never draws on integrity output, AI signals or the stage
+  (section 21).
 - **X1** WCAG 2.2 AA: visible focus ring, labels on inputs, landmarks and headings, text contrast at least 4.5:1, and
   a non-drag alternative for every drag (section 17).
 
@@ -113,7 +169,7 @@ Authors check their screens against this list, and the `design-review` agent rep
 
 Semantic names are the API; raw values live only in `packages/ui` (`tokens.css`, mapped in `theme.css`) and reach
 components as Tailwind classes. The token column is the name in code: `background` is `bg-background`,
-`muted-foreground` is `text-muted-foreground`. Colours did not change in v0.2.
+`muted-foreground` is `text-muted-foreground`. Colours did not change in v0.2 or v0.3.
 
 ### 3.1 Recruiter app, light (default)
 
@@ -137,27 +193,29 @@ components as Tailwind classes. The token column is the name in code: `backgroun
 | `destructive` | `#9A2F17` | Destructive menu items and their confirmations |
 | `scrim` | `#1C1B19` | The dimming behind dialogs and sheets, at 10% (`bg-scrim/10`) |
 
-### 3.2 Status (shape, colour and label, always)
+### 3.2 Status (icon, colour and label, always)
 
-| Meaning | Mark | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Mark colour |
+Each status has its own Lucide icon. The icon alone tells statuses apart, so colour is never the only signal.
+
+| Colour | Statuses and their icons | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Icon colour |
 |---|---|---|---|---|---|
-| No concerns, Live, a workflow with no problems found | circle | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
-| Review suggested, Queued, a file being scanned, Overdue | diamond | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verification recommended, a file withheld by the scan, a workflow with problems to fix | square | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
-| AI assistance (information) | none | `status-ai` | `#2B2788` | `#ECEBFA` | none |
-| Not started or ended: a draft, a closed job, a board the job is not on | ring | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
+| Clear | No concerns, No problems found, Delivering, Done (`circle-check`); Open, a job taking applications (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| Review | Review suggested (`eye`); Overdue by 2 days (`clock-alert`) | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
+| Verify | Verification suggested (`id-card`); Needs fixes, for a refused posting or a workflow with problems (`wrench`); Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| AI (information) | No signs, Some signs or Strong signs of AI help (`sparkles`) | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
+| Grey: waiting or not started | Sent and Queued, waiting on someone else (`clock-4`); Scanning, ScreenHire at work (`loader-circle`); Closed (`door-closed`); Draft (`file-pen-line`); Not posted, a board the job is not on (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
-Status colours are never used for brand, decoration or facts. Counts use tabular figures. The stacked integrity bar
-is `aria-hidden` and always has its numeric legend.
+Status colours are never used for brand, decoration or facts. No status uses the warning triangle: it marks only the
+integrity cards that fed a level (section 16). Counts use tabular figures.
 
 **Overdue** is the hiring team's status, never the candidate's. An application is overdue once it has been in its stage
 longer than the stage's time limit (`slaDays`), which measures how long the team has kept the candidate waiting. It
-takes the review diamond because it asks a person to act, as Queued does. It never takes the verify square: that sits
-beside integrity results and would read as a concern about the candidate. The label says by how much, in the largest
-whole unit: "Overdue by 2 days", "Overdue by 5 hours". The due date and time are in its tooltip (section 13). It is a
-filled badge wherever it shows (T3), because it needs attention. An application within its time limit shows nothing.
-A job board's estimate that has run out, the muted "Overdue" pill in a job's Distribution panel, is a fact about the
-board and not this status.
+takes the review colour and the `clock-alert` icon because it asks a person to act. It never takes the verify colour:
+that sits beside integrity results and would read as a concern about the candidate. The label says by how much, in the
+largest whole unit: "Overdue by 2 days", "Overdue by 5 hours". The due date and time are in its tooltip (section 13). It
+is a filled badge wherever it shows (T3), because it needs attention. An application within its time limit shows
+nothing. A job board's estimate that has run out, the muted "Overdue" pill in a job's Distribution panel, is a fact
+about the board and not this status.
 
 ### 3.3 Recruiter app, dark
 
@@ -172,8 +230,8 @@ board and not this status.
 | `input` | `#3A3731` | `destructive` | `#F7957A` |
 | `scrim` | `#000000` | | |
 
-Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (mark `#F2B84B`); verify `#F7957A` on
-`#3D1A10` (mark `#F27A55`); AI `#C7C8FA` on `#26264A`. In dark mode, higher layers get lighter (section 6).
+Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (icon `#F2B84B`); verify `#F7957A` on
+`#3D1A10` (icon `#F27A55`); AI `#C7C8FA` on `#26264A`. In dark mode, higher layers get lighter (section 6).
 
 ### 3.4 Candidate and marketing pages
 
@@ -232,7 +290,8 @@ questionnaire preview shows the candidate base with `text-candidate-body`.
 | Panel header | 56px (52px on phones), 16 to 18px side padding |
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
-| Content widths | 1280px `page`, 1536px `page-wide`, 688px `form`, 320px `side` (`max-w-page`, `basis-side`, ...) |
+| Content widths | Pages fill the window. Text measure 72ch for long paragraphs, 688px `form`; the details rail 340px. The v0.3 build replaces `max-w-page`, `page-wide` and `basis-side` |
+| Board columns | 296px; an empty or closed stage shrinks to 188px |
 
 ## 6. Layers
 
@@ -242,38 +301,44 @@ Atlassian's surfaces.
 | Layer | What lives there | Looks like |
 |---|---|---|
 | Page | Layout only. Nothing readable sits on it. | `background` |
-| Surface | Header band, panels, tables, sidebar, top bar | `card`, 1px `border`, no shadow |
+| Surface | Header band, panels, tables, sidebar, top bar | `card`, 1px `border`; panels and cards add the soft surface shadow `0 1px 2px rgb(28 27 25 / .06), 0 1px 3px rgb(28 27 25 / .04)`, a token the v0.3 build adds |
 | Inset | A well inside a surface: resume preview, board column | `secondary`, no edge |
 | Raised | The one thing in hand: a dragged card, a toolbar stuck while scrolling | surface, edge, `0 4px 12px rgb(28 27 25 / .14)` |
 | Overlay | Menus, popovers, tooltips, sheets, dialogs, toasts | surface, edge, `0 16px 48px rgb(28 27 25 / .18)`; dialogs dim the page |
 
 - Every section is a panel with its title inside the panel header. Panels in a row share a top edge.
-- Shadows only on raised and overlay. No card inside a card.
+- Shadows: the soft surface shadow on panels and cards, then raised and overlay. Nothing else. No card inside a card.
 - Inside an inset, data and controls sit on `card` with a `border-subtle` edge (a quoted answer, a list of fact pills,
   a field), so they read as values in the well, not as another layer.
+- A summary band is an inset across the top of a panel, full width with no edge of its own. Summary cards, the next
+  step and notices sit white on it, as the inset's values. Weight comes from the layer: white on warm grey stands out,
+  white on white does not.
 
 ## 7. Page templates
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates, My tasks; the team, email templates, API keys and webhooks in Settings | Header band (title, count, page actions); one table panel whose header holds its title, search and filters. A list with no search (My tasks) puts its toggles in a row under the panel header |
-| Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badge, actions, facts row or tabs); main column and a 320px side column |
-| Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; Copy or Edit as the primary action |
-| Form | Creating or editing a record; a settings page such as Organization, Careers branding, Integrity or an email template | One column, 688px wide, labels above fields, actions at the end |
-| Builder | The workflow graph, the questionnaire builder | Header band, then a full-width work area. The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W4) |
+| List | Candidates, jobs, templates, My tasks; the team, roles, API keys and webhooks in Settings | Header band (title, count, page actions); one full-width table panel whose header holds its title, search and filters, with no side column (S7). A list with no search (My tasks) puts its toggles in a row under the panel header |
+| Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badges, actions, facts row); tabs in a fixed order hold the content, and the 340px details rail on the right never moves |
+| Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; it says why it is read only and what to do (E3); Copy or Edit as the primary action |
+| Form | Creating or editing a record; a settings page such as Organization, Branding or Integrity | One column, 688px wide, labels above fields, actions at the end |
+| Builder | The workflow graph; the questionnaire, scorecard and email template editors | Header band, then a full-width work area, with the Edit / Preview switch when someone else sees the result (A8). The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W4) |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
 bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,
 takes the focus.
 
-- **Header band:** a white strip under the top bar. Title first, status badge beside it, actions on the right, then
-  a labelled facts row (label 12px above value 14px, thin rules between) or tabs on its bottom edge. One muted line
-  under the title may hold a person's contact details, each an icon and its value, with no labels. On a form page
-  the band's contents line up with the 688px column.
+- **Header band:** a white strip under the top bar. Title first, status badges beside it, actions on the right, then
+  a labelled facts row (a short label 12px above each value 14px, a divider between them) or tabs on its bottom edge.
+  On anything people edit, Last updated is the last fact, with History (T6). A description under the title is one
+  plain sentence. An explanation goes where it applies: a tooltip on the fact, a hint by the control, the reason on a
+  disabled item, or a notice for the people it affects, never a paragraph of loosely joined facts. One muted line
+  under the title may hold a person's contact details, each an icon and its value, with no labels. On a form page the
+  band's contents line up with the 688px column.
 - **Panel:** header (title, optional count, actions on the right), body, optional footer inset.
-- **Columns:** from `lg`, the main column takes the room the 320px side column leaves, gap 20px. Below `lg` they
-  stack in one column in priority order, status first. The status panel comes first in the page's order and sits at
-  the top of the side column from `lg`, so the order on screen and the reading order agree at every size.
+- **Columns:** on a detail page, from `lg`, the tabs take the room the 340px details rail leaves, gap 20px. The rail
+  holds the record's details (for a candidate: the job, contact, files and tags) and stays put on every tab. Below
+  `lg` it folds under the header, so the order on screen and the reading order agree at every size.
 
 ## 8. Screen sizes
 
@@ -283,10 +348,10 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 |---|---|---|---|---|
 | Window | under 768px | 768 to 1023px (`md`) | 1024 to 1535px (`lg`, `xl`) | 1536px and up (`2xl`) |
 | Navigation | Sidebar as a sheet behind a menu button; Back on detail pages | Icon rail, labels in tooltips | Full sidebar | Full sidebar |
-| Columns | One, status first | One, status first | Main and side | Same, centred at 1280px |
+| Columns | One; the details rail folds under the header | One; the details rail folds under the header | Tabs and the details rail | Same, filling the window |
 | Header band | Facts in a two-column grid | Facts wrap | One line of facts | One line of facts |
 | Actions | Primary in a bar at the bottom; the rest in More | In the header; extras fold into More | In the header | In the header |
-| Tables | Rows become two-line list items | Scroll inside the panel; first column sticks | Full | Full, optional columns may show |
+| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks | Full | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
 On a phone the workflow graph is for reading: its nodes have no buttons, one line says to edit in Pipeline, and the
@@ -300,7 +365,9 @@ Checked at 360, 768, 1024, 1440 and 1920px.
 | Across areas | The sidebar. It is the only app navigation. Switching areas fades. |
 | Forward | From a list to a record. The whole row is the link. Filters and scroll position survive the trip back. |
 | Back | The breadcrumb goes up a level. Browser Back goes where you came from. |
-| In place | A sheet for quick work: add a note, quick edit, filters. The record stays behind it. |
+| In place | A sheet for quick work: add a note, quick edit, filters, History, the items behind a count, Invite, an email. The record stays behind it. |
+| Preview | An editor's Edit / Preview switch swaps the view in place; the window icon opens it in a second window that follows the edits (A8). |
+| Files | A file opens in a full-window viewer from its file row. A page never embeds a preview. |
 | Confirm | A dialog, only to confirm or decide. A menu is the gentler choice. |
 | Create | A full page for anything with several steps, such as a new job. |
 | Tabs | Peer views of one record, under its header. Never steps in a sequence. |
@@ -313,10 +380,10 @@ Forward and back slide (200ms); everything honours `prefers-reduced-motion`.
 |---|---|---|
 | Primary | Filled `primary` | One per page, sheet or dialog. It moves the work forward. |
 | Secondary | White, `input` edge | Supporting actions, and Cancel |
-| Quiet | Text or icon button | Row actions. Every icon button has a tooltip and an `aria-label`. |
+| Quiet | Icon button | Row actions, usually the More menu. Every icon button has a tooltip and an `aria-label`. |
 | Destructive | `destructive` item in a menu | Never the page's main action. Confirmed in a dialog. An action the same screen can undo (taking a job down from one board, which Post puts back) is not destructive, and neither is removing a row from an unsaved builder draft (a stage, a question, a condition): nothing changes until Save, and leaving asks first. |
 
-Features that do not exist yet are hidden (A3).
+Features that do not exist yet are hidden (A3). Links go somewhere and buttons do something (A5, A6).
 
 ## 11. Components
 
@@ -327,16 +394,16 @@ in a development build, shows every component in each state, and its test fails 
 | Component | Built on | Rules |
 |---|---|---|
 | Header band, Panel | Our components (`HeaderBand` with `Fact` for the facts row, `Panel`) | Section 7 |
-| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Mark, colour, label (T1, T3) |
+| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Icon, colour, label (T1, T3); each status's icon is in section 3.2 |
 | Overdue badge | `OverdueBadge` on `StatusBadge` and `Hint` | Section 3.2: the review badge, "Overdue by" and how long, the due time in a tooltip that opens on hover, focus or tap. First in the stage cell of a candidate table and list item, first in a board card's status row, and beside the title on an application's page (S2, T2). Never on a hired, rejected or withdrawn stage |
-| Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces |
-| Count | `Badge` count variant | Wide pill (min 28px), muted text, after its label (T4) |
-| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board; the apply form and each follow-up questionnaire in the workflow builder). The pressed one takes `accent`; a count follows its label (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
+| Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces. For tags, and for facts in a list item or a sheet; never in a header, which has a facts row, or a table cell (W3, L1) |
+| Count | `Badge` count variant | The grey count badge (min 28px) after its label on a control (T4); plain text in a table |
+| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board; the apply form and each follow-up questionnaire in the workflow builder). The pressed one takes `accent`; its count follows the label in the count badge, white on the pressed one (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
 | File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention |
-| Resume preview | Our component, in an inset | The file shown inline; untrusted files render isolated |
+| Resume preview | Our component, in an inset | The v0.3 build replaces it with the file viewer (section 21): a page shows a file row and the file opens full window. Untrusted files render isolated |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
@@ -344,14 +411,14 @@ in a development build, shows every component in each state, and its test fails 
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8. The sections, the saved views, then Settings for owners and admins only; nobody else sees the group |
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
-| Table, list item | TanStack table; our list item | 48px rows; list items on phones |
+| Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts (L2) |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People show by name ("by Robin Ashby", "by you") |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
-| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. An open task has Complete (outline) for a role that changes hiring data. On My tasks the candidate's name links to the application and the job is a pill |
-| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each criterion and its rating as a summary list ("Not rated" when left out) and the note quoted. Ratings and recommendations are labels, never numbers, and nothing totals or averages them (principle 9). The sheet groups each criterion's labelled radios under its name, then the required recommendation; it never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Criteria rate the job, never personality, emotion or honesty |
+| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. An open task has a checkbox for a role that changes hiring data: ticking it marks the task done, with Undo for 10 seconds. On My tasks the candidate's name links to the application and the job is a pill |
+| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. Questions are built in the form builder with the answer menu (section 21); rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (section 21). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon, the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
-| Sheet | shadcn `Sheet` (`NoteSheet`, `MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it |
+| Sheet | shadcn `Sheet` (`NoteSheet`, `MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer (section 21) are sheets too |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
@@ -360,10 +427,10 @@ in a development build, shows every component in each state, and its test fails 
 | Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template |
-| Email sheet | `EmailSheet` on shadcn `Sheet` | Email one candidate or a selection (section 9, in place): a template, the Email preview for the first candidate, and Send as the one primary. The rejection email is never offered (section 16), and no bulk email while an integrity filter or view picked the rows |
+| Email sheet | `EmailSheet` on shadcn `Sheet` | Email one candidate or a selection (section 9, in place). In the v0.3 build it becomes the email composer (section 21): start from a template or a blank email, change this one email, insert variables, and preview with the candidate's own details; Send is the one primary. The rejection email is never offered (section 16), and no bulk email while an integrity filter or view picked the rows |
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
 | Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16; on a candidate the panel becomes the Integrity tab. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
 
 ## 12. Words
 
@@ -375,14 +442,17 @@ Keep it simple: say less, and say it once.
 | Labels, not instructions | "Enter the candidate's email address" | Email |
 | Hide what cannot be used | A disabled "Request verification (phase 2)" | Nothing, until it works |
 | One line, or none | "This candidate is currently in the Screening stage." | A Screening pill |
+| Fewest words | An "Open preview in a new window" button | A window icon, with "Open in a new window" in its tooltip |
+| Mark the exception | A ScreenHire pill on built-ins and a Custom pill on your own | Built in on built-ins, nothing on yours |
+| Design for the count | "Used by Software engineer, Brightwater engineering" | 2 hiring templates, a button that lists them |
 
 Helper text only when a label cannot say it. Copy follows `.claude/rules/writing-style.md`.
 
 **Voice.**
 
-- **Recruiters:** precise and neutral. "Review suggested", "Verification recommended", "3 reasons"; never
-  "suspicious", "fake", "fraudster" or "AI-generated candidate". Every automated observation says what was observed,
-  not what it means about the person.
+- **Recruiters:** precise and neutral. "Review suggested", "Verification suggested" (never "Verify"), "3 reasons";
+  never "suspicious", "fake", "fraudster" or "AI-generated candidate". Every automated observation says what was
+  observed, not what it means about the person.
 - **Candidates:** warm, plain, honest. Explain what we look at and what we never do, before collection; offer the
   assistive-tech toggle; welcome declared AI use where the employer allows it. "A person reads every application."
 - **Marketing:** confident and specific; cite a source for every statistic; no invented numbers.
@@ -394,6 +464,7 @@ Helper text only when a label cannot say it. Copy follows `.claude/rules/writing
 | Text, headers, activity | Time ago, exact date and time on hover | 2 hours ago |
 | Tables | The date, so the column lines up and sorts | Oct 20, 2026 |
 | Older than 7 days | The date | Oct 3, 2026 |
+| Last updated (T6) | Time ago and who, the exact time on hover | 2 hours ago by Avery Quinn |
 
 Always the browser's locale (US English by default), through one shared formatter on `Intl.DateTimeFormat` and
 `Intl.RelativeTimeFormat` (`#lib/dates.ts`). The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
@@ -402,7 +473,8 @@ Always the browser's locale (US English by default), through one shared formatte
 
 Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Size 16 and
 stroke 1.75 are set once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a
-label; decorative icons are `aria-hidden`. Status shapes (section 3.2) are not icons and appear only for status.
+label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges, and no other
+control or decoration uses them. The warning triangle marks only the integrity cards that fed a level (section 16).
 
 ## 15. Shortcuts
 
@@ -422,12 +494,21 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - No score, no percentage, no reject control. The panel ends with "No automated decision has been made. Every action
   is logged."
 - Facts shown elsewhere on the page (the candidate's AI declaration) are not repeated in the panel (W4).
+- On a candidate it is the Integrity tab, with a small marker on the tab when the level needs a look (E2). The level
+  sits on its three-step scale: the current step is marked This candidate, with a thick bar and its badge, and the
+  others are thin and neutral, never faded like disabled controls. A summary card per kind of check (Network,
+  Identity, Automation, Content) says what it found. The cards that fed the level get a solid badge in the level's
+  colour with the warning triangle and a tinted border; their title icon stays neutral, and a check that found nothing
+  stays neutral. The reasons follow, and expand.
+- Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
+  Some signs or Strong signs of AI help.
 
 ## 17. Accessibility and motion
 
 - WCAG 2.2 AA. A 2px `primary` focus ring with a 2px offset on every interactive element, never removed.
 - Targets at least 24px with a mouse (2.5.8) and 44px on touch. Text at least 4.5:1; large text and boundaries 3:1.
-- Every drag has a non-drag alternative (Move to stage). Every shortcut has a visible control.
+- Every drag has a non-drag alternative (Move to stage, and the grip's Move menu, A7). Every shortcut has a visible
+  control.
 - A canvas of nodes (the workflow graph) makes each node a tab stop with the focus ring and a label that says what it
   is. Tab reaches the buttons inside a node; the arrow keys, Home and End move between nodes in reading order, and
   whatever takes the focus scrolls into view. Text in a node is clamped, with the full value in a tooltip that takes
@@ -458,7 +539,60 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
 
 ## 20. Changing the system
 
-- Change this file first. A change to a decision (anything in ADR-0010) also gets an ADR.
+- Change this file first. A change to a decision (anything in ADR-0010 or ADR-0013) also gets an ADR.
 - Tokens live in `packages/ui` and reach components through Tailwind classes; this file names them.
-- A new component or pattern joins section 11 before a second screen uses it.
+- A new component or pattern joins section 11 before a second screen uses it. A row in section 21 moves into section
+  11 when the build adds its example to the style guide, whose test reads section 11.
 - The `design-review` agent reads section 2 on every run, so a new check here is enforced from the next review on.
+
+## 21. Components the v0.3 build adds
+
+These join section 11 one by one, each when the build adds it to the style guide.
+
+| Component | Built on | Rules |
+|---|---|---|
+| Details rail | Our component | A detail page's 340px column on the right with the record's details; it never moves between tabs and folds under the header below `lg` (section 7) |
+| Tabs | shadcn `Tabs` | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in the count where one fits (Distribution 7/8, posted on 7 of 8 boards), and a small marker only where it does not (E2) |
+| Notice | Our component | A problem to fix: the status's soft colour, full width, what is wrong in words and a link to the fix (E2) |
+| Summary card | shadcn `Card` as it is, on a summary band (section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most). A link when it opens what it counts |
+| Metric card | shadcn `Card` | The value in the UI typeface, a signed change against a named period (+7 vs last week), a 12-point line and a hover readout; no description. The change is green when good and amber when it needs a look, decided per metric (fewer days to hire is good). It opens its report |
+| File row and file viewer | Our components | A page shows a file row: type icon, name, size and Download. The file opens in a full-window viewer; untrusted files render isolated |
+| Edit / Preview switch | `Toggle` group and an icon button | A8: a pencil and an eye; the window icon pops the preview out. A candidate page previews in a phone, tablet or desktop frame |
+| History sheet | `Sheet` | T6: changes newest first, grouped by day; who, when and what, with before and after on request |
+| Count button | Outline `Button` and `Sheet` | A count in a header ("2 hiring templates") that opens a sheet listing each item as a link, with search past 10 (T4) |
+| Sort header | A button in the TanStack table header | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header |
+| Built in badge | `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
+| Form builder | Our component | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms: a card per question with its answer kind top right, options listed with the mark the person will see (a circle for Choice, a square for Multi-choice) ending in Add option, and Duplicate, Delete and Required in the card's footer. Only the question being edited opens, with an accent bar; the others read as text, with an asterisk when required. Questions reorder with a grip (A7) |
+| Answer menu | `DropdownMenu` | Picks a question's answer kind, and Add a question opens the same menu. Under General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Under Rating, each with a star: 1 to 5, 1 to 10, Yes or no |
+| Rating | Our component | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from, opening to each one. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer sees it only after submitting their own; no automation acts on it |
+| Rating answer | `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale |
+| Reorder grip | Our component | A7: a drag handle whose click opens Move up, Move down, Move to top and Move to bottom |
+| Email composer | `Sheet`, and the reply box on the Messages tab | Start from a template or a blank email, change this one email, insert variables such as `firstName`, preview with the candidate's own details, then Send. It lands in Activity and Messages. Replaces the Email sheet |
+| Mention | The note field | @ mentions a teammate, who gets a notification card and an email that never quotes the note |
+| Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
+| Settings menu | Our component | Settings is one sidebar item; its pages have their own menu: Organization, Team, Roles, Branding, Integrity, API keys, Webhooks |
+
+## 22. Screens the v0.3 build changes
+
+- **Job:** the work area first. The authenticity bar becomes filter chips with counts, the stages a Stage filter,
+  and Distribution its own tab, whose count says 7/8. A refused posting is a notice that names the board and links to
+  the fix. Calm rows say nothing. The board's empty and closed stages shrink so every stage fits, and the board
+  scrolls inside itself. Workflow opens its own page from the header. Selected rows get a bar with Move and Email;
+  with an authenticity filter on, Email hides and Rejected leaves Move (ADR-0004).
+- **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
+  anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
+  ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and
+  how long ago, and filters by kind. Only a note's author edits it; the author, an Owner or an Admin deletes it, after
+  a confirm. The details rail holds the job, contact, files and tags.
+- **Templates:** one page with a tab per kind (Hiring, Scorecards, Emails). Each tab says in one sentence what its
+  templates are for, each row says where it is used, and each editor has the Edit / Preview switch. A job keeps the
+  copy of a template it started with. A built-in the team edited offers Reset to original in its menu.
+- **Settings:** one sidebar item with its own menu (section 21). Careers branding becomes Branding, and email
+  templates move to Templates.
+- **Team and Roles:** Team lists the members full width. Invite opens a sheet that describes each role, starts at
+  Viewer, the least access, and links to Compare roles. Roles is its own page: the full-width table of what each role
+  can do, and a custom role starts as a copy of an existing one.
+- **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
+- **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
+- **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API
+  reference is served in production.

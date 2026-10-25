@@ -147,7 +147,7 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
 - **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
 - **Tokens only:** colours, fonts, type sizes and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
-  `text-status-review`); never hard-code hex values or pixel font sizes. Status = shape mark + colour + text label,
+  `text-status-review`); never hard-code hex values or pixel font sizes. Status = its icon + colour + text label,
   always.
 - **Public pages ship ~0 KB JS:** Astro components and native HTML controls; Svelte islands only where behaviour is
   needed. Embeddable apply widget = iframe (never Shadow DOM).

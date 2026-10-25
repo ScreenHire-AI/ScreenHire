@@ -1,5 +1,14 @@
 # Log
 
+## 2026-10-25
+
+**Design system v0.3** ([ADR-0013](adr/0013-design-system-v0-3.md)), approved on the owner's "ScreenHire design v0.3
+review" canvas. `design/design-system.md` keeps its section numbers and checklist ids: v0.2 checks were amended in
+place and new ones added (S7, A6 to A8, W6, T6, E2, E3, L1, L2), so the `design-review` agent enforces v0.3 from its
+next run. New section 21 lists the components the v0.3 build adds, outside section 11, which the style guide's test
+reads; section 22 lists the screens it changes. CLAUDE.md, `svelte-dashboard.md`, the `add-dashboard-page` and
+`task-review` skills and the `design-review` agent now say a status is an icon, its colour and its label.
+
 ## 2026-10-23
 
 **Restructure** of `docs/` into an Open Knowledge Format v0.2 bundle (ADR-0012). Every doc is now a concept with

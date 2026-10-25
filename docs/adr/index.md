@@ -14,11 +14,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0010: Design system v0.2, simple and approachable](0010-design-system-v0-2.md) - Design system v0.2, which replaces the dense keyboard-first brief: keep it simple first, the 16px root and 14px body, a 1280px layout with page templates, five layers, status first, controls that never wrap, and how times and dates show.
 * [ADR-0011: Organization API keys now, OAuth client credentials later](0011-api-keys-for-integrators.md) - Organization API keys on the hiring API only: the shk_ key format, a SHA-256 hash with the key shown once, an authentication scheme beside the cookie, read and write scopes, no integrity levels for a key, and why OAuth client credentials with OpenIddict wait.
 * [ADR-0012: Docs as an Open Knowledge Format bundle](0012-docs-open-knowledge-format.md) - Why docs/ is an Open Knowledge Format v0.2 bundle with an index per folder, a routing description and narrow sources per concept, why no file was split, and that Kangentic measured no reading benefit at its size, so the reasons are growth and drift detection.
+* [ADR-0013: Design system v0.3, the work area first](0013-design-system-v0-3.md) - Design system v0.3, which amends v0.2: pages that fill the window, status icons instead of shapes, panels with a soft shadow, tabs and a details rail on detail pages, links that go somewhere and buttons that act, tables that sort, counts instead of lists, every fact in one home, and a candidate rating averaged from people's scorecards.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001 to 0004, 0006 to 0008, 0010 to 0012 | Accepted |
+| 0001 to 0004, 0006 to 0008, 0011 to 0013 | Accepted |
 | 0005 | Accepted with a gate: the Signal Network stays flagged off until a legal review and DPIA |
 | 0009 | Accepted, amended by 0010 |
+| 0010 | Accepted, amended by 0013 |

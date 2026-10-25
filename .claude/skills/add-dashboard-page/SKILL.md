@@ -82,7 +82,7 @@ Every page handles all four:
   input). Add `--overwrite` instead, then `git checkout --` each existing component folder it changed, so our edits
   stay. Then check `git diff package.json`. If the component needs a package that is not installed, add it with
   `pnpm --filter @screenhire/dashboard add -D <package>` and run the `licence-check` agent.
-- Status cells use `StatusBadge`: a shape mark, colour and text label (`clear`, `review`, `verify`, `ai`), with
+- Status cells use `StatusBadge`: its icon, colour and text label (`clear`, `review`, `verify`, `ai`), with
   `quiet` for calm states in a table. Never colour alone.
 - Tokens only (`bg-card`, `text-muted-foreground`). No hex, no palette colours, no pixel font sizes.
 - Integrity data shows levels, reason codes and evidence; never a score, and no reject control.

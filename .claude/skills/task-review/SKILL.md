@@ -57,7 +57,7 @@ this session, use `general-purpose` with the contents of `.claude/agents/<name>.
    - input validation, CSRF and CORS on cookie-auth endpoints;
    - licence policy for every new package (ADR-0008).
 3. **Conventions and maintainability:**
-   - frontend: runes only, `#lib` imports, tokens only, status shape plus colour plus label, WCAG 2.2 AA, public
+   - frontend: runes only, `#lib` imports, tokens only, status icon plus colour plus label, WCAG 2.2 AA, public
      pages at about 0 KB JS; the design system's checklist is `design-review`'s, not this dimension's;
    - backend: TypedResults, one `Map*Endpoints` per area, DTO records, strict numbers, Wolverine instead of
      hosted-service loops;
