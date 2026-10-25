@@ -113,8 +113,9 @@
 </main>
 
 {#snippet keys()}
+  <!-- What a key can do has one home, the API keys page (W4); this only says where it is. -->
   <p class="text-muted-foreground">
-    An API key has a scope instead of a role: Read reads jobs, candidates, applications and templates, and Write also changes
-    them. No key sees integrity results or changes settings or the team.
+    An API key has a scope instead of a role. <a href="/settings/api-keys" class="underline underline-offset-2">API keys</a> says what
+    each scope can do.
   </p>
 {/snippet}

@@ -44,7 +44,8 @@ describe('roles page', () => {
         .map((cell) => cell.textContent?.trim());
     expect(cells('Move candidates')).toEqual(['Yes', 'Yes', 'Yes', 'No']);
     expect(cells('Manage Owners')).toEqual(['Yes', 'No', 'No', 'No']);
-    expect(screen.getByText(/An API key has a scope instead of a role/)).toBeInTheDocument();
+    const keys = screen.getByText(/An API key has a scope instead of a role/);
+    expect(within(keys).getByRole('link', { name: 'API keys' })).toHaveAttribute('href', '/settings/api-keys');
     await expectNoAxeViolations();
   });
 

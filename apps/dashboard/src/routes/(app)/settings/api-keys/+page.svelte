@@ -1,5 +1,6 @@
 <script lang="ts">
   import BanIcon from '@lucide/svelte/icons/ban';
+  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import type { ApiKeyScope, ApiKeySummary, HttpValidationProblemDetails } from '@screenhire/api-client';
@@ -249,8 +250,12 @@
           <SummaryItem label="Reference">
             {#if apiOrigin}
               <span class="flex flex-wrap gap-x-4 gap-y-1">
-                <a href={`${apiOrigin}/scalar`} target="_blank" rel="noreferrer">API reference</a>
-                <a href={`${apiOrigin}/openapi/v1.json`} target="_blank" rel="noreferrer">OpenAPI file</a>
+                <a href={`${apiOrigin}/scalar`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                  <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">API reference</span> <span class="sr-only">(opens in a new tab)</span>
+                </a>
+                <a href={`${apiOrigin}/openapi/v1.json`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                  <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">OpenAPI file</span> <span class="sr-only">(opens in a new tab)</span>
+                </a>
               </span>
             {:else if meta.isError}
               <span class="text-muted-foreground">Could not find the API's address.</span>

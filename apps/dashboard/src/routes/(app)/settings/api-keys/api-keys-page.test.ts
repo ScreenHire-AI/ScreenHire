@@ -65,8 +65,8 @@ describe('API keys page', () => {
 
     expect(await within(panel).findByText('https://api.example.com/v1')).toBeInTheDocument();
     expect(within(panel).getByText('Authorization: Bearer shk_…')).toBeInTheDocument();
-    expect(within(panel).getByRole('link', { name: 'API reference' })).toHaveAttribute('href', 'https://api.example.com/scalar');
-    expect(within(panel).getByRole('link', { name: 'OpenAPI file' })).toHaveAttribute('href', 'https://api.example.com/openapi/v1.json');
+    expect(within(panel).getByRole('link', { name: 'API reference (opens in a new tab)' })).toHaveAttribute('href', 'https://api.example.com/scalar');
+    expect(within(panel).getByRole('link', { name: 'OpenAPI file (opens in a new tab)' })).toHaveAttribute('href', 'https://api.example.com/openapi/v1.json');
     expect(within(panel).getByLabelText('Example request')).toHaveTextContent('curl https://api.example.com/v1/jobs');
     await expectNoAxeViolations();
   });

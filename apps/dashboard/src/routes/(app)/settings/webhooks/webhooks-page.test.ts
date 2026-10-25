@@ -49,7 +49,7 @@ describe('webhooks page', () => {
     expect(await within(panel).findByText('application.submitted')).toBeInTheDocument();
     expect(within(panel).getByText('job.closed')).toBeInTheDocument();
     expect(within(panel).getByText('ScreenHire-Signature: t=…,v1=…')).toBeInTheDocument();
-    expect(await within(panel).findByRole('link', { name: 'Webhooks in the API reference' })).toHaveAttribute(
+    expect(await within(panel).findByRole('link', { name: 'Webhooks in the API reference (opens in a new tab)' })).toHaveAttribute(
       'href',
       'https://api.example.com/scalar#tag/webhooks',
     );

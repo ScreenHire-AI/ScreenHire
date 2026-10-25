@@ -28,7 +28,7 @@
 
 <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:items-start lg:gap-6">
   <nav aria-label="Settings" class="min-w-0 rounded-xl border border-border bg-card p-1.5 shadow-surface">
-    <ul bind:this={list} class="relative flex gap-0.5 overflow-x-auto lg:flex-col lg:overflow-visible">
+    <ul bind:this={list} class="relative flex gap-0.5 overflow-x-auto [scrollbar-width:thin] lg:flex-col lg:overflow-visible">
       {#each settingsSections as section (section.href)}
         {@const Icon = section.icon}
         <li class="shrink-0">

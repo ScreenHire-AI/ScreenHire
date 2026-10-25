@@ -938,8 +938,9 @@
         </div>
       </div>
 
-      <!-- The menu as a settings page holds it: on the page under the header band, never inside a panel (S4). -->
-      <section aria-label="Settings menu">
+      <!-- The menu as a settings page holds it: on the page under the header band, never inside a panel (S4). The menu
+           brings its own page gutter, which the negative margin cancels so it lines up with the panels around it. -->
+      <section aria-label="Settings menu" class="-mx-4 -my-6 md:-mx-6">
         <SettingsMenu current="/settings/team">
           <Panel title="Members"><p>A settings page's panels sit here, beside the menu.</p></Panel>
         </SettingsMenu>

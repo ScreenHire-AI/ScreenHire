@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import WebhookIcon from '@lucide/svelte/icons/webhook';
   import type { WebhookEndpointEntry } from '@screenhire/api-client';
@@ -199,7 +200,9 @@
           </SummaryItem>
           <SummaryItem label="Reference">
             {#if apiOrigin}
-              <a href={`${apiOrigin}/scalar#tag/webhooks`} target="_blank" rel="noreferrer">Webhooks in the API reference</a>
+              <a href={`${apiOrigin}/scalar#tag/webhooks`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">Webhooks in the API reference</span> <span class="sr-only">(opens in a new tab)</span>
+              </a>
             {:else if meta.isError}
               <span class="text-muted-foreground">Could not find the API's address.</span>
             {:else}<Skeleton class="h-4 w-48" />{/if}
