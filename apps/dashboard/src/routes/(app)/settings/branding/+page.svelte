@@ -19,6 +19,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import SettingsMenu from '#lib/components/settings-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -112,15 +113,16 @@
 </script>
 
 <svelte:head>
-  <title>Careers branding · ScreenHire</title>
+  <title>Branding · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Careers branding' }]} />
+<TopBar crumbs={[{ label: 'Settings' }, { label: 'Branding' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand form title="Careers branding" />
+  <HeaderBand title="Branding" />
 
-  <div class="mx-auto flex w-full max-w-form flex-col gap-5 px-4 py-6 md:px-6">
+  <SettingsMenu>
+    <div class="flex w-full max-w-form flex-col gap-5">
     {#if branding.isError && !detail}
       <Panel title="Brand colour">
         <QueryError message={describeError(branding.error, 'Could not load the branding')} onretry={() => branding.refetch()} inset />
@@ -196,4 +198,5 @@
       </Panel>
     {/if}
   </div>
+  </SettingsMenu>
 </main>

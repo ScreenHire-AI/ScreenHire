@@ -21,9 +21,10 @@ namespace ScreenHire.Api.Auth;
 /// </remarks>
 internal static class HiringAuthorization
 {
-    private static readonly OrganizationRole[] Writers = [OrganizationRole.Owner, OrganizationRole.Admin, OrganizationRole.Recruiter];
+    // Internal for RolePermissionsTests, which holds the permission catalogue to these two lists.
+    internal static readonly OrganizationRole[] Writers = [OrganizationRole.Owner, OrganizationRole.Admin, OrganizationRole.Recruiter];
 
-    private static readonly OrganizationRole[] Administrators = [OrganizationRole.Owner, OrganizationRole.Admin];
+    internal static readonly OrganizationRole[] Administrators = [OrganizationRole.Owner, OrganizationRole.Admin];
 
     /// <remarks>An API key needs the <see cref="ApiKeyScope.Write"/> scope instead of a role.</remarks>
     public static RouteHandlerBuilder RequireHiringRole(this RouteHandlerBuilder builder) =>

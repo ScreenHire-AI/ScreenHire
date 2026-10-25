@@ -85,6 +85,7 @@ import type {
   PublicQuestionnaireAnswers,
   PublishJobRequest,
   RemoveApplicationTagParams,
+  RoleCatalogue,
   SandboxBoardListing,
   ScorecardEntry,
   SendEmailsRequest,
@@ -4402,6 +4403,46 @@ export const getListTeamMembersUrl = () => {
 export const listTeamMembers = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listTeamMembersResponse> => {
 
   return apiFetch<listTeamMembersResponse>(getListTeamMembersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listRolesResponse200 = {
+  data: RoleCatalogue
+  status: 200
+}
+
+export type listRolesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listRolesResponseSuccess = (listRolesResponse200) & {
+  headers: Headers;
+};
+export type listRolesResponseError = (listRolesResponse401) & {
+  headers: Headers;
+};
+
+export type listRolesResponse = (listRolesResponseSuccess | listRolesResponseError)
+
+export const getListRolesUrl = () => {
+
+
+
+
+  return `/v1/organization/roles`
+}
+
+export const listRoles = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listRolesResponse> => {
+
+  return apiFetch<listRolesResponse>(getListRolesUrl(),
   {
     ...options,
     method: 'GET'

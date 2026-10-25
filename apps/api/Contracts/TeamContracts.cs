@@ -29,8 +29,28 @@ public sealed record MembershipLogEntry(
     OrganizationRole? Role,
     DateTimeOffset OccurredAt);
 
+/// <summary>
+/// The built-in roles and what each can do: the permission catalogue (<see cref="RolePermissions"/>). It describes what the
+/// server allows; it holds no organization's data.
+/// </summary>
+public sealed record RoleCatalogue(IReadOnlyList<RoleSummary> Roles, IReadOnlyList<PermissionSummary> Permissions);
+
+/// <summary>A built-in role, most access first: one line on what it is for, and its permissions in catalogue order.</summary>
+public sealed record RoleSummary(OrganizationRole Role, string Description, IReadOnlyList<Permission> Permissions);
+
+/// <summary>A permission in the order the Roles page lists it: its group, its name and one line on what it covers.</summary>
+public sealed record PermissionSummary(Permission Permission, PermissionGroup Group, string Name, string Description);
+
 internal static class TeamMappings
 {
+    public static RoleCatalogue ToCatalogue() =>
+        new(
+            [.. RolePermissions.Roles.Select(role => new RoleSummary(
+                role.Role,
+                role.Description,
+                [.. RolePermissions.Permissions.Select(p => p.Permission).Where(role.Permissions.Contains)]))],
+            [.. RolePermissions.Permissions.Select(p => new PermissionSummary(p.Permission, p.Group, p.Name, p.Description))]);
+
     public static PendingInvitation ToPending(this OrganizationInvitation invitation) =>
         new(invitation.Id, invitation.Email, invitation.Role, invitation.CreatedAt, invitation.ExpiresAt);
 

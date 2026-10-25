@@ -33,7 +33,7 @@
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline' }), className)}>
+  <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }), className)}>
     <ArrowUpDownIcon aria-hidden="true" />Sort
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="min-w-52">

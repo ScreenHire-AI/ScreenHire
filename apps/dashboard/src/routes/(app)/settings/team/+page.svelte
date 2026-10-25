@@ -11,6 +11,7 @@
     createCreateInvitation,
     createListApiKeys,
     createListInvitations,
+    createListRoles,
     createListTeamMembers,
     createRemoveMember,
     createRevokeApiKey,
@@ -18,6 +19,15 @@
   } from '@screenhire/api-client/svelte-query';
   import { CreateInvitationBody } from '@screenhire/api-client/zod';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import {
+    createSortedRowModel,
+    createTable,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
@@ -29,28 +39,32 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-  import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { assignableRoles, mayManage, roleDescriptions } from '#lib/settings.js';
+  import { assignableRoles, mayManage, roles } from '#lib/settings.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
 
   // The team (sign-in-and-tenancy.md, "Team members and invitations"): members with their roles, and the invitations
   // nobody has answered yet, on the list template. Owners manage everyone; admins everyone but owners (TeamPolicy). Your
-  // own row has no actions: handing over is done by another owner.
+  // own row has no actions: handing over is done by another owner. Invite opens a sheet that describes each role from the
+  // API's permission catalogue and starts at Viewer, the least access (design system section 22).
   let { data }: PageProps = $props();
 
   const membersPath = '/v1/organization/members';
@@ -66,6 +80,7 @@
   // Removing a member offers to revoke the API keys they created (ADR-0011): a key outlives its creator otherwise.
   const keys = createListApiKeys();
   const revokeKey = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/api-keys') } }));
+  const catalogue = createListRoles();
   const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
 
   const actor = $derived<OrganizationRole>(data.user?.organization?.role ?? 'Viewer');
@@ -74,6 +89,46 @@
   const invitationList = $derived(invitations.data?.data ?? []);
   const offered = $derived(assignableRoles(actor));
   const manageable = (member: TeamMember) => member.userId !== myId && mayManage(actor, member.role);
+  const roleDescription = (role: OrganizationRole) => catalogue.data?.data.roles.find((summary) => summary.role === role)?.description;
+
+  // Both tables sort (L2): people by name, roles by access (Owner first), dates newest first on the first click.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  const rank = (role: OrganizationRole) => roles.indexOf(role);
+  // `any`: one list mixes columns of different value types.
+  const memberColumns: ColumnDef<typeof features, TeamMember, any>[] = [
+    { id: 'name', header: 'Name', accessorFn: (member) => member.displayName, sortFn: 'alphanumeric' },
+    { id: 'email', header: 'Email', accessorFn: (member) => member.email, sortFn: 'alphanumeric' },
+    { id: 'role', header: 'Role', accessorFn: (member) => rank(member.role), sortFn: 'basic', sortDescFirst: false },
+    { id: 'joined', header: 'Joined', accessorFn: (member) => member.joinedAt, sortFn: 'basic', sortDescFirst: true },
+  ];
+  const invitationColumns: ColumnDef<typeof features, PendingInvitation, any>[] = [
+    { id: 'email', header: 'Email', accessorFn: (invitation) => invitation.email, sortFn: 'alphanumeric' },
+    { id: 'role', header: 'Role', accessorFn: (invitation) => rank(invitation.role), sortFn: 'basic', sortDescFirst: false },
+    { id: 'sent', header: 'Sent', accessorFn: (invitation) => invitation.createdAt, sortFn: 'basic', sortDescFirst: true },
+    { id: 'expires', header: 'Expires', accessorFn: (invitation) => invitation.expiresAt, sortFn: 'basic' },
+  ];
+  const memberSort = createTableSort('team-members', { id: 'name', desc: false }, ['name', 'email', 'role', 'joined']);
+  const invitationSort = createTableSort('team-invitations', { id: 'email', desc: false }, ['email', 'role', 'sent', 'expires']);
+  const memberTable = createTable({
+    ...tableSortOptions(() => memberSort),
+    features,
+    columns: memberColumns,
+    get data() {
+      return memberList;
+    },
+    getRowId: (member) => member.id,
+  });
+  const invitationTable = createTable({
+    ...tableSortOptions(() => invitationSort),
+    features,
+    columns: invitationColumns,
+    get data() {
+      return invitationList;
+    },
+    getRowId: (invitation) => invitation.id,
+  });
+  const sortedMembers = $derived(memberTable.getRowModel().rows.map((row) => row.original));
+  const sortedInvitations = $derived(invitationTable.getRowModel().rows.map((row) => row.original));
 
   // A role change or removal that failed, in one line under the members.
   let memberFailure = $state('');
@@ -151,7 +206,7 @@
     email: z.string().trim().min(1, 'Enter an email address.').max(256, 'Keep the address to 256 characters or fewer.'),
     role: z.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
   });
-  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'Recruiter' as OrganizationRole }, zod4(schema)), {
+  const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'Viewer' as OrganizationRole }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -181,7 +236,7 @@
   });
 
   $effect(() => {
-    if (inviting) reset({ data: { email: '', role: 'Recruiter' } });
+    if (inviting) reset({ data: { email: '', role: 'Viewer' } });
   });
 </script>
 
@@ -199,7 +254,7 @@
     actions={sidebar.isMobile ? undefined : inviteButton}
   />
 
-  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+  <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>
 
     <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>
@@ -217,9 +272,10 @@
         </div>
         <p class="sr-only" role="status">Loading the team…</p>
       {:else}
-        <!-- Phones get two-line items (design system section 8); wider screens the table. -->
+        <!-- Phones get two-line items and the Sort chip (design system section 8, L2); wider screens the table. -->
+        <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={memberTable} /></div>
         <ul class="md:hidden">
-          {#each memberList as member (member.id)}
+          {#each sortedMembers as member (member.id)}
             <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
               <div class="flex min-w-0 flex-1 flex-col gap-1.5">
                 <span class="flex min-w-0 flex-wrap items-center gap-2">
@@ -236,16 +292,17 @@
         <div class="overflow-x-auto max-md:hidden">
           <Table.Root>
             <Table.Header>
-              <Table.Row class="bg-muted hover:bg-muted">
-                <Table.Head class="px-4.5">Name</Table.Head>
-                <Table.Head>Email</Table.Head>
-                <Table.Head>Role</Table.Head>
-                <Table.Head>Joined</Table.Head>
-                <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-              </Table.Row>
+              {#each memberTable.getHeaderGroups() as group (group.id)}
+                <Table.Row class="bg-muted hover:bg-muted">
+                  {#each group.headers as header (header.id)}
+                    <SortHeader {header} class={header.id === 'name' ? 'px-4.5' : undefined} />
+                  {/each}
+                  <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+                </Table.Row>
+              {/each}
             </Table.Header>
             <Table.Body>
-              {#each memberList as member (member.id)}
+              {#each sortedMembers as member (member.id)}
                 <Table.Row class="h-12">
                   <Table.Cell class="max-w-64 px-4.5">
                     <span class="flex min-w-0 items-center gap-2">
@@ -281,8 +338,9 @@
           <Empty.Content><Button variant="outline" size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button></Empty.Content>
         </Empty.Root>
       {:else}
+        <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={invitationTable} /></div>
         <ul class="md:hidden">
-          {#each invitationList as invitation (invitation.id)}
+          {#each sortedInvitations as invitation (invitation.id)}
             <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
               <div class="flex min-w-0 flex-1 flex-col gap-1.5">
                 <span class="min-w-0 font-semibold break-all">{invitation.email}</span>
@@ -298,16 +356,17 @@
         <div class="overflow-x-auto max-md:hidden">
           <Table.Root>
             <Table.Header>
-              <Table.Row class="bg-muted hover:bg-muted">
-                <Table.Head class="px-4.5">Email</Table.Head>
-                <Table.Head>Role</Table.Head>
-                <Table.Head>Sent</Table.Head>
-                <Table.Head>Expires</Table.Head>
-                <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-              </Table.Row>
+              {#each invitationTable.getHeaderGroups() as group (group.id)}
+                <Table.Row class="bg-muted hover:bg-muted">
+                  {#each group.headers as header (header.id)}
+                    <SortHeader {header} class={header.id === 'email' ? 'px-4.5' : undefined} />
+                  {/each}
+                  <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+                </Table.Row>
+              {/each}
             </Table.Header>
             <Table.Body>
-              {#each invitationList as invitation (invitation.id)}
+              {#each sortedInvitations as invitation (invitation.id)}
                 <Table.Row class="h-12">
                   <Table.Cell class="w-full max-w-0 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
                   <Table.Cell>{invitation.role}</Table.Cell>
@@ -321,7 +380,7 @@
         </div>
       {/if}
     </Panel>
-  </div>
+  </SettingsMenu>
 
   {#if sidebar.isMobile}
     <ActionBar>{@render inviteButton()}</ActionBar>
@@ -386,13 +445,13 @@
   {#snippet icon()}<XIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
 
-<Dialog.Root bind:open={inviting}>
-  <Dialog.Content class="sm:max-w-md">
-    <Dialog.Header>
-      <Dialog.Title>Invite a colleague</Dialog.Title>
-      <Dialog.Description>They get an email with a link to join. It works for 7 days.</Dialog.Description>
-    </Dialog.Header>
-    <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
+<Sheet.Root bind:open={inviting}>
+  <Sheet.Content side="right" class="w-full overflow-y-auto">
+    <Sheet.Header>
+      <Sheet.Title>Invite a colleague</Sheet.Title>
+      <Sheet.Description>They get an email with a link to join. It works for 7 days.</Sheet.Description>
+    </Sheet.Header>
+    <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4">
       <Field.Field data-invalid={$errors.email ? true : undefined}>
         <Field.Label for="invite-email">Email</Field.Label>
         <Input
@@ -408,19 +467,31 @@
         />
         <Field.Error id="invite-email-error" errors={$errors.email?.map((message) => ({ message }))} />
       </Field.Field>
-      <Field.Field data-invalid={$errors.role ? true : undefined}>
-        <Field.Label for="invite-role">Role</Field.Label>
-        <select id="invite-role" name="role" class={selectClass} bind:value={$form.role} aria-describedby="invite-role-hint">
-          {#each offered as role (role)}<option value={role}>{role}</option>{/each}
-        </select>
-        <Field.Description id="invite-role-hint">{roleDescriptions[$form.role]}</Field.Description>
+      <div class="flex flex-col gap-2">
+        <div class="mb-1 flex items-baseline justify-between gap-3">
+          <span id="invite-role-label" class="text-body font-medium">Role</span>
+          <a href="/settings/roles" class="text-caption underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">Compare roles</a>
+        </div>
+        <div role="radiogroup" aria-labelledby="invite-role-label" class="flex flex-col gap-2">
+          {#each offered as role (role)}
+            <label
+              class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
+            >
+              <input type="radio" name="role" value={role} bind:group={$form.role} class="mt-0.5 size-4 shrink-0 accent-primary" />
+              <span class="flex min-w-0 flex-col gap-0.5">
+                <span class="font-semibold">{role}</span>
+                {#if roleDescription(role)}<span class="text-muted-foreground">{roleDescription(role)}</span>{/if}
+              </span>
+            </label>
+          {/each}
+        </div>
         <Field.Error errors={$errors.role?.map((message) => ({ message }))} />
-      </Field.Field>
+      </div>
       <FailureText message={$errors._errors?.[0]} />
-      <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+      <div class="flex justify-end gap-2">
+        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
         <Button type="submit" size="lg" disabled={$submitting}><SendIcon aria-hidden="true" />Send invitation</Button>
-      </Dialog.Footer>
+      </div>
     </form>
-  </Dialog.Content>
-</Dialog.Root>
+  </Sheet.Content>
+</Sheet.Root>

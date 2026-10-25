@@ -130,7 +130,7 @@ office days in Manchester, accounts looked after and a customer kept. The answer
 link is an `example.org` address. A data volume from before the questionnaires gets them on the next start, but the
 designer and frontend candidates in it applied without answers and stay that way. Use `/preview fresh` to see every answer.
 
-Between them every stage of both pipelines holds someone. The Distribution panels show the states a local stack can
+Between them every stage of both pipelines holds someone. The jobs' Distribution tabs show the states a local stack can
 reach: Live (careers page, sandbox board), Sent (feeds and the job-board API), Needs fixes (a feed that wants a longer
 description), Not posted, Removal requested and Removed. Rejected and Error need a real board's answer and do not occur
 locally.
@@ -160,10 +160,10 @@ makes have no history until someone edits them.
 
 ## A five-minute demo
 
-1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, and the Status filter
-   counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification suggested".
-2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The Authenticity panel counts the seven applicants
-   by level, each level's toggle filters the table to it, and each row has its chip. Open Jordan Vale and its Integrity tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
+1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, opens on the last
+   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification suggested".
+2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
+   applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Integrity tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
    percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and
@@ -175,7 +175,7 @@ makes have no history until someone edits them.
    Screening and Interview emails for the designer and frontend candidates.
 4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** opens the form with everything the
    posting carries (salary, location, closing date, description). Back on the job, press **Publish to 8 boards**, the
-   page's one primary action. The careers page
+   page's one primary action. The Distribution tab counts the boards the job is on. The careers page
    is live at once; the local sandbox board confirms in about 20 seconds; the feed boards show "Sent" with each one's
    usual delay. The job is now on http://localhost:4322/brightwater.
 5. **Apply as a candidate (60 s).** On the careers page, open the new job and apply: the notice comes first, then three
@@ -193,10 +193,15 @@ second browser window on the same job to show live updates.
 
 Settings, as Avery (owners and admins only):
 
-- **Careers branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
+Settings is one item at the bottom of the sidebar; its pages share the Settings menu.
+
+- **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for; **Compare roles**
+  opens Roles, the table of what each role can do.
+- **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
   http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
   back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.
 - **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
+  Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
   from the row's menu.
 - **Email templates.** Open "Application received", change the subject, and the preview with the made-up Jordan Lee

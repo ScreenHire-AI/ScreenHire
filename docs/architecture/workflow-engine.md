@@ -46,7 +46,11 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
-  - resource: apps/dashboard/src/lib/components/workflow/question-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
+  - resource: apps/dashboard/src/lib/components/form-builder.svelte
+  - resource: apps/dashboard/src/lib/components/answer-menu.svelte
+  - resource: apps/dashboard/src/routes/(preview)/preview/form/+page.svelte
+  - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/sla.ts
 ---
 # Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates
@@ -130,8 +134,8 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
   enters *Screening* → send *Questionnaire A*; if *work authorisation = No* → queue for rejection review".
 - **Graph view** (power users): node-graph editor showing triggers → conditions → actions across stages. Same
   underlying model; the graph is a projection, not a separate format.
-- **Questionnaire builder** with live preview rendering the **same question components** the candidate sees on the
-  Astro apply page (shared component package — a factor in the dashboard framework decision).
+- **Questionnaire builder** with a preview rendering the **same question components** the candidate sees on the
+  Astro apply page (shared component package, a factor in the dashboard framework decision).
 - **Simulation**: "test this workflow" runs a sample application through the definition and shows which automations
   would fire — essential trust feature, cheap because evaluation is deterministic.
 
@@ -170,13 +174,20 @@ validation result is a status badge beside the page title.
   shows on the node its path names, an automation's own messages on its trigger node, as it does on the form control.
   Closing the form returns the focus to the graph. On a phone the graph is for reading, with no buttons, and says to
   edit in Pipeline. A version that cannot be edited draws the same graph with no buttons.
-- **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, as a question list
-  (`question-list.svelte`) beside a live preview rendered by the shared components in `packages/ui/src/questions`, the
-  ones the careers pages render. The apply form's preview starts with the candidate's details and the resume; a
-  follow-up's is its questions alone, as its page shows them. A follow-up offers every answer type but a file upload.
-  Marking a yes/no question as a knockout shows what a knockout may be (an objective eligibility check, never AI use or
-  an accommodation). The automation form offers "Send a questionnaire" and the "questionnaire answered" trigger's
-  picker only when the workflow has a follow-up to name.
+- **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, in the form builder
+  (`#lib/components/form-builder.svelte`, design system section 11): a row per question that opens to edit, with its
+  answer kind from the answer menu, Duplicate, Delete, Required and a grip to reorder. The kinds a question takes
+  (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; a follow-up offers all but File,
+  because its page takes no uploads. What a kind needs beyond its text and options (a knockout, a number's range, the
+  longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow, so
+  `answers.{id}` still names one question. The Edit / Preview switch shows the candidate's form at phone, tablet or
+  desktop width, rendered by the shared components in `packages/ui/src/questions` that the careers pages render, and
+  its window icon opens it at `/preview/form`, a window that follows each edit. The apply form's preview starts with the
+  candidate's details and the resume; a follow-up's is its questions alone, as its page shows them. Marking a yes/no
+  question as a knockout shows what a knockout may be (an objective eligibility check, never AI use or an
+  accommodation). The automation form offers "Send a questionnaire" and the "questionnaire answered" trigger's picker
+  only when the workflow has a follow-up to name. A version that cannot be edited reads its questions as content, with
+  the same switch.
 - **Simulate:** a sample application's answers, tags, source, hours in stage and integrity levels through
   `POST /v1/workflows/simulate`, unsaved changes included.
 

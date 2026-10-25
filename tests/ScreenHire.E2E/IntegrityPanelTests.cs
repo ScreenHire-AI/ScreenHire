@@ -60,7 +60,7 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: No signs of AI help");
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the chips updated in place");
 
-        var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity levels" });
+        var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
         await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 1" })).ToBeVisibleAsync();
         await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();

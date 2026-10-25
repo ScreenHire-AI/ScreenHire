@@ -5,17 +5,16 @@
   import { canChangeHiringData } from '#lib/auth.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
-  import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
+  import AuthenticityFilter from '#lib/components/authenticity-filter.svelte';
   import EmailSheet from '#lib/components/email-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
-  import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
+  import FilterMenu from '#lib/components/filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import SelectionBar from '#lib/components/selection-bar.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
@@ -34,11 +33,11 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
-  import { cn } from '#lib/utils.js';
 
-  // A job's candidates as a table or a board, in the job page's main column (design system section 7). Search, the
-  // integrity filter and a bulk move sit in the panel header, the stage filter on a row under it. The page filters
-  // nothing itself, and shows the selected candidate (`activeId`) in its side column.
+  // A job's candidates as a table or a board, the job page's work area (design system section 22). The panel header holds
+  // the search and the view switch; the row under it holds the Stage filter and the authenticity chips, one line that
+  // scrolls inside the panel (F5). Ticked rows get the selection bar. On a phone the filters are menus beside the Sort
+  // chip. The page filters nothing itself.
   let {
     jobTitle,
     stages,
@@ -49,7 +48,6 @@
     moves,
     integrityFilter = $bindable({ ...noIntegrityFilter }),
     view = $bindable('table'),
-    activeId = $bindable(null),
   }: {
     jobTitle: string;
     stages: readonly WorkflowStage[];
@@ -59,14 +57,11 @@
     error: unknown;
     onretry: () => unknown;
     moves: Moves;
-    /** Shared with the job's integrity overview, whose legend sets it through `setIntegrityFilter`. */
     integrityFilter?: IntegrityFilter;
     view?: 'table' | 'board';
-    /** The keyboard cursor's row (J / K), shown by the page in its side column. */
-    activeId?: string | null;
   } = $props();
 
-  // The sidebar's own phone test (under md), where the search moves out of the header.
+  // The sidebar's own phone test (under md), where the search moves out of the header and the filters become menus.
   const sidebar = Sidebar.useSidebar();
 
   let stageFilter = $state<string | null>(null);
@@ -74,10 +69,11 @@
   let selectedIds = $state<string[]>([]);
 
   const searched = $derived(applications.filter((application) => matchesSearch(application, search)));
-  const shown = $derived(
-    searched.filter((application) => (!stageFilter || application.stage.id === stageFilter) && matchesIntegrityFilter(application, integrityFilter)),
-  );
-  const filtering = $derived(Boolean(stageFilter) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
+  const onBoard = $derived(searched.filter((application) => matchesIntegrityFilter(application, integrityFilter)));
+  // A stage taken out of the workflow on its own page filters nothing, and the menu reads All again.
+  const chosenStage = $derived(stages.some((stage) => stage.id === stageFilter) ? stageFilter : null);
+  const shown = $derived(onBoard.filter((application) => !chosenStage || application.stage.id === chosenStage));
+  const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
   const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
@@ -86,7 +82,9 @@
   const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user));
   let emailOpen = $state(false);
   let emailed = $state('');
-  const countIn = (stageId: string) => applications.filter((application) => application.stage.id === stageId).length;
+  const stageOptions = $derived(
+    stages.map((stage) => ({ value: stage.id, label: stage.name, count: applications.filter((application) => application.stage.id === stage.id).length })),
+  );
   const views = [
     { id: 'table', label: 'Table' },
     { id: 'board', label: 'Board' },
@@ -94,12 +92,11 @@
 
   /**
    * A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
-   * filter's menu (bulkMoveStages, ADR-0004). The filter applies to the table, so it shows the table.
+   * filter's menu (bulkMoveStages, ADR-0004).
    */
-  export function setIntegrityFilter(next: IntegrityFilter) {
+  function setIntegrityFilter(next: IntegrityFilter) {
     integrityFilter = next;
     selectedIds = [];
-    view = 'table';
   }
 
   // Keeps the view: the board's empty state clears its search here, and stays on the board.
@@ -120,35 +117,19 @@
   }
 
   async function moveSelected(stage: WorkflowStage) {
-    // The ones that failed stay selected, so they can be moved again.
-    selectedIds = await moves.moveAll(selected, stage);
+    // The ones that failed stay selected, so they can be moved again, and so do the ticked rows a filter hides.
+    const moving = selected.map((application) => application.id);
+    const failed = await moves.moveAll(selected, stage);
+    selectedIds = [...selectedIds.filter((id) => !moving.includes(id)), ...failed];
   }
 </script>
 
 <!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. On a phone the
-     header has no room for a usable search beside the view switch, so the search takes its own row under it (F5). -->
-<Panel title="Pipeline" count={pending ? undefined : applications.length} flush {onkeydown}>
+     header has no room for a usable search beside the view switch, so the search takes its own row under it (F5). The
+     board fills the panel, which fills the page's height, so it scrolls inside itself. -->
+<Panel title="Pipeline" flush fill={view === 'board'} class={view === 'board' ? 'min-h-0 flex-1' : undefined} {onkeydown}>
   {#snippet tools()}
     {#if !sidebar.isMobile}{@render searchField('flex-[0_1_15rem] @max-3xl/panel:flex-1')}{/if}
-    {#if view === 'table'}
-      <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
-      {#if selected.length > 0}
-        <DropdownMenu.Root>
-          <!-- The count sits in the count badge after the label (T4); the name says what it counts. -->
-          <DropdownMenu.Trigger aria-label="Move {selected.length} selected…" class={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}
-            >Move <Badge variant="count">{selected.length}</Badge></DropdownMenu.Trigger
-          >
-          <DropdownMenu.Content align="end" class="w-52">
-            {#each moveTargets as stage (stage.id)}
-              <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
-            {/each}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-        {#if canEmail && !isIntegrityFiltered(integrityFilter)}
-          <EmailSelectionButton count={selected.length} onclick={() => (emailOpen = true)} />
-        {/if}
-      {/if}
-    {/if}
   {/snippet}
   {#snippet actions()}
     <div role="group" aria-label="View" class="flex gap-1">
@@ -174,18 +155,29 @@
   {#if sidebar.isMobile}
     <div class="flex border-b border-border-subtle px-4 py-2">{@render searchField('flex-1')}</div>
   {/if}
-  {#if view === 'table'}
-    <!-- The stage filter: one line that scrolls inside the panel rather than wrapping (F5). -->
-    <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-      <div role="group" aria-label="Stage" class="flex shrink-0 gap-1">
-        {#each [{ id: null, name: 'All', count: applications.length }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
-          <Toggle size="lg" bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
-            {option.name}
-            {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}
-          </Toggle>
-        {/each}
+  {#if !pending && !error}
+    {#if !sidebar.isMobile}
+      <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5). The board's columns are the
+           stages, so only the table has the Stage filter. -->
+      <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2">
+        {#if view === 'table'}{@render stageMenu()}{/if}
+        <AuthenticityFilter {applications} filter={integrityFilter} onchange={setIntegrityFilter} />
       </div>
-    </div>
+    {:else if view === 'board'}
+      <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
+        <AuthenticityFilter {applications} filter={integrityFilter} onchange={setIntegrityFilter} menu />
+      </div>
+    {/if}
+    {#if view === 'table' && selected.length > 0}
+      <SelectionBar
+        count={selected.length}
+        stages={moveTargets}
+        onmove={moveSelected}
+        disabled={moves.pending}
+        onemail={canEmail && !isIntegrityFiltered(integrityFilter) ? () => (emailOpen = true) : undefined}
+        onclear={() => (selectedIds = [])}
+      />
+    {/if}
   {/if}
 
   {#if error}
@@ -204,18 +196,22 @@
       {stages}
       {moves}
       extraColumns={integrityColumns}
-      bind:activeId
       bind:selectedIds
       emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
       onclearfilters={filtering ? clearFilters : undefined}
-    />
-  {:else if searched.length === 0}
+    >
+      {#snippet filters()}
+        {@render stageMenu()}
+        <AuthenticityFilter {applications} filter={integrityFilter} onchange={setIntegrityFilter} menu />
+      {/snippet}
+    </ApplicationTable>
+  {:else if onBoard.length === 0}
     <Empty.Root class="gap-3 p-6">
-      <Empty.Description>{search.trim() ? 'No candidates match this search.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
-      {#if search.trim()}<Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>{/if}
+      <Empty.Description>{filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
+      {#if filtering}<Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>{/if}
     </Empty.Root>
   {:else}
-    <PipelineBoard applications={searched} {stages} {moves} />
+    <PipelineBoard applications={onBoard} {stages} {moves} />
   {/if}
   <!-- A move that worked is a quiet line; a failed one is a problem to fix (T1). -->
   <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{moves.failure ? '' : moves.announcement}</p>
@@ -229,4 +225,8 @@
 
 {#snippet searchField(className: string)}
   <SearchField bind:value={search} label="Search candidates" class={className} />
+{/snippet}
+
+{#snippet stageMenu()}
+  <FilterMenu label="Stage" options={stageOptions} total={applications.length} bind:value={stageFilter} />
 {/snippet}

@@ -16,6 +16,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import SettingsMenu from '#lib/components/settings-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -83,9 +84,10 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Organization' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand form title="Organization" />
+  <HeaderBand title="Organization" />
 
-  <div class="mx-auto flex w-full max-w-form flex-col gap-5 px-4 py-6 md:px-6">
+  <SettingsMenu>
+    <div class="flex w-full max-w-form flex-col gap-5">
     {#if organization.isError && !detail}
       <Panel title="Details">
         <QueryError message={describeError(organization.error, 'Could not load the organization')} onretry={() => organization.refetch()} inset />
@@ -138,4 +140,5 @@
       </Panel>
     {/if}
   </div>
+  </SettingsMenu>
 </main>

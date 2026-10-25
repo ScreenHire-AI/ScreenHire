@@ -15,22 +15,17 @@
   import { jobsPath } from '#lib/realtime.js';
   import { needsAttention } from '#lib/status.js';
 
-  // Where the job is posted: one row per board with its state as a status badge, the board's estimate as a fact pill
-  // and the one thing the person can do there. Publishing a draft to every board is the page's primary action, in its
-  // header band; closing the job is its More menu.
+  // Where the job is posted, the job page's Distribution tab: one row per board with its state as a status badge, the
+  // board's estimate as a fact pill and the one thing the person can do there. A posting that needs fixes says what is
+  // wrong in words (E2). Publishing a draft to every board is the page's primary action, in its header band, and what it
+  // did shows above the tabs; closing the job is its More menu.
   let {
     job,
     boards,
-    notice = '',
-    publishFailure = '',
     now: fixedNow,
   }: {
     job: Pick<JobDetail, 'id' | 'status' | 'postings'>;
     boards: readonly BoardSummary[];
-    /** A message about the boards from the page, such as what saving the job's details did. */
-    notice?: string;
-    /** Why the page's "Publish to N boards" failed. */
-    publishFailure?: string;
     /** A fixed clock for tests; the panel otherwise ticks every 15 s so estimates count down. */
     now?: number;
   } = $props();
@@ -80,7 +75,8 @@
   };
 </script>
 
-<Panel title="Distribution" count={rows.length} flush footer={failure || publishFailure || notice ? messages : undefined}>
+<!-- The tab's count says how many boards the job is on, so the panel's title has none (W4). -->
+<Panel title="Distribution" flush footer={failure ? messages : undefined}>
   {#if rows.length === 0}
     <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">No job boards are set up.</p>
   {:else}
@@ -121,7 +117,18 @@
               </Hint>
             {/if}
           </div>
-          <span class="sr-only">{view.detail}</span>
+          <!-- What is wrong, in words (E2); a calm state's meaning is in its tooltip and for screen readers. -->
+          {#if needsAttention(view.status)}
+            <p data-posting-problem class="text-body text-muted-foreground">
+              {view.detail}
+              <!-- Issues the board's checks found are in the job's own details, which is where they are fixed. -->
+              {#if row.posting?.state === 'Draft' && job.status !== 'Closed'}
+                <a href={`/jobs/${job.id}/edit`} class="font-semibold text-primary underline underline-offset-2">Edit details</a>
+              {/if}
+            </p>
+          {:else}
+            <span class="sr-only">{view.detail}</span>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -129,8 +136,5 @@
 </Panel>
 
 {#snippet messages()}
-  <div class="flex flex-col gap-1">
-    <FailureText message={failure || publishFailure} />
-    <p role="status" class="text-body text-muted-foreground empty:hidden">{notice}</p>
-  </div>
+  <FailureText message={failure} />
 {/snippet}

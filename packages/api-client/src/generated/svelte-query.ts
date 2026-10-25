@@ -101,6 +101,7 @@ import type {
   PublicQuestionnaireAnswers,
   PublishJobRequest,
   RemoveApplicationTagParams,
+  RoleCatalogue,
   SandboxBoardListing,
   ScorecardEntry,
   SendEmailsRequest,
@@ -7965,6 +7966,94 @@ export function createListTeamMembers<TData = Awaited<ReturnType<typeof listTeam
 
 
   const query = createQuery(() => getListTeamMembersQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listRolesResponse200 = {
+  data: RoleCatalogue
+  status: 200
+}
+
+export type listRolesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listRolesResponseSuccess = (listRolesResponse200) & {
+  headers: Headers;
+};
+export type listRolesResponseError = (listRolesResponse401) & {
+  headers: Headers;
+};
+
+export const getListRolesUrl = () => {
+
+
+
+
+  return `/v1/organization/roles`
+}
+
+export const listRoles = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listRolesResponseSuccess> => {
+
+  return apiQueryFetch<listRolesResponseSuccess>(getListRolesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRolesQueryKey = () => {
+    return [
+    'v1','organization','roles'
+    ] as const;
+    }
+
+
+export const getListRolesQueryOptions = <TData = Awaited<ReturnType<typeof listRoles>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRolesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoles>>> = ({ signal }) => listRoles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listRoles>>>
+export type ListRolesQueryError = ErrorType<void>
+
+
+
+export function createListRoles<TData = Awaited<ReturnType<typeof listRoles>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListRolesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }

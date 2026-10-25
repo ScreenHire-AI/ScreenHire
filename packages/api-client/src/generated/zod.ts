@@ -65,8 +65,9 @@ export const ListAutomationIssuesResponse = zod.array(ListAutomationIssuesRespon
 export const GetMetaResponse = zod.object({
   "name": zod.string(),
   "version": zod.string(),
-  "environment": zod.string()
-}).describe('What is serving this API: the product name, the build version and the hosting environment.')
+  "environment": zod.string(),
+  "apiOrigin": zod.string()
+}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\r\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.')
 
 
 export const GetSignInMethodsResponse = zod.object({
@@ -4483,6 +4484,21 @@ export const ListTeamMembersResponseItem = zod.object({
   "joinedAt": zod.iso.datetime({"offset":true})
 }).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.')
 export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
+
+
+export const ListRolesResponse = zod.object({
+  "roles": zod.array(zod.object({
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer']),
+  "description": zod.string(),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'))
+}).describe('A built-in role, most access first: one line on what it is for, and its permissions in catalogue order.')),
+  "permissions": zod.array(zod.object({
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'),
+  "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
+  "name": zod.string(),
+  "description": zod.string()
+}).describe('A permission in the order the Roles page lists it: its group, its name and one line on what it covers.'))
+}).describe('The built-in roles and what each can do: the permission catalogue (RolePermissions). It describes what the\r\nserver allows; it holds no organization\'s data.')
 
 
 export const ListInvitationsResponseItem = zod.object({

@@ -9,8 +9,9 @@ describe('record tabs', () => {
 
     expect(screen.getByRole('tablist', { name: 'Job sections' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Candidates 24' })).toHaveAttribute('aria-selected', 'true');
-    // The count reads 7/8 on screen and in words for screen readers.
-    const distribution = screen.getByRole('tab', { name: 'Distribution, posted on 7 of 8 boards' });
+    // The count reads 7/8 on screen and in words for screen readers. A browser puts a space before the badge, which jsdom
+    // does not; the end-to-end tests pin the browser's name.
+    const distribution = screen.getByRole('tab', { name: /^Distribution ?posted on 7 of 8 boards$/ });
     expect(distribution).toHaveTextContent('7/8');
     // The marker is a dot, not a status icon (I2), with its words.
     const integrity = screen.getByRole('tab', { name: 'Integrity, verification suggested' });

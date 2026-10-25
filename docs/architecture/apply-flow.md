@@ -57,7 +57,7 @@ challenge's site key. Every form asks for a resume: the questionnaire's own `res
 (`ApplicationForm.DefaultResumeQuestion`).
 
 The fields are the shared question components in `packages/ui/src/questions` (`TextField`, `ChoiceField`,
-`QuestionField`, `FileField`), the same Svelte components the dashboard's questionnaire builder previews, so the
+`QuestionField`, `FileField`), the same Svelte components the dashboard's form builder previews, so the
 preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
 they ship no JavaScript; only file questions hydrate, as `FileField` islands. Their field names (`q:{id}`,
 `file:{id}`, `upload:{id}`) and element ids (`field-...`) come from `packages/ui/src/questions/model.ts`, which
@@ -157,7 +157,7 @@ colour that fails is darkened in OKLCH lightness, keeping its hue, until it pass
 responses carry the palette; the careers server turns it into a stylesheet named by a hash of its content
 (`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. Owners
 and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette, from the
-dashboard's Settings > Careers branding page; the Development seed gives Brightwater one.
+dashboard's Settings > Branding page; the Development seed gives Brightwater one.
 
 Careers pages run under a strict policy: Astro's `security.csp` (hashes for what Astro emits, `default-src 'none'`,
 no `unsafe-inline`), stylesheets never inlined, the apply page adding `connect-src` for the upload origin (and
