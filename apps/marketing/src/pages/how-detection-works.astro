@@ -1,5 +1,6 @@
 ---
 import Faqs from '../components/Faqs.astro';
+import StatusIcon from '../components/StatusIcon.astro';
 import PageHeader from '../components/PageHeader.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pages } from '../lib/pages';
@@ -10,10 +11,10 @@ const { title, description, path, label } = pages.detection;
 // Source of truth: ADR-0004 and docs/architecture/integrity-engine.md. v1 covers the application stage only; ID
 // verification and interview checks are later phases, and the copy says so.
 const levels = [
-  { name: 'No concerns', mark: 'rounded-full bg-status-clear-mark', chip: 'bg-status-clear-soft text-status-clear' },
-  { name: 'Review suggested', mark: 'rotate-45 bg-status-review-mark', chip: 'bg-status-review-soft text-status-review' },
-  { name: 'Verification recommended', mark: 'bg-status-verify-mark', chip: 'bg-status-verify-soft text-status-verify' },
-];
+  { name: 'No concerns', status: 'done', icon: 'text-status-clear-mark', chip: 'bg-status-clear-soft text-status-clear' },
+  { name: 'Review suggested', status: 'review', icon: 'text-status-review-mark', chip: 'bg-status-review-soft text-status-review' },
+  { name: 'Verification suggested', status: 'verification', icon: 'text-status-verify-mark', chip: 'bg-status-verify-soft text-status-verify' },
+] as const;
 
 const categories = [
   {
@@ -105,7 +106,7 @@ const faqs: Faq[] = [
       {
         levels.map((level) => (
           <li class:list={['inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold', level.chip]}>
-            <span aria-hidden="true" class:list={['size-2', level.mark]} />
+            <StatusIcon status={level.status} class={level.icon} />
             {level.name}
           </li>
         ))

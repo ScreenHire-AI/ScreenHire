@@ -55,7 +55,7 @@
   <li class="flex flex-col gap-1 px-3 py-2.5" data-signal={signal.code}>
     <span class="font-mono text-code text-muted-foreground">{signal.code}</span>
     <span class="font-semibold">{signal.title}</span>
-    <p class="text-secondary-foreground">{signal.explanation}</p>
+    <p class="max-w-measure text-secondary-foreground">{signal.explanation}</p>
     {#if signal.evidence.length > 0}
       <div class="mt-0.5 flex flex-col gap-1.5">
         {#each signal.evidence as evidence, index (index)}<SignalEvidence {evidence} />{/each}
@@ -63,7 +63,7 @@
     {/if}
     {#each signal.counterEvidence as counter, index (index)}
       <div class="mt-0.5 flex flex-col gap-1 border-l-2 border-border pl-3" data-counter-evidence>
-        <p><span class="font-semibold">Counter-evidence:</span> {counter.explanation}</p>
+        <p class="max-w-measure"><span class="font-semibold">Counter-evidence:</span> {counter.explanation}</p>
         {#if counter.evidence}<SignalEvidence evidence={counter.evidence} />{/if}
       </div>
     {/each}
@@ -87,7 +87,7 @@
       </div>
       <IntegrityChip {kind} {level} dismissed={view.dismissal !== null} />
     </div>
-    <p>{view.summary}</p>
+    <p class="max-w-measure">{view.summary}</p>
     <!-- Every result keeps its next step (section 16): a calm one as a quiet line, the others in an inset. -->
     {#if level.rank > 0}
       <p class="rounded-lg bg-secondary px-3 py-2 text-secondary-foreground"><span class="font-semibold">Suggested next step:</span> {view.nextStep}</p>
@@ -110,7 +110,7 @@
     {/if}
 
     {#if view.dismissal}
-      <p class="text-muted-foreground">
+      <p class="max-w-measure text-muted-foreground">
         Dismissed by {reviewerName(view.dismissal.actorUserId, view.dismissal.actorName, page.data.user?.id)} <RelativeTime at={view.dismissal.dismissedAt} class="inline" />:
         {dismissReasonLabels[view.dismissal.reason]}{view.dismissal.note ? `. "${view.dismissal.note}"` : '.'}
       </p>

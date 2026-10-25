@@ -51,7 +51,7 @@
   }
 </script>
 
-<Panel title="Automations">
+<Panel title="Automations" count={automations.length}>
   <div class="flex flex-col gap-3">
     <ul aria-label="Automations you can run" class="flex flex-col">
       {#each automations as automation (automation.id)}

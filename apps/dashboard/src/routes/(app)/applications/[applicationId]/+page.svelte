@@ -449,7 +449,7 @@
 
           <ReviewLog applicationId={detail.id} />
 
-          <Panel title="Activity">
+          <Panel title="Activity" count={timeline.data ? activity.length : undefined}>
             {#snippet actions()}
               {#if editable}<Button variant="outline" onclick={() => (noteOpen = true)}><StickyNoteIcon aria-hidden="true" />Add note</Button>{/if}
             {/snippet}

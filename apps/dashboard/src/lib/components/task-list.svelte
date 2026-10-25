@@ -61,7 +61,7 @@
           {#if done}<CheckIcon />{:else}<ListTodoIcon />{/if}
         </span>
         <div class="flex min-w-0 flex-col gap-1.5 pt-1">
-          <p class="break-words">{task.note}</p>
+          <p class="max-w-measure break-words">{task.note}</p>
           {#if showCandidate && task.candidateName}
             <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
           {/if}

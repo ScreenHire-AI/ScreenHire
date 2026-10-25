@@ -87,8 +87,8 @@ engine produces **two independent assessments**, each with a level and reason co
 
 | Assessment | Question | Levels | Typical evidence |
 |---|---|---|---|
-| **Authenticity** | Is this a real, unique, present person who is who they claim to be? | `No concerns` · `Review suggested` · `Verification recommended` | Data-centre IP + mismatched claimed location; disposable or 2-day-old email; VoIP phone; automation markers; same device across many applications; stand-in at interview |
-| **AI Assistance** | How much of the content appears generated or templated? | `Not indicated` · `Some indicators` · `Strong indicators` | Whole answers pasted in seconds; answers near-identical to other applicants; resume built by a generator; hidden prompt-injection text |
+| **Authenticity** | Is this a real, unique, present person who is who they claim to be? | No concerns, Review suggested, Verification suggested (`NoConcerns`, `ReviewSuggested`, `VerificationRecommended`) | Data-centre IP + mismatched claimed location; disposable or 2-day-old email; VoIP phone; automation markers; same device across many applications; stand-in at interview |
+| **AI Assistance** | How much of the content appears generated or templated? | No signs, Some signs or Strong signs of AI help (`NotIndicated`, `SomeIndicators`, `StrongIndicators`) | Whole answers pasted in seconds; answers near-identical to other applicants; resume built by a generator; hidden prompt-injection text |
 
 AI Assistance is **informational and policy-relative**: each employer sets whether AI help is allowed, allowed with
 disclosure, or not allowed for a given job. Candidates can **declare** AI use (the "declared-AI lane"), which changes how
@@ -222,7 +222,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
   level and filterable from an "Integrity" menu, with calm levels quiet and the reason count as a pill; a job's
   Authenticity panel with its applicant count, a toggle per level with its count (each filters the table) and an
-  `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
+  `aria-hidden` stacked bar; the "Needs review" and "Verification suggested" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
   page. The panel shows each assessment's summary, suggested next step (one quiet line for a calm result), reasons
   (signals that count toward the level) and context signals with their evidence drawn by kind (§10.1) and
@@ -230,8 +230,8 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   panel, not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
   log panel beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until
   phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
-  `IntegrityAssessed` refetches the chips, overview and panel live. AI chips use one colour and no mark, so they read
-  as information; "Not indicated" is neutral. While an integrity filter is set, the job page's bulk move offers no
+  `IntegrityAssessed` refetches the chips, overview and panel live. AI chips take the AI colour and the sparkles icon at
+  every level, and stay quiet in lists, so they read as information. While an integrity filter is set, the job page's bulk move offers no
   Rejected or Withdrawn stage, and a
   new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a filtered "select all" must not become
   rejection driven by integrity signals. Moving one candidate stays a person's decision about that candidate.
