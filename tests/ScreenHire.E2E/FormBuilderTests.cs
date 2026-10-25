@@ -18,6 +18,9 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     private const string Start = "When could you start?";
     private const string RightToWork = "Do you have the right to work here?";
 
+    /// <summary>The id the builder gives the first question it adds to an empty questionnaire.</summary>
+    private const string FirstQuestionId = "question";
+
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
     private static readonly string[] Gb = ["GB"];
 
@@ -118,15 +121,11 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await using var db = await Fixture.CreateDbContextAsync(tenant, Ct);
         var application = await db.Applications.SingleAsync(a => a.JobId == job.JobId, Ct);
         var file = await db.ApplicationFiles.SingleAsync(f => f.ApplicationId == application.Id, Ct);
-        file.QuestionId.Should().Be(job.FirstQuestionId);
+        file.QuestionId.Should().Be(FirstQuestionId);
         file.FileName.Should().Be("Work sample.pdf");
     }
 
-    private sealed record ArrangedJob(string Email, Guid OrganizationId, string OrganizationSlug, Guid JobId, string JobSlug)
-    {
-        /// <summary>The id the builder gives the first question it adds to an empty questionnaire.</summary>
-        public string FirstQuestionId => "question";
-    }
+    private sealed record ArrangedJob(string Email, Guid OrganizationId, string OrganizationSlug, Guid JobId, string JobSlug);
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 

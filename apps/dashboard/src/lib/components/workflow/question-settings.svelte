@@ -7,6 +7,7 @@
   // `settings`): a yes-or-no question's knockout, a number's range, a text answer's longest length and a file's types.
   let { question }: { question: Question } = $props();
 
+  const uid = $props.id();
   const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value));
 </script>
 
@@ -54,9 +55,11 @@
       </label>
     </div>
   {:else if question.type === 'File'}
-    <label class={labelClass}>
-      Accepted file types, separated by commas
+    <div class="flex flex-col gap-1">
+      <label class={labelClass} for={`${uid}-file-types`}>File types</label>
       <Input
+        id={`${uid}-file-types`}
+        aria-describedby={`${uid}-file-types-hint`}
         value={(question.acceptedFileTypes ?? []).join(', ')}
         onchange={(event) =>
           (question.acceptedFileTypes = event.currentTarget.value
@@ -64,7 +67,8 @@
             .map((type) => type.trim().toLowerCase())
             .filter(Boolean))}
       />
-    </label>
+      <p id={`${uid}-file-types-hint`} class="text-muted-foreground">Separated by commas, such as .pdf, .docx.</p>
+    </div>
   {:else if question.type === 'ShortText' || question.type === 'LongText' || question.type === 'Url'}
     <label class={[labelClass, 'max-w-48']}>
       Longest answer (optional)
