@@ -5,8 +5,8 @@ using System.Text.Json;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// Email templates and email to candidates in a real browser: an owner rewords a built-in template in Settings, sees the
-/// preview follow the wording, then emails three candidates from a selection on the job's pipeline, and each email
+/// Email templates and email to candidates in a real browser: an owner rewords a built-in template on the Templates page,
+/// sees the preview follow the wording, then emails three candidates from a selection on the job's pipeline, and each email
 /// arrives in Mailpit in the new wording, through the email composer. The test signs in as a new person with a new organization and adds its job and
 /// applications through the API as that person.
 /// </summary>
@@ -23,16 +23,18 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         var (owner, jobId, title, addresses) = await SceneAsync();
         await SignInAsync(owner);
 
-        // Settings: reword the built-in "Application received" email.
-        await Page.GotoAsync(DashboardUrl("/settings/email-templates"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Email templates");
+        // The Templates page's Emails tab: reword the built-in "Application received" email.
+        await Page.GotoAsync(DashboardUrl("/templates?tab=emails"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Templates");
         await ExpectNoAccessibilityViolationsAsync();
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Application received" }).First.ClickAsync();
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Email templates" }).GetByRole(AriaRole.Link, new() { Name = "Application received" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application received");
         var subject = Page.GetByLabel("Subject");
         await subject.FillAsync($"Welcome {marker}, {{{{ candidateName }}}}");
 
-        // The preview follows the wording, with the sample candidate.
+        // Preview shows the email in place of the wording, with the sample candidate (A8).
+        await Page.GetByRole(AriaRole.Group, new() { Name = "View" }).GetByRole(AriaRole.Button, new() { Name = "Preview" }).ClickAsync();
+        await Expect(subject).ToBeHiddenAsync();
         var preview = Page.GetByRole(AriaRole.Region, new() { Name = "Preview" });
         await Expect(preview.Locator("[data-email-subject]")).ToHaveTextAsync($"Welcome {marker}, Jordan Lee");
         await Expect(preview.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync("Hi Jordan,");
@@ -40,8 +42,9 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(preview.Locator("[data-email-text]")).ToContainTextAsync("Hi Jordan,");
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/email-templates"));
-        await Expect(Page.GetByRole(AriaRole.Row).Filter(new() { HasText = "Application received" })).ToContainTextAsync("Built-in, edited");
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved." })).ToBeVisibleAsync();
+        await Page.GotoAsync(DashboardUrl("/templates?tab=emails"));
+        await Expect(Page.GetByRole(AriaRole.Row).Filter(new() { HasText = "Application received" })).ToContainTextAsync("by you");
 
         // The job's pipeline: select every candidate and email them.
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
@@ -79,18 +82,16 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         var (owner, _, _, _) = await SceneAsync();
         await SignInAsync(owner);
 
-        await Page.GotoAsync(DashboardUrl("/settings/email-templates"));
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).First.ClickAsync();
+        await Page.GotoAsync(DashboardUrl("/templates?tab=emails"));
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Email templates" }).GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).ClickAsync();
         var band = Page.Locator("[data-slot=header-band]");
         await Expect(band).ToContainTextAsync("By ScreenHire");
         var subject = Page.GetByLabel("Subject");
         var original = await subject.InputValueAsync();
         await subject.FillAsync($"Next steps {marker} for {{{{ jobTitle }}}}");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/email-templates"));
 
-        // Back on the template: Last updated names the person, and History says what they changed.
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).First.ClickAsync();
+        // Last updated names the person, and History says what they changed.
         await Expect(band).ToContainTextAsync("by you");
         await band.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });

@@ -13,6 +13,7 @@ sources:
   - resource: src/ScreenHire.Domain/History/JobChanges.cs
   - resource: src/ScreenHire.Domain/History/RoleChanges.cs
   - resource: src/ScreenHire.Domain/History/ChangeLabels.cs
+  - resource: src/ScreenHire.Domain/History/Archive.cs
   - resource: src/ScreenHire.Domain/History/RichTextToPlain.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/History/TrackedKinds.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/History/ChangeHistoryInterceptor.cs
@@ -78,7 +79,9 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
 - `HiringTemplateChanges`, `EmailTemplateChanges`, `JobChanges` and `RoleChanges` cover the rest. A role's lines name
   permissions as the Roles page does: "created the role from **Viewer**", "allowed **Move candidates**", "took away
   **Email candidates**". A built-in email template's first
-  edit compares against ScreenHire's wording, and deleting its row reads "restored the original wording". A job's
+  edit compares against ScreenHire's wording, and deleting its row reads "restored the original wording". Archiving a
+  template of the team's own reads "archived the template" (or "the scorecard"), and restoring it "restored the
+  template from the archive" (`Archive.Line`), so each moves Last updated. A job's
   description is sanitized HTML, so `RichTextToPlain` turns it to text first. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.
 - Bookkeeping makes no line: `updated_at`, workflow and publish counters, the row version.

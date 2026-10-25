@@ -35,6 +35,12 @@ public sealed class HiringTemplate
 
     public bool IsSystem => OrganizationId is null;
 
+    /// <summary>
+    /// When the organization archived it, or null. An archived template leaves the pickers and reads only; jobs started
+    /// from it keep their copy. System templates are never archived.
+    /// </summary>
+    public DateTimeOffset? ArchivedAt { get; private set; }
+
     /// <summary>Every version, oldest first. Load them with the template before calling the methods below.</summary>
     public IReadOnlyList<HiringTemplateVersion> Versions => versions;
 
@@ -102,11 +108,46 @@ public sealed class HiringTemplate
         UpdatedAt = now;
     }
 
+    /// <summary>Takes an organization template out of the pickers. Its jobs keep their copy.</summary>
+    public void Archive(DateTimeOffset now)
+    {
+        if (ArchivedAt is not null)
+        {
+            return;
+        }
+
+        EnsureEditable();
+        ArchivedAt = now;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Puts an archived template back in the pickers.</summary>
+    public void Unarchive(DateTimeOffset now)
+    {
+        if (IsSystem)
+        {
+            throw new InvalidOperationException("System templates are read-only; copy one to customise it.");
+        }
+
+        if (ArchivedAt is null)
+        {
+            return;
+        }
+
+        ArchivedAt = null;
+        UpdatedAt = now;
+    }
+
     private void EnsureEditable()
     {
         if (IsSystem)
         {
             throw new InvalidOperationException("System templates are read-only; copy one to customise it.");
+        }
+
+        if (ArchivedAt is not null)
+        {
+            throw new InvalidOperationException("The template is archived; restore it to change it.");
         }
     }
 }

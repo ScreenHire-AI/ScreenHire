@@ -21,5 +21,6 @@ export interface EmailTemplateEntry {
   /** @nullable */
   updatedAt: string | null;
   lastUpdated: LastUpdate;
-  questionnaireOnly?: boolean;
+  questionnaireOnly: boolean;
+  archived: boolean;
 }

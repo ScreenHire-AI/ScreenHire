@@ -27,6 +27,9 @@ public sealed class ScorecardTemplate : ITenantOwned
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>When the organization archived it, or null. An archived scorecard leaves the pickers and reads only.</summary>
+    public DateTimeOffset? ArchivedAt { get; private set; }
+
     /// <summary>The id stages name it by: its id in the "D" format.</summary>
     public string Key => Id.ToString("D");
 
@@ -37,8 +40,36 @@ public sealed class ScorecardTemplate : ITenantOwned
     public void Update(string name, IReadOnlyList<ScorecardQuestion> questions, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(questions);
+        if (ArchivedAt is not null)
+        {
+            throw new InvalidOperationException("The scorecard is archived; restore it to change it.");
+        }
+
         Name = name;
         Questions = questions;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Takes the scorecard out of the pickers. Stages and jobs that name it keep it.</summary>
+    public void Archive(DateTimeOffset now)
+    {
+        if (ArchivedAt is not null)
+        {
+            return;
+        }
+
+        ArchivedAt = now;
+        UpdatedAt = now;
+    }
+
+    public void Unarchive(DateTimeOffset now)
+    {
+        if (ArchivedAt is null)
+        {
+            return;
+        }
+
+        ArchivedAt = null;
         UpdatedAt = now;
     }
 

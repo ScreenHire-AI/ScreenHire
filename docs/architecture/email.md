@@ -7,6 +7,8 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplates.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplateStore.cs
+  - resource: apps/dashboard/src/routes/(app)/templates/emails/[templateId]/+page.svelte
+  - resource: apps/dashboard/src/lib/components/email-template-form.svelte
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.body.liquid
@@ -34,16 +36,21 @@ appears in the application's Activity and the candidate's Messages. Candidates c
 
 ## Templates
 
-There are two kinds, both listed by `GET /v1/email-templates` and edited in Settings, Email templates:
+There are two kinds, both listed by `GET /v1/email-templates` and edited on the Templates page's Emails tab
+(`/templates/emails/{id}`; the old `/settings/email-templates` addresses redirect there):
 
 - **Built-in.** `application-received`, `stage-change`, `questionnaire-request` and `application-rejected`
   (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
-  ScreenHire's wording. A built-in keeps its name. Edits, restores and deletions go through the change tracker, so
-  each template's History records them ([change-history.md](change-history.md)).
+  ScreenHire's wording: the dashboard calls this Reset to original, and asks first. A built-in keeps its name and is
+  never archived. Edits, restores and deletions go through the change tracker, so each template's History records them
+  ([change-history.md](change-history.md)).
 - **The organization's own.** An `email_templates` row with `built_in_id` null and a name. Automations and sends name it
-  by its id, a Guid string.
+  by its id, a Guid string. `POST /v1/email-templates/{id}/archive` sets `archived_at`, which takes it out of the
+  composer's and the automation form's lists; automations that already name it keep sending it, and `unarchive` puts
+  it back. An archived template reads only until it is restored (409 on an edit). The dashboard offers Archive in
+  place of delete; `DELETE` still deletes one no automation names.
 
 A template is a Liquid subject and a Liquid plain-text body (Fluid, ADR-0008). The body is text, not HTML: the email's
 HTML part is built from the rendered text (a paragraph per blank line, links that show their own address, everything
@@ -66,7 +73,8 @@ characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far long
   questionnaire is the reason it exists (workflow-engine.md §8).
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee. The
-dashboard shows the HTML part in a sandboxed frame, never in the page. The test send (`POST /v1/email-templates/test`)
+dashboard shows the HTML part in a sandboxed frame, never in the page, on the editor's Preview side of its Edit / Preview
+switch; the window icon opens it in a second window (`/preview/email`) that the editor feeds each rendering. The test send (`POST /v1/email-templates/test`)
 sends the same rendering to the signed-in person's own address, from the API, with `[Test]` before the subject.
 
 ## The composer

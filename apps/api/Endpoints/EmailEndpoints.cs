@@ -44,10 +44,21 @@ internal static class EmailEndpoints
         templates.MapPut("/{templateId}", UpdateEmailTemplate).WithName("UpdateEmailTemplate")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditEmailTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapDelete("/{templateId}", DeleteEmailTemplate).WithName("DeleteEmailTemplate")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditEmailTemplates)
+            .Produces(StatusCodes.Status401Unauthorized);
+        templates.MapPost("/{templateId}/archive", ArchiveEmailTemplate).WithName("ArchiveEmailTemplate")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditEmailTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        templates.MapPost("/{templateId}/unarchive", UnarchiveEmailTemplate).WithName("UnarchiveEmailTemplate")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditEmailTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         templates.MapPost("/preview", PreviewEmailTemplate).WithName("PreviewEmailTemplate")
             .RequireAntiforgeryToken()
@@ -153,7 +164,7 @@ internal static class EmailEndpoints
     }
 
     // A built-in's first edit adds the organization's row; later edits change it.
-    private static async Task<Results<Ok<EmailTemplateEntry>, NotFound, ValidationProblem>> UpdateEmailTemplate(
+    private static async Task<Results<Ok<EmailTemplateEntry>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateEmailTemplate(
         string templateId,
         UpdateEmailTemplateRequest request,
         IValidator<UpdateEmailTemplateRequest> validator,
@@ -173,6 +184,11 @@ internal static class EmailEndpoints
         if (row is null && !builtIn)
         {
             return TypedResults.NotFound();
+        }
+
+        if (row?.ArchivedAt is not null)
+        {
+            return TypedResults.Problem("The template is archived; restore it to change it.", statusCode: StatusCodes.Status409Conflict);
         }
 
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
@@ -216,6 +232,43 @@ internal static class EmailEndpoints
             added.Subject = request.Subject;
             added.Body = request.Body;
             added.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
+    }
+
+    // Archiving takes an own template out of the pickers. Automations that name it keep sending it, so nothing running
+    // changes. A built-in cannot be archived: Reset to original (DELETE) is how a team takes back its wording.
+    private static Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> ArchiveEmailTemplate(
+        string templateId, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, store, time, cancellationToken);
+
+    private static Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> UnarchiveEmailTemplate(
+        string templateId, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, store, time, cancellationToken);
+
+    private static async Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> SetArchivedAsync(
+        string templateId, bool archived, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (EmailTemplateIds.All.Contains(templateId))
+        {
+            return TypedResults.Problem("Built-in templates cannot be archived.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var row = Guid.TryParseExact(templateId, "D", out var rowId)
+            ? await db.EmailTemplates.SingleOrDefaultAsync(t => t.Id == rowId && t.BuiltInId == null, cancellationToken)
+            : null;
+        if (row is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (archived != (row.ArchivedAt is not null))
+        {
+            var now = time.GetUtcNow();
+            row.ArchivedAt = archived ? now : null;
+            row.UpdatedAt = now;
             await db.SaveChangesAsync(cancellationToken);
         }
 

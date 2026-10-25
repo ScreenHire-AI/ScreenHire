@@ -18,4 +18,5 @@ export interface ScorecardTemplateDetail {
   copiedFrom: string | null;
   questions: ScorecardQuestion[];
   lastUpdated: LastUpdate;
+  archived: boolean;
 }

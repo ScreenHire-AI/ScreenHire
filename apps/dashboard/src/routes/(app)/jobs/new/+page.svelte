@@ -26,7 +26,8 @@
   const queryClient = useQueryClient();
   const create = createCreateJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
   const templates = createListHiringTemplates();
-  const usable = $derived((templates.data?.data ?? []).filter((template) => template.latestPublishedVersionId));
+  // An archived template is out of the pickers: no new job starts from it.
+  const usable = $derived((templates.data?.data ?? []).filter((template) => template.latestPublishedVersionId && !template.archived));
 
   // The select's "none" is an empty string, which the body's uuid would refuse; it becomes null on the way out.
   // Where the work happens is asked up front because publishing needs it (JobPublishValidator); so is a description

@@ -1,3 +1,4 @@
+import ArchiveIcon from '@lucide/svelte/icons/archive';
 import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 import CircleMinusIcon from '@lucide/svelte/icons/circle-minus';
 import ClockAlertIcon from '@lucide/svelte/icons/clock-alert';
@@ -58,6 +59,8 @@ export const statuses = {
   closed: view('neutral', 'door-closed', DoorClosedIcon),
   /** Draft. */
   draft: view('neutral', 'file-pen-line', FilePenLineIcon),
+  /** Archived, a template taken out of the pickers until someone restores it. */
+  archived: view('neutral', 'archive', ArchiveIcon),
   /** Not posted, Removed, Off, Skipped, Revoked: not in effect. */
   notInEffect: view('neutral', 'circle-minus', CircleMinusIcon),
 } as const satisfies Record<string, StatusView>;

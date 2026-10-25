@@ -2,18 +2,18 @@
   import type { DefinitionError, ScorecardQuestion, WorkflowStage } from '@screenhire/api-client';
   import { createGetScorecardTemplate, createListScorecardTemplates } from '@screenhire/api-client/svelte-query';
   import QueryError from '#lib/components/query-error.svelte';
+  import ScorecardQuestionList from '#lib/components/scorecard-question-list.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
-  import { isRatingKind } from '#lib/scorecards.js';
-  import { errorsAt, scorecardQuestionTypeLabels } from '#lib/workflow.js';
+  import { errorsAt } from '#lib/workflow.js';
   import { labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
   // A stage's scorecard (workflow-engine.md section 8): one from the library, ScreenHire's built-ins or the team's own,
   // shown here as it asks. A hiring template's stage names it; a job copies its questions when the workflow is saved,
   // so a later edit in the library never changes what this job's candidates are asked. Questions are written in the
-  // library scorecard, not here: its editor comes with the Templates page, and until then through the API. Changing the
-  // choice changes nothing until Save.
+  // library scorecard on the Templates page, not here. An archived scorecard is out of the list unless the stage has it.
+  // Changing the choice changes nothing until Save.
   let { stage = $bindable(), index, errors }: { stage: WorkflowStage; index: number; errors: readonly DefinitionError[] } = $props();
 
   const uid = $props.id();
@@ -26,7 +26,7 @@
     () => ({ query: { enabled: Boolean(stage.scorecardTemplateId) && !stage.scorecard } }),
   );
   const builtIns = $derived((library.data?.data ?? []).filter((scorecard) => scorecard.builtIn));
-  const own = $derived((library.data?.data ?? []).filter((scorecard) => !scorecard.builtIn));
+  const own = $derived((library.data?.data ?? []).filter((scorecard) => !scorecard.builtIn && (!scorecard.archived || scorecard.id === choice)));
   const questions = $derived<readonly ScorecardQuestion[]>(stage.scorecard?.questions ?? chosen.data?.data.questions ?? []);
   const messages = $derived([...errorsAt(errors, `stages[${index}].scorecard`), ...errorsAt(errors, `stages[${index}].scorecardTemplateId`)]);
 
@@ -71,16 +71,6 @@
     </div>
     <p class="sr-only" role="status">Loading the scorecard…</p>
   {:else if questions.length > 0}
-    <ol class="flex flex-col gap-2" aria-label="Questions">
-      {#each questions as question (question.id)}
-        <li class="flex flex-col gap-0.5">
-          <span class="font-semibold break-words">{question.label}{#if question.required}<span class="text-muted-foreground"> *</span>{/if}</span>
-          <span class="text-caption text-muted-foreground">
-            {isRatingKind(question.type) ? 'Rating, ' : ''}{scorecardQuestionTypeLabels[question.type]}{question.guidance ? `. ${question.guidance}` : ''}
-          </span>
-        </li>
-      {/each}
-    </ol>
-    <p class="text-muted-foreground">Then an overall recommendation and a note.</p>
+    <ScorecardQuestionList {questions} />
   {/if}
 </div>

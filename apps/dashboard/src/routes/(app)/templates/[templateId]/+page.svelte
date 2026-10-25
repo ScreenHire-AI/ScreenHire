@@ -4,12 +4,17 @@
     createCreateHiringTemplate,
     createCreateHiringTemplateVersion,
     createGetHiringTemplate,
+    createArchiveHiringTemplate,
     createGetHiringTemplateVersion,
+    createGetTemplateUsage,
     createListTeamMembers,
+    createUnarchiveHiringTemplate,
     createPublishHiringTemplateVersion,
     createUpdateHiringTemplateVersion,
     getGetHiringTemplateHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
+  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
+  import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CheckIcon from '@lucide/svelte/icons/check';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -21,19 +26,20 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import BuiltInBadge from '#lib/components/built-in-badge.svelte';
+  import CountButton from '#lib/components/count-button.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import Hint from '#lib/components/hint.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -44,20 +50,27 @@
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
+  import { formatDateTime } from '#lib/dates.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { can } from '#lib/permissions.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
+  import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
   import type { PageProps } from './$types';
 
   // One hiring template: its versions, and the chosen one. Your own draft opens in the builder, to edit, save and
-  // publish; anything else (a ScreenHire template, a published version) reads as content. A published version never
-  // changes, so editing one starts the next version as a draft.
+  // publish; anything else (a ScreenHire template, a published version, an archived template) reads as content. A
+  // published version never changes, so editing one starts the next version as a draft. The header's facts are Used by
+  // (the jobs started from it, T4), the version and Last updated with History (T6). A built-in says it reads only and
+  // offers Copy template (E3); your own can be duplicated and archived, and an archived one restored. The Questionnaire
+  // tab has the Edit / Preview switch (A8): it is the part of a template that someone else sees.
   let { params }: PageProps = $props();
 
   const queryClient = useQueryClient();
-  const refresh = () => Promise.all([invalidatePath(queryClient, templatesPath), invalidatePath(queryClient, jobsPath)]);
+  const refresh = () =>
+    Promise.all([invalidatePath(queryClient, templatesPath), invalidatePath(queryClient, jobsPath), invalidatePath(queryClient, templateUsagePath)]);
   const template = createGetHiringTemplate(() => params.templateId);
   const detail = $derived(template.data?.data);
   const requested = $derived(Number(page.url.searchParams.get('version')) || null);
@@ -74,13 +87,20 @@
   const current = $derived(version.data?.data);
   // The sidebar's own phone test (under md), where the primary action moves to the action bar.
   const sidebar = Sidebar.useSidebar();
-  const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem);
+  const mayEdit = $derived(can(page.data.user, 'EditHiringTemplates'));
+  const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem && !detail?.archived && mayEdit);
+  // Duplicate and Archive, for the team's own template and a role that may change templates.
+  const ownActions = $derived(mayEdit && Boolean(detail) && !detail?.isSystem);
+  const usage = createGetTemplateUsage();
+  const use = $derived(usage.data?.data.hiring.find((entry) => entry.templateId === params.templateId));
   const draftVersion = $derived(versions.find((candidate) => candidate.status === 'Draft'));
 
   const save = createUpdateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const publish = createPublishHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const nextVersion = createCreateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const copy = createCreateHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
+  const archive = createArchiveHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
+  const unarchive = createUnarchiveHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
 
   // Last updated and History (T6). A ScreenHire template says "by ScreenHire" and has no History: nobody can change it.
   const team = createListTeamMembers();
@@ -100,7 +120,7 @@
   let tab = $state('pipeline');
   let notice = $state('');
   let failure = $state('');
-  const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending);
+  const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending || archive.isPending || unarchive.isPending);
 
 
   async function saveDraft(): Promise<boolean> {
@@ -151,10 +171,24 @@
     if (!detail || !current) return;
     failure = '';
     try {
-      const response = await copy.mutateAsync({ data: { name: `${detail.name} (copy)`, copyFromVersionId: current.id } });
+      const response = await copy.mutateAsync({
+        data: { name: copyName(detail.name, maxNameLength.hiring), description: detail.description, copyFromVersionId: current.id },
+      });
       await goto(`/templates/${response.data.id}`);
     } catch (error) {
       failure = describeError(error, 'Could not copy the template');
+    }
+  }
+
+  // Archive takes the template out of the pickers; Restore, on this page or under Archived, puts it back (section 10).
+  async function setArchived(archived: boolean) {
+    failure = '';
+    notice = '';
+    try {
+      await (archived ? archive : unarchive).mutateAsync({ templateId: params.templateId });
+      notice = archived ? 'Archived.' : 'Restored.';
+    } catch (error) {
+      failure = describeError(error, archived ? 'Could not archive the template' : 'Could not restore the template');
     }
   }
 
@@ -166,9 +200,9 @@
   <title>{detail?.name ?? 'Template'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Templates', href: '/templates' }, { label: detail?.name ?? 'Template' }]} back />
+<TopBar crumbs={[{ label: 'Templates', href: templatesHref('hiring') }, { label: detail?.name ?? 'Template' }]} back />
 
-<main class={[sidebar.isMobile && detail && current && 'pb-28']}>
+<main class={[sidebar.isMobile && detail && current && mayEdit && 'pb-28']}>
   {#if template.isError}
     <HeaderBand title={notFound ? 'Template not found' : 'Template'} />
     <div class={workArea}>
@@ -208,16 +242,32 @@
   {:else}
     {#snippet versionItems()}
       {#each versions.toReversed() as candidate (candidate.id)}
-        <DropdownMenu.Item onSelect={() => goto(`/templates/${detail.id}?version=${candidate.version}`)}>
-          Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
-          {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+        <!-- A version is a place, so its item is a link (A5). -->
+        <DropdownMenu.Item>
+          {#snippet child({ props })}
+            <a href={`/templates/${detail.id}?version=${candidate.version}`} {...props}>
+              Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
+              {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+            </a>
+          {/snippet}
         </DropdownMenu.Item>
       {/each}
     {/snippet}
 
+    {#snippet ownItems()}
+      <DropdownMenu.Item disabled={busy} onSelect={copyTemplate}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
+      {#if !detail.archived}
+        <DropdownMenu.Item disabled={busy} onSelect={() => setArchived(true)}><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item>
+      {/if}
+    {/snippet}
+
     {#snippet primaryAction()}
-      {#if detail.isSystem}
-        <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy to customise</Button>
+      {#if !mayEdit}
+        <!-- A role that cannot change templates reads them only: no action. -->
+      {:else if detail.isSystem}
+        <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy template</Button>
+      {:else if detail.archived}
+        <Button size="lg" onclick={() => setArchived(false)} disabled={busy}><ArchiveRestoreIcon aria-hidden="true" />Restore</Button>
       {:else if isDraft}
         <Button size="lg" onclick={publishDraft} disabled={busy}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
       {:else if draftVersion}
@@ -229,35 +279,47 @@
       {/if}
     {/snippet}
 
+    {#snippet readOnlyReason()}
+      <!-- Read only says why and what to do (E3), in one line under the title. -->
+      <p>
+        {#if detail.isSystem}
+          Copy this ScreenHire template to change it.
+        {:else if !mayEdit}
+          Ask an owner, admin or recruiter to change hiring templates.
+        {:else}
+          Restore this template to start jobs from it or change it.
+        {/if}
+      </p>
+    {/snippet}
+
     <Tabs.Root bind:value={tab}>
-      <HeaderBand title={detail.name}>
+      <HeaderBand title={detail.name} details={!isDraft && (detail.isSystem || detail.archived || !mayEdit) ? readOnlyReason : undefined}>
         {#snippet status()}
+          {#if detail.isSystem}<BuiltInBadge />{/if}
+          {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
           {#if current.status === 'Draft'}<StatusBadge status="draft" label="Draft" />{/if}
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
-          <span class="flex flex-wrap gap-1.5">
-            <Badge variant="muted" class="tabular-nums">Version {current.version}</Badge>
-            {#if current.status !== 'Draft' && current.publishedAt}
-              <Badge variant="muted">Published&nbsp;<RelativeTime at={current.publishedAt} /></Badge>
-            {/if}
-            {#if detail.isSystem}<Badge variant="muted">ScreenHire template</Badge>{/if}
-          </span>
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
           <FailureText message={failure} />
           {#if sidebar.isMobile}
             <!-- A phone has the primary action in the action bar and the rest in More (section 8). -->
-            {#if isDraft || versions.length > 1}
+            {#if isDraft || versions.length > 1 || ownActions}
               <MoreMenu label="More actions">
                 {#if isDraft}<DropdownMenu.Item disabled={busy} onSelect={saveDraft}>Save draft</DropdownMenu.Item>{/if}
+                {#if ownActions}{@render ownItems()}{/if}
                 {#if versions.length > 1}
-                  {#if isDraft}<DropdownMenu.Separator />{/if}
+                  {#if isDraft || ownActions}<DropdownMenu.Separator />{/if}
                   <DropdownMenu.Label class="text-caption text-muted-foreground">Versions</DropdownMenu.Label>
                   {@render versionItems()}
                 {/if}
               </MoreMenu>
             {/if}
           {:else}
+            {#if ownActions}
+              <MoreMenu label="More actions">{@render ownItems()}</MoreMenu>
+            {/if}
             {#if versions.length > 1}
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
@@ -271,6 +333,29 @@
           {/if}
         {/snippet}
         {#snippet facts()}
+          <Fact label="Used by">
+            {#if use}
+              <CountButton
+                items={use.usedBy.map((item) => ({ id: item.id, label: usageLabel(item), href: usageHref(item) }))}
+                one={usedByNouns.hiring.one}
+                other={usedByNouns.hiring.other}
+                empty={usedByLabel('hiring', 0)}
+                title="Used by"
+                description={detail.name}
+              />
+            {:else}
+              <Skeleton class="h-5 w-20" />
+            {/if}
+          </Fact>
+          <Fact label="Version">
+            {#if current.status !== 'Draft' && current.publishedAt}
+              <Hint content={`Published ${formatDateTime(current.publishedAt)}`}>
+                {#snippet children({ props })}<span {...props} class="tabular-nums">{current.version}</span>{/snippet}
+              </Hint>
+            {:else}
+              <span class="tabular-nums">{current.version}</span>
+            {/if}
+          </Fact>
           <Fact label="Last updated">
             <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => (historyOpen = true)} />
           </Fact>
@@ -301,7 +386,7 @@
         {/if}
       </div>
 
-      {#if sidebar.isMobile}
+      {#if sidebar.isMobile && mayEdit}
         <ActionBar>{@render primaryAction()}</ActionBar>
       {/if}
     </Tabs.Root>

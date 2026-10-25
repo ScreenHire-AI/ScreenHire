@@ -36,6 +36,11 @@ public static class HiringTemplateChanges
             lines.Add(ChangeLine.Plain("changed the description", [new("Description", before.Description, after.Description, ChangeValueKind.Paragraphs)]));
         }
 
+        if (Archive.Line(before.ArchivedAt, after.ArchivedAt, "template") is { } archive)
+        {
+            lines.Add(archive);
+        }
+
         return lines;
     }
 
