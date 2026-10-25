@@ -1,5 +1,5 @@
 import type { WorkflowStage } from '@screenhire/api-client';
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
 import type { IntegrityFilter } from '#lib/integrity.js';
@@ -106,6 +106,24 @@ describe('job pipeline', () => {
 
     await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Clear selection' }));
     expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
+  });
+
+  it('keeps the ticked rows a search hides after moving the ones it shows', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ [`POST /v1/applications/${applications[0]!.id}/move`]: () => Response.json({}) })));
+    renderPipeline();
+    for (const name of ['Casey Morgan', 'Jordan Lee']) {
+      await fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
+    }
+    const search = within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' });
+    await fireEvent.input(search, { target: { value: 'casey' } });
+
+    await fireEvent.pointerDown(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Offer' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull());
+
+    await fireEvent.input(search, { target: { value: '' } });
+    expect(selectionBar()).toHaveTextContent('1 selected');
+    expect(screen.getByRole('checkbox', { name: 'Select Jordan Lee' })).toBeChecked();
   });
 
   it('says why the table is empty and offers to clear the filters (E1)', async () => {

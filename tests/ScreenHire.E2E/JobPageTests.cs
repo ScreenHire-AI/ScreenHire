@@ -53,6 +53,12 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Chip(genuine.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
         await Expect(Chip(honest.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
 
+        // With no authenticity filter, a ticked row's bar offers Email, so its absence below is the filter's doing.
+        var bar = pipeline.GetByRole(AriaRole.Region, new() { Name = "Selected candidates" });
+        await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {honest.FullName}" }).CheckAsync();
+        await Expect(bar.GetByRole(AriaRole.Button, new() { Name = "Email 1 selected" })).ToBeVisibleAsync();
+        await bar.GetByRole(AriaRole.Button, new() { Name = "Clear selection" }).ClickAsync();
+
         // The chips carry each level's count; one press narrows the table to that level.
         var chips = pipeline.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
         await chips.GetByRole(AriaRole.Button, new() { Name = "No concerns 2" }).ClickAsync();
@@ -70,7 +76,6 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // A ticked row gets the bar; under an authenticity filter it offers Move but no Email (ADR-0004).
         await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {honest.FullName}" }).CheckAsync();
-        var bar = pipeline.GetByRole(AriaRole.Region, new() { Name = "Selected candidates" });
         await Expect(bar).ToContainTextAsync("1 selected");
         await bar.GetByRole(AriaRole.Button, new() { Name = "Move 1 selected…" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Offer" })).ToBeVisibleAsync();
