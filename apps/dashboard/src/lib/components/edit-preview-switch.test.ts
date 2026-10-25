@@ -40,7 +40,7 @@ describe('edit / preview switch', () => {
 
     expect(open).toHaveBeenCalledOnce();
     const [url, name, features] = open.mock.calls[0]!;
-    expect((url as URL).pathname).toBe('/questionnaire/preview');
+    expect((url as URL).pathname).toBe('/preview/form');
     const channel = (url as URL).searchParams.get('channel');
     expect(channel).toMatch(/^[0-9a-f-]{36}$/);
     expect(name).toBe(`preview-${channel}`);

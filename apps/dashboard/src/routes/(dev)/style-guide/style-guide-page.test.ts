@@ -85,9 +85,13 @@ const panels: Record<string, string[]> = {
   'Built in badge': ['Built in badge'],
   'Reorder grip': ['Reorder grip'],
   'Settings menu': ['Settings menu'],
+  'Form builder': ['Form builder'],
+  'Answer menu': ['Answer menu'],
 };
 
-describe('style guide', () => {
+// The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5
+// seconds per test while the gate runs every suite at once.
+describe('style guide', { timeout: 20_000 }, () => {
   it('shows a panel for every component in the catalogue', () => {
     render(WithTooltips, { props: { component: Page } });
 

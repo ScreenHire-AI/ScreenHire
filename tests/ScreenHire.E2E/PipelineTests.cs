@@ -57,6 +57,11 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(StageCellOf(other, "Casey Morgan")).ToHaveTextAsync("Applied");
         await other.EvaluateAsync("() => { window.__screenhireNoReload = true; }");
 
+        // Opening the second browser's window can take the window's focus from this page, and V works only while the
+        // table has the focus: bring the page back first, and fail here, not on the board, if the focus left the table.
+        await Page.BringToFrontAsync();
+        await Expect(table.Locator(":focus")).ToHaveCountAsync(1);
+
         // V switches to the board; Shift + Right moves the focused card to the next stage.
         await Page.Keyboard.PressAsync("v");
         var card = Page.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" });

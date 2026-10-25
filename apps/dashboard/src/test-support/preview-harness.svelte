@@ -10,7 +10,7 @@
 </script>
 
 <Tooltip.Provider>
-  <EditPreviewSwitch bind:mode onpopout={() => source.open('/questionnaire/preview')} />
+  <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/form')} />
   {#if mode === 'edit'}
     <label>Question <input bind:value={title} /></label>
   {:else}

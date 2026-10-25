@@ -57,7 +57,7 @@ challenge's site key. Every form asks for a resume: the questionnaire's own `res
 (`ApplicationForm.DefaultResumeQuestion`).
 
 The fields are the shared question components in `packages/ui/src/questions` (`TextField`, `ChoiceField`,
-`QuestionField`, `FileField`), the same Svelte components the dashboard's questionnaire builder previews, so the
+`QuestionField`, `FileField`), the same Svelte components the dashboard's form builder previews, so the
 preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
 they ship no JavaScript; only file questions hydrate, as `FileField` islands. Their field names (`q:{id}`,
 `file:{id}`, `upload:{id}`) and element ids (`field-...`) come from `packages/ui/src/questions/model.ts`, which
