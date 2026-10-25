@@ -21,7 +21,6 @@ describe('settings menu', () => {
       'Integrity',
       'API keys',
       'Webhooks',
-      'Email templates',
     ]);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');

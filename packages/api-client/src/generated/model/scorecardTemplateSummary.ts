@@ -17,4 +17,5 @@ export interface ScorecardTemplateSummary {
   questions: number;
   ratingQuestions: number;
   lastUpdated: LastUpdate;
+  archived: boolean;
 }

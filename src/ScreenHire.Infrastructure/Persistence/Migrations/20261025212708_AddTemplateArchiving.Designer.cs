@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261025212751_AddJobAccess")]
-    partial class AddJobAccess
+    [Migration("20261025212708_AddTemplateArchiving")]
+    partial class AddTemplateArchiving
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1231,6 +1231,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(10000)
@@ -1286,6 +1290,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
                     b.Property<Guid?>("CopiedFromTemplateId")
                         .HasColumnType("uuid")
                         .HasColumnName("copied_from_template_id");
@@ -1293,13 +1301,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
-
-                    b.PrimitiveCollection<List<Guid>>("DefaultHiringTeam")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid[]")
-                        .HasColumnName("default_hiring_team")
-                        .HasDefaultValueSql("'{}'::uuid[]");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -1403,6 +1404,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
 
                     b.Property<string>("CopiedFrom")
                         .HasMaxLength(40)
@@ -2268,13 +2273,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("employment_type");
 
-                    b.PrimitiveCollection<List<Guid>>("HiringTeam")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid[]")
-                        .HasColumnName("hiring_team")
-                        .HasDefaultValueSql("'{}'::uuid[]");
-
                     b.Property<string>("Locations")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -2567,11 +2565,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid?>("ActorApiKeyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("actor_api_key_id");
-
-                    b.Property<Guid?>("ActorUserId")
+                    b.Property<Guid>("ActorUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
 
@@ -2584,22 +2578,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("custom_role_name");
 
-                    b.Property<Guid?>("HiringTemplateId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("hiring_template_id");
-
                     b.Property<Guid?>("InvitationId")
                         .HasColumnType("uuid")
                         .HasColumnName("invitation_id");
-
-                    b.Property<string>("JobAccess")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("job_access");
-
-                    b.Property<Guid?>("JobId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("job_id");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -2627,11 +2608,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("previous_custom_role_name");
-
-                    b.Property<string>("PreviousJobAccess")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("previous_job_access");
 
                     b.Property<string>("PreviousRole")
                         .HasMaxLength(20)
@@ -2745,14 +2721,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("invited_by_user_id");
 
-                    b.Property<string>("JobAccess")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("All")
-                        .HasColumnName("job_access");
-
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
@@ -2787,8 +2755,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("organization_invitations", null, t =>
                         {
                             t.HasCheckConstraint("ck_organization_invitations_custom_role", "(role = 'Custom') = (custom_role_id IS NOT NULL)");
-
-                            t.HasCheckConstraint("ck_organization_invitations_job_access", "job_access IN ('All', 'HiringTeamOnly')");
                         });
                 });
 
@@ -2806,14 +2772,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CustomRoleId")
                         .HasColumnType("uuid")
                         .HasColumnName("custom_role_id");
-
-                    b.Property<string>("JobAccess")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("All")
-                        .HasColumnName("job_access");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -2845,8 +2803,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("organization_members", null, t =>
                         {
                             t.HasCheckConstraint("ck_organization_members_custom_role", "(role = 'Custom') = (custom_role_id IS NOT NULL)");
-
-                            t.HasCheckConstraint("ck_organization_members_job_access", "job_access IN ('All', 'HiringTeamOnly')");
                         });
                 });
 

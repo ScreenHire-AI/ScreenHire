@@ -142,14 +142,17 @@ Interview. Mailpit keeps them with the rest of the data. Every candidate except 
 `apps/api/Demo/DemoCandidates.cs`; the synthetic applicants are `SyntheticApplicants` in `ScreenHire.Application`, the
 same people the integrity golden tests use ([integrity-engine.md](../architecture/integrity-engine.md) §10.8).
 
-Templates: the two system templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the
-Software engineer pipeline and questionnaire plus the three candidate emails.
+Templates: the Templates page has a tab each for hiring templates, scorecards and emails. Hiring: the two system
+templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the Software engineer pipeline and
+questionnaire plus the three candidate emails, with Jordan's version 2 as a draft. Scorecards: the built-ins and
+Brightwater's own "Technical interview". Emails: the built-ins, "Interview invitation", and Brightwater's wording of the
+built-in rejection email, "Not progressing", which offers Reset to original in its menu.
 
 Change history ([change-history.md](../architecture/change-history.md)): the demo makes its template, emails and jobs
 as Avery Quinn, so their History sheets name her. On top, Jordan Ellis starts version 2 of "Brightwater engineering"
 (a notice period question, then made required, and two more days for Interview) and changes the salary of "Backend
-Engineer (Payments)", and Avery adds an "Interview invitation" email template and edits its subject. The jobs `DevelopmentDataSeeder`
-makes have no history until someone edits them.
+Engineer (Payments)", and Avery adds an "Interview invitation" email template, edits its subject and rewords the
+built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history until someone edits them.
 
 ### What is seeded where
 
@@ -189,9 +192,25 @@ makes have no history until someone edits them.
 Extras if there is time: the Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
-the Templates page and its builder (questions, automations and the guardrail that refuses an
+the Templates page (below) and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
+
+Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filtered by All, In use, Not used in 6 months
+and Archived.
+
+- **Emails.** Open "Application received", change the subject, then switch to **Preview**: the email with the made-up
+  Jordan Lee follows your words, and the window icon opens it in a second window that follows too. **Send me a test**
+  lands in Mailpit with `[Test]` in front. On a job's pipeline, tick a few candidates and press **Email**: each gets the
+  email in Mailpit, and it shows in their Activity. Back on the template, Last updated says "by you", and **History**
+  shows "You changed the subject". "Not progressing" has Brightwater's wording: its menu's **Reset to original**
+  confirms, then puts ScreenHire's wording back, and History says so. The old Settings address redirects here.
+- **Scorecards.** Open "Technical interview": Used by lists the hiring templates that name it, Edit is the form builder
+  with the rating kinds, and Preview is the scorecard as a reviewer fills it in. A built-in such as "Screening" reads
+  only and offers **Copy scorecard**.
+- **Hiring.** "Brightwater engineering" shows version 1 and the Draft 2 badge. **Duplicate** in a row's menu makes
+  "Brightwater engineering (copy)" and opens it; **Archive** moves your own template under Archived, out of the new job
+  page's list, until **Restore**.
 
 Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
 
@@ -214,10 +233,6 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
   from the row's menu.
-- **Email templates.** Open "Application received", change the subject, and the preview with the made-up Jordan Lee
-  follows as you type; **Send test** lands in Mailpit with `[Test]` in front. Then, on a job's pipeline, tick a few
-  candidates and press **Email**: each gets the email in Mailpit, and it shows in their Activity. Back on the template,
-  Last updated says "by you", and **History** shows "You changed the subject" with the old and new subject.
 - **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).

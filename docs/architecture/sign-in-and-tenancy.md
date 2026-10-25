@@ -239,7 +239,8 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Integrity, API keys, Webhooks and, until the Templates page takes them, Email templates, under `/settings/*`), each page
+Integrity, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+`/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.

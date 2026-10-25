@@ -2,9 +2,9 @@ import type { EmailTemplateEntry, EmailTemplateVariableEntry } from '@screenhire
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import Harness from '../../test-support/email-template-form-harness.svelte';
 import { apiStub } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
-import EmailTemplateForm from './email-template-form.svelte';
 
 const variables: EmailTemplateVariableEntry[] = [
   { name: 'candidateName', label: 'Candidate name', rejectOnly: false },
@@ -22,6 +22,8 @@ const template: EmailTemplateEntry = {
   body: 'Hi {{ candidateName }},',
   updatedAt: null,
   lastUpdated: { at: null, by: 'ScreenHire' },
+  questionnaireOnly: false,
+  archived: false,
 };
 
 // The preview renders what the API returns for the wording it was sent.
@@ -52,31 +54,32 @@ function renderForm(props: Record<string, unknown> = {}) {
     ),
   );
   const onsave = vi.fn(async () => {});
-  render(WithQueryClient, {
-    props: {
-      component: EmailTemplateForm,
-      props: { template, variables, sendingEnabled: true, submitLabel: 'Save', cancelHref: '/settings/email-templates', failure: 'Could not save', onsave, ...props },
-    },
-  });
+  render(WithQueryClient, { props: { component: Harness, props: { template, variables, sendingEnabled: true, onsave, ...props } } });
   return { previews, tests, onsave };
 }
+
+const view = () => screen.getByRole('group', { name: 'View' });
+const showPreview = () => fireEvent.click(within(view()).getByRole('button', { name: 'Preview' }));
+const showEdit = () => fireEvent.click(within(view()).getByRole('button', { name: 'Edit' }));
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('email template form', () => {
-  it('previews the wording with the sample candidate as it is typed, and switches to plain text', async () => {
+  it('shows the wording or the email, never both, and the preview follows the wording with the sample candidate (A8)', async () => {
     const { previews } = renderForm();
-    const preview = screen.getByRole('region', { name: 'Preview' });
-    expect(await within(preview).findByText('An update on Product designer')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull();
+    await waitFor(() => expect(previews).toHaveLength(1));
     expect(previews[0]).toEqual({ subject: 'An update on {{ jobTitle }}', body: 'Hi {{ candidateName }},', templateId: 'stage-change' });
 
     await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'News about {{ jobTitle }}' } });
+    await showPreview();
+    const preview = screen.getByRole('region', { name: 'Preview' });
+    expect(screen.queryByLabelText('Subject')).toBeNull();
     expect(await within(preview).findByText('News about Product designer')).toBeInTheDocument();
 
     await fireEvent.click(within(preview).getByRole('button', { name: 'Plain text' }));
-    expect(within(preview).getByRole('button', { name: 'Plain text' })).toHaveAttribute('aria-pressed', 'true');
     expect(preview.querySelector('[data-email-text]')).toHaveTextContent('Hi Jordan Lee,');
     await expectNoAxeViolations();
   });
@@ -84,6 +87,7 @@ describe('email template form', () => {
   it('says what is wrong with wording the API refuses', async () => {
     renderForm();
     await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'Hi {{ nope }}' } });
+    await showPreview();
 
     expect(await screen.findByText('There is no variable "nope".')).toBeInTheDocument();
   });
@@ -97,43 +101,57 @@ describe('email template form', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Insert Candidate name' }));
 
     await waitFor(() => expect(subject).toHaveValue('{{ candidateName }}An update on {{ jobTitle }}'));
-    expect(screen.queryByRole('button', { name: 'Reason' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Insert Reason' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
   });
 
-  it('sends a test of the unsaved wording to the signed-in person', async () => {
+  it('sends a test of the unsaved wording to the signed-in person from Preview', async () => {
     const { tests } = renderForm();
+    await showPreview();
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Send test' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Send me a test' }));
 
     expect(await screen.findByText('Sent a test to avery@example.com.')).toBeInTheDocument();
     expect(tests).toEqual([{ subject: 'An update on {{ jobTitle }}', body: 'Hi {{ candidateName }},', templateId: 'stage-change' }]);
   });
 
-  it('says where the preview will be while a new template has no wording, and turns the test send on with the first words', async () => {
+  it('says a new template has nothing to preview until it has words, and turns the test send on with them', async () => {
     const { previews } = renderForm({ template: undefined });
+    await showPreview();
     const preview = screen.getByRole('region', { name: 'Preview' });
 
-    expect(within(preview).getByText('The email appears here as you write the subject and the message.')).toBeInTheDocument();
-    expect(within(preview).getByRole('button', { name: 'Send test' })).toBeDisabled();
+    expect(within(preview).getByText('Write a subject and a message to see the email.')).toBeInTheDocument();
+    expect(within(preview).getByRole('button', { name: 'Send me a test' })).toBeDisabled();
     expect(previews).toHaveLength(0);
 
+    await showEdit();
     await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'An update on {{ jobTitle }}' } });
-    expect(await within(preview).findByText('An update on Product designer')).toBeInTheDocument();
-    expect(within(preview).getByRole('button', { name: 'Send test' })).toBeEnabled();
+    await showPreview();
+    expect(await within(screen.getByRole('region', { name: 'Preview' })).findByText('An update on Product designer')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Preview' })).getByRole('button', { name: 'Send me a test' })).toBeEnabled();
   });
 
-  it('hides the test send when this deployment cannot send email, and asks a new template for its name', async () => {
+  it('saves from outside the form in either view, going back to Edit when a new template needs its name', async () => {
     const { onsave } = renderForm({ template: undefined, sendingEnabled: false });
-
-    expect(screen.queryByRole('button', { name: 'Send test' })).not.toBeInTheDocument();
     await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'Hello' } });
     await fireEvent.input(screen.getByLabelText('Message'), { target: { value: 'Hi there' } });
+    await showPreview();
+    expect(screen.queryByRole('button', { name: 'Send me a test' })).not.toBeInTheDocument();
+
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('Enter a name.')).toBeInTheDocument();
     await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Interview invitation' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(onsave).toHaveBeenCalledWith({ name: 'Interview invitation', subject: 'Hello', body: 'Hi there' }));
+  });
+
+  it('reads as labels and values without the role to change it (E3)', async () => {
+    renderForm({ editable: false });
+
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByText('An update on {{ jobTitle }}')).toBeInTheDocument();
+    await showPreview();
+    expect(screen.queryByRole('button', { name: 'Send me a test' })).toBeNull();
   });
 });

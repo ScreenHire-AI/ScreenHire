@@ -19,11 +19,12 @@ public sealed record EmailTemplateList(bool SendingEnabled, IReadOnlyList<EmailT
 /// <c>rejectOnly</c>: only a Reject action sends it (the rejection email); a person cannot send it, and SendEmail cannot
 /// name it. <c>questionnaireOnly</c>: only a SendQuestionnaire action sends it (the follow-up questions email, whose link
 /// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording, and
-/// <c>lastUpdated</c> says who changed it last, or ScreenHire for a built-in nobody has.
+/// <c>lastUpdated</c> says who changed it last, or ScreenHire for a built-in nobody has. <c>archived</c>: the
+/// organization took its own template out of the pickers; automations that name it keep sending it.
 /// </remarks>
 public sealed record EmailTemplateEntry(
     string Id, string Name, bool BuiltIn, bool Edited, bool RejectOnly, string Subject, string Body, DateTimeOffset? UpdatedAt,
-    LastUpdate LastUpdated, bool QuestionnaireOnly = false);
+    LastUpdate LastUpdated, bool QuestionnaireOnly, bool Archived);
 
 /// <summary>
 /// A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.
@@ -99,7 +100,7 @@ internal static class EmailMappings
         new(template.Id, template.Name, template.BuiltIn, template.Edited, template.Id == EmailTemplateIds.ApplicationRejected,
             template.Content.Subject, template.Content.Body, template.UpdatedAt,
             lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.From(lastChange, template.UpdatedAt),
-            template.Id == EmailTemplateIds.QuestionnaireRequest);
+            template.Id == EmailTemplateIds.QuestionnaireRequest, template.Archived);
 
     public static EmailPreview ToPreview(this EmailMessage message) => new(message.Subject, message.HtmlBody ?? "", message.TextBody);
 

@@ -36,6 +36,12 @@ sources:
   - resource: src/ScreenHire.Application/Webhooks/WebhookEvents.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookRetention.cs
   - resource: apps/api/Endpoints/TemplateEndpoints.cs
+  - resource: apps/api/Endpoints/TemplateUsageEndpoints.cs
+  - resource: apps/api/Hiring/TemplateUsage.cs
+  - resource: apps/dashboard/src/routes/(app)/templates/+page.svelte
+  - resource: apps/dashboard/src/lib/components/template-list.svelte
+  - resource: apps/dashboard/src/routes/(app)/templates/scorecards/[templateId]/+page.svelte
+  - resource: src/ScreenHire.Domain/Hiring/TemplateUses.cs
   - resource: apps/api/Endpoints/WorkflowEndpoints.cs
   - resource: apps/api/Endpoints/AutomationEndpoints.cs
   - resource: apps/api/Endpoints/ScorecardEndpoints.cs
@@ -97,6 +103,16 @@ Organization
   fork the copy. When a template gets a new version, jobs show "update available" and the recruiter can diff and apply —
   live jobs are never mutated silently.
 - **System templates** ship with the product (SMB quick-start), customers clone and edit them.
+- **Archived templates.** An organization archives its own hiring template or library scorecard
+  (`POST .../archive`, `.../unarchive`): it leaves the pickers, no new job starts from it (`POST /v1/jobs` answers 400),
+  and it reads only until restored (409 on an edit). Jobs keep the copy they took, and stages that name an archived
+  scorecard keep it. System templates and built-in scorecards are never archived.
+- **Where a template is used.** `GET /v1/template-usage` (`apps/api/Hiring/TemplateUsage.cs`) gives the Templates
+  page each template's users and when it was last used: the jobs that are not closed for a hiring template, the hiring
+  templates whose current versions (the newest published and the draft) name a scorecard, and the automations that
+  send an email, a Reject action counting for the rejection email and SendQuestionnaire for the follow-up questions
+  email. "Not used in 6 months" is `TemplateUses.NotUsedRecently`: nothing used it in 180 days, and the team has had it
+  longer than that (a built-in from the organization's creation).
 
 ## 2. WorkflowDefinition
 
@@ -155,7 +171,10 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 - **Simulation**: "test this workflow" runs a sample application through the definition and shows which automations
   would fire — essential trust feature, cheap because evaluation is deterministic.
 
-What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`): one
+What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`). The
+Templates page has a tab each for hiring templates, library scorecards (`/templates/scorecards/{id}`, the form builder
+with an Edit / Preview switch) and email templates ([email.md](email.md)), each listed by `template-list.svelte` with
+where it is used, from `GET /v1/template-usage`. The workflow builder is one
 editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own copy, with four tabs on
 the page's header band. A workflow that cannot be edited there (a ScreenHire template, a published version, a closed
 job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no form controls. The
@@ -164,9 +183,9 @@ validation result is a status badge beside the page title.
 - **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
-  the workflow. The library's own editor comes with the Templates page (roadmap); until then a team's own scorecard is
-  made through `/v1/scorecard-templates`, and the form builder it will use (`scorecard-builder.svelte`) is in the style
-  guide. A stage that ends the application offers no
+  the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
+  (`scorecard-builder.svelte`), or through `/v1/scorecard-templates`. An archived scorecard leaves the picker unless the
+  stage already names it. A stage that ends the application offers no
   scorecard. Automations whose trigger
   has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
   workflow" lane. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
@@ -226,7 +245,10 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
 - `GET` and `POST /v1/applications/{id}/scorecards` (an API key reads them; only a signed-in person submits one)
 - `GET` and `POST /v1/scorecard-templates`, `GET` and `PUT /v1/scorecard-templates/{id}`,
-  `GET /v1/scorecard-templates/{id}/history`: the scorecard library (section 8)
+  `GET /v1/scorecard-templates/{id}/history`, `POST /v1/scorecard-templates/{id}/archive` and `/unarchive`: the
+  scorecard library (section 8)
+- `POST /v1/templates/{id}/archive` and `/unarchive`; `GET /v1/template-usage` (signed-in people only), where each
+  hiring, scorecard and email template is used
 - Webhooks: `/v1/webhooks` (below).
 
 ### Webhook subscriptions

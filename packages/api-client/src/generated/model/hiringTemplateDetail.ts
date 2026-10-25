@@ -23,4 +23,5 @@ export interface HiringTemplateDetail {
   updatedAt: string | null;
   versions: HiringTemplateVersionSummary[];
   lastUpdated: LastUpdate;
+  archived: boolean;
 }

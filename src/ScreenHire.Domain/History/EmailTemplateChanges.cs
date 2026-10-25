@@ -48,6 +48,11 @@ public static class EmailTemplateChanges
             lines.Add(ChangeLine.Plain("changed the message", [new("Message", body, after.Body, ChangeValueKind.Paragraphs)]));
         }
 
+        if (Archive.Line(before?.ArchivedAt, after.ArchivedAt, "template") is { } archive)
+        {
+            lines.Add(archive);
+        }
+
         return lines;
     }
 

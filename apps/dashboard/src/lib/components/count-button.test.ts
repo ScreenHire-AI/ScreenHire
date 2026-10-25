@@ -33,6 +33,15 @@ describe('count button', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('says what it is given for none, to match a list column', () => {
+    render(WithTooltips, {
+      props: { component: CountButton, props: { items: [], one: 'job', other: 'jobs', title: 'Used by', description: 'Technical interview', empty: 'None' } },
+    });
+
+    expect(screen.getByText('None')).toBeInTheDocument();
+    expect(screen.queryByText('0 jobs')).not.toBeInTheDocument();
+  });
+
   it('has no search for 10 items', async () => {
     renderButton(jobs(10));
 

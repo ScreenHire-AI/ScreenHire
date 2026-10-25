@@ -5,9 +5,12 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Email;
 
 /// <summary>One of the signed-in organization's templates as it sends: its id, its name and its wording.</summary>
-/// <remarks><c>builtIn</c>: one of <see cref="EmailTemplateIds.BuiltIn"/>. <c>edited</c>: the organization changed a built-in's wording.</remarks>
+/// <remarks>
+/// <c>builtIn</c>: one of <see cref="EmailTemplateIds.BuiltIn"/>. <c>edited</c>: the organization changed a built-in's
+/// wording. <c>archived</c>: the organization took its own template out of the pickers; automations that name it still send it.
+/// </remarks>
 public sealed record OrganizationEmailTemplate(
-    string Id, string Name, bool BuiltIn, bool Edited, EmailTemplateContent Content, DateTimeOffset? UpdatedAt);
+    string Id, string Name, bool BuiltIn, bool Edited, EmailTemplateContent Content, DateTimeOffset? UpdatedAt, bool Archived = false);
 
 /// <summary>
 /// Finds the organization's wording of a template: its row, or ScreenHire's wording of a built-in with none. Reads
@@ -69,5 +72,5 @@ public sealed class EmailTemplateStore(EmailTemplates templates)
 
     private static OrganizationEmailTemplate ToTemplate(EmailTemplate row) =>
         new(row.Key, row.BuiltInId is { } builtIn ? BuiltInNames[builtIn] : row.Name ?? "", row.BuiltInId is not null,
-            row.BuiltInId is not null, new(row.Subject, row.Body), row.UpdatedAt);
+            row.BuiltInId is not null, new(row.Subject, row.Body), row.UpdatedAt, row.ArchivedAt is not null);
 }

@@ -142,6 +142,14 @@ internal static class JobEndpoints
                 return TypedResults.ValidationProblem(
                     ValidationExtensions.Problem("templateVersionId", "No published template version has this id."));
             }
+
+            // An archived template is out of the pickers: the jobs that started from it keep their copy, and no new one starts.
+            var templateId = template.TemplateId;
+            if (await db.HiringTemplates.AnyAsync(t => t.Id == templateId && t.ArchivedAt != null, cancellationToken))
+            {
+                return TypedResults.ValidationProblem(
+                    ValidationExtensions.Problem("templateVersionId", "The template is archived. Restore it, or choose another."));
+            }
         }
 
         // The template's stages name library scorecards; the job copies the questions of each, so they must all exist.

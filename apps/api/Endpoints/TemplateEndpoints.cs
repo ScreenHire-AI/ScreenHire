@@ -26,6 +26,8 @@ internal static class TemplateEndpoints
 {
     private const string SystemReadOnly = "System templates are read-only; copy one to customise it.";
 
+    private const string ArchivedReadOnly = "The template is archived; restore it to change it.";
+
     public static IEndpointRouteBuilder MapTemplateEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/v1/templates").WithTags("Hiring templates").AllowApiKeys();
@@ -55,6 +57,16 @@ internal static class TemplateEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{templateId:guid}/versions/{version:int}/publish", PublishVersion).WithName("PublishHiringTemplateVersion")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditHiringTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{templateId:guid}/archive", ArchiveTemplate).WithName("ArchiveHiringTemplate")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditHiringTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{templateId:guid}/unarchive", UnarchiveTemplate).WithName("UnarchiveHiringTemplate")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -167,6 +179,11 @@ internal static class TemplateEndpoints
             return TypedResults.Problem(SystemReadOnly, statusCode: StatusCodes.Status409Conflict);
         }
 
+        if (template.ArchivedAt is not null)
+        {
+            return TypedResults.Problem(ArchivedReadOnly, statusCode: StatusCodes.Status409Conflict);
+        }
+
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
@@ -195,6 +212,11 @@ internal static class TemplateEndpoints
         if (template.IsSystem)
         {
             return TypedResults.Problem(SystemReadOnly, statusCode: StatusCodes.Status409Conflict);
+        }
+
+        if (template.ArchivedAt is not null)
+        {
+            return TypedResults.Problem(ArchivedReadOnly, statusCode: StatusCodes.Status409Conflict);
         }
 
         if (template.Draft is { } existing)
@@ -256,6 +278,11 @@ internal static class TemplateEndpoints
             return TypedResults.Problem($"Version {version} is published and cannot change; create a new version.", statusCode: StatusCodes.Status409Conflict);
         }
 
+        if (await db.HiringTemplates.AnyAsync(t => t.Id == templateId && t.ArchivedAt != null, cancellationToken))
+        {
+            return TypedResults.Problem(ArchivedReadOnly, statusCode: StatusCodes.Status409Conflict);
+        }
+
         if ((await TemplateReferences.ValidateAsync(db, request.Definition, cancellationToken)).ToProblems("definition") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
@@ -297,6 +324,11 @@ internal static class TemplateEndpoints
             return TypedResults.Problem(SystemReadOnly, statusCode: StatusCodes.Status409Conflict);
         }
 
+        if (template.ArchivedAt is not null)
+        {
+            return TypedResults.Problem(ArchivedReadOnly, statusCode: StatusCodes.Status409Conflict);
+        }
+
         if (found.Status == TemplateVersionStatus.Draft)
         {
             if ((await TemplateReferences.ValidateAsync(outbox.DbContext, found.Definition, cancellationToken)).ToProblems("definition") is { } problems)
@@ -324,6 +356,43 @@ internal static class TemplateEndpoints
         }
 
         return TypedResults.Ok(found.ToDetail());
+    }
+
+    // Archiving takes the template out of the pickers: no new job starts from it, and the jobs that did keep their copy.
+    // Both directions are idempotent, and each records a line in the template's History.
+    private static Task<Results<Ok<HiringTemplateDetail>, NotFound, ProblemHttpResult>> ArchiveTemplate(
+        Guid templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, time, cancellationToken);
+
+    private static Task<Results<Ok<HiringTemplateDetail>, NotFound, ProblemHttpResult>> UnarchiveTemplate(
+        Guid templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, time, cancellationToken);
+
+    private static async Task<Results<Ok<HiringTemplateDetail>, NotFound, ProblemHttpResult>> SetArchivedAsync(
+        Guid templateId, bool archived, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+    {
+        var template = await LoadAsync(db, templateId, tracking: true, cancellationToken);
+        if (template is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (template.IsSystem)
+        {
+            return TypedResults.Problem("System templates cannot be archived.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        if (archived)
+        {
+            template.Archive(time.GetUtcNow());
+        }
+        else
+        {
+            template.Unarchive(time.GetUtcNow());
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
     }
 
     private static async Task<HiringTemplateDetail> DetailAsync(ScreenHireDbContext db, HiringTemplate template, CancellationToken cancellationToken) =>

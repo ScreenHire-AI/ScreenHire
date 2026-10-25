@@ -1,6 +1,5 @@
 import Building2Icon from '@lucide/svelte/icons/building-2';
 import KeyRoundIcon from '@lucide/svelte/icons/key-round';
-import MailIcon from '@lucide/svelte/icons/mail';
 import PaletteIcon from '@lucide/svelte/icons/palette';
 import ShieldUserIcon from '@lucide/svelte/icons/shield-user';
 import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
@@ -13,8 +12,8 @@ import type { LucideIcon } from '#lib/shell.js';
 /**
  * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
  * Settings item opens the first the person may use, and the command palette lists those. Kept apart from `sections`,
- * which every member sees and which the G chords read. Email templates stay last until the Templates page takes them
- * (section 22).
+ * which every member sees and which the G chords read. Email templates live on the Templates page (section 22), and
+ * their old addresses here redirect there.
  */
 export const settingsSections: readonly { label: string; href: string; icon: LucideIcon; permission: Permission; allJobs?: true }[] = [
   { label: 'Organization', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings' },
@@ -24,7 +23,6 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Integrity', href: '/settings/integrity', icon: ShieldCheckIcon, permission: 'EditSettings' },
   { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', allJobs: true },
   { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', allJobs: true },
-  { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon, permission: 'EditEmailTemplates' },
 ];
 
 /**

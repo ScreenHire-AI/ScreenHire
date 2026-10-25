@@ -42,8 +42,9 @@ namespace ScreenHire.Api.Demo;
 /// <item>"Support Engineer", from the template, published to every board, for the closed job below.</item>
 /// <item>Change history (<see cref="SeedHistoryAsync"/>): Jordan Ellis starts version 2 of the template (a question and a
 /// longer time limit on Interview) and changes the
-/// draft job's salary, and Avery Quinn adds an "Interview invitation" email and edits its subject, on top of the steps above, which Avery
-/// makes. Applying and moving candidates are not tracked changes.</item>
+/// draft job's salary, and Avery Quinn adds an "Interview invitation" email and edits its subject and rewords the built-in
+/// rejection email ("Not progressing"), so the Templates page shows a draft and an edited built-in with Reset to original,
+/// on top of the steps above, which Avery makes. Applying and moving candidates are not tracked changes.</item>
 /// <item>A custom role (<see cref="SeedInterviewerAsync"/>): Avery Quinn makes "Interviewer" from Viewer, with notes, tags and
 /// scorecards, and gives it to Robin Hale, whom the seeder adds as a Viewer, so Roles, the role's History and the
 /// membership log show a custom role.</item>
@@ -588,6 +589,9 @@ internal sealed partial class DevelopmentDemo(
     /// <summary>The email template of Brightwater's own that Avery Quinn adds and then edits.</summary>
     public const string InterviewEmailName = "Interview invitation";
 
+    /// <summary>The subject of Brightwater's wording of the built-in rejection email.</summary>
+    public const string RejectionEmailSubject = "About your application for {{ jobTitle }}";
+
     // Edits a team would make in its first days, made through the same tracked saves as the dashboard's, so the History
     // sheets of the template, an email template and a job have entries by two people. Each edit is made once.
     private async Task SeedHistoryAsync(CancellationToken cancellationToken)
@@ -649,6 +653,19 @@ internal sealed partial class DevelopmentDemo(
 
                     template.Subject = "Interview for {{ jobTitle }} at {{ organizationName }}";
                     template.UpdatedAt = time.GetUtcNow();
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+
+                // Brightwater's wording of the built-in rejection email, so the Templates page shows a built-in the team
+                // edited, with Reset to original in its menu. The demo never rejects anyone with it.
+                if (!await db.EmailTemplates.AnyAsync(t => t.BuiltInId == EmailTemplateIds.ApplicationRejected, cancellationToken))
+                {
+                    db.EmailTemplates.Add(EmailTemplate.Reword(
+                        step.OrganizationId, EmailTemplateIds.ApplicationRejected, RejectionEmailSubject,
+                        "Hi {{ firstName }},\n\nThank you for your time applying for {{ jobTitle }} at {{ organizationName }}. We will not be " +
+                        "taking your application further this time.\n\nThe reason: {{ reason }}\n\nWe wish you the best with your search.\n\n" +
+                        "{{ organizationName }}",
+                        step.Now));
                     await db.SaveChangesAsync(cancellationToken);
                 }
             }

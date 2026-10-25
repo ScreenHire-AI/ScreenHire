@@ -42,6 +42,16 @@ internal static class ScorecardTemplateEndpoints
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{templateId}/archive", ArchiveScorecardTemplate).WithName("ArchiveScorecardTemplate")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditHiringTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{templateId}/unarchive", UnarchiveScorecardTemplate).WithName("UnarchiveScorecardTemplate")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditHiringTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
@@ -136,6 +146,11 @@ internal static class ScorecardTemplateEndpoints
             return TypedResults.NotFound();
         }
 
+        if (template.ArchivedAt is not null)
+        {
+            return TypedResults.Problem("The scorecard is archived; restore it to change it.", statusCode: StatusCodes.Status409Conflict);
+        }
+
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
@@ -148,6 +163,43 @@ internal static class ScorecardTemplateEndpoints
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
+    }
+
+    // Archiving takes an own scorecard out of the pickers; stages that name it keep it, and jobs keep their copy. Both
+    // directions are idempotent and recorded in the scorecard's History.
+    private static Task<Results<Ok<ScorecardTemplateDetail>, NotFound, ProblemHttpResult>> ArchiveScorecardTemplate(
+        string templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, time, cancellationToken);
+
+    private static Task<Results<Ok<ScorecardTemplateDetail>, NotFound, ProblemHttpResult>> UnarchiveScorecardTemplate(
+        string templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, time, cancellationToken);
+
+    private static async Task<Results<Ok<ScorecardTemplateDetail>, NotFound, ProblemHttpResult>> SetArchivedAsync(
+        string templateId, bool archived, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (BuiltInScorecards.Find(templateId) is not null)
+        {
+            return TypedResults.Problem("Built-in scorecards cannot be archived.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var template = await FindAsync(db, templateId, tracking: true, cancellationToken);
+        if (template is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (archived)
+        {
+            template.Archive(time.GetUtcNow());
+        }
+        else
+        {
+            template.Unarchive(time.GetUtcNow());
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
     }
 

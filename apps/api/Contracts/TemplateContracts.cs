@@ -4,7 +4,10 @@ using ScreenHire.Infrastructure.Persistence.History;
 
 namespace ScreenHire.Api.Contracts;
 
-/// <summary>A hiring template in a list. System templates ship with the product and are read-only.</summary>
+/// <summary>
+/// A hiring template in a list. System templates ship with the product and are read-only. An archived template
+/// (<c>archived</c>) is out of the pickers: no new job starts from it, and the jobs that did keep their copy.
+/// </summary>
 public sealed record HiringTemplateSummary(
     Guid Id,
     string Name,
@@ -15,7 +18,8 @@ public sealed record HiringTemplateSummary(
     int? DraftVersion,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    LastUpdate LastUpdated);
+    LastUpdate LastUpdated,
+    bool Archived);
 
 /// <summary>A hiring template with its versions, oldest first. <c>lastUpdated</c> counts every version's changes.</summary>
 public sealed record HiringTemplateDetail(
@@ -27,7 +31,8 @@ public sealed record HiringTemplateDetail(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     IReadOnlyList<HiringTemplateVersionSummary> Versions,
-    LastUpdate LastUpdated);
+    LastUpdate LastUpdated,
+    bool Archived);
 
 public sealed record HiringTemplateVersionSummary(
     Guid Id, int Version, TemplateVersionStatus Status, DateTimeOffset CreatedAt, DateTimeOffset? PublishedAt);
@@ -67,13 +72,13 @@ internal static class TemplateMappings
     public static HiringTemplateSummary ToSummary(this HiringTemplate template, ChangeStamp? lastChange) =>
         new(template.Id, template.Name, template.Description, template.IsSystem, template.LatestPublishedVersion,
             template.Versions.FirstOrDefault(v => v.Version == template.LatestPublishedVersion)?.Id,
-            template.Draft?.Version, template.CreatedAt, template.UpdatedAt, template.Updated(lastChange));
+            template.Draft?.Version, template.CreatedAt, template.UpdatedAt, template.Updated(lastChange), template.ArchivedAt is not null);
 
     public static HiringTemplateDetail ToDetail(this HiringTemplate template, ChangeStamp? lastChange) =>
         new(template.Id, template.Name, template.Description, template.IsSystem, template.LatestPublishedVersion,
             template.CreatedAt, template.UpdatedAt,
             [.. template.Versions.OrderBy(v => v.Version).Select(v => new HiringTemplateVersionSummary(v.Id, v.Version, v.Status, v.CreatedAt, v.PublishedAt))],
-            template.Updated(lastChange));
+            template.Updated(lastChange), template.ArchivedAt is not null);
 
     // A system template is ScreenHire's: nobody in an organization can change it.
     private static LastUpdate Updated(this HiringTemplate template, ChangeStamp? lastChange) =>

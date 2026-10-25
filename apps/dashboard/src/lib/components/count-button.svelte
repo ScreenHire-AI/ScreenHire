@@ -22,6 +22,7 @@
     other,
     title,
     description,
+    empty,
   }: {
     items: readonly CountItem[];
     /** The noun for one item ("hiring template"). */
@@ -32,6 +33,8 @@
     title: string;
     /** The sheet's one line: usually the record's name. */
     description: string;
+    /** What it says with nothing to list, to match a list's column ("None"); the count ("0 jobs") by default. */
+    empty?: string;
   } = $props();
 
   /** Past this many items the sheet offers a search. */
@@ -45,7 +48,7 @@
 </script>
 
 {#if items.length === 0}
-  <span>{label}</span>
+  <span>{empty ?? label}</span>
 {:else}
   <Button variant="outline" class="tabular-nums" onclick={() => (open = true)}>{label}</Button>
   <Sheet.Root bind:open onOpenChange={(next) => next || (query = '')}>

@@ -107,6 +107,7 @@ app.MapAutomationEndpoints();
 app.MapTaskEndpoints();
 app.MapScorecardEndpoints();
 app.MapScorecardTemplateEndpoints();
+app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapEmailEndpoints();
 app.MapSchemaEndpoints();

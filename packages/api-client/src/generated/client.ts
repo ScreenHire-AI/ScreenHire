@@ -109,6 +109,7 @@ import type {
   TaskListItem,
   TeamMember,
   TelemetrySnapshotInput,
+  TemplateUsageList,
   TestEmailSent,
   UpdateBrandingRequest,
   UpdateEmailTemplateRequest,
@@ -280,6 +281,46 @@ export const getListAutomationIssuesUrl = () => {
 export const listAutomationIssues = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listAutomationIssuesResponse> => {
 
   return apiFetch<listAutomationIssuesResponse>(getListAutomationIssuesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getTemplateUsageResponse200 = {
+  data: TemplateUsageList
+  status: 200
+}
+
+export type getTemplateUsageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTemplateUsageResponseSuccess = (getTemplateUsageResponse200) & {
+  headers: Headers;
+};
+export type getTemplateUsageResponseError = (getTemplateUsageResponse401) & {
+  headers: Headers;
+};
+
+export type getTemplateUsageResponse = (getTemplateUsageResponseSuccess | getTemplateUsageResponseError)
+
+export const getGetTemplateUsageUrl = () => {
+
+
+
+
+  return `/v1/template-usage`
+}
+
+export const getTemplateUsage = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getTemplateUsageResponse> => {
+
+  return apiFetch<getTemplateUsageResponse>(getGetTemplateUsageUrl(),
   {
     ...options,
     method: 'GET'
@@ -2665,6 +2706,126 @@ export const publishHiringTemplateVersion = async (templateId: string,
     version: number, options?: Parameters<typeof apiFetch>[1]): Promise<publishHiringTemplateVersionResponse> => {
 
   return apiFetch<publishHiringTemplateVersionResponse>(getPublishHiringTemplateVersionUrl(templateId,version),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type archiveHiringTemplateResponse200 = {
+  data: HiringTemplateDetail
+  status: 200
+}
+
+export type archiveHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type archiveHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type archiveHiringTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type archiveHiringTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type archiveHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type archiveHiringTemplateResponseSuccess = (archiveHiringTemplateResponse200) & {
+  headers: Headers;
+};
+export type archiveHiringTemplateResponseError = (archiveHiringTemplateResponse401 | archiveHiringTemplateResponse403 | archiveHiringTemplateResponse404 | archiveHiringTemplateResponse409 | archiveHiringTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type archiveHiringTemplateResponse = (archiveHiringTemplateResponseSuccess | archiveHiringTemplateResponseError)
+
+export const getArchiveHiringTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/archive`
+}
+
+export const archiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<archiveHiringTemplateResponse> => {
+
+  return apiFetch<archiveHiringTemplateResponse>(getArchiveHiringTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type unarchiveHiringTemplateResponse200 = {
+  data: HiringTemplateDetail
+  status: 200
+}
+
+export type unarchiveHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unarchiveHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type unarchiveHiringTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type unarchiveHiringTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type unarchiveHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type unarchiveHiringTemplateResponseSuccess = (unarchiveHiringTemplateResponse200) & {
+  headers: Headers;
+};
+export type unarchiveHiringTemplateResponseError = (unarchiveHiringTemplateResponse401 | unarchiveHiringTemplateResponse403 | unarchiveHiringTemplateResponse404 | unarchiveHiringTemplateResponse409 | unarchiveHiringTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type unarchiveHiringTemplateResponse = (unarchiveHiringTemplateResponseSuccess | unarchiveHiringTemplateResponseError)
+
+export const getUnarchiveHiringTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/unarchive`
+}
+
+export const unarchiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<unarchiveHiringTemplateResponse> => {
+
+  return apiFetch<unarchiveHiringTemplateResponse>(getUnarchiveHiringTemplateUrl(templateId),
   {
     ...options,
     method: 'POST'
@@ -6464,6 +6625,126 @@ export const getScorecardTemplateHistory = async (templateId: string,
 
 
 
+export type archiveScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type archiveScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type archiveScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type archiveScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type archiveScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type archiveScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type archiveScorecardTemplateResponseSuccess = (archiveScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type archiveScorecardTemplateResponseError = (archiveScorecardTemplateResponse401 | archiveScorecardTemplateResponse403 | archiveScorecardTemplateResponse404 | archiveScorecardTemplateResponse409 | archiveScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type archiveScorecardTemplateResponse = (archiveScorecardTemplateResponseSuccess | archiveScorecardTemplateResponseError)
+
+export const getArchiveScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}/archive`
+}
+
+export const archiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<archiveScorecardTemplateResponse> => {
+
+  return apiFetch<archiveScorecardTemplateResponse>(getArchiveScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type unarchiveScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type unarchiveScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unarchiveScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type unarchiveScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type unarchiveScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type unarchiveScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type unarchiveScorecardTemplateResponseSuccess = (unarchiveScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type unarchiveScorecardTemplateResponseError = (unarchiveScorecardTemplateResponse401 | unarchiveScorecardTemplateResponse403 | unarchiveScorecardTemplateResponse404 | unarchiveScorecardTemplateResponse409 | unarchiveScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type unarchiveScorecardTemplateResponse = (unarchiveScorecardTemplateResponseSuccess | unarchiveScorecardTemplateResponseError)
+
+export const getUnarchiveScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}/unarchive`
+}
+
+export const unarchiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<unarchiveScorecardTemplateResponse> => {
+
+  return apiFetch<unarchiveScorecardTemplateResponse>(getUnarchiveScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export type listWebhookEventTypesResponse200 = {
   data: string[]
   status: 200
@@ -7123,10 +7404,15 @@ export type updateEmailTemplateResponse404 = {
   status: 404
 }
 
+export type updateEmailTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type updateEmailTemplateResponseSuccess = (updateEmailTemplateResponse200) & {
   headers: Headers;
 };
-export type updateEmailTemplateResponseError = (updateEmailTemplateResponse400 | updateEmailTemplateResponse401 | updateEmailTemplateResponse403 | updateEmailTemplateResponse404) & {
+export type updateEmailTemplateResponseError = (updateEmailTemplateResponse400 | updateEmailTemplateResponse401 | updateEmailTemplateResponse403 | updateEmailTemplateResponse404 | updateEmailTemplateResponse409) & {
   headers: Headers;
 };
 
@@ -7270,6 +7556,116 @@ export const getEmailTemplateHistory = async (templateId: string,
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type archiveEmailTemplateResponse200 = {
+  data: EmailTemplateEntry
+  status: 200
+}
+
+export type archiveEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type archiveEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type archiveEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type archiveEmailTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type archiveEmailTemplateResponseSuccess = (archiveEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type archiveEmailTemplateResponseError = (archiveEmailTemplateResponse401 | archiveEmailTemplateResponse403 | archiveEmailTemplateResponse404 | archiveEmailTemplateResponse409) & {
+  headers: Headers;
+};
+
+export type archiveEmailTemplateResponse = (archiveEmailTemplateResponseSuccess | archiveEmailTemplateResponseError)
+
+export const getArchiveEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}/archive`
+}
+
+export const archiveEmailTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<archiveEmailTemplateResponse> => {
+
+  return apiFetch<archiveEmailTemplateResponse>(getArchiveEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type unarchiveEmailTemplateResponse200 = {
+  data: EmailTemplateEntry
+  status: 200
+}
+
+export type unarchiveEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unarchiveEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type unarchiveEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type unarchiveEmailTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type unarchiveEmailTemplateResponseSuccess = (unarchiveEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type unarchiveEmailTemplateResponseError = (unarchiveEmailTemplateResponse401 | unarchiveEmailTemplateResponse403 | unarchiveEmailTemplateResponse404 | unarchiveEmailTemplateResponse409) & {
+  headers: Headers;
+};
+
+export type unarchiveEmailTemplateResponse = (unarchiveEmailTemplateResponseSuccess | unarchiveEmailTemplateResponseError)
+
+export const getUnarchiveEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}/unarchive`
+}
+
+export const unarchiveEmailTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<unarchiveEmailTemplateResponse> => {
+
+  return apiFetch<unarchiveEmailTemplateResponse>(getUnarchiveEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

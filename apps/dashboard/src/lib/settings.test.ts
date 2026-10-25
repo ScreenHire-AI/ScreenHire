@@ -64,9 +64,10 @@ describe('role keys', () => {
 describe('visibleSettingsSections', () => {
   const labels = (user: CurrentUser | null) => visibleSettingsSections(user).map((section) => section.label);
 
-  it('shows Owners and Admins every page', () => {
-    expect(labels(userAs('Owner'))).toHaveLength(8);
-    expect(labels(userAs('Admin'))).toHaveLength(8);
+  it('shows Owners and Admins every page, and email templates on the Templates page instead', () => {
+    expect(labels(userAs('Owner'))).toHaveLength(7);
+    expect(labels(userAs('Admin'))).toHaveLength(7);
+    expect(labels(userAs('Owner'))).not.toContain('Email templates');
   });
 
   it('shows Recruiters, Viewers and an Interviewer none', () => {

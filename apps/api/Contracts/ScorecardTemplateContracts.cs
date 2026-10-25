@@ -10,15 +10,17 @@ namespace ScreenHire.Api.Contracts;
 /// </summary>
 /// <remarks>
 /// <c>id</c>: A built-in's id, such as <c>screening</c>, or an own scorecard's uuid. <c>questions</c> and
-/// <c>ratingQuestions</c> are counts; the rating questions are the ones the candidate's rating averages.
+/// <c>ratingQuestions</c> are counts; the rating questions are the ones the candidate's rating averages. <c>archived</c>:
+/// the organization took its own scorecard out of the pickers; stages that name it keep it.
 /// </remarks>
 public sealed record ScorecardTemplateSummary(
-    string Id, string Name, bool BuiltIn, int Questions, int RatingQuestions, LastUpdate LastUpdated);
+    string Id, string Name, bool BuiltIn, int Questions, int RatingQuestions, LastUpdate LastUpdated, bool Archived);
 
 /// <summary>One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.</summary>
 /// <remarks><c>copiedFrom</c>: The library scorecard this one was copied from, by id, if any.</remarks>
 public sealed record ScorecardTemplateDetail(
-    string Id, string Name, bool BuiltIn, string? CopiedFrom, IReadOnlyList<ScorecardQuestion> Questions, LastUpdate LastUpdated);
+    string Id, string Name, bool BuiltIn, string? CopiedFrom, IReadOnlyList<ScorecardQuestion> Questions, LastUpdate LastUpdated,
+    bool Archived);
 
 /// <summary>A new scorecard of the organization's own, optionally a copy of another (<c>copiedFrom</c>, by id).</summary>
 public sealed record CreateScorecardTemplateRequest(string Name, IReadOnlyList<ScorecardQuestion> Questions, string? CopiedFrom = null);
@@ -29,17 +31,18 @@ public sealed record UpdateScorecardTemplateRequest(string Name, IReadOnlyList<S
 internal static class ScorecardTemplateMappings
 {
     public static ScorecardTemplateSummary ToSummary(this BuiltInScorecard scorecard) =>
-        new(scorecard.Id, scorecard.Name, true, scorecard.Questions.Count, RatingQuestions(scorecard.Questions), LastUpdate.ByScreenHire(null));
+        new(scorecard.Id, scorecard.Name, true, scorecard.Questions.Count, RatingQuestions(scorecard.Questions), LastUpdate.ByScreenHire(null), false);
 
     public static ScorecardTemplateSummary ToSummary(this ScorecardTemplate scorecard, ChangeStamp? lastChange) =>
         new(scorecard.Key, scorecard.Name, false, scorecard.Questions.Count, RatingQuestions(scorecard.Questions),
-            LastUpdate.From(lastChange, scorecard.UpdatedAt));
+            LastUpdate.From(lastChange, scorecard.UpdatedAt), scorecard.ArchivedAt is not null);
 
     public static ScorecardTemplateDetail ToDetail(this BuiltInScorecard scorecard) =>
-        new(scorecard.Id, scorecard.Name, true, null, scorecard.Questions, LastUpdate.ByScreenHire(null));
+        new(scorecard.Id, scorecard.Name, true, null, scorecard.Questions, LastUpdate.ByScreenHire(null), false);
 
     public static ScorecardTemplateDetail ToDetail(this ScorecardTemplate scorecard, ChangeStamp? lastChange) =>
-        new(scorecard.Key, scorecard.Name, false, scorecard.CopiedFrom, scorecard.Questions, LastUpdate.From(lastChange, scorecard.UpdatedAt));
+        new(scorecard.Key, scorecard.Name, false, scorecard.CopiedFrom, scorecard.Questions, LastUpdate.From(lastChange, scorecard.UpdatedAt),
+            scorecard.ArchivedAt is not null);
 
     private static int RatingQuestions(IReadOnlyList<ScorecardQuestion> questions) =>
         questions.Count(q => q.Type.IsRating());
