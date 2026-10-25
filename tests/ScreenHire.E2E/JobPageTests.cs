@@ -31,17 +31,17 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var scene = await SceneAsync(FullDescription);
         var genuine = SyntheticApplicants.GenuineHuman;
         var bot = SyntheticApplicants.Bot;
-        // Both of the farm's applications, which together are what makes it a farm.
-        var (farm, farmSecond) = (SyntheticApplicants.ApplicationFarm[0], SyntheticApplicants.ApplicationFarm[1]);
+        // Applicants whose levels do not wait on the slower content checks (integrity-engine.md section 10.8).
+        var honest = SyntheticApplicants.HonestAiAssisted;
         var ids = new Dictionary<string, Guid>();
-        foreach (var applicant in new[] { genuine, bot, farm, farmSecond })
+        foreach (var applicant in new[] { genuine, bot, honest })
         {
             ids[applicant.FullName] = await Fixture.ApplyAsync(scene.Slug, scene.JobId, applicant, Ct);
         }
 
         using (var session = await SessionAsync(scene.Email))
         {
-            await ReadAsync(await session.PostAsync($"/v1/applications/{ids[farm.FullName]}/move", new { toStageId = "screening" }, Ct), HttpStatusCode.OK);
+            await ReadAsync(await session.PostAsync($"/v1/applications/{ids[honest.FullName]}/move", new { toStageId = "screening" }, Ct), HttpStatusCode.OK);
         }
 
         await Page.SetViewportSizeAsync(1440, 1040);
@@ -50,27 +50,26 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
         await Expect(Chip(bot.FullName)).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
-        await Expect(Chip(farm.FullName)).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
-        await Expect(Chip(farmSecond.FullName)).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         await Expect(Chip(genuine.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
+        await Expect(Chip(honest.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
 
         // The chips carry each level's count; one press narrows the table to that level.
         var chips = pipeline.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
-        await chips.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
-        await Expect(table.Locator("[data-row-link]")).ToHaveCountAsync(3);
-        await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName })).ToHaveCountAsync(0);
+        await chips.GetByRole(AriaRole.Button, new() { Name = "No concerns 2" }).ClickAsync();
+        await Expect(table.Locator("[data-row-link]")).ToHaveCountAsync(2);
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = bot.FullName })).ToHaveCountAsync(0);
 
         // The Stage filter narrows it further, to the one in Screening.
         await pipeline.GetByRole(AriaRole.Button, new() { Name = "Stage: All" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitemradio, new() { NameRegex = new("^Screening") }).ClickAsync();
         await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = "Stage: Screening" })).ToBeVisibleAsync();
         await Expect(table.Locator("[data-row-link]")).ToHaveCountAsync(1);
-        await Expect(table.GetByRole(AriaRole.Link, new() { Name = farm.FullName })).ToBeVisibleAsync();
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = honest.FullName })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-filtered-light");
 
         // A ticked row gets the bar; under an authenticity filter it offers Move but no Email (ADR-0004).
-        await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {farm.FullName}" }).CheckAsync();
+        await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {honest.FullName}" }).CheckAsync();
         var bar = pipeline.GetByRole(AriaRole.Region, new() { Name = "Selected candidates" });
         await Expect(bar).ToContainTextAsync("1 selected");
         await bar.GetByRole(AriaRole.Button, new() { Name = "Move 1 selected…" }).ClickAsync();
