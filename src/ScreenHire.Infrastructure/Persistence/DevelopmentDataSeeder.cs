@@ -33,12 +33,18 @@ public static class DevelopmentDataSeeder
     public const string DemoRecruiterEmail = "jordan@brightwater.example.com";
     public const string DemoRecruiterName = "Jordan Ellis";
 
+    // A third member for custom roles. Seeded as a Viewer; the local demo (apps/api/Demo/DevelopmentDemo.cs) makes the
+    // Interviewer role and gives it to them, so the change shows in the membership log and the role's history.
+    public const string DemoInterviewerSubject = "brightwater-interviewer";
+    public const string DemoInterviewerEmail = "robin@brightwater.example.com";
+    public const string DemoInterviewerName = "Robin Hale";
+
     /// <summary>Brightwater's brand colour, a deep teal, so the demo careers pages show employer branding.</summary>
     public const string DemoBrandColor = "#1f4e5a";
 
     /// <summary>
     /// Migrates as the table owner, lets the application role log in with the password from
-    /// <paramref name="appConnectionString"/>, then seeds Brightwater, its Owner and a Recruiter. Every step is idempotent, so it
+    /// <paramref name="appConnectionString"/>, then seeds Brightwater, its Owner, a Recruiter and a Viewer. Every step is idempotent, so it
     /// runs on every start, including against a data volume from before a step existed.
     /// </summary>
     public static async Task MigrateAndSeedAsync(
@@ -62,6 +68,8 @@ public static class DevelopmentDataSeeder
         await SeedMemberAsync(db, organization, DemoOwnerSubject, DemoOwnerEmail, DemoOwnerName, OrganizationRole.Owner, now, cancellationToken);
         await SeedMemberAsync(
             db, organization, DemoRecruiterSubject, DemoRecruiterEmail, DemoRecruiterName, OrganizationRole.Recruiter, now, cancellationToken);
+        await SeedMemberAsync(
+            db, organization, DemoInterviewerSubject, DemoInterviewerEmail, DemoInterviewerName, OrganizationRole.Viewer, now, cancellationToken);
     }
 
     // Brightwater has the LLM consistency check on, so the demo shows it; locally the fake model answers. A step of its
@@ -173,13 +181,7 @@ public static class DevelopmentDataSeeder
 
         if (!await db.OrganizationMembers.AnyAsync(m => m.OrganizationId == organization.Id && m.UserId == user.Id, cancellationToken))
         {
-            db.OrganizationMembers.Add(new OrganizationMember
-            {
-                OrganizationId = organization.Id,
-                UserId = user.Id,
-                Role = role,
-                CreatedAt = now,
-            });
+            db.OrganizationMembers.Add(OrganizationMember.Create(organization.Id, user.Id, role, now));
         }
 
         await db.SaveChangesAsync(cancellationToken);

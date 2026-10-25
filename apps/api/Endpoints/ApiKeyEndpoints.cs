@@ -20,18 +20,18 @@ internal static class ApiKeyEndpoints
     {
         var group = app.MapGroup("/v1/organization/api-keys").WithTags("API keys").RequireAuthorization();
         group.MapGet("/", ListApiKeys).WithName("ListApiKeys")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageApiKeys)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateApiKey).WithName("CreateApiKey")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageApiKeys)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{keyId:guid}", GetApiKey).WithName("GetApiKey")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageApiKeys)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{keyId:guid}/revoke", RevokeApiKey).WithName("RevokeApiKey")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageApiKeys)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
@@ -42,7 +42,8 @@ internal static class ApiKeyEndpoints
         return TypedResults.Ok(keys.Select(k => k.ToSummary()).ToList());
     }
 
-    private static async Task<Results<Created<CreatedApiKey>, ValidationProblem>> CreateApiKey(
+    // A key never carries more than its creator's role (ADR-0014): a Write key needs every hiring write.
+    private static async Task<Results<Created<CreatedApiKey>, ValidationProblem, ProblemHttpResult>> CreateApiKey(
         CreateApiKeyRequest request,
         IValidator<CreateApiKeyRequest> validator,
         ScreenHireDbContext db,
@@ -57,6 +58,13 @@ internal static class ApiKeyEndpoints
         }
 
         var organizationId = tenant.OrganizationId!.Value;
+        if (request.Scopes.Contains(ApiKeyScope.Write)
+            && await RoleAccess.ForMemberAsync(db, organizationId, tenant.UserId!.Value, cancellationToken) is var creator
+            && (creator is null || !RolePermissions.HiringWrites.IsSubsetOf(creator.Permissions)))
+        {
+            return TeamProblems.MoreAccess();
+        }
+
         var (token, prefix, hash) = ApiKeyTokens.Create(organizationId);
         var key = new ApiKey
         {

@@ -48,6 +48,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<MembershipEvent> MembershipEvents => Set<MembershipEvent>();
 
+    public DbSet<CustomRole> CustomRoles => Set<CustomRole>();
+
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     public DbSet<Job> Jobs => Set<Job>();

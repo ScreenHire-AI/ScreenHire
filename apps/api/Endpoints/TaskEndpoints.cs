@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Automations;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -26,7 +27,7 @@ internal static class TaskEndpoints
         group.MapGet("/", ListTasks).WithName("ListTasks").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{taskId:guid}/complete", CompleteTask).WithName("CompleteTask")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.CompleteTasks)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }

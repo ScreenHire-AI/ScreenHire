@@ -14,4 +14,7 @@ export const MembershipEventKind = {
   Joined: 'Joined',
   RoleChanged: 'RoleChanged',
   Removed: 'Removed',
+  RoleCreated: 'RoleCreated',
+  RoleUpdated: 'RoleUpdated',
+  RoleDeleted: 'RoleDeleted',
 } as const;

@@ -110,13 +110,15 @@ public sealed class ApplicationNoteTests
         NotePolicy.MayEdit(byKey, null, key).Should().BeTrue("a key is the author of the notes it wrote");
         NotePolicy.MayEdit(byKey, null, Guid.CreateVersion7()).Should().BeFalse();
 
-        NotePolicy.MayDelete(byPerson, Author, null, OrganizationRole.Recruiter).Should().BeTrue();
-        NotePolicy.MayDelete(byPerson, someoneElse, null, OrganizationRole.Recruiter).Should().BeFalse();
-        NotePolicy.MayDelete(byPerson, someoneElse, null, OrganizationRole.Viewer).Should().BeFalse();
-        NotePolicy.MayDelete(byPerson, someoneElse, null, OrganizationRole.Admin).Should().BeTrue();
-        NotePolicy.MayDelete(byPerson, someoneElse, null, OrganizationRole.Owner).Should().BeTrue();
-        NotePolicy.MayDelete(byPerson, someoneElse, null, role: null).Should().BeFalse("no membership here, no role here");
-        NotePolicy.MayDelete(byPerson, null, Guid.CreateVersion7(), OrganizationRole.Owner).Should().BeFalse("a key has no role");
+        NotePolicy.MayDelete(byPerson, Author, null, RolePermissions.Of(OrganizationRole.Recruiter)).Should().BeTrue();
+        NotePolicy.MayDelete(byPerson, someoneElse, null, RolePermissions.Of(OrganizationRole.Recruiter)).Should().BeFalse();
+        NotePolicy.MayDelete(byPerson, someoneElse, null, RolePermissions.Of(OrganizationRole.Viewer)).Should().BeFalse();
+        NotePolicy.MayDelete(byPerson, someoneElse, null, RolePermissions.Of(OrganizationRole.Admin)).Should().BeTrue();
+        NotePolicy.MayDelete(byPerson, someoneElse, null, RolePermissions.Of(OrganizationRole.Owner)).Should().BeTrue();
+        NotePolicy.MayDelete(byPerson, someoneElse, null, RolePermissions.ForCustom([Permission.DeleteAnyNote])).Should()
+            .BeTrue("a custom role can hold it");
+        NotePolicy.MayDelete(byPerson, someoneElse, null, permissions: null).Should().BeFalse("no membership here, no role here");
+        NotePolicy.MayDelete(byPerson, null, Guid.CreateVersion7(), RolePermissions.Of(OrganizationRole.Owner)).Should().BeFalse("a key has no role");
     }
 
     [Fact]

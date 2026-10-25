@@ -44,6 +44,7 @@
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import type { PageProps } from './$types';
@@ -55,7 +56,8 @@
   const job = createGetJob(() => params.jobId);
   const applications = createListJobApplications(() => params.jobId);
   const boards = createListBoards();
-  const moves = createMoves();
+  // Every move control on the page (table, board, selection) shows only for a role with Move candidates (ADR-0014).
+  const moves = createMoves({ allowed: () => can(page.data.user, 'MoveCandidates') });
   // Phones fold the secondary actions into More (design system section 8), with the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
   const publish = createPublishJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));

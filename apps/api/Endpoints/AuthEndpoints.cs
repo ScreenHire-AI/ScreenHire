@@ -185,15 +185,27 @@ internal static class AuthEndpoints
 
     // Every organization the signed-in user belongs to, for the organization switcher. Starts from their own memberships,
     // which the filter and row-level security show whatever the current tenant is.
-    private static async Task<Ok<List<CurrentOrganization>>> ListMyOrganizations(
-        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await (
+    // A custom role is named only in the organization the user works in: row-level security keeps every other
+    // organization's roles from them until they switch (ADR-0014).
+    private static async Task<Ok<List<MyOrganization>>> ListMyOrganizations(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        var memberships = await (
             from member in db.OrganizationMembers.AsNoTracking()
             where member.UserId == tenant.UserId
             join organization in db.Organizations on member.OrganizationId equals organization.Id
             orderby organization.Name
-            select new CurrentOrganization(organization.Id, organization.Name, organization.Slug, member.Role))
-            .ToListAsync(cancellationToken));
+            select new { organization.Id, organization.Name, organization.Slug, member.Role, member.CustomRoleId })
+            .ToListAsync(cancellationToken);
+        var names = tenant.OrganizationId is null
+            ? new Dictionary<Guid, string>()
+            : await RoleAccess.CustomNamesAsync(db, cancellationToken);
+        return TypedResults.Ok(memberships
+            .Select(m => new MyOrganization(
+                m.Id, m.Name, m.Slug, m.Role,
+                m.Role == OrganizationRole.Custom ? names.GetValueOrDefault(m.CustomRoleId ?? Guid.Empty) : m.Role.ToString()))
+            .ToList());
+    }
 
     // Remembered on the user (ApplicationUser.ActiveOrganizationId), so it holds on every device until they switch again.
     // Not a member is 404, like any other organization's id. Their live-update connections into the previous organization
@@ -290,13 +302,13 @@ internal static class AuthEndpoints
 
         if (!await db.OrganizationMembers.AnyAsync(m => m.OrganizationId == invitation.OrganizationId && m.UserId == userId, cancellationToken))
         {
-            db.OrganizationMembers.Add(new OrganizationMember
+            // An open invitation keeps its custom role from being deleted, so this finds it; refuse rather than guess if not.
+            if (await RoleAccess.ForRoleAsync(db, invitation.Role, invitation.CustomRoleId, cancellationToken) is not { } role)
             {
-                OrganizationId = invitation.OrganizationId,
-                UserId = userId,
-                Role = invitation.Role,
-                CreatedAt = now,
-            });
+                return false;
+            }
+
+            db.OrganizationMembers.Add(OrganizationMember.Create(invitation.OrganizationId, userId, role.Role, now, role.CustomRoleId));
             db.MembershipEvents.Add(new MembershipEvent
             {
                 OrganizationId = invitation.OrganizationId,
@@ -304,7 +316,9 @@ internal static class AuthEndpoints
                 ActorUserId = userId,
                 MemberUserId = userId,
                 InvitationId = invitation.Id,
-                Role = invitation.Role,
+                Role = role.Role,
+                CustomRoleId = role.CustomRoleId,
+                CustomRoleName = role.Role == OrganizationRole.Custom ? role.Name : null,
                 OccurredAt = now,
             });
             await db.SaveChangesAsync(cancellationToken);
@@ -376,13 +390,7 @@ internal static class AuthEndpoints
         // The new organization is the tenant from here on, so the membership row passes row-level security's WITH CHECK.
         tenant.SetOrganization(organization.Id);
         db.Organizations.Add(organization);
-        db.OrganizationMembers.Add(new OrganizationMember
-        {
-            OrganizationId = organization.Id,
-            UserId = user.Id,
-            Role = OrganizationRole.Owner,
-            CreatedAt = time.GetUtcNow(),
-        });
+        db.OrganizationMembers.Add(OrganizationMember.Create(organization.Id, user.Id, OrganizationRole.Owner, time.GetUtcNow()));
 
         try
         {
@@ -477,12 +485,18 @@ internal static class AuthEndpoints
     private static async Task<CurrentUser> DescribeAsync(
         ApplicationUser user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var organization = tenant.OrganizationId is { } organizationId
-            ? await db.OrganizationMembers.AsNoTracking()
-                .Where(m => m.OrganizationId == organizationId && m.UserId == user.Id)
-                .Join(db.Organizations, m => m.OrganizationId, o => o.Id, (m, o) => new CurrentOrganization(o.Id, o.Name, o.Slug, m.Role))
-                .SingleOrDefaultAsync(cancellationToken)
-            : null;
+        CurrentOrganization? organization = null;
+        if (tenant.OrganizationId is { } organizationId
+            && await RoleAccess.ForMemberAsync(db, organizationId, user.Id, cancellationToken) is { } role)
+        {
+            var found = await db.Organizations.AsNoTracking()
+                .Where(o => o.Id == organizationId)
+                .Select(o => new { o.Id, o.Name, o.Slug })
+                .SingleAsync(cancellationToken);
+            organization = new CurrentOrganization(
+                found.Id, found.Name, found.Slug, role.Role, role.CustomRoleId, role.Name,
+                [.. RolePermissions.Permissions.Select(p => p.Permission).Where(role.Permissions.Contains)]);
+        }
 
         var email = user.Email ?? "";
         return new CurrentUser(user.Id, email, user.DisplayName ?? email, organization);

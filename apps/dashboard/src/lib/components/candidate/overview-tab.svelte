@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ApplicationDetail, ApplicationTimelineEntry, Automation, OrganizationRole, Question, TeamMember } from '@screenhire/api-client';
+  import type { ApplicationDetail, ApplicationTimelineEntry, Automation, Permission, Question, TeamMember } from '@screenhire/api-client';
   import { createGetApplicationIntegrity, createListApplicationTasks } from '@screenhire/api-client/svelte-query';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AnswersPanel from '#lib/components/candidate/answers-panel.svelte';
@@ -25,8 +25,7 @@
     onretrytimeline,
     members,
     currentUserId,
-    role,
-    editable,
+    permissions,
     names,
     questions,
     manualAutomations,
@@ -37,8 +36,8 @@
     onretrytimeline: () => void;
     members: readonly TeamMember[] | undefined;
     currentUserId: string | undefined;
-    role: OrganizationRole | undefined;
-    editable: boolean;
+    /** What the person's role allows; each control shows only with the permission its route needs (ADR-0014). */
+    permissions: readonly Permission[];
     names: ActivityNames;
     questions: ReadonlyMap<string, Question>;
     manualAutomations: readonly Automation[];
@@ -75,7 +74,7 @@
         tasks={taskRows}
         {members}
         {currentUserId}
-        oncomplete={editable ? (task) => completion.complete(task) : undefined}
+        oncomplete={permissions.includes('CompleteTasks') ? (task) => completion.complete(task) : undefined}
         busy={completion.pending}
       />
       <FailureText message={completion.failure} />
@@ -95,7 +94,7 @@
   </div>
 </Panel>
 
-{#if editable && manualAutomations.length > 0}
+{#if permissions.includes('RunAutomations') && manualAutomations.length > 0}
   <ManualAutomations applicationId={detail.id} automations={manualAutomations} />
 {/if}
 
@@ -106,8 +105,7 @@
   onretry={onretrytimeline}
   {members}
   {currentUserId}
-  {role}
-  {editable}
+  {permissions}
   {names}
   limit={5}
   allHref="?tab=activity"

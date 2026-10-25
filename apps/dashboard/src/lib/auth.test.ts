@@ -8,7 +8,15 @@ const signedIn = (organization: CurrentUser['organization']): CurrentUser => ({
   displayName: 'Avery Quinn',
   organization,
 });
-const member = signedIn({ id: '01a157d4-0000-7000-8000-000000000002', name: 'Brightwater Studio', slug: 'brightwater', role: 'Owner' });
+const member = signedIn({
+  id: '01a157d4-0000-7000-8000-000000000002',
+  name: 'Brightwater Studio',
+  slug: 'brightwater',
+  role: 'Owner',
+  customRoleId: null,
+  roleName: 'Owner',
+  permissions: ['ViewHiring'],
+});
 const newcomer = signedIn(null);
 const url = (path: string) => new URL(path, 'http://localhost:4323');
 

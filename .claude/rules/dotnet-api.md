@@ -44,8 +44,10 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
   dashboard groups also say `.RequireAuthorization()`, for the reader. Hiring API groups say `.AllowApiKeys()`
   instead, which also accepts an organization API key (ADR-0011). Cookie-authenticated mutations add
   `.RequireAntiforgeryToken()`; it lets key requests through. `TenantResolutionMiddleware` sets the tenant after
-  authorization, so an authorization policy never sees `ITenantContext`; check the tenant or role in an endpoint
-  filter (`RequireHiringRole`). Details: `docs/architecture/sign-in-and-tenancy.md` and `/add-endpoint`.
+  authorization, so an authorization policy never sees `ITenantContext`; check the tenant and the permission in an
+  endpoint filter: every route that changes data calls `.RequirePermission(Permission.X)`, never a role name
+  (ADR-0014), and joins the route table in `RolePermissionsTests`. Details: `docs/architecture/sign-in-and-tenancy.md`
+  and `/add-endpoint`.
 - After any endpoint or contract change: `pnpm generate:api`, then commit `openapi.json` and `src/generated`.
 
 ## Data

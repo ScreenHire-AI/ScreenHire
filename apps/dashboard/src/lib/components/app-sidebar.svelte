@@ -18,7 +18,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { savedViews } from '#lib/saved-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { isAdministrator, settingsSections } from '#lib/settings.js';
+  import { visibleSettingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
 
   // The app's navigation (design system sections 8 and 9): the full sidebar, the icon rail or the phone sheet, as the
@@ -38,6 +38,7 @@
   const shell = getShell();
   const rail = $derived(sidebar.state === 'collapsed' && !sidebar.isMobile);
   const currentView = $derived(page.url.pathname === '/candidates' ? page.url.searchParams.get('view') : null);
+  const settingsPages = $derived(visibleSettingsSections(user));
 
   // A link in the phone sheet closes it, so the page it opens is not hidden behind the sheet.
   const closeSheet = () => sidebar.setOpenMobile(false);
@@ -103,7 +104,7 @@
                 <DropdownMenu.RadioItem value={organization.id}>
                   <span class="flex flex-col">
                     <span class="font-semibold">{organization.name}</span>
-                    <span class="text-caption text-muted-foreground">{organization.role}</span>
+                    <span class="text-caption text-muted-foreground">{organization.roleName}</span>
                   </span>
                 </DropdownMenu.RadioItem>
               </DropdownMenu.RadioGroup>
@@ -177,9 +178,9 @@
         </Sidebar.Menu>
       </Sidebar.Group>
 
-      {#if isAdministrator(user?.organization?.role)}
-        <!-- One item for owners and admins only; its pages share the Settings menu (section 11), and say so to anyone else
-             who opens one by its address. -->
+      {#if settingsPages.length > 0}
+        <!-- One item for anyone whose role may change a setting; it opens the first page they may use. The pages share the
+             Settings menu (section 11), and say so to anyone else who opens one by its address. -->
         <Sidebar.Group>
           <Sidebar.Menu>
             <Sidebar.MenuItem>
@@ -190,7 +191,7 @@
                 onclick={closeSheet}
               >
                 {#snippet child({ props })}
-                  <a href={settingsSections[0]!.href} {...props}>
+                  <a href={settingsPages[0]!.href} {...props}>
                     <SettingsIcon aria-hidden="true" />
                     <span {@attach truncation('settings')} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">Settings</span>
                   </a>

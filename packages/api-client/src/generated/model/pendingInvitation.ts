@@ -7,12 +7,15 @@
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
- * An invitation nobody has accepted, revoked or let expire yet.
+ * An invitation nobody has accepted, revoked or let expire yet, and the role it offers.
  */
 export interface PendingInvitation {
   id: string;
   email: string;
   role: OrganizationRole;
+  /** @nullable */
+  customRoleId: string | null;
+  roleName: string;
   createdAt: string;
   expiresAt: string;
 }

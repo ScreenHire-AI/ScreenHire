@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
-  import { canChangeHiringData } from '#lib/auth.js';
+  import { can } from '#lib/permissions.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
@@ -60,7 +60,7 @@
   const emailTemplates = createListEmailTemplates();
   const statusPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.status));
   const canEmail = $derived(
-    Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user) && !statusPicked,
+    Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates') && !statusPicked,
   );
   let emailOpen = $state(false);
   let emailed = $state('');

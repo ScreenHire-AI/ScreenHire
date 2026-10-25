@@ -9,6 +9,7 @@ using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -31,7 +32,7 @@ internal static class AutomationEndpoints
         applications.MapGet("/tasks", ListApplicationTasks).WithName("ListApplicationTasks").Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/automations/{automationId}/run", RunManualAutomation).WithName("RunManualAutomation")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.RunAutomations)
             .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet("/v1/automation-issues", ListAutomationIssues).WithName("ListAutomationIssues").WithTags("Automations")

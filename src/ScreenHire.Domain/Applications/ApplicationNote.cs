@@ -119,8 +119,9 @@ public static partial class NoteMentions
 }
 
 /// <summary>
-/// Who may change a note (design system section 22): only its author edits it; the author, an Owner or an Admin
-/// deletes it. An API key is the author of the notes it wrote. The API checks this on every edit and delete.
+/// Who may change a note (design system section 22): only its author edits it; the author, or a role with Delete
+/// anyone's notes (Owners and Admins among the built-in roles), deletes it. An API key is the author of the notes it
+/// wrote. The API checks this on every edit and delete.
 /// </summary>
 public static class NotePolicy
 {
@@ -132,7 +133,10 @@ public static class NotePolicy
 
     public static bool MayEdit(ApplicationNote note, Guid? userId, Guid? apiKeyId) => IsAuthor(note, userId, apiKeyId);
 
-    /// <summary><paramref name="role"/> is the person's role in the note's organization; null for an API key.</summary>
-    public static bool MayDelete(ApplicationNote note, Guid? userId, Guid? apiKeyId, OrganizationRole? role) =>
-        IsAuthor(note, userId, apiKeyId) || (userId is not null && role is OrganizationRole.Owner or OrganizationRole.Admin);
+    /// <summary>
+    /// <paramref name="permissions"/> are what the person's role allows in the note's organization; null for an API key,
+    /// which has no role (ADR-0014).
+    /// </summary>
+    public static bool MayDelete(ApplicationNote note, Guid? userId, Guid? apiKeyId, IReadOnlySet<Permission>? permissions) =>
+        IsAuthor(note, userId, apiKeyId) || (userId is not null && permissions?.Contains(Permission.DeleteAnyNote) == true);
 }

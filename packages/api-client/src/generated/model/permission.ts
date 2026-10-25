@@ -30,4 +30,5 @@ export const Permission = {
   ManageWebhooks: 'ManageWebhooks',
   ManageTeam: 'ManageTeam',
   ManageOwners: 'ManageOwners',
+  DeleteAnyNote: 'DeleteAnyNote',
 } as const;

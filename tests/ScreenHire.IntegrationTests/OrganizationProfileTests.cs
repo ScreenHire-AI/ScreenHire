@@ -62,7 +62,7 @@ public sealed class OrganizationProfileTests(AppHostFixture fixture)
         var refused = (await recruiter.PutAsync("/v1/organization", new JsonObject { ["name"] = "Taken over" })).Expect(HttpStatusCode.Forbidden);
 
         read.Id().Should().Be((await owner.GetAsync("/v1/organization")).Id());
-        refused.Text("title").Should().Be("Owners and admins only");
+        refused.Text("title").Should().Be("Not in your role");
         (await owner.GetAsync("/v1/organization")).Text("name").Should().NotBe("Taken over");
     }
 

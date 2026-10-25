@@ -5,6 +5,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
@@ -30,7 +31,7 @@ internal static class ScorecardTemplateEndpoints
         group.MapGet("/", ListScorecardTemplates).WithName("ListScorecardTemplates").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateScorecardTemplate).WithName("CreateScorecardTemplate")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId}", GetScorecardTemplate).WithName("GetScorecardTemplate").Produces(StatusCodes.Status401Unauthorized);
@@ -38,7 +39,7 @@ internal static class ScorecardTemplateEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{templateId}", UpdateScorecardTemplate).WithName("UpdateScorecardTemplate")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;

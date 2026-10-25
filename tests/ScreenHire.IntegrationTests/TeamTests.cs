@@ -337,7 +337,7 @@ public sealed class TeamTests(AppHostFixture fixture)
         ];
 
         attempts.Select(a => a.Status).Should().AllBeEquivalentTo(HttpStatusCode.Forbidden);
-        attempts.Select(a => a.Text("title")).Should().AllBe("Owners and admins only");
+        attempts.Select(a => a.Text("title")).Should().AllBe("Not in your role");
         (await member.GetAsync("/v1/organization/members")).Expect(HttpStatusCode.OK).Count().Should().Be(2, "every member sees the team");
     }
 
@@ -479,6 +479,8 @@ public sealed class TeamTests(AppHostFixture fixture)
 
         catalogue.At("roles").EnumerateArray().Select(r => r.GetProperty("role").GetString())
             .Should().Equal("Owner", "Admin", "Recruiter", "Viewer");
+        catalogue.At("roles").EnumerateArray().Select(r => r.GetProperty("people").GetInt32()).Should().Equal(1, 0, 0, 1);
+        catalogue.At("roles").EnumerateArray().First().GetProperty("lastUpdated").GetProperty("by").GetString().Should().Be("ScreenHire");
         catalogue.At("roles").EnumerateArray().Last().GetProperty("permissions").EnumerateArray().Select(p => p.GetString())
             .Should().Equal(["ViewHiring"], "a Viewer reads and changes nothing");
         var moveCandidates = catalogue.At("permissions").EnumerateArray().Single(p => p.GetProperty("permission").GetString() == "MoveCandidates");

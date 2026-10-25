@@ -8,8 +8,8 @@ import type { PermissionSummary } from './permissionSummary.ts';
 import type { RoleSummary } from './roleSummary.ts';
 
 /**
- * The built-in roles and what each can do: the permission catalogue (RolePermissions). It describes what the
- * server allows; it holds no organization's data.
+ * The organization's roles and what each can do: the four built-in ones, most access first, then its custom roles by
+ * name, with every permission in the catalogue (RolePermissions).
  */
 export interface RoleCatalogue {
   roles: RoleSummary[];

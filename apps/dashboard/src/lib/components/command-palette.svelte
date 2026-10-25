@@ -9,7 +9,7 @@
   import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { isAdministrator, settingsSections } from '#lib/settings.js';
+  import { visibleSettingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
 
   // Ctrl K / ⌘K: jump to a section, a job or a candidate, or run an action. Lists load when it opens.
@@ -45,9 +45,9 @@
         </Command.Item>
       {/each}
     </Command.Group>
-    {#if isAdministrator(page.data?.user?.organization?.role)}
+    {#if visibleSettingsSections(page.data?.user).length > 0}
       <Command.Group heading="Settings">
-        {#each settingsSections as setting (setting.href)}
+        {#each visibleSettingsSections(page.data?.user) as setting (setting.href)}
           <Command.Item value={`Settings ${setting.label}`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
         {/each}
       </Command.Group>

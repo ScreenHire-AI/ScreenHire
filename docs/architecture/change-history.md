@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Change history"
-description: "Who changed a hiring template, an email template or a job, when and what: change records written by an EF Core interceptor in the same save, lines in plain words matched by element ids, Last updated on each read contract, the paged history routes, and how to track another kind."
+description: "Who changed a hiring template, an email template, a job or a custom role, when and what: change records written by an EF Core interceptor in the same save, lines in plain words matched by element ids, Last updated on each read contract, the paged history routes, and how to track another kind."
 tags: [history, audit, templates, jobs]
 sources:
   - resource: src/ScreenHire.Domain/History/ChangeRecord.cs
@@ -11,6 +11,7 @@ sources:
   - resource: src/ScreenHire.Domain/History/EmailTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/ScorecardTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/JobChanges.cs
+  - resource: src/ScreenHire.Domain/History/RoleChanges.cs
   - resource: src/ScreenHire.Domain/History/ChangeLabels.cs
   - resource: src/ScreenHire.Domain/History/RichTextToPlain.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/History/TrackedKinds.cs
@@ -28,7 +29,8 @@ sources:
 
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
-templates, email templates, scorecard templates and jobs today, and roles when their task adds them. It never holds
+templates, email templates, scorecard templates, jobs and custom roles today. Built-in roles never change, so they
+have no history. It never holds
 candidate data, so it has no retention limit.
 
 ## What is recorded
@@ -37,7 +39,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate` or `Job`, and its id. A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job` or `Role`, and its id. A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `lines` | JSONB: one line per change, each its words (`parts`, the changed thing's name marked strong) and its values before and after (`details`) |
@@ -73,7 +75,9 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   questionnaires are matched by their stable ids, so a renamed question is one rename. Question ids are unique across
   the apply questionnaire and every follow-up, so a question moved between them is no change. Parts without ids (an
   automation's actions and conditions) show in that automation's details. Raw JSON never reaches a line.
-- `HiringTemplateChanges`, `EmailTemplateChanges` and `JobChanges` cover the rest. A built-in email template's first
+- `HiringTemplateChanges`, `EmailTemplateChanges`, `JobChanges` and `RoleChanges` cover the rest. A role's lines name
+  permissions as the Roles page does: "created the role from **Viewer**", "allowed **Move candidates**", "took away
+  **Email candidates**". A built-in email template's first
   edit compares against ScreenHire's wording, and deleting its row reads "restored the original wording". A job's
   description is sanitized HTML, so `RichTextToPlain` turns it to text first. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.
@@ -107,15 +111,17 @@ the webhook address of" the automation, with no values (`DefinitionChanges`).
 
 ## API
 
-- `lastUpdated` on `HiringTemplateSummary`, `HiringTemplateDetail`, `EmailTemplateEntry`, `JobSummary` and
-  `JobDetail`: `at`, `by` (`Member`, `ApiKey`, `ScreenHire`, or null when nobody was recorded), `userId`, `apiKeyId`.
-  A system hiring template is by ScreenHire; a built-in email template nobody changed is by ScreenHire with no `at`.
+- `lastUpdated` on `HiringTemplateSummary`, `HiringTemplateDetail`, `EmailTemplateEntry`, `JobSummary`, `JobDetail`,
+  `RoleSummary` and `CustomRoleDetail`: `at`, `by` (`Member`, `ApiKey`, `ScreenHire`, or null when nobody was recorded), `userId`, `apiKeyId`.
+  A system hiring template is by ScreenHire; a built-in email template nobody changed, and a built-in role, are by
+  ScreenHire with no `at`.
   Lists read every object's newest change in one query (`ChangeHistoryQueries.LastAsync`).
 - The history, newest first, `?limit=` (1 to 100, default 50) and `?before=` (the previous page's `nextBefore`, the id
   of its last entry; an id that is not one of the object's entries is a 400):
   - `GET /v1/templates/{templateId}/history` (the hiring API: API keys too)
   - `GET /v1/jobs/{jobId}/history` (the hiring API: API keys too)
   - `GET /v1/email-templates/{templateId}/history` (any member, as the email template routes are)
+  - `GET /v1/organization/roles/{roleId}/history` (any member, as the role routes are)
 
   Each route first checks that the caller can see the object, so another organization's id is a 404.
 

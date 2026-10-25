@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
-import { user } from '../../test-support/fixtures.js';
+import { user, userAs } from '../../test-support/fixtures.js';
 import ShellHarness from '../../test-support/shell-harness.svelte';
 import { stubViewport } from '../../test-support/viewport.js';
 import { preferences } from '../preferences.svelte.js';
@@ -187,9 +187,9 @@ describe('app shell', () => {
     expect(main().querySelector('[data-slot="badge"]')).toBeNull();
   });
 
-  it.each(['Recruiter', 'Viewer'] as const)('shows a %s no settings: they are for owners and admins', (role) => {
+  it.each(['Recruiter', 'Viewer'] as const)('shows a %s no settings: no permission of theirs opens one', (role) => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user: { ...user, organization: { ...user.organization!, role } }, viewCounts } });
+    render(ShellHarness, { props: { user: userAs(role), viewCounts } });
 
     expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
     // The four sections (My tasks included) and the six saved views.

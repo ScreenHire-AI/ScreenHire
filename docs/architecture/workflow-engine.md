@@ -492,7 +492,7 @@ once, and raises `ApplicationTaskCompleted`; it never changes the application, s
 by a person moving the candidate. Anyone whose role changes hiring data may complete any of the organization's tasks;
 the team shares the work. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
 automation reads), and edit and delete them (`PUT` and `DELETE /v1/applications/{id}/notes/{noteId}`; only the author
-edits, and the author, an Owner or an Admin deletes, which the API checks against the role in this organization). A
+edits, and the author or a role with Delete anyone's notes deletes, which the API checks against the role in this organization). A
 note's text lives in `application_notes`, never in the append-only timeline: its `NoteAdded`, `NoteEdited` and
 `NoteDeleted` entries name it by `noteId`, so deleting a note erases its text, earlier edits included, and leaves only who
 deleted it and when. A mention is `@[userId]` in the text and a row in `application_note_mentions`; each person a note

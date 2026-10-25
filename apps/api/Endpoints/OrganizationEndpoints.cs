@@ -27,18 +27,18 @@ internal static class OrganizationEndpoints
         group.MapGet("", GetOrganization).WithName("GetOrganization").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("", UpdateOrganization).WithName("UpdateOrganization")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/branding", GetBranding).WithName("GetOrganizationBranding").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/branding", UpdateBranding).WithName("UpdateOrganizationBranding")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/integrity-settings", GetIntegritySettings).WithName("GetOrganizationIntegritySettings")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/integrity-settings", UpdateIntegritySettings).WithName("UpdateOrganizationIntegritySettings")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }

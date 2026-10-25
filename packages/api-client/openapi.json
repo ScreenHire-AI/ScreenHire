@@ -227,7 +227,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CurrentOrganization"
+                    "$ref": "#/components/schemas/MyOrganization"
                   }
                 }
               }
@@ -4211,34 +4211,6 @@
         ]
       }
     },
-    "/v1/organization/roles": {
-      "get": {
-        "tags": [
-          "Team"
-        ],
-        "operationId": "ListRoles",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoleCatalogue"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
     "/v1/organization/invitations": {
       "get": {
         "tags": [
@@ -4557,6 +4529,323 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/roles": {
+      "get": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "ListRoles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleCatalogue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "CreateRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomRoleDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/roles/{roleId}": {
+      "get": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "GetRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomRoleDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "UpdateRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomRoleDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "DeleteRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/roles/{roleId}/history": {
+      "get": {
+        "tags": [
+          "Team"
+        ],
+        "operationId": "GetRoleHistory",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -8587,9 +8876,16 @@
                 "$ref": "#/components/schemas/OrganizationRole"
               }
             ]
+          },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "Gives a member another role."
+        "description": "Gives a member another role: a built-in one, or Custom with the custom role's id."
       },
       "ChangeValueKind": {
         "enum": [
@@ -8945,6 +9241,36 @@
         },
         "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title."
       },
+      "CreateRoleRequest": {
+        "required": [
+          "name",
+          "copyFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "copyFrom": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrganizationRole"
+              }
+            ]
+          },
+          "copyFromRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Makes a custom role by copying a role: a built-in one (`copyFrom`) or a custom one (`copyFromRoleId`), never\r\nboth. Owner-only permissions are never copied."
+      },
       "CreateScorecardTemplateRequest": {
         "required": [
           "name",
@@ -9009,7 +9335,10 @@
           "id",
           "name",
           "slug",
-          "role"
+          "role",
+          "customRoleId",
+          "roleName",
+          "permissions"
         ],
         "type": "object",
         "properties": {
@@ -9025,9 +9354,25 @@
           },
           "role": {
             "$ref": "#/components/schemas/OrganizationRole"
+          },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
           }
         },
-        "description": "The organization the signed-in user works in, and their role there."
+        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014)."
       },
       "CurrentUser": {
         "required": [
@@ -9060,6 +9405,52 @@
           }
         },
         "description": "The signed-in user, and the organization they work in (null until onboarding)."
+      },
+      "CustomRoleDetail": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "permissions",
+          "people",
+          "copiedFrom",
+          "createdAt",
+          "lastUpdated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          },
+          "people": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "copiedFrom": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          }
+        },
+        "description": "One of the organization's custom roles, for its page. `copiedFrom` is the name of the role it started as."
       },
       "DefinitionError": {
         "required": [
@@ -10168,9 +10559,16 @@
                 "$ref": "#/components/schemas/OrganizationRole"
               }
             ]
+          },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "Invites a person by email to join the organization with a role."
+        "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id."
       },
       "JobBoardDepartment": {
         "required": [
@@ -11115,7 +11513,10 @@
           "InvitationRevoked",
           "Joined",
           "RoleChanged",
-          "Removed"
+          "Removed",
+          "RoleCreated",
+          "RoleUpdated",
+          "RoleDeleted"
         ]
       },
       "MembershipLogEntry": {
@@ -11126,7 +11527,11 @@
           "memberUserId",
           "invitationId",
           "previousRole",
+          "previousCustomRoleId",
+          "previousRoleName",
           "role",
+          "customRoleId",
+          "roleName",
           "occurredAt"
         ],
         "type": "object",
@@ -11166,6 +11571,19 @@
               }
             ]
           },
+          "previousCustomRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "previousRoleName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "role": {
             "oneOf": [
               {
@@ -11176,12 +11594,25 @@
               }
             ]
           },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "roleName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "occurredAt": {
             "type": "string",
             "format": "date-time"
           }
         },
-        "description": "One entry in the organization's membership log. `actorUserId` made the change; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet). `previousRole` and `role` are set where the kind has them."
+        "description": "One entry in the organization's membership log. `actorUserId` made the change; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`."
       },
       "MoveApplicationRequest": {
         "required": [
@@ -11200,6 +11631,38 @@
           }
         },
         "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\r\n`note` is kept on the move's timeline entry."
+      },
+      "MyOrganization": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "role",
+          "roleName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/OrganizationRole"
+          },
+          "roleName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\r\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\r\nthem until they switch."
       },
       "OnboardingRequest": {
         "required": [
@@ -11311,8 +11774,10 @@
           "Owner",
           "Admin",
           "Recruiter",
-          "Viewer"
-        ]
+          "Viewer",
+          "Custom"
+        ],
+        "description": "The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text."
       },
       "PageTelemetryInput": {
         "required": [
@@ -11340,6 +11805,8 @@
           "id",
           "email",
           "role",
+          "customRoleId",
+          "roleName",
           "createdAt",
           "expiresAt"
         ],
@@ -11355,6 +11822,16 @@
           "role": {
             "$ref": "#/components/schemas/OrganizationRole"
           },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "roleName": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -11364,7 +11841,7 @@
             "format": "date-time"
           }
         },
-        "description": "An invitation nobody has accepted, revoked or let expire yet."
+        "description": "An invitation nobody has accepted, revoked or let expire yet, and the role it offers."
       },
       "Permission": {
         "enum": [
@@ -11384,7 +11861,8 @@
           "ManageApiKeys",
           "ManageWebhooks",
           "ManageTeam",
-          "ManageOwners"
+          "ManageOwners",
+          "DeleteAnyNote"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions."
       },
@@ -11401,7 +11879,9 @@
           "permission",
           "group",
           "name",
-          "description"
+          "description",
+          "ownerOnly",
+          "everyRole"
         ],
         "type": "object",
         "properties": {
@@ -11416,9 +11896,15 @@
           },
           "description": {
             "type": "string"
+          },
+          "ownerOnly": {
+            "type": "boolean"
+          },
+          "everyRole": {
+            "type": "boolean"
           }
         },
-        "description": "A permission in the order the Roles page lists it: its group, its name and one line on what it covers."
+        "description": "A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\r\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role."
       },
       "PostingDefaults": {
         "type": "object",
@@ -12261,18 +12747,32 @@
             }
           }
         },
-        "description": "The built-in roles and what each can do: the permission catalogue (RolePermissions). It describes what the\r\nserver allows; it holds no organization's data."
+        "description": "The organization's roles and what each can do: the four built-in ones, most access first, then its custom roles by\r\nname, with every permission in the catalogue (RolePermissions)."
       },
       "RoleSummary": {
         "required": [
           "role",
+          "customRoleId",
+          "name",
           "description",
-          "permissions"
+          "permissions",
+          "people",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
           "role": {
             "$ref": "#/components/schemas/OrganizationRole"
+          },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
           },
           "description": {
             "type": "string"
@@ -12282,9 +12782,16 @@
             "items": {
               "$ref": "#/components/schemas/Permission"
             }
+          },
+          "people": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "A built-in role, most access first: one line on what it is for, and its permissions in catalogue order."
+        "description": "A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\r\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\r\nis last updated by ScreenHire."
       },
       "RuleResult": {
         "required": [
@@ -13181,6 +13688,8 @@
           "email",
           "displayName",
           "role",
+          "customRoleId",
+          "roleName",
           "joinedAt"
         ],
         "type": "object",
@@ -13202,12 +13711,22 @@
           "role": {
             "$ref": "#/components/schemas/OrganizationRole"
           },
+          "customRoleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "roleName": {
+            "type": "string"
+          },
           "joinedAt": {
             "type": "string",
             "format": "date-time"
           }
         },
-        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take."
+        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way."
       },
       "TelemetrySnapshotInput": {
         "required": [
@@ -13464,6 +13983,28 @@
           }
         },
         "description": "Renames the organization. Its slug, and so its careers address, stays as it is."
+      },
+      "UpdateRoleRequest": {
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          }
+        },
+        "description": "Renames a custom role and sets what it can do."
       },
       "UpdateScorecardTemplateRequest": {
         "required": [

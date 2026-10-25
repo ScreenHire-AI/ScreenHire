@@ -7,8 +7,10 @@
 import type { OrganizationRole } from './organizationRole.ts';
 
 /**
- * Gives a member another role.
+ * Gives a member another role: a built-in one, or Custom with the custom role's id.
  */
 export interface ChangeMemberRoleRequest {
   role: null | OrganizationRole;
+  /** @nullable */
+  customRoleId?: string | null;
 }
