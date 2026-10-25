@@ -47,6 +47,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
+  - resource: apps/dashboard/src/lib/components/answer-menu.svelte
+  - resource: apps/dashboard/src/routes/(preview)/preview/form/+page.svelte
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/sla.ts
 ---
