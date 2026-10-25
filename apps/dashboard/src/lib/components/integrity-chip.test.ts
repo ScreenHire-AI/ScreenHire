@@ -50,18 +50,19 @@ describe('integrity chip', () => {
     expect(chip.spoken).toBe(`AI assistance: ${label}`);
   });
 
-  it("uses the table's short words, the number of reasons as a count pill, and says them in full (T4, W3)", () => {
+  it("uses the table's short words, the number of reasons as plain text, and says them in full (T4, W3)", () => {
     const { container } = render(IntegrityChip, {
       props: { kind: 'authenticity', level: authenticityLevels.ReviewSuggested, reasons: 3, compact: true },
     });
     const chip = parts(container);
-    const badges = container.querySelectorAll('[data-slot="badge"]');
+    const count = container.querySelector('[data-reasons]');
 
     expect(chip.words).toBe('Review suggested');
     expect(chip.badge).toHaveClass('bg-status-review-soft');
-    expect(badges).toHaveLength(2);
-    expect(badges[1]).toHaveTextContent(/^3$/);
-    expect(badges[1]).toHaveClass('min-w-7');
+    // In a table a count is plain text, never a second pill beside the status (T4).
+    expect(container.querySelectorAll('[data-slot="badge"]')).toHaveLength(1);
+    expect(count).toHaveTextContent(/^3$/);
+    expect(count).toHaveClass('text-muted-foreground');
     expect(container).not.toHaveTextContent('·');
     expect(chip.spoken).toBe('Authenticity: Review suggested, 3 reasons');
   });

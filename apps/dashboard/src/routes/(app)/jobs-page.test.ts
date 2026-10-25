@@ -57,7 +57,7 @@ describe('jobs page', () => {
     expect(screen.getByRole('region', { name: 'Open jobs' })).toBeInTheDocument();
     expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Senior .NET Engineer']);
 
-    await fireEvent.click(statusToggle(/^All$/));
+    await fireEvent.click(statusToggle(/^All/));
     await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'manchester' } });
     expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Customer Success Lead']);
 
@@ -72,9 +72,9 @@ describe('jobs page', () => {
     renderPage();
     await dataRows();
 
-    // Each count is a count pill after its label (T4).
+    // Each count, All's included, is a count badge after its label (T4).
     const toggles = within(statusFilter()).getAllByRole('button');
-    expect(toggles.map((toggle) => toggle.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['All', 'Open 1', 'Draft 1', 'Closed 1']);
+    expect(toggles.map((toggle) => toggle.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['All 3', 'Open 1', 'Draft 1', 'Closed 1']);
     expect(toggles[0]).toHaveAttribute('aria-pressed', 'true');
   });
 
