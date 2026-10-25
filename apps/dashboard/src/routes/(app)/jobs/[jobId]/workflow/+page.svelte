@@ -19,6 +19,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -173,7 +174,7 @@
             {:else}
               <Badge variant="muted">Not from a template</Badge>
             {/if}
-            {#if readonly}<Badge variant="muted">Job closed</Badge>{/if}
+            {#if readonly}<StatusBadge status="closed" label="Job closed" />{/if}
           </span>
         {/snippet}
         {#snippet actions()}

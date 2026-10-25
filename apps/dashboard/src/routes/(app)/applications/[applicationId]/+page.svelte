@@ -425,7 +425,7 @@
             </Panel>
           {:else if tasks.data && tasks.data.data.length > 0}
             {@const items = tasks.data.data}
-            <Panel title="Tasks" count={items.filter((task) => !task.completedAt).length}>
+            <Panel title="Tasks" count={items.length}>
               <div class="flex flex-col gap-3">
                 <TaskList
                   label="Tasks"

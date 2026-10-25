@@ -178,7 +178,7 @@
     <!-- The stage filter: one line that scrolls inside the panel rather than wrapping (F5). -->
     <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
       <div role="group" aria-label="Stage" class="flex shrink-0 gap-1">
-        {#each [{ id: null, name: 'All', count: null }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
+        {#each [{ id: null, name: 'All', count: applications.length }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
           <Toggle size="lg" bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
             {option.name}
             {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}

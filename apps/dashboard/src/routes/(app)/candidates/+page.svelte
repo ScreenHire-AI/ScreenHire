@@ -89,7 +89,7 @@
           <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
           <TagFilterMenu bind:tag={tagFilter} {tags} />
-          {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
+          {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}
           {#if canEmail && selectedCount > 0 && !phone.current}
             <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
           {/if}

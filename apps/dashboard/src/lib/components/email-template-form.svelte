@@ -199,7 +199,8 @@
           <span id="email-template-variables" class="text-body font-medium">Insert a variable</span>
           <div class="flex flex-wrap gap-2">
             {#each usable as variable (variable.name)}
-              <Button type="button" variant="outline" onclick={() => insert(variable.name)}>{variable.label}</Button>
+              <!-- A6: the name says the verb; the group's label says it once for every button. -->
+              <Button type="button" variant="outline" aria-label={`Insert ${variable.label}`} onclick={() => insert(variable.name)}>{variable.label}</Button>
             {/each}
           </div>
         </div>

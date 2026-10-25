@@ -62,7 +62,7 @@ describe('job pipeline', () => {
     renderPipeline();
     const group = within(panel()).getByRole('group', { name: 'Stage' });
 
-    expect(within(group).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByRole('button', { name: /^All\b/ })).toHaveAttribute('aria-pressed', 'true');
     await fireEvent.click(within(group).getByRole('button', { name: /^Screening/ }));
 
     expect(within(group).getByRole('button', { name: /^Screening/ })).toHaveAttribute('aria-pressed', 'true');

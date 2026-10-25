@@ -10,6 +10,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { withheldReason } from '#lib/files.js';
   import { fileSize } from '#lib/format.js';
+  import { needsAttention } from '#lib/status.js';
 
   // One uploaded file: its type, name and size, and Download. A file the scan withholds says why instead.
   let { applicationId, file, facts }: { applicationId: string; file: ApplicationFileSummary; facts?: Snippet } = $props();
@@ -28,7 +29,7 @@
     {@render facts?.()}
     <Badge variant="muted" class="tabular-nums">{fileSize(file.sizeBytes)}</Badge>
     {#if attention}
-      <StatusBadge status={attention.status} label={attention.label} />
+      <StatusBadge status={attention.status} label={attention.label} quiet={!needsAttention(attention.status)} />
     {:else}
       <!-- A full navigation, not the client router: the API redirects to a short-lived link that downloads the file. -->
       <Button variant="outline" size="lg" href={getDownloadApplicationFileUrl(applicationId, file.id)} data-sveltekit-reload aria-label={`Download ${file.fileName}`} class="pointer-coarse:h-11">

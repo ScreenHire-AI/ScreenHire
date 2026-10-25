@@ -651,7 +651,7 @@
       <Panel title="Search field" flush>
         {#snippet tools()}
           <SearchField label="Search candidates" class="ml-auto flex-[0_1_15rem]" />
-          <Badge variant="muted">2 selected</Badge>
+          <span class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">2</Badge></span>
         {/snippet}
         <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its title, then its search and filters, in the header.</p>
       </Panel>

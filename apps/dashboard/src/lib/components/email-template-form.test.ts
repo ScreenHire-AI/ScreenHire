@@ -93,7 +93,7 @@ describe('email template form', () => {
     await fireEvent.focus(subject);
     subject.setSelectionRange(0, 0);
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Candidate name' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Insert Candidate name' }));
 
     await waitFor(() => expect(subject).toHaveValue('{{ candidateName }}An update on {{ jobTitle }}'));
     expect(screen.queryByRole('button', { name: 'Reason' })).not.toBeInTheDocument();

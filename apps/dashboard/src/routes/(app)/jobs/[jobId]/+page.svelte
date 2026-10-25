@@ -179,7 +179,7 @@
       {/snippet}
     </HeaderBand>
 
-    <!-- The detail template (section 7): a main column and a side column, in a 1280px container (S6). -->
+    <!-- The detail template (section 7): a main column and a side column, filling the window (S6). -->
     <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
       {#if applications.isSuccess && all.length > 0}
         <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
@@ -262,7 +262,7 @@
       {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assistance' }] as const as row (row.kind)}
         {@const chip = chipOf(application.integrity, row.kind)}
         <SummaryItem label={row.label}>
-          <IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} />
+          <IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} compact />
         </SummaryItem>
       {/each}
     </SummaryList>

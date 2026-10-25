@@ -43,15 +43,16 @@ describe('file tile', () => {
   });
 
   it.each([
-    ['Pending', 'Scanning', 'loader-circle', 'bg-secondary'],
+    ['Pending', 'Scanning', 'loader-circle', null],
     ['Infected', 'Unsafe file', 'shield-x', 'bg-status-verify-soft'],
   ] as const)('shows a %s file as its status, and offers no Download', async (scanStatus, label, icon, fill) => {
     const { container } = render(WithTooltips, { props: { component: FileTile, props: { applicationId, file: file({ scanStatus }) } } });
 
     const badge = screen.getByText(label).closest('[data-slot="badge"]')!;
-    // Icon, colour and label (T1). A scan still running is grey: nobody needs to act (T3).
+    // Icon, colour and label (T1). A scan still running is grey and quiet: nobody needs to act (T3).
     expect(badge.querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', icon);
-    expect(badge).toHaveClass(fill);
+    if (fill) expect(badge).toHaveClass(fill);
+    else expect(badge.className).not.toMatch(/\bbg-/);
     expect(screen.queryByRole('link')).toBeNull();
     await expectNoAxeViolations(container);
   });

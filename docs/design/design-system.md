@@ -80,7 +80,9 @@ Authors check their screens against this list, and the `design-review` agent rep
   button never navigates. Badges, pills and counts are never clickable, except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
-  column header is the one bare text button, marked by its sort icon (L2). A button never looks like a badge.
+  column header is the one bare text button, marked by its sort icon (L2). A toggle in a labelled group is a choice,
+  not an action: its label names the choice, the pressed one takes `accent` and the others stay bare (section 11). A
+  button never looks like a badge.
 - **A7** Reorder by dragging a grip. Clicking the grip opens Move up, Move down, Move to top and Move to bottom, and
   Space with the arrow keys moves it. No up and down arrow buttons.
 - **A8** An editor whose result someone else sees (a questionnaire, a scorecard, an email template, a careers page)

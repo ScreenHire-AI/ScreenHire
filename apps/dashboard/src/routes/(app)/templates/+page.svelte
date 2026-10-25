@@ -17,6 +17,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -146,7 +147,7 @@
                 {#snippet facts()}
                   {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
                   <Badge variant="muted" class="tabular-nums">{template.latestPublishedVersion ? `Version ${template.latestPublishedVersion}` : 'Not published'}</Badge>
-                  {#if template.draftVersion}<Badge variant="muted" class="tabular-nums">Draft {template.draftVersion}</Badge>{/if}
+                  {#if template.draftVersion}<StatusBadge status="draft" label={`Draft ${template.draftVersion}`} quiet />{/if}
                 {/snippet}
               </ListItem>
             {/each}
