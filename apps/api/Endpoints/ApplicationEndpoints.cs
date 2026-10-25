@@ -297,6 +297,9 @@ internal static class ApplicationEndpoints
         if (application.EditNote(note, request.Note, now, tenant.UserId, user.ApiKeyId()) is var (entry, added))
         {
             db.ApplicationEvents.Add(entry);
+            // New rows, said so: a child with a key already set, added to a tracked note, would otherwise be taken for an
+            // existing row and updated.
+            db.ApplicationNoteMentions.AddRange(added);
             await outbox.PublishAsync(new ApplicationNoteEdited(application.OrganizationId, application.Id, application.JobId, note.Id, now));
             await PublishMentionsAsync(outbox, application, note, added, now);
             try

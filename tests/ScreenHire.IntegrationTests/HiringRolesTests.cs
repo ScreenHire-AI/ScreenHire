@@ -34,6 +34,8 @@ public sealed class HiringRolesTests(AppHostFixture fixture)
                 ["candidate"] = new JsonObject { ["fullName"] = "Robin Lake", ["email"] = ApiSession.NewEmail("other") },
             }),
             await viewer.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" }),
+            await viewer.PutAsync($"/v1/applications/{application.Id()}/notes/{Guid.CreateVersion7()}", new JsonObject { ["note"] = "Changed" }),
+            await viewer.DeleteAsync($"/v1/applications/{application.Id()}/notes/{Guid.CreateVersion7()}"),
             await viewer.PostAsync($"/v1/applications/{application.Id()}/scorecards", new JsonObject
             {
                 ["stageId"] = "applied", ["ratings"] = new JsonArray(), ["recommendation"] = "Yes",
