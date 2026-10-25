@@ -48,7 +48,8 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
                 // Integrity heads the side column, level with Resume; Review log and Activity follow it.
                 integrity.X.Should().BeGreaterThan(resume.X + resume.Width, $"the side column is right of the main column at {width}px");
                 integrity.Y.Should().BeApproximately(resume.Y, 1, "panels in a row share a top edge (S4)");
-                integrity.Width.Should().BeApproximately(320, 1);
+                // The 340px details rail (design system section 5).
+                integrity.Width.Should().BeApproximately(340, 1);
                 reviewLog.X.Should().BeApproximately(integrity.X, 1);
                 reviewLog.Y.Should().BeGreaterThan(integrity.Y + integrity.Height);
                 activity.Y.Should().BeGreaterThan(reviewLog.Y + reviewLog.Height);
