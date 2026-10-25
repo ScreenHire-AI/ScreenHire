@@ -50,10 +50,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // A new template from the templates list.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Templates") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Templates");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All templates" })).ToContainTextAsync("Software engineer");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Hiring templates" })).ToContainTextAsync("Software engineer");
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "New template" }).ClickAsync();
-        var newTemplate = Page.GetByRole(AriaRole.Dialog, new() { Name = "New template" });
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Hiring template" }).ClickAsync();
+        var newTemplate = Page.GetByRole(AriaRole.Dialog, new() { Name = "New hiring template" });
         await newTemplate.GetByLabel("Name").FillAsync(templateName);
         await newTemplate.GetByRole(AriaRole.Button, new() { Name = "Create template" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(templateName);
@@ -244,13 +245,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.SetViewportSizeAsync(1440, 1040);
         await SignInAsync(email);
 
-        // A ScreenHire template cannot be edited: it reads as content, with Copy to customise as the one action.
+        // A ScreenHire template cannot be edited: it reads as content, says why, with Copy template as the one action (E3).
         await Page.GotoAsync(DashboardUrl("/templates"));
-        await Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Hiring templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer");
-        await Expect(HeaderBand).ToContainTextAsync("ScreenHire template");
+        await Expect(HeaderBand).ToContainTextAsync("Built in");
+        await Expect(Page.GetByText("ScreenHire supplies this template, so it cannot be changed.", new() { Exact = false })).ToBeVisibleAsync();
         await ExpectValidationAsync("No problems found");
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Copy to customise" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Copy template" })).ToBeVisibleAsync();
         var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });
         await Expect(pipeline.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
         await Expect(pipeline.Locator("input, select, textarea")).ToHaveCountAsync(0);
@@ -261,7 +263,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Versions" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("^Version 1, published") }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(@"\?version=1$"));
-        await Expect(HeaderBand).ToContainTextAsync("Version 1");
+        await Expect(HeaderBand).ToContainTextAsync("1, published");
 
         // On a phone: the read-only view, the list and a draft in the builder, none scrolling sideways.
         await Page.SetViewportSizeAsync(390, 844);
@@ -270,13 +272,13 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await SaveScreenshotAsync(Page, "dashboard-template-screenhire-390");
 
         await Page.GotoAsync(DashboardUrl("/templates"));
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Hiring templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true })).ToBeVisibleAsync();
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-templates-390");
 
-        await Page.GetByRole(AriaRole.Region, new() { Name = "All templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Copy to customise" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Hiring templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Copy template" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer (copy)");
         // A phone has the primary action in the action bar and the rest in More (design system section 8).
         await Expect(Page.Locator("[data-slot='action-bar']").GetByRole(AriaRole.Button, new() { Name = "Publish version 1" })).ToBeVisibleAsync();
