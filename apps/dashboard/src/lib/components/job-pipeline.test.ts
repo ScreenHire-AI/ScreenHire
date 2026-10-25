@@ -172,6 +172,17 @@ describe('job pipeline', () => {
     expect(within(toolbar).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Stage: All', 'Authenticity: All', 'Sort']);
   });
 
+  it('keeps every move on a filtered board to one card: no ticks and no selection bar (ADR-0004)', async () => {
+    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
+
+    expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
+    expect(within(panel()).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
+    // Each card moves on its own, from its own menu: a person's decision about that candidate.
+    expect(screen.getByRole('button', { name: 'Move Casey Morgan to another stage' })).toBeInTheDocument();
+  });
+
   it('filters the board by an authenticity level, with no Stage filter: its columns are the stages', async () => {
     renderPipeline();
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));

@@ -246,7 +246,7 @@ describe('job page', () => {
     const menu = await openMoreActions();
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
       'Edit details',
-      'Workflow',
+      'Edit workflow',
       'Close & remove everywhere',
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;

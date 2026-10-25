@@ -184,9 +184,14 @@
             >
               {#if sidebar.isMobile}
                 {#if detail.status !== 'Closed'}
-                  <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/edit`)}><PencilIcon aria-hidden="true" />Edit details</DropdownMenu.Item>
+                  <!-- Items that go to a page are links (A5). -->
+                  <DropdownMenu.Item>
+                    {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
+                  </DropdownMenu.Item>
                 {/if}
-                <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/workflow`)}><WorkflowIcon aria-hidden="true" />Workflow</DropdownMenu.Item>
+                <DropdownMenu.Item>
+                  {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/workflow`}><WorkflowIcon aria-hidden="true" />Edit workflow</a>{/snippet}
+                </DropdownMenu.Item>
               {/if}
               {#if detail.status === 'Open'}
                 {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
