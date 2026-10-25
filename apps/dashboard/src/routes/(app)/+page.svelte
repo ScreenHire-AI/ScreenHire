@@ -4,6 +4,18 @@
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import {
+    createColumnHelper,
+    createSortedRowModel,
+    createTable,
+    FlexRender,
+    renderSnippet,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
   import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
@@ -14,6 +26,8 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -23,12 +37,12 @@
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import * as Table from '#lib/components/ui/table/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
   const queryClient = useQueryClient();
   // Live JobPublished, JobClosed and HiringTemplateVersionPublished events refetch this list (#lib/realtime.ts).
@@ -52,6 +66,50 @@
   });
   const filtering = $derived(Boolean(statusFilter || search.trim()));
   const panelTitle = $derived(statusFilter ? `${jobStatus[statusFilter].label} jobs` : 'All jobs');
+
+  // Every column sorts (L2), and the list opens on Last updated, newest first, as things people edit do. The person's
+  // sort is remembered as `jobs`; the phone's Sort chip offers the same choices.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  const column = createColumnHelper<typeof features, JobSummary>();
+  // A job's status sorts in its natural order, not by its words.
+  const statusOrder: Record<JobStatus, number> = { Open: 0, Draft: 1, Closed: 2 };
+  // `any`: one list mixes columns of different value types.
+  const columns: ColumnDef<typeof features, JobSummary, any>[] = [
+    // The order is a number, which TanStack would sort descending first; Open comes first.
+    column.accessor((job) => statusOrder[job.status], { id: 'status', header: 'Status', sortFn: 'basic', sortDescFirst: false, cell: ({ row }) => renderSnippet(statusCell, row.original) }),
+    column.accessor('title', { header: 'Title', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(titleCell, row.original) }),
+    column.accessor('location', { header: 'Location', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(locationCell, row.original) }),
+    column.accessor((job) => employmentLabel(job.employmentType), { id: 'type', header: 'Type', sortFn: 'alphanumeric', cell: ({ row }) => employmentLabel(row.original.employmentType) }),
+    // A draft has not been published, so it sorts last either way.
+    column.accessor((job) => job.publishedAt ?? undefined, {
+      id: 'published',
+      header: 'Published',
+      sortFn: 'basic',
+      sortDescFirst: true,
+      sortUndefined: 'last',
+      cell: ({ row }) => renderSnippet(publishedCell, row.original),
+    }),
+    column.accessor((job) => job.lastUpdated.at ?? undefined, {
+      id: 'updatedAt',
+      header: 'Last updated',
+      sortFn: 'basic',
+      sortDescFirst: true,
+      sortUndefined: 'last',
+      cell: ({ row }) => renderSnippet(updatedCell, row.original),
+    }),
+    column.display({ id: 'actions', header: () => renderSnippet(actionsHeader, undefined), cell: ({ row }) => renderSnippet(actionsCell, row.original) }),
+  ];
+  const sort = createTableSort('jobs', { id: 'updatedAt', desc: true }, ['status', 'title', 'location', 'type', 'published', 'updatedAt']);
+  const table = createTable({
+    ...tableSortOptions(() => sort),
+    features,
+    columns,
+    get data() {
+      return shown;
+    },
+    getRowId: (job) => job.id,
+  });
+  const rows = $derived(table.getRowModel().rows);
 
   let busyJobId = $state<string | null>(null);
   let failure = $state('');
@@ -110,8 +168,9 @@
         <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
       {/snippet}
 
-      <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). -->
-      <div class="flex items-center overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+      <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). On a phone the Sort chip
+           follows it, since list items have no headers (L2). -->
+      <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
         <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
           <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>
             All
@@ -124,6 +183,7 @@
             </Toggle>
           {/each}
         </div>
+        {#if sidebar.isMobile && jobs.isSuccess}<SortMenu {table} class="ml-auto shrink-0" />{/if}
       </div>
 
       {#if jobs.isError}
@@ -161,7 +221,8 @@
         </Empty.Root>
       {:else if sidebar.isMobile}
         <ul aria-label="Jobs">
-          {#each shown as job (job.id)}
+          {#each rows as row (row.id)}
+            {@const job = row.original}
             <ListItem href={`/jobs/${job.id}`} title={job.title}>
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
               {#snippet meta()}{@render published(job)}{/snippet}
@@ -177,53 +238,49 @@
         </ul>
       {:else}
         <!-- Location gives way before the title in a narrow panel: the title is the row's name (F5). -->
-        <div class="@container/jobs">
-          <Table.Root aria-label="Jobs">
-            <Table.Header>
-              <Table.Row class="bg-muted hover:bg-muted">
-                <Table.Head class="px-4 text-caption text-muted-foreground">Status</Table.Head>
-                <Table.Head class="text-caption text-muted-foreground">Title</Table.Head>
-                <Table.Head class="text-caption text-muted-foreground">Location</Table.Head>
-                <Table.Head class="text-caption text-muted-foreground">Type</Table.Head>
-                <Table.Head class="text-right text-caption text-muted-foreground">Published</Table.Head>
-                <Table.Head class="text-right text-caption text-muted-foreground whitespace-nowrap">Last updated</Table.Head>
-                <Table.Head class="w-14 px-4"><span class="sr-only">Actions</span></Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each shown as job (job.id)}
+        <div class="@container/jobs overflow-x-auto">
+          <table aria-label="Jobs" class="w-full border-collapse text-left">
+            <thead class="bg-muted">
+              {#each table.getHeaderGroups() as group (group.id)}
+                <tr>
+                  {#each group.headers as header (header.id)}
+                    <SortHeader
+                      {header}
+                      class={[
+                        (header.id === 'status' || header.id === 'actions') && 'px-4',
+                        header.id === 'actions' && 'w-14',
+                        (header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
+                      ]}
+                    />
+                  {/each}
+                </tr>
+              {/each}
+            </thead>
+            <tbody>
+              {#each rows as row (row.id)}
                 <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
                      controls sit above it. -->
-                <Table.Row class="relative h-12 border-border-subtle hover:bg-muted">
-                  <Table.Cell class="px-4"><StatusBadge {...jobStatus[job.status]} quiet /></Table.Cell>
-                  <!-- The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5). -->
-                  <Table.Cell class="w-full max-w-0">
-                    <span class="flex min-w-0 items-center gap-2">
-                      <TruncatedText
-                        text={job.title}
-                        href={`/jobs/${job.id}`}
-                        class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
-                      />
-                      {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell class="max-w-32 text-muted-foreground @4xl/jobs:max-w-60">
-                    <span class="relative block min-w-0"><TruncatedText text={job.location} /></span>
-                  </Table.Cell>
-                  <Table.Cell class="text-muted-foreground">{employmentLabel(job.employmentType)}</Table.Cell>
-                  <Table.Cell class="text-right text-muted-foreground tabular-nums"><span class="relative">{@render published(job)}</span></Table.Cell>
-                  <Table.Cell class="text-right text-muted-foreground tabular-nums">
-                    {#if job.lastUpdated.at}<span class="relative"><DateText at={job.lastUpdated.at} /></span>{/if}
-                  </Table.Cell>
-                  <Table.Cell class="px-4 text-right">
-                    {#if job.status !== 'Closed'}
-                      <span class="relative inline-flex">{@render rowMenu(job)}</span>
-                    {/if}
-                  </Table.Cell>
-                </Table.Row>
+                <tr class="relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
+                  {#each row.getAllCells() as cell (cell.id)}
+                    <td
+                      class={[
+                        'px-3 whitespace-nowrap',
+                        (cell.column.id === 'status' || cell.column.id === 'actions') && 'px-4',
+                        // The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5).
+                        cell.column.id === 'title' && 'w-full max-w-0',
+                        cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
+                        (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
+                        (cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
+                        cell.column.id === 'actions' && 'text-right',
+                      ]}
+                    >
+                      <FlexRender {cell} />
+                    </td>
+                  {/each}
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </table>
         </div>
       {/if}
     </Panel>
@@ -236,6 +293,32 @@
 
 {#snippet newJob()}
   <Button href="/jobs/new" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
+{/snippet}
+
+{#snippet statusCell(job: JobSummary)}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
+
+{#snippet titleCell(job: JobSummary)}
+  <!-- The row's name, with at most one badge after it (L1). -->
+  <span class="flex min-w-0 items-center gap-2">
+    <TruncatedText text={job.title} href={`/jobs/${job.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
+    {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
+  </span>
+{/snippet}
+
+{#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} /></span>{/snippet}
+
+{#snippet publishedCell(job: JobSummary)}<span class="relative">{@render published(job)}</span>{/snippet}
+
+{#snippet updatedCell(job: JobSummary)}
+  {#if job.lastUpdated.at}<span class="relative"><DateText at={job.lastUpdated.at} /></span>{/if}
+{/snippet}
+
+{#snippet actionsHeader()}<span class="sr-only">Actions</span>{/snippet}
+
+{#snippet actionsCell(job: JobSummary)}
+  {#if job.status !== 'Closed'}
+    <span class="relative inline-flex">{@render rowMenu(job)}</span>
+  {/if}
 {/snippet}
 
 {#snippet published(job: JobSummary)}

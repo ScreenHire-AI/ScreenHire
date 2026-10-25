@@ -1,7 +1,7 @@
 import type { JobPostingStatus } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { board, now, posting } from '../test-support/fixtures.js';
-import { boardAction, boardRows, describePosting } from './distribution.js';
+import { boardAction, boardRows, describePosting, postingCounts, postingProblems } from './distribution.js';
 
 const later = (ms: number) => new Date(now + ms).toISOString();
 
@@ -78,5 +78,54 @@ describe('boardRows', () => {
       ['sandbox', 'Live'],
       ['retired', 'Closing'],
     ]);
+  });
+});
+
+describe('postingCounts', () => {
+  it('counts the boards a posting is on or on its way to, out of every board', () => {
+    const boards = [board('careers', 'Careers page'), board('adzuna', 'Adzuna'), board('jooble', 'Jooble'), board('sandbox', 'Sandbox board')];
+    const rows = boardRows(boards, [
+      posting('careers', 'Careers page', { state: 'Live' }),
+      posting('adzuna', 'Adzuna', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] }),
+      posting('jooble', 'Jooble', { state: 'Submitted', confirmsLive: false }),
+    ]);
+
+    expect(postingCounts(rows)).toEqual({ posted: 2, total: 4 });
+  });
+});
+
+describe('postingProblems', () => {
+  const rowsWith = (...postings: JobPostingStatus[]) => boardRows(postings.map((p) => board(p.boardId, p.boardName)), postings);
+
+  it('says a posting whose checks found issues was not taken, with the issues, never that the board refused it', () => {
+    const problems = postingProblems(rowsWith(posting('adzuna', 'Adzuna', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] })));
+
+    expect(problems).toEqual([
+      { kind: 'notTaken', boards: ['Adzuna'], text: 'Adzuna did not take this job. Adzuna needs a description of at least 100 characters.' },
+    ]);
+  });
+
+  it("names every board a refusal covers, with each board's reason", () => {
+    const problems = postingProblems(
+      rowsWith(
+        posting('adzuna', 'Adzuna', { state: 'Rejected', lastError: 'Title too long.' }),
+        posting('jooble', 'Jooble', { state: 'Rejected', lastError: null }),
+        posting('careers', 'Careers page', { state: 'Live' }),
+      ),
+    );
+
+    expect(problems).toEqual([
+      { kind: 'refused', boards: ['Adzuna', 'Jooble'], text: "Adzuna and Jooble refused this job's posting. Adzuna: Title too long." },
+    ]);
+  });
+
+  it('says a board that did not answer did not answer', () => {
+    expect(postingProblems(rowsWith(posting('sandbox', 'Sandbox board', { state: 'Error' })))).toEqual([
+      { kind: 'noAnswer', boards: ['Sandbox board'], text: 'Sandbox board did not answer. Retry to send it again.' },
+    ]);
+  });
+
+  it('finds nothing when every posting is fine', () => {
+    expect(postingProblems(rowsWith(posting('careers', 'Careers page', { state: 'Live' }), posting('jooble', 'Jooble', { state: 'Closing' })))).toEqual([]);
   });
 });

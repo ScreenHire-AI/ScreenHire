@@ -13,6 +13,7 @@
     reasons = 0,
     dismissed = false,
     compact = false,
+    hideCalm = false,
   }: {
     kind: AssessmentKind;
     /** Null while the checks are pending. */
@@ -26,10 +27,16 @@
      * above the lowest that no reviewer has dismissed gets a filled badge: AI assistance is information, so it stays quiet.
      */
     compact?: boolean;
+    /**
+     * Calm says nothing (design system section 22): the lowest level of an assessment that no one needs to look at shows
+     * no words, only its description for screen readers. A pending check is not calm, so it still shows.
+     */
+    hideCalm?: boolean;
   } = $props();
 
   const shown = $derived(level ?? pendingLevel);
   const words = $derived(compact ? shown.short : shown.label);
+  const hidden = $derived(hideCalm && level !== null && shown.rank === 0);
   const quiet = $derived(compact && (shown.rank <= 0 || dismissed || kind === 'aiAssistance'));
   const description = $derived(
     `${assessmentNames[kind]}: ${shown.label}` +
@@ -38,16 +45,20 @@
   );
 </script>
 
-<span class="inline-flex items-center gap-1.5" data-integrity-chip={kind} data-level={level ? shown.label : 'pending'} data-quiet={quiet || undefined}>
-  <Badge variant={quiet ? 'quiet' : statuses[shown.status].tone} class={['h-6 gap-1.5', !quiet && 'pr-2.5 pl-2']}>
-    <StatusIcon status={shown.status} />
-    <span aria-hidden="true">{words}</span>
-    <span class="sr-only">{description}</span>
-  </Badge>
-  {#if reasons > 0 && !quiet}
-    <span aria-hidden="true" data-reasons class="text-caption text-muted-foreground tabular-nums">{reasons}</span>
-  {/if}
-  {#if dismissed}
-    <span aria-hidden="true" class="text-caption text-muted-foreground">Dismissed</span>
-  {/if}
-</span>
+{#if hidden}
+  <span class="sr-only" data-integrity-chip={kind} data-level={shown.label} data-calm>{description}</span>
+{:else}
+  <span class="inline-flex items-center gap-1.5" data-integrity-chip={kind} data-level={level ? shown.label : 'pending'} data-quiet={quiet || undefined}>
+    <Badge variant={quiet ? 'quiet' : statuses[shown.status].tone} class={['h-6 gap-1.5', !quiet && 'pr-2.5 pl-2']}>
+      <StatusIcon status={shown.status} />
+      <span aria-hidden="true">{words}</span>
+      <span class="sr-only">{description}</span>
+    </Badge>
+    {#if reasons > 0 && !quiet}
+      <span aria-hidden="true" data-reasons class="text-caption text-muted-foreground tabular-nums">{reasons}</span>
+    {/if}
+    {#if dismissed}
+      <span aria-hidden="true" class="text-caption text-muted-foreground">Dismissed</span>
+    {/if}
+  </span>
+{/if}

@@ -1,7 +1,9 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { WorkflowStage } from '@screenhire/api-client';
 import { applications, apiStub, jobId, stages } from '../../test-support/fixtures.js';
+import { summary } from '../../test-support/integrity-fixtures.js';
 import PipelineHarness from '../../test-support/pipeline-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
@@ -21,7 +23,7 @@ function stubApi(options: { refuseMove?: boolean; rows?: ApplicationSummary[] } 
           return Response.json({ detail: 'Someone else moved this application at the same moment; refresh and try again.' }, { status: 409 });
         }
         const { toStageId } = JSON.parse(String(init?.body)) as { toStageId: string };
-        const stage = stages.find((candidate) => candidate.id === toStageId)!;
+        const stage = withEnds.find((candidate) => candidate.id === toStageId)!;
         current = current.map((application) =>
           application.id === casey.id ? { ...application, stage: { id: stage.id, name: stage.name, kind: stage.kind } } : application,
         );
@@ -33,9 +35,16 @@ function stubApi(options: { refuseMove?: boolean; rows?: ApplicationSummary[] } 
   return fetchMock;
 }
 
-function renderBoard() {
-  return render(WithQueryClient, { props: { component: PipelineHarness, props: { jobId, stages } } });
+function renderBoard(boardStages: WorkflowStage[] = stages) {
+  return render(WithQueryClient, { props: { component: PipelineHarness, props: { jobId, stages: boardStages } } });
 }
+
+const withEnds: WorkflowStage[] = [
+  ...stages,
+  { id: 'hired', name: 'Hired', kind: 'Hired' },
+  { id: 'rejected', name: 'Rejected', kind: 'Rejected' },
+  { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' },
+];
 
 const column = (name: string) => screen.getByRole('list', { name: `${name} stage` });
 const card = (name: string) => screen.getByRole('listitem', { name: new RegExp(`^${name},`) });
@@ -61,10 +70,68 @@ describe('pipeline board', () => {
       'Casey Morgan, Applied',
       'Sam Taylor, Applied',
     ]);
-    // Facts as a pill and a time, never strung together with a dot (W3).
-    expect(within(card('Casey Morgan')).getByText('Careers page')).toHaveAttribute('data-slot', 'badge');
+    // The time it arrived, never strung together with other facts by a dot (W3).
     expect(card('Casey Morgan').querySelector('time')).toHaveAttribute('datetime', casey.submittedAt);
     expect(card('Casey Morgan')).not.toHaveTextContent('·');
+  });
+
+  it('gives a stage with candidates a 296px column and shrinks an empty one to 188px (section 5)', async () => {
+    stubApi();
+    renderBoard();
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    const width = (id: string) => document.querySelector(`[data-stage-column="${id}"]`)!.className;
+    expect(width('applied')).toContain('w-74');
+    expect(width('screening')).toContain('w-74');
+    expect(width('interview')).toContain('w-47');
+    expect(width('offer')).toContain('w-47');
+  });
+
+  it('counts the stages that end a candidacy in one 188px Closed column, without drawing their cards', async () => {
+    const rows = [applications[0]!, { ...applications[1]!, stage: { id: 'hired', name: 'Hired', kind: 'Hired' as const } }, { ...applications[2]!, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' as const } }];
+    stubApi({ rows });
+    renderBoard(withEnds);
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    const closed = screen.getByRole('region', { name: /^Closed/ });
+    expect(closed.className).toContain('w-47');
+    expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 2');
+    expect(within(closed).getAllByText(/^(Hired|Rejected|Withdrawn)$/).map((name) => `${name.textContent} ${name.closest('[data-closed-stage]')!.textContent?.replace(/\D/g, '')}`)).toEqual([
+      'Hired 1',
+      'Rejected 1',
+      'Withdrawn 0',
+    ]);
+    // Each is a drop target for a card leaving the pipeline.
+    expect(within(closed).getByRole('list', { name: 'Rejected stage' })).toBeInTheDocument();
+    expect(screen.queryByRole('listitem', { name: /^Jordan Lee,/ })).toBeNull();
+  });
+
+  it('says nothing on a calm card, and shows only what needs a look (section 22)', async () => {
+    const rows = [
+      { ...applications[0]!, integrity: summary() },
+      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'], aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['B'] }) },
+    ];
+    stubApi({ rows });
+    renderBoard();
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    expect(card('Casey Morgan')).not.toHaveTextContent(/No concerns|No signs/);
+    expect(card('Casey Morgan').querySelector('[data-quiet], [data-status]')).toBeNull();
+    expect(within(card('Sam Taylor')).getByText('Verification suggested')).toBeInTheDocument();
+    expect(within(card('Sam Taylor')).getByText('Some signs')).toBeInTheDocument();
+  });
+
+  it('moves a card into a closed stage from the keyboard, and focus follows to that stage', async () => {
+    const fetchMock = stubApi({ rows: [{ ...applications[0]!, stage: { id: 'offer', name: 'Offer', kind: 'Offer' } }] });
+    renderBoard(withEnds);
+
+    await screen.findByRole('list', { name: 'Offer stage' });
+    const moving = card('Casey Morgan');
+    moving.focus();
+    await fireEvent.keyDown(moving, { key: 'ArrowRight', shiftKey: true });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(`/v1/applications/${casey.id}/move`), expect.objectContaining({ method: 'POST' })));
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('data-closed-stage', 'hired'));
   });
 
   // Overdue is the team's status (design system section 3.2), first in the card's status row.

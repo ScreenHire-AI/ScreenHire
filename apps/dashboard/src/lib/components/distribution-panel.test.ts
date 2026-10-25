@@ -77,11 +77,20 @@ describe('distribution panel', () => {
     expect(screen.queryByRole('button', { name: /Post|Publish/ })).not.toBeInTheDocument();
   });
 
-  it("says what the page reports about the boards, such as a saved edit or a failed publish", () => {
-    renderPanel({ id: jobId, status: 'Open', postings: [] }, { notice: 'Saved.', publishFailure: 'Could not publish the job (HTTP 409).' });
+  it('says in words what is wrong with a posting that needs fixes, and where its issues are fixed (E2)', () => {
+    renderPanel({
+      id: jobId,
+      status: 'Open',
+      postings: [
+        posting('careers', 'Careers page', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] }),
+        posting('sandbox', 'Sandbox board', { state: 'Rejected', lastError: 'Title too long.' }),
+      ],
+    });
 
-    expect(screen.getByRole('status')).toHaveTextContent('Saved.');
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not publish the job (HTTP 409).');
+    expect(item('careers').querySelector('[data-posting-problem]')).toHaveTextContent('Not sent: Adzuna needs a description of at least 100 characters.');
+    expect(within(item('careers')).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
+    expect(item('sandbox').querySelector('[data-posting-problem]')).toHaveTextContent('Rejected by the board: Title too long.');
+    expect(within(item('sandbox')).queryByRole('link', { name: 'Edit details' })).toBeNull();
   });
 
   it('takes the job down from one board, and offers no take-down where only closing the job removes it', async () => {

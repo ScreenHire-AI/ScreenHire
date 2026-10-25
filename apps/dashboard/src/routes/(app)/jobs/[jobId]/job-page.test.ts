@@ -7,7 +7,9 @@ import { stubViewport } from '../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-vi.mock('$app/state', () => ({ page: { state: {}, data: {}, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
+vi.mock('$app/state', () => ({ page: { state: {}, data: {}, url: new URL('http://dashboard.test/'), shallow: null }, navigating: { to: null } }));
+const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
+vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));
 
 const job = {
   id: jobId,
@@ -63,7 +65,16 @@ async function openMoreActions() {
 afterEach(() => {
   vi.unstubAllGlobals();
   page.state = {};
+  (page as unknown as { url: URL }).url = new URL('http://dashboard.test/');
+  navigation.goto.mockClear();
 });
+
+/** Opens the page on its Distribution tab, as the notice's link and a reload of that tab do. */
+function onDistributionTab() {
+  (page as unknown as { url: URL }).url = new URL(`http://dashboard.test/jobs/${jobId}?tab=distribution`);
+}
+
+const tab = (name: RegExp) => screen.getByRole('tab', { name });
 
 describe('job page', () => {
   it('heads the page with the title, its status beside it and a labelled facts row', async () => {
@@ -77,8 +88,60 @@ describe('job page', () => {
     expect(within(band).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
     expect(within(band).getByRole('link', { name: 'Edit workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Distribution' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Pipeline' })).toBeInTheDocument();
+    // The work area first, with no side column beside it (S7).
+    expect(await screen.findByRole('region', { name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Distribution' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Selected candidate' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
+  });
+
+  it('has a Candidates tab with its count and a Distribution tab whose count says how many boards the job is on (E2)', async () => {
+    stub({ ...job, postings: [posting('careers', 'Careers page', { state: 'Live' })] });
+
+    await waitFor(() => expect(tab(/^Candidates/)).toHaveTextContent(`Candidates ${applications.length}`));
+    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName('Distribution, posted on 1 of 2 boards'));
+    expect(tab(/^Candidates/)).toHaveAttribute('aria-selected', 'true');
+
+    await fireEvent.mouseDown(tab(/^Distribution/));
+    await fireEvent.click(tab(/^Distribution/));
+    // The tab is in the address, changed without a navigation.
+    await waitFor(() =>
+      expect(navigation.goto).toHaveBeenCalledWith(expect.objectContaining({ search: '?tab=distribution' }), expect.objectContaining({ shallow: true, replace: true })),
+    );
+  });
+
+  it('opens the Distribution tab from the address, with the boards', async () => {
+    onDistributionTab();
+    stub(job);
+
+    const distribution = await screen.findByRole('region', { name: 'Distribution' });
+    expect(tab(/^Distribution/)).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => expect(distribution.querySelector('[data-board=careers]')).not.toBeNull());
+    expect(screen.queryByRole('region', { name: 'Pipeline' })).not.toBeInTheDocument();
+  });
+
+  it('says a board did not take the posting, naming it, with the issue and a link to the fix (E2)', async () => {
+    stub({ ...job, postings: [posting('careers', 'Careers page', { state: 'Live' }), posting('sandbox', 'Sandbox board', { state: 'Draft', issues: ['Sandbox board needs a city.'] })] });
+
+    await waitFor(() => expect(document.querySelector('[data-slot=notice]')).not.toBeNull());
+    const notice = document.querySelector<HTMLElement>('[data-slot=notice]')!;
+    expect(notice).toHaveTextContent('Sandbox board did not take this job. Sandbox board needs a city.');
+    expect(within(notice).getByRole('link', { name: 'Fix on Distribution' })).toHaveAttribute('href', '?tab=distribution');
+    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName('Distribution, posted on 1 of 2 boards'));
+  });
+
+  it("says a board refused the posting with the board's reason, and nothing while every posting is fine", async () => {
+    stub({ ...job, postings: [posting('sandbox', 'Sandbox board', { state: 'Rejected', lastError: 'Title too long.' })] });
+
+    await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent("Sandbox board refused this job's posting. Sandbox board: Title too long."));
+  });
+
+  it('shows no notice for a job that is not open, or whose postings are fine', async () => {
+    stub(job);
+
+    await screen.findByRole('region', { name: 'Pipeline' });
+    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName(/posted on/));
+    expect(document.querySelector('[data-slot=notice]')).toBeNull();
   });
 
   it('closes the job through the More menu, only after the confirmation', async () => {
@@ -137,15 +200,25 @@ describe('job page', () => {
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
   });
 
-  it('says what saving the details did, in the Distribution panel', async () => {
+  it('says what saving the details did above the tabs, whichever one is open', async () => {
     page.state = { saved: 'Saved. The careers page shows it now; publish again to update the boards.' };
     stub(job);
 
-    const distribution = await screen.findByRole('region', { name: 'Distribution' });
-    await waitFor(() => expect(within(distribution).getByRole('status')).toHaveTextContent('Saved. The careers page shows it now'));
+    await screen.findByRole('region', { name: 'Pipeline' });
+    expect(screen.getAllByRole('status').some((status) => status.textContent?.includes('Saved. The careers page shows it now'))).toBe(true);
+  });
+
+  it("says why publishing failed where the person is, not only on the Distribution tab", async () => {
+    stub({ ...job, status: 'Draft', publishedAt: null, postings: [] }, { [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({ detail: 'The job changed meanwhile.' }, { status: 409 }) });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+    await waitFor(() => expect(screen.getAllByRole('alert').some((alert) => alert.textContent?.includes('The job changed meanwhile.'))).toBe(true));
+    expect(screen.getByRole('region', { name: 'Pipeline' })).toBeInTheDocument();
   });
 
   it('shows the failure and a retry when the job boards do not load, never "no boards"', async () => {
+    onDistributionTab();
     const fetchMock = stub(job, { 'GET /v1/boards': () => new Response(null, { status: 503 }) });
 
     const distribution = await screen.findByRole('region', { name: 'Distribution' });

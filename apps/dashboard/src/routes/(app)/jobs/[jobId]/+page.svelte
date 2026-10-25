@@ -3,7 +3,6 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import SendIcon from '@lucide/svelte/icons/send';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
-  import type { ApplicationSummary } from '@screenhire/api-client';
   import {
     ApiError,
     createGetJob,
@@ -22,18 +21,16 @@
   import Fact from '#lib/components/fact.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
-  import IntegrityOverview from '#lib/components/integrity-overview.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
-  import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import SummaryItem from '#lib/components/summary-item.svelte';
-  import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -41,10 +38,10 @@
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { boardRows } from '#lib/distribution.js';
-  import { employmentLabel, formatSalary, sourceLabel } from '#lib/format.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import { boardRows, postingCounts, postingProblems } from '#lib/distribution.js';
+  import { employmentLabel, formatSalary } from '#lib/format.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
-  import { chipOf, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -75,20 +72,41 @@
   );
   const stages = $derived(detail?.workflow.stages ?? []);
   const all = $derived(applications.data?.data ?? []);
-  const boardCount = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings).length : 0);
+  const rows = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings) : []);
+  const boardCount = $derived(rows.length);
   const publishable = $derived(detail?.status === 'Draft' && boardCount > 0);
+  // A posting that needs fixes is a notice where people will see it, naming the board, with a link to the fix (E2). Only
+  // an open job is on the boards.
+  const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
 
-  // Set from the overview's legend or the pipeline's filter menu, through the pipeline's setIntegrityFilter.
-  let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
-  let pipeline = $state<JobPipeline>();
+  // The job's peer views (section 22): the work area first, then Distribution, whose count says how many boards the job
+  // is on (E2). The tab is in the address, so a link reaches it and a reload keeps it.
+  const tab = $derived((page.shallow?.url ?? page.url).searchParams.get('tab') === 'distribution' ? 'distribution' : 'candidates');
+  const sections = $derived.by((): RecordTab[] => {
+    const counts = postingCounts(rows);
+    return [
+      { value: 'candidates', label: 'Candidates', count: applications.isSuccess ? all.length : undefined },
+      boards.data
+        ? { value: 'distribution', label: 'Distribution', count: counts.posted, of: counts.total, countLabel: `posted on ${counts.posted} of ${counts.total} boards` }
+        : { value: 'distribution', label: 'Distribution' },
+    ];
+  });
+
+  // A tab is a view of the same page, so switching only changes the address (shallow), keeping the page's state.
+  function showTab(next: string) {
+    const url = new URL(page.url.href);
+    if (next === 'distribution') url.searchParams.set('tab', next);
+    else url.searchParams.delete('tab');
+    void goto(url, { shallow: true, replace: true, state: page.state });
+  }
+
   let view = $state<'table' | 'board'>('table');
-  let activeId = $state<string | null>(null);
+  // The board fills the window below the header and scrolls inside itself, so the page never scrolls (section 22).
+  const boardFills = $derived(tab === 'candidates' && view === 'board' && !sidebar.isMobile);
   let confirmClose = $state(false);
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;
   let publishFailure = $state('');
-
-  const active = $derived(all.find((application) => application.id === activeId));
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
@@ -112,7 +130,7 @@
   back
 />
 
-<main class={['flex flex-col', sidebar.isMobile && publishable && 'pb-28']}>
+<main class={['flex flex-col', sidebar.isMobile && publishable && 'pb-28', boardFills && 'h-[calc(100svh-3.5rem)] min-h-160']}>
   <!-- A failed refetch keeps the job on screen; the error replaces it only when there is nothing to show. -->
   {#if job.isError && !detail}
     <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
@@ -131,110 +149,105 @@
       </Panel>
     </div>
   {:else if !detail}
-    <!-- Skeletons of the header band and the two columns (E1). -->
+    <!-- Skeletons of the header band and the work area (E1). -->
     <div aria-hidden="true" class="border-b border-border bg-card">
       <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
         <Skeleton class="h-9 w-full max-w-80" />
         <Skeleton class="h-10 w-full max-w-120" />
       </div>
     </div>
-    <div aria-hidden="true" class="flex w-full flex-wrap items-start gap-5 px-4 py-6 md:px-6">
-      <Skeleton class="h-80 min-w-0 flex-[999_1_520px] rounded-panel" />
-      <Skeleton class="h-48 min-w-0 flex-[1_1_320px] rounded-panel" />
+    <div aria-hidden="true" class="flex w-full px-4 py-6 md:px-6">
+      <Skeleton class="h-80 w-full rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}
-    <HeaderBand title={detail.title}>
-      {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
-      {#snippet actions()}
-        <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
-        {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
-        {#if !sidebar.isMobile}
-          {#if detail.status !== 'Closed'}
-            <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
+    <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
+      <HeaderBand title={detail.title}>
+        {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
+        {#snippet actions()}
+          <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
+          {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
+          {#if !sidebar.isMobile}
+            {#if detail.status !== 'Closed'}
+              <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
+            {/if}
+            <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
           {/if}
-          <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
-        {/if}
-        <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
-        {#if sidebar.isMobile || detail.status === 'Open'}
-          <MoreMenu
-            label="More actions"
-            onclosed={() => {
-              if (closeChosen) confirmClose = true;
-              closeChosen = false;
-            }}
-          >
-            {#if sidebar.isMobile}
-              {#if detail.status !== 'Closed'}
-                <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/edit`)}><PencilIcon aria-hidden="true" />Edit details</DropdownMenu.Item>
+          <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
+          {#if sidebar.isMobile || detail.status === 'Open'}
+            <MoreMenu
+              label="More actions"
+              onclosed={() => {
+                if (closeChosen) confirmClose = true;
+                closeChosen = false;
+              }}
+            >
+              {#if sidebar.isMobile}
+                {#if detail.status !== 'Closed'}
+                  <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/edit`)}><PencilIcon aria-hidden="true" />Edit details</DropdownMenu.Item>
+                {/if}
+                <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/workflow`)}><WorkflowIcon aria-hidden="true" />Workflow</DropdownMenu.Item>
               {/if}
-              <DropdownMenu.Item onSelect={() => goto(`/jobs/${detail.id}/workflow`)}><WorkflowIcon aria-hidden="true" />Workflow</DropdownMenu.Item>
-            {/if}
-            {#if detail.status === 'Open'}
-              {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
-              <DropdownMenu.Item variant="destructive" onSelect={() => (closeChosen = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
-            {/if}
-          </MoreMenu>
-        {/if}
-      {/snippet}
-      {#snippet facts()}
-        <Fact label="Location">{detail.location}</Fact>
-        <Fact label="Type">{employmentLabel(detail.employmentType)}</Fact>
-        {#if detail.salary}<Fact label="Salary">{formatSalary(detail.salary)}</Fact>{/if}
-        {#if detail.status === 'Open' && detail.publishedAt}
-          <Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>
-        {:else if detail.status === 'Closed' && detail.closedAt}
-          <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
-        {:else}
-          <Fact label="Created"><RelativeTime at={detail.createdAt} /></Fact>
-        {/if}
-        {#if detail.template}
-          <Fact label="Template">
-            <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              {detail.template.templateName} v{detail.template.version}
-              {#if detail.template.updateAvailable}<Badge variant="muted">Update available</Badge>{/if}
-            </span>
+              {#if detail.status === 'Open'}
+                {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
+                <DropdownMenu.Item variant="destructive" onSelect={() => (closeChosen = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
+              {/if}
+            </MoreMenu>
+          {/if}
+        {/snippet}
+        {#snippet facts()}
+          <Fact label="Location">{detail.location}</Fact>
+          <Fact label="Type">{employmentLabel(detail.employmentType)}</Fact>
+          {#if detail.salary}<Fact label="Salary">{formatSalary(detail.salary)}</Fact>{/if}
+          {#if detail.status === 'Open' && detail.publishedAt}
+            <Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>
+          {:else if detail.status === 'Closed' && detail.closedAt}
+            <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
+          {:else}
+            <Fact label="Created"><RelativeTime at={detail.createdAt} /></Fact>
+          {/if}
+          {#if detail.template}
+            <Fact label="Template">
+              <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                {detail.template.templateName} v{detail.template.version}
+                {#if detail.template.updateAvailable}<Badge variant="muted">Update available</Badge>{/if}
+              </span>
+            </Fact>
+          {/if}
+          <Fact label="Last updated">
+            <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
           </Fact>
-        {/if}
-        <Fact label="Last updated">
-          <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
-        </Fact>
-      {/snippet}
-    </HeaderBand>
-    <HistorySheet
-      bind:open={historyOpen}
-      name={detail.title}
-      entries={history.entries}
-      error={history.error}
-      onretry={history.retry}
-      hasMore={history.hasMore}
-      loadingMore={history.loadingMore}
-      onmore={history.more}
-      {members}
-      {currentUserId}
-    />
+        {/snippet}
+        {#snippet tabs()}<RecordTabs label="Job sections" tabs={sections} />{/snippet}
+      </HeaderBand>
+      <HistorySheet
+        bind:open={historyOpen}
+        name={detail.title}
+        entries={history.entries}
+        error={history.error}
+        onretry={history.retry}
+        hasMore={history.hasMore}
+        loadingMore={history.loadingMore}
+        onmore={history.more}
+        {members}
+        {currentUserId}
+      />
 
-    <!-- The detail template (section 7): a main column and a side column, filling the window (S6). -->
-    <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
-      {#if applications.isSuccess && all.length > 0}
-        <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
-      {:else if applications.isPending}
-        <!-- The overview's shape while the applications load, so the panels below do not jump (E1). -->
-        <Panel title="Authenticity" aria-hidden="true">
-          <div class="flex flex-col gap-3">
-            <div class="flex gap-2"><Skeleton class="h-9 w-32" /><Skeleton class="h-9 w-40" /><Skeleton class="h-9 w-48" /></div>
-            <Skeleton class="h-2 w-full rounded-full" />
+      <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). What saving
+           the details or publishing did is said once, above either tab. -->
+      <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
+        {#if page.state.saved || publishFailure}
+          <div class="flex flex-col gap-1">
+            <FailureText message={publishFailure} />
+            <p role="status" class="text-body text-muted-foreground empty:hidden">{page.state.saved ?? ''}</p>
           </div>
-        </Panel>
-      {/if}
-
-      <div class="flex flex-wrap items-start gap-5">
-        <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-5">
+        {/if}
+        <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
+          {#each problems as problem (problem.kind)}
+            <Notice href="?tab=distribution" link="Fix on Distribution">{problem.text}</Notice>
+          {/each}
           <JobPipeline
-            bind:this={pipeline}
-            bind:integrityFilter
             bind:view
-            bind:activeId
             jobTitle={detail.title}
             {stages}
             applications={all}
@@ -243,14 +256,10 @@
             onretry={() => applications.refetch()}
             {moves}
           />
-        </div>
-
-        <div class="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
-          {#if view === 'table' && active}
-            {@render candidatePanel(active)}
-          {/if}
+        </Tabs.Content>
+        <Tabs.Content value="distribution">
           {#if boards.data}
-            <DistributionPanel job={detail} boards={boards.data.data} notice={page.state.saved ?? ''} {publishFailure} />
+            <DistributionPanel job={detail} boards={boards.data.data} />
           {:else if boards.isError}
             <Panel title="Distribution">
               <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />
@@ -268,9 +277,9 @@
               </div>
             </Panel>
           {/if}
-        </div>
+        </Tabs.Content>
       </div>
-    </div>
+    </Tabs.Root>
 
     {#if sidebar.isMobile && publishable}
       <ActionBar>{@render publishButton()}</ActionBar>
@@ -284,35 +293,4 @@
   <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
     <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
   </Button>
-{/snippet}
-
-{#snippet candidatePanel(application: ApplicationSummary)}
-  <Panel title="Selected candidate">
-    <h3 class="mb-3 font-display text-panel-title break-words">{application.candidateName}</h3>
-    <SummaryList>
-      <SummaryItem label="Stage">{application.stage.name}</SummaryItem>
-      <SummaryItem label="Entered stage"><RelativeTime at={application.stageEnteredAt} /></SummaryItem>
-      <SummaryItem label="Applied"><RelativeTime at={application.submittedAt} /></SummaryItem>
-      <SummaryItem label="Source">{sourceLabel(application.source)}</SummaryItem>
-      {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assistance' }] as const as row (row.kind)}
-        {@const chip = chipOf(application.integrity, row.kind)}
-        <SummaryItem label={row.label}>
-          <IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} compact />
-        </SummaryItem>
-      {/each}
-    </SummaryList>
-    {#snippet footer()}
-      <div class="flex flex-wrap gap-2">
-        <Button href={`/applications/${application.id}`} variant="outline" size="lg">Open application</Button>
-        <MoveToStage
-          candidateName={application.candidateName}
-          currentStageId={application.stage.id}
-          {stages}
-          size="lg"
-          disabled={moves.pending}
-          onmove={(stage) => moves.move(application, stage)}
-        />
-      </div>
-    {/snippet}
-  </Panel>
 {/snippet}

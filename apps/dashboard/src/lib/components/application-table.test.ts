@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe('candidate table', () => {
-  it('shows a 48px row per application with its stage as a pill, source and date, newest first', () => {
+  it('shows a 48px row per application with its stage, source and date as plain text, newest first (L1)', () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications } } });
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied']);
@@ -36,8 +36,10 @@ describe('candidate table', () => {
       ['ST Sam Taylor', 'Applied', 'Careers page', 'Oct 17, 2026'],
     ]);
     expect(dataRows().every((row) => row.classList.contains('h-12'))).toBe(true);
-    expect(within(rowOf('Jordan Lee')).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
+    // No pills in cells (L1): the stage is plain text, and the row's name is semibold.
+    expect(within(rowOf('Jordan Lee')).getByText('Screening').closest('[data-slot="badge"]')).toBeNull();
     expect(screen.getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
+    expect(screen.getByRole('link', { name: 'Casey Morgan' })).toHaveClass('font-semibold');
   });
 
   // Overdue comes first in the stage cell, as a status (T2), on the table and on a phone's list items.
@@ -53,6 +55,21 @@ describe('candidate table', () => {
     trigger.focus();
     await waitFor(() => expect(trigger).toHaveAttribute('data-state', expect.stringMatching(/open/)));
     expect(document.getElementById(trigger.getAttribute('aria-describedby')!)).toHaveTextContent(/^Time limit passed /);
+  });
+
+  it('says nothing for AI assistance on a calm row, and keeps the words for screen readers (section 22)', () => {
+    const rows = [
+      { ...applications[0]!, integrity: summary() },
+      { ...applications[1]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['A'] }) },
+    ];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: integrityColumns } } });
+
+    const aiCell = (name: string) => within(rowOf(name)).getAllByRole('cell')[3]!;
+    expect(aiCell('Casey Morgan').querySelector('[data-calm]')).toHaveClass('sr-only');
+    expect(aiCell('Casey Morgan')).toHaveTextContent('AI assistance: No signs of AI help');
+    expect(within(aiCell('Jordan Lee')).getByText('Some signs')).toBeVisible();
+    // Authenticity keeps its quiet calm state: the column's one status (T3).
+    expect(within(rowOf('Casey Morgan')).getAllByRole('cell')[2]!.querySelector('[data-quiet]')).not.toBeNull();
   });
 
   it('adds the job column for the table across jobs', () => {
