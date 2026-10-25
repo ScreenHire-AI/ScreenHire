@@ -372,7 +372,7 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 | Columns | One; the details rail folds under the header | One; the details rail folds under the header | Tabs and the details rail | Same, filling the window |
 | Header band | Facts in a two-column grid | Facts wrap | One line of facts | One line of facts |
 | Actions | Primary in a bar at the bottom; the rest in More | In the header; extras fold into More | In the header | In the header |
-| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks | Full | Full, optional columns may show |
+| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks, and while it scrolls the row's link covers that cell only | Full | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
 On a phone the workflow graph is for reading: its nodes have no buttons, one line says to edit in Pipeline, and the
