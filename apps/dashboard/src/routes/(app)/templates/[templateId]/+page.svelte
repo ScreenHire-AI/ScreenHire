@@ -56,7 +56,6 @@
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { can } from '#lib/permissions.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
   import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import { cn } from '#lib/utils.js';
