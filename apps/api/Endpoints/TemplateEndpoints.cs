@@ -85,7 +85,7 @@ internal static class TemplateEndpoints
 
     // Every change to the template and its versions, newest first.
     private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetHistory(
-        Guid templateId, long? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid templateId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
         {
@@ -97,8 +97,9 @@ internal static class TemplateEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(await ChangeHistoryRoutes.PageAsync(
-            db, ChangeSubjectKind.HiringTemplate, SubjectId(templateId), before, limit, cancellationToken));
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.HiringTemplate, SubjectId(templateId), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
     }
 
     private static async Task<Results<Created<HiringTemplateDetail>, ValidationProblem>> CreateTemplate(

@@ -6,6 +6,6 @@
  */
 
 export type GetJobHistoryParams = {
-before?: number;
+before?: string;
 limit?: number;
 };

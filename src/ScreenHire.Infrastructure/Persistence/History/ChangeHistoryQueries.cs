@@ -14,21 +14,32 @@ public static class ChangeHistoryQueries
     public const int MaxPageSize = 100;
 
     /// <summary>
-    /// An object's changes, newest first: up to <paramref name="limit"/> records older than the cursor
-    /// <paramref name="before"/>, and the cursor of the next page, or null when this page is the last.
+    /// An object's changes, newest first: up to <paramref name="limit"/> records older than the record
+    /// <paramref name="before"/>, and the id of this page's last record when there is a next page. Null when
+    /// <paramref name="before"/> is not one of this object's records.
     /// </summary>
-    public static async Task<(IReadOnlyList<ChangeRecord> Records, long? NextBefore)> PageAsync(
-        ScreenHireDbContext db, ChangeSubjectKind kind, string subjectId, long? before, int limit, CancellationToken cancellationToken)
+    /// <remarks>
+    /// The cursor is a record's id, never its <see cref="ChangeRecord.Sequence"/>: the sequence counts every
+    /// organization's records, so the gap between two of an organization's own would tell it how busy the others are.
+    /// </remarks>
+    public static async Task<(IReadOnlyList<ChangeRecord> Records, Guid? NextBefore)?> PageAsync(
+        ScreenHireDbContext db, ChangeSubjectKind kind, string subjectId, Guid? before, int limit, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
         var query = db.ChangeRecords.AsNoTracking().Where(r => r.SubjectKind == kind && r.SubjectId == subjectId);
         if (before is { } cursor)
         {
-            query = query.Where(r => r.Sequence < cursor);
+            var position = await query.Where(r => r.Id == cursor).Select(r => (long?)r.Sequence).SingleOrDefaultAsync(cancellationToken);
+            if (position is null)
+            {
+                return null;
+            }
+
+            query = query.Where(r => r.Sequence < position);
         }
 
         var page = await query.OrderByDescending(r => r.Sequence).Take(limit + 1).ToListAsync(cancellationToken);
-        return page.Count > limit ? (page[..limit], page[limit - 1].Sequence) : (page, null);
+        return page.Count > limit ? (page[..limit], page[limit - 1].Id) : (page, null);
     }
 
     /// <summary>The newest change of each of <paramref name="subjectIds"/> that has one, in one query.</summary>

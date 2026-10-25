@@ -1069,7 +1069,7 @@ export const GetJobHistoryParams = zod.object({
 })
 
 export const GetJobHistoryQueryParams = zod.object({
-  "before": zod.int().optional(),
+  "before": zod.uuid().optional(),
   "limit": zod.int().optional()
 })
 
@@ -1094,8 +1094,8 @@ export const GetJobHistoryResponse = zod.object({
 }).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
 }).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
-  "nextBefore": zod.int().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the cursor of the next page, or null after the last.')
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
 
 
 export const PublishJobParams = zod.object({
@@ -2196,7 +2196,7 @@ export const GetHiringTemplateHistoryParams = zod.object({
 })
 
 export const GetHiringTemplateHistoryQueryParams = zod.object({
-  "before": zod.int().optional(),
+  "before": zod.uuid().optional(),
   "limit": zod.int().optional()
 })
 
@@ -2221,8 +2221,8 @@ export const GetHiringTemplateHistoryResponse = zod.object({
 }).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
 }).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
-  "nextBefore": zod.int().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the cursor of the next page, or null after the last.')
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
 
 
 export const CreateHiringTemplateVersionParams = zod.object({
@@ -5338,7 +5338,7 @@ export const GetEmailTemplateHistoryParams = zod.object({
 })
 
 export const GetEmailTemplateHistoryQueryParams = zod.object({
-  "before": zod.int().optional(),
+  "before": zod.uuid().optional(),
   "limit": zod.int().optional()
 })
 
@@ -5363,8 +5363,8 @@ export const GetEmailTemplateHistoryResponse = zod.object({
 }).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
 }).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
-  "nextBefore": zod.int().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the cursor of the next page, or null after the last.')
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
 
 
 export const PreviewEmailTemplateBody = zod.object({

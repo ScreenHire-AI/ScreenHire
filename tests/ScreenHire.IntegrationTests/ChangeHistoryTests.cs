@@ -86,10 +86,13 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
 
         var first = (await owner.GetAsync($"/v1/templates/{templateId}/history?limit=1")).Expect(HttpStatusCode.OK);
         first.Count("entries").Should().Be(1);
-        var next = first.At("nextBefore").GetInt64();
+        var next = first.At("nextBefore").GetGuid();
+        next.Should().Be(first.Id("entries.0.id"), "the cursor is the last entry's id");
         var second = (await owner.GetAsync($"/v1/templates/{templateId}/history?limit=1&before={next}")).Expect(HttpStatusCode.OK);
         second.Text("entries.0.lines.0.text").Should().StartWith("renamed the stage");
         (await owner.GetAsync($"/v1/templates/{templateId}/history?limit=0")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("limit");
+        (await owner.GetAsync($"/v1/templates/{templateId}/history?before={Guid.CreateVersion7()}"))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("before");
 
         var system = (await owner.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}")).Expect(HttpStatusCode.OK);
         system.Text("lastUpdated.by").Should().Be("ScreenHire");

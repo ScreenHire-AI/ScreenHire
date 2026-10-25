@@ -145,7 +145,7 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
 
 Change history ([change-history.md](../architecture/change-history.md)): the demo makes its template, emails and jobs
 as Avery Quinn, so their History sheets name her. On top, Jordan Ellis starts version 2 of "Brightwater engineering"
-(a notice period question, then made required, and a time limit on Interview) and changes the salary of "Backend
+(a notice period question, then made required, and two more days for Interview) and changes the salary of "Backend
 Engineer (Payments)", and Avery adds an "Interview invitation" email template and edits its subject. The jobs `DevelopmentDataSeeder`
 makes have no history until someone edits them.
 

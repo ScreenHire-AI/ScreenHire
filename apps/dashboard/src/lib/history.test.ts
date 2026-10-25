@@ -32,7 +32,7 @@ describe('history', () => {
   it('joins pages once each, even when an entry shifts onto the next page', () => {
     const a = entry('a', '2026-10-25T12:00:00Z');
     const b = entry('b', '2026-10-25T11:00:00Z');
-    expect(joinPages([{ entries: [a, b], nextBefore: 2 }, { entries: [b], nextBefore: null }, undefined]).map((e) => e.id)).toEqual(['a', 'b']);
+    expect(joinPages([{ entries: [a, b], nextBefore: 'b' }, { entries: [b], nextBefore: null }, undefined]).map((e) => e.id)).toEqual(['a', 'b']);
   });
 
   it('starts a sentence with a capital and makes initials', () => {

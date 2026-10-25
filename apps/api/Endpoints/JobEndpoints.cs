@@ -88,7 +88,7 @@ internal static class JobEndpoints
 
     // Every change to the job, newest first: its posting, its status and its workflow.
     private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetJobHistory(
-        Guid jobId, long? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid jobId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
         {
@@ -100,7 +100,9 @@ internal static class JobEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.Job, jobId.ToString("D"), before, limit, cancellationToken));
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.Job, jobId.ToString("D"), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
     }
 
     private static async Task<Results<Ok<JobDetail>, NotFound>> GetJob(

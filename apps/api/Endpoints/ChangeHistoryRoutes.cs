@@ -18,12 +18,18 @@ internal static class ChangeHistoryRoutes
             ? null
             : TypedResults.ValidationProblem(ValidationExtensions.Problem("limit", $"Ask for 1 to {ChangeHistoryQueries.MaxPageSize} changes at a time."));
 
-    /// <summary>One page of the object's changes, newest first, older than the cursor <paramref name="before"/>.</summary>
-    public static async Task<HistoryPage> PageAsync(
-        ScreenHireDbContext db, ChangeSubjectKind kind, string subjectId, long? before, int? limit, CancellationToken cancellationToken)
-    {
-        var (records, next) = await ChangeHistoryQueries.PageAsync(
-            db, kind, subjectId, before, limit ?? ChangeHistoryQueries.DefaultPageSize, cancellationToken);
-        return new HistoryPage([.. records.Select(r => r.ToEntry())], next);
-    }
+    /// <summary>The 400 for a cursor that is not one of the object's changes.</summary>
+    public static ValidationProblem CursorProblem() =>
+        TypedResults.ValidationProblem(ValidationExtensions.Problem("before", "No change of this object has this id."));
+
+    /// <summary>
+    /// One page of the object's changes, newest first, older than the change <paramref name="before"/>, or null when
+    /// <paramref name="before"/> is not one of this object's changes.
+    /// </summary>
+    public static async Task<HistoryPage?> PageAsync(
+        ScreenHireDbContext db, ChangeSubjectKind kind, string subjectId, Guid? before, int? limit, CancellationToken cancellationToken) =>
+        await ChangeHistoryQueries.PageAsync(db, kind, subjectId, before, limit ?? ChangeHistoryQueries.DefaultPageSize, cancellationToken)
+            is var (records, next)
+            ? new HistoryPage([.. records.Select(r => r.ToEntry())], next)
+            : null;
 }

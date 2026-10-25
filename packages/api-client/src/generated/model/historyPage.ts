@@ -7,10 +7,11 @@
 import type { HistoryEntry } from './historyEntry.ts';
 
 /**
- * One page of an object's history, newest first. `nextBefore` is the cursor of the next page, or null after the last.
+ * One page of an object's history, newest first. `nextBefore` is the id of this page's last entry, to pass as
+ * `before` for the next page, or null after the last.
  */
 export interface HistoryPage {
   entries: HistoryEntry[];
   /** @nullable */
-  nextBefore: number | null;
+  nextBefore: string | null;
 }

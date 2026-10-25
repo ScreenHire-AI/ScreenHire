@@ -86,7 +86,7 @@ internal static class EmailEndpoints
 
     // Every change to the template, newest first: a built-in's history outlives its row, which restoring deletes.
     private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetEmailTemplateHistory(
-        string templateId, long? before, int? limit, ScreenHireDbContext db, EmailTemplateStore store, CancellationToken cancellationToken)
+        string templateId, Guid? before, int? limit, ScreenHireDbContext db, EmailTemplateStore store, CancellationToken cancellationToken)
     {
         if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
         {
@@ -98,7 +98,9 @@ internal static class EmailEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.EmailTemplate, templateId, before, limit, cancellationToken));
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.EmailTemplate, templateId, before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
     }
 
     private static async Task<EmailTemplateEntry> EntryAsync(ScreenHireDbContext db, OrganizationEmailTemplate template, CancellationToken cancellationToken) =>

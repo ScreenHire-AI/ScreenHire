@@ -6,6 +6,6 @@
  */
 
 export type GetEmailTemplateHistoryParams = {
-before?: number;
+before?: string;
 limit?: number;
 };

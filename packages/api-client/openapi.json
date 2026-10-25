@@ -1308,8 +1308,8 @@
             "name": "before",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -2109,8 +2109,8 @@
             "name": "before",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -5815,8 +5815,8 @@
             "name": "before",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -8928,12 +8928,12 @@
           "nextBefore": {
             "type": [
               "null",
-              "integer"
+              "string"
             ],
-            "format": "int64"
+            "format": "uuid"
           }
         },
-        "description": "One page of an object's history, newest first. `nextBefore` is the cursor of the next page, or null after the last."
+        "description": "One page of an object's history, newest first. `nextBefore` is the id of this page's last entry, to pass as\r\n`before` for the next page, or null after the last."
       },
       "HistoryTextPart": {
         "required": [

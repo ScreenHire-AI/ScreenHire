@@ -27,8 +27,11 @@ public sealed record LastUpdate(DateTimeOffset? At, ChangeActorKind? By, Guid? U
         stamp is null ? new(fallback, null) : new(stamp.At, HistoryMappings.Actor(stamp.UserId, stamp.ApiKeyId), stamp.UserId, stamp.ApiKeyId);
 }
 
-/// <summary>One page of an object's history, newest first. <c>nextBefore</c> is the cursor of the next page, or null after the last.</summary>
-public sealed record HistoryPage(IReadOnlyList<HistoryEntry> Entries, long? NextBefore);
+/// <summary>
+/// One page of an object's history, newest first. <c>nextBefore</c> is the id of this page's last entry, to pass as
+/// <c>before</c> for the next page, or null after the last.
+/// </summary>
+public sealed record HistoryPage(IReadOnlyList<HistoryEntry> Entries, Guid? NextBefore);
 
 /// <summary>Everything one save changed in the object: who, when, and a line per change.</summary>
 public sealed record HistoryEntry(Guid Id, DateTimeOffset At, ChangeActorKind By, Guid? UserId, Guid? ApiKeyId, IReadOnlyList<HistoryLine> Lines);

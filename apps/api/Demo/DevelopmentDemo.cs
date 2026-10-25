@@ -38,7 +38,8 @@ namespace ScreenHire.Api.Demo;
 /// <item>The open jobs posted to boards through the same publish as the dashboard's: the .NET and designer jobs to every
 /// board, the frontend job to the careers page and the sandbox board only.</item>
 /// <item>"Support Engineer", from the template, published to every board, for the closed job below.</item>
-/// <item>Change history (<see cref="SeedHistoryAsync"/>): Jordan Ellis starts version 2 of the template and changes the
+/// <item>Change history (<see cref="SeedHistoryAsync"/>): Jordan Ellis starts version 2 of the template (a question and a
+/// longer time limit on Interview) and changes the
 /// draft job's salary, and Avery Quinn adds an "Interview invitation" email and edits its subject, on top of the steps above, which Avery
 /// makes. Applying and moving candidates are not tracked changes.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
@@ -266,7 +267,7 @@ internal sealed partial class DevelopmentDemo(
         var template = HiringTemplate.Create(
             step.OrganizationId, TemplateName,
             "How Brightwater hires engineers: the Software engineer pipeline, with an email to the candidate at each step.",
-            definition, step.Now, step.Owner);
+            definition, step.Now, step.Owner, copiedFrom: SystemTemplates.SoftwareEngineer);
         var version = template.Versions.Single();
         template.Publish(version, step.Now, step.Owner);
         db.HiringTemplates.Add(template);
@@ -378,14 +379,14 @@ internal sealed partial class DevelopmentDemo(
                     .SingleOrDefaultAsync(t => t.OrganizationId == step.OrganizationId && t.Name == TemplateName, cancellationToken);
                 if (template is { Versions: [{ Status: TemplateVersionStatus.Published } published] })
                 {
-                    // Version 2 as a draft: one more question and a time limit on Interview.
+                    // Version 2 as a draft: one more question and two more days for Interview.
                     var workflow = published.Definition.Workflow;
                     var draft = template.CreateDraft(
                         published.Definition with
                         {
                             Workflow = workflow with
                             {
-                                Stages = [.. workflow.Stages.Select(s => s.Id == "interview" ? s with { SlaDays = 5 } : s)],
+                                Stages = [.. workflow.Stages.Select(s => s.Id == "interview" ? s with { SlaDays = (s.SlaDays ?? 3) + 2 } : s)],
                                 Questionnaire = new Questionnaire([.. workflow.Questionnaire.Questions, NoticePeriodQuestion]),
                             },
                         },

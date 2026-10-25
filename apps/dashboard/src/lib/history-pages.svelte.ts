@@ -10,10 +10,10 @@ import { joinPages } from '#lib/history.js';
  * to the first page.
  */
 export function createHistoryPages<TResponse extends { data: HistoryPage }, TError>(
-  page: (before: number | undefined) => CreateQueryOptions<TResponse, TError, TResponse, QueryKey>,
+  page: (before: string | undefined) => CreateQueryOptions<TResponse, TError, TResponse, QueryKey>,
   enabled: () => boolean,
 ) {
-  let cursors = $state<(number | undefined)[]>([undefined]);
+  let cursors = $state<(string | undefined)[]>([undefined]);
   const queries = createQueries(() => ({
     queries: cursors.map((before) => ({ ...page(before), enabled: enabled() })),
   }));

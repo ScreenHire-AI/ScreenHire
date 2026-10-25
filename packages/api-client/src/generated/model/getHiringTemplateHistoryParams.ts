@@ -6,6 +6,6 @@
  */
 
 export type GetHiringTemplateHistoryParams = {
-before?: number;
+before?: string;
 limit?: number;
 };

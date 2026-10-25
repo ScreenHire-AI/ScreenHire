@@ -40,7 +40,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `lines` | JSONB: one line per change, each its words (`parts`, the changed thing's name marked strong) and its values before and after (`details`) |
-| `sequence` | An identity column: the order and the paging cursor |
+| `sequence` | An identity column: the order. It counts every organization's records, so it never leaves the API: the paging cursor is an entry's id |
 
 Everything one save changes in an object is one entry with several lines. People are stored by id and named when the
 history is read, so a renamed person shows their current name. The words are stored as they were said: a later
@@ -106,7 +106,8 @@ its hash and a webhook secret.
   `JobDetail`: `at`, `by` (`Member`, `ApiKey`, `ScreenHire`, or null when nobody was recorded), `userId`, `apiKeyId`.
   A system hiring template is by ScreenHire; a built-in email template nobody changed is by ScreenHire with no `at`.
   Lists read every object's newest change in one query (`ChangeHistoryQueries.LastAsync`).
-- The history, newest first, `?limit=` (1 to 100, default 50) and `?before=` (the previous page's `nextBefore`):
+- The history, newest first, `?limit=` (1 to 100, default 50) and `?before=` (the previous page's `nextBefore`, the id
+  of its last entry; an id that is not one of the object's entries is a 400):
   - `GET /v1/templates/{templateId}/history` (the hiring API: API keys too)
   - `GET /v1/jobs/{jobId}/history` (the hiring API: API keys too)
   - `GET /v1/email-templates/{templateId}/history` (any member, as the email template routes are)
