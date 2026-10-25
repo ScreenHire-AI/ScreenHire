@@ -276,8 +276,22 @@ public sealed class EmailTests(AppHostFixture fixture)
         sent[0].Subject.Should().Be($"Screening {marker}");
         sent[0].Text.Should().Contain("welcome to Screening");
         await AutomationSamples.WaitForRunAsync(owner, application, "email-on-stage", "Completed");
-        var entry = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK)
-            .Body.EnumerateArray().Single(e => e.GetProperty("type").GetString() == "EmailSent");
+        // The send handler mails first and commits the timeline entry after, so the mail and the completed run can both
+        // arrive before the entry does: wait for it.
+        JsonElement entry = default;
+        await WolverineStore.WaitUntilAsync(async () =>
+        {
+            var timeline = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK).Body;
+            var sentEntries = timeline.EnumerateArray().Where(e => e.GetProperty("type").GetString() == "EmailSent").ToList();
+            sentEntries.Should().HaveCountLessThan(2, "one email was sent");
+            if (sentEntries.Count == 0)
+            {
+                return false;
+            }
+
+            entry = sentEntries[0].Clone();
+            return true;
+        }, "the EmailSent timeline entry", Ct);
         entry.GetProperty("automationRunId").ValueKind.Should().Be(JsonValueKind.String);
         entry.GetProperty("actorUserId").ValueKind.Should().Be(JsonValueKind.Null);
 
