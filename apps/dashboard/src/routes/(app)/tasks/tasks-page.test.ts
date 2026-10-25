@@ -64,7 +64,7 @@ describe('my tasks page', () => {
     expect(rows[0]).toHaveTextContent('For the team');
     expect(rows[1]).toHaveTextContent('Review');
     await waitFor(() => expect(rows[1]).toHaveTextContent('For you'));
-    expect(within(rows[1]!).getByRole('button', { name: 'Complete for Jordan Lee: Review this application.' })).toBeInTheDocument();
+    expect(within(rows[1]!).getByRole('button', { name: 'Mark done for Jordan Lee: Review this application.' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('2', { selector: '[data-slot="badge"]' })).toHaveTextContent('2 tasks'));
   });
 
@@ -72,7 +72,7 @@ describe('my tasks page', () => {
     const fetch = renderPage({
       [`POST /v1/tasks/${open[0]!.id}/complete`]: () => Response.json({ ...open[0], completedAt: '2026-10-20T12:00:00Z', completedByUserId: user.id }),
     });
-    await fireEvent.click(await screen.findByRole('button', { name: 'Complete for Casey Morgan: Call the references.' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Mark done for Casey Morgan: Call the references.' }));
 
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url) === `/v1/tasks/${open[0]!.id}/complete` && init?.method === 'POST')).toBe(true));
     expect(await screen.findByText('Marked "Call the references." done.')).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('my tasks page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     const panel = await screen.findByRole('region', { name: 'Done' });
     expect(await within(panel).findByText(/by Robin Ashby/)).toBeInTheDocument();
-    expect(within(panel).queryByRole('button', { name: /^Complete/ })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     await fireEvent.click(screen.getByRole('button', { name: "Everyone's" }));

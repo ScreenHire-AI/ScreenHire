@@ -101,11 +101,10 @@
     count={jobs.isSuccess ? all.length : undefined}
     countLabel={all.length === 1 ? 'job' : 'jobs'}
     actions={sidebar.isMobile ? undefined : newJob}
-    wide
   />
 
   <!-- The content container (S6): the list template's one table panel. -->
-  <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
+  <div class="flex w-full flex-col px-4 py-6 md:px-6">
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />

@@ -1,5 +1,5 @@
 import type { WebhookDeliveryStatus, WebhookEndpointEntry } from '@screenhire/api-client';
-import type { Status } from '#lib/components/status-badge.svelte';
+import type { StatusName } from '#lib/status.js';
 
 /** An event type's name in words: `application.submitted` is "Application submitted". */
 export function eventLabel(type: string): string {
@@ -8,18 +8,21 @@ export function eventLabel(type: string): string {
 }
 
 /**
- * An endpoint's status: on; off because the worker gave up after failed deliveries, which needs someone (verify); or
- * turned off by a person, which is calm.
+ * An endpoint's status (design system section 3.2): delivering; turned off because the worker gave up after failed
+ * deliveries, which needs fixing; or turned off by a person, which is calm.
  */
-export function endpointStatus(endpoint: Pick<WebhookEndpointEntry, 'enabled' | 'disabledReason'>): { status: Status; label: string } {
-  if (endpoint.enabled) return { status: 'clear', label: 'On' };
-  return endpoint.disabledReason ? { status: 'verify', label: 'Off after failures' } : { status: 'neutral', label: 'Off' };
+export function endpointStatus(endpoint: Pick<WebhookEndpointEntry, 'enabled' | 'disabledReason'>): { status: StatusName; label: string } {
+  if (endpoint.enabled) return { status: 'done', label: 'Delivering' };
+  return endpoint.disabledReason ? { status: 'needsFixes', label: 'Turned off' } : { status: 'notInEffect', label: 'Off' };
 }
 
-/** A delivery's status: delivered is calm, a retry in progress needs a look, a delivery that gave up needs someone. */
-export const deliveryStatus: Record<WebhookDeliveryStatus, { status: Status; label: string }> = {
-  Succeeded: { status: 'clear', label: 'Delivered' },
-  Pending: { status: 'review', label: 'Pending' },
-  Failed: { status: 'verify', label: 'Failed' },
-  Skipped: { status: 'neutral', label: 'Skipped' },
+/**
+ * A delivery's status: delivered is calm, a delivery waiting for its next try is grey because nobody needs to act, and
+ * a delivery that gave up needs fixing.
+ */
+export const deliveryStatus: Record<WebhookDeliveryStatus, { status: StatusName; label: string }> = {
+  Succeeded: { status: 'done', label: 'Delivered' },
+  Pending: { status: 'waiting', label: 'Pending' },
+  Failed: { status: 'needsFixes', label: 'Failed' },
+  Skipped: { status: 'notInEffect', label: 'Skipped' },
 };

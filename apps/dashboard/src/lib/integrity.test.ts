@@ -47,9 +47,9 @@ describe('integrity saved views', () => {
     expect([clear, review, verify, pending, dismissed].filter((a) => findSavedView('needs-review')!.matches(a, now))).toEqual([review, verify]);
   });
 
-  it('"Verification recommended" holds the highest level only', () => {
+  it('"Verification suggested" holds the highest level only', () => {
     expect([clear, review, verify, pending, dismissed].filter(verificationRecommended)).toEqual([verify]);
-    expect(findSavedView('verification-recommended')!.mark?.shape).toBe('square');
+    expect(findSavedView('verification-recommended')!.status).toBe('verification');
   });
 
   it('ignores AI assistance, which is information rather than a queue', () => {

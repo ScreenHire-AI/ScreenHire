@@ -11,8 +11,8 @@ export const typeScale = ['page-title', 'panel-title', 'heading', 'body', 'readi
 /** The named radii in @screenhire/ui beyond Tailwind's own (`rounded-panel`, `rounded-step`), for the same reason. */
 export const radii = ['panel', 'step'];
 
-/** The section 6 shadows in @screenhire/ui (`shadow-raised`, `shadow-overlay`), for the same reason. */
-export const shadows = ['raised', 'overlay'];
+/** The section 6 shadows in @screenhire/ui (`shadow-surface`, `shadow-raised`, `shadow-overlay`), for the same reason. */
+export const shadows = ['surface', 'raised', 'overlay'];
 
 const twMergeConfig = { extend: { theme: { text: typeScale, radius: radii, shadow: shadows } } };
 const twMerge = extendTailwindMerge(twMergeConfig);

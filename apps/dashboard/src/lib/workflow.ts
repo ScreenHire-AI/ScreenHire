@@ -287,13 +287,13 @@ export const operatorsFor = (type: FactType): ConditionOperator[] => operatorsBy
 export const authenticityLevels = [
   { value: 'NoConcerns', label: 'No concerns' },
   { value: 'ReviewSuggested', label: 'Review suggested' },
-  { value: 'VerificationRecommended', label: 'Verification recommended' },
+  { value: 'VerificationRecommended', label: 'Verification suggested' },
 ];
 
 export const aiAssistanceLevels = [
-  { value: 'NotIndicated', label: 'Not indicated' },
-  { value: 'SomeIndicators', label: 'Some indicators' },
-  { value: 'StrongIndicators', label: 'Strong indicators' },
+  { value: 'NotIndicated', label: 'No signs of AI help' },
+  { value: 'SomeIndicators', label: 'Some signs of AI help' },
+  { value: 'StrongIndicators', label: 'Strong signs of AI help' },
 ];
 
 const answerType: Record<QuestionType, FactType> = {

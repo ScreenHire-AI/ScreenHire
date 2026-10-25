@@ -33,7 +33,7 @@
         {/snippet}
       </HeaderBand>
     {:else if example === 'band-with-tabs'}
-      <HeaderBand title="Senior product designer" wide>
+      <HeaderBand title="Senior product designer">
         {#snippet tabs()}
           <Tabs.Root value="pipeline">
             <Tabs.List>

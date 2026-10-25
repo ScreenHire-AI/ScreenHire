@@ -103,7 +103,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName, Exact = true })).ToBeVisibleAsync();
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = bot.FullName, Exact = true })).ToBeVisibleAsync();
         await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
+        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the table updated in place");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "acceptance-job-with-candidates-light");
@@ -112,7 +112,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await OpenApplicationAsync(table, bot.FullName);
         var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
         var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" });
-        await Expect(authenticity).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
+        await Expect(authenticity).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_WEBDRIVER", "AUTO_SUBMIT_VELOCITY", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID" })
         {
             await Expect(authenticity.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();

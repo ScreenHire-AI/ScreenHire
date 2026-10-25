@@ -9,6 +9,7 @@
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import IconButton from '#lib/components/icon-button.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import ProblemIcon from '#lib/components/problem-icon.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -27,7 +28,6 @@
   } from '#lib/workflow.js';
   import { labelClass, rowClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
-  import ProblemMark from './problem-mark.svelte';
 
   // The default builder view (workflow-engine.md §4): the stages in order, each with the automations that fire on it,
   // and a panel for the automations that belong to no one stage. Stages reorder with buttons, not dragging (WCAG 2.5.7).
@@ -74,14 +74,14 @@
   {/if}
   {#if problems > 0}
     <p class="inline-flex items-center gap-1.5 font-semibold text-status-verify">
-      <ProblemMark />{problems} {problems === 1 ? 'problem' : 'problems'} to fix
+      <ProblemIcon class="size-3.5 self-center" />{problems} {problems === 1 ? 'problem' : 'problems'} to fix
     </p>
   {/if}
 {/snippet}
 
 <!-- 36px in a stage's row, 32px in a panel header (section 5). -->
 {#snippet automationsButton(stageId: string | null, name: string, size: 'default' | 'lg')}
-  <Button variant="outline" {size} onclick={() => onopen(stageId)}>Automations <span class="sr-only">for {name}</span></Button>
+  <Button variant="outline" {size} onclick={() => onopen(stageId)}>Edit automations <span class="sr-only">for {name}</span></Button>
 {/snippet}
 
 <div class="flex flex-wrap items-start gap-5">
@@ -142,7 +142,7 @@
               {@render automationsButton(stage.id, stage.name, 'lg')}
               <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
               {#if !isTerminal(stage.kind) || stage.scorecard}
-                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Scorecard <span class="sr-only">for {stage.name}</span></Button>
+                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Edit scorecard <span class="sr-only">for {stage.name}</span></Button>
               {/if}
             </div>
           </div>

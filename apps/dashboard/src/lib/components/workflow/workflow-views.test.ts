@@ -225,13 +225,13 @@ describe('workflow builder', () => {
       followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
     };
     const view = render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'editor' } } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Automations for Phone screen' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Edit automations for Phone screen' }));
     let sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
     expect(within(sheet).queryByRole('option', { name: 'Send a questionnaire' })).toBeNull();
     view.unmount();
 
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: followUp, errors: [], mode: 'editor' } } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Automations for Phone screen' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Edit automations for Phone screen' }));
     sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
     const action = within(sheet).getByRole('combobox', { name: 'Action 1' });
     await fireEvent.change(action, { target: { value: 'SendQuestionnaire' } });
@@ -247,7 +247,7 @@ describe('workflow builder', () => {
   // A passed time limit measures the team's delay, so the form offers only reminders for it (workflow-engine.md section 8).
   it("offers a stage's time limit as a trigger, on stages that have one, with only the reminder actions", async () => {
     renderViews('editor');
-    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Automations for Phone screen' }));
+    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Edit automations for Phone screen' }));
     const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
     const options = (select: HTMLElement) => within(select).getAllByRole('option').map((option) => option.textContent?.trim());
 
@@ -264,8 +264,8 @@ describe('workflow builder', () => {
     const { container } = renderViews('editor');
     const stages = screen.getByRole('region', { name: 'Stages' });
 
-    expect(within(stages).queryByRole('button', { name: 'Scorecard for Hired' })).toBeNull();
-    await fireEvent.click(within(stages).getByRole('button', { name: 'Scorecard for Phone screen' }));
+    expect(within(stages).queryByRole('button', { name: 'Edit scorecard for Hired' })).toBeNull();
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Edit scorecard for Phone screen' }));
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
     expect(sheet).toHaveTextContent('never personality, emotion or honesty.');
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Add scorecard' }));
@@ -316,7 +316,7 @@ describe('workflow graph in the builder', () => {
 
     const node = within(graph()).getByRole('group', { name: 'Then, action 1: Add the tag "screened", Tag screened, 1 problem to fix' });
     expect(node).toHaveTextContent('Give the tag a name.');
-    expect(node.querySelector('[data-shape="square"]')).not.toBeNull();
+    expect(node.querySelector('[data-problem-icon]')).not.toBeNull();
   });
 
   it('removes an automation from its trigger node and moves the focus to its stage', async () => {

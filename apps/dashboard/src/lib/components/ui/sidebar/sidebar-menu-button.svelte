@@ -6,7 +6,7 @@
 		variants: {
 			variant: {
 				default: "hover:bg-secondary",
-				outline: "bg-background hover:bg-secondary shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-border)]",
+				outline: "bg-background hover:bg-secondary ring-1 ring-sidebar-border",
 			},
 			size: {
 				default: "h-8 text-body pointer-coarse:h-11",

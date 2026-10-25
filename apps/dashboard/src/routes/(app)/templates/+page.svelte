@@ -101,10 +101,9 @@
     count={templates.isSuccess ? list.length : undefined}
     countLabel={list.length === 1 ? 'template' : 'templates'}
     actions={sidebar.isMobile ? undefined : newTemplate}
-    wide
   />
 
-  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6 2xl:max-w-page-wide">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     {#if templates.isError}
       <Panel title="All templates"><QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} inset /></Panel>
     {:else}

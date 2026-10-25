@@ -9,7 +9,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -144,10 +144,10 @@
       </div>
     {/if}
   {:else if detail.status === 'Pending' || (!detail.authenticity && !detail.aiAssistance)}
-    <p class="flex items-center gap-2 px-4.5 py-4 text-muted-foreground max-md:px-4">
-      <StatusMark shape="ring" tone="neutral" />
-      Checks are still running. This panel updates on its own when they finish.
-    </p>
+    <div class="flex flex-wrap items-center gap-2 px-4.5 py-4 text-muted-foreground max-md:px-4">
+      <StatusBadge status="working" label="Checks pending" />
+      <p>Checks are still running. This panel updates on its own when they finish.</p>
+    </div>
   {:else}
     <div class="flex flex-col divide-y divide-border-subtle">
       {#if detail.authenticity}{@render assessment('authenticity', detail.authenticity, authenticityLevels[detail.authenticity.level])}{/if}

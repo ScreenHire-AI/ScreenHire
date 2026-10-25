@@ -259,7 +259,7 @@
   {#if application.isError}
     {#if notFound}
       <HeaderBand title="Application not found" />
-      <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
+      <div class="@container w-full px-4 py-5 md:px-6">
         <Panel title="Details">
           <Empty.Root>
             <Empty.Header>
@@ -271,20 +271,20 @@
       </div>
     {:else}
       <HeaderBand title="Application" />
-      <div class="@container mx-auto w-full max-w-page px-4 py-5 md:px-6">
+      <div class="@container w-full px-4 py-5 md:px-6">
         <Panel title="Could not load the application"><QueryError message={describeError(application.error, 'Could not load this application')} onretry={() => application.refetch()} inset /></Panel>
       </div>
     {/if}
   {:else if !detail}
     <div aria-hidden="true" class="@container border-b border-border bg-card">
-      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
+      <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
         <Skeleton class="h-8 w-64 max-w-full" />
         <Skeleton class="h-4 w-80 max-w-full" />
         <Skeleton class="h-10 w-96 max-w-full" />
       </div>
     </div>
-    <div aria-hidden="true" class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
-      <Skeleton class="h-48 rounded-panel lg:basis-side" />
+    <div aria-hidden="true" class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
+      <Skeleton class="h-48 rounded-panel lg:basis-rail" />
       <Skeleton class="h-96 flex-1 rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the application…</p>
@@ -305,7 +305,7 @@
       {/snippet}
     </HeaderBand>
 
-    <div class="@container mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
+    <div class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
       <!-- A move that worked shows in the Stage fact and in Activity, so only screen readers hear it. A failure shows in the
            header band, beside Move to stage. -->
       <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
@@ -313,7 +313,7 @@
 
       <!-- Integrity comes first in the page's order, so one column (tablet and phone) starts with it. From lg it sits at the
            top of the side column, and the main column spans both of the side column's rows. -->
-      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-side)] lg:grid-rows-[auto_1fr] lg:items-start">
+      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-rail)] lg:grid-rows-[auto_1fr] lg:items-start">
         <div class="min-w-0 lg:col-start-2 lg:row-start-1">
           <IntegrityPanel applicationId={detail.id} />
         </div>

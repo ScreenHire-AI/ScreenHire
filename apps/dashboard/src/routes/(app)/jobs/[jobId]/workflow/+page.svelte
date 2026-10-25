@@ -119,7 +119,7 @@
 
   const changeWords: Record<WorkflowChangeKind, string> = { Added: 'Added', Removed: 'Removed', Changed: 'Changed' };
   const notFound = $derived(job.error instanceof ApiError && job.error.status === 404);
-  const workArea = 'mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6';
+  const workArea = 'flex w-full flex-col gap-5 px-4 py-6 md:px-6';
 </script>
 
 <svelte:head>
@@ -151,7 +151,7 @@
   {:else if !detail || !draft.workflow}
     <div aria-hidden="true">
       <div class="border-b border-border bg-card">
-        <div class="mx-auto flex max-w-page flex-col gap-4 px-4 pt-5 md:px-6">
+        <div class="flex flex-col gap-4 px-4 pt-5 md:px-6">
           <Skeleton class="h-9 w-80 max-w-full" />
           <Skeleton class="h-8 w-96 max-w-full" />
         </div>

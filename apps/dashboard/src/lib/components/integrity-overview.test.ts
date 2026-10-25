@@ -25,7 +25,7 @@ describe('integrity overview', () => {
 
     const panel = screen.getByRole('region', { name: 'Authenticity' });
     expect(within(panel).getByRole('heading', { level: 2 }).parentElement).toHaveTextContent('Authenticity 5');
-    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification recommended 1', 'Checks pending 1']);
+    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification suggested 1', 'Checks pending 1']);
     expect(screen.getByText('1 dismissed after review')).toBeInTheDocument();
     const bar = container.querySelector('[data-bar]')!.parentElement!;
     expect(bar).toHaveAttribute('aria-hidden', 'true');
@@ -53,6 +53,6 @@ describe('integrity overview', () => {
   it('leaves out the pending entry once every application is assessed', () => {
     render(Harness, { props: { applications: rows.slice(0, 4) } });
 
-    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification recommended 1']);
+    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification suggested 1']);
   });
 });

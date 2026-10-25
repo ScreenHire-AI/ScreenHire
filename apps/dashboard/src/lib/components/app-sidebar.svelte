@@ -8,7 +8,7 @@
   import Hint from '#lib/components/hint.svelte';
   import LiveIndicator, { liveStatus } from '#lib/components/live-indicator.svelte';
   import LogoMark from '#lib/components/logo-mark.svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import StatusIcon from '#lib/components/status-icon.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
@@ -157,11 +157,9 @@
               >
                 {#snippet child({ props })}
                   <a href={`/candidates?view=${view.id}`} {...props}>
-                    {#if view.mark}
-                      <!-- An integrity status's mark (I2), in the box an icon takes, so the labels line up. -->
-                      <span class="grid size-4 shrink-0 place-items-center group-data-[collapsible=icon]:size-5">
-                        <StatusMark shape={view.mark.shape} tone={view.mark.tone} class="size-2.5" />
-                      </span>
+                    {#if view.status}
+                      <!-- A status view shows that status's icon, in its colour (section 22); other views an ordinary icon. -->
+                      <StatusIcon status={view.status} class="size-4 group-data-[collapsible=icon]:size-5" />
                     {:else}
                       {@const Icon = view.icon}
                       <Icon aria-hidden="true" />

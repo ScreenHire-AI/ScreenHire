@@ -57,9 +57,9 @@ describe('webhooks page', () => {
       endpoint('e3', { enabled: false, disabledReason: 'Ten deliveries in a row failed.' }),
     ]);
 
-    await screen.findAllByText('On');
+    await screen.findAllByText('Delivering');
     expect(screen.getAllByText('Off').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Off after failures').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Turned off').length).toBeGreaterThan(0);
   });
 
   it('offers to add the first endpoint when there are none', async () => {

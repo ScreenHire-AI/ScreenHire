@@ -79,8 +79,8 @@ describe('candidate table', () => {
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
     expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'AI assistance', 'Stage', 'Source', 'Applied']);
-    expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification recommended, 2 reasons')).toBeInTheDocument();
-    expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some indicators, 1 reason')).toBeInTheDocument();
+    expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification suggested, 2 reasons')).toBeInTheDocument();
+    expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some signs of AI help, 1 reason')).toBeInTheDocument();
     expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();
     expect(header()).not.toHaveAttribute('aria-sort');
 

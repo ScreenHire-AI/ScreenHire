@@ -13,7 +13,6 @@
     actions,
     facts,
     tabs,
-    wide = false,
     form = false,
     level = 1,
     heading = $bindable(),
@@ -33,8 +32,6 @@
     facts?: Snippet;
     /** Tabs on the band's bottom edge. */
     tabs?: Snippet;
-    /** A list page's wider content at 2xl (S6). */
-    wide?: boolean;
     /** A form page's band, its title in line with the 688px column (section 7). */
     form?: boolean;
     /** The title's heading level: 1, the page's one h1, except for a demo of the band inside a panel. */
@@ -45,7 +42,8 @@
 </script>
 
 <div data-slot="header-band" class="@container border-b border-border bg-card">
-  <div class={['mx-auto flex w-full flex-col gap-4 px-4 pt-5 md:px-6', form ? 'max-w-form' : 'max-w-page', wide && '2xl:max-w-page-wide', !tabs && 'pb-5']}>
+  <!-- The band fills the window, as the page does (S6); on a form page its contents line up with the 688px column. -->
+  <div class={['flex w-full flex-col gap-4 px-4 pt-5 md:px-6', form && 'mx-auto max-w-form', !tabs && 'pb-5']}>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
       <div class="flex min-w-0 flex-[1_1_16rem] flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">

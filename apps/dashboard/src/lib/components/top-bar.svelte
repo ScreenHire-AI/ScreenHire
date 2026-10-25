@@ -35,7 +35,7 @@
 <header class="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-4 md:px-5">
   {#if sidebar.isMobile}
     {#if up?.href}
-      <Button href={up.href} variant="ghost" size="lg" aria-label={`Back to ${up.label}`} class="-ml-2">
+      <Button href={up.href} variant="outline" size="lg" aria-label={`Back to ${up.label}`}>
         <ArrowLeftIcon aria-hidden="true" />
         Back
       </Button>

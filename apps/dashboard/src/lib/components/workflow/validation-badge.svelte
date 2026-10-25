@@ -16,8 +16,8 @@
 
 <section aria-label="Validation" aria-live="polite" aria-busy={checking} class="flex">
   {#if errors.length === 0}
-    <StatusBadge status="clear" label="No problems found" />
+    <StatusBadge status="done" label="No problems found" />
   {:else}
-    <StatusBadge status="verify" label={editable ? `${problems} to fix` : problems} />
+    <StatusBadge status="needsFixes" label={editable ? `${problems} to fix` : problems} />
   {/if}
 </section>

@@ -111,7 +111,7 @@
             <li
               data-card-id={card.id}
               aria-label={`${card.candidateName}, ${column.stage.name}`}
-              class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 outline-offset-2"
+              class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface outline-offset-2"
               onkeydown={(event) => onkeydown(card, event)}
             >
               <span class="flex min-w-0 items-center gap-2">

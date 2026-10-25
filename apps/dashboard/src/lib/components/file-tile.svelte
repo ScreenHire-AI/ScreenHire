@@ -4,7 +4,7 @@
   import FileImageIcon from '@lucide/svelte/icons/file-image';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
   import type { Snippet } from 'svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -28,7 +28,7 @@
     {@render facts?.()}
     <Badge variant="muted" class="tabular-nums">{fileSize(file.sizeBytes)}</Badge>
     {#if attention}
-      <Badge variant={attention.tone}><StatusMark shape={attention.shape} tone={attention.tone} />{attention.label}</Badge>
+      <StatusBadge status={attention.status} label={attention.label} />
     {:else}
       <!-- A full navigation, not the client router: the API redirects to a short-lived link that downloads the file. -->
       <Button variant="outline" size="lg" href={getDownloadApplicationFileUrl(applicationId, file.id)} data-sveltekit-reload aria-label={`Download ${file.fileName}`} class="pointer-coarse:h-11">

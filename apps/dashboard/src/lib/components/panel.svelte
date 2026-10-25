@@ -40,7 +40,7 @@
 <section
   aria-labelledby={title || label ? id : undefined}
   data-slot="panel"
-  class={cn('flex min-w-0 flex-col rounded-panel border border-border bg-card', className)}
+  class={cn('flex min-w-0 flex-col rounded-panel border border-border bg-card shadow-surface', className)}
   {...restProps}
 >
   <!-- The header height follows the screen size (section 5), not the panel's width, so panels in a row line up. -->

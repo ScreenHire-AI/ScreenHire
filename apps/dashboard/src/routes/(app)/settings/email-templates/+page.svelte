@@ -42,7 +42,7 @@
     actions={sidebar.isMobile ? undefined : addButton}
   />
 
-  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     {#if templates.isError}
       <Panel title="Templates">
         <QueryError message={describeError(templates.error, 'Could not load the templates')} onretry={() => templates.refetch()} inset />

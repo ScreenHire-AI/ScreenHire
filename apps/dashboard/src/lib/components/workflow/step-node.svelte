@@ -16,10 +16,10 @@
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
   import IconButton from '#lib/components/icon-button.svelte';
+  import ProblemIcon from '#lib/components/problem-icon.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { NODE_WIDTH, type StepNode } from '#lib/workflow-graph.js';
-  import ProblemMark from './problem-mark.svelte';
 
   // One node of the workflow graph, itself a tab stop (the graph moves between nodes with the arrow keys). Its buttons
   // are the graph's keyboard and pointer path to editing: a lane or stage adds an automation, an automation's nodes open
@@ -41,7 +41,7 @@
 <div
   style:width="{NODE_WIDTH}px"
   class={[
-    'flex flex-col gap-1 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground',
+    'flex flex-col gap-1 rounded-lg border bg-card px-2.5 py-2 text-left text-caption text-card-foreground shadow-surface',
     data.kind === 'stage' || data.kind === 'lane' ? 'border-foreground/40' : 'border-border',
     data.problems.length > 0 ? 'border-status-verify-mark' : '',
     // An automation that is off keeps full-contrast text (X1): a dashed edge and ", off" in its label say so.
@@ -53,7 +53,7 @@
   {#if data.detail}<TruncatedText text={data.detail} tabindex={-1} class="text-muted-foreground" />{/if}
   {#if data.problems.length > 0}
     <span class="flex min-w-0 items-baseline gap-1.5 font-semibold text-status-verify">
-      <ProblemMark /><TruncatedText text={data.problems.join(' ')} lines={2} tabindex={-1} class="flex-1" />
+      <ProblemIcon class="size-3.5 self-center" /><TruncatedText text={data.problems.join(' ')} lines={2} tabindex={-1} class="flex-1" />
     </span>
   {/if}
   {#if actions}

@@ -40,6 +40,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { needsAttention } from '#lib/status.js';
   import { deliveryStatus, endpointStatus } from '#lib/webhooks.js';
   import type { PageProps } from './$types';
 
@@ -135,7 +136,7 @@
 <main class={['flex flex-col', sidebar.isMobile && detail && !detail.enabled && 'pb-28']}>
   {#if endpoint.isError && !detail}
     <HeaderBand title={notFound ? 'Endpoint not found' : 'Endpoint'} />
-    <div class="mx-auto w-full max-w-page px-4 py-6 md:px-6">
+    <div class="w-full px-4 py-6 md:px-6">
       <Panel title={notFound ? 'Endpoint not found' : 'Could not load the endpoint'}>
         {#if notFound}
           <Empty.Root>
@@ -153,14 +154,14 @@
     </div>
   {:else if !detail}
     <div aria-hidden="true" class="border-b border-border bg-card">
-      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
+      <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
         <Skeleton class="h-9 w-full max-w-80" />
         <Skeleton class="h-10 w-full max-w-120" />
       </div>
     </div>
-    <div aria-hidden="true" class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6 lg:flex-row">
+    <div aria-hidden="true" class="flex w-full flex-col gap-5 px-4 py-6 md:px-6 lg:flex-row">
       <Skeleton class="h-80 min-w-0 flex-1 rounded-panel" />
-      <Skeleton class="h-48 rounded-panel lg:basis-side" />
+      <Skeleton class="h-48 rounded-panel lg:basis-rail" />
     </div>
     <p class="sr-only" role="status">Loading the endpoint…</p>
   {:else}
@@ -193,12 +194,12 @@
       {/snippet}
     </HeaderBand>
 
-    <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+    <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
       <p role="status" class="sr-only">{announcement}</p>
 
       <!-- Why it is off comes first in the page's order, so one column starts with it. From lg it sits at the top of the
            side column, and the main column spans both of the side column's rows (section 7). -->
-      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-side)] lg:grid-rows-[auto_1fr] lg:items-start">
+      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-rail)] lg:grid-rows-[auto_1fr] lg:items-start">
         {#if detail.disabledReason}
           <div class="min-w-0 lg:col-start-2 lg:row-start-1">
             <Panel title="Why it is off">
@@ -307,7 +308,7 @@
 <!-- Calm deliveries are quiet in the log; one that is still being tried or gave up is filled (T3). -->
 {#snippet deliveryBadge(delivery: WebhookDeliveryEntry)}
   {@const status = deliveryStatus[delivery.status]}
-  <StatusBadge status={status.status} label={status.label} quiet={status.status === 'clear' || status.status === 'neutral'} />
+  <StatusBadge status={status.status} label={status.label} quiet={!needsAttention(status.status)} />
 {/snippet}
 
 <!-- The API refuses a replay while the event is still being tried, or while the endpoint is off. -->

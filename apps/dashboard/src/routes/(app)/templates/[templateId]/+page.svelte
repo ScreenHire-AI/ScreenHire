@@ -143,7 +143,7 @@
   }
 
   const notFound = $derived(template.error instanceof ApiError && template.error.status === 404);
-  const workArea = 'mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6';
+  const workArea = 'flex w-full flex-col gap-5 px-4 py-6 md:px-6';
 </script>
 
 <svelte:head>
@@ -178,7 +178,7 @@
     {:else}
       <div aria-hidden="true">
         <div class="border-b border-border bg-card">
-          <div class="mx-auto flex max-w-page flex-col gap-4 px-4 pt-5 md:px-6">
+          <div class="flex flex-col gap-4 px-4 pt-5 md:px-6">
             <Skeleton class="h-9 w-80 max-w-full" />
             <Skeleton class="h-8 w-96 max-w-full" />
           </div>
@@ -216,7 +216,7 @@
     <Tabs.Root bind:value={tab}>
       <HeaderBand title={detail.name}>
         {#snippet status()}
-          {#if current.status === 'Draft'}<StatusBadge status="neutral" label="Draft" />{/if}
+          {#if current.status === 'Draft'}<StatusBadge status="draft" label="Draft" />{/if}
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
           <span class="flex flex-wrap gap-1.5">
             <Badge variant="muted" class="tabular-nums">Version {current.version}</Badge>

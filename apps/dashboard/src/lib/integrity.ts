@@ -9,39 +9,37 @@ import type {
   StageKind,
 } from '@screenhire/api-client';
 import type { QueryClient } from '@tanstack/svelte-query';
-import type { BadgeVariant } from '#lib/components/ui/badge/index.js';
-import type { MarkShape, MarkTone } from '#lib/distribution.js';
 import { invalidatePath } from '#lib/query.js';
 import { applicationsPath, jobsPath } from '#lib/realtime.js';
+import type { StatusName } from '#lib/status.js';
 
 /**
  * How the dashboard shows one integrity level (docs/architecture/integrity-engine.md, design-system section 3.2):
- * always a shape mark, a colour and words. Levels are categories, never scores (ADR-0004); `rank` only orders them.
+ * always its status icon, a colour and words. Levels are categories, never scores (ADR-0004); `rank` only orders them.
  */
 export interface LevelView {
-  /** The level in words: "Review suggested". */
+  /** The level in words, always in full (section 16): "Verification suggested", "Some signs of AI help". */
   label: string;
-  /** The table's short form: "Review". */
+  /** The words in a table's cell, where the column header names the assessment: "Some signs". */
   short: string;
-  shape: MarkShape;
-  tone: MarkTone;
-  variant: BadgeVariant;
+  /** The status the level shows as: its icon and colour (section 3.2). */
+  status: StatusName;
   /** 0 for the lowest level; sorting puts the highest first. */
   rank: number;
 }
 
 export const authenticityLevels: Record<AuthenticityLevel, LevelView> = {
-  NoConcerns: { label: 'No concerns', short: 'No concerns', shape: 'circle', tone: 'clear', variant: 'clear', rank: 0 },
-  ReviewSuggested: { label: 'Review suggested', short: 'Review', shape: 'diamond', tone: 'review', variant: 'review', rank: 1 },
-  VerificationRecommended: { label: 'Verification recommended', short: 'Verify', shape: 'square', tone: 'verify', variant: 'verify', rank: 2 },
+  NoConcerns: { label: 'No concerns', short: 'No concerns', status: 'done', rank: 0 },
+  ReviewSuggested: { label: 'Review suggested', short: 'Review suggested', status: 'review', rank: 1 },
+  VerificationRecommended: { label: 'Verification suggested', short: 'Verification suggested', status: 'verification', rank: 2 },
 };
 
-// AI assistance is information, not a status, so its chips share one colour and the ring mark, and the words carry the
-// level. "Not indicated" is quiet, so a column of them does not draw the eye.
+// AI assistance is information, not a status, so every level takes the AI colour and the sparkles icon, and the words
+// carry the level. In a table "No signs" is quiet, so a column of them does not draw the eye.
 export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
-  NotIndicated: { label: 'Not indicated', short: 'None', shape: 'ring', tone: 'neutral', variant: 'neutral', rank: 0 },
-  SomeIndicators: { label: 'Some indicators', short: 'Some', shape: 'ring', tone: 'ai', variant: 'ai', rank: 1 },
-  StrongIndicators: { label: 'Strong indicators', short: 'Strong', shape: 'ring', tone: 'ai', variant: 'ai', rank: 2 },
+  NotIndicated: { label: 'No signs of AI help', short: 'No signs', status: 'ai', rank: 0 },
+  SomeIndicators: { label: 'Some signs of AI help', short: 'Some signs', status: 'ai', rank: 1 },
+  StrongIndicators: { label: 'Strong signs of AI help', short: 'Strong signs', status: 'ai', rank: 2 },
 };
 
 /** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
@@ -49,7 +47,7 @@ export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'Verification
 export const aiAssistanceOrder = ['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const satisfies readonly AiAssistanceLevel[];
 
 /** An application whose checks have not finished: the API sends no integrity summary yet. */
-export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Pending', shape: 'ring', tone: 'neutral', variant: 'neutral', rank: -1 };
+export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Checks pending', status: 'working', rank: -1 };
 
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
 

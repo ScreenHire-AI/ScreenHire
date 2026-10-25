@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { ApplicationSummary, AuthenticityLevel } from '@screenhire/api-client';
   import Panel from '#lib/components/panel.svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { authenticityLevels, authenticityOrder, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
@@ -44,7 +43,6 @@
       <div role="group" aria-label="Authenticity levels" class="grid justify-items-start gap-1 @lg:flex @lg:w-max">
         {#each entries as entry (entry.id)}
           <Toggle size="lg" bind:pressed={() => filter.authenticity === entry.id, () => toggle(entry.id)}>
-            <StatusMark shape={entry.view.shape} tone={entry.view.tone} />
             {entry.view.label}
             <Badge variant="count">{entry.count}</Badge>
           </Toggle>

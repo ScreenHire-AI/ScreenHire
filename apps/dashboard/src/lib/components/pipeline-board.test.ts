@@ -77,7 +77,7 @@ describe('pipeline board', () => {
     await screen.findByRole('list', { name: 'Applied stage' });
     const badge = within(card('Casey Morgan')).getByText('Overdue by 2 days');
     expect(badge).toHaveAttribute('data-status', 'review');
-    expect(badge.querySelector('[data-shape="diamond"]')).not.toBeNull();
+    expect(badge.querySelector('[data-status-icon="clock-alert"]')).not.toBeNull();
     expect(card('Casey Morgan').querySelector('[data-status]')).toBe(badge);
     expect(card('Jordan Lee')).not.toHaveTextContent('Overdue');
     expect(card('Sam Taylor')).not.toHaveTextContent('Overdue');
