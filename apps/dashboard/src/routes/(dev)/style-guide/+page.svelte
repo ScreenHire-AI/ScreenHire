@@ -938,12 +938,12 @@
         </div>
       </div>
 
-      <Panel title="Settings menu" flush>
-        <!-- As on Team: the menu on the left from lg, one row above the content below it; the page's panels go beside it. -->
+      <!-- The menu as a settings page holds it: on the page under the header band, never inside a panel (S4). -->
+      <section aria-label="Settings menu">
         <SettingsMenu current="/settings/team">
-          <p class="text-muted-foreground">The settings page's panels sit here, beside the menu.</p>
+          <Panel title="Members"><p>A settings page's panels sit here, beside the menu.</p></Panel>
         </SettingsMenu>
-      </Panel>
+      </section>
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Edit / Preview switch" class="flex-[999_1_520px]">

@@ -29,10 +29,34 @@ describe('settings menu', () => {
     await expectNoAxeViolations();
   });
 
-  it("marks a record's page under its entry: a webhook endpoint is under Webhooks", () => {
-    render(SettingsMenu, { props: { children: content, current: '/settings/webhooks/e1/edit' } });
+  it('scrolls the row, which may hide the current entry past its edge, to centre it', () => {
+    // jsdom does no layout: entries 100px wide side by side in a 200px row.
+    const offsetLeft = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetLeft')!;
+    const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!;
+    const clientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+    Object.defineProperty(HTMLElement.prototype, 'offsetLeft', {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.tagName === 'LI' ? [...this.parentElement!.children].indexOf(this) * 100 : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 100 });
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 200 });
+    // jsdom keeps no scroll position, so record what the row is asked to scroll to.
+    const scrollLeft = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollLeft')!;
+    const scrolledTo: number[] = [];
+    Object.defineProperty(Element.prototype, 'scrollLeft', { configurable: true, get: () => 0, set: (value: number) => scrolledTo.push(value) });
+    try {
+      render(SettingsMenu, { props: { children: content, current: '/settings/webhooks' } });
 
-    const current = screen.getAllByRole('link').filter((link) => link.getAttribute('aria-current') === 'page');
-    expect(current.map((link) => link.textContent?.trim())).toEqual(['Webhooks']);
+      // Webhooks is the seventh entry, at 600px: the row scrolls to 550 so it sits in the middle.
+      expect(scrolledTo).toEqual([550]);
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);
+      if (clientWidth) Object.defineProperty(HTMLElement.prototype, 'clientWidth', clientWidth);
+      else delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+      Object.defineProperty(Element.prototype, 'scrollLeft', scrollLeft);
+    }
   });
 });

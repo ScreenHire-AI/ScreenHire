@@ -470,7 +470,7 @@
       <div class="flex flex-col gap-2">
         <div class="mb-1 flex items-baseline justify-between gap-3">
           <span id="invite-role-label" class="text-body font-medium">Role</span>
-          <a href="/settings/roles" class="text-caption">Compare roles</a>
+          <a href="/settings/roles" class="text-caption pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">Compare roles</a>
         </div>
         <div role="radiogroup" aria-labelledby="invite-role-label" class="flex flex-col gap-2">
           {#each offered as role (role)}

@@ -25,9 +25,6 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Email templates', href: '/settings/email-templates', icon: MailIcon },
 ];
 
-/** The Settings menu entry a path belongs to, if any: a webhook endpoint's page belongs to Webhooks. */
-export const settingsSectionFor = (pathname: string) =>
-  settingsSections.find((section) => pathname === section.href || pathname.startsWith(`${section.href}/`));
 
 /** Whether the role manages the organization's settings: the API's `RequireOrganizationAdmin`. */
 export const isAdministrator = (role: OrganizationRole | null | undefined): boolean => role === 'Owner' || role === 'Admin';

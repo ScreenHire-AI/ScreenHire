@@ -13,7 +13,7 @@
 
   // What each built-in role can do (design system section 22): the permission catalogue the API serves
   // (RolePermissions.cs), never copy typed into the page. A fixed grid in the catalogue's order, which does not sort
-  // (L2). Phones get a list item per permission, naming the roles that have it.
+  // (L2). A narrow panel gets a list item per permission instead, naming the roles that have it.
   const catalogue = createListRoles();
 
   const roles = $derived<RoleSummary[]>(catalogue.data?.data.roles ?? []);
@@ -56,7 +56,9 @@
           </div>
           <p class="sr-only" role="status">Loading the roles…</p>
         {:else}
-          <div class="md:hidden">
+          <!-- The grid needs about 42rem; a narrower panel, on a phone or beside the rail, lists each permission instead (F2). -->
+          <div class="@container">
+          <div class="@2xl:hidden">
             {#each groups as [group, permissions] (group)}
               <h3 class="border-b border-border-subtle bg-muted px-4 py-2.5 text-caption font-semibold">{group}</h3>
               <ul>
@@ -72,14 +74,14 @@
               </ul>
             {/each}
           </div>
-          <div class="overflow-x-auto max-md:hidden">
+          <div class="hidden overflow-x-auto @2xl:block">
             <table class="w-full border-collapse text-left">
               <thead class="bg-muted">
                 <tr>
                   <th scope="col" class="h-11 border-b border-border px-4.5 text-caption font-semibold text-muted-foreground">Permission</th>
                   <th scope="col" class="h-11 border-b border-border px-3 text-caption font-semibold text-muted-foreground">Covers</th>
                   {#each roles as role (role.role)}
-                    <th scope="col" class="h-11 w-28 border-b border-border px-3 text-center text-caption font-semibold text-muted-foreground">{role.role}</th>
+                    <th scope="col" class="h-11 min-w-24 border-b border-border px-3 text-center text-caption font-semibold text-muted-foreground">{role.role}</th>
                   {/each}
                 </tr>
               </thead>
@@ -102,6 +104,7 @@
                 </tbody>
               {/each}
             </table>
+          </div>
           </div>
         {/if}
       </Panel>
