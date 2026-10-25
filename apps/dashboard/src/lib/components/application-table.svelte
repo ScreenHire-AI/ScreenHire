@@ -280,7 +280,7 @@
 {/snippet}
 
 {#snippet moveCell(application: ApplicationSummary)}
-  {#if stages && moves}
+  {#if stages && moves?.allowed}
     <MoveToStage
       compact
       candidateName={application.candidateName}
@@ -318,7 +318,7 @@
       {#if ai && ai.level.rank > 0}
         <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
       {/if}
-      {#if stages && moves}
+      {#if stages && moves?.allowed}
         <span class="relative ml-auto">{@render moveCell(application)}</span>
       {/if}
     {/snippet}

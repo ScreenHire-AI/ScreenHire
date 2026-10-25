@@ -47,6 +47,8 @@ describe('roles page', () => {
     expect(screen.queryByText(/Custom/)).not.toBeInTheDocument();
     expect(within(rows[0]!).getByText('By ScreenHire')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Compare roles' })).toHaveAttribute('href', '/settings/roles/compare');
+    // In its natural order, by access, with no column marked sorted until someone sorts (L2).
+    expect(within(table).getAllByRole('columnheader').filter((header) => (header.getAttribute('aria-sort') ?? 'none') !== 'none')).toEqual([]);
     await expectNoAxeViolations();
   });
 
@@ -62,7 +64,7 @@ describe('roles page', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'New role' }));
     const sheet = await screen.findByRole('dialog', { name: 'New role' });
-    const sources = within(within(sheet).getByRole('radiogroup', { name: 'Copy permissions from' })).getAllByRole('radio');
+    const sources = within(within(sheet).getByRole('radiogroup', { name: 'Copy from' })).getAllByRole('radio');
     expect(sources.map((radio) => radio.getAttribute('value'))).toEqual(['admin', 'recruiter', 'viewer', interviewerRoleId]);
     expect(within(sheet).getByRole('radio', { name: /^Viewer/ })).toBeChecked();
 

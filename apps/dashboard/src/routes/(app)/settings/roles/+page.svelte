@@ -59,7 +59,8 @@
     { id: 'people', header: 'People', accessorFn: (role) => role.people, sortFn: 'basic', sortDescFirst: true },
     { id: 'updated', header: 'Last updated', accessorFn: (role) => role.lastUpdated.at ?? '', sortFn: 'basic', sortDescFirst: true },
   ];
-  const sort = createTableSort('roles', { id: 'role', desc: false }, ['role', 'can', 'people', 'updated']);
+  // No default sort: the natural order shows with no arrow until someone sorts (L2).
+  const sort = createTableSort('roles', undefined, ['role', 'can', 'people', 'updated']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,

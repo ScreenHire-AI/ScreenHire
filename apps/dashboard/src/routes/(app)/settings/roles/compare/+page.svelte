@@ -58,9 +58,10 @@
           </div>
           <p class="sr-only" role="status">Loading the roles…</p>
         {:else}
-          <!-- The grid needs about 42rem; a narrower panel, on a phone, lists each permission instead (F2). -->
+          <!-- A phone lists each permission instead (F2). From a tablet's panel up the grid shows, scrolling inside the panel
+               with the permission column stuck to the left (section 8). -->
           <div class="@container">
-            <div class="@2xl:hidden">
+            <div class="@xl:hidden">
               {#each groups as [group, permissions] (group)}
                 <h3 class="border-b border-border-subtle bg-muted px-4 py-2.5 text-caption font-semibold">{group}</h3>
                 <ul>
@@ -76,11 +77,11 @@
                 </ul>
               {/each}
             </div>
-            <div class="hidden overflow-x-auto @2xl:block">
+            <div class="hidden overflow-x-auto @xl:block">
               <table class="w-full border-collapse text-left">
                 <thead class="bg-muted">
                   <tr>
-                    <th scope="col" class="h-11 border-b border-border px-4.5 text-caption font-semibold text-muted-foreground">Permission</th>
+                    <th scope="col" class="sticky left-0 z-10 h-11 border-b border-border bg-muted px-4.5 text-caption font-semibold text-muted-foreground">Permission</th>
                     <th scope="col" class="h-11 border-b border-border px-3 text-caption font-semibold text-muted-foreground">Covers</th>
                     {#each roles as role (roleKey(role))}
                       <th scope="col" class="h-11 max-w-32 min-w-24 border-b border-border px-3 text-center text-caption font-semibold text-muted-foreground">
@@ -98,7 +99,7 @@
                     </tr>
                     {#each permissions as permission (permission.permission)}
                       <tr class="h-12 border-b border-border-subtle">
-                        <th scope="row" class="px-4.5 font-semibold whitespace-nowrap">{permission.name}</th>
+                        <th scope="row" class="sticky left-0 z-10 bg-card px-4.5 font-semibold whitespace-nowrap">{permission.name}</th>
                         <td class="w-full max-w-0 px-3 text-muted-foreground"><TruncatedText text={permission.description} /></td>
                         {#each roles as role (roleKey(role))}
                           <td class="px-3 text-center">

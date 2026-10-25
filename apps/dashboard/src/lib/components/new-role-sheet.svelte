@@ -106,8 +106,8 @@
         <Field.Error id="new-role-name-error" errors={$errors.name?.map((message) => ({ message }))} />
       </Field.Field>
       <div class="flex flex-col gap-2">
-        <span id="new-role-from-label" class="text-body font-medium">Copy permissions from</span>
-        <div role="radiogroup" aria-labelledby="new-role-from-label" aria-describedby="new-role-from-hint" class="flex flex-col gap-2">
+        <span id="new-role-from-label" class="text-body font-medium">Copy from</span>
+        <div role="radiogroup" aria-labelledby="new-role-from-label" class="flex flex-col gap-2">
           {#each sources as role (roleKey(role))}
             <label
               class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
@@ -120,7 +120,6 @@
             </label>
           {/each}
         </div>
-        <p id="new-role-from-hint" class="text-caption text-muted-foreground">You change what it may do next, on its own page.</p>
         <Field.Error errors={$errors.from?.map((message) => ({ message }))} />
       </div>
       <FailureText message={$errors._errors?.[0]} />

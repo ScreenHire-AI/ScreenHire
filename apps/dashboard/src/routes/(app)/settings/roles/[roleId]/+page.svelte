@@ -177,7 +177,7 @@
 
 <main class="flex flex-col">
   {#if notFound || (loadError && !ready)}
-    <HeaderBand form title={notFound ? 'Role not found' : 'Role'} />
+    <HeaderBand form title="Role" />
     <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
       <Panel title={notFound ? 'Role not found' : 'Could not load the role'}>
         {#if notFound}
