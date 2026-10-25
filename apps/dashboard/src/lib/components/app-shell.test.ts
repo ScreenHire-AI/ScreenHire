@@ -12,8 +12,8 @@ const viewCounts = { 'needs-review': 2, 'verification-recommended': 1, overdue: 
 const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]');
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
-// The fixture user is an Owner, so the sidebar ends with the Settings group.
-const settings = ['Organization', 'Team', 'Careers branding', 'Integrity', 'Email templates', 'API keys', 'Webhooks'];
+// The fixture user is an Owner, so the sidebar ends with its one Settings item; the pages are in the Settings menu.
+const settings = ['Settings'];
 
 // jsdom does not navigate; the sheet closing is what these tests watch, not the page change.
 const stopNavigation = (event: MouseEvent) => event.preventDefault();
@@ -49,7 +49,8 @@ describe('app shell', () => {
     // Navigation pairs an icon with its label (I1); status icons mark the integrity and Overdue views only (I2).
     const marks = links.map((link) => link.querySelector('[data-status-icon]')?.getAttribute('data-status-icon') ?? (link.querySelector('svg') ? 'icon' : null));
     expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
-    expect(screen.getByRole('heading', { level: 2, name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/organization');
+    expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
     expect(within(links[4]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^Needs review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
@@ -190,8 +191,7 @@ describe('app shell', () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user: { ...user, organization: { ...user.organization!, role } }, viewCounts } });
 
-    expect(within(main()).queryByRole('heading', { name: 'Settings' })).toBeNull();
-    expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
+    expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
     // The four sections (My tasks included) and the six saved views.
     expect(within(main()).getAllByRole('link')).toHaveLength(10);
   });

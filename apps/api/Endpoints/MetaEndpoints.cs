@@ -1,5 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Options;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 
 namespace ScreenHire.Api.Endpoints;
@@ -24,6 +26,7 @@ internal static class MetaEndpoints
         return app;
     }
 
-    private static Ok<ApiMeta> GetMeta(IHostEnvironment environment) =>
-        TypedResults.Ok(new ApiMeta(ProductName, Version, environment.EnvironmentName));
+    private static Ok<ApiMeta> GetMeta(IHostEnvironment environment, IOptions<DomainOptions> domains) =>
+        TypedResults.Ok(new ApiMeta(
+            ProductName, Version, environment.EnvironmentName, $"{domains.Value.Scheme}://{domains.Value.ApiHost}"));
 }

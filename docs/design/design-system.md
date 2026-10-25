@@ -69,7 +69,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   Text keeps a measure: a long paragraph stops at 72 characters and a form at 688px, while short sentences, callouts
   and notices use the full width. Content elements get a max-width, never a fixed width.
 - **S7** No side column beside a table or a board: secondary things move to a tab, a sheet or the header. A detail
-  page holds its content in tabs in a fixed order, with the details rail on the right (section 7).
+  page holds its content in tabs in a fixed order, with the details rail on the right (section 7). The one exception
+  is the Settings menu, the 200px column left of a settings page's content (section 11).
 
 **Actions**
 
@@ -425,7 +426,7 @@ in a development build, shows every component in each state, and its test fails 
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
-| Sidebar | shadcn `Sidebar` | Section 8. The sections, the saved views, then Settings for owners and admins only; nobody else sees the group |
+| Sidebar | shadcn `Sidebar` | Section 8. The sections, the saved views, then one Settings item for owners and admins only, which opens Organization; nobody else sees it |
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2) |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
@@ -459,6 +460,7 @@ in a development build, shows every component in each state, and its test fails 
 | Sort header | `SortHeader` in the TanStack table header; `SortMenu` on phones; `#lib/table-sort.svelte.ts` | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header; a second click reverses. Each table opens on its default (a job's candidates on Stage, those needing attention first: overdue, the longest first, then pipeline order; candidates across jobs on Applied, newest first), and each person's sort is remembered per table in the browser (`preferences`), so it does not follow them to another browser. The Sort chip offers the same choices on a phone, above the list items |
 | Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
+| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Integrity, API keys, Webhooks, then Email templates until the Templates page takes them (section 22). A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page, or the record under it (a webhook endpoint under Webhooks), takes `accent` and `aria-current`. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
 
 ## 12. Words
 
@@ -590,7 +592,6 @@ These join section 11 one by one, each when the build adds it to the style guide
 | Email composer | `Sheet`, and the reply box on the Messages tab | Start from a template or a blank email, change this one email, insert variables such as `firstName`, preview with the candidate's own details, then Send. It lands in Activity and Messages. Replaces the Email sheet |
 | Mention | The note field | @ mentions a teammate, who gets a notification card and an email that never quotes the note |
 | Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
-| Settings menu | Our component | Settings is one sidebar item; its pages have their own menu: Organization, Team, Roles, Branding, Integrity, API keys, Webhooks |
 
 ## 22. Screens the v0.3 build changes
 
@@ -611,7 +612,8 @@ These join section 11 one by one, each when the build adds it to the style guide
   templates move to Templates.
 - **Team and Roles:** Team lists the members full width. Invite opens a sheet that describes each role, starts at
   Viewer, the least access, and links to Compare roles. Roles is its own page: the full-width table of what each role
-  can do, and a custom role starts as a copy of an existing one.
+  can do, read from the API's permission catalogue, and a custom role starts as a copy of an existing one. Each cell
+  says Yes or No in words: L1 keeps icons out of cells, and the check is a status icon (I2).
 - **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API

@@ -65,8 +65,9 @@ export const ListAutomationIssuesResponse = zod.array(ListAutomationIssuesRespon
 export const GetMetaResponse = zod.object({
   "name": zod.string(),
   "version": zod.string(),
-  "environment": zod.string()
-}).describe('What is serving this API: the product name, the build version and the hosting environment.')
+  "environment": zod.string(),
+  "apiOrigin": zod.string()
+}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\r\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.')
 
 
 export const GetSignInMethodsResponse = zod.object({

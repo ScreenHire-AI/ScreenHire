@@ -9,6 +9,7 @@
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SettingsMenu from '#lib/components/settings-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -42,7 +43,7 @@
     actions={sidebar.isMobile ? undefined : addButton}
   />
 
-  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+  <SettingsMenu>
     {#if templates.isError}
       <Panel title="Templates">
         <QueryError message={describeError(templates.error, 'Could not load the templates')} onretry={() => templates.refetch()} inset />
@@ -115,7 +116,7 @@
         {/if}
       </Panel>
     {/if}
-  </div>
+  </SettingsMenu>
 
   {#if sidebar.isMobile}
     <ActionBar>{@render addButton()}</ActionBar>

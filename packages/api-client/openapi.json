@@ -6423,7 +6423,8 @@
         "required": [
           "name",
           "version",
-          "environment"
+          "environment",
+          "apiOrigin"
         ],
         "type": "object",
         "properties": {
@@ -6435,9 +6436,12 @@
           },
           "environment": {
             "type": "string"
+          },
+          "apiOrigin": {
+            "type": "string"
           }
         },
-        "description": "What is serving this API: the product name, the build version and the hosting environment."
+        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\r\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under."
       },
       "ApplicationAnswer": {
         "required": [
