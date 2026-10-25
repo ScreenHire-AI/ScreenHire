@@ -113,6 +113,9 @@ internal static class HiringTeams
             throw;
         }
 
+        // After the save, never before: a client reconnects within a second, and one that reconnected before the commit
+        // would read the old team and keep the job's group. The save's own HiringTeamChanged may reach them first; it
+        // carries ids only.
         foreach (var member in change.Removed.Where(members.ContainsKey).Select(id => members[id]).Where(m => !m.SeesAllJobs))
         {
             connections.Close(member.UserId, organizationId);
