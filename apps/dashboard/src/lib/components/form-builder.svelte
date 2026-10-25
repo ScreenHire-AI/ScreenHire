@@ -24,6 +24,7 @@
   import { Label } from '#lib/components/ui/label/index.js';
   import { Separator } from '#lib/components/ui/separator/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import FieldErrors from '#lib/components/workflow/field-errors.svelte';
   import { insertAt, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
   import { idFrom } from '#lib/workflow.js';
@@ -148,6 +149,14 @@
     setOptions(item, [...options, { id: idFrom(label, options.map((option) => option.id), 'option'), label }]);
   }
 
+  // The question's text and help line are one line each, drawn as a textarea that grows so long text shows in full at
+  // phone width (F5). Enter adds no line break, and a pasted one becomes a space.
+  const lineClass = 'min-h-9 resize-none py-1.5 pointer-coarse:min-h-11';
+  const flatten = (value: string) => value.replace(/\s*[\r\n]+\s*/g, ' ');
+  function oneLine(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.isComposing) event.preventDefault();
+  }
+
   function onrowkeydown(event: KeyboardEvent, id: string) {
     // Escape closes the open question. The answer menu and a picked-up item take their own Escape: the menu sits in a
     // portal and a keyboard drag focuses the list item, both outside this row.
@@ -187,15 +196,17 @@
             <span class="pt-0.5">{@render grip()}</span>
             <div class="flex min-w-0 flex-1 flex-col gap-3">
               <div class="flex min-w-0 flex-wrap items-start gap-2">
-                <Input
+                <Textarea
                   data-question-text={id}
                   aria-label={`Question ${index + 1}`}
+                  rows={1}
                   value={labelOf(question)}
-                  oninput={(event) => setLabel(question, event.currentTarget.value)}
+                  onkeydown={oneLine}
+                  oninput={(event) => setLabel(question, flatten(event.currentTarget.value))}
                   maxlength={300}
                   aria-invalid={errors.length > 0 || undefined}
                   aria-describedby={errors.length > 0 ? errorsId : undefined}
-                  class="flex-[1_1_14rem] font-semibold"
+                  class={[lineClass, 'flex-[1_1_14rem] font-semibold']}
                 />
                 <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
                   {#snippet trigger(props)}
@@ -207,12 +218,15 @@
                 </AnswerMenu>
               </div>
               {#if help}
-                <Input
+                <Textarea
                   aria-label={help.label}
                   placeholder={help.label}
+                  rows={1}
                   value={help.get(question) ?? ''}
-                  oninput={(event) => help?.set(question, event.currentTarget.value || null)}
+                  onkeydown={oneLine}
+                  oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
                   maxlength={500}
+                  class={lineClass}
                 />
               {/if}
               {#if kind.options}

@@ -14,4 +14,11 @@ describe('question settings', () => {
     await fireEvent.change(types, { target: { value: '.PDF, .docx,' } });
     expect(question.acceptedFileTypes).toEqual(['.pdf', '.docx']);
   });
+
+  it('draws nothing for a choice question, so the open question keeps even gaps', () => {
+    const question = { id: 'years', type: 'SingleChoice' as const, label: 'Years in support', options: [] };
+    const { container } = render(QuestionSettings, { props: { question } });
+
+    expect(container.querySelector('div')).toBeNull();
+  });
 });

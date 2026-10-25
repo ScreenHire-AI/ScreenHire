@@ -91,6 +91,19 @@ describe('form builder', () => {
     expect(list()[2]!.label).toBe('When could you start?');
   });
 
+  it('keeps the text and help line to one line each: Enter adds no break, and a pasted one becomes a space', async () => {
+    const { list } = setup();
+    await fireEvent.click(edit(/^Edit question 2: /));
+    const row = openRow()!;
+    const text = within(row).getByRole('textbox', { name: 'Question 2' });
+
+    expect(await fireEvent.keyDown(text, { key: 'Enter' })).toBe(false);
+    await fireEvent.input(text, { target: { value: 'How many years\nin support?' } });
+    await fireEvent.input(within(row).getByRole('textbox', { name: 'Help text' }), { target: { value: 'Paid work\r\n only.' } });
+
+    expect(list()[1]).toMatchObject({ label: 'How many years in support?', helpText: 'Paid work only.' });
+  });
+
   it('closes the open question on Escape and gives its row the focus back', async () => {
     setup();
     await fireEvent.click(edit(/^Edit question 3: /));
