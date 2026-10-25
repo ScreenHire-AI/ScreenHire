@@ -59,8 +59,8 @@ public sealed class DefinitionChangesTests
     {
         var lines = DefinitionChanges.Describe(Workflow(Experience), Workflow(Experience with { Type = QuestionType.Number }));
 
-        Sentences(lines).Should().Equal("changed Years of experience from Short answer to Number");
-        lines[0].Details.Should().Equal(new ChangeDetail("Answer", "Short answer", "Number"), new ChangeDetail("Required", "off", "off"));
+        Sentences(lines).Should().Equal("changed Years of experience from Short text to Number");
+        lines[0].Details.Should().Equal(new ChangeDetail("Answer", "Short text", "Number"), new ChangeDetail("Required", "off", "off"));
     }
 
     [Fact]

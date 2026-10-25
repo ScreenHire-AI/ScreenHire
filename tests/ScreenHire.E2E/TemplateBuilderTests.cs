@@ -60,21 +60,25 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(HeaderBand).ToContainTextAsync("Draft");
         await ExpectValidationAsync("No problems found");
 
-        // A knockout question, which the candidate preview shows as the careers page would.
+        // A knockout question in the form builder, which the preview shows as the careers page would.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questionnaire" }).ClickAsync();
-        await Page.GetByLabel("New question's answer type").SelectOptionAsync(new SelectOptionValue { Label = "Yes or no" });
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Add question" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Textbox, new() { NameRegex = new Regex("^Question answers\\.") }).FillAsync(RightToWork);
-        await Page.GetByRole(AriaRole.Checkbox, new() { Name = "Knockout question" }).CheckAsync();
+        var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Screening questions", Exact = true });
+        await questions.GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Yes or no", Exact = true }).ClickAsync();
+        await questions.GetByRole(AriaRole.Textbox, new() { Name = "Question 1", Exact = true }).FillAsync(RightToWork);
+        await questions.GetByRole(AriaRole.Checkbox, new() { Name = "Knockout question" }).CheckAsync();
         await Expect(Page.GetByText("A knockout is an objective eligibility check only")).ToBeVisibleAsync();
-        var preview = Page.GetByRole(AriaRole.Region, new() { Name = "Candidate preview" });
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-questionnaire-builder-light");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Preview", Exact = true }).ClickAsync();
+        var preview = Page.Locator("[data-preview-device]");
         var previewQuestion = preview.GetByRole(AriaRole.Group, new() { Name = RightToWork });
         await Expect(previewQuestion.GetByRole(AriaRole.Radio)).ToHaveCountAsync(2);
         await previewQuestion.GetByRole(AriaRole.Radio, new() { Name = "No" }).CheckAsync();
         await Expect(previewQuestion.GetByRole(AriaRole.Radio, new() { Name = "No" })).ToBeCheckedAsync();
         await Expect(preview.GetByLabel("Resume or CV")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        await SaveScreenshotAsync(Page, "dashboard-questionnaire-builder-light");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
 
         // An automation on the integrity checks that tries to reject: the API's guardrail refuses it.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();

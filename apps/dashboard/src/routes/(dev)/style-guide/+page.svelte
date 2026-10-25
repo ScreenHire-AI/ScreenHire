@@ -3,6 +3,7 @@
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import BotIcon from '@lucide/svelte/icons/bot';
+  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import CircleXIcon from '@lucide/svelte/icons/circle-x';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -16,6 +17,7 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import PlusIcon from '@lucide/svelte/icons/plus';
+  import StarIcon from '@lucide/svelte/icons/star';
   import SunIcon from '@lucide/svelte/icons/sun';
   import TimerIcon from '@lucide/svelte/icons/timer';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
@@ -27,6 +29,7 @@
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
+  import AnswerMenu from '#lib/components/answer-menu.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
@@ -89,12 +92,14 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
+  import { applyFormKinds } from '#lib/form-builder.js';
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import EmailSheetDemo, { demoEmail } from './email-sheet-demo.svelte';
+  import FormBuilderDemo, { scorecardKinds } from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
 
@@ -260,10 +265,10 @@
       apiKeyId: null,
       lines: [
         {
-          text: 'changed Years of experience from Short answer to Number',
-          parts: [part('changed '), part('Years of experience', true), part(' from Short answer to Number')],
+          text: 'changed Years of experience from Short text to Number',
+          parts: [part('changed '), part('Years of experience', true), part(' from Short text to Number')],
           details: [
-            { label: 'Answer', before: 'Short answer', after: 'Number', kind: 'Text' },
+            { label: 'Answer', before: 'Short text', after: 'Number', kind: 'Text' },
             { label: 'Required', before: 'on', after: 'on', kind: 'Text' },
           ],
         },
@@ -943,6 +948,26 @@
         </Panel>
         <Panel title="Reorder grip" flush class="flex-[1_1_320px]">
           <ReorderDemo />
+        </Panel>
+      </div>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <section aria-label="Form builder" class="flex min-w-0 flex-[999_1_520px] flex-col">
+          <FormBuilderDemo />
+        </section>
+        <Panel title="Answer menu" class="flex-[1_1_320px]">
+          <div class="flex flex-wrap gap-2">
+            <AnswerMenu groups={applyFormKinds} onselect={() => {}}>
+              {#snippet trigger(props)}
+                <Button {...props} variant="outline"><PlusIcon aria-hidden="true" />Add a question<ChevronDownIcon aria-hidden="true" /></Button>
+              {/snippet}
+            </AnswerMenu>
+            <AnswerMenu groups={scorecardKinds} value="Rating10" onselect={() => {}}>
+              {#snippet trigger(props)}
+                <Button {...props} variant="outline" aria-label="Answer: 1 to 10"><StarIcon aria-hidden="true" />1 to 10<ChevronDownIcon aria-hidden="true" /></Button>
+              {/snippet}
+            </AnswerMenu>
+          </div>
         </Panel>
       </div>
 

@@ -6,7 +6,7 @@
   // Questions people reorder (A7): drag a grip, click it for the Move menu, or press Space and the arrow keys. Nothing is
   // saved.
   let questions = $state([
-    { id: 'resume', label: 'Your CV or resume', kind: 'File upload' },
+    { id: 'resume', label: 'Your CV or resume', kind: 'File' },
     { id: 'right-to-work', label: 'Do you have the right to work in the country this job is in?', kind: 'Yes or no' },
     { id: 'years', label: 'How many years have you worked as a software engineer?', kind: 'Choice' },
     { id: 'notice', label: 'What is your notice period?', kind: 'Short text' },
