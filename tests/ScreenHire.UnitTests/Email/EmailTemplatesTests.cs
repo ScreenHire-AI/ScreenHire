@@ -24,6 +24,34 @@ public sealed class EmailTemplatesTests
     }
 
     [Fact]
+    public void An_email_can_greet_the_candidate_by_their_first_name_and_use_their_last()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("For {{ firstName }} {{ lastName }}", "Hi {{ firstName }}, {{ candidateName }}."),
+            "sam@example.com", Sam with { FirstName = "Sam", LastName = "Rivera" });
+
+        email.Subject.Should().Be("For Sam Rivera");
+        email.TextBody.Should().StartWith("Hi Sam, Sam Rivera.");
+    }
+
+    // A candidate from before the name was split has their whole name as the first name and no last name.
+    [Fact]
+    public void A_candidate_with_one_name_is_greeted_by_all_of_it()
+    {
+        var email = Templates.Render(new EmailTemplateContent("Hi", "Hi {{ firstName }}{{ lastName }}."), "sam@example.com", Sam);
+
+        email.TextBody.Should().StartWith("Hi Sam Rivera.");
+    }
+
+    [Fact]
+    public void Wording_a_person_writes_by_hand_may_use_the_names_but_not_an_actions_own_variables()
+    {
+        Templates.Validate(null, new EmailTemplateContent("Hi {{ firstName }}", "{{ lastName }} {{ candidateName }}")).Should().BeEmpty();
+        Templates.Validate(null, new EmailTemplateContent("Hi", "{{ reason }}")).Should().ContainSingle(p => p.Field == "body");
+        Templates.Validate(null, new EmailTemplateContent("Hi", "{{ questionnaireLink }}")).Should().ContainSingle(p => p.Field == "body");
+    }
+
+    [Fact]
     public void The_rejection_email_tells_the_candidate_why()
     {
         var email = Templates.Render(EmailTemplateIds.ApplicationRejected, "sam@example.com", Sam with { Reason = "This role needs a driving licence." });

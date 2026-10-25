@@ -4,7 +4,7 @@ import { Collector, editKind, fieldIdOf, MAX_FIELDS } from './collector.ts';
 
 describe('fieldIdOf', () => {
   it('knows the form fields and question fields, and nothing else', () => {
-    expect(fieldIdOf('fullName')).toBe('fullName');
+    expect(fieldIdOf('firstName')).toBe('firstName');
     expect(fieldIdOf('aiUseDetails')).toBe('aiUseDetails');
     expect(fieldIdOf('q:notice_period')).toBe('notice_period');
     expect(fieldIdOf('leave_this_empty')).toBeNull(); // the honeypot
@@ -58,11 +58,11 @@ describe('Collector', () => {
   it('counts the time a field is focused right now, and marks autofill', () => {
     const collector = new Collector();
     collector.focus('email', 0, 0);
-    collector.edit('fullName', 'autofilled', 11);
+    collector.edit('firstName', 'autofilled', 11);
 
     const { fields } = collector.aggregates(2500);
     expect(fields.find((f) => f.fieldId === 'email')?.activeMilliseconds).toBe(2500);
-    expect(fields.find((f) => f.fieldId === 'fullName')).toMatchObject({ autofilled: true, typedCharacters: 0, pastedCharacters: 0 });
+    expect(fields.find((f) => f.fieldId === 'firstName')).toMatchObject({ autofilled: true, typedCharacters: 0, pastedCharacters: 0 });
   });
 
   it('never reports more fields than the API takes', () => {
@@ -74,11 +74,11 @@ describe('Collector', () => {
   // Whatever happens to a form, the aggregates are counts within range: no strings but the field ids it was given.
   it('keeps every aggregate a non-negative whole number or a flag (property)', () => {
     const operation = fc.oneof(
-      fc.record({ op: fc.constant('focus' as const), field: fc.constantFrom('fullName', 'motivation'), length: fc.nat(10_000), at: fc.nat(1e9) }),
-      fc.record({ op: fc.constant('blur' as const), field: fc.constantFrom('fullName', 'motivation'), at: fc.nat(1e9) }),
+      fc.record({ op: fc.constant('focus' as const), field: fc.constantFrom('firstName', 'motivation'), length: fc.nat(10_000), at: fc.nat(1e9) }),
+      fc.record({ op: fc.constant('blur' as const), field: fc.constantFrom('firstName', 'motivation'), at: fc.nat(1e9) }),
       fc.record({
         op: fc.constant('edit' as const),
-        field: fc.constantFrom('fullName', 'motivation'),
+        field: fc.constantFrom('firstName', 'motivation'),
         kind: fc.constantFrom('typed' as const, 'pasted' as const, 'autofilled' as const, 'other' as const),
         length: fc.nat(10_000),
       }),
@@ -97,7 +97,7 @@ describe('Collector', () => {
         const { fields, visibilityChanges } = collector.aggregates(now);
         expect(Number.isInteger(visibilityChanges) && visibilityChanges >= 0).toBe(true);
         for (const field of fields) {
-          expect(['fullName', 'motivation']).toContain(field.fieldId);
+          expect(['firstName', 'motivation']).toContain(field.fieldId);
           for (const [key, value] of Object.entries(field)) {
             if (key === 'fieldId') continue;
             if (key === 'autofilled') expect(typeof value).toBe('boolean');

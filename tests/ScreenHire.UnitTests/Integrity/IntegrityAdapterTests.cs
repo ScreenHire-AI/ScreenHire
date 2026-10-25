@@ -238,7 +238,7 @@ public sealed class IntegrityAdapterTests
     {
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Engineer", Slug = "engineer" };
-        var candidate = Candidate.Create(organization, "Casey Morgan", "casey@example.com", null, Now);
+        var candidate = Candidate.Create(organization, "Casey", "Morgan", "casey@example.com", null, Now);
         var application = JobApplication.Submit(job, candidate, true, AiUseDeclaration.NotProvided, null, Now, null).Application;
 
         var observation = new SubmissionSession("192.0.2.10", "Mozilla/5.0", null, Now.AddMinutes(-5), null)
@@ -272,7 +272,7 @@ public sealed class IntegrityAdapterTests
     {
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Engineer", Slug = "engineer" };
-        var candidate = Candidate.Create(organization, "Casey Morgan", "casey@example.com", null, Now);
+        var candidate = Candidate.Create(organization, "Casey", "Morgan", "casey@example.com", null, Now);
         return JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null).Application;
     }
 

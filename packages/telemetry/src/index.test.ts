@@ -19,7 +19,7 @@ beforeEach(() => {
   document.body.innerHTML = `
     <form>
       <input type="checkbox" name="accommodationRequested" />
-      <input type="text" name="fullName" />
+      <input type="text" name="firstName" />
       <textarea name="q:motivation"></textarea>
       <input type="text" name="leave_this_empty" />
       <input type="hidden" name="state" value="{}" />
@@ -92,7 +92,7 @@ function expectOnlyCounts(json: string) {
   expect(Number.isInteger(payload.sequence)).toBe(true);
   for (const each of payload.fields as Record<string, unknown>[]) {
     expect(Object.keys(each).sort()).toEqual([...FIELD_KEYS].sort());
-    expect(['fullName', 'motivation']).toContain(each.fieldId);
+    expect(['firstName', 'motivation']).toContain(each.fieldId);
     for (const key of FIELD_KEYS.filter((k) => k !== 'fieldId' && k !== 'autofilled')) expect(Number.isInteger(each[key])).toBe(true);
     expect(typeof each.autofilled).toBe('boolean');
   }
@@ -121,8 +121,8 @@ describe('startTelemetry', () => {
     window.dispatchEvent(new Event('pagehide'));
     expect(sent).toEqual([]);
 
-    focus(field('fullName'));
-    type(field('fullName') as HTMLInputElement, 'Casey');
+    focus(field('firstName'));
+    type(field('firstName') as HTMLInputElement, 'Casey');
     hidePage();
     expect(sent).toHaveLength(1);
   });
@@ -138,7 +138,7 @@ describe('startTelemetry', () => {
 
   it('sends counts and never what was typed or pasted (fixture)', () => {
     start();
-    const name = field('fullName');
+    const name = field('firstName');
     const answer = field('q:motivation');
     focus(name);
     type(name, 'Casey Morgan');
@@ -161,7 +161,7 @@ describe('startTelemetry', () => {
 
     const payload = JSON.parse(body);
     expect(payload.fields).toEqual([
-      expect.objectContaining({ fieldId: 'fullName', typedCharacters: 12, pastedCharacters: 0, pasteCount: 0, focusCount: 1 }),
+      expect.objectContaining({ fieldId: 'firstName', typedCharacters: 12, pastedCharacters: 0, pasteCount: 0, focusCount: 1 }),
       expect.objectContaining({ fieldId: 'motivation', typedCharacters: 20, pastedCharacters: 67, pasteCount: 1, focusCount: 1 }),
     ]);
     expect(payload.page.visibilityChanges).toBe(1);
@@ -169,8 +169,8 @@ describe('startTelemetry', () => {
 
   it('sends a page view once per change, with a rising sequence', () => {
     start({ acknowledged: true });
-    focus(field('fullName'));
-    type(field('fullName'), 'Jo');
+    focus(field('firstName'));
+    type(field('firstName'), 'Jo');
     hidePage();
     hidePage();
     window.dispatchEvent(new Event('pagehide'));
@@ -203,8 +203,8 @@ describe('startTelemetry', () => {
 
   it('with the assistive-technology switch on, forgets everything and sends nothing', () => {
     start();
-    focus(field('fullName'));
-    type(field('fullName'), 'Ari Moss');
+    focus(field('firstName'));
+    type(field('firstName'), 'Ari Moss');
     switchOn();
     type(field('q:motivation'), 'More text after switching it on.');
     hidePage();
@@ -219,12 +219,12 @@ describe('startTelemetry', () => {
 
   it('marks autofill and counts no typing for it', () => {
     start({ acknowledged: true });
-    const name = field('fullName');
+    const name = field('firstName');
     name.value = 'Casey Morgan';
     name.dispatchEvent(new Event('input', { bubbles: true })); // how browsers report autofill
     hidePage();
 
-    expect(JSON.parse(sent[0]!).fields).toEqual([expect.objectContaining({ fieldId: 'fullName', autofilled: true, typedCharacters: 0 })]);
+    expect(JSON.parse(sent[0]!).fields).toEqual([expect.objectContaining({ fieldId: 'firstName', autofilled: true, typedCharacters: 0 })]);
   });
 
   // Property: whatever is typed, pasted or deleted, every payload is counts and allowed ids only, and no run of two
@@ -240,10 +240,10 @@ describe('startTelemetry', () => {
         sent = [];
         running?.stop();
         (field('telemetry') as HTMLInputElement).value = '';
-        field('fullName').value = '';
+        field('firstName').value = '';
         field('q:motivation').value = '';
         start({ acknowledged: true });
-        let current = field('fullName');
+        let current = field('firstName');
         focus(current);
         for (const step of edits) {
           if (step.kind === 'type') type(current, step.text);
@@ -252,7 +252,7 @@ describe('startTelemetry', () => {
           else if (step.kind === 'hide') hidePage();
           else {
             blur(current);
-            current = current.name === 'fullName' ? field('q:motivation') : field('fullName');
+            current = current.name === 'firstName' ? field('q:motivation') : field('firstName');
             focus(current);
           }
         }

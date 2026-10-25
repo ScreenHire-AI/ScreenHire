@@ -101,7 +101,7 @@
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
-  import EmailSheetDemo, { demoEmail } from './email-sheet-demo.svelte';
+  import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo, { scorecardKinds } from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
@@ -634,8 +634,8 @@
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
         </Panel>
-        <Panel title="Email sheet" class="flex-[1_1_320px]">
-          <EmailSheetDemo />
+        <Panel title="Email composer" class="flex-[1_1_320px]">
+          <EmailComposerDemo />
         </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">

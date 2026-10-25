@@ -47,7 +47,7 @@ public sealed class TelemetrySnapshot : ITenantOwned
     public const int MaxFieldIdLength = 40;
 }
 
-/// <summary>Aggregates for one form field, keyed by the form's field id (a question id, <c>fullName</c>, ...).</summary>
+/// <summary>Aggregates for one form field, keyed by the form's field id (a question id, <c>firstName</c>, ...).</summary>
 /// <remarks>
 /// <c>pasteCount</c>, <c>pastedCharacters</c>, <c>typedCharacters</c>: counts, not content. <c>focusCount</c> and
 /// <c>blurCount</c>: times the field gained and lost focus. <c>activeMilliseconds</c>: total time focused.

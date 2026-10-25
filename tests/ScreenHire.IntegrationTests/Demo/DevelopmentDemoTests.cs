@@ -37,6 +37,10 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
 
     private static readonly TimeSpan Deadline = TimeSpan.FromMinutes(3);
 
+    // The candidate the demo emails a template changed for one send, and the sentence it adds (docs/operations/local-demo.md).
+    private const string JoelsEmail = "joel.mensah@example.org";
+    private const string OneOffSentence = "Your answer about the billing ledger stood out, and we would like to hear more about it.";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -245,6 +249,44 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
                 m => m.Subject == "An update on your application for Senior Product Designer" && m.Text.Contains(stage, StringComparison.Ordinal),
                 "{0} was moved to {1}", email, stage);
         }
+    }
+
+    // The email composer in the demo: Avery sent Joel Mensah the "Interview invitation" template with a sentence added
+    // for him alone. Mailpit and his Messages have the changed email; the template does not.
+    [Fact]
+    public async Task A_dotnet_candidate_has_an_email_changed_for_one_send_in_messages()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var sent = await fixture.Mailpit.WaitForMessagesAsync(JoelsEmail, 1, Ct);
+        await EventuallyAsync(async () =>
+            (await fixture.Mailpit.MessagesAsync(JoelsEmail, Ct)).Any(m => m.Text.Contains(OneOffSentence, StringComparison.Ordinal))
+                ? null
+                : "the changed email has not reached Mailpit");
+        var application = (await ApplicantsAsync(owner, SeniorDotnetSlug))
+            .Single(a => a.GetProperty("candidateName").GetString() == "Joel Mensah");
+        var candidate = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}")).GetProperty("candidate").GetProperty("id").GetGuid();
+
+        JsonElement changed = default;
+        await EventuallyAsync(async () =>
+        {
+            var emails = (await GetAsync(owner, $"/v1/candidates/{candidate}/emails")).EnumerateArray().ToList();
+            var found = emails.FirstOrDefault(e => e.GetProperty("subject").GetString() == "Interview for Senior .NET Engineer at Brightwater Studio");
+            if (found.ValueKind == JsonValueKind.Undefined)
+            {
+                return "the changed email is not in Messages";
+            }
+
+            changed = found.Clone();
+            return null;
+        });
+        changed.GetProperty("kept").GetBoolean().Should().BeTrue();
+        var copy = await GetAsync(owner, $"/v1/emails/{changed.GetProperty("id").GetGuid()}");
+        copy.GetProperty("text").GetString().Should().Contain(OneOffSentence).And.Contain("Hi Joel,");
+
+        var template = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
+            .Single(t => t.GetProperty("name").GetString() == "Interview invitation");
+        template.GetProperty("body").GetString().Should().NotContain(OneOffSentence, "the change was for one email only");
+        sent.Should().NotBeEmpty();
     }
 
     [Fact]

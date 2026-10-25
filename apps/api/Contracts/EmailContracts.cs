@@ -52,8 +52,40 @@ public sealed record EmailPreview(string Subject, string Html, string Text);
 /// <summary>A test send went to the signed-in person's own address.</summary>
 public sealed record TestEmailSent(string To);
 
-/// <summary>Sends one of the organization's templates to the candidates of these applications, one email each.</summary>
-public sealed record SendEmailsRequest(IReadOnlyList<Guid> ApplicationIds, string TemplateId);
+/// <summary>
+/// An email to the candidates of these applications, one each, rendered for each candidate. Give the wording
+/// (<c>subject</c> and <c>body</c>, Liquid over the general variables), a <c>templateId</c> to send the template as it
+/// stands, or both: then the wording goes, changed for this send only, and the template id records where it started.
+/// A blank email has wording and no template id.
+/// </summary>
+public sealed record SendEmailsRequest(IReadOnlyList<Guid> ApplicationIds, string? TemplateId = null, string? Subject = null, string? Body = null);
+
+/// <summary>Wording for one email, rendered with the candidate of <c>applicationId</c>, before a person sends it.</summary>
+public sealed record ApplicationEmailDraft(Guid ApplicationId, string Subject, string Body);
+
+/// <summary>
+/// One email to the candidate, for Messages: what went, when, and who or which automation sent it. <c>kept</c> is false
+/// for an email sent before ScreenHire kept each email's copy: only its subject is known.
+/// </summary>
+/// <remarks>
+/// <c>id</c>: the email, as <c>GET /v1/emails/{emailId}</c> names it. <c>templateId</c>: the template it started from;
+/// null for a blank email. <c>actorUserId</c>: the person who sent it. <c>automationRunId</c>: the automation run that
+/// sent it.
+/// </remarks>
+public sealed record CandidateEmailEntry(
+    Guid Id,
+    Guid ApplicationId,
+    string JobTitle,
+    string? TemplateId,
+    string Subject,
+    Guid? ActorUserId,
+    Guid? AutomationRunId,
+    DateTimeOffset SentAt,
+    bool Kept);
+
+/// <summary>An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part.</summary>
+/// <remarks><c>templateId</c>: the template it started from; null for a blank email.</remarks>
+public sealed record SentEmail(Guid Id, Guid ApplicationId, string? TemplateId, string To, string Subject, string Html, string Text, DateTimeOffset SentAt);
 
 /// <summary>
 /// How many emails were queued. <c>skipped</c> counts applications the email does not fit: the stage-change email to a
@@ -116,10 +148,29 @@ internal sealed class SendEmailsRequestValidator : AbstractValidator<SendEmailsR
     {
         RuleFor(r => r.ApplicationIds).NotEmpty().WithMessage("Choose at least one candidate.")
             .Must(ids => ids is null || ids.Count <= MaxApplications).WithMessage($"Send to at most {MaxApplications} candidates at once.");
+        RuleFor(r => r.TemplateId).Must(id => id is not null)
+            .WithMessage("Choose a template, or write the email.")
+            .When(r => r.Subject is null && r.Body is null);
+        RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.")
+            .MaximumLength(EmailTemplate.MaxSubjectLength)
+            .When(r => r.Subject is not null || r.Body is not null);
+        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.")
+            .MaximumLength(EmailTemplate.MaxBodyLength)
+            .When(r => r.Subject is not null || r.Body is not null);
         RuleFor(r => r.TemplateId).NotEmpty().MaximumLength(40)
             .Must(id => id != EmailTemplateIds.ApplicationRejected)
             .WithMessage("The rejection email goes only with a Reject action, which tells the candidate why.")
             .Must(id => id != EmailTemplateIds.QuestionnaireRequest)
-            .WithMessage("The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.");
+            .WithMessage("The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.")
+            .When(r => r.TemplateId is not null);
+    }
+}
+
+internal sealed class ApplicationEmailDraftValidator : AbstractValidator<ApplicationEmailDraft>
+{
+    public ApplicationEmailDraftValidator()
+    {
+        RuleFor(r => r.Subject).NotNull().MaximumLength(EmailTemplate.MaxSubjectLength);
+        RuleFor(r => r.Body).NotNull().MaximumLength(EmailTemplate.MaxBodyLength);
     }
 }

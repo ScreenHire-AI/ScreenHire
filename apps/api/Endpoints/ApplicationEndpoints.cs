@@ -139,7 +139,7 @@ internal static class ApplicationEndpoints
         }
 
         var submitted = await ApplicationSubmission.SubmitAsync(
-            outbox, job, request.Candidate,
+            outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             ApplicationIntake.Recruiter, [], time.GetUtcNow(), tenant.UserId, cancellationToken, actorApiKeyId: user.ApiKeyId());
         if (submitted is not { } created)
@@ -568,7 +568,8 @@ internal static class ApplicationEndpoints
         var integrity = await IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
-            [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id)))]));
+            [.. rows.Select(r => r.Application.ToSummary(r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id)))],
+            candidate.FirstName, candidate.LastName));
     }
 
     // Integrity output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:

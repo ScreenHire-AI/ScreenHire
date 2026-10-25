@@ -115,7 +115,11 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
 }
 
 /** Who did it, after the event: "by you", "by Robin Hale", "by ATS sync" (an API key), "by an automation". */
-export function actorText(entry: ApplicationTimelineEntry, members: readonly TeamMember[] | undefined, currentUserId: string | undefined): string | undefined {
+export function actorText(
+  entry: Partial<Pick<ApplicationTimelineEntry, 'automationRunId' | 'actorUserId' | 'actorApiKeyId' | 'actorApiKeyName'>>,
+  members: readonly TeamMember[] | undefined,
+  currentUserId: string | undefined,
+): string | undefined {
   if (entry.automationRunId) return 'by an automation';
   if (entry.actorUserId) return `by ${personName(entry.actorUserId, members, currentUserId)}`;
   if (entry.actorApiKeyId) return entry.actorApiKeyName ? `by ${entry.actorApiKeyName}` : 'by an API key';

@@ -5,9 +5,17 @@
  * OpenAPI spec version: 1.0.0
  */
 
+/**
+ * The candidate of an application a person or an API key adds.
+ */
 export interface CandidateInput {
-  fullName: string;
   email: string;
   /** @nullable */
   phone?: string | null;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
+  /** @nullable */
+  fullName?: string | null;
 }

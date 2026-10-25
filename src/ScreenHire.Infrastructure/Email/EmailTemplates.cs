@@ -9,14 +9,26 @@ using ScreenHire.Domain.Hiring;
 namespace ScreenHire.Infrastructure.Email;
 
 /// <summary>What an email template may say about the application. Every value is plain text.</summary>
-/// <remarks><c>questionnaireLink</c>: the signed link to a follow-up questionnaire, for the questionnaire request email only.</remarks>
+/// <remarks>
+/// <c>candidateName</c>: the full name. <c>firstName</c>: the first name, or the full name when none is given (a
+/// candidate from before the name was split keeps their whole name as the first name). <c>lastName</c>: empty when the
+/// candidate gave none. <c>questionnaireLink</c>: the signed link to a follow-up questionnaire, for the questionnaire
+/// request email only.
+/// </remarks>
 public sealed record EmailTemplateModel(
-    string CandidateName, string JobTitle, string OrganizationName, string? StageName = null, string? Reason = null, string? QuestionnaireLink = null)
+    string CandidateName,
+    string JobTitle,
+    string OrganizationName,
+    string? StageName = null,
+    string? Reason = null,
+    string? QuestionnaireLink = null,
+    string? FirstName = null,
+    string? LastName = null)
 {
     /// <summary>The made-up candidate a template's preview and test send use.</summary>
     public static EmailTemplateModel Sample(string organizationName) =>
         new("Jordan Lee", "Product designer", organizationName, "Interview", "This role needs a driving licence.",
-            "https://careers.example.com/questionnaires/sample");
+            "https://careers.example.com/questionnaires/sample", "Jordan", "Lee");
 }
 
 /// <summary>A template's wording: a Liquid subject and a Liquid plain-text body.</summary>
@@ -43,7 +55,9 @@ public sealed partial class EmailTemplates
     /// <summary>The variables every template may use. <c>reason</c> is the rejection email's alone.</summary>
     public static IReadOnlyList<EmailTemplateVariable> Variables { get; } =
     [
-        new("candidateName", "Candidate name"),
+        new("candidateName", "Full name"),
+        new("firstName", "First name"),
+        new("lastName", "Last name"),
         new("jobTitle", "Job title"),
         new("organizationName", "Organization name"),
         new("stageName", "Stage"),
@@ -150,6 +164,8 @@ public sealed partial class EmailTemplates
         ArgumentNullException.ThrowIfNull(model);
         var context = new TemplateContext(options);
         context.SetValue("candidateName", model.CandidateName);
+        context.SetValue("firstName", model.FirstName ?? model.CandidateName);
+        context.SetValue("lastName", model.LastName ?? "");
         context.SetValue("jobTitle", model.JobTitle);
         context.SetValue("organizationName", model.OrganizationName);
         context.SetValue("stageName", model.StageName ?? "");

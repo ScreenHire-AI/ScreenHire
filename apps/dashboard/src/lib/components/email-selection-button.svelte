@@ -5,7 +5,7 @@
   import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
-  // Opens the Email sheet for the ticked rows of a list panel. The header's pill or Move button already says how many
+  // Opens the email composer for the ticked rows of a list panel. The header's pill or Move button already says how many
   // are ticked, so the label is just "Email" (W4). In a narrow panel header it is an icon, as the integrity filter is,
   // so the search keeps its room; the accessible name says it, and the tooltip too while the label is hidden (A4).
   // lg in a panel body row, beside the other 36px controls (design system section 5); the default fits a panel header.

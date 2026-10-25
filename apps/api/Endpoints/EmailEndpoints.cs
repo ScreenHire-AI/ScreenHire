@@ -5,6 +5,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
@@ -20,7 +21,8 @@ namespace ScreenHire.Api.Endpoints;
 /// The organization's email templates (Settings) and email to candidates, by hand or to a selection. Every member reads
 /// the templates, because recruiters pick them in automations and when sending; owners and admins change them. Sends
 /// go through the outbox to the worker, one message per candidate, and each email lands on its application's
-/// timeline once it is sent. The rejection email is never sent here: only a Reject action sends it
+/// timeline once it is sent. Each email is rendered for its candidate in the request and kept as it goes
+/// (<c>application_emails</c>), so Messages shows it as it went. The rejection email is never sent here: only a Reject action sends it
 /// (workflow-engine.md §2). These routes take no API key: emailing candidates is a person's action.
 /// </summary>
 internal static class EmailEndpoints
@@ -55,10 +57,19 @@ internal static class EmailEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
 
         var emails = app.MapGroup("/v1/emails").WithTags("Email").RequireAuthorization();
-        emails.MapGet("/preview", PreviewApplicationEmail).WithName("PreviewApplicationEmail").Produces(StatusCodes.Status401Unauthorized);
+        emails.MapPost("/preview", PreviewApplicationEmail).WithName("PreviewApplicationEmail")
+            .RequireAntiforgeryToken()
+            .Produces(StatusCodes.Status401Unauthorized);
         emails.MapPost("", SendEmails).WithName("SendEmails")
             .RequireAntiforgeryToken()
             .RequireHiringRole()
+            .Produces(StatusCodes.Status401Unauthorized);
+        emails.MapGet("/{emailId:guid}", GetSentEmail).WithName("GetSentEmail").Produces(StatusCodes.Status401Unauthorized);
+
+        // Under the candidate's path, for the dashboard's Messages tab, but in this people-only group: unlike the
+        // candidates routes, it takes no API key.
+        var candidates = app.MapGroup("/v1/candidates").WithTags("Email").RequireAuthorization();
+        candidates.MapGet("/{candidateId:guid}/emails", ListCandidateEmails).WithName("ListCandidateEmails")
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
@@ -303,44 +314,54 @@ internal static class EmailEndpoints
         return TypedResults.Ok(new TestEmailSent(to));
     }
 
-    // A template as one application's candidate would receive it, before a person sends it.
+    // Wording as one application's candidate would receive it, before a person sends it: the composer's preview. The
+    // wording may use the general variables only, as a send by hand does.
     private static async Task<Results<Ok<EmailPreview>, NotFound, ValidationProblem>> PreviewApplicationEmail(
-        Guid applicationId, string templateId, ScreenHireDbContext db, EmailTemplateStore store, EmailTemplates renderer, CancellationToken cancellationToken)
+        ApplicationEmailDraft request,
+        IValidator<ApplicationEmailDraft> validator,
+        ScreenHireDbContext db,
+        EmailTemplates renderer,
+        CancellationToken cancellationToken)
     {
-        if (templateId == EmailTemplateIds.ApplicationRejected)
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", RejectionOnly));
+            return TypedResults.ValidationProblem(problems);
         }
 
-        if (templateId == EmailTemplateIds.QuestionnaireRequest)
+        var content = new EmailTemplateContent(request.Subject, request.Body);
+        if (renderer.Validate(null, content).ToProblems() is { } wording)
         {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", QuestionnaireOnly));
+            return TypedResults.ValidationProblem(wording);
         }
 
         var row = await db.Applications.AsNoTracking()
-            .Where(a => a.Id == applicationId)
+            .Where(a => a.Id == request.ApplicationId)
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new { x.Application, x.Job, Candidate = c })
+            .Join(db.Organizations, x => x.Application.OrganizationId, o => o.Id, (x, o) => new { x.Application, x.Job, x.Candidate, Organization = o.Name })
             .SingleOrDefaultAsync(cancellationToken);
-        if (row is null || await store.FindAsync(db, templateId, cancellationToken) is not { } template)
+        if (row is null)
         {
             return TypedResults.NotFound();
         }
 
-        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == row.Application.OrganizationId, cancellationToken);
-        var model = new EmailTemplateModel(
-            row.Candidate.FullName, row.Job.Title, organization.Name, row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name);
-        return TypedResults.Ok(renderer.Render(template.Content, row.Candidate.Email, model).ToPreview());
+        var model = ApplicationEmails.ModelFor(
+            row.Candidate, row.Job.Title, row.Organization, row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name);
+        return TypedResults.Ok(renderer.Render(content, row.Candidate.Email, model).ToPreview());
     }
 
-    // One message per application, in one transaction with nothing else: the worker sends each and records it on the
-    // timeline. The stage-change email skips applications that have ended, as the worker would.
+    // One copy and one message per application, in one transaction with nothing else. Each copy is the email rendered
+    // for its candidate now, as the preview showed it; the message carries ids only, because wording a person typed can
+    // hold personal data (messaging.md). The worker sends each copy and records it on the timeline. The stage-change
+    // email skips applications that have ended, as the worker would.
     private static async Task<Results<Accepted<EmailsQueued>, ValidationProblem, NotFound>> SendEmails(
         SendEmailsRequest request,
         IValidator<SendEmailsRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplateStore store,
+        EmailTemplates renderer,
         ITenantContext tenant,
+        TimeProvider time,
         IServiceProvider services,
         CancellationToken cancellationToken)
     {
@@ -355,37 +376,110 @@ internal static class EmailEndpoints
         }
 
         var db = outbox.DbContext;
-        if (await store.FindAsync(db, request.TemplateId, cancellationToken) is null)
+        EmailTemplateContent content;
+        if (request.Subject is { } subject && request.Body is { } body)
+        {
+            content = new EmailTemplateContent(subject, body);
+            if (renderer.Validate(null, content).ToProblems() is { } wording)
+            {
+                return TypedResults.ValidationProblem(wording);
+            }
+        }
+        else if (await store.FindAsync(db, request.TemplateId!, cancellationToken) is { } template)
+        {
+            content = template.Content;
+        }
+        else
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", "There is no email template with this id."));
+        }
+
+        if (request.TemplateId is { } startedFrom && request.Subject is not null && await store.FindAsync(db, startedFrom, cancellationToken) is null)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", "There is no email template with this id."));
         }
 
         var ids = request.ApplicationIds.Distinct().ToList();
-        var applications = await db.Applications.AsNoTracking()
+        var rows = await db.Applications.AsNoTracking()
             .Where(a => ids.Contains(a.Id))
-            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, j.Workflow })
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
+            .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new { x.Application, x.Job, Candidate = c })
             .ToListAsync(cancellationToken);
-        if (applications.Count != ids.Count)
+        if (rows.Count != ids.Count)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem(
                 "applicationIds", "One or more of these applications does not exist, or belongs to another organization."));
         }
 
+        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == tenant.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
+        var now = time.GetUtcNow();
         var skipped = 0;
-        foreach (var row in applications)
+        foreach (var row in rows)
         {
-            if (ApplicationEmails.Skips(request.TemplateId, row.Workflow.FindStage(row.Application.CurrentStageId)))
+            var stage = row.Job.Workflow.FindStage(row.Application.CurrentStageId);
+            if (ApplicationEmails.Skips(request.TemplateId, stage))
             {
                 skipped++;
                 continue;
             }
 
-            await outbox.PublishAsync(new SendApplicationEmail(
-                row.Application.OrganizationId, row.Application.Id, request.TemplateId, Guid.CreateVersion7(), tenant.UserId!.Value));
+            var copy = ApplicationEmails.Prepare(
+                renderer, row.Application, row.Candidate, row.Job.Title, organization, stage?.Name, request.TemplateId, content,
+                Guid.CreateVersion7(), now);
+            db.ApplicationEmails.Add(copy);
+            await outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, tenant.UserId!.Value));
         }
 
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-        return TypedResults.Accepted("/v1/emails", new EmailsQueued(applications.Count - skipped, skipped));
+        return TypedResults.Accepted("/v1/emails", new EmailsQueued(rows.Count - skipped, skipped));
+    }
+
+    // An email exactly as it went. Only once it went: a copy still waiting for the worker, or one the worker decided not to
+    // send, is not an email the candidate got.
+    private static async Task<Results<Ok<SentEmail>, NotFound>> GetSentEmail(Guid emailId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var sent = await db.ApplicationEmails.AsNoTracking()
+            .Where(e => e.Id == emailId)
+            .Join(db.ApplicationEvents.Where(x => x.Type == ApplicationEventType.EmailSent), e => e.Id, x => x.Id, (e, x) => new { Email = e, x.OccurredAt })
+            .SingleOrDefaultAsync(cancellationToken);
+        return sent is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(new SentEmail(
+                sent.Email.Id, sent.Email.ApplicationId, sent.Email.TemplateId, sent.Email.To, sent.Email.Subject, sent.Email.HtmlBody,
+                sent.Email.TextBody, sent.OccurredAt));
+    }
+
+    // Every email that went to the candidate, about any of their applications, newest first: the Messages tab. Each is
+    // its timeline entry, with whether its copy was kept (emails sent before copies were kept have only a subject).
+    private static async Task<Results<Ok<List<CandidateEmailEntry>>, NotFound>> ListCandidateEmails(
+        Guid candidateId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await db.Candidates.AnyAsync(c => c.Id == candidateId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var entries = await (
+            from entry in db.ApplicationEvents.AsNoTracking()
+            join application in db.Applications on entry.ApplicationId equals application.Id
+            join job in db.Jobs on application.JobId equals job.Id
+            where application.CandidateId == candidateId && entry.Type == ApplicationEventType.EmailSent
+            orderby entry.OccurredAt descending, entry.Id descending
+            select new
+            {
+                entry.Id,
+                entry.ApplicationId,
+                JobTitle = job.Title,
+                entry.Data,
+                entry.ActorUserId,
+                entry.OccurredAt,
+                Kept = db.ApplicationEmails.Any(e => e.Id == entry.Id),
+            }).ToListAsync(cancellationToken);
+        return TypedResults.Ok(entries
+            .Select(e => new CandidateEmailEntry(
+                e.Id, e.ApplicationId, e.JobTitle, e.Data.EmailTemplateId, e.Data.EmailSubject ?? "", e.ActorUserId, e.Data.AutomationRunId,
+                e.OccurredAt, e.Kept))
+            .ToList());
     }
 
     private const string RejectionOnly = "The rejection email goes only with a Reject action, which tells the candidate why.";
