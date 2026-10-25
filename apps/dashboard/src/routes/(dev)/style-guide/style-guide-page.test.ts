@@ -88,6 +88,7 @@ const panels: Record<string, string[]> = {
   'Answer menu': ['Answer menu'],
   Rating: ['Rating'],
   'Rating answer': ['Rating answer'],
+  Picker: ['Picker'],
 };
 
 // The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5

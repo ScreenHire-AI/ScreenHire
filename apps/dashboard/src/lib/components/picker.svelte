@@ -47,7 +47,7 @@
   <Popover.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
     {#if Icon}<Icon aria-hidden="true" />{/if}{label}
   </Popover.Trigger>
-  <Popover.Content align="start" class="w-80 p-0">
+  <Popover.Content align="start" collisionPadding={16} class="w-80 max-w-[calc(100vw-2rem)] p-0">
     <Command.Root shouldFilter={false}>
       <Command.Input bind:value={query} placeholder={searchLabel} aria-label={searchLabel} />
       <Command.List>

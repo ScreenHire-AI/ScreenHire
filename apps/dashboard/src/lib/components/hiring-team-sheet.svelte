@@ -14,6 +14,7 @@
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import FailureText from '#lib/components/failure-text.svelte';
+  import IconButton from '#lib/components/icon-button.svelte';
   import Picker from '#lib/components/picker.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -164,17 +165,16 @@
                 <span class="truncate font-semibold">{person.displayName}</span>
                 <span class="truncate text-caption text-muted-foreground">{person.roleName}</span>
               </span>
-              <Badge variant="muted" class="shrink-0">{accessWords(person)}</Badge>
+              <!-- Only the exception is marked (W6): seeing every job is the default. -->
+              {#if !person.seesAllJobs}<Badge variant="muted" class="shrink-0">{accessWords(person)}</Badge>{/if}
               {#if mayEdit && mayRemove(person.memberId)}
-                <Button
+                <IconButton
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Remove ${person.displayName} from the hiring team`}
+                  label={`Remove ${person.displayName} from the hiring team`}
                   onclick={() => (draft = draft.filter((memberId) => memberId !== person.memberId))}
                 >
                   <XIcon aria-hidden="true" />
-                </Button>
+                </IconButton>
               {/if}
             </li>
           {/each}

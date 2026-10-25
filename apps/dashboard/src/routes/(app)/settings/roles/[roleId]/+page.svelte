@@ -355,14 +355,14 @@
           <ul>
             {#each people as member (member.id)}
               <li class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
-                <span class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span class="flex min-w-0 flex-[1_1_14rem] flex-wrap items-baseline gap-x-3 gap-y-0.5">
                   <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
                   <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
                 </span>
                 <!-- Which jobs they see (ADR-0015), and the access sheet on Team, where it changes. -->
                 <MemberJobs {member} />
                 {#if member.userId !== page.data.user?.id && mayAssign(actor, summary?.permissions ?? [])}
-                  <Button href={`/settings/team?access=${member.id}`} variant="outline">Edit access</Button>
+                  <a href={`/settings/team?access=${member.id}`} class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Edit access on Team</a>
                 {/if}
               </li>
             {/each}

@@ -97,7 +97,7 @@
         <div class="flex flex-col gap-1.5">
           <div class="flex items-baseline justify-between gap-3">
             <label for="access-role" class="text-body font-medium">Role</label>
-            <a href="/settings/roles/compare" class="text-caption underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">Compare roles</a>
+            <a href="/settings/roles/compare" class="inline-flex min-h-6 items-center text-caption underline underline-offset-2 pointer-coarse:min-h-11">Compare roles</a>
           </div>
           <select id="access-role" class={selectClass} bind:value={roleChoice} aria-describedby="access-role-description">
             {#each roles as role (roleKey(role))}
@@ -148,9 +148,9 @@
           {:else if jobList.length === 0}
             <p class="text-muted-foreground">None yet.</p>
           {:else}
-            <ul class="flex flex-wrap gap-1.5">
+            <ul class="flex flex-col">
               {#each jobList as job (job.id)}
-                <li><a href={`/jobs/${job.id}`} class="inline-flex min-h-6 items-center rounded-full border border-border px-2.5 text-caption font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11">{job.title}</a></li>
+                <li><a href={`/jobs/${job.id}`} class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">{job.title}</a></li>
               {/each}
             </ul>
           {/if}

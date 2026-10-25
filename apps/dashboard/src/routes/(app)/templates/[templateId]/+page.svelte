@@ -280,7 +280,7 @@
         {#snippet facts()}
           {#if !detail.isSystem && teamSize !== undefined}
             <Fact label="Default hiring team">
-              <Button variant="outline" class="tabular-nums" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
+              <Button variant="outline" size="sm" class="tabular-nums" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
                 {teamSize === 1 ? '1 person' : `${teamSize} people`}
               </Button>
             </Fact>

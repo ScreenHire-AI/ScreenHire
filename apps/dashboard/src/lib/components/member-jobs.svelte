@@ -24,10 +24,10 @@
 {:else}
   <Button variant="outline" class="tabular-nums" aria-haspopup="dialog" aria-label={`${label}: show the jobs`} onclick={() => (open = true)}>{label}</Button>
   <Sheet.Root bind:open>
-    <Sheet.Content side="right" class="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-md">
+    <Sheet.Content side="right" class="w-full gap-0 overflow-y-auto">
       <Sheet.Header class="border-b border-border-subtle">
         <Sheet.Title>{member.displayName}'s jobs</Sheet.Title>
-        <Sheet.Description>The hiring teams they are on. Each job's Hiring team changes them.</Sheet.Description>
+        <Sheet.Description>Change them in each job's Hiring team.</Sheet.Description>
       </Sheet.Header>
       {#if jobs.isError}
         <div class="p-4"><QueryError message={describeError(jobs.error, 'Could not load their jobs')} onretry={() => jobs.refetch()} inset /></div>
@@ -37,7 +37,7 @@
         <ul>
           {#each jobs.data.data as job (job.id)}
             <li class="border-b border-border-subtle last:border-0">
-              <a href={`/jobs/${job.id}`} class="flex min-h-11 items-center px-4 underline-offset-2 hover:underline"><TruncatedText text={job.title} /></a>
+              <a href={`/jobs/${job.id}`} class="flex min-h-11 items-center px-4 underline underline-offset-2"><TruncatedText text={job.title} /></a>
             </li>
           {/each}
         </ul>
