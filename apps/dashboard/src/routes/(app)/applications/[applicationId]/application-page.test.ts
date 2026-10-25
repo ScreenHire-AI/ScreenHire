@@ -610,7 +610,7 @@ describe('application page', () => {
     const tasks = await screen.findByRole('region', { name: 'Next steps' });
     await within(tasks).findByText('Call the references.');
 
-    expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
+    expect(within(tasks).queryByRole('checkbox', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Activity' })).queryByLabelText('Note for the hiring team')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More actions for this note' })).not.toBeInTheDocument();
@@ -626,7 +626,7 @@ describe('application page', () => {
     expect(within(screen.getByRole('region', { name: 'Activity' })).getByLabelText('Note for the hiring team')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Move to stage, Casey Morgan' })).not.toBeInTheDocument();
-    expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
+    expect(within(tasks).queryByRole('checkbox', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 

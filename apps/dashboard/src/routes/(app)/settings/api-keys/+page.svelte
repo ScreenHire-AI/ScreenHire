@@ -19,6 +19,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -330,15 +331,13 @@
         />
         <Field.Error id="key-name-error" errors={$errors.name?.map((message) => ({ message }))} />
       </Field.Field>
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-body font-medium">Access</legend>
-        <label class="flex items-center gap-2 pointer-coarse:min-h-11">
-          <input type="radio" name="access" value="Read" bind:group={$form.access} class="size-4 accent-primary" />Read only
-        </label>
-        <label class="flex items-center gap-2 pointer-coarse:min-h-11">
-          <input type="radio" name="access" value="Write" bind:group={$form.access} class="size-4 accent-primary" />Read and write
-        </label>
-      </fieldset>
+      <div class="flex flex-col gap-2">
+        <span id="key-access-label" class="text-body font-medium">Access</span>
+        <div role="radiogroup" aria-labelledby="key-access-label" class="flex flex-col gap-2">
+          <ChoiceCard name="access" value="Read" bind:group={$form.access} title="Read only" description="Reads jobs, candidates, applications and templates." />
+          <ChoiceCard name="access" value="Write" bind:group={$form.access} title="Read and write" description="Also changes hiring data, as a Recruiter can." />
+        </div>
+      </div>
       <FailureText message={$errors._errors?.[0]} />
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>

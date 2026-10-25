@@ -21,7 +21,7 @@
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
 
-  // A job's candidates by stage (design system sections 5 and 22). A stage with candidates is a 296px column and an
+  // A job's candidates by stage (design system sections 5 and 21). A stage with candidates is a 296px column and an
   // empty one shrinks to 188px. The stages that end a candidacy share one 188px Closed column that counts each of them,
   // so every stage fits a wide window; their candidates are in the table, under the Stage filter. The board scrolls
   // inside itself, sideways and down each column, and never moves the page.

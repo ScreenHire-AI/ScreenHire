@@ -191,9 +191,6 @@
               <Picker label="Copy from another job" icon={CopyIcon} options={copyable} searchLabel="Search jobs" empty="No other job to copy from." onpick={copyFrom} />
             {/if}
           </div>
-          {#if kind === 'job'}
-            <p class="text-caption text-muted-foreground">Copying brings over that job's people. Jobs started from a hiring template begin with the template's default hiring team.</p>
-          {/if}
         {/if}
         <FailureText message={failure} />
         <div class="flex justify-end gap-2">

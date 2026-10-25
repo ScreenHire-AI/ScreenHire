@@ -178,20 +178,20 @@ describe('workflow builder', () => {
     expect(screen.queryByRole('region', { name: 'Problems to fix' })).toBeNull();
   });
 
-  it('edits stages as rows in one panel, with labelled icon buttons and no move past either end', async () => {
+  it('edits stages as rows in one panel that reorder with a grip, leaving out moves past either end (A7)', async () => {
     const { container } = renderViews('editor');
 
     const stages = screen.getByRole('region', { name: 'Stages' });
     // Hired and Not progressing end the application, so a time limit there would do nothing.
     expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' })).toHaveLength(2);
-    expect(within(stages).queryByRole('button', { name: 'Move Applied earlier' })).toBeNull();
-    expect(within(stages).getByRole('button', { name: 'Move Applied later' })).toBeInTheDocument();
-    expect(within(stages).queryByRole('button', { name: 'Move Not progressing later' })).toBeNull();
+    expect(within(stages).queryByRole('button', { name: /^Move .* (earlier|later)$/ })).toBeNull();
     // No card inside the panel (S4): stages are rows.
     expect(stages.querySelectorAll('[data-slot="panel"]')).toHaveLength(0);
 
-    await fireEvent.click(within(stages).getByRole('button', { name: 'Move Applied later' }));
-    expect(within(stages).getAllByRole('listitem', { name: /^Stage / })[0]).toHaveAccessibleName('Stage 1: Phone screen');
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Reorder Applied' }));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Move down', 'Move to bottom']);
+    await fireEvent.click(screen.getByRole('menuitem', { name: 'Move down' }));
+    expect(within(stages).getAllByRole('group', { name: /^Stage / })[0]).toHaveAccessibleName('Stage 1: Phone screen');
 
     expect(screen.getByRole('region', { name: 'Whole workflow' })).toHaveTextContent('When an application arrives: notify the team. (off)');
     await expectNoAxeViolations(container);

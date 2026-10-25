@@ -77,11 +77,14 @@ afterEach(() => {
 });
 
 describe('webhook endpoint page', () => {
-  it('shows the delivery log with a status label for each delivery, and the event types as codes, like the log', async () => {
+  it('shows the delivery log with a status label for each delivery and each event in words, and the events with their codes', async () => {
     renderPage(endpoint());
 
     const deliveries = await screen.findByRole('region', { name: 'Deliveries' });
-    await within(deliveries).findAllByText('application.submitted');
+    await within(deliveries).findAllByText('Application submitted');
+    expect(within(deliveries).queryByText('application.submitted')).toBeNull();
+    // Sorted like every table, newest first (L2).
+    expect(within(deliveries).getByRole('columnheader', { name: /^Sent/ })).toHaveAttribute('aria-sort', 'descending');
     for (const label of ['Delivered', 'Failed', 'Pending', 'Skipped']) {
       expect(within(deliveries).getAllByText(label).length).toBeGreaterThan(0);
     }
@@ -111,7 +114,7 @@ describe('webhook endpoint page', () => {
 
   it('offers replay on delivered, failed and skipped deliveries but not on a Pending one', async () => {
     renderPage(endpoint());
-    await screen.findAllByText('job.published');
+    await screen.findAllByText('Job published');
 
     for (const type of ['application.submitted', 'application.moved', 'job.closed']) {
       expect(screen.getAllByRole('button', { name: `Replay the ${type} delivery` }).length).toBeGreaterThan(0);

@@ -8,7 +8,7 @@ namespace ScreenHire.Api.Hiring;
 
 /// <summary>
 /// Where each of the organization's templates is used and when it was last used (docs/design/design-system.md section
-/// 22). Reads through the tenant filter and row-level security, like every hiring read, in one query per kind of row,
+/// 21). Reads through the tenant filter and row-level security, like every hiring read, in one query per kind of row,
 /// then works out the uses in memory with <see cref="TemplateUses"/>.
 /// </summary>
 /// <remarks>

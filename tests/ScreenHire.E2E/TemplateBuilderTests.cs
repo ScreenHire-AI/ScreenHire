@@ -233,7 +233,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Applied version 2 of Retail assistant." })).ToBeVisibleAsync();
-        await Expect(HeaderBand).ToContainTextAsync("Workflow version 2");
+        await Expect(HeaderBand.Locator("[data-slot=fact]").Filter(new() { Has = Page.GetByText("Version", new() { Exact = true }) }).Locator("dd")).ToHaveTextAsync("2");
         await Expect(update).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Spinbutton, new() { Name = "Time limit (days)" }).Nth(1)).ToHaveValueAsync("2");
     }

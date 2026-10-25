@@ -9,19 +9,25 @@
     createApplyJobTemplateUpdate,
     createGetJob,
     createGetJobTemplateDiff,
+    createListTeamMembers,
     createUpdateJobWorkflow,
+    getGetJobHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -33,6 +39,7 @@
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
@@ -67,6 +74,13 @@
   const readonly = $derived(detail?.status === 'Closed');
   // The sidebar's own phone test (under md), where the primary action moves to the action bar.
   const sidebar = Sidebar.useSidebar();
+  // The workflow is part of the job: its Last updated and History are the job's (T6).
+  const team = createListTeamMembers();
+  let historyOpen = $state(false);
+  const history = createHistoryPages(
+    (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
+    () => historyOpen,
+  );
   let tab = $state('pipeline');
   let notice = $state('');
   let failure = $state('');
@@ -167,43 +181,41 @@
       <HeaderBand title={`Workflow: ${detail.title}`}>
         {#snippet status()}
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={!readonly} />
-          <span class="flex flex-wrap gap-1.5">
-            <Badge variant="muted" class="tabular-nums">Workflow version {detail.workflowVersion}</Badge>
-            {#if detail.template}
-              <Badge variant="muted">From {detail.template.templateName} v{detail.template.version}</Badge>
-            {:else}
-              <Badge variant="muted">Not from a template</Badge>
-            {/if}
-            {#if readonly}<StatusBadge status="closed" label="Job closed" />{/if}
-          </span>
+          {#if readonly}<StatusBadge status="closed" label="Job closed" />{/if}
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
           <FailureText message={failure} />
           <!-- The one primary action; a phone has it in the action bar (section 8). -->
           {#if !readonly && !sidebar.isMobile}{@render saveButton()}{/if}
+          {#if draft.outdated}
+            <!-- Discarding the unsaved draft cannot be undone, so it lives in a menu and confirms (A2). -->
+            <MoreMenu
+              label="More actions"
+              onclosed={() => {
+                if (discardChosen) confirmDiscard = true;
+                discardChosen = false;
+              }}
+            >
+              <DropdownMenu.Item variant="destructive" onSelect={() => (discardChosen = true)}>Discard mine and load theirs</DropdownMenu.Item>
+            </MoreMenu>
+          {/if}
+        {/snippet}
+        {#snippet facts()}
+          <!-- Facts in the facts row, never pills (section 11); a job with no template shows no Template fact (W6). -->
+          <Fact label="Version"><span class="tabular-nums">{detail.workflowVersion}</span></Fact>
+          {#if detail.template}<Fact label="Template">{detail.template.templateName} v{detail.template.version}</Fact>{/if}
+          <Fact label="Last updated">
+            <LastUpdated value={detail.lastUpdated} members={team.data?.data} currentUserId={page.data.user?.id} onhistory={() => (historyOpen = true)} />
+          </Fact>
         {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
       </HeaderBand>
 
       <div class={workArea}>
         {#if draft.outdated}
-          <Panel title="Someone else saved this workflow" role="alert">
-            <!-- Discarding the unsaved draft cannot be undone, so it lives in a menu and confirms (A2). -->
-            {#snippet actions()}
-              <MoreMenu
-                label="More actions"
-                size="icon"
-                onclosed={() => {
-                  if (discardChosen) confirmDiscard = true;
-                  discardChosen = false;
-                }}
-              >
-                <DropdownMenu.Item variant="destructive" onSelect={() => (discardChosen = true)}>Discard mine and load theirs</DropdownMenu.Item>
-              </MoreMenu>
-            {/snippet}
-            <p>It is now version {detail.workflowVersion}. Your changes here are not saved, and saving them would be refused.</p>
-          </Panel>
+          <!-- A problem is a notice (E2); Discard mine and load theirs is in the header's More menu. -->
+          <Notice>Someone else saved this workflow: it is now version {detail.workflowVersion}. Your changes here are not saved, and saving them would be refused.</Notice>
         {/if}
         {#if detail.template?.updateAvailable && !readonly}
           <Panel title="Template update available">
@@ -227,6 +239,21 @@
     <ActionBar>{@render saveButton()}</ActionBar>
   {/if}
 </main>
+
+{#if detail}
+  <HistorySheet
+    bind:open={historyOpen}
+    name={detail.title}
+    entries={history.entries}
+    error={history.error}
+    onretry={history.retry}
+    hasMore={history.hasMore}
+    loadingMore={history.loadingMore}
+    onmore={history.more}
+    members={team.data?.data}
+    currentUserId={page.data.user?.id}
+  />
+{/if}
 
 {#snippet saveButton()}
   <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save workflow</Button>

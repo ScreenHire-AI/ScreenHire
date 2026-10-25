@@ -97,9 +97,9 @@
     <span class="font-semibold tabular-nums">{formatRating(rated.value)}</span>
     <Hint content={`From ${scorecardCount(rated.count)}`}>
       {#snippet children({ props })}
-        <span {...props} class="inline-flex items-center gap-0.5 text-muted-foreground">
-          <ClipboardCheckIcon class="size-3.5" aria-hidden="true" />
-          <span aria-hidden="true">{rated.count}</span>
+        <!-- In a table cell the count is text, with no icon (L1); its words are in the tooltip. -->
+        <span {...props} class="inline-flex items-center text-muted-foreground tabular-nums">
+          <span aria-hidden="true">({rated.count})</span>
           <span class="sr-only">from {scorecardCount(rated.count)}</span>
         </span>
       {/snippet}

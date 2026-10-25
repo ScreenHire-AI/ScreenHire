@@ -98,10 +98,12 @@ describe('email template form', () => {
     await fireEvent.focus(subject);
     subject.setSelectionRange(0, 0);
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Insert Candidate name' }));
+    await fireEvent.pointerDown(screen.getByRole('button', { name: 'Insert variable' }), { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: 'Reason' })).not.toBeInTheDocument();
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Candidate name' }));
 
     await waitFor(() => expect(subject).toHaveValue('{{ candidateName }}An update on {{ jobTitle }}'));
-    expect(screen.queryByRole('button', { name: 'Insert Reason' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
   });
 

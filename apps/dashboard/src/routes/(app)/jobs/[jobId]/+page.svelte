@@ -112,8 +112,9 @@
   }
 
   let view = $state<'table' | 'board'>('table');
-  // The board fills the window below the header and scrolls inside itself, so the page never scrolls (section 21).
-  const boardFills = $derived(tab === 'candidates' && view === 'board' && !sidebar.isMobile);
+  // The table or the board fills the window below the header and scrolls inside itself, so the page never scrolls
+  // (S6, section 21).
+  const boardFills = $derived(tab === 'candidates' && !sidebar.isMobile);
   let confirmClose = $state(false);
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;

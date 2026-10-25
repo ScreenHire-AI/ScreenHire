@@ -2,14 +2,14 @@
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import Hint from '#lib/components/hint.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import Panel from '#lib/components/panel.svelte';
   import ProblemIcon from '#lib/components/problem-icon.svelte';
+  import ReorderList from '#lib/components/reorder-list.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -19,19 +19,19 @@
     errorsUnder,
     isTerminal,
     laneOf,
-    moveItem,
     newStage,
     removeAt,
     stageKindLabels,
     stageKinds,
     summarize,
   } from '#lib/workflow.js';
-  import { labelClass, rowClass, selectClass } from './controls.js';
+  import { labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
   import ScorecardName from './scorecard-name.svelte';
 
   // The default builder view (workflow-engine.md §4): the stages in order, each with the automations that fire on it,
-  // and a panel for the automations that belong to no one stage. Stages reorder with buttons, not dragging (WCAG 2.5.7).
+  // then a panel for the automations that belong to no one stage, full width under the stages (S7). Stages reorder with
+  // a grip (A7): drag it, open its Move menu, or press Space and the arrow keys (WCAG 2.5.7).
   let {
     workflow = $bindable(),
     errors,
@@ -85,21 +85,35 @@
   <Button variant="outline" {size} onclick={() => onopen(stageId)}>Edit automations <span class="sr-only">for {name}</span></Button>
 {/snippet}
 
-<div class="flex flex-wrap items-start gap-5">
-  <Panel title="Stages" count={workflow.stages.length} class="flex-[999_1_520px]">
+<div class="flex flex-col gap-5">
+  <Panel title="Stages" count={workflow.stages.length}>
     {#snippet actions()}
       <Button variant="outline" onclick={() => (workflow.stages = [...workflow.stages, newStage(workflow)])}><PlusIcon aria-hidden="true" />Add stage</Button>
     {/snippet}
     <FieldErrors id="stages-errors" messages={errorsAt(errors, 'stages')} />
-    <ol class="@container flex flex-col">
-      {#each workflow.stages as stage, index (stage.id)}
+    <ReorderList
+      items={workflow.stages}
+      key={(stage) => stage.id}
+      label="Stages"
+      itemLabel={(stage) => stage.name}
+      onreorder={(next) => (workflow.stages = next)}
+      class="@container divide-y divide-border-subtle [&>li:first-child>div]:pt-0 [&>li:last-child>div]:pb-0"
+    >
+      {#snippet item(stage, grip)}
+        {@const index = workflow.stages.indexOf(stage)}
         {@const stageErrors = errorsUnder(errors, `stages[${index}]`).map((error) => error.message)}
-        <li aria-label={`Stage ${index + 1}: ${stage.name}`} class={['flex gap-3', rowClass]}>
-          <span class="pt-6"><StepMarker>{index + 1}</StepMarker></span>
-          <div class="flex min-w-0 flex-1 flex-col gap-3">
+        <div aria-label={`Stage ${index + 1}: ${stage.name}`} role="group" class="flex gap-2 bg-card py-4">
+          <span class="pt-6">{@render grip()}</span>
+          <!-- The stage's id is detail: it is in the marker's tooltip (W6). -->
+          <span class="pt-6">
+            <Hint content={`Stage id: ${stage.id}`}>
+              {#snippet children({ props })}<span {...props}><StepMarker>{index + 1}</StepMarker></span>{/snippet}
+            </Hint>
+          </span>
+          <div class="flex min-w-0 flex-1 flex-col gap-3 pl-1">
             <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_7rem_auto]">
               <label class={labelClass}>
-                <span>Name <span class="font-mono text-code font-normal text-muted-foreground">{stage.id}</span></span>
+                Name
                 <Input bind:value={stage.name} maxlength={80} aria-invalid={stageErrors.length > 0 || undefined} />
               </label>
               <label class={labelClass}>
@@ -122,14 +136,7 @@
                   />
                 </label>
               {:else}<span class="hidden @xl:block"></span>{/if}
-              <div class="flex shrink-0 justify-end gap-0.5">
-                <!-- The first stage cannot move earlier nor the last later: the button is left out, its place kept (A3). -->
-                {#if index > 0}
-                  <IconButton label={`Move ${stage.name} earlier`} onclick={() => (workflow.stages = moveItem(workflow.stages, index, -1))}><ArrowUpIcon /></IconButton>
-                {:else}<span class="size-8 pointer-coarse:size-11"></span>{/if}
-                {#if index < workflow.stages.length - 1}
-                  <IconButton label={`Move ${stage.name} later`} onclick={() => (workflow.stages = moveItem(workflow.stages, index, 1))}><ArrowDownIcon /></IconButton>
-                {:else}<span class="size-8 pointer-coarse:size-11"></span>{/if}
+              <div class="flex shrink-0 justify-end">
                 <IconButton label={`Remove ${stage.name}`} onclick={() => (workflow.stages = removeAt(workflow.stages, index))}><Trash2Icon /></IconButton>
               </div>
             </div>
@@ -146,12 +153,12 @@
               {/if}
             </div>
           </div>
-        </li>
-      {/each}
-    </ol>
+        </div>
+      {/snippet}
+    </ReorderList>
   </Panel>
 
-  <Panel title="Whole workflow" count={inLane(null).length} class="flex-[1_1_320px]">
+  <Panel title="Whole workflow" count={inLane(null).length}>
     {#snippet actions()}{@render automationsButton(null, 'the whole workflow', 'default')}{/snippet}
     <div class="flex flex-col gap-2">
       {@render summaries(null)}

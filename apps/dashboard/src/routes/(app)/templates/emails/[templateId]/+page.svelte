@@ -53,7 +53,7 @@
   import { copyName, maxNameLength, templateHref, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import type { PageProps } from './$types';
 
-  // One email template in its editor (design system sections 7 and 22, builder): the header band with Built in for
+  // One email template in its editor (design system sections 7 and 21, builder): the header band with Built in for
   // ScreenHire's own, Used by (the automations that send it, T4), Last sent and Last updated with History (T6), then the
   // Edit / Preview switch (A8) over the wording. Built-in emails stay editable in place, and one the team edited offers
   // Reset to original, which confirms (A2). The team's own can be duplicated and archived; an archived one reads only

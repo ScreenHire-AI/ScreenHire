@@ -8,7 +8,6 @@ import {
   factsFor,
   idFrom,
   laneOf,
-  moveItem,
   newAction,
   newAutomation,
   newFollowUp,
@@ -126,12 +125,6 @@ describe('elements', () => {
 
   it('puts stage triggers in their stage lane and the rest in the whole-workflow lane', () => {
     expect(workflow.automations.map(laneOf)).toEqual(['screening', null]);
-  });
-
-  it('reorders with buttons, staying put at either end', () => {
-    expect(moveItem(['a', 'b', 'c'], 0, 1)).toEqual(['b', 'a', 'c']);
-    expect(moveItem(['a', 'b', 'c'], 0, -1)).toEqual(['a', 'b', 'c']);
-    expect(moveItem(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c']);
   });
 });
 

@@ -64,7 +64,7 @@
   import { problemErrors } from '#lib/workflow.js';
   import type { PageProps } from './$types';
 
-  // One library scorecard in its editor (design system sections 7 and 22, builder): the header band with Used by (the
+  // One library scorecard in its editor (design system sections 7 and 21, builder): the header band with Used by (the
   // hiring templates whose stages name it, T4), its questions and rating questions, and Last updated with History (T6);
   // then the Edit / Preview switch (A8). Edit is the form builder with the rating kinds; Preview is the scorecard as a
   // reviewer fills it in, at its real size, and pops out into a window that follows the edits. A built-in reads only,

@@ -139,7 +139,7 @@
               {/each}
             </ul>
           {/if}
-          <p class="text-caption text-muted-foreground">To add or remove {firstName}, use the Hiring team on each job's page.</p>
+          <p class="text-caption text-muted-foreground">Each job's Hiring team changes this list.</p>
         </section>
 
         {#if chosen}
@@ -147,7 +147,7 @@
             <h3 id="access-can" class="text-body font-medium">What {firstName} can do</h3>
             <ul class="flex flex-col gap-1.5">
               {#each can as permission (permission.permission)}
-                <li class="flex gap-2"><CheckIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-status-clear" />{permission.name}</li>
+                <li class="flex gap-2"><CheckIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />{permission.name}</li>
               {/each}
             </ul>
           </section>
