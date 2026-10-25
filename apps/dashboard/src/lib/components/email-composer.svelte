@@ -188,11 +188,11 @@
 
   <div class="flex flex-wrap items-center justify-between gap-2">
     <EditPreviewSwitch bind:mode />
-    {#if mode === 'edit'}
+    {#if mode === 'edit' && variables.length > 0}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}
-            <Button {...props} type="button" variant="outline" disabled={variables.length === 0}><BracesIcon aria-hidden="true" />Insert variable</Button>
+            <Button {...props} type="button" variant="outline"><BracesIcon aria-hidden="true" />Insert variable</Button>
           {/snippet}
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" class="min-w-52" onCloseAutoFocus={focusAfterInsert}>

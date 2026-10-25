@@ -191,11 +191,18 @@ public static partial class SendApplicationEmailHandler
 
         var copy = await db.ApplicationEmails.SingleOrDefaultAsync(e => e.Id == message.SendId, cancellationToken);
         var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken);
-        if (copy is null || application is null || !email.IsConfigured)
+        if (copy is null || application is null)
         {
-            // The application was deleted since (its copy with it), the message was queued before copies were kept, or
-            // this host has no email sender.
-            LogNotSent(logger, message.SendId, "the application, its copy of the email or the email sender is gone");
+            // The application was deleted since (its copy with it), or the message was queued before copies were kept.
+            LogNotSent(logger, message.SendId, "the application or its copy of the email is gone");
+            return outgoing;
+        }
+
+        if (!email.IsConfigured)
+        {
+            // This host has no email sender. The copy of an email that never went is not kept.
+            db.ApplicationEmails.Remove(copy);
+            LogNotSent(logger, message.SendId, "this host has no email sender");
             return outgoing;
         }
 

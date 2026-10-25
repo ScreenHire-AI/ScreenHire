@@ -84,7 +84,7 @@
             <button
               type="button"
               aria-expanded={expanded}
-              aria-controls={`email-${email.id}`}
+              aria-controls={expanded ? `email-${email.id}` : undefined}
               class="-mx-2 flex min-h-11 items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
               onclick={() => (open = expanded ? undefined : email.id)}
             >

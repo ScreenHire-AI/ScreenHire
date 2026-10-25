@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Fluid;
 using Fluid.Ast;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.Infrastructure.Email;
@@ -172,8 +173,16 @@ public sealed partial class EmailTemplates
         context.SetValue("reason", model.Reason ?? "");
         context.SetValue("questionnaireLink", model.QuestionnaireLink ?? "");
 
-        // A subject is one line of plain text: no line breaks a header could carry.
+        // A subject is one line of plain text: no line breaks a header could carry. Variables can make it far longer than
+        // its wording, so it is cut to what a kept copy holds, and the candidate gets the same subject the copy keeps.
         var subject = Parse(content.Subject).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings(" ");
+        if (subject.Length > ApplicationEmail.MaxSubjectLength)
+        {
+            var end = char.IsHighSurrogate(subject[ApplicationEmail.MaxSubjectLength - 1])
+                ? ApplicationEmail.MaxSubjectLength - 1
+                : ApplicationEmail.MaxSubjectLength;
+            subject = subject[..end].TrimEnd();
+        }
         var text = Parse(content.Body).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings("\n");
         if (templateId == EmailTemplateIds.ApplicationRejected)
         {

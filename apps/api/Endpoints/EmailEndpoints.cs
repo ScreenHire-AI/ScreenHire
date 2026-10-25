@@ -376,27 +376,18 @@ internal static class EmailEndpoints
         }
 
         var db = outbox.DbContext;
-        EmailTemplateContent content;
-        if (request.Subject is { } subject && request.Body is { } body)
-        {
-            content = new EmailTemplateContent(subject, body);
-            if (renderer.Validate(null, content).ToProblems() is { } wording)
-            {
-                return TypedResults.ValidationProblem(wording);
-            }
-        }
-        else if (await store.FindAsync(db, request.TemplateId!, cancellationToken) is { } template)
-        {
-            content = template.Content;
-        }
-        else
+        var template = request.TemplateId is { } templateId ? await store.FindAsync(db, templateId, cancellationToken) : null;
+        if (request.TemplateId is not null && template is null)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", "There is no email template with this id."));
         }
 
-        if (request.TemplateId is { } startedFrom && request.Subject is not null && await store.FindAsync(db, startedFrom, cancellationToken) is null)
+        // Wording sent with the request is this send's own (a template changed for one send, or a blank email); without
+        // it, the template's wording as it is. The validator requires one or the other.
+        var content = request.Subject is { } subject && request.Body is { } body ? new EmailTemplateContent(subject, body) : template!.Content;
+        if (request.Subject is not null && renderer.Validate(null, content).ToProblems() is { } wording)
         {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem("templateId", "There is no email template with this id."));
+            return TypedResults.ValidationProblem(wording);
         }
 
         var ids = request.ApplicationIds.Distinct().ToList();
@@ -481,10 +472,6 @@ internal static class EmailEndpoints
                 e.OccurredAt, e.Kept))
             .ToList());
     }
-
-    private const string RejectionOnly = "The rejection email goes only with a Reject action, which tells the candidate why.";
-
-    private const string QuestionnaireOnly = "The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.";
 
     private static bool SendingEnabled(IServiceProvider services) => services.GetService<IEmailSender>() is not null;
 
