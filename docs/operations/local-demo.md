@@ -93,6 +93,7 @@ a user. No password anywhere.
 |---|---|
 | Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data |
 | Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio: works on jobs and candidates, but cannot change the team or the organization's settings |
+| Robin Hale (`robin@brightwater.example.com`) | Interviewer at Brightwater Studio, a custom role Avery made from Viewer: sees candidates, adds notes and tags and fills in scorecards, but is offered no Move and no Settings |
 | Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. After the first time they keep the organization they made |
 | Any email address you type | A new user each time you use a new address: the way to show onboarding again |
 | Unverified address | Refused: the provider did not vouch for the address |
@@ -102,7 +103,8 @@ one more click (**Sign in**) so a mail scanner cannot use it up.
 
 Avery manages the team in **Settings > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
 dashboard's **Join your team** page, and **Accept invitation** signs the invitee in to Brightwater with the invited
-role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, has no Settings in the sidebar.
+role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, and Robin, an Interviewer, have
+no Settings in the sidebar.
 
 ## What the demo data is
 
@@ -191,12 +193,15 @@ the Templates page and its builder (questions, automations and the guardrail tha
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
 
-Settings, as Avery (owners and admins only):
+Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
 
 Settings is one item at the bottom of the sidebar; its pages share the Settings menu.
 
-- **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for; **Compare roles**
-  opens Roles, the table of what each role can do.
+- **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer
+  included; **Compare roles** opens the table of what each role can do. **Roles** lists the four built-in roles and
+  Interviewer, which Avery made from Viewer and gave to Robin: open it to see its permissions, its History ("created the
+  role from Viewer") and Robin under People. **New role** copies a role and opens the copy to change. Deleting
+  Interviewer is refused while Robin has it, saying so.
 - **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
   http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
   back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.

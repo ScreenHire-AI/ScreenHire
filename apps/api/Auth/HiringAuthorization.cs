@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.HttpResults;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -6,39 +6,31 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Auth;
 
 /// <summary>
-/// For every route that changes hiring data (jobs, templates, applications): the signed-in user must belong to an
-/// organization with a role that may change it. Viewers read; Owners, Admins and Recruiters also write. Anyone else
-/// gets 403 with a problem body. The role is read per request, like the membership itself
-/// (<see cref="TenantResolutionMiddleware"/>), so a role change takes effect on the next request. An API key has no role:
-/// it is judged by its scope instead (ADR-0011).
+/// For every route that changes data (hiring, templates, the organization, its team, keys and webhooks): the
+/// signed-in user must belong to an organization with a role that has the route's permission (ADR-0014). The server
+/// checks permissions from the catalogue (<see cref="RolePermissions"/>), never role names, so a custom role works
+/// everywhere a built-in one does. Anyone else gets 403 with a problem body that names the permission. The role is read
+/// per request, like the membership itself (<see cref="TenantResolutionMiddleware"/>), so a role change, or a change to
+/// what a custom role allows, takes effect on the next request. An API key has no role: it is judged by its scope
+/// instead (ADR-0011).
 /// </summary>
 /// <remarks>
 /// An endpoint filter rather than an authorization policy: a failed policy ends in the cookie handler's bare 403
 /// (<c>OnRedirectToAccessDenied</c>), and the dashboard needs the problem body that says why ("No organization" or
-/// "Read-only role"). A policy would need a custom <c>IAuthorizationMiddlewareResultHandler</c> to say that, which is
-/// a bigger layer than this filter. <c>HiringRolesTests</c> sends every write route as a Viewer, so a route that
-/// forgets the filter fails a test.
+/// "Not in your role"). A policy would need a custom <c>IAuthorizationMiddlewareResultHandler</c> to say that, which is
+/// a bigger layer than this filter. <c>RolePermissionsTests</c> reads every route that calls it and holds each to its
+/// permission, and <c>HiringRolesTests</c> and <c>CustomRolesTests</c> send writes as roles without them.
 /// </remarks>
 internal static class HiringAuthorization
 {
-    // Internal for RolePermissionsTests, which holds the permission catalogue to these two lists.
-    internal static readonly OrganizationRole[] Writers = [OrganizationRole.Owner, OrganizationRole.Admin, OrganizationRole.Recruiter];
-
-    internal static readonly OrganizationRole[] Administrators = [OrganizationRole.Owner, OrganizationRole.Admin];
-
-    /// <remarks>An API key needs the <see cref="ApiKeyScope.Write"/> scope instead of a role.</remarks>
-    public static RouteHandlerBuilder RequireHiringRole(this RouteHandlerBuilder builder) =>
-        builder.RequireRole(Writers, ApiKeyScope.Write, "Read-only role", "Your role can see hiring data but not change it. Ask an owner or admin.");
+    /// <summary>The 403 title when the role lacks the permission.</summary>
+    public const string NotInYourRole = "Not in your role";
 
     /// <summary>
-    /// For routes that change the organization itself, such as its careers-page branding, or manage its API keys: Owners
-    /// and Admins only, with the same 403 problem bodies as <see cref="RequireHiringRole"/>. API keys never pass.
+    /// Requires <paramref name="permission"/>. An API key passes only for a hiring write (<see cref="RolePermissions.HiringWrites"/>)
+    /// and only with the <see cref="ApiKeyScope.Write"/> scope; every other permission refuses keys.
     /// </summary>
-    public static RouteHandlerBuilder RequireOrganizationAdmin(this RouteHandlerBuilder builder) =>
-        builder.RequireRole(Administrators, keyScope: null, "Owners and admins only", "Only an owner or admin can change the organization's settings.");
-
-    private static RouteHandlerBuilder RequireRole(
-        this RouteHandlerBuilder builder, OrganizationRole[] allowed, ApiKeyScope? keyScope, string title, string detail) =>
+    public static RouteHandlerBuilder RequirePermission(this RouteHandlerBuilder builder, Permission permission) =>
         builder
             .AddEndpointFilter(async (invocation, next) =>
             {
@@ -46,12 +38,15 @@ internal static class HiringAuthorization
                 var user = invocation.HttpContext.User;
                 if (user.IsApiKey())
                 {
-                    if (keyScope is not { } scope)
+                    if (!RolePermissions.HiringWrites.Contains(permission))
                     {
-                        return TypedResults.Problem(title: title, detail: detail, statusCode: StatusCodes.Status403Forbidden);
+                        return TypedResults.Problem(
+                            title: "Not for API keys",
+                            detail: "An API key cannot do this. Sign in to the dashboard instead.",
+                            statusCode: StatusCodes.Status403Forbidden);
                     }
 
-                    return user.HasApiKeyScope(scope)
+                    return user.HasApiKeyScope(ApiKeyScope.Write)
                         ? await next(invocation)
                         : TypedResults.Problem(
                             title: "Read-only key",
@@ -70,13 +65,17 @@ internal static class HiringAuthorization
                 }
 
                 var db = services.GetRequiredService<ScreenHireDbContext>();
-                var role = await db.OrganizationMembers.AsNoTracking()
-                    .Where(m => m.OrganizationId == organizationId && m.UserId == userId)
-                    .Select(m => (OrganizationRole?)m.Role)
-                    .SingleOrDefaultAsync(invocation.HttpContext.RequestAborted);
-                return role is { } found && allowed.Contains(found)
+                var access = await RoleAccess.ForMemberAsync(db, organizationId, userId, invocation.HttpContext.RequestAborted);
+                return access is not null && access.Permissions.Contains(permission)
                     ? await next(invocation)
-                    : TypedResults.Problem(title: title, detail: detail, statusCode: StatusCodes.Status403Forbidden);
+                    : Refused(permission);
             })
             .ProducesProblem(StatusCodes.Status403Forbidden);
+
+    /// <summary>The 403 for a role without <paramref name="permission"/>.</summary>
+    public static ProblemHttpResult Refused(Permission permission) =>
+        TypedResults.Problem(
+            title: NotInYourRole,
+            detail: $"Your role does not include {RolePermissions.Definition(permission).Name}. Ask an owner or admin.",
+            statusCode: StatusCodes.Status403Forbidden);
 }

@@ -16,6 +16,12 @@ public sealed class OrganizationInvitation : ITenantOwned
 
     public required OrganizationRole Role { get; init; }
 
+    /// <summary>
+    /// The custom role it offers, when <see cref="Role"/> is Custom. No foreign key (ADR-0014): the id is only resolved
+    /// under row-level security, and an old closed invitation must not keep the role from being deleted.
+    /// </summary>
+    public Guid? CustomRoleId { get; init; }
+
     /// <summary>Hex SHA-256 of the token in the emailed link.</summary>
     public required string TokenHash { get; init; }
 

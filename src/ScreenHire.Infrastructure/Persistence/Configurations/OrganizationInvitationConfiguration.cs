@@ -10,6 +10,11 @@ internal sealed class OrganizationInvitationConfiguration : IEntityTypeConfigura
     {
         builder.Property(i => i.Email).HasMaxLength(256);
         builder.Property(i => i.Role).HasConversion<string>().HasMaxLength(20);
+        // No foreign key for custom_role_id (ADR-0014): the id is only ever resolved under row-level security, when the
+        // invitation is written and again when it is accepted, and a key would let closed invitations keep a role from
+        // being deleted forever. Open invitations block a deletion in RoleEndpoints instead.
+        builder.ToTable(t => t.HasCheckConstraint(
+            "ck_organization_invitations_custom_role", "(role = 'Custom') = (custom_role_id IS NOT NULL)"));
         builder.Property(i => i.TokenHash).HasMaxLength(64).IsFixedLength();
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(i => i.OrganizationId).OnDelete(DeleteBehavior.Cascade);

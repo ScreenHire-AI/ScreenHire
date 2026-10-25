@@ -15,6 +15,7 @@ using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
@@ -42,6 +43,9 @@ namespace ScreenHire.Api.Demo;
 /// longer time limit on Interview) and changes the
 /// draft job's salary, and Avery Quinn adds an "Interview invitation" email and edits its subject, on top of the steps above, which Avery
 /// makes. Applying and moving candidates are not tracked changes.</item>
+/// <item>A custom role (<see cref="SeedInterviewerAsync"/>): Avery Quinn makes "Interviewer" from Viewer, with notes, tags and
+/// scorecards, and gives it to Robin Hale, whom the seeder adds as a Viewer, so Roles, the role's History and the
+/// membership log show a custom role.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
@@ -152,6 +156,7 @@ internal sealed partial class DevelopmentDemo(
         }
 
         await TryAsync(() => SeedHistoryAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedInterviewerAsync(stoppingToken), stoppingToken);
 
         foreach (var (slug, boards) in OpenJobs)
         {
@@ -558,6 +563,66 @@ internal sealed partial class DevelopmentDemo(
                 }
             }
         }
+    }
+
+    /// <summary>The custom role the demo makes, and what it adds to Viewer.</summary>
+    public const string InterviewerRoleName = "Interviewer";
+
+    public static IReadOnlyList<Permission> InterviewerPermissions { get; } =
+        [Permission.ViewHiring, Permission.AddNotesAndTags, Permission.FillInScorecards];
+
+    // Made once, as Avery would on the Roles page: the role, then Robin moved to it from Viewer. Both land in the
+    // membership log; the role's change history comes from the tracked save. A Robin someone has given another role
+    // keeps it.
+    private async Task SeedInterviewerAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { Owner: { } owner } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var normalized = CustomRole.Normalize(InterviewerRoleName);
+        if (await db.CustomRoles.AnyAsync(r => r.NormalizedName == normalized, cancellationToken))
+        {
+            return;
+        }
+
+        var role = CustomRole.Copy(step.OrganizationId, InterviewerRoleName, nameof(OrganizationRole.Viewer), InterviewerPermissions, step.Now);
+        db.CustomRoles.Add(role);
+        db.MembershipEvents.Add(new MembershipEvent
+        {
+            OrganizationId = step.OrganizationId,
+            Kind = MembershipEventKind.RoleCreated,
+            ActorUserId = owner,
+            Role = OrganizationRole.Custom,
+            CustomRoleId = role.Id,
+            CustomRoleName = role.Name,
+            OccurredAt = step.Now,
+        });
+
+        var robin = await UserIdAsync(db, DevelopmentDataSeeder.DemoInterviewerEmail, cancellationToken);
+        var member = await db.OrganizationMembers.SingleOrDefaultAsync(
+            m => m.OrganizationId == step.OrganizationId && m.UserId == robin && m.Role == OrganizationRole.Viewer, cancellationToken);
+        if (member is not null)
+        {
+            db.MembershipEvents.Add(new MembershipEvent
+            {
+                OrganizationId = step.OrganizationId,
+                Kind = MembershipEventKind.RoleChanged,
+                ActorUserId = owner,
+                MemberUserId = member.UserId,
+                PreviousRole = OrganizationRole.Viewer,
+                Role = OrganizationRole.Custom,
+                CustomRoleId = role.Id,
+                CustomRoleName = role.Name,
+                OccurredAt = step.Now,
+            });
+            member.AssignRole(OrganizationRole.Custom, role.Id);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static Job DraftJob(Guid organizationId, DateTimeOffset now)

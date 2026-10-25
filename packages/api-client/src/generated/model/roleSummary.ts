@@ -4,14 +4,22 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 import type { OrganizationRole } from './organizationRole.ts';
 import type { Permission } from './permission.ts';
 
 /**
- * A built-in role, most access first: one line on what it is for, and its permissions in catalogue order.
+ * A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is
+ * for, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role
+ * is last updated by ScreenHire.
  */
 export interface RoleSummary {
   role: OrganizationRole;
+  /** @nullable */
+  customRoleId: string | null;
+  name: string;
   description: string;
   permissions: Permission[];
+  people: number;
+  lastUpdated: LastUpdate;
 }

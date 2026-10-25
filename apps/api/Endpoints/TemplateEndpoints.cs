@@ -8,6 +8,7 @@ using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
@@ -32,30 +33,30 @@ internal static class TemplateEndpoints
         group.MapGet("/", ListTemplates).WithName("ListHiringTemplates").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateTemplate).WithName("CreateHiringTemplate")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId:guid}", GetTemplate).WithName("GetHiringTemplate").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId:guid}/history", GetHistory).WithName("GetHiringTemplateHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{templateId:guid}", UpdateTemplate).WithName("UpdateHiringTemplate")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{templateId:guid}/versions", CreateVersion).WithName("CreateHiringTemplateVersion")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId:guid}/versions/{version:int}", GetVersion).WithName("GetHiringTemplateVersion")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{templateId:guid}/versions/{version:int}", UpdateVersion).WithName("UpdateHiringTemplateVersion")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{templateId:guid}/versions/{version:int}/publish", PublishVersion).WithName("PublishHiringTemplateVersion")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 

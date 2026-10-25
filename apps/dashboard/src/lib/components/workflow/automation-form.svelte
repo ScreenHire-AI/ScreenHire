@@ -4,7 +4,7 @@
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
+  import { createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import IconButton from '#lib/components/icon-button.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -55,10 +55,12 @@
   const emailChoices = $derived(emailTemplates.data ? sendableTemplates(emailTemplates.data.data.templates) : builtInEmailTemplates);
 
   const uid = $props.id();
-  // AssignReviewer names one of these, or nobody for the whole team. Viewers are left out: they could not complete the
-  // review task. A reviewer who has left keeps their option until someone picks another, so the form shows what is saved.
+  // AssignReviewer names one of these, or nobody for the whole team. Roles without Complete tasks are left out: they could
+  // not complete the review task. A reviewer who has left keeps their option until someone picks another, so the form
+  // shows what is saved.
   const team = createListTeamMembers();
-  const reviewers = $derived(assignableMembers(team.data?.data ?? []));
+  const roles = createListRoles();
+  const reviewers = $derived(assignableMembers(team.data?.data ?? [], roles.data?.data.roles ?? []));
   const path = $derived(`automations[${index}]`);
   const facts = $derived(factsFor(workflow, automation.trigger.type));
   // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none; a passed time limit,

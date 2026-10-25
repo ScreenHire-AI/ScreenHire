@@ -1,9 +1,10 @@
 import { renderSnippet } from '@tanstack/svelte-table';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
+import type { Moves } from '#lib/moves.svelte.js';
 import { preferences } from '#lib/preferences.svelte.js';
 import { applications, stages } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/integrity-fixtures.js';
@@ -273,6 +274,25 @@ describe('candidate table', () => {
     expect(items[1]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-quiet');
     expect(within(items[1]!).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
     expect(within(items[0]!).getByText('Oct 20, 2026')).toBeInTheDocument();
+  });
+
+  it('leaves the Move menu out of the table and the phone list for a role without Move candidates (A3)', () => {
+    const moves = (allowed: boolean) => ({ allowed, announcement: '', failure: '', move: vi.fn() }) as unknown as Moves;
+    const moveButtons = () => screen.queryAllByRole('button', { name: /to another stage$/ });
+
+    const table = render(WithTooltips, { props: { component: ApplicationTable, props: { applications, stages, moves: moves(true) } } });
+    expect(moveButtons()).toHaveLength(applications.length);
+    table.unmount();
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, stages, moves: moves(false) } } });
+    expect(moveButtons()).toHaveLength(0);
+    cleanup();
+
+    stubViewport(390);
+    const list = render(WithTooltips, { props: { component: ApplicationTable, props: { applications, stages, moves: moves(true) } } });
+    expect(moveButtons()).toHaveLength(applications.length);
+    list.unmount();
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, stages, moves: moves(false) } } });
+    expect(moveButtons()).toHaveLength(0);
   });
 
   it('ignores single-key shortcuts when they are turned off', async () => {

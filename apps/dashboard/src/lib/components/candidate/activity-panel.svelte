@@ -1,7 +1,7 @@
 <script lang="ts">
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import { deleteApplicationNote, type ApplicationTimelineEntry, type OrganizationRole, type TeamMember } from '@screenhire/api-client';
+  import { deleteApplicationNote, type ApplicationTimelineEntry, type Permission, type TeamMember } from '@screenhire/api-client';
   import { ApiError } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
@@ -17,7 +17,6 @@
   import { activityKind, activityKinds, actorText, describeEvent, eventIcons, kindCounts, visibleEntries, type ActivityKind, type ActivityNames } from '#lib/activity.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
-  import { isAdministrator } from '#lib/settings.js';
 
   // An application's Activity (design system section 22): a box for a note, then what anyone did, newest first, saying
   // who and how long ago. On Overview it shows the latest five and links to the Activity tab; there, every entry, with a
@@ -30,8 +29,7 @@
     onretry,
     members,
     currentUserId,
-    role,
-    editable,
+    permissions,
     names,
     limit,
     allHref,
@@ -43,9 +41,8 @@
     onretry: () => void;
     members: readonly TeamMember[] | undefined;
     currentUserId: string | undefined;
-    role: OrganizationRole | undefined;
-    /** Whether the person's role adds notes (Viewers read). */
-    editable: boolean;
+    /** What the person's role allows: Add notes and tags writes, edits and deletes their own notes, Delete anyone's notes any note. */
+    permissions: readonly Permission[];
     names: ActivityNames;
     /** Overview's latest few, with the link to every entry; leave out for the Activity tab and its filter. */
     limit?: number;
@@ -80,8 +77,9 @@
   );
 
   const isAuthor = (entry: ApplicationTimelineEntry) => Boolean(entry.actorUserId) && entry.actorUserId === currentUserId;
+  const editable = $derived(permissions.includes('AddNotesAndTags'));
   const mayEdit = (entry: ApplicationTimelineEntry) => editable && isAuthor(entry);
-  const mayDelete = (entry: ApplicationTimelineEntry) => editable && (isAuthor(entry) || isAdministrator(role));
+  const mayDelete = (entry: ApplicationTimelineEntry) => editable && (isAuthor(entry) || permissions.includes('DeleteAnyNote'));
 
   async function refresh(message: string) {
     announcement = message;

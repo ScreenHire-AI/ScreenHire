@@ -8,8 +8,8 @@ import HistorySheet from './history-sheet.svelte';
 const now = Date.parse('2026-10-25T13:42:00Z');
 
 const members: TeamMember[] = [
-  { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
-  { id: 'm2', userId: 'u2', email: 'jordan@example.com', displayName: 'Jordan Ellis', role: 'Recruiter', joinedAt: '2026-10-01T09:00:00Z' },
+  { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z' },
+  { id: 'm2', userId: 'u2', email: 'jordan@example.com', displayName: 'Jordan Ellis', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-01T09:00:00Z' },
 ];
 
 const entries: HistoryEntry[] = [

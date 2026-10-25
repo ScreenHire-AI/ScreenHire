@@ -1,14 +1,14 @@
 using System.Text.RegularExpressions;
-using ScreenHire.Api.Auth;
 using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.UnitTests.Organizations;
 
 /// <summary>
-/// The permission catalogue describes what the server allows today. Every route a role check guards
-/// (<c>RequireHiringRole</c>, <c>RequireOrganizationAdmin</c> in <c>apps/api/Endpoints</c>) belongs to one permission, and
-/// a role has that permission exactly when the route's check lets the role through. A new guarded route that no permission
-/// names fails here, as does a role set that drifts from <see cref="HiringAuthorization"/> or <see cref="TeamPolicy"/>.
+/// The server checks permissions, not role names (ADR-0014). Every route that calls <c>RequirePermission</c> in
+/// <c>apps/api/Endpoints</c> names the permission this table expects, so a new route without a permission, or a route
+/// that moves to another permission, fails here. The built-in roles hold exactly the sets they had when the checks were
+/// role names (Owner, Admin and Recruiter wrote hiring data; Owner and Admin managed the organization; only an Owner
+/// managed Owners), so no existing member's access changed.
 /// </summary>
 public sealed partial class RolePermissionsTests
 {
@@ -66,51 +66,80 @@ public sealed partial class RolePermissionsTests
         ["RemoveMember"] = Permission.ManageTeam,
         ["CreateInvitation"] = Permission.ManageTeam,
         ["RevokeInvitation"] = Permission.ManageTeam,
+        ["CreateRole"] = Permission.ManageTeam,
+        ["UpdateRole"] = Permission.ManageTeam,
+        ["DeleteRole"] = Permission.ManageTeam,
     };
 
-    private static readonly OrganizationRole[] AllRoles = Enum.GetValues<OrganizationRole>();
+    private static readonly OrganizationRole[] BuiltInRoles =
+        [OrganizationRole.Owner, OrganizationRole.Admin, OrganizationRole.Recruiter, OrganizationRole.Viewer];
 
     [Fact]
-    public void Every_guarded_route_belongs_to_a_permission()
+    public void Every_guarded_route_requires_its_permission()
     {
-        GuardedRoutes().Keys.Should().BeEquivalentTo(Routes.Keys, "every route a role check guards is in the catalogue, and nothing else");
+        GuardedRoutes().Should().BeEquivalentTo(Routes, "every route a permission guards is in the table, with the same permission");
     }
 
     [Fact]
-    public void A_role_has_a_route_s_permission_exactly_when_the_route_s_check_allows_the_role()
+    public void Built_in_roles_keep_exactly_the_access_they_had()
     {
-        foreach (var (operation, check) in GuardedRoutes())
-        {
-            var allowed = check switch
-            {
-                "RequireHiringRole" => HiringAuthorization.Writers,
-                "RequireOrganizationAdmin" => HiringAuthorization.Administrators,
-                _ => throw new InvalidOperationException($"Unknown check {check}."),
-            };
-            foreach (var role in AllRoles)
-            {
-                RolePermissions.Has(role, Routes[operation]).Should().Be(
-                    allowed.Contains(role), $"{operation} is guarded by {check}, and {role} {(allowed.Contains(role) ? "passes" : "does not pass")} it");
-            }
-        }
+        // Written out, not derived: these are the sets the role-name checks allowed before custom roles.
+        Permission[] viewer = [Permission.ViewHiring];
+        Permission[] recruiter =
+        [
+            .. viewer, Permission.EditJobs, Permission.AddCandidates, Permission.MoveCandidates, Permission.AddNotesAndTags,
+            Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
+            Permission.RunAutomations, Permission.EditHiringTemplates,
+        ];
+        Permission[] admin =
+        [
+            .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
+            Permission.ManageTeam,
+        ];
+        Permission[] owner = [.. admin, Permission.ManageOwners];
+
+        RolePermissions.Of(OrganizationRole.Owner).Should().BeEquivalentTo(owner);
+        RolePermissions.Of(OrganizationRole.Admin).Should().BeEquivalentTo(admin);
+        RolePermissions.Of(OrganizationRole.Recruiter).Should().BeEquivalentTo(recruiter);
+        RolePermissions.Of(OrganizationRole.Viewer).Should().BeEquivalentTo(viewer);
+    }
+
+    [Fact]
+    public void An_api_key_with_the_write_scope_does_the_hiring_writes_and_nothing_more()
+    {
+        RolePermissions.HiringWrites.Should().BeEquivalentTo(
+            RolePermissions.Of(OrganizationRole.Recruiter).Except([Permission.ViewHiring]),
+            "a Write key passes exactly where the Recruiter's writes do, as RequireHiringRole let it through before");
     }
 
     [Fact]
     public void Team_permissions_follow_the_team_policy()
     {
-        foreach (var role in AllRoles)
+        foreach (var role in BuiltInRoles)
         {
-            RolePermissions.Has(role, Permission.ManageOwners).Should().Be(TeamPolicy.MayAssign(role, OrganizationRole.Owner), role.ToString());
-            var managesSomeone = AllRoles.Any(other => other != OrganizationRole.Owner && TeamPolicy.MayAssign(role, other));
-            RolePermissions.Has(role, Permission.ManageTeam).Should().Be(
-                HiringAuthorization.Administrators.Contains(role) && managesSomeone, role.ToString());
+            var permissions = RolePermissions.Of(role);
+            RolePermissions.Has(role, Permission.ManageOwners).Should().Be(
+                TeamPolicy.MayAssign(permissions, RolePermissions.Of(OrganizationRole.Owner)), role.ToString());
+            var managesSomeone = BuiltInRoles.Any(other => other != OrganizationRole.Owner && TeamPolicy.MayAssign(permissions, RolePermissions.Of(other)));
+            RolePermissions.Has(role, Permission.ManageTeam).Should().Be(managesSomeone, role.ToString());
         }
     }
 
     [Fact]
     public void Every_member_sees_hiring_data()
     {
-        AllRoles.Should().OnlyContain(role => RolePermissions.Has(role, Permission.ViewHiring));
+        BuiltInRoles.Should().OnlyContain(role => RolePermissions.Has(role, Permission.ViewHiring));
+        RolePermissions.ForCustom([]).Should().Contain(Permission.ViewHiring);
+        RolePermissions.Permissions.Where(p => p.EveryRole).Select(p => p.Permission).Should().Equal(Permission.ViewHiring);
+    }
+
+    [Fact]
+    public void Only_managing_owners_is_owner_only_and_a_custom_role_never_holds_it()
+    {
+        RolePermissions.Permissions.Where(p => p.OwnerOnly).Select(p => p.Permission).Should().Equal(Permission.ManageOwners);
+        RolePermissions.ForCustom(Enum.GetValues<Permission>()).Should().NotContain(Permission.ManageOwners)
+            .And.BeEquivalentTo(RolePermissions.Of(OrganizationRole.Admin), "a custom role can hold anything but Owner-only permissions");
+        RolePermissions.Assignable.Should().NotContain(Permission.ManageOwners);
     }
 
     [Fact]
@@ -118,37 +147,63 @@ public sealed partial class RolePermissionsTests
     {
         RolePermissions.Permissions.Select(p => p.Permission).Should().BeEquivalentTo(Enum.GetValues<Permission>())
             .And.OnlyHaveUniqueItems();
-        Permission[] byRule = [Permission.ViewHiring, Permission.ManageOwners];
+        // Seeing hiring data has no write route, Manage Owners is TeamPolicy's, and deleting anyone's note is NotePolicy's.
+        Permission[] byRule = [Permission.ViewHiring, Permission.ManageOwners, Permission.DeleteAnyNote];
         Enum.GetValues<Permission>().Except(byRule).Should().OnlyContain(permission => Routes.ContainsValue(permission));
     }
 
     [Fact]
     public void Each_built_in_role_is_described_once_most_access_first()
     {
-        RolePermissions.Roles.Select(r => r.Role).Should().Equal(AllRoles);
+        RolePermissions.Roles.Select(r => r.Role).Should().Equal(BuiltInRoles);
         RolePermissions.Roles.Should().OnlyContain(r => !string.IsNullOrWhiteSpace(r.Description));
         RolePermissions.Roles.Select(r => r.Permissions.Count).Should().BeInDescendingOrder();
     }
 
-    // Each fluent route statement in the endpoint sources that names an operation and calls a role check.
-    private static Dictionary<string, string> GuardedRoutes()
+    [Fact]
+    public void A_custom_role_has_no_built_in_permissions()
     {
-        var routes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var read = () => RolePermissions.Of(OrganizationRole.Custom);
+        read.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("owner", true)]
+    [InlineData(" Viewer ", true)]
+    [InlineData("ADMIN", true)]
+    [InlineData("Interviewer", false)]
+    [InlineData("Custom", false)]
+    public void Built_in_names_are_recognized_ignoring_case(string name, bool builtIn) =>
+        RolePermissions.IsBuiltInName(name).Should().Be(builtIn);
+
+    [Fact]
+    public void A_custom_role_is_summarized_from_its_permissions_in_catalogue_order()
+    {
+        RolePermissions.Summarize([Permission.FillInScorecards, Permission.ViewHiring, Permission.AddNotesAndTags])
+            .Should().Be("See jobs and candidates, add notes and tags and fill in scorecards.");
+        RolePermissions.Summarize([Permission.ViewHiring]).Should().Be("See jobs and candidates.");
+        RolePermissions.Summarize([Permission.ViewHiring, Permission.ManageApiKeys]).Should().Be("See jobs and candidates and manage API keys.");
+    }
+
+    // Each fluent route statement in the endpoint sources that names an operation and requires a permission.
+    private static Dictionary<string, Permission> GuardedRoutes()
+    {
+        var routes = new Dictionary<string, Permission>(StringComparer.Ordinal);
         foreach (var file in Directory.EnumerateFiles(RepositoryFiles.PathTo("apps", "api", "Endpoints"), "*.cs"))
         {
             var code = CommentLine().Replace(File.ReadAllText(file), string.Empty);
             foreach (var statement in code.Split(';'))
             {
                 var name = OperationName().Match(statement);
-                var check = RoleCheck().Match(statement);
+                var check = PermissionCheck().Match(statement);
                 if (!check.Success)
                 {
                     continue;
                 }
 
-                // A guarded route without an operation name would slip past the catalogue, so it fails instead.
-                name.Success.Should().BeTrue($"every route a role check guards has a WithName, and one in {Path.GetFileName(file)} has none:{statement}");
-                routes.Add(name.Groups[1].Value, check.Groups[1].Value);
+                // A guarded route without an operation name would slip past the table, so it fails instead.
+                name.Success.Should().BeTrue($"every route a permission guards has a WithName, and one in {Path.GetFileName(file)} has none:{statement}");
+                routes.Add(name.Groups[1].Value, Enum.Parse<Permission>(check.Groups[1].Value));
             }
         }
 
@@ -161,6 +216,6 @@ public sealed partial class RolePermissionsTests
     [GeneratedRegex(@"\.WithName\(""(\w+)""\)")]
     private static partial Regex OperationName();
 
-    [GeneratedRegex(@"\.(RequireHiringRole|RequireOrganizationAdmin)\(\)")]
-    private static partial Regex RoleCheck();
+    [GeneratedRegex(@"\.RequirePermission\(Permission\.(\w+)\)")]
+    private static partial Regex PermissionCheck();
 }

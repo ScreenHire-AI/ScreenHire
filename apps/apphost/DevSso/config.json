@@ -28,6 +28,16 @@
         },
         {
           "requestParam": "subject",
+          "match": "brightwater-interviewer",
+          "claims": {
+            "sub": "brightwater-interviewer",
+            "email": "robin@brightwater.example.com",
+            "email_verified": true,
+            "name": "Robin Hale"
+          }
+        },
+        {
+          "requestParam": "subject",
           "match": "new-recruiter",
           "claims": {
             "sub": "new-recruiter",

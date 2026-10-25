@@ -99,7 +99,7 @@
     { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
-    ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
+    ...(stages && moves?.allowed ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
 
   // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
@@ -280,7 +280,7 @@
 {/snippet}
 
 {#snippet moveCell(application: ApplicationSummary)}
-  {#if stages && moves}
+  {#if stages && moves?.allowed}
     <MoveToStage
       compact
       candidateName={application.candidateName}
@@ -318,7 +318,7 @@
       {#if ai && ai.level.rank > 0}
         <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
       {/if}
-      {#if stages && moves}
+      {#if stages && moves?.allowed}
         <span class="relative ml-auto">{@render moveCell(application)}</span>
       {/if}
     {/snippet}

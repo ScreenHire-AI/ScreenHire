@@ -9,7 +9,10 @@ import type { OrganizationRole } from './organizationRole.ts';
 
 /**
  * One entry in the organization's membership log. `actorUserId` made the change; `memberUserId` is who it is
- * about (null for an invitation not accepted yet). `previousRole` and `role` are set where the kind has them.
+ * about (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and
+ * `role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,
+ * RoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in
+ * `previousRoleName`.
  */
 export interface MembershipLogEntry {
   id: string;
@@ -20,6 +23,14 @@ export interface MembershipLogEntry {
   /** @nullable */
   invitationId: string | null;
   previousRole: null | OrganizationRole;
+  /** @nullable */
+  previousCustomRoleId: string | null;
+  /** @nullable */
+  previousRoleName: string | null;
   role: null | OrganizationRole;
+  /** @nullable */
+  customRoleId: string | null;
+  /** @nullable */
+  roleName: string | null;
   occurredAt: string;
 }

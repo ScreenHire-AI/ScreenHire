@@ -2,7 +2,7 @@ import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, T
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
-import { apiStub, roleCatalogue, user } from '../../../../test-support/fixtures.js';
+import { apiStub, interviewerRoleId, roleCatalogue, user, userAs } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -10,14 +10,18 @@ vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dash
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
-const member = (id: string, displayName: string, role: OrganizationRole, userId = `user-${id}`): TeamMember => ({
+const member = (id: string, displayName: string, role: Exclude<OrganizationRole, 'Custom'>, userId = `user-${id}`): TeamMember => ({
   id,
   userId,
   email: `${displayName.split(' ')[0]!.toLowerCase()}@brightwater.example.com`,
   displayName,
   role,
+  customRoleId: null,
+  roleName: role,
   joinedAt: '2026-09-01T09:00:00Z',
 });
+
+const asAdmin = (teammate: TeamMember): TeamMember => ({ ...teammate, role: 'Admin', roleName: 'Admin' });
 
 // The signed-in person is `user` (Avery Quinn); the others are fictional colleagues.
 const owner = member('m-1', 'Avery Quinn', 'Owner', user.id);
@@ -26,14 +30,14 @@ const admin = member('m-3', 'Casey Morgan', 'Admin');
 const recruiter = member('m-4', 'Jordan Lee', 'Recruiter');
 
 const invitations: PendingInvitation[] = [
-  { id: 'i-1', email: 'sam@example.com', role: 'Recruiter', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
-  { id: 'i-2', email: 'robin@example.com', role: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
+  { id: 'i-1', email: 'sam@example.com', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
+  { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z' },
 ];
 
-const as = (role: OrganizationRole): { data: { user: CurrentUser } } => ({ data: { user: { ...user, organization: { ...user.organization!, role } } } });
+const as = (role: Exclude<OrganizationRole, 'Custom'>): { data: { user: CurrentUser } } => ({ data: { user: userAs(role) } });
 
 // The signed-in person is the owner by default; pass the team to put them elsewhere.
-function renderPage(role: OrganizationRole, routes: Parameters<typeof apiStub>[0] = {}, team: TeamMember[] = [owner, otherOwner, admin, recruiter]) {
+function renderPage(role: Exclude<OrganizationRole, 'Custom'>, routes: Parameters<typeof apiStub>[0] = {}, team: TeamMember[] = [owner, otherOwner, admin, recruiter]) {
   const fetchMock = vi.fn(
     apiStub({
       'GET /v1/organization/members': () => Response.json(team),
@@ -109,7 +113,7 @@ describe('team page', () => {
 
   it("gives an Admin no actions on an Owner's row, and none on their own", async () => {
     // Avery is the Admin here; Blake is the Owner.
-    renderPage('Admin', {}, [{ ...owner, role: 'Admin' }, otherOwner, admin, recruiter]);
+    renderPage('Admin', {}, [asAdmin(owner), otherOwner, admin, recruiter]);
     await screen.findAllByText('Casey Morgan');
 
     expect(screen.queryAllByRole('button', { name: 'Actions for Avery Quinn' })).toHaveLength(0);
@@ -137,14 +141,29 @@ describe('team page', () => {
     renderPage('Owner');
     const menu = await openMenu('Actions for Jordan Lee');
 
-    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer']);
+    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Interviewer']);
   });
 
   it('offers an Admin no Owner role to give a member', async () => {
-    renderPage('Admin', {}, [{ ...owner, role: 'Admin' }, otherOwner, admin, recruiter]);
+    renderPage('Admin', {}, [asAdmin(owner), otherOwner, admin, recruiter]);
     const menu = await openMenu('Actions for Jordan Lee');
 
-    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Admin', 'Recruiter', 'Viewer']);
+    expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Admin', 'Recruiter', 'Viewer', 'Interviewer']);
+  });
+
+  it('shows a custom role by its name alone, and gives it by its id', async () => {
+    const robin: TeamMember = { ...member('m-6', 'Robin Hale', 'Viewer'), role: 'Custom', customRoleId: interviewerRoleId, roleName: 'Interviewer' };
+    const bodies: unknown[] = [];
+    renderPage('Owner', {
+      'PUT /v1/organization/members/m-4/role': (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(recruiter)),
+    }, [owner, recruiter, robin]);
+
+    expect((await screen.findAllByText('Interviewer')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Custom/)).not.toBeInTheDocument();
+    const menu = await openMenu('Actions for Jordan Lee');
+    await fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'Interviewer' }));
+
+    await waitFor(() => expect(bodies).toEqual([{ role: 'Custom', customRoleId: interviewerRoleId }]));
   });
 
   it("changes a member's role from the menu", async () => {
@@ -156,7 +175,7 @@ describe('team page', () => {
 
     await fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'Viewer' }));
 
-    await waitFor(() => expect(bodies).toEqual([{ role: 'Viewer' }]));
+    await waitFor(() => expect(bodies).toEqual([{ role: 'Viewer', customRoleId: null }]));
     // The menu closes after a pick, so it cannot cover the next control.
     await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
   });
@@ -175,7 +194,7 @@ describe('team page', () => {
       renderPage('Owner');
       const sheet = await openInviteSheet();
 
-      expect(roleNames(sheet)).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer']);
+      expect(roleNames(sheet)).toEqual(['owner', 'admin', 'recruiter', 'viewer', interviewerRoleId]);
       expect(within(sheet).getByRole('radio', { name: /^Viewer/ })).toBeChecked();
       await expectNoAxeViolations();
     });
@@ -185,13 +204,13 @@ describe('team page', () => {
       const sheet = await openInviteSheet();
 
       expect(await within(sheet).findByRole('radio', { name: 'Viewer Sees jobs and candidates and changes nothing.' })).toBeInTheDocument();
-      expect(within(sheet).getByRole('link', { name: 'Compare roles' })).toHaveAttribute('href', '/settings/roles');
+      expect(within(sheet).getByRole('link', { name: 'Compare roles' })).toHaveAttribute('href', '/settings/roles/compare');
     });
 
     it('offers an Admin no Owner option in the invite sheet', async () => {
       renderPage('Admin');
 
-      expect(roleNames(await openInviteSheet())).toEqual(['Admin', 'Recruiter', 'Viewer']);
+      expect(roleNames(await openInviteSheet())).toEqual(['admin', 'recruiter', 'viewer', interviewerRoleId]);
     });
 
     it('posts the email and the role chosen, then closes the sheet', async () => {
@@ -208,7 +227,7 @@ describe('team page', () => {
       await fireEvent.click(within(sheet).getByRole('radio', { name: /^Recruiter/ }));
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));
 
-      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Recruiter' }]));
+      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Recruiter', customRoleId: null }]));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 

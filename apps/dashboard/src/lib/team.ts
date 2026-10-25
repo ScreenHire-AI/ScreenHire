@@ -1,11 +1,12 @@
-import type { ApplicationTaskKind, OrganizationRole, TeamMember } from '@screenhire/api-client';
+import type { ApplicationTaskKind, RoleSummary, TeamMember } from '@screenhire/api-client';
+import { roleKey } from '#lib/settings.js';
 
-/** Roles that can change hiring data, so the ones a task can go to: a Viewer could not complete it. */
-const assignableRoles: readonly OrganizationRole[] = ['Owner', 'Admin', 'Recruiter'];
-
-/** Team members an AssignReviewer action may name, in the team list's order. */
-export const assignableMembers = (members: readonly TeamMember[]): TeamMember[] =>
-  members.filter((member) => assignableRoles.includes(member.role));
+/**
+ * Team members an AssignReviewer action may name, in the team list's order: those whose role can complete the task it
+ * makes (Complete tasks), built-in or custom. A Viewer could not complete it. Nobody until the roles have loaded.
+ */
+export const assignableMembers = (members: readonly TeamMember[], roles: readonly RoleSummary[]): TeamMember[] =>
+  members.filter((member) => roles.find((role) => roleKey(role) === roleKey(member))?.permissions.includes('CompleteTasks'));
 
 /**
  * A person as the screen names them: "you" for the signed-in person, a member's display name, or "a former teammate"

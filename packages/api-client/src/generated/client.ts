@@ -32,10 +32,11 @@ import type {
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreateRoleRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
-  CurrentOrganization,
   CurrentUser,
+  CustomRoleDetail,
   DismissIntegrityAssessmentRequest,
   EditApplicationNoteRequest,
   EmailPreview,
@@ -46,6 +47,7 @@ import type {
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetRoleHistoryParams,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -70,6 +72,7 @@ import type {
   ManualAutomationQueued,
   MembershipLogEntry,
   MoveApplicationRequest,
+  MyOrganization,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationIntegritySettings,
@@ -107,6 +110,7 @@ import type {
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
   UpdateOrganizationRequest,
+  UpdateRoleRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -384,7 +388,7 @@ export const getCurrentUser = async ( options?: Parameters<typeof apiFetch>[1]):
 
 
 export type listMyOrganizationsResponse200 = {
-  data: CurrentOrganization[]
+  data: MyOrganization[]
   status: 200
 }
 
@@ -4415,46 +4419,6 @@ export const listTeamMembers = async ( options?: Parameters<typeof apiFetch>[1])
 
 
 
-export type listRolesResponse200 = {
-  data: RoleCatalogue
-  status: 200
-}
-
-export type listRolesResponse401 = {
-  data: void
-  status: 401
-}
-
-export type listRolesResponseSuccess = (listRolesResponse200) & {
-  headers: Headers;
-};
-export type listRolesResponseError = (listRolesResponse401) & {
-  headers: Headers;
-};
-
-export type listRolesResponse = (listRolesResponseSuccess | listRolesResponseError)
-
-export const getListRolesUrl = () => {
-
-
-
-
-  return `/v1/organization/roles`
-}
-
-export const listRoles = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listRolesResponse> => {
-
-  return apiFetch<listRolesResponse>(getListRolesUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
 export type listInvitationsResponse200 = {
   data: PendingInvitation[]
   status: 200
@@ -4792,6 +4756,339 @@ export const revokeInvitation = async (invitationId: string, options?: Parameter
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type listRolesResponse200 = {
+  data: RoleCatalogue
+  status: 200
+}
+
+export type listRolesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listRolesResponseSuccess = (listRolesResponse200) & {
+  headers: Headers;
+};
+export type listRolesResponseError = (listRolesResponse401) & {
+  headers: Headers;
+};
+
+export type listRolesResponse = (listRolesResponseSuccess | listRolesResponseError)
+
+export const getListRolesUrl = () => {
+
+
+
+
+  return `/v1/organization/roles`
+}
+
+export const listRoles = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listRolesResponse> => {
+
+  return apiFetch<listRolesResponse>(getListRolesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createRoleResponse201 = {
+  data: CustomRoleDetail
+  status: 201
+}
+
+export type createRoleResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createRoleResponseSuccess = (createRoleResponse201) & {
+  headers: Headers;
+};
+export type createRoleResponseError = (createRoleResponse400 | createRoleResponse401 | createRoleResponse403) & {
+  headers: Headers;
+};
+
+export type createRoleResponse = (createRoleResponseSuccess | createRoleResponseError)
+
+export const getCreateRoleUrl = () => {
+
+
+
+
+  return `/v1/organization/roles`
+}
+
+export const createRole = async (createRoleRequest: CreateRoleRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createRoleResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createRoleResponse>(getCreateRoleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createRoleRequest)
+  }
+);}
+
+
+
+export type getRoleResponse200 = {
+  data: CustomRoleDetail
+  status: 200
+}
+
+export type getRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getRoleResponseSuccess = (getRoleResponse200) & {
+  headers: Headers;
+};
+export type getRoleResponseError = (getRoleResponse401 | getRoleResponse404) & {
+  headers: Headers;
+};
+
+export type getRoleResponse = (getRoleResponseSuccess | getRoleResponseError)
+
+export const getGetRoleUrl = (roleId: string,) => {
+
+
+
+
+  return `/v1/organization/roles/${roleId}`
+}
+
+export const getRole = async (roleId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getRoleResponse> => {
+
+  return apiFetch<getRoleResponse>(getGetRoleUrl(roleId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateRoleResponse200 = {
+  data: CustomRoleDetail
+  status: 200
+}
+
+export type updateRoleResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateRoleResponseSuccess = (updateRoleResponse200) & {
+  headers: Headers;
+};
+export type updateRoleResponseError = (updateRoleResponse400 | updateRoleResponse401 | updateRoleResponse403 | updateRoleResponse404) & {
+  headers: Headers;
+};
+
+export type updateRoleResponse = (updateRoleResponseSuccess | updateRoleResponseError)
+
+export const getUpdateRoleUrl = (roleId: string,) => {
+
+
+
+
+  return `/v1/organization/roles/${roleId}`
+}
+
+export const updateRole = async (roleId: string,
+    updateRoleRequest: UpdateRoleRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateRoleResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateRoleResponse>(getUpdateRoleUrl(roleId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateRoleRequest)
+  }
+);}
+
+
+
+export type deleteRoleResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteRoleResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteRoleResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteRoleResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteRoleResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type deleteRoleResponseSuccess = (deleteRoleResponse204) & {
+  headers: Headers;
+};
+export type deleteRoleResponseError = (deleteRoleResponse401 | deleteRoleResponse403 | deleteRoleResponse404 | deleteRoleResponse409) & {
+  headers: Headers;
+};
+
+export type deleteRoleResponse = (deleteRoleResponseSuccess | deleteRoleResponseError)
+
+export const getDeleteRoleUrl = (roleId: string,) => {
+
+
+
+
+  return `/v1/organization/roles/${roleId}`
+}
+
+export const deleteRole = async (roleId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteRoleResponse> => {
+
+  return apiFetch<deleteRoleResponse>(getDeleteRoleUrl(roleId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getRoleHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getRoleHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getRoleHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getRoleHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getRoleHistoryResponseSuccess = (getRoleHistoryResponse200) & {
+  headers: Headers;
+};
+export type getRoleHistoryResponseError = (getRoleHistoryResponse400 | getRoleHistoryResponse401 | getRoleHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getRoleHistoryResponse = (getRoleHistoryResponseSuccess | getRoleHistoryResponseError)
+
+export const getGetRoleHistoryUrl = (roleId: string,
+    params?: GetRoleHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/roles/${roleId}/history?${stringifiedParams}` : `/v1/organization/roles/${roleId}/history`
+}
+
+export const getRoleHistory = async (roleId: string,
+    params?: GetRoleHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getRoleHistoryResponse> => {
+
+  return apiFetch<getRoleHistoryResponse>(getGetRoleHistoryUrl(roleId,params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

@@ -8,6 +8,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -28,7 +29,7 @@ internal static class ScorecardEndpoints
         group.MapGet("/", ListApplicationScorecards).WithName("ListApplicationScorecards").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", SubmitScorecard).WithName("SubmitScorecard")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.FillInScorecards)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;

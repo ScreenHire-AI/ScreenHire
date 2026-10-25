@@ -9,10 +9,13 @@ import type { PermissionGroup } from './permissionGroup.ts';
 
 /**
  * A permission in the order the Roles page lists it: its group, its name and one line on what it covers.
+ * `ownerOnly` ones never go into a custom role; `everyRole` ones are in every role.
  */
 export interface PermissionSummary {
   permission: Permission;
   group: PermissionGroup;
   name: string;
   description: string;
+  ownerOnly: boolean;
+  everyRole: boolean;
 }

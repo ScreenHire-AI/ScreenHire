@@ -11,6 +11,8 @@ internal sealed class MembershipEventConfiguration : IEntityTypeConfiguration<Me
         builder.Property(e => e.Kind).HasConversion<string>().HasMaxLength(30);
         builder.Property(e => e.PreviousRole).HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.Role).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.PreviousCustomRoleName).HasMaxLength(CustomRole.MaxNameLength);
+        builder.Property(e => e.CustomRoleName).HasMaxLength(CustomRole.MaxNameLength);
 
         // No foreign key to users or memberships: the log outlives both (MembershipEvent).
         builder.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Cascade);

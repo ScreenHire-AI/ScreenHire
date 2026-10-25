@@ -5,6 +5,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Webhooks;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -14,7 +15,7 @@ namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
 /// An organization's webhook subscriptions (docs/architecture/workflow-engine.md §5): endpoints, their signing secrets,
-/// the delivery log and replay. Owners and admins only, for reading too: an endpoint's URL and its log describe the
+/// the delivery log and replay. Manage webhooks only, for reading too: an endpoint's URL and its log describe the
 /// organization's integrations. Another organization's endpoint or delivery is a 404.
 /// </summary>
 internal static class WebhookEndpoints
@@ -31,33 +32,33 @@ internal static class WebhookEndpoints
         var group = app.MapGroup("/v1/webhooks").WithTags("Webhooks").RequireAuthorization();
         group.MapGet("/event-types", ListWebhookEventTypes).WithName("ListWebhookEventTypes").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("", ListWebhookEndpoints).WithName("ListWebhookEndpoints")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("", CreateWebhookEndpoint).WithName("CreateWebhookEndpoint")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{endpointId:guid}", GetWebhookEndpoint).WithName("GetWebhookEndpoint")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{endpointId:guid}", UpdateWebhookEndpoint).WithName("UpdateWebhookEndpoint")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapDelete("/{endpointId:guid}", DeleteWebhookEndpoint).WithName("DeleteWebhookEndpoint")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{endpointId:guid}/rotate-secret", RotateWebhookSecret).WithName("RotateWebhookSecret")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{endpointId:guid}/deliveries", ListWebhookDeliveries).WithName("ListWebhookDeliveries")
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{endpointId:guid}/deliveries/{deliveryId:guid}/replay", ReplayWebhookDelivery).WithName("ReplayWebhookDelivery")
             .RequireAntiforgeryToken()
-            .RequireOrganizationAdmin()
+            .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }

@@ -193,13 +193,7 @@ public sealed class RowLevelSecurityTests(AppHostFixture fixture)
             .Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege, "the new row fails the policy's WITH CHECK");
 
         db.ChangeTracker.Clear();
-        db.OrganizationMembers.Add(new OrganizationMember
-        {
-            OrganizationId = theirs.Id,
-            UserId = Guid.NewGuid(),
-            Role = OrganizationRole.Owner,
-            CreatedAt = DateTimeOffset.UtcNow,
-        });
+        db.OrganizationMembers.Add(OrganizationMember.Create(theirs.Id, Guid.NewGuid(), OrganizationRole.Owner, DateTimeOffset.UtcNow));
         (await insert.Should().ThrowAsync<DbUpdateException>()).WithInnerException<PostgresException>()
             .Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }

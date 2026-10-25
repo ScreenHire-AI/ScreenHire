@@ -29,7 +29,7 @@ internal static class ApplicationEndpoints
         jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").Produces(StatusCodes.Status401Unauthorized);
         jobs.MapPost("/", CreateApplication).WithName("CreateApplication")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
@@ -38,33 +38,33 @@ internal static class ApplicationEndpoints
         applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.MoveCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline")
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/notes", AddApplicationNote).WithName("AddApplicationNote")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapPut("/{applicationId:guid}/notes/{noteId:guid}", EditApplicationNote).WithName("EditApplicationNote")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapDelete("/{applicationId:guid}/notes/{noteId:guid}", DeleteApplicationNote).WithName("DeleteApplicationNote")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapPost("/{applicationId:guid}/tags", AddApplicationTag).WithName("AddApplicationTag")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapDelete("/{applicationId:guid}/tags", RemoveApplicationTag).WithName("RemoveApplicationTag")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")
@@ -320,7 +320,7 @@ internal static class ApplicationEndpoints
         return TypedResults.Ok(note.ToDetail());
     }
 
-    // The author, an Owner or an Admin deletes a note (NotePolicy). Its row goes, and its text and mentions with it; the
+    // The author, or a role that deletes anyone's notes, deletes a note (NotePolicy). Its row goes, and its text and mentions with it; the
     // timeline keeps a NoteDeleted entry saying who deleted it and when, never what it said.
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteApplicationNote(
         Guid applicationId,
@@ -337,18 +337,15 @@ internal static class ApplicationEndpoints
             return TypedResults.NotFound();
         }
 
-        // The role in this organization: the members filter also shows the person's memberships in others.
-        var role = tenant.UserId is { } userId
-            ? await db.OrganizationMembers.AsNoTracking()
-                .Where(m => m.OrganizationId == tenant.OrganizationId && m.UserId == userId)
-                .Select(m => (OrganizationRole?)m.Role)
-                .SingleOrDefaultAsync(cancellationToken)
+        // What the person's role allows in this organization; a key has no role.
+        var permissions = tenant.UserId is { } userId
+            ? (await RoleAccess.ForMemberAsync(db, tenant.OrganizationId!.Value, userId, cancellationToken))?.Permissions
             : null;
-        if (!NotePolicy.MayDelete(note, tenant.UserId, user.ApiKeyId(), role))
+        if (!NotePolicy.MayDelete(note, tenant.UserId, user.ApiKeyId(), permissions))
         {
             return TypedResults.Problem(
-                title: "Author, owners and admins only",
-                detail: "Only the note's author, an owner or an admin can delete a note.",
+                title: "Not your note",
+                detail: "Only the note's author, or a role that deletes anyone's notes, can delete it.",
                 statusCode: StatusCodes.Status403Forbidden);
         }
 

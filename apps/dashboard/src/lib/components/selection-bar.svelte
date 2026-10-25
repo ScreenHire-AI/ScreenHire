@@ -20,7 +20,8 @@
     count: number;
     /** The stages a move of the selection may go to. */
     stages: readonly Stage[];
-    onmove: (stage: Stage) => unknown;
+    /** Moves the selection; left out when the person's role cannot move candidates. */
+    onmove?: (stage: Stage) => unknown;
     /** Opens the email composer for the selection; left out when the selection may not be emailed. */
     onemail?: () => void;
     onclear: () => void;
@@ -35,16 +36,18 @@
   class="flex min-w-0 items-center gap-2 overflow-x-auto border-b border-border-subtle bg-row-selected px-4.5 py-2 max-md:px-4"
 >
   <span class="shrink-0 font-semibold whitespace-nowrap text-accent-foreground" data-selected-count>{count} selected</span>
-  <DropdownMenu.Root>
-    <DropdownMenu.Trigger aria-label="Move {count} selected…" {disabled} class={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'shrink-0')}>
-      Move<ChevronDownIcon aria-hidden="true" />
-    </DropdownMenu.Trigger>
-    <DropdownMenu.Content align="start" class="w-52">
-      {#each stages as stage (stage.id)}
-        <DropdownMenu.Item onSelect={() => onmove(stage)}>{stage.name}</DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Content>
-  </DropdownMenu.Root>
+  {#if onmove}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger aria-label="Move {count} selected…" {disabled} class={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'shrink-0')}>
+        Move<ChevronDownIcon aria-hidden="true" />
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="start" class="w-52">
+        {#each stages as stage (stage.id)}
+          <DropdownMenu.Item onSelect={() => onmove(stage)}>{stage.name}</DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
+  {/if}
   {#if onemail}
     <EmailSelectionButton {count} onclick={onemail} size="lg" />
   {/if}

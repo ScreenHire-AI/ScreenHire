@@ -10,9 +10,10 @@ type JobApplications = { data: ApplicationSummary[] };
  * Moving applications between stages, as every move control (menu, keyboard, drag) does it. The job's cached list
  * changes at once, so the card or row moves before the API answers; then every list that shows applications refetches,
  * which also undoes the change if the API refused it. Other dashboards get the move through ApplicationMoved.
- * Call during component initialisation.
+ * `allowed` says whether the person's role has Move candidates: without it every move control is left out (A3) and a
+ * drag does nothing, while the API refuses the move anyway (ADR-0014). Call during component initialisation.
  */
-export function createMoves() {
+export function createMoves(options: { allowed?: () => boolean } = {}) {
   const queryClient = useQueryClient();
   const mutation = createMoveApplication(() => ({
     mutation: {
@@ -25,6 +26,10 @@ export function createMoves() {
   let failure = $state('');
 
   const moves = {
+    /** Whether the person may move candidates; the move controls show only then. */
+    get allowed() {
+      return options.allowed?.() ?? true;
+    },
     /** What the last move did, for a polite live region. */
     get announcement() {
       return announcement;
