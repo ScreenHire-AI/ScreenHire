@@ -8,6 +8,7 @@
     createGetApplicationTimeline,
     createGetJob,
     createListApplicationScorecards,
+    createListCandidateEmails,
     createListEmailTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
@@ -23,7 +24,7 @@
   import OverviewTab from '#lib/components/candidate/overview-tab.svelte';
   import ScorecardsTab from '#lib/components/candidate/scorecards-tab.svelte';
   import DetailLayout from '#lib/components/detail-layout.svelte';
-  import EmailSheet from '#lib/components/email-sheet.svelte';
+  import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
@@ -106,6 +107,12 @@
   let emailChosen = false;
   let emailed = $state('');
 
+  // Messages: every email to the candidate, about any of their applications. ApplicationEmailed refetches it live.
+  const candidateEmails = createListCandidateEmails(
+    () => detail?.candidate.id ?? '',
+    () => ({ query: { enabled: Boolean(detail) } }),
+  );
+
   const workflow = $derived(job.data?.data.workflow);
   const manualAutomations = $derived((workflow?.automations ?? []).filter((automation) => automation.enabled && automation.trigger.type === 'Manual'));
   const stages = $derived(workflow?.stages ?? []);
@@ -142,7 +149,7 @@
   const recordTabs = $derived<RecordTab[]>([
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
-    { value: 'messages', label: 'Messages', count: entries?.filter((entry) => entry.type === 'EmailSent').length },
+    { value: 'messages', label: 'Messages', count: candidateEmails.data?.data.length },
     { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
     { value: 'integrity', label: 'Integrity', marker },
     { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length : undefined },
@@ -279,12 +286,13 @@
           <Tabs.Content value="messages" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'messages'}
               <MessagesTab
-                {entries}
-                error={timeline.error}
-                onretry={() => timeline.refetch()}
+                emails={candidateEmails.data?.data}
+                error={candidateEmails.error}
+                onretry={() => candidateEmails.refetch()}
                 {members}
                 {currentUserId}
-                onemail={canEmail ? () => (emailOpen = true) : undefined}
+                recipient={canEmail ? { id: detail.id, candidateName: detail.candidate.fullName } : undefined}
+                onsent={(message) => (emailed = message)}
               />
             {/if}
           </Tabs.Content>
@@ -331,7 +339,7 @@
     {/if}
 
     {#if canEmail}
-      <EmailSheet
+      <EmailComposerSheet
         bind:open={emailOpen}
         recipients={[{ id: detail.id, candidateName: detail.candidate.fullName }]}
         onsent={(message) => (emailed = message)}

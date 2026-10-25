@@ -143,7 +143,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var sent = await Fixture.Mailpit.WaitForMessagesAsync(genuineEmail, 1, Ct);
         sent.Should().ContainSingle();
         sent[0].Subject.Should().Be($"An update on your application for {JobTitle}");
-        sent[0].Text.Should().Contain($"Hi {genuine.FullName}").And.Contain("has moved to the next step: Screening");
+        sent[0].Text.Should().Contain($"Hi {genuine.FirstName},").And.Contain("has moved to the next step: Screening");
         (await Fixture.Mailpit.MessagesAsync(botEmail, Ct)).Should().BeEmpty("nobody moved the bot, and no integrity result sends anything");
 
         // 5. Close the job: it comes down from every board, and the careers page answers 410 Gone.
@@ -201,7 +201,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" }).ClickAsync();
 
         await Expect(page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" })).ToBeVisibleAsync();
-        await page.GetByLabel("Full name").FillAsync(applicant.FullName);
+        await page.GetByLabel("First name").FillAsync(applicant.FirstName);
+        await page.GetByLabel("Last name").FillAsync(applicant.LastName);
         await page.GetByLabel("Email").FillAsync(email);
         await page.GetByLabel("Phone").FillAsync(applicant.Phone!);
         await page.GetByLabel("Your CV or resume").SetInputFilesAsync(
@@ -221,7 +222,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await page.GotoAsync(CareersUrl($"/{organization}/jobs/{job}/apply"));
         await page.Locator("astro-island:not([ssr])").WaitForAsync(); // hydrated: the upload island and the telemetry module
 
-        await page.GetByLabel("Full name").FillAsync(applicant.FullName);
+        await page.GetByLabel("First name").FillAsync(applicant.FirstName);
+        await page.GetByLabel("Last name").FillAsync(applicant.LastName);
         await page.GetByLabel("Email").FillAsync(email);
         await page.GetByLabel("Phone").FillAsync(applicant.Phone!);
         await page.GetByLabel("Your CV or resume").SetInputFilesAsync(

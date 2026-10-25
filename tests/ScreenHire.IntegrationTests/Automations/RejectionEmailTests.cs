@@ -42,7 +42,7 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
         using var careers = fixture.CreateHttpClient("api");
         var response = await careers.PostAsJsonAsync($"/v1/public/organizations/{slug}/jobs/{job}/applications", new JsonObject
         {
-            ["candidate"] = new JsonObject { ["fullName"] = "Robin Ellis", ["email"] = candidateEmail },
+            ["candidate"] = new JsonObject { ["firstName"] = "Robin", ["lastName"] = "Ellis", ["email"] = candidateEmail },
             ["privacyNoticeVersion"] = "2026-10-20",
             ["answers"] = new JsonArray(new JsonObject { ["questionId"] = "work_authorization", ["value"] = "no" }),
             ["aiUseDeclaration"] = "DidNotUse",
@@ -87,6 +87,10 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
             Ct);
         entry.GetProperty("emailTemplateId").GetString().Should().Be("application-rejected");
         entry.GetProperty("emailSubject").GetString().Should().Be($"Update {marker} on Rejection email");
+        // The copy kept for Messages is the email as it went: the reason and the automated-decision notice included.
+        var copy = (await recruiter.GetAsync($"/v1/emails/{entry.GetProperty("emailId").GetGuid()}")).Expect(HttpStatusCode.OK);
+        copy.Text("text").Should().Contain($"Why: {Reason}").And.Contain("This decision was made automatically");
+        copy.Text("subject").Should().Be(sent[0].Subject);
         var detail = await recruiter.GetAsync($"/v1/applications/{applicationId}");
         detail.Text("stage.id").Should().Be("rejected");
         detail.At("tags").EnumerateArray().Select(t => t.GetString()).Should().Contain("careers", "application.source reached the facts");

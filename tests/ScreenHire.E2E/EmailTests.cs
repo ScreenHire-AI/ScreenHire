@@ -7,7 +7,7 @@ namespace ScreenHire.E2E;
 /// <summary>
 /// Email templates and email to candidates in a real browser: an owner rewords a built-in template in Settings, sees the
 /// preview follow the wording, then emails three candidates from a selection on the job's pipeline, and each email
-/// arrives in Mailpit in the new wording. The test signs in as a new person with a new organization and adds its job and
+/// arrives in Mailpit in the new wording, through the email composer. The test signs in as a new person with a new organization and adds its job and
 /// applications through the API as that person.
 /// </summary>
 public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -35,9 +35,9 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         // The preview follows the wording, with the sample candidate.
         var preview = Page.GetByRole(AriaRole.Region, new() { Name = "Preview" });
         await Expect(preview.Locator("[data-email-subject]")).ToHaveTextAsync($"Welcome {marker}, Jordan Lee");
-        await Expect(preview.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync("Jordan Lee");
+        await Expect(preview.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync("Hi Jordan,");
         await preview.GetByRole(AriaRole.Button, new() { Name = "Plain text" }).ClickAsync();
-        await Expect(preview.Locator("[data-email-text]")).ToContainTextAsync("Hi Jordan Lee,");
+        await Expect(preview.Locator("[data-email-text]")).ToContainTextAsync("Hi Jordan,");
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/email-templates"));
@@ -52,8 +52,13 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         await pipeline.GetByRole(AriaRole.Button, new() { Name = "Email 3" }).ClickAsync();
 
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Email 3 candidates" });
-        await sheet.GetByLabel("Template").SelectOptionAsync(new SelectOptionValue { Label = "Application received" });
-        await Expect(sheet.Locator("[data-email-subject]")).ToContainTextAsync($"Welcome {marker}, ");
+        await sheet.GetByLabel("Start from").SelectOptionAsync(new SelectOptionValue { Label = "Application received" });
+        await Expect(sheet.GetByLabel("Subject")).ToHaveValueAsync($"Welcome {marker}, {{{{ candidateName }}}}");
+        // The preview is the email of the first candidate in the table's order; each candidate gets their own.
+        await sheet.GetByRole(AriaRole.Group, new() { Name = "View" }).GetByRole(AriaRole.Button, new() { Name = "Preview" }).ClickAsync();
+        var first = await sheet.GetByRole(AriaRole.Heading, new() { NameRegex = new System.Text.RegularExpressions.Regex("^Preview for ") }).TextContentAsync();
+        Candidates.Should().Contain(first!["Preview for ".Length..]);
+        await Expect(sheet.Locator("[data-email-subject]")).ToHaveTextAsync($"Welcome {marker}, {first["Preview for ".Length..]}");
         await ExpectNoAccessibilityViolationsAsync();
         await sheet.GetByRole(AriaRole.Button, new() { Name = "Send 3 emails" }).ClickAsync();
         await Expect(sheet).ToBeHiddenAsync();

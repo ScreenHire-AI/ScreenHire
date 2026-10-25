@@ -105,7 +105,7 @@ internal sealed class IntegrityHarness
     public async Task<HarnessResult> SubmitAsync(SyntheticApplicant applicant, IReadOnlyList<ApplicationAnswer> answers, bool accommodation = false)
     {
         clock = clock.AddMinutes(1);
-        var candidate = Candidate.Create(organizationId, applicant.FullName, applicant.Email, applicant.Phone, clock);
+        var candidate = Candidate.Create(organizationId, applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone, clock);
         var resume = applicant.ResumeBytes();
         var uploadId = Guid.CreateVersion7();
         var intake = new ApplicationIntake(

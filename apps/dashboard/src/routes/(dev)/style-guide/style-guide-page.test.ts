@@ -69,7 +69,7 @@ const panels: Record<string, string[]> = {
   'Confirm dialog': ['Confirm dialog'],
   'Secret dialog': ['Secret dialog'],
   'Email preview': ['Email preview'],
-  'Email sheet': ['Email sheet'],
+  'Email composer': ['Email composer'],
   'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
   'Details rail': ['Details rail'],

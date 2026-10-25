@@ -21,6 +21,14 @@ namespace ScreenHire.Api.Applications;
 /// </summary>
 internal static class ApplicationSubmission
 {
+    /// <summary>The candidate as a submission names them: the name in two parts, the address and the phone.</summary>
+    public sealed record CandidateDetails(string FirstName, string? LastName, string Email, string? Phone)
+    {
+        public static CandidateDetails From(CandidateInput input) => new(input.Name.First, input.Name.Last, input.Email, input.Phone);
+
+        public static CandidateDetails From(PublicCandidateInput input) => new(input.FirstName, input.LastName, input.Email, input.Phone);
+    }
+
     /// <summary>The new application and its candidate, or null when the candidate has already applied to the job.</summary>
     /// <remarks>
     /// An existing candidate's name and phone are left as they are. Anyone can type any email address into a careers
@@ -29,7 +37,7 @@ internal static class ApplicationSubmission
     public static async Task<(JobApplication Application, Candidate Candidate)?> SubmitAsync(
         IDbContextOutbox<ScreenHireDbContext> outbox,
         Job job,
-        CandidateInput input,
+        CandidateDetails input,
         ApplicationDeclarations declarations,
         ApplicationIntake intake,
         IReadOnlyList<VerifiedUpload> files,
@@ -46,7 +54,7 @@ internal static class ApplicationSubmission
         var candidate = await db.Candidates.SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
         if (candidate is null)
         {
-            candidate = Candidate.Create(job.OrganizationId, input.FullName, input.Email, input.Phone, now);
+            candidate = Candidate.Create(job.OrganizationId, input.FirstName, input.LastName, input.Email, input.Phone, now);
             db.Candidates.Add(candidate);
         }
         else if (await db.Applications.AnyAsync(a => a.JobId == job.Id && a.CandidateId == candidate.Id, cancellationToken))

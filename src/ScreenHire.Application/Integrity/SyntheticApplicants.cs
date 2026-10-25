@@ -37,7 +37,8 @@ public static class SyntheticApplicants
     /// <summary>A person applying from home broadband, taking their time. Expected: no concerns.</summary>
     public static SyntheticApplicant GenuineHuman { get; } = new(
         "genuine-human",
-        "Robin Ashby",
+        "Robin",
+        "Ashby",
         "robin.ashby@example.com",
         "+44 20 7946 0123",
         "192.0.2.10",
@@ -53,7 +54,7 @@ public static class SyntheticApplicants
         TypicalAnswers,
         new SyntheticTelemetry(
             [
-                new FieldTelemetry("fullName", 0, 0, 11, 1, 1, 5_200, false),
+                new FieldTelemetry("firstName", 0, 0, 11, 1, 1, 5_200, false),
                 new FieldTelemetry("email", 0, 0, 0, 1, 1, 900, true),
                 new FieldTelemetry("phone", 0, 0, 16, 1, 1, 7_400, false),
                 new FieldTelemetry("notice_period", 0, 0, 9, 1, 1, 4_100, false),
@@ -67,7 +68,8 @@ public static class SyntheticApplicants
     /// </summary>
     public static SyntheticApplicant Bot { get; } = new(
         "bot",
-        "Jordan Vale",
+        "Jordan",
+        "Vale",
         "jv7x92@tempinbox.example.net",
         "+1 555 0100",
         "198.51.100.23",
@@ -83,7 +85,7 @@ public static class SyntheticApplicants
         TypicalAnswers,
         new SyntheticTelemetry(
             [
-                new FieldTelemetry("fullName", 1, 11, 0, 1, 1, 40, false),
+                new FieldTelemetry("firstName", 1, 11, 0, 1, 1, 40, false),
                 new FieldTelemetry("email", 1, 27, 0, 1, 1, 40, false),
                 new FieldTelemetry("phone", 1, 11, 0, 1, 1, 40, false),
                 new FieldTelemetry("notice_period", 1, 9, 0, 1, 1, 40, false),
@@ -99,7 +101,8 @@ public static class SyntheticApplicants
     /// </summary>
     public static SyntheticApplicant HonestAiAssisted { get; } = new(
         "honest-ai-assisted",
-        "Sam Okafor",
+        "Sam",
+        "Okafor",
         "sam.okafor@example.org",
         "+44 113 496 0456",
         "203.0.113.20",
@@ -116,7 +119,7 @@ public static class SyntheticApplicants
         // Back and forth to the AI assistant: shown as context, never a reason on its own.
         new SyntheticTelemetry(
             [
-                new FieldTelemetry("fullName", 0, 0, 10, 1, 1, 4_800, false),
+                new FieldTelemetry("firstName", 0, 0, 10, 1, 1, 4_800, false),
                 new FieldTelemetry("email", 0, 0, 22, 1, 1, 6_300, false),
                 new FieldTelemetry("phone", 0, 0, 16, 1, 1, 6_900, false),
                 new FieldTelemetry("notice_period", 0, 0, 9, 6, 6, 95_000, false),
@@ -132,17 +135,18 @@ public static class SyntheticApplicants
     /// </summary>
     public static IReadOnlyList<SyntheticApplicant> ApplicationFarm { get; } =
     [
-        Farm("application-farm-1", "Alex Reed", "talentdesk+reed@example.net", "198.51.100.40"),
-        Farm("application-farm-2", "Morgan Hale", "talentdesk+hale@example.net", "198.51.100.41"),
-        Farm("application-farm-3", "Taylor Brook", "talentdesk+brook@example.net", "198.51.100.42"),
+        Farm("application-farm-1", "Alex", "Reed", "talentdesk+reed@example.net", "198.51.100.40"),
+        Farm("application-farm-2", "Morgan", "Hale", "talentdesk+hale@example.net", "198.51.100.41"),
+        Farm("application-farm-3", "Taylor", "Brook", "talentdesk+brook@example.net", "198.51.100.42"),
     ];
 
     /// <summary>Every synthetic applicant, in the order to submit them.</summary>
     public static IReadOnlyList<SyntheticApplicant> All { get; } = [GenuineHuman, Bot, HonestAiAssisted, .. ApplicationFarm];
 
-    private static SyntheticApplicant Farm(string key, string name, string email, string ip) => new(
+    private static SyntheticApplicant Farm(string key, string firstName, string lastName, string email, string ip) => new(
         key,
-        name,
+        firstName,
+        lastName,
         email,
         "+44 161 496 0789",
         ip,
@@ -162,6 +166,7 @@ public static class SyntheticApplicants
 
 /// <summary>One synthetic applicant: who they say they are, and how their application arrives.</summary>
 /// <remarks>
+/// <c>firstName</c> and <c>lastName</c> are typed into the apply form's two name fields.
 /// <c>ipAddress</c>, <c>userAgent</c>, <c>timeToComplete</c>, <c>automationMarkers</c>, <c>honeypotFilled</c> and
 /// <c>deviceFingerprint</c> are what the careers form's submission carries. <c>answers</c> leave out the resume, whose
 /// answer is the upload id. <c>telemetry</c> is what the careers page's telemetry module sent, or null for a
@@ -170,7 +175,8 @@ public static class SyntheticApplicants
 /// </remarks>
 public sealed record SyntheticApplicant(
     string Key,
-    string FullName,
+    string FirstName,
+    string LastName,
     string Email,
     string? Phone,
     string IpAddress,
@@ -189,6 +195,9 @@ public sealed record SyntheticApplicant(
     string? ResumeHiddenText = null,
     DateTimeOffset? ResumeCreatedAt = null)
 {
+    /// <summary>The name as the dashboard shows it: the first name and the last.</summary>
+    public string FullName => $"{FirstName} {LastName}";
+
     /// <summary>The resume as a readable PDF; identical inputs give identical bytes, so the farm shares one file.</summary>
     public byte[] ResumeBytes() => SyntheticDocuments.Pdf(ResumeText, ResumeProducer, ResumeHiddenText, ResumeCreatedAt);
 }

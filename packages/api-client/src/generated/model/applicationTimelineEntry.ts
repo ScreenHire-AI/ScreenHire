@@ -47,4 +47,6 @@ export interface ApplicationTimelineEntry {
   noteEditedAt?: string | null;
   /** @nullable */
   actorApiKeyName?: string | null;
+  /** @nullable */
+  emailId?: string | null;
 }

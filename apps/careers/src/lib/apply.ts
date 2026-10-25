@@ -21,7 +21,9 @@ export type AiUseAnswer = 'NotProvided' | 'Used' | 'DidNotUse';
 
 /** Everything the candidate has entered so far. The form carries it between steps in one hidden field. */
 export interface ApplyState {
-  fullName: string;
+  firstName: string;
+  /** Optional: a candidate may give one name. */
+  lastName: string;
   email: string;
   phone: string;
   /** The assistive-technology switch: turns typing and timing signals off, never held against anyone. */
@@ -49,7 +51,8 @@ export interface ApplyState {
 /** Problems to show, by form field name, worded for the candidate. */
 export type FieldErrors = Record<string, string>;
 
-export const MAX_NAME = 200;
+/** The most each part of the name may hold (Candidate.MaxNamePartLength). */
+export const MAX_NAME = 100;
 export const MAX_EMAIL = 320;
 export const MAX_PHONE = 50;
 export const MAX_AI_DETAILS = 2000;
@@ -58,7 +61,8 @@ export const MAX_ANSWER = 5000;
 export const MAX_CHOICES = 50;
 
 export const emptyState = (startedAt = '', telemetrySession = ''): ApplyState => ({
-  fullName: '',
+  firstName: '',
+  lastName: '',
   email: '',
   phone: '',
   accommodationRequested: false,
@@ -107,7 +111,8 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
   if (typeof value !== 'object' || value === null) return state;
   const input = value as Record<string, unknown>;
   const string = (key: string, max: number) => (typeof input[key] === 'string' ? (input[key] as string).slice(0, max) : '');
-  state.fullName = string('fullName', MAX_NAME);
+  state.firstName = string('firstName', MAX_NAME);
+  state.lastName = string('lastName', MAX_NAME);
   state.email = string('email', MAX_EMAIL);
   state.phone = string('phone', MAX_PHONE);
   state.accommodationRequested = input.accommodationRequested === true;
@@ -149,7 +154,8 @@ export const text = (form: FormData, name: string): string => {
 /** The details step's fields over `state`. */
 export const readDetails = (form: FormData, state: ApplyState): ApplyState => ({
   ...state,
-  fullName: text(form, 'fullName'),
+  firstName: text(form, 'firstName'),
+  lastName: text(form, 'lastName'),
   email: text(form, 'email'),
   phone: text(form, 'phone'),
   accommodationRequested: form.get('accommodationRequested') === 'on',
@@ -198,8 +204,9 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** The details step's problems: contact details and the resume. */
 export function validateDetails(state: ApplyState, questions: readonly PublicQuestion[]): FieldErrors {
   const errors: FieldErrors = {};
-  if (!state.fullName) errors.fullName = 'Enter your full name.';
-  else if (state.fullName.length > MAX_NAME) errors.fullName = `Keep your name to ${MAX_NAME} characters or fewer.`;
+  if (!state.firstName) errors.firstName = 'Enter your first name.';
+  else if (state.firstName.length > MAX_NAME) errors.firstName = `Keep your first name to ${MAX_NAME} characters or fewer.`;
+  if (state.lastName.length > MAX_NAME) errors.lastName = `Keep your last name to ${MAX_NAME} characters or fewer.`;
   if (!state.email) errors.email = 'Enter your email address.';
   else if (state.email.length > MAX_EMAIL || !emailPattern.test(state.email)) errors.email = 'Enter an email address like name@example.com.';
   if (state.phone.length > MAX_PHONE) errors.phone = `Keep your phone number to ${MAX_PHONE} characters or fewer.`;
@@ -309,7 +316,7 @@ export function toRequest(
   }
 
   return {
-    candidate: { fullName: state.fullName, email: state.email, phone: state.phone || null },
+    candidate: { firstName: state.firstName, lastName: state.lastName || null, email: state.email, phone: state.phone || null },
     privacyNoticeVersion: NOTICE_VERSION,
     answers,
     accommodationRequested: state.accommodationRequested,
@@ -330,7 +337,8 @@ export function toRequest(
 }
 
 const candidateFields: Record<string, string> = {
-  'candidate.fullName': 'fullName',
+  'candidate.firstName': 'firstName',
+  'candidate.lastName': 'lastName',
   'candidate.email': 'email',
   'candidate.phone': 'phone',
 };

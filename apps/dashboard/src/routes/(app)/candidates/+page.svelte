@@ -6,7 +6,7 @@
   import { clock } from '#lib/clock.svelte.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
-  import EmailSheet from '#lib/components/email-sheet.svelte';
+  import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -121,5 +121,5 @@
 </main>
 
 {#if canEmail}
-  <EmailSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
+  <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}

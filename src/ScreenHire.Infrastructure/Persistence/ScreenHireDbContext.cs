@@ -70,6 +70,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationNote> ApplicationNotes => Set<ApplicationNote>();
 
+    public DbSet<ApplicationEmail> ApplicationEmails => Set<ApplicationEmail>();
+
     public DbSet<ApplicationNoteMention> ApplicationNoteMentions => Set<ApplicationNoteMention>();
 
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();

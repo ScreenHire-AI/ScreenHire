@@ -11,6 +11,7 @@ import type {
   ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
+  ApplicationEmailDraft,
   ApplicationIntegrity,
   ApplicationNoteDetail,
   ApplicationSummary,
@@ -21,6 +22,7 @@ import type {
   AutomationRunEntry,
   BoardSummary,
   CandidateDetail,
+  CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberRoleRequest,
@@ -76,7 +78,6 @@ import type {
   OrganizationIntegritySettings,
   OrganizationProfile,
   PendingInvitation,
-  PreviewApplicationEmailParams,
   ProblemDetails,
   PublicApplicationForm,
   PublicApplicationReceipt,
@@ -92,6 +93,7 @@ import type {
   SandboxBoardListing,
   ScorecardEntry,
   SendEmailsRequest,
+  SentEmail,
   SignInMethods,
   SimulateWorkflowRequest,
   SubmitScorecardRequest,
@@ -6765,29 +6767,36 @@ export type previewApplicationEmailResponseError = (previewApplicationEmailRespo
 
 export type previewApplicationEmailResponse = (previewApplicationEmailResponseSuccess | previewApplicationEmailResponseError)
 
-export const getPreviewApplicationEmailUrl = (params: PreviewApplicationEmailParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getPreviewApplicationEmailUrl = () => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/v1/emails/preview?${stringifiedParams}` : `/v1/emails/preview`
+  return `/v1/emails/preview`
 }
 
-export const previewApplicationEmail = async (params: PreviewApplicationEmailParams, options?: Parameters<typeof apiFetch>[1]): Promise<previewApplicationEmailResponse> => {
+export const previewApplicationEmail = async (applicationEmailDraft: ApplicationEmailDraft, options?: Parameters<typeof apiFetch>[1]): Promise<previewApplicationEmailResponse> => {
 
-  return apiFetch<previewApplicationEmailResponse>(getPreviewApplicationEmailUrl(params),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<previewApplicationEmailResponse>(getPreviewApplicationEmailUrl(),
   {
     ...options,
-    method: 'GET'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(applicationEmailDraft)
   }
 );}
 
@@ -6857,6 +6866,96 @@ return apiFetch<sendEmailsResponse>(getSendEmailsUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(sendEmailsRequest)
+  }
+);}
+
+
+
+export type getSentEmailResponse200 = {
+  data: SentEmail
+  status: 200
+}
+
+export type getSentEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSentEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getSentEmailResponseSuccess = (getSentEmailResponse200) & {
+  headers: Headers;
+};
+export type getSentEmailResponseError = (getSentEmailResponse401 | getSentEmailResponse404) & {
+  headers: Headers;
+};
+
+export type getSentEmailResponse = (getSentEmailResponseSuccess | getSentEmailResponseError)
+
+export const getGetSentEmailUrl = (emailId: string,) => {
+
+
+
+
+  return `/v1/emails/${emailId}`
+}
+
+export const getSentEmail = async (emailId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getSentEmailResponse> => {
+
+  return apiFetch<getSentEmailResponse>(getGetSentEmailUrl(emailId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listCandidateEmailsResponse200 = {
+  data: CandidateEmailEntry[]
+  status: 200
+}
+
+export type listCandidateEmailsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listCandidateEmailsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listCandidateEmailsResponseSuccess = (listCandidateEmailsResponse200) & {
+  headers: Headers;
+};
+export type listCandidateEmailsResponseError = (listCandidateEmailsResponse401 | listCandidateEmailsResponse404) & {
+  headers: Headers;
+};
+
+export type listCandidateEmailsResponse = (listCandidateEmailsResponseSuccess | listCandidateEmailsResponseError)
+
+export const getListCandidateEmailsUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/emails`
+}
+
+export const listCandidateEmails = async (candidateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listCandidateEmailsResponse> => {
+
+  return apiFetch<listCandidateEmailsResponse>(getListCandidateEmailsUrl(candidateId),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
