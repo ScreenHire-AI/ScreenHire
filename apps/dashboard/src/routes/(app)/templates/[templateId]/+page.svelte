@@ -279,8 +279,21 @@
       {/if}
     {/snippet}
 
+    {#snippet readOnlyReason()}
+      <!-- Read only says why and what to do (E3), in one line under the title. -->
+      <p>
+        {#if detail.isSystem}
+          ScreenHire supplies this template, so it cannot be changed. Copy it to make one of your own.
+        {:else if !mayEdit}
+          Your role cannot change hiring templates. Ask an owner, admin or recruiter of your organization.
+        {:else}
+          This template is archived, so no new job can start from it. Restore it to use it or change it.
+        {/if}
+      </p>
+    {/snippet}
+
     <Tabs.Root bind:value={tab}>
-      <HeaderBand title={detail.name}>
+      <HeaderBand title={detail.name} details={!isDraft && (detail.isSystem || detail.archived || !mayEdit) ? readOnlyReason : undefined}>
         {#snippet status()}
           {#if detail.isSystem}<BuiltInBadge />{/if}
           {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
@@ -365,18 +378,6 @@
       {/if}
 
       <div class={workArea}>
-        {#if !isDraft && (detail.isSystem || detail.archived || !mayEdit)}
-          <!-- Read only says why and what to do (E3). -->
-          <p class="text-muted-foreground">
-            {#if detail.isSystem}
-              ScreenHire supplies this template, so it cannot be changed. Copy it to make one of your own.
-            {:else if !mayEdit}
-              Your role cannot change hiring templates. Ask an owner, admin or recruiter of your organization.
-            {:else}
-              This template is archived, so no new job can start from it. Restore it to use it or change it.
-            {/if}
-          </p>
-        {/if}
         {#if isDraft}
           <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} {tab} />
         {:else}

@@ -187,7 +187,16 @@
       {/if}
     {/snippet}
 
-    <HeaderBand title={detail.name}>
+    {#snippet readOnlyReason()}
+      <!-- Read only says why and what to do (E3), in one line under the title. -->
+      {#if !mayEdit}
+        <p>Your role cannot change email templates. Ask an owner or admin of your organization.</p>
+      {:else if detail.archived}
+        <p>This template is archived, so it is out of the pickers. Restore it to use it or change it.</p>
+      {/if}
+    {/snippet}
+
+    <HeaderBand title={detail.name} details={!mayEdit || detail.archived ? readOnlyReason : undefined}>
       {#snippet status()}
         {#if detail.builtIn}<BuiltInBadge />{/if}
         {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
@@ -248,12 +257,6 @@
 
     <div class="flex w-full flex-col gap-4 px-4 py-6 md:px-6">
       <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/email')} />
-      {#if !mayEdit}
-        <!-- Read only says why and what to do (E3). -->
-        <p class="text-muted-foreground">Your role cannot change email templates. Ask an owner or admin of your organization.</p>
-      {:else if detail.archived}
-        <p class="text-muted-foreground">This template is archived, so it is out of the pickers. Restore it to use it or change it.</p>
-      {/if}
       <!-- A reset or a restore changes what the form starts from, so the form starts again. -->
       {#key `${detail.id}:${editable}:${detail.edited}`}
         <EmailTemplateForm
