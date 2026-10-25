@@ -283,11 +283,11 @@
       <!-- Read only says why and what to do (E3), in one line under the title. -->
       <p>
         {#if detail.isSystem}
-          ScreenHire supplies this template, so it cannot be changed. Copy it to make one of your own.
+          Copy this ScreenHire template to change it.
         {:else if !mayEdit}
-          Your role cannot change hiring templates. Ask an owner, admin or recruiter of your organization.
+          Ask an owner, admin or recruiter to change hiring templates.
         {:else}
-          This template is archived, so no new job can start from it. Restore it to use it or change it.
+          Restore this template to start jobs from it or change it.
         {/if}
       </p>
     {/snippet}

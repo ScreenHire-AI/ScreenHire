@@ -250,7 +250,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Region, new() { Name = "Hiring templates" }).GetByRole(AriaRole.Link, new() { Name = "Software engineer", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer");
         await Expect(HeaderBand).ToContainTextAsync("Built in");
-        await Expect(Page.GetByText("ScreenHire supplies this template, so it cannot be changed.", new() { Exact = false })).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Copy this ScreenHire template to change it.")).ToBeVisibleAsync();
         await ExpectValidationAsync("No problems found");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Copy template" })).ToBeVisibleAsync();
         var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });

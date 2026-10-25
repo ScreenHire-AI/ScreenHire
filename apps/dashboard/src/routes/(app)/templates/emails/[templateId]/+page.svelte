@@ -190,9 +190,9 @@
     {#snippet readOnlyReason()}
       <!-- Read only says why and what to do (E3), in one line under the title. -->
       {#if !mayEdit}
-        <p>Your role cannot change email templates. Ask an owner or admin of your organization.</p>
+        <p>Ask an owner or admin to change email templates.</p>
       {:else if detail.archived}
-        <p>This template is archived, so it is out of the pickers. Restore it to use it or change it.</p>
+        <p>Restore this template to use it or change it.</p>
       {/if}
     {/snippet}
 
