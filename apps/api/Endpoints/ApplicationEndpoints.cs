@@ -143,8 +143,16 @@ internal static class ApplicationEndpoints
             return TypedResults.Problem("A closed job takes no applications.", statusCode: StatusCodes.Status409Conflict);
         }
 
+        var details = ApplicationSubmission.CandidateDetails.From(request.Candidate);
+        if (await ApplicationSubmission.IsOutOfSightAsync(db, details.Email, cancellationToken))
+        {
+            return TypedResults.Problem(
+                "Someone with this email is already a candidate on a job you don't see. Ask someone who sees all jobs to add them.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
         var submitted = await ApplicationSubmission.SubmitAsync(
-            outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
+            outbox, job, details,
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             ApplicationIntake.Recruiter, [], time.GetUtcNow(), tenant.UserId, cancellationToken, actorApiKeyId: user.ApiKeyId());
         if (submitted is not { } created)

@@ -240,6 +240,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.Sql(DisableJobScope);
 
+            // Entries an API key made have no person; the column was NOT NULL before, so they take the empty id back.
+            migrationBuilder.Sql("""
+                ALTER TABLE membership_events NO FORCE ROW LEVEL SECURITY;
+                UPDATE membership_events SET actor_user_id = '00000000-0000-0000-0000-000000000000' WHERE actor_user_id IS NULL;
+                ALTER TABLE membership_events FORCE ROW LEVEL SECURITY;
+                """);
+
             migrationBuilder.DropCheckConstraint(
                 name: "ck_organization_members_job_access",
                 table: "organization_members");

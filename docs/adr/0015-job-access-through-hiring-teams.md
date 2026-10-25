@@ -43,7 +43,8 @@ query filters and row-level security that every read passes through.
    `IApplicationScoped` entity, note mentions, automation action runs, indexing notifications and candidates.
 6. **Two tables keep tenant-only row-level security.** Candidates: one person who applied to two jobs is one row, found
    by email when they apply again, so `ApplicationSubmission` looks them up past `JobScope` (by name, keeping `Tenant`)
-   and the EF filter hides them otherwise. `change_records`: its subject is a kind and an id with no foreign key, a new
+   and the EF filter hides them otherwise. A member on Only jobs they're on who adds someone already a candidate only on
+   jobs they cannot see gets 409, naming nobody: attaching them would hand over that person's stored details. `change_records`: its subject is a kind and an id with no foreign key, a new
    job's history row is saved ahead of the job, and a job's history is read only through the job, which is a 404 when
    hidden.
 7. **Nobody gives more than they see.** `TeamPolicy.MayGiveJobAccess` extends ADR-0014's subset rule: a member on Only

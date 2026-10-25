@@ -336,7 +336,8 @@ the same insert. Every person added or removed is a membership log entry, writte
 The subset rule covers job access (`TeamPolicy.MayGiveJobAccess`): a member on Only jobs they're on cannot give All jobs,
 invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys and Manage webhooks need all
 jobs (`RolePermissions.NeedsAllJobs`). A mention names only someone who can see the candidate (400 otherwise), and the
-mention email is skipped for someone taken off the job since.
+mention email is skipped for someone taken off the job since. Adding a candidate by hand to a job is 409 for a member on Only jobs they're on
+when that email is already a candidate only on jobs they cannot see.
 
 The dashboard: Team has a Jobs column ("All jobs" or "2 jobs"), and Edit access in a member's menu opens one sheet for
 their role and job access, which lists their jobs read only (`member-access-sheet.svelte`). The invite sheet asks for job

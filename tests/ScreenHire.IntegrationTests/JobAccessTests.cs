@@ -236,6 +236,30 @@ public sealed class JobAccessTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Adding_a_candidate_who_is_only_on_a_hidden_job_is_refused_without_naming_them()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var hidden = await owner.CreateJobAsync(Samples.RemoteJob("Finance Lead"));
+        var email = ApiSession.NewEmail("hidden");
+        await owner.CreateApplicationAsync(hidden.Id(), email, "Morgan Quill");
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter", jobAccess: "HiringTeamOnly");
+        var theirs = await recruiter.CreateJobAsync(Samples.RemoteJob("Data Engineer"));
+
+        var refused = (await recruiter.PostAsync($"/v1/jobs/{theirs.Id()}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["fullName"] = "Someone Else", ["email"] = email },
+        })).Expect(HttpStatusCode.Conflict);
+        refused.Body.GetRawText().Should().NotContain("Morgan").And.NotContain("Quill");
+
+        // A new address, or one on a job they see, is added as usual.
+        await recruiter.CreateApplicationAsync(theirs.Id(), ApiSession.NewEmail("new"));
+        (await owner.PostAsync($"/v1/jobs/{theirs.Id()}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["fullName"] = "Morgan Quill", ["email"] = email },
+        })).Expect(HttpStatusCode.Created);
+    }
+
+    [Fact]
     public async Task A_mention_names_only_people_who_can_see_the_candidate()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

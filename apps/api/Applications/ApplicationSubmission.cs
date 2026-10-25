@@ -29,6 +29,23 @@ internal static class ApplicationSubmission
         public static CandidateDetails From(PublicCandidateInput input) => new(input.FirstName, input.LastName, input.Email, input.Phone);
     }
 
+    /// <summary>
+    /// Whether <paramref name="email"/> is a candidate the signed-in member cannot see: one whose every application is on
+    /// a job outside their hiring teams (ADR-0015). Adding them to a job would hand over their stored name and phone, so
+    /// <c>CreateApplication</c> refuses it, naming nobody. Always false for anyone who sees all jobs.
+    /// </summary>
+    public static async Task<bool> IsOutOfSightAsync(ScreenHireDbContext db, string email, CancellationToken cancellationToken)
+    {
+        if (db.Tenant.SeesAllJobs)
+        {
+            return false;
+        }
+
+        var normalized = Candidate.Normalize(email);
+        return await db.Candidates.IgnoreQueryFilters([ScreenHireDbContext.JobScopeFilter]).AnyAsync(c => c.NormalizedEmail == normalized, cancellationToken)
+            && !await db.Candidates.AnyAsync(c => c.NormalizedEmail == normalized, cancellationToken);
+    }
+
     /// <summary>The new application and its candidate, or null when the candidate has already applied to the job.</summary>
     /// <remarks>
     /// An existing candidate's name and phone are left as they are. Anyone can type any email address into a careers
