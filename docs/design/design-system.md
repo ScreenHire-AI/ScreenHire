@@ -608,7 +608,7 @@ These join section 11 one by one, each when the build adds it to the style guide
 - **Templates:** one page with a tab per kind (Hiring, Scorecards, Emails). Each tab says in one sentence what its
   templates are for, each row says where it is used, and each editor has the Edit / Preview switch. A job keeps the
   copy of a template it started with. A built-in the team edited offers Reset to original in its menu.
-- **Settings:** one sidebar item with its own menu (section 21). Careers branding becomes Branding, and email
+- **Settings:** one sidebar item with its own menu (section 11). Careers branding becomes Branding, and email
   templates move to Templates.
 - **Team and Roles:** Team lists the members full width. Invite opens a sheet that describes each role, starts at
   Viewer, the least access, and links to Compare roles. Roles is its own page: the full-width table of what each role
