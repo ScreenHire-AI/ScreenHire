@@ -48,7 +48,7 @@
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline' }), 'max-w-64 min-w-0 shrink-0', chosen && 'border-primary text-primary', className)}>
+  <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'max-w-64 min-w-0 shrink-0', chosen && 'border-primary text-primary', className)}>
     <span class="min-w-0 truncate">{label}: {chosen?.label ?? 'All'}</span>
     <ChevronDownIcon aria-hidden="true" />
   </DropdownMenu.Trigger>

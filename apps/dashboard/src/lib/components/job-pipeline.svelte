@@ -70,8 +70,10 @@
 
   const searched = $derived(applications.filter((application) => matchesSearch(application, search)));
   const onBoard = $derived(searched.filter((application) => matchesIntegrityFilter(application, integrityFilter)));
-  const shown = $derived(onBoard.filter((application) => !stageFilter || application.stage.id === stageFilter));
-  const filtering = $derived(Boolean(stageFilter) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
+  // A stage taken out of the workflow on its own page filters nothing, and the menu reads All again.
+  const chosenStage = $derived(stages.some((stage) => stage.id === stageFilter) ? stageFilter : null);
+  const shown = $derived(onBoard.filter((application) => !chosenStage || application.stage.id === chosenStage));
+  const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
   const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
@@ -92,7 +94,7 @@
    * A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
    * filter's menu (bulkMoveStages, ADR-0004).
    */
-  export function setIntegrityFilter(next: IntegrityFilter) {
+  function setIntegrityFilter(next: IntegrityFilter) {
     integrityFilter = next;
     selectedIds = [];
   }
@@ -115,8 +117,10 @@
   }
 
   async function moveSelected(stage: WorkflowStage) {
-    // The ones that failed stay selected, so they can be moved again.
-    selectedIds = await moves.moveAll(selected, stage);
+    // The ones that failed stay selected, so they can be moved again, and so do the ticked rows a filter hides.
+    const moving = selected.map((application) => application.id);
+    const failed = await moves.moveAll(selected, stage);
+    selectedIds = [...selectedIds.filter((id) => !moving.includes(id)), ...failed];
   }
 </script>
 

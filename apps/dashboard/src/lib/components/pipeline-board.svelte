@@ -105,8 +105,9 @@
   };
 </script>
 
-<!-- Each column is an inset (design system section 6). relative: the chips' sr-only labels are absolute, and without a
-     positioned scroller they escape it and widen the page (F1). -->
+<!-- Each column is an inset (design system section 6). relative, here and on each column's list: the chips' sr-only
+     labels are absolute, and without a positioned scroller they escape it, widen the page (F1) and give the board a
+     second vertical scroll. -->
 <div data-pipeline-board class="relative min-h-0 flex-1 overflow-auto">
   <div class="flex h-full min-w-max items-start gap-3 p-3">
     {#each columns as column (column.stage.id)}
@@ -122,7 +123,7 @@
         </h3>
         <ul
           aria-label={`${column.stage.name} stage`}
-          class="flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2"
+          class="relative flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2"
           use:dndzone={{ ...zone, items: column.cards }}
           onconsider={(event) => replaceCards(column.stage.id, event.detail.items)}
           onfinalize={(event) => onfinalize(column.stage, event)}

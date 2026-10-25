@@ -336,10 +336,11 @@
 
 {#if phone.current}
   <!-- List items have no headers, so the Sort chip offers the headers' choices, beside the page's filters (L2). The row
-       stays while a filter leaves nothing to list, so the filter can still change; it scrolls rather than wraps (F5). -->
-  <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
-    {@render filters?.()}
-    <SortMenu {table} class="ml-auto shrink-0" />
+       stays while a filter leaves nothing to list, so the filter can still change. The filters scroll rather than wrap
+       (F5), and the Sort chip stays in view at the end. -->
+  <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
+    <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{@render filters?.()}</div>
+    <SortMenu {table} class="shrink-0" />
   </div>
   {#if rows.length === 0}
     {@render empty()}

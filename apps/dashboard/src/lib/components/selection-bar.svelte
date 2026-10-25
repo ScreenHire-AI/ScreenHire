@@ -36,7 +36,7 @@
 >
   <span class="shrink-0 font-semibold whitespace-nowrap text-accent-foreground" data-selected-count>{count} selected</span>
   <DropdownMenu.Root>
-    <DropdownMenu.Trigger aria-label="Move {count} selected…" {disabled} class={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}>
+    <DropdownMenu.Trigger aria-label="Move {count} selected…" {disabled} class={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'shrink-0')}>
       Move<ChevronDownIcon aria-hidden="true" />
     </DropdownMenu.Trigger>
     <DropdownMenu.Content align="start" class="w-52">
@@ -46,7 +46,7 @@
     </DropdownMenu.Content>
   </DropdownMenu.Root>
   {#if onemail}
-    <EmailSelectionButton {count} onclick={onemail} />
+    <EmailSelectionButton {count} onclick={onemail} size="lg" />
   {/if}
-  <Button variant="outline" class="ml-auto shrink-0" onclick={onclear}>Clear selection</Button>
+  <Button variant="outline" size="lg" class="ml-auto shrink-0" onclick={onclear}>Clear selection</Button>
 </div>

@@ -169,21 +169,23 @@
       {/snippet}
 
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). On a phone the Sort chip
-           follows it, since list items have no headers (L2). -->
-      <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-        <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
-          <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>
-            All
-            {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
-          </Toggle>
-          {#each statuses as status (status)}
-            <Toggle size="lg" bind:pressed={() => statusFilter === status, () => (statusFilter = status)}>
-              {jobStatus[status].label}
-              {#if jobs.isSuccess}<Badge variant="count">{countOf(status)}</Badge>{/if}
+           stays in view beside it, since list items have no headers (L2). -->
+      <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+        <div class="min-w-0 flex-1 overflow-x-auto">
+          <div role="group" aria-label="Status" class="flex w-max gap-1">
+            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>
+              All
+              {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
             </Toggle>
-          {/each}
+            {#each statuses as status (status)}
+              <Toggle size="lg" bind:pressed={() => statusFilter === status, () => (statusFilter = status)}>
+                {jobStatus[status].label}
+                {#if jobs.isSuccess}<Badge variant="count">{countOf(status)}</Badge>{/if}
+              </Toggle>
+            {/each}
+          </div>
         </div>
-        {#if sidebar.isMobile && jobs.isSuccess}<SortMenu {table} class="ml-auto shrink-0" />{/if}
+        {#if sidebar.isMobile && jobs.isSuccess}<SortMenu {table} class="shrink-0" />{/if}
       </div>
 
       {#if jobs.isError}
@@ -237,8 +239,9 @@
           {/each}
         </ul>
       {:else}
-        <!-- Location gives way before the title in a narrow panel: the title is the row's name (F5). -->
-        <div class="@container/jobs overflow-x-auto">
+        <!-- Location gives way before the title in a narrow panel: the title is the row's name (F5). relative: the
+             Actions header's sr-only label is absolute, and would escape the scroller and widen the page (F1). -->
+        <div class="@container/jobs relative overflow-x-auto">
           <table aria-label="Jobs" class="w-full border-collapse text-left">
             <thead class="bg-muted">
               {#each table.getHeaderGroups() as group (group.id)}
@@ -266,8 +269,9 @@
                       class={[
                         'px-3 whitespace-nowrap',
                         (cell.column.id === 'status' || cell.column.id === 'actions') && 'px-4',
-                        // The title takes the room the other columns leave; a long one is cut, whole in its tooltip (F5).
-                        cell.column.id === 'title' && 'w-full max-w-0',
+                        // The title takes the room the other columns leave, and never less than 12rem: below that the
+                        // table scrolls in the panel. A long one is cut, whole in its tooltip (F5).
+                        cell.column.id === 'title' && 'w-full max-w-0 min-w-48',
                         cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
                         (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
                         (cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
