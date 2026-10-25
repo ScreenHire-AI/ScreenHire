@@ -56,6 +56,22 @@ public sealed class ApplicationTask : IApplicationScoped
         CompletedByUserId = userId;
         return true;
     }
+
+    /// <summary>
+    /// Opens a done task again: the Undo after ticking it. An open task stays as it is, and this returns false. Like
+    /// completing, reopening changes nothing about the application.
+    /// </summary>
+    public bool Reopen()
+    {
+        if (CompletedAt is null)
+        {
+            return false;
+        }
+
+        CompletedAt = null;
+        CompletedByUserId = null;
+        return true;
+    }
 }
 
 public enum ApplicationTaskKind

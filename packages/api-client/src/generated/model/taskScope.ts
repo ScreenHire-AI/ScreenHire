@@ -6,12 +6,14 @@
  */
 
 /**
- * Whose tasks a list shows: the signed-in person's and the whole team's (unassigned), or everyone's.
+ * Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),
+ * or everyone's (every task the person can see).
  */
 export type TaskScope = typeof TaskScope[keyof typeof TaskScope];
 
 
 export const TaskScope = {
   Mine: 'Mine',
+  Team: 'Team',
   Everyone: 'Everyone',
 } as const;

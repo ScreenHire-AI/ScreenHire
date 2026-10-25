@@ -11226,6 +11226,101 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getCompleteTaskMutationOptions(options?.()) }), queryClient);
     }
 
+export type reopenTaskResponse200 = {
+  data: ApplicationTaskEntry
+  status: 200
+}
+
+export type reopenTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type reopenTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type reopenTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type reopenTaskResponseSuccess = (reopenTaskResponse200) & {
+  headers: Headers;
+};
+export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404) & {
+  headers: Headers;
+};
+
+export const getReopenTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/v1/tasks/${taskId}/reopen`
+}
+
+export const reopenTask = async (taskId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<reopenTaskResponseSuccess> => {
+
+  return apiQueryFetch<reopenTaskResponseSuccess>(getReopenTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReopenTaskMutationKey = () => ['reopenTask'] as const;
+
+export const getReopenTaskMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof reopenTask>>, TError,ReopenTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof reopenTask>>, TError,ReopenTaskMutationVariables, TContext> => {
+
+const mutationKey = getReopenTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reopenTask>>, ReopenTaskMutationVariables> = (props) => {
+          const {taskId} = props ?? {};
+
+          return  reopenTask(taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReopenTaskMutationResult = NonNullable<Awaited<ReturnType<typeof reopenTask>>>
+
+    export type ReopenTaskMutationError = ErrorType<void | ProblemDetails>
+    export type ReopenTaskMutationVariables = {taskId: string}
+
+    export const createReopenTask = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof reopenTask>>, TError,ReopenTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof reopenTask>>,
+        TError,
+        ReopenTaskMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getReopenTaskMutationOptions(options?.()) }), queryClient);
+    }
+
 export type listApplicationScorecardsResponse200 = {
   data: ScorecardEntry[]
   status: 200

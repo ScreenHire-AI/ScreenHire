@@ -50,6 +50,7 @@ export const invalidations: InvalidationMap = {
   ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath],
   QuestionnaireAnswered: [applicationsPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
+  ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
 };

@@ -31,6 +31,7 @@ public sealed partial class RolePermissionsTests
         ["AddApplicationTag"] = Permission.AddNotesAndTags,
         ["RemoveApplicationTag"] = Permission.AddNotesAndTags,
         ["CompleteTask"] = Permission.CompleteTasks,
+        ["ReopenTask"] = Permission.CompleteTasks,
         ["SendEmails"] = Permission.EmailCandidates,
         ["SubmitScorecard"] = Permission.FillInScorecards,
         ["DismissIntegrityAssessment"] = Permission.ReviewIntegrity,

@@ -5933,6 +5933,58 @@
         ]
       }
     },
+    "/v1/tasks/{taskId}/reopen": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "operationId": "ReopenTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/scorecards": {
       "get": {
         "tags": [
@@ -14664,9 +14716,10 @@
       "TaskScope": {
         "enum": [
           "Mine",
+          "Team",
           "Everyone"
         ],
-        "description": "Whose tasks a list shows: the signed-in person's and the whole team's (unassigned), or everyone's."
+        "description": "Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),\r\nor everyone's (every task the person can see)."
       },
       "TaskStatusFilter": {
         "enum": [

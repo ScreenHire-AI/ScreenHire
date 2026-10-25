@@ -76,10 +76,13 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
 
         (await ours.PostAsync($"/v1/applications/{application}/automations/todo/run")).Expect(HttpStatusCode.Accepted);
         await Automations.AutomationSamples.WaitForRunAsync(ours, application, "todo", "Completed");
-        var task = (await ours.GetAsync("/v1/tasks")).Id("0.id");
+        var task = (await ours.GetAsync("/v1/tasks?scope=Team")).Id("0.id");
         (await ours.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.OK);
         var completed = await ourClient.WaitForAsync("ApplicationTaskCompleted", "taskId", task, cancellationToken);
         completed.GetProperty("applicationId").GetGuid().Should().Be(application);
+        (await ours.PostAsync($"/v1/tasks/{task}/reopen")).Expect(HttpStatusCode.OK);
+        var reopened = await ourClient.WaitForAsync("ApplicationTaskReopened", "taskId", task, cancellationToken);
+        reopened.GetProperty("jobId").GetGuid().Should().Be(job);
 
         (await ours.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
         var scorecard = (await ours.PostAsync($"/v1/applications/{application}/scorecards", new JsonObject

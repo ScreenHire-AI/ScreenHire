@@ -5605,7 +5605,7 @@ export const RunManualAutomationResponse = zod.object({
 
 export const ListTasksQueryParams = zod.object({
   "status": zod.enum(['Open', 'Completed']).optional(),
-  "scope": zod.enum(['Mine', 'Everyone']).optional()
+  "scope": zod.enum(['Mine', 'Team', 'Everyone']).optional()
 })
 
 export const ListTasksResponseItem = zod.object({
@@ -5630,6 +5630,23 @@ export const CompleteTaskParams = zod.object({
 })
 
 export const CompleteTaskResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedByUserId": zod.uuid().nullable()
+}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+
+
+export const ReopenTaskParams = zod.object({
+  "taskId": zod.uuid()
+})
+
+export const ReopenTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
   "kind": zod.enum(['Review', 'Task', 'RejectionReview']),

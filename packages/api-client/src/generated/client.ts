@@ -6177,6 +6177,56 @@ export const completeTask = async (taskId: string, options?: Parameters<typeof a
 
 
 
+export type reopenTaskResponse200 = {
+  data: ApplicationTaskEntry
+  status: 200
+}
+
+export type reopenTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type reopenTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type reopenTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type reopenTaskResponseSuccess = (reopenTaskResponse200) & {
+  headers: Headers;
+};
+export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404) & {
+  headers: Headers;
+};
+
+export type reopenTaskResponse = (reopenTaskResponseSuccess | reopenTaskResponseError)
+
+export const getReopenTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/v1/tasks/${taskId}/reopen`
+}
+
+export const reopenTask = async (taskId: string, options?: Parameters<typeof apiFetch>[1]): Promise<reopenTaskResponse> => {
+
+  return apiFetch<reopenTaskResponse>(getReopenTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export type listApplicationScorecardsResponse200 = {
   data: ScorecardEntry[]
   status: 200

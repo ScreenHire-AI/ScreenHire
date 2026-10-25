@@ -13,8 +13,9 @@ namespace ScreenHire.Api.Endpoints;
 /// <summary>
 /// The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview) across the organization's
 /// applications: the dashboard's My tasks. Session only, because "mine" needs a person. Tenant-scoped by the query
-/// filter and row-level security: another organization's task is a 404. Completing a task changes nothing about the
-/// application; a rejection review is decided by moving the candidate (workflow-engine.md §2, guardrail 2).
+/// filter and row-level security: another organization's task is a 404. Completing a task, or reopening it with Undo,
+/// changes nothing about the application; a rejection review is decided by moving the candidate (workflow-engine.md §2,
+/// guardrail 2).
 /// </summary>
 internal static class TaskEndpoints
 {
@@ -29,11 +30,16 @@ internal static class TaskEndpoints
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.CompleteTasks)
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{taskId:guid}/reopen", ReopenTask).WithName("ReopenTask")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.CompleteTasks)
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
-    // Mine is what the signed-in person should pick up: tasks assigned to them and tasks for the whole team (no
-    // assignee). Open tasks oldest first, so the longest-waiting is on top; done ones newest first.
+    // Mine is the tasks assigned to the signed-in person, Team the tasks for the whole team (no assignee), and Everyone
+    // every task the person can see, teammates' included. Open tasks oldest first, so the longest-waiting is on top;
+    // done ones newest first.
     private static async Task<Ok<List<TaskListItem>>> ListTasks(
         ScreenHireDbContext db,
         ITenantContext tenant,
@@ -43,10 +49,12 @@ internal static class TaskEndpoints
     {
         var userId = tenant.UserId;
         var tasks = db.ApplicationTasks.AsNoTracking();
-        if (scope == TaskScope.Mine)
+        tasks = scope switch
         {
-            tasks = tasks.Where(t => t.AssigneeUserId == null || t.AssigneeUserId == userId);
-        }
+            TaskScope.Mine => tasks.Where(t => t.AssigneeUserId == userId),
+            TaskScope.Team => tasks.Where(t => t.AssigneeUserId == null),
+            _ => tasks,
+        };
 
         tasks = status == TaskStatusFilter.Open
             ? tasks.Where(t => t.CompletedAt == null).OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
@@ -93,6 +101,41 @@ internal static class TaskEndpoints
             catch (DbUpdateConcurrencyException)
             {
                 // The other completion won; its save carried the event, and this one's rolled back with it.
+                var stored = await db.ApplicationTasks.AsNoTracking().SingleAsync(t => t.Id == taskId, cancellationToken);
+                return TypedResults.Ok(stored.ToEntry());
+            }
+        }
+
+        return TypedResults.Ok(task.ToEntry());
+    }
+
+    // Undo after ticking a task: anyone who may complete tasks may open one again. A task that is open already stays as
+    // it is and raises nothing, including one reopened between this request's read and its save (CompletedAt is a
+    // concurrency token, as for completing).
+    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound>> ReopenTask(
+        Guid taskId,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        var task = await db.ApplicationTasks.SingleOrDefaultAsync(t => t.Id == taskId, cancellationToken);
+        if (task is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (task.Reopen())
+        {
+            var jobId = await db.Applications.AsNoTracking()
+                .Where(a => a.Id == task.ApplicationId).Select(a => a.JobId).SingleAsync(cancellationToken);
+            await outbox.PublishAsync(new ApplicationTaskReopened(task.OrganizationId, task.Id, task.ApplicationId, jobId, time.GetUtcNow()));
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
                 var stored = await db.ApplicationTasks.AsNoTracking().SingleAsync(t => t.Id == taskId, cancellationToken);
                 return TypedResults.Ok(stored.ToEntry());
             }
