@@ -99,7 +99,7 @@ describe('job page', () => {
     stub({ ...job, postings: [posting('careers', 'Careers page', { state: 'Live' })] });
 
     await waitFor(() => expect(tab(/^Candidates/)).toHaveTextContent(`Candidates ${applications.length}`));
-    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName('Distribution, posted on 1 of 2 boards'));
+    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName(/^Distribution ?posted on 1 of 2 boards$/));
     expect(tab(/^Candidates/)).toHaveAttribute('aria-selected', 'true');
 
     await fireEvent.mouseDown(tab(/^Distribution/));
@@ -127,7 +127,7 @@ describe('job page', () => {
     const notice = document.querySelector<HTMLElement>('[data-slot=notice]')!;
     expect(notice).toHaveTextContent('Sandbox board did not take this job. Sandbox board needs a city.');
     expect(within(notice).getByRole('link', { name: 'Fix on Distribution' })).toHaveAttribute('href', '?tab=distribution');
-    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName('Distribution, posted on 1 of 2 boards'));
+    await waitFor(() => expect(tab(/^Distribution/)).toHaveAccessibleName(/^Distribution ?posted on 1 of 2 boards$/));
   });
 
   it("says a board refused the posting with the board's reason, and nothing while every posting is fine", async () => {

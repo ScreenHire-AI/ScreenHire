@@ -99,7 +99,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(scene.Slug)).Should().Contain(scene.JobId.ToString(), "the sandbox board lists the job");
         // The tab's count says how many boards the job is on, here all of them.
-        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution ?, posted on (\\d+) of \\1 boards$") })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution posted on (\\d+) of \\1 boards$") })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-distribution-live-light");
 

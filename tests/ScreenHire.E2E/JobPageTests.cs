@@ -122,8 +122,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(notice).ToContainTextAsync("Adzuna did not take this job. Adzuna needs a description of at least 100 characters.");
         var posted = (boards - 1).ToString(CultureInfo.InvariantCulture);
         var all = boards.ToString(CultureInfo.InvariantCulture);
-        // Chromium puts a space before the count badge when it names the tab from its content.
-        var distribution = Page.GetByRole(AriaRole.Tab, new() { NameRegex = new($"^Distribution ?, posted on {posted} of {all} boards$") });
+        var distribution = Page.GetByRole(AriaRole.Tab, new() { Name = $"Distribution posted on {posted} of {all} boards", Exact = true });
         await Expect(distribution).ToBeVisibleAsync();
         await Expect(distribution).ToContainTextAsync($"{posted}/{all}");
         await ExpectNoAccessibilityViolationsAsync();
