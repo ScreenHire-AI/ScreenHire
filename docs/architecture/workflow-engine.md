@@ -38,6 +38,9 @@ sources:
   - resource: apps/api/Endpoints/TemplateEndpoints.cs
   - resource: apps/api/Endpoints/TemplateUsageEndpoints.cs
   - resource: apps/api/Hiring/TemplateUsage.cs
+  - resource: apps/dashboard/src/routes/(app)/templates/+page.svelte
+  - resource: apps/dashboard/src/lib/components/template-list.svelte
+  - resource: apps/dashboard/src/routes/(app)/templates/scorecards/[templateId]/+page.svelte
   - resource: src/ScreenHire.Domain/Hiring/TemplateUses.cs
   - resource: apps/api/Endpoints/WorkflowEndpoints.cs
   - resource: apps/api/Endpoints/AutomationEndpoints.cs
@@ -168,7 +171,10 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 - **Simulation**: "test this workflow" runs a sample application through the definition and shows which automations
   would fire — essential trust feature, cheap because evaluation is deterministic.
 
-What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`): one
+What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`). The
+Templates page has a tab each for hiring templates, library scorecards (`/templates/scorecards/{id}`, the form builder
+with an Edit / Preview switch) and email templates ([email.md](email.md)), each listed by `template-list.svelte` with
+where it is used, from `GET /v1/template-usage`. The workflow builder is one
 editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own copy, with four tabs on
 the page's header band. A workflow that cannot be edited there (a ScreenHire template, a published version, a closed
 job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no form controls. The

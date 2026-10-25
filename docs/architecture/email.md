@@ -7,6 +7,8 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplates.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplateStore.cs
+  - resource: apps/dashboard/src/routes/(app)/templates/emails/[templateId]/+page.svelte
+  - resource: apps/dashboard/src/lib/components/email-template-form.svelte
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-received.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/application-rejected.body.liquid
@@ -71,7 +73,8 @@ characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far long
   questionnaire is the reason it exists (workflow-engine.md §8).
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee. The
-dashboard shows the HTML part in a sandboxed frame, never in the page. The test send (`POST /v1/email-templates/test`)
+dashboard shows the HTML part in a sandboxed frame, never in the page, on the editor's Preview side of its Edit / Preview
+switch; the window icon opens it in a second window (`/preview/email`) that the editor feeds each rendering. The test send (`POST /v1/email-templates/test`)
 sends the same rendering to the signed-in person's own address, from the API, with `[Test]` before the subject.
 
 ## The composer
