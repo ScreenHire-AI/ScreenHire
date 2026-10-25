@@ -121,6 +121,7 @@ import type {
   TaskListItem,
   TeamMember,
   TelemetrySnapshotInput,
+  TemplateUsageList,
   TestEmailSent,
   UpdateBrandingRequest,
   UpdateEmailTemplateRequest,
@@ -438,6 +439,94 @@ export function createListAutomationIssues<TData = Awaited<ReturnType<typeof lis
 
 
   const query = createQuery(() => getListAutomationIssuesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getTemplateUsageResponse200 = {
+  data: TemplateUsageList
+  status: 200
+}
+
+export type getTemplateUsageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTemplateUsageResponseSuccess = (getTemplateUsageResponse200) & {
+  headers: Headers;
+};
+export type getTemplateUsageResponseError = (getTemplateUsageResponse401) & {
+  headers: Headers;
+};
+
+export const getGetTemplateUsageUrl = () => {
+
+
+
+
+  return `/v1/template-usage`
+}
+
+export const getTemplateUsage = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getTemplateUsageResponseSuccess> => {
+
+  return apiQueryFetch<getTemplateUsageResponseSuccess>(getGetTemplateUsageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTemplateUsageQueryKey = () => {
+    return [
+    'v1','template-usage'
+    ] as const;
+    }
+
+
+export const getGetTemplateUsageQueryOptions = <TData = Awaited<ReturnType<typeof getTemplateUsage>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getTemplateUsage>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTemplateUsageQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTemplateUsage>>> = ({ signal }) => getTemplateUsage({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getTemplateUsage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTemplateUsageQueryResult = NonNullable<Awaited<ReturnType<typeof getTemplateUsage>>>
+export type GetTemplateUsageQueryError = ErrorType<void>
+
+
+
+export function createGetTemplateUsage<TData = Awaited<ReturnType<typeof getTemplateUsage>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getTemplateUsage>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetTemplateUsageQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }
@@ -4770,6 +4859,216 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getPublishHiringTemplateVersionMutationOptions(options?.()) }), queryClient);
+    }
+
+export type archiveHiringTemplateResponse200 = {
+  data: HiringTemplateDetail
+  status: 200
+}
+
+export type archiveHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type archiveHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type archiveHiringTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type archiveHiringTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type archiveHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type archiveHiringTemplateResponseSuccess = (archiveHiringTemplateResponse200) & {
+  headers: Headers;
+};
+export type archiveHiringTemplateResponseError = (archiveHiringTemplateResponse401 | archiveHiringTemplateResponse403 | archiveHiringTemplateResponse404 | archiveHiringTemplateResponse409 | archiveHiringTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getArchiveHiringTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/archive`
+}
+
+export const archiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<archiveHiringTemplateResponseSuccess> => {
+
+  return apiQueryFetch<archiveHiringTemplateResponseSuccess>(getArchiveHiringTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveHiringTemplateMutationKey = () => ['archiveHiringTemplate'] as const;
+
+export const getArchiveHiringTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveHiringTemplate>>, TError,ArchiveHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof archiveHiringTemplate>>, TError,ArchiveHiringTemplateMutationVariables, TContext> => {
+
+const mutationKey = getArchiveHiringTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveHiringTemplate>>, ArchiveHiringTemplateMutationVariables> = (props) => {
+          const {templateId} = props ?? {};
+
+          return  archiveHiringTemplate(templateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveHiringTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof archiveHiringTemplate>>>
+
+    export type ArchiveHiringTemplateMutationError = ErrorType<void | ProblemDetails>
+    export type ArchiveHiringTemplateMutationVariables = {templateId: string}
+
+    export const createArchiveHiringTemplate = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveHiringTemplate>>, TError,ArchiveHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof archiveHiringTemplate>>,
+        TError,
+        ArchiveHiringTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getArchiveHiringTemplateMutationOptions(options?.()) }), queryClient);
+    }
+
+export type unarchiveHiringTemplateResponse200 = {
+  data: HiringTemplateDetail
+  status: 200
+}
+
+export type unarchiveHiringTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unarchiveHiringTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type unarchiveHiringTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type unarchiveHiringTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type unarchiveHiringTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type unarchiveHiringTemplateResponseSuccess = (unarchiveHiringTemplateResponse200) & {
+  headers: Headers;
+};
+export type unarchiveHiringTemplateResponseError = (unarchiveHiringTemplateResponse401 | unarchiveHiringTemplateResponse403 | unarchiveHiringTemplateResponse404 | unarchiveHiringTemplateResponse409 | unarchiveHiringTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getUnarchiveHiringTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/templates/${templateId}/unarchive`
+}
+
+export const unarchiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<unarchiveHiringTemplateResponseSuccess> => {
+
+  return apiQueryFetch<unarchiveHiringTemplateResponseSuccess>(getUnarchiveHiringTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnarchiveHiringTemplateMutationKey = () => ['unarchiveHiringTemplate'] as const;
+
+export const getUnarchiveHiringTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveHiringTemplate>>, TError,UnarchiveHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof unarchiveHiringTemplate>>, TError,UnarchiveHiringTemplateMutationVariables, TContext> => {
+
+const mutationKey = getUnarchiveHiringTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unarchiveHiringTemplate>>, UnarchiveHiringTemplateMutationVariables> = (props) => {
+          const {templateId} = props ?? {};
+
+          return  unarchiveHiringTemplate(templateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnarchiveHiringTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof unarchiveHiringTemplate>>>
+
+    export type UnarchiveHiringTemplateMutationError = ErrorType<void | ProblemDetails>
+    export type UnarchiveHiringTemplateMutationVariables = {templateId: string}
+
+    export const createUnarchiveHiringTemplate = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveHiringTemplate>>, TError,UnarchiveHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof unarchiveHiringTemplate>>,
+        TError,
+        UnarchiveHiringTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUnarchiveHiringTemplateMutationOptions(options?.()) }), queryClient);
     }
 
 export type listJobApplicationsResponse200 = {
@@ -11078,6 +11377,216 @@ export function createGetScorecardTemplateHistory<TData = Awaited<ReturnType<typ
 
 
 
+export type archiveScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type archiveScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type archiveScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type archiveScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type archiveScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type archiveScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type archiveScorecardTemplateResponseSuccess = (archiveScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type archiveScorecardTemplateResponseError = (archiveScorecardTemplateResponse401 | archiveScorecardTemplateResponse403 | archiveScorecardTemplateResponse404 | archiveScorecardTemplateResponse409 | archiveScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getArchiveScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}/archive`
+}
+
+export const archiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<archiveScorecardTemplateResponseSuccess> => {
+
+  return apiQueryFetch<archiveScorecardTemplateResponseSuccess>(getArchiveScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveScorecardTemplateMutationKey = () => ['archiveScorecardTemplate'] as const;
+
+export const getArchiveScorecardTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveScorecardTemplate>>, TError,ArchiveScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof archiveScorecardTemplate>>, TError,ArchiveScorecardTemplateMutationVariables, TContext> => {
+
+const mutationKey = getArchiveScorecardTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveScorecardTemplate>>, ArchiveScorecardTemplateMutationVariables> = (props) => {
+          const {templateId} = props ?? {};
+
+          return  archiveScorecardTemplate(templateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveScorecardTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof archiveScorecardTemplate>>>
+
+    export type ArchiveScorecardTemplateMutationError = ErrorType<void | ProblemDetails>
+    export type ArchiveScorecardTemplateMutationVariables = {templateId: string}
+
+    export const createArchiveScorecardTemplate = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveScorecardTemplate>>, TError,ArchiveScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof archiveScorecardTemplate>>,
+        TError,
+        ArchiveScorecardTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getArchiveScorecardTemplateMutationOptions(options?.()) }), queryClient);
+    }
+
+export type unarchiveScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type unarchiveScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unarchiveScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type unarchiveScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type unarchiveScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type unarchiveScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type unarchiveScorecardTemplateResponseSuccess = (unarchiveScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type unarchiveScorecardTemplateResponseError = (unarchiveScorecardTemplateResponse401 | unarchiveScorecardTemplateResponse403 | unarchiveScorecardTemplateResponse404 | unarchiveScorecardTemplateResponse409 | unarchiveScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getUnarchiveScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}/unarchive`
+}
+
+export const unarchiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<unarchiveScorecardTemplateResponseSuccess> => {
+
+  return apiQueryFetch<unarchiveScorecardTemplateResponseSuccess>(getUnarchiveScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnarchiveScorecardTemplateMutationKey = () => ['unarchiveScorecardTemplate'] as const;
+
+export const getUnarchiveScorecardTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveScorecardTemplate>>, TError,UnarchiveScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof unarchiveScorecardTemplate>>, TError,UnarchiveScorecardTemplateMutationVariables, TContext> => {
+
+const mutationKey = getUnarchiveScorecardTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unarchiveScorecardTemplate>>, UnarchiveScorecardTemplateMutationVariables> = (props) => {
+          const {templateId} = props ?? {};
+
+          return  unarchiveScorecardTemplate(templateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnarchiveScorecardTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof unarchiveScorecardTemplate>>>
+
+    export type UnarchiveScorecardTemplateMutationError = ErrorType<void | ProblemDetails>
+    export type UnarchiveScorecardTemplateMutationVariables = {templateId: string}
+
+    export const createUnarchiveScorecardTemplate = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveScorecardTemplate>>, TError,UnarchiveScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof unarchiveScorecardTemplate>>,
+        TError,
+        UnarchiveScorecardTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUnarchiveScorecardTemplateMutationOptions(options?.()) }), queryClient);
+    }
+
 export type listWebhookEventTypesResponse200 = {
   data: string[]
   status: 200
@@ -12299,10 +12808,15 @@ export type updateEmailTemplateResponse404 = {
   status: 404
 }
 
+export type updateEmailTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type updateEmailTemplateResponseSuccess = (updateEmailTemplateResponse200) & {
   headers: Headers;
 };
-export type updateEmailTemplateResponseError = (updateEmailTemplateResponse400 | updateEmailTemplateResponse401 | updateEmailTemplateResponse403 | updateEmailTemplateResponse404) & {
+export type updateEmailTemplateResponseError = (updateEmailTemplateResponse400 | updateEmailTemplateResponse401 | updateEmailTemplateResponse403 | updateEmailTemplateResponse404 | updateEmailTemplateResponse409) & {
   headers: Headers;
 };
 
@@ -12594,6 +13108,206 @@ export function createGetEmailTemplateHistory<TData = Awaited<ReturnType<typeof 
 
 
 
+
+export type archiveEmailTemplateResponse200 = {
+  data: EmailTemplateEntry
+  status: 200
+}
+
+export type archiveEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type archiveEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type archiveEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type archiveEmailTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type archiveEmailTemplateResponseSuccess = (archiveEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type archiveEmailTemplateResponseError = (archiveEmailTemplateResponse401 | archiveEmailTemplateResponse403 | archiveEmailTemplateResponse404 | archiveEmailTemplateResponse409) & {
+  headers: Headers;
+};
+
+export const getArchiveEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}/archive`
+}
+
+export const archiveEmailTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<archiveEmailTemplateResponseSuccess> => {
+
+  return apiQueryFetch<archiveEmailTemplateResponseSuccess>(getArchiveEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveEmailTemplateMutationKey = () => ['archiveEmailTemplate'] as const;
+
+export const getArchiveEmailTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveEmailTemplate>>, TError,ArchiveEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof archiveEmailTemplate>>, TError,ArchiveEmailTemplateMutationVariables, TContext> => {
+
+const mutationKey = getArchiveEmailTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveEmailTemplate>>, ArchiveEmailTemplateMutationVariables> = (props) => {
+          const {templateId} = props ?? {};
+
+          return  archiveEmailTemplate(templateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof archiveEmailTemplate>>>
+
+    export type ArchiveEmailTemplateMutationError = ErrorType<void | ProblemDetails>
+    export type ArchiveEmailTemplateMutationVariables = {templateId: string}
+
+    export const createArchiveEmailTemplate = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveEmailTemplate>>, TError,ArchiveEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof archiveEmailTemplate>>,
+        TError,
+        ArchiveEmailTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getArchiveEmailTemplateMutationOptions(options?.()) }), queryClient);
+    }
+
+export type unarchiveEmailTemplateResponse200 = {
+  data: EmailTemplateEntry
+  status: 200
+}
+
+export type unarchiveEmailTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unarchiveEmailTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type unarchiveEmailTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type unarchiveEmailTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type unarchiveEmailTemplateResponseSuccess = (unarchiveEmailTemplateResponse200) & {
+  headers: Headers;
+};
+export type unarchiveEmailTemplateResponseError = (unarchiveEmailTemplateResponse401 | unarchiveEmailTemplateResponse403 | unarchiveEmailTemplateResponse404 | unarchiveEmailTemplateResponse409) & {
+  headers: Headers;
+};
+
+export const getUnarchiveEmailTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/email-templates/${templateId}/unarchive`
+}
+
+export const unarchiveEmailTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<unarchiveEmailTemplateResponseSuccess> => {
+
+  return apiQueryFetch<unarchiveEmailTemplateResponseSuccess>(getUnarchiveEmailTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnarchiveEmailTemplateMutationKey = () => ['unarchiveEmailTemplate'] as const;
+
+export const getUnarchiveEmailTemplateMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveEmailTemplate>>, TError,UnarchiveEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof unarchiveEmailTemplate>>, TError,UnarchiveEmailTemplateMutationVariables, TContext> => {
+
+const mutationKey = getUnarchiveEmailTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unarchiveEmailTemplate>>, UnarchiveEmailTemplateMutationVariables> = (props) => {
+          const {templateId} = props ?? {};
+
+          return  unarchiveEmailTemplate(templateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnarchiveEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof unarchiveEmailTemplate>>>
+
+    export type UnarchiveEmailTemplateMutationError = ErrorType<void | ProblemDetails>
+    export type UnarchiveEmailTemplateMutationVariables = {templateId: string}
+
+    export const createUnarchiveEmailTemplate = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveEmailTemplate>>, TError,UnarchiveEmailTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof unarchiveEmailTemplate>>,
+        TError,
+        UnarchiveEmailTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUnarchiveEmailTemplateMutationOptions(options?.()) }), queryClient);
+    }
 
 export type previewEmailTemplateResponse200 = {
   data: EmailPreview

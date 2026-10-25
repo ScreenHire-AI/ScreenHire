@@ -34,6 +34,12 @@ public sealed class EmailTemplate : ITenantOwned
 
     public DateTimeOffset UpdatedAt { get; set; }
 
+    /// <summary>
+    /// When the organization archived its own template, or null. An archived template leaves the pickers, while the
+    /// automations that name it keep sending it. A built-in's row is never archived.
+    /// </summary>
+    public DateTimeOffset? ArchivedAt { get; set; }
+
     /// <summary>The id automations and sends name it by: the built-in id, or this row's id.</summary>
     public string Key => BuiltInId ?? Id.ToString("D");
 

@@ -34,6 +34,11 @@ public static class ScorecardTemplateChanges
             lines.Add(ChangeLine.Plain("changed the questions", details));
         }
 
+        if (Archive.Line(before.ArchivedAt, after.ArchivedAt, "scorecard") is { } archive)
+        {
+            lines.Add(archive);
+        }
+
         return lines;
     }
 }

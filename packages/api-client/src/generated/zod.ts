@@ -62,6 +62,46 @@ export const ListAutomationIssuesResponseItem = zod.object({
 export const ListAutomationIssuesResponse = zod.array(ListAutomationIssuesResponseItem)
 
 
+export const GetTemplateUsageResponse = zod.object({
+  "hiring": zod.array(zod.object({
+  "templateId": zod.string(),
+  "usedBy": zod.array(zod.object({
+  "kind": zod.enum(['Job', 'HiringTemplate', 'JobAutomation', 'TemplateAutomation']).describe('What uses a template: a job, a hiring template, or an automation in either.'),
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "automationId": zod.string().nullish(),
+  "automationName": zod.string().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "notUsedRecently": zod.boolean()
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that.')),
+  "scorecards": zod.array(zod.object({
+  "templateId": zod.string(),
+  "usedBy": zod.array(zod.object({
+  "kind": zod.enum(['Job', 'HiringTemplate', 'JobAutomation', 'TemplateAutomation']).describe('What uses a template: a job, a hiring template, or an automation in either.'),
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "automationId": zod.string().nullish(),
+  "automationName": zod.string().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "notUsedRecently": zod.boolean()
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that.')),
+  "emails": zod.array(zod.object({
+  "templateId": zod.string(),
+  "usedBy": zod.array(zod.object({
+  "kind": zod.enum(['Job', 'HiringTemplate', 'JobAutomation', 'TemplateAutomation']).describe('What uses a template: a job, a hiring template, or an automation in either.'),
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "automationId": zod.string().nullish(),
+  "automationName": zod.string().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "notUsedRecently": zod.boolean()
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that.'))
+}).describe('Every template\'s use, by kind, as the Templates page lists them.')
+
+
 export const GetMetaResponse = zod.object({
   "name": zod.string(),
   "version": zod.string(),
@@ -2069,8 +2109,9 @@ export const ListHiringTemplatesResponseItem = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('A hiring template in a list. System templates ship with the product and are read-only.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A hiring template in a list. System templates ship with the product and are read-only. An archived template\r\n(`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy.')
 export const ListHiringTemplatesResponse = zod.array(ListHiringTemplatesResponseItem)
 
 
@@ -2222,7 +2263,8 @@ export const CreateHiringTemplateResponse = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
@@ -2250,7 +2292,8 @@ export const GetHiringTemplateResponse = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
@@ -2283,7 +2326,8 @@ export const UpdateHiringTemplateResponse = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
@@ -3120,6 +3164,64 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedBy": zod.uuid().nullable()
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`.')
+
+
+export const ArchiveHiringTemplateParams = zod.object({
+  "templateId": zod.uuid()
+})
+
+export const ArchiveHiringTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "versions": zod.array(zod.object({
+  "id": zod.uuid(),
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+})),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
+
+
+export const UnarchiveHiringTemplateParams = zod.object({
+  "templateId": zod.uuid()
+})
+
+export const UnarchiveHiringTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "versions": zod.array(zod.object({
+  "id": zod.uuid(),
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+})),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
 export const ListJobApplicationsParams = zod.object({
@@ -5507,7 +5609,8 @@ export const ListScorecardTemplatesResponseItem = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('A scorecard in the organization\'s library: a built-in (`builtIn`, ScreenHire\'s and read only) or one of its own.\r\nA hiring template\'s stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy.')
 export const ListScorecardTemplatesResponse = zod.array(ListScorecardTemplatesResponseItem)
 
@@ -5553,7 +5656,8 @@ export const CreateScorecardTemplateResponse = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
@@ -5584,7 +5688,8 @@ export const GetScorecardTemplateResponse = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
@@ -5632,7 +5737,8 @@ export const UpdateScorecardTemplateResponse = zod.object({
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
@@ -5668,6 +5774,70 @@ export const GetScorecardTemplateHistoryResponse = zod.object({
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+
+
+export const ArchiveScorecardTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const archiveScorecardTemplateResponseQuestionsItemRequiredDefault = false;
+
+export const ArchiveScorecardTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "copiedFrom": zod.string().nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(archiveScorecardTemplateResponseQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
+
+
+export const UnarchiveScorecardTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const unarchiveScorecardTemplateResponseQuestionsItemRequiredDefault = false;
+
+export const UnarchiveScorecardTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "copiedFrom": zod.string().nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(unarchiveScorecardTemplateResponseQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
 export const ListWebhookEventTypesResponseItem = zod.string()
@@ -5836,7 +6006,6 @@ export const ReplayWebhookDeliveryResponse = zod.object({
 }).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
 
 
-export const listEmailTemplatesResponseTemplatesItemQuestionnaireOnlyDefault = false;
 export const listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault = false;
 
 export const ListEmailTemplatesResponse = zod.object({
@@ -5856,7 +6025,8 @@ export const ListEmailTemplatesResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
-  "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseTemplatesItemQuestionnaireOnlyDefault)
+  "questionnaireOnly": zod.boolean(),
+  "archived": zod.boolean()
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')),
   "variables": zod.array(zod.object({
   "name": zod.string(),
@@ -5873,8 +6043,6 @@ export const CreateEmailTemplateBody = zod.object({
   "body": zod.string()
 }).describe('A new template of the organization\'s own: its name, a Liquid subject and a Liquid plain-text body.')
 
-export const createEmailTemplateResponseQuestionnaireOnlyDefault = false;
-
 export const CreateEmailTemplateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -5890,15 +6058,14 @@ export const CreateEmailTemplateResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
-  "questionnaireOnly": zod.boolean().default(createEmailTemplateResponseQuestionnaireOnlyDefault)
+  "questionnaireOnly": zod.boolean(),
+  "archived": zod.boolean()
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const GetEmailTemplateParams = zod.object({
   "templateId": zod.string()
 })
-
-export const getEmailTemplateResponseQuestionnaireOnlyDefault = false;
 
 export const GetEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -5915,7 +6082,8 @@ export const GetEmailTemplateResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
-  "questionnaireOnly": zod.boolean().default(getEmailTemplateResponseQuestionnaireOnlyDefault)
+  "questionnaireOnly": zod.boolean(),
+  "archived": zod.boolean()
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
@@ -5928,8 +6096,6 @@ export const UpdateEmailTemplateBody = zod.object({
   "body": zod.string(),
   "name": zod.string().nullish()
 }).describe('New wording for a template. `name` renames the organization\'s own template; leave it out for a built-in,\r\nwhose name is ScreenHire\'s.')
-
-export const updateEmailTemplateResponseQuestionnaireOnlyDefault = false;
 
 export const UpdateEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -5946,7 +6112,8 @@ export const UpdateEmailTemplateResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
-  "questionnaireOnly": zod.boolean().default(updateEmailTemplateResponseQuestionnaireOnlyDefault)
+  "questionnaireOnly": zod.boolean(),
+  "archived": zod.boolean()
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
@@ -5989,6 +6156,54 @@ export const GetEmailTemplateHistoryResponse = zod.object({
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+
+
+export const ArchiveEmailTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const ArchiveEmailTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "edited": zod.boolean(),
+  "rejectOnly": zod.boolean(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "questionnaireOnly": zod.boolean(),
+  "archived": zod.boolean()
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+
+
+export const UnarchiveEmailTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const UnarchiveEmailTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "edited": zod.boolean(),
+  "rejectOnly": zod.boolean(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "questionnaireOnly": zod.boolean(),
+  "archived": zod.boolean()
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const PreviewEmailTemplateBody = zod.object({

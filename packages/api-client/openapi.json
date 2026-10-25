@@ -150,6 +150,34 @@
         ]
       }
     },
+    "/v1/template-usage": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "GetTemplateUsage",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateUsageList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/meta": {
       "get": {
         "tags": [
@@ -2455,6 +2483,142 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/archive": {
+      "post": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "ArchiveHiringTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/unarchive": {
+      "post": {
+        "tags": [
+          "Hiring templates"
+        ],
+        "operationId": "UnarchiveHiringTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "403": {
             "description": "Forbidden",
@@ -5877,6 +6041,140 @@
         ]
       }
     },
+    "/v1/scorecard-templates/{templateId}/archive": {
+      "post": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "ArchiveScorecardTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/scorecard-templates/{templateId}/unarchive": {
+      "post": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "UnarchiveScorecardTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/webhooks/event-types": {
       "get": {
         "tags": [
@@ -6539,6 +6837,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized"
           }
@@ -6644,6 +6952,128 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/email-templates/{templateId}/archive": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "ArchiveEmailTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/email-templates/{templateId}/unarchive": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "UnarchiveEmailTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailTemplateEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -9585,7 +10015,9 @@
           "subject",
           "body",
           "updatedAt",
-          "lastUpdated"
+          "lastUpdated",
+          "questionnaireOnly",
+          "archived"
         ],
         "type": "object",
         "properties": {
@@ -9621,8 +10053,10 @@
             "$ref": "#/components/schemas/LastUpdate"
           },
           "questionnaireOnly": {
-            "type": "boolean",
-            "default": false
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
           }
         },
         "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
@@ -9804,7 +10238,8 @@
           "createdAt",
           "updatedAt",
           "versions",
-          "lastUpdated"
+          "lastUpdated",
+          "archived"
         ],
         "type": "object",
         "properties": {
@@ -9850,6 +10285,9 @@
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
+          },
+          "archived": {
+            "type": "boolean"
           }
         },
         "description": "A hiring template with its versions, oldest first. `lastUpdated` counts every version's changes."
@@ -9865,7 +10303,8 @@
           "draftVersion",
           "createdAt",
           "updatedAt",
-          "lastUpdated"
+          "lastUpdated",
+          "archived"
         ],
         "type": "object",
         "properties": {
@@ -9919,9 +10358,12 @@
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
+          },
+          "archived": {
+            "type": "boolean"
           }
         },
-        "description": "A hiring template in a list. System templates ship with the product and are read-only."
+        "description": "A hiring template in a list. System templates ship with the product and are read-only. An archived template\r\n(`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy."
       },
       "HiringTemplateVersionDetail": {
         "required": [
@@ -13159,7 +13601,8 @@
           "builtIn",
           "copiedFrom",
           "questions",
-          "lastUpdated"
+          "lastUpdated",
+          "archived"
         ],
         "type": "object",
         "properties": {
@@ -13186,6 +13629,9 @@
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
+          },
+          "archived": {
+            "type": "boolean"
           }
         },
         "description": "One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note."
@@ -13197,7 +13643,8 @@
           "builtIn",
           "questions",
           "ratingQuestions",
-          "lastUpdated"
+          "lastUpdated",
+          "archived"
         ],
         "type": "object",
         "properties": {
@@ -13220,6 +13667,9 @@
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
+          },
+          "archived": {
+            "type": "boolean"
           }
         },
         "description": "A scorecard in the organization's library: a built-in (`builtIn`, ScreenHire's and read only) or one of its own.\r\nA hiring template's stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy."
@@ -13762,6 +14212,66 @@
         "additionalProperties": false,
         "description": "One cumulative snapshot of one page view's form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit."
       },
+      "TemplateUsageList": {
+        "required": [
+          "hiring",
+          "scorecards",
+          "emails"
+        ],
+        "type": "object",
+        "properties": {
+          "hiring": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateUse"
+            }
+          },
+          "scorecards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateUse"
+            }
+          },
+          "emails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateUse"
+            }
+          }
+        },
+        "description": "Every template's use, by kind, as the Templates page lists them."
+      },
+      "TemplateUse": {
+        "required": [
+          "templateId",
+          "usedBy",
+          "lastUsedAt",
+          "notUsedRecently"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string"
+          },
+          "usedBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageItem"
+            }
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "notUsedRecently": {
+            "type": "boolean"
+          }
+        },
+        "description": "Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that."
+      },
       "TemplateVersionStatus": {
         "enum": [
           "Draft",
@@ -14138,6 +14648,48 @@
         },
         "description": "Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`."
       },
+      "UsageItem": {
+        "required": [
+          "kind",
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/UsageKind"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "automationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "automationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One thing that uses a template. `id` is the job's or the hiring template's id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation."
+      },
+      "UsageKind": {
+        "enum": [
+          "Job",
+          "HiringTemplate",
+          "JobAutomation",
+          "TemplateAutomation"
+        ],
+        "description": "What uses a template: a job, a hiring template, or an automation in either."
+      },
       "ValidateWorkflowRequest": {
         "required": [
           "workflow"
@@ -14476,6 +15028,9 @@
     },
     {
       "name": "Automations"
+    },
+    {
+      "name": "Templates"
     },
     {
       "name": "Meta"
