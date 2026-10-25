@@ -141,14 +141,17 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         var application = (await ApplicantsAsync(owner, SeniorDotnetSlug))
             .Single(a => a.GetProperty("candidateName").GetString() == "Joel Mensah");
 
-        var notes = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}/timeline")).EnumerateArray()
-            .Where(e => e.GetProperty("type").GetString() == "NoteAdded")
-            .ToList();
+        var timeline = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}/timeline")).EnumerateArray().ToList();
+        var notes = timeline.Where(e => e.GetProperty("type").GetString() == "NoteAdded").ToList();
 
         notes.Should().HaveCount(2);
         notes.Should().ContainSingle(n => n.GetProperty("note").GetString()!.Contains($"@[{me}]"), "Jordan mentions Avery");
         notes.Should().ContainSingle(n => n.GetProperty("actorUserId").GetGuid() == me && n.GetProperty("noteEditedAt").ValueKind == JsonValueKind.String,
             "Avery's note mentions Jordan and was edited");
+        var moved = timeline.Where(e => e.GetProperty("type").GetString() is "Submitted" or "StageChanged")
+            .Max(e => e.GetProperty("occurredAt").GetDateTimeOffset());
+        notes.Should().OnlyContain(n => n.GetProperty("occurredAt").GetDateTimeOffset() > moved,
+            "the notes come after the candidate applied and was moved, so Overview's last five show them");
     }
 
     [Fact]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { maxNotifications, Notifications, teamNotification } from './notifications.svelte.js';
+import { maxNotifications, mentionNotification, mentionNotificationId, Notifications, teamNotification } from './notifications.svelte.js';
 
 const application = { id: 'app-1', candidate: { fullName: 'Casey Morgan' }, jobTitle: 'Senior .NET Engineer' };
 
@@ -32,5 +32,15 @@ describe('notifications', () => {
     expect(tray.items.map((item) => item.id)).toEqual(['run-3', 'run-2', 'run-1']);
     tray.dismiss('run-2');
     expect(tray.items.map((item) => item.id)).toEqual(['run-3', 'run-1']);
+  });
+
+  it("keys a mention's card by its note, so deleting the note can take the card away", () => {
+    const tray = new Notifications();
+    tray.add(mentionNotification('note-1', application, 'Jordan Ellis'));
+    tray.add(teamNotification('run-1', undefined, application));
+
+    tray.dismiss(mentionNotificationId('note-1'));
+
+    expect(tray.items.map((item) => item.id)).toEqual(['run-1']);
   });
 });
