@@ -99,4 +99,43 @@ public sealed class JobScopeRealtimeTests(AppHostFixture fixture)
         await Task.Delay(TimeSpan.FromSeconds(1), Ct);
         again.ReceivedAnythingAbout(job).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Becoming_an_admin_closes_the_connection_and_the_reconnect_hears_about_every_job()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var member = await fixture.InviteAndJoinAsync(owner, "Recruiter", jobAccess: "HiringTeamOnly");
+        var memberId = await owner.MemberIdAsync(member.UserId);
+        await using var memberEvents = await EventsConnection.ConnectAsync(member.Session, Ct);
+
+        (await owner.PutAsync($"/v1/organization/members/{memberId}/role", new JsonObject { ["role"] = "Admin" })).Expect(HttpStatusCode.OK);
+
+        await memberEvents.Closed.WaitAsync(CloseDeadline, Ct);
+        await using var again = await EventsConnection.ConnectAsync(member.Session, Ct);
+        var job = (await owner.CreateJobAsync(Samples.RemoteJob("Not on the team"))).Id();
+        await owner.PublishJobAsync(job);
+        await again.WaitForAsync("JobPublished", "jobId", job, Ct);
+    }
+
+    [Fact]
+    public async Task Leaving_the_admin_role_closes_the_connection_and_the_reconnect_hears_only_about_their_jobs()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var member = await fixture.InviteAndJoinAsync(owner, "Recruiter", jobAccess: "HiringTeamOnly");
+        var memberId = await owner.MemberIdAsync(member.UserId);
+        var theirs = (await owner.CreateJobAsync(Samples.RemoteJob("Their job"))).Id();
+        var hidden = (await owner.CreateJobAsync(Samples.RemoteJob("Hidden job"))).Id();
+        await owner.SetHiringTeamAsync(theirs, memberId);
+        (await owner.PutAsync($"/v1/organization/members/{memberId}/role", new JsonObject { ["role"] = "Admin" })).Expect(HttpStatusCode.OK);
+        await using var adminEvents = await EventsConnection.ConnectAsync(member.Session, Ct);
+
+        (await owner.PutAsync($"/v1/organization/members/{memberId}/role", new JsonObject { ["role"] = "Recruiter" })).Expect(HttpStatusCode.OK);
+
+        await adminEvents.Closed.WaitAsync(CloseDeadline, Ct);
+        await using var again = await EventsConnection.ConnectAsync(member.Session, Ct);
+        await owner.PublishJobAsync(hidden);
+        await owner.PublishJobAsync(theirs);
+        await again.WaitForAsync("JobPublished", "jobId", theirs, Ct);
+        again.ReceivedAnythingAbout(hidden).Should().BeFalse("back on Only jobs they're on, the job they are not on is gone");
+    }
 }

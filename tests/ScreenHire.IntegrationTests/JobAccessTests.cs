@@ -3,11 +3,16 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Automations;
+using ScreenHire.IntegrationTests.Messaging;
+using Wolverine;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -278,6 +283,158 @@ public sealed class JobAccessTests(AppHostFixture fixture)
             ["note"] = $"Worth a look {NoteMentions.Token(viewer.UserId)}",
         })).Expect(HttpStatusCode.Created);
     }
+
+    // The worker sees every job, so its mention handler checks the job itself: someone taken off the team between the
+    // note and the email gets no email about the candidate. The mention is sent once while they are on the team, then
+    // made unsent again and redelivered after they leave it.
+    [Fact]
+    public async Task A_mention_email_does_not_go_to_someone_taken_off_the_job_since()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var viewerEmail = ApiSession.NewEmail("viewer");
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", viewerEmail, jobAccess: "HiringTeamOnly");
+        var viewerMember = await owner.MemberIdAsync(viewer.UserId);
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("Backend Engineer"));
+        var application = (await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"))).Id();
+        await owner.SetHiringTeamAsync(job.Id(), viewerMember);
+
+        var noteId = (await owner.PostAsync($"/v1/applications/{application}/notes", new JsonObject
+        {
+            ["note"] = $"Worth a look {NoteMentions.Token(viewer.UserId)}",
+        })).Expect(HttpStatusCode.Created).Id("noteId");
+        await WolverineStore.WaitUntilAsync(async () => (await MentionEmailsAsync(viewerEmail)).Count >= 1, "the mention email reaches the viewer", Ct);
+
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        Guid mentionId;
+        await using (var db = await fixture.CreateDbContextAsync(tenant, Ct))
+        {
+            mentionId = await db.ApplicationNoteMentions.Where(m => m.NoteId == noteId && m.UserId == viewer.UserId).Select(m => m.Id).SingleAsync(Ct);
+        }
+
+        // The handler sends the email before it commits EmailedAt, so wait for the commit before making the mention unsent.
+        await WolverineStore.WaitUntilAsync(async () =>
+        {
+            await using var check = await fixture.CreateDbContextAsync(tenant, Ct);
+            return await check.ApplicationNoteMentions.AnyAsync(m => m.Id == mentionId && m.EmailedAt != null, Ct);
+        }, "the worker to record the first mention email", Ct);
+
+        (await owner.PutAsync($"/v1/jobs/{job.Id()}/hiring-team", new JsonObject { ["memberIds"] = new JsonArray() })).Expect(HttpStatusCode.OK);
+        await using (var db = await fixture.CreateDbContextAsync(tenant, Ct))
+        {
+            await db.ApplicationNoteMentions.Where(m => m.Id == mentionId)
+                .ExecuteUpdateAsync(set => set.SetProperty(m => m.EmailedAt, (DateTimeOffset?)null), Ct);
+        }
+
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await using (var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct))
+        {
+            await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(new TeammateMentioned(
+                owner.OrganizationId, application, job.Id(), noteId, mentionId, viewer.UserId, owner.UserId, DateTimeOffset.UtcNow));
+            await WolverineStore.WaitUntilAsync(
+                async () => await store.CountHandledAsync(mentionId.ToString(), Ct, nameof(TeammateMentioned)) >= 2, "the worker to handle the mention again", Ct);
+        }
+
+        (await MentionEmailsAsync(viewerEmail)).Should().HaveCount(1, "off the team, the candidate is out of sight");
+        await using var check = await fixture.CreateDbContextAsync(tenant, Ct);
+        (await check.ApplicationNoteMentions.SingleAsync(m => m.Id == mentionId, Ct)).EmailedAt.Should().BeNull();
+    }
+
+    // The job filter runs in the query, before the newest 200 entries are taken. Filtered afterwards, 200 newer entries
+    // about a job the reader cannot see would leave them an empty log.
+    [Fact]
+    public async Task The_membership_log_shows_a_reader_on_their_jobs_an_old_entry_about_their_job_under_many_newer_hidden_ones()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var theirs = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        var hidden = await owner.CreateJobAsync(Samples.RemoteJob("Payroll Specialist"));
+
+        // A custom role that reads the log (Manage team), copied from Recruiter. Owners and Admins see every job, so a
+        // custom role is how a reader on Only jobs they're on gets the log.
+        var copy = (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "Team reader", ["copyFrom"] = "Recruiter" }))
+            .Expect(HttpStatusCode.Created);
+        var roleId = copy.Id();
+        (await owner.PutAsync($"/v1/organization/roles/{roleId}", new JsonObject
+        {
+            ["name"] = "Team reader",
+            ["permissions"] = new JsonArray([.. copy.At("permissions").EnumerateArray().Select(p => (JsonNode)p.GetString()!), "ManageTeam"]),
+        })).Expect(HttpStatusCode.OK);
+        using var reader = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        await owner.GiveRoleAsync(reader, roleId);
+        await owner.SetHiringTeamAsync(theirs.Id(), await owner.MemberIdAsync(reader.UserId));
+
+        // 205 later entries about the hidden job, at a fixed time after any real one.
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using (var db = await fixture.CreateDbContextAsync(tenant, Ct))
+        {
+            var start = new DateTimeOffset(2090, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            for (var i = 0; i < 205; i++)
+            {
+                db.MembershipEvents.Add(new MembershipEvent
+                {
+                    OrganizationId = owner.OrganizationId,
+                    Kind = i % 2 == 0 ? MembershipEventKind.AddedToHiringTeam : MembershipEventKind.RemovedFromHiringTeam,
+                    ActorUserId = owner.UserId,
+                    MemberUserId = reader.UserId,
+                    JobId = hidden.Id(),
+                    OccurredAt = start.AddMinutes(i),
+                });
+            }
+
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var readerLog = (await reader.GetAsync("/v1/organization/membership-log")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
+        readerLog.Should().NotContain(e => e.GetProperty("jobId").ValueKind == JsonValueKind.String && e.GetProperty("jobId").GetGuid() == hidden.Id(),
+            "the log never names a job the reader cannot see");
+        readerLog.Should().Contain(e => e.GetProperty("kind").GetString() == "AddedToHiringTeam" && e.GetProperty("jobId").GetGuid() == theirs.Id()
+            && e.GetProperty("jobTitle").GetString() == "Platform Engineer", "the older entry about their own job is still there");
+
+        var ownerLog = (await owner.GetAsync("/v1/organization/membership-log")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
+        ownerLog.Should().HaveCount(200, "the log is the newest 200 entries");
+        ownerLog.Should().OnlyContain(e => e.GetProperty("jobId").GetGuid() == hidden.Id(), "the owner sees every job, and these are the newest 200");
+    }
+
+    // A key has no member, so no creator joins the team: the job starts with the template's default team only, and the
+    // log names the key as the actor (ADR-0015).
+    [Fact]
+    public async Task A_job_an_api_key_creates_from_a_template_gets_the_default_team_and_the_log_names_the_key()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        var viewerMember = await owner.MemberIdAsync(viewer.UserId);
+        var (templateId, versionId) = await owner.CreatePublishedTemplateAsync("Keyed roles");
+        (await owner.PutAsync($"/v1/templates/{templateId}/hiring-team", new JsonObject
+        {
+            ["memberIds"] = new JsonArray(JsonValue.Create(viewerMember)),
+        })).Expect(HttpStatusCode.OK);
+        var created = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject
+        {
+            ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write"),
+        })).Expect(HttpStatusCode.Created);
+        var keyId = created.Id("key.id");
+        using var client = new HttpClient { BaseAddress = fixture.GetEndpoint("api") };
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", created.Text("token"));
+
+        using var response = await client.PostAsJsonAsync("/v1/jobs", new JsonObject { ["title"] = "Senior Keyed Engineer", ["templateVersionId"] = versionId }, Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
+        var jobId = (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
+
+        var team = (await owner.GetAsync($"/v1/jobs/{jobId}/hiring-team")).Expect(HttpStatusCode.OK);
+        team.Body.EnumerateArray().Select(m => m.GetProperty("memberId").GetGuid()).Should().Equal([viewerMember], "no creator joins when a key makes the job");
+        (await viewer.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.OK);
+
+        var entry = (await owner.GetAsync("/v1/organization/membership-log")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Single(e => e.GetProperty("kind").GetString() == "AddedToHiringTeam"
+                && e.GetProperty("jobId").ValueKind == JsonValueKind.String && e.GetProperty("jobId").GetGuid() == jobId);
+        entry.GetProperty("memberUserId").GetGuid().Should().Be(viewer.UserId);
+        entry.GetProperty("actorApiKeyId").GetString().Should().Be(keyId.ToString());
+        entry.GetProperty("actorUserId").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    private async Task<IReadOnlyList<MailpitMessage>> MentionEmailsAsync(string address) =>
+        [.. (await fixture.Mailpit.MessagesAsync(address, Ct)).Where(m => m.Subject.Contains("mentioned you", StringComparison.Ordinal))];
 
     [Fact]
     public async Task Tasks_on_a_job_a_member_does_not_see_stay_out_of_their_task_list()
