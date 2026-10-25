@@ -22,6 +22,8 @@ const template: EmailTemplateEntry = {
   body: 'Hi {{ candidateName }},',
   updatedAt: null,
   lastUpdated: { at: null, by: 'ScreenHire' },
+  questionnaireOnly: false,
+  archived: false,
 };
 
 // The preview renders what the API returns for the wording it was sent.

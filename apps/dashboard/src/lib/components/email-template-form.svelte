@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SaveIcon from '@lucide/svelte/icons/save';
   import SendIcon from '@lucide/svelte/icons/send';
   import type { EmailPreview as Preview, EmailTemplateEntry, EmailTemplateVariableEntry, HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createPreviewEmailTemplate, createSendTestEmail } from '@screenhire/api-client/svelte-query';
@@ -18,28 +17,40 @@
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
 
-  // An email template's wording on the form template (design system section 7): a name for the
-  // organization's own, the subject and the message in Liquid over a fixed list of variables, then the email as the
-  // sample candidate receives it, and a test send to yourself. The API checks the Liquid again and says what is wrong.
+  // An email template's wording in the email template editor (design system section 7, builder; A8): Edit shows a name
+  // for the organization's own, the subject and the message in Liquid over a fixed list of variables; Preview shows the
+  // email as the sample candidate receives it, with a test send to yourself. Editor and preview never share the screen.
+  // The form stays mounted in both, so the page's Save (`form={formId}`) submits it from either; a submit with problems
+  // goes back to Edit, where they show. Without `editable` the wording reads as labels and values (E3). The API checks
+  // the Liquid again and says what is wrong.
   let {
     template,
     variables,
     sendingEnabled,
-    submitLabel,
-    cancelHref,
+    editable = true,
+    mode = $bindable('edit'),
+    formId,
     failure,
     onsave,
+    rendered = $bindable(),
+    dirty = $bindable(false),
   }: {
     /** The template to edit; none for a new one of the organization's own. */
     template?: EmailTemplateEntry;
     variables: readonly EmailTemplateVariableEntry[];
     /** Whether this deployment can send email, which a test send needs (A3). */
     sendingEnabled: boolean;
-    submitLabel: string;
-    cancelHref: string;
+    editable?: boolean;
+    mode?: 'edit' | 'preview';
+    /** The form's id, for the page's Save button. */
+    formId: string;
     /** What failed, for `describeError`: "Could not save the template". */
     failure: string;
     onsave: (value: { name: string | null; subject: string; body: string }) => Promise<unknown>;
+    /** The email as it renders now, for the pop-out preview window. */
+    rendered?: { preview: Preview | undefined; failure: string | undefined };
+    /** Whether the wording differs from what was last saved. */
+    dirty?: boolean;
   } = $props();
 
   const builtIn = untrack(() => template?.builtIn ?? false);
@@ -57,17 +68,23 @@
   });
 
   const initial = untrack(() => ({ name: template?.builtIn ? '' : (template?.name ?? ''), subject: template?.subject ?? '', body: template?.body ?? '' }));
-  const { form, errors, enhance, submitting } = superForm(defaults(initial, zod4(schema)), {
+  let saved = $state({ ...initial });
+  const { form, errors, enhance } = superForm(defaults(initial, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
     applyAction: false,
     invalidateAll: false,
     async onUpdate({ form: submitted }) {
-      if (!submitted.valid) return;
+      if (!submitted.valid) {
+        mode = 'edit';
+        return;
+      }
       try {
         await onsave({ name: builtIn ? null : submitted.data.name.trim(), subject: submitted.data.subject, body: submitted.data.body });
+        saved = { ...submitted.data };
       } catch (error) {
+        mode = 'edit';
         if (error instanceof ApiError && error.status === 400) {
           applyValidationProblem(submitted, error.body as HttpValidationProblemDetails);
         } else {
@@ -76,6 +93,10 @@
         }
       }
     },
+  });
+
+  $effect(() => {
+    dirty = $form.name !== saved.name || $form.subject !== saved.subject || $form.body !== saved.body;
   });
 
   // Insert a variable where the caret was in the subject or the message, whichever had focus last.
@@ -92,8 +113,9 @@
     element?.setSelectionRange(next.caret, next.caret);
   }
 
-  // The preview follows the wording as it is typed, a moment after typing stops. A slower answer to older wording never
-  // replaces a newer one. With no wording yet there is nothing to show or test, and a line says so (E1, A3).
+  // The preview follows the wording as it is typed, a moment after typing stops, in either mode, so Preview and the
+  // pop-out window are ready. A slower answer to older wording never replaces a newer one. With no wording yet there is
+  // nothing to show or test, and a line says so (E1, A3).
   const previewing = createPreviewEmailTemplate();
   let preview = $state<Preview | undefined>();
   let previewFailure = $state<string | undefined>();
@@ -117,6 +139,9 @@
     }, 300);
     return () => clearTimeout(timer);
   });
+  $effect(() => {
+    rendered = { preview, failure: previewFailure };
+  });
 
   const test = createSendTestEmail();
   let tested = $state('');
@@ -136,99 +161,107 @@
   const describedBy = (id: string, error: unknown, hint?: string) => [hint, error ? id : undefined].filter(Boolean).join(' ') || undefined;
 </script>
 
-<div class="flex flex-col gap-5">
-  <form method="POST" use:enhance novalidate aria-label={template ? 'Edit email template' : 'New email template'}>
+<form id={formId} method="POST" use:enhance novalidate aria-label={template ? 'Edit email template' : 'New email template'} class="flex w-full max-w-form flex-col gap-5">
+  {#if mode === 'edit'}
     <Panel title="Wording">
-      <div class="flex flex-col gap-4">
-        {#if !builtIn}
-          <Field.Field data-invalid={$errors.name ? true : undefined}>
-            <Field.Label for="email-template-name">Name</Field.Label>
+      {#if editable}
+        <div class="flex flex-col gap-4">
+          {#if !builtIn}
+            <Field.Field data-invalid={$errors.name ? true : undefined}>
+              <Field.Label for="email-template-name">Name</Field.Label>
+              <Input
+                id="email-template-name"
+                name="name"
+                maxlength={100}
+                autocomplete="off"
+                required
+                bind:value={$form.name}
+                aria-invalid={$errors.name ? 'true' : undefined}
+                aria-describedby={describedBy('email-template-name-error', $errors.name)}
+              />
+              <Field.Error id="email-template-name-error" errors={$errors.name?.map((message) => ({ message }))} />
+            </Field.Field>
+          {/if}
+
+          <Field.Field data-invalid={$errors.subject ? true : undefined}>
+            <Field.Label for="email-template-subject">Subject</Field.Label>
             <Input
-              id="email-template-name"
-              name="name"
-              maxlength={100}
+              id="email-template-subject"
+              name="subject"
+              maxlength={200}
               autocomplete="off"
               required
-              bind:value={$form.name}
-              aria-invalid={$errors.name ? 'true' : undefined}
-              aria-describedby={describedBy('email-template-name-error', $errors.name)}
+              bind:ref={subjectInput}
+              bind:value={$form.subject}
+              onfocus={() => (lastField = 'subject')}
+              aria-invalid={$errors.subject ? 'true' : undefined}
+              aria-describedby={describedBy('email-template-subject-error', $errors.subject)}
             />
-            <Field.Error id="email-template-name-error" errors={$errors.name?.map((message) => ({ message }))} />
+            <Field.Error id="email-template-subject-error" errors={$errors.subject?.map((message) => ({ message }))} />
           </Field.Field>
-        {/if}
 
-        <Field.Field data-invalid={$errors.subject ? true : undefined}>
-          <Field.Label for="email-template-subject">Subject</Field.Label>
-          <Input
-            id="email-template-subject"
-            name="subject"
-            maxlength={200}
-            autocomplete="off"
-            required
-            bind:ref={subjectInput}
-            bind:value={$form.subject}
-            onfocus={() => (lastField = 'subject')}
-            aria-invalid={$errors.subject ? 'true' : undefined}
-            aria-describedby={describedBy('email-template-subject-error', $errors.subject)}
-          />
-          <Field.Error id="email-template-subject-error" errors={$errors.subject?.map((message) => ({ message }))} />
-        </Field.Field>
+          <Field.Field data-invalid={$errors.body ? true : undefined}>
+            <Field.Label for="email-template-body">Message</Field.Label>
+            <!-- Twelve rows, not sized to its text: a content-sized box reflowed as the focus left it, and moved the
+                 controls below out from under a click. -->
+            <Textarea
+              id="email-template-body"
+              name="body"
+              rows={12}
+              class="field-sizing-fixed resize-y"
+              maxlength={10000}
+              required
+              bind:ref={bodyInput}
+              bind:value={$form.body}
+              onfocus={() => (lastField = 'body')}
+              aria-invalid={$errors.body ? 'true' : undefined}
+              aria-describedby={describedBy('email-template-body-error', $errors.body, 'email-template-body-hint')}
+            />
+            <Field.Description id="email-template-body-hint">Plain text. A blank line starts a new paragraph.</Field.Description>
+            <Field.Error id="email-template-body-error" errors={$errors.body?.map((message) => ({ message }))} />
+          </Field.Field>
 
-        <Field.Field data-invalid={$errors.body ? true : undefined}>
-          <Field.Label for="email-template-body">Message</Field.Label>
-          <!-- Twelve rows, not sized to its text: a content-sized box reflowed as the focus left it, and moved the preview
-               below out from under a click. -->
-          <Textarea
-            id="email-template-body"
-            name="body"
-            rows={12}
-            class="field-sizing-fixed resize-y"
-            maxlength={10000}
-            required
-            bind:ref={bodyInput}
-            bind:value={$form.body}
-            onfocus={() => (lastField = 'body')}
-            aria-invalid={$errors.body ? 'true' : undefined}
-            aria-describedby={describedBy('email-template-body-error', $errors.body, 'email-template-body-hint')}
-          />
-          <Field.Description id="email-template-body-hint">Plain text. A blank line starts a new paragraph.</Field.Description>
-          <Field.Error id="email-template-body-error" errors={$errors.body?.map((message) => ({ message }))} />
-        </Field.Field>
-
-        <div role="group" aria-labelledby="email-template-variables" class="flex flex-col gap-2">
-          <span id="email-template-variables" class="text-body font-medium">Insert a variable</span>
-          <div class="flex flex-wrap gap-2">
-            {#each usable as variable (variable.name)}
-              <!-- A6: the name says the verb; the group's label says it once for every button. -->
-              <Button type="button" variant="outline" aria-label={`Insert ${variable.label}`} onclick={() => insert(variable.name)}>{variable.label}</Button>
-            {/each}
+          <div role="group" aria-labelledby="email-template-variables" class="flex flex-col gap-2">
+            <span id="email-template-variables" class="text-body font-medium">Insert a variable</span>
+            <div class="flex flex-wrap gap-2">
+              {#each usable as variable (variable.name)}
+                <!-- A6: the name says the verb; the group's label says it once for every button. -->
+                <Button type="button" variant="outline" aria-label={`Insert ${variable.label}`} onclick={() => insert(variable.name)}>{variable.label}</Button>
+              {/each}
+            </div>
           </div>
+          <FailureText message={$errors._errors?.[0]} />
         </div>
-      </div>
-      {#snippet footer()}
-        <div class="flex flex-wrap items-center justify-end gap-2">
-          <FailureText message={$errors._errors?.[0]} class="mr-auto" />
-          <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
-          <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />{submitLabel}</Button>
-        </div>
-      {/snippet}
-    </Panel>
-  </form>
-
-  <Panel title="Preview">
-    {#snippet actions()}
-      {#if sendingEnabled}
-        <Button variant="outline" onclick={sendTest} disabled={blank || test.isPending}><SendIcon aria-hidden="true" />Send test</Button>
-      {/if}
-    {/snippet}
-    <div class="flex flex-col gap-3">
-      {#if blank}
-        <p class="text-muted-foreground">The email appears here as you write the subject and the message.</p>
       {:else}
-        <EmailPreview {preview} failure={previewFailure} />
+        <!-- Read only: labels and values, never disabled inputs (section 7). -->
+        <dl class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <dt class="text-caption font-semibold text-muted-foreground">Subject</dt>
+            <dd class="break-words">{$form.subject}</dd>
+          </div>
+          <div class="flex flex-col gap-1">
+            <dt class="text-caption font-semibold text-muted-foreground">Message</dt>
+            <dd class="break-words whitespace-pre-line">{$form.body}</dd>
+          </div>
+        </dl>
       {/if}
-      <p role="status" class="text-muted-foreground empty:hidden">{tested}</p>
-      <FailureText message={testFailure} />
-    </div>
-  </Panel>
-</div>
+    </Panel>
+  {:else}
+    <Panel title="Preview">
+      {#snippet actions()}
+        {#if sendingEnabled && editable}
+          <Button type="button" variant="outline" onclick={sendTest} disabled={blank || test.isPending}><SendIcon aria-hidden="true" />Send me a test</Button>
+        {/if}
+      {/snippet}
+      <div class="flex flex-col gap-3">
+        {#if blank}
+          <p class="text-muted-foreground">Write a subject and a message to see the email.</p>
+        {:else}
+          <EmailPreview {preview} failure={previewFailure} />
+        {/if}
+        <p role="status" class="text-muted-foreground empty:hidden">{tested}</p>
+        <FailureText message={testFailure} />
+      </div>
+    </Panel>
+  {/if}
+</form>

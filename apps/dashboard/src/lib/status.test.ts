@@ -20,6 +20,7 @@ describe('status catalogue', () => {
       working: 'neutral loader-circle',
       closed: 'neutral door-closed',
       draft: 'neutral file-pen-line',
+      archived: 'neutral archive',
       notInEffect: 'neutral circle-minus',
     });
   });

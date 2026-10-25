@@ -306,7 +306,10 @@
                 <select class={selectClass} bind:value={action.emailTemplate}>
                   {#each emailChoices as template (template.id)}<option value={template.id}>{template.name}</option>{/each}
                   {#if action.emailTemplate && !emailChoices.some((template) => template.id === action.emailTemplate)}
-                    <option value={action.emailTemplate}>A deleted template</option>
+                    <!-- An archived template is out of the list, but an automation that sends it keeps it. -->
+                    <option value={action.emailTemplate}
+                      >{emailTemplates.data?.data.templates.find((template) => template.id === action.emailTemplate)?.name ?? 'A deleted template'}</option
+                    >
                   {/if}
                 </select>
               </label>
