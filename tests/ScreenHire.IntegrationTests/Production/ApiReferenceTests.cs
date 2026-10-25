@@ -32,6 +32,9 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
 
         reference.StatusCode.Should().Be(HttpStatusCode.OK);
         reference.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
+        var page = await reference.Content.ReadAsStringAsync(cancellationToken);
+        page.Should().Contain("\"telemetry\":false", "the public page sends Scalar no telemetry")
+            .And.Contain("\"withDefaultFonts\":false", "nor loads fonts from Scalar's CDN");
         openApi.StatusCode.Should().Be(HttpStatusCode.OK);
         (await openApi.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"openapi\"");
         (await meta.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"Production\"", "the fixture runs the API in Production");

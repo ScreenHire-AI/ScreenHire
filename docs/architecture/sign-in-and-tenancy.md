@@ -161,7 +161,9 @@ manage keys in a session, on the dashboard's Settings > API keys page, which sho
 - **The API reference** (Scalar at `/scalar`) and the OpenAPI file (`/openapi/v1.json`) are public in every
   environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
   public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
-  reference links from it. `ApiReferenceTests` reaches both with the API in Production.
+  reference links from it. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
+  server are off (`apps/api/Program.cs`). `ApiReferenceTests` reaches both with the API in Production and checks the
+  first two.
 
 ## Domains
 

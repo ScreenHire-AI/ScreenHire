@@ -81,8 +81,9 @@ app.UseRateLimiter();
 app.MapDefaultEndpoints();
 app.MapOpenApi().AllowAnonymous();
 // The API reference (Scalar, /scalar) is public in every environment: it documents the public API and holds no data. The
-// dashboard's API keys and Webhooks pages link to it.
-app.MapScalarApiReference().AllowAnonymous();
+// dashboard's API keys and Webhooks pages link to it. Being public, it calls no third party: Scalar's defaults would send
+// usage telemetry, load fonts from Scalar's CDN and offer Scalar's hosted AI chat and MCP server on our API.
+app.MapScalarApiReference(options => options.DisableTelemetry().DisableDefaultFonts().DisableAgent().DisableMcp()).AllowAnonymous();
 app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
