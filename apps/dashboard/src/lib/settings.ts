@@ -53,12 +53,9 @@ export const roleFromKey = (roles: readonly RoleSummary[], key: string): { role:
 // For the built-in roles that is Owners managing everyone and Admins everyone but Owners. The API stays the judge: it
 // refuses anything else with 403 "Owners only" or "More access than your role", and the last Owner with 409.
 
-/** Whether someone with `actor` may invite someone as, or move someone into, a role with `role`. */
+/** Whether someone with `actor` may invite someone as, move someone into or out of, or remove someone with, a role with `role`. */
 export const mayAssign = (actor: readonly Permission[], role: readonly Permission[]): boolean =>
   actor.includes('ManageTeam') && role.every((permission) => actor.includes(permission));
-
-/** Whether someone with `actor` may change the role of, or remove, a member whose role has `role`. */
-export const mayManage = mayAssign;
 
 /** The roles someone with `actor` may give, in the catalogue's order. */
 export const assignableRoles = (actor: readonly Permission[], roles: readonly RoleSummary[]): RoleSummary[] =>

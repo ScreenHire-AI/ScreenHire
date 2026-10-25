@@ -57,7 +57,7 @@
   import { applyValidationProblem } from '#lib/forms.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { assignableRoles, mayManage, roleFromKey, roleKey } from '#lib/settings.js';
+  import { assignableRoles, mayAssign, roleFromKey, roleKey } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
@@ -98,7 +98,7 @@
   const roleOf = (held: { role: OrganizationRole; customRoleId?: string | null }) => roleList.find((role) => roleKey(role) === roleKey(held));
   const mayHandle = (held: { role: OrganizationRole; customRoleId?: string | null }) => {
     const role = roleOf(held);
-    return role !== undefined && mayManage(actor, role.permissions);
+    return role !== undefined && mayAssign(actor, role.permissions);
   };
   const manageable = (member: TeamMember) => member.userId !== myId && mayHandle(member);
   // How a role reads in a sentence: a built-in one in lower case, a custom one as its name is written.
@@ -337,7 +337,7 @@
                     </span>
                   </Table.Cell>
                   <Table.Cell class="w-full max-w-0 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
-                  <Table.Cell class="max-w-48"><TruncatedText text={member.roleName} /></Table.Cell>
+                  <Table.Cell class="max-w-48 pr-4"><TruncatedText text={member.roleName} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
                 </Table.Row>
@@ -395,7 +395,7 @@
               {#each sortedInvitations as invitation (invitation.id)}
                 <Table.Row class="h-12">
                   <Table.Cell class="w-full max-w-0 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
-                  <Table.Cell class="max-w-48"><TruncatedText text={invitation.roleName} /></Table.Cell>
+                  <Table.Cell class="max-w-48 pr-4"><TruncatedText text={invitation.roleName} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={invitation.createdAt} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={invitation.expiresAt} /></Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">{#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}</Table.Cell>

@@ -1,7 +1,7 @@
 import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
-import { assignableRoles, mayAssign, mayManage, roleFromKey, roleKey, settingsSectionOf, visibleSettingsSections } from './settings.js';
+import { assignableRoles, mayAssign, roleFromKey, roleKey, settingsSectionOf, visibleSettingsSections } from './settings.js';
 
 // The expectations follow TeamPolicy.cs (src/ScreenHire.Domain/Organizations): someone with Manage the team gives a role
 // only when it holds nothing their own role does not. For the built-in roles that is Owners managing everyone, Admins
@@ -30,7 +30,7 @@ describe('mayAssign', () => {
     const lead = ['ViewHiring', 'AddNotesAndTags', 'ManageTeam'] as const;
     expect(mayAssign(lead, ['ViewHiring', 'AddNotesAndTags'])).toBe(true);
     expect(mayAssign(lead, ['ViewHiring', 'FillInScorecards'])).toBe(false);
-    expect(mayManage(lead, builtInPermissions.Recruiter)).toBe(false);
+    expect(mayAssign(lead, builtInPermissions.Recruiter)).toBe(false);
   });
 });
 

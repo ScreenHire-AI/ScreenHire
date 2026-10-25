@@ -58,10 +58,9 @@
           </div>
           <p class="sr-only" role="status">Loading the roles…</p>
         {:else}
-          <!-- A phone lists each permission instead (F2). From a tablet's panel up the grid shows, scrolling inside the panel
-               with the permission column stuck to the left (section 8). -->
+          <!-- The grid needs about 42rem to keep the Covers column readable; a narrower panel lists each permission instead (F2). -->
           <div class="@container">
-            <div class="@xl:hidden">
+            <div class="@2xl:hidden">
               {#each groups as [group, permissions] (group)}
                 <h3 class="border-b border-border-subtle bg-muted px-4 py-2.5 text-caption font-semibold">{group}</h3>
                 <ul>
@@ -77,7 +76,7 @@
                 </ul>
               {/each}
             </div>
-            <div class="hidden overflow-x-auto @xl:block">
+            <div class="hidden overflow-x-auto @2xl:block">
               <table class="w-full border-collapse text-left">
                 <thead class="bg-muted">
                   <tr>
@@ -86,7 +85,7 @@
                     {#each roles as role (roleKey(role))}
                       <th scope="col" class="h-11 max-w-32 min-w-24 border-b border-border px-3 text-center text-caption font-semibold text-muted-foreground">
                         <span class="flex min-w-0 justify-center">
-                          <TruncatedText text={role.name} href={`/settings/roles/${roleKey(role)}`} class="text-muted-foreground underline-offset-2 hover:underline" />
+                          <TruncatedText text={role.name} href={`/settings/roles/${roleKey(role)}`} class="py-1 text-muted-foreground underline-offset-2 hover:underline" />
                         </span>
                       </th>
                     {/each}

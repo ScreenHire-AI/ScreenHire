@@ -107,6 +107,8 @@ describe('role page', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Viewer' })).toBeInTheDocument();
     expect(screen.getByText('Built in')).toBeInTheDocument();
     expect(screen.getByText(/ScreenHire supplies this role, so it cannot be changed/)).toBeInTheDocument();
+    // Counted as the form counts, "N of M" (T4).
+    expect(screen.getByText(/^1 of \d+$/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy role' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'History' })).not.toBeInTheDocument();

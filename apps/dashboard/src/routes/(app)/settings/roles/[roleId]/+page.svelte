@@ -313,7 +313,9 @@
         </form>
       {:else}
         {@const held = detail?.permissions ?? summary?.permissions ?? []}
-        <Panel title="What this role can do" count={held.length}>
+        <Panel title="What this role can do">
+          <!-- The same "N of M" as the form: out of all permissions for a built-in role, out of those a custom one may hold. -->
+          {#snippet actions()}<span class="text-caption text-muted-foreground tabular-nums">{held.length} of {isBuiltIn ? permissions.length : assignable.length}</span>{/snippet}
           <!-- Read only says why and what to do (E3). -->
           <p class="mb-3 text-muted-foreground">
             {#if isBuiltIn}
