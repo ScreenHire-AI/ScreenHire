@@ -163,7 +163,11 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   onboarding, key management, organization settings, integrity review, automations, distribution and the hub.
 - **No integrity output.** Application and candidate reads send a key `integrity: null`, and the application
   timeline leaves out `IntegrityAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
-  (ADR-0004), not for another system to reject on.
+  (ADR-0004), not for another system to reject on. The MCP server returns none either.
+- **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
+  `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
+  ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
+  (`HiringAuthorization.KeyRefusal`).
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.
@@ -223,10 +227,11 @@ candidates."). Removing a member also closes their open real-time connections in
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
 every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
-Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
+Owner-only (`OwnerOnly`): no custom role holds it. Create tasks came after custom roles, with the route that creates a
+task by hand: the built-in roles that write hiring data have it, and a custom role has it only once someone adds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first. `RolePermissionsTests` reads each guarded route from
 `apps/api/Endpoints`, fails when a route has no permission or a different one, and holds the built-in roles to the exact
-sets the role-name checks used to allow, so no existing member's access changed. `GET /v1/organization/roles` serves the
+sets the role-name checks used to allow (plus Create tasks), so no existing member lost access. `GET /v1/organization/roles` serves the
 catalogue, with the organization's custom roles, to any member.
 
 **Custom roles** (`custom_roles`, `CustomRole`) start as a copy of a role, built-in or custom, and change on their own

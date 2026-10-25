@@ -24,6 +24,8 @@ sources:
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCompleted.cs
+  - resource: src/ScreenHire.Application/Automations/ApplicationTaskCreated.cs
+  - resource: apps/api/Applications/ApplicationChanges.cs
   - resource: src/ScreenHire.Application/Automations/AutomationEngine.cs
   - resource: src/ScreenHire.Application/Automations/AutomationFailures.cs
   - resource: src/ScreenHire.Application/Automations/AutomationMessages.cs
@@ -241,7 +243,7 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
-  `POST` and `DELETE /v1/applications/{id}/tags`
+  `POST` and `DELETE /v1/applications/{id}/tags`, `POST /v1/applications/{id}/tasks` (Create tasks; a Write key too)
 - `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
 - `GET` and `POST /v1/applications/{id}/scorecards` (an API key reads them; only a signed-in person submits one)
 - `GET` and `POST /v1/scorecard-templates`, `GET` and `PUT /v1/scorecard-templates/{id}`,
@@ -512,7 +514,11 @@ tasks for the signed-in person and the whole team (no assignee), oldest first; `
 `status=Completed` lists the most recent 200 done ones. `POST /v1/tasks/{id}/complete` records who finished it and when,
 once, and raises `ApplicationTaskCompleted`; it never changes the application, so a rejection review is still decided
 by a person moving the candidate. Anyone whose role changes hiring data may complete any of the organization's tasks;
-the team shares the work. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
+the team shares the work. A person with Create tasks, or an API key with the Write scope, gives the team a task by hand
+(`POST /v1/applications/{id}/tasks`, `ApplicationChanges.CreateTaskAsync`): a `Task` with a note of up to 2,000
+characters, for one member who can see the candidate (as a mention must) or the whole team, in the application's
+current stage. It records a `TaskCreated` timeline entry with the task's note and whoever created it, a person or the key,
+and raises `ApplicationTaskCreated`; like every task, it never changes the application. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
 automation reads), and edit and delete them (`PUT` and `DELETE /v1/applications/{id}/notes/{noteId}`; only the author
 edits, and the author or a role with Delete anyone's notes deletes, which the API checks against the role in this organization). A
 note's text lives in `application_notes`, never in the append-only timeline: its `NoteAdded`, `NoteEdited` and
