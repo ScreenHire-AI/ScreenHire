@@ -1,3 +1,4 @@
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Email;
 
@@ -32,6 +33,29 @@ public sealed class EmailTemplatesTests
 
         email.Subject.Should().Be("For Sam Rivera");
         email.TextBody.Should().StartWith("Hi Sam, Sam Rivera.");
+    }
+
+    // A subject's wording is at most 200 characters, but variables can render it far longer, and a kept copy holds 1000.
+    [Fact]
+    public void A_subject_that_variables_make_too_long_is_cut_to_what_a_kept_copy_holds()
+    {
+        var longName = new string('n', 300);
+        var email = Templates.Render(
+            new EmailTemplateContent(string.Concat(Enumerable.Repeat("{{ candidateName }} ", 10)), "Hi."),
+            "sam@example.com", Sam with { CandidateName = longName });
+
+        email.Subject.Length.Should().Be(ApplicationEmail.MaxSubjectLength);
+        email.Subject.Should().StartWith(longName + " " + longName);
+    }
+
+    [Fact]
+    public void A_cut_subject_never_ends_half_way_through_a_character()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("{{ candidateName }}", "Hi."), "sam@example.com",
+            Sam with { CandidateName = new string('n', ApplicationEmail.MaxSubjectLength - 1) + "\U0001F600" });
+
+        email.Subject.Should().Be(new string('n', ApplicationEmail.MaxSubjectLength - 1));
     }
 
     // A candidate from before the name was split has their whole name as the first name and no last name.
