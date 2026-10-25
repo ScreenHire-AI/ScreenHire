@@ -184,7 +184,7 @@ makes have no history until someone edits them.
 6. **Take it down (15 s).** On the job page, open **More actions**, choose **Close & remove everywhere** and confirm. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
-Extras if there is time: Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), Joel Mensah's notes (type @ in the note box to mention a teammate; the mention emails are in
+Extras if there is time: Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
 the Templates page and its builder (questions, automations and the guardrail that refuses an
