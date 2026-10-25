@@ -135,7 +135,11 @@ public sealed class Job : ITenantOwned
     /// Gives a new job a copy of a published template version's workflow and remembers where it came from, so "update
     /// available" can be detected later (workflow-engine.md §1).
     /// </summary>
-    public void UseTemplate(HiringTemplateVersion version)
+    /// <remarks>
+    /// The template's stages name library scorecards; the job copies their questions here, from the built-ins or from
+    /// <paramref name="scorecards"/>, the organization's own the template names, which the caller loaded.
+    /// </remarks>
+    public void UseTemplate(HiringTemplateVersion version, IReadOnlyDictionary<string, Scorecard>? scorecards = null)
     {
         ArgumentNullException.ThrowIfNull(version);
         if (version.Status != TemplateVersionStatus.Published)
@@ -148,7 +152,7 @@ public sealed class Job : ITenantOwned
             throw new InvalidOperationException("A published job keeps its workflow; templates apply to new jobs.");
         }
 
-        Workflow = version.Definition.Workflow;
+        Workflow = WithScorecards(version.Definition.Workflow, scorecards);
         SourceTemplateId = version.TemplateId;
         SourceTemplateVersionId = version.Id;
         SourceTemplateVersion = version.Version;
@@ -177,7 +181,7 @@ public sealed class Job : ITenantOwned
     /// update" (workflow-engine.md §1). It replaces the job's own edits too. Unlike <see cref="UseTemplate"/>, an open job
     /// may take it: a person asked for the change, so nothing is mutated silently.
     /// </summary>
-    public void ApplyTemplateUpdate(HiringTemplateVersion version, DateTimeOffset now)
+    public void ApplyTemplateUpdate(HiringTemplateVersion version, DateTimeOffset now, IReadOnlyDictionary<string, Scorecard>? scorecards = null)
     {
         ArgumentNullException.ThrowIfNull(version);
         if (version.Status != TemplateVersionStatus.Published)
@@ -190,9 +194,18 @@ public sealed class Job : ITenantOwned
             throw new InvalidOperationException("A job takes updates from the template it was created from only.");
         }
 
-        ReviseWorkflow(version.Definition.Workflow, now);
+        ReviseWorkflow(WithScorecards(version.Definition.Workflow, scorecards), now);
         SourceTemplateVersionId = version.Id;
         SourceTemplateVersion = version.Version;
+    }
+
+    // A job holds its own copy of every scorecard its template names (workflow-engine.md section 8).
+    private static HiringWorkflow WithScorecards(HiringWorkflow workflow, IReadOnlyDictionary<string, Scorecard>? scorecards)
+    {
+        var copied = workflow.WithScorecardCopies(scorecards ?? new Dictionary<string, Scorecard>(), out var missing);
+        return missing.Count == 0
+            ? copied
+            : throw new InvalidOperationException($"The scorecard of stage {workflow.Stages[missing[0]].Id} is not in the library; load it first.");
     }
 
     /// <summary>

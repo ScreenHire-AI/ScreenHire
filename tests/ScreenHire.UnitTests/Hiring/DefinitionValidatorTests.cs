@@ -622,7 +622,7 @@ public sealed class DefinitionValidatorTests
     public void A_time_limit_breach_reaches_negated_tag_rules_and_the_stages_its_readers_move_into()
     {
         var mail = new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change");
-        var stages = HiringWorkflow.Default.Stages.Select(s => s.Id == "interview" ? s with { Scorecard = Scorecard.DefaultInterview } : s).ToList();
+        var stages = HiringWorkflow.Default.Stages.Select(s => s.Id == "interview" ? s with { Scorecard = BuiltInScorecards.Interview.ToScorecard() } : s).ToList();
         var tagger = Automation(null, ReminderAction(ActionType.AddTag), "late", new AutomationTrigger(TriggerType.SlaBreached, "screening"));
         var negated = Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral", Negate: true)),
             mail, "no-referral", new AutomationTrigger(TriggerType.ApplicationSubmitted));

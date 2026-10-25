@@ -39,6 +39,7 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// has been assessed, and always null for an API key, because integrity evidence is for a person reviewing the
 /// application (ADR-0011). <c>slaDueAt</c> is when the application passes its stage's time limit: overdue from then
 /// on, which measures the hiring team's delay and never counts against the candidate. Null when the stage has no limit.
+/// <c>rating</c> is the candidate's rating as the reader may see it (<c>ApplicationRating</c>).
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -52,7 +53,41 @@ public sealed record ApplicationSummary(
     ApplicationSource Source,
     IReadOnlyList<string> Tags,
     IntegritySummary? Integrity = null,
-    DateTimeOffset? SlaDueAt = null);
+    DateTimeOffset? SlaDueAt = null,
+    ApplicationRating? Rating = null);
+
+/// <summary>
+/// The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
+/// maps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each
+/// scorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one
+/// decimal. It is people's judgement of the work only: never integrity results, AI signals or the stage. No automation
+/// reads it. A reviewer who still has their own scorecard to give reads <c>AfterYourScorecard</c>, with no value, until
+/// they give it, so it cannot anchor them.
+/// </summary>
+/// <remarks>
+/// <c>value</c>: From 1 to 5, to one decimal, when <c>state</c> is <c>Rated</c>. <c>scorecards</c>: How many scorecards it
+/// comes from: those with an answered rating question.
+/// </remarks>
+public sealed record ApplicationRating(RatingState State, decimal? Value = null, int Scorecards = 0)
+{
+    public static ApplicationRating NotRated { get; } = new(RatingState.NotRated);
+
+    public static ApplicationRating AfterYourScorecard { get; } = new(RatingState.AfterYourScorecard);
+
+    internal static ApplicationRating From(CandidateRating? rating) =>
+        rating is null ? NotRated : new(RatingState.Rated, rating.Value, rating.Scorecards);
+}
+
+/// <summary>
+/// <c>NotRated</c>: no scorecard with a rating answer yet. <c>Rated</c>: see <c>value</c>. <c>AfterYourScorecard</c>: the
+/// reader has a review to give first.
+/// </summary>
+public enum RatingState
+{
+    NotRated,
+    Rated,
+    AfterYourScorecard,
+}
 
 /// <summary>
 /// One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's
@@ -63,7 +98,7 @@ public sealed record ApplicationSummary(
 /// keyed by question id as automation conditions read them (<c>answers.{questionId}</c>); a file answer's value is the
 /// upload id of one of <c>files</c>. <c>followUps</c> are the follow-up questionnaires automations sent, oldest first,
 /// with their answers once the candidate gave them. <c>slaDueAt</c> is when the application passes its stage's time
-/// limit, as on <c>ApplicationSummary</c>.
+/// limit, as on <c>ApplicationSummary</c>. <c>rating</c> is the candidate's rating as the reader may see it.
 /// </remarks>
 public sealed record ApplicationDetail(
     Guid Id,
@@ -82,7 +117,8 @@ public sealed record ApplicationDetail(
     IReadOnlyList<ApplicationAnswer> Answers,
     IReadOnlyList<ApplicationFileSummary> Files,
     IReadOnlyList<ApplicationFollowUp> FollowUps,
-    DateTimeOffset? SlaDueAt = null);
+    DateTimeOffset? SlaDueAt = null,
+    ApplicationRating? Rating = null);
 
 /// <summary>
 /// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
@@ -214,19 +250,21 @@ internal static class ApplicationMappings
     public static DateTimeOffset? SlaDueAt(this JobApplication application, Job job) =>
         job.Workflow.FindStage(application.CurrentStageId)?.SlaDueAt(application.StageEnteredAt);
 
-    public static ApplicationSummary ToSummary(this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null) =>
+    public static ApplicationSummary ToSummary(
+        this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null, ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
             application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, application.Tags, integrity,
-            application.SlaDueAt(job));
+            application.SlaDueAt(job), rating ?? ApplicationRating.NotRated);
 
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files,
-        IReadOnlyList<QuestionnaireRequest> followUps) =>
+        IReadOnlyList<QuestionnaireRequest> followUps, ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
             application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
             application.Source,
-            application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job));
+            application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job),
+            rating ?? ApplicationRating.NotRated);
 
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
         new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,

@@ -15,7 +15,7 @@ public sealed partial class TrackedKindsTests
     public void Templates_jobs_and_roles_are_tracked_and_nothing_that_holds_a_secret_is()
     {
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
-            [typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(CustomRole)]);
+            [typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(ScorecardTemplate), typeof(CustomRole)]);
         TrackedKinds.All.Select(k => k.EntityType).Should().NotContain([typeof(ApiKey), typeof(WebhookEndpoint), typeof(OrganizationInvitation)]);
         TrackedKinds.Find(typeof(ApiKey)).Should().BeNull();
     }

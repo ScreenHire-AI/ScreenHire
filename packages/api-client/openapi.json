@@ -5563,6 +5563,320 @@
         ]
       }
     },
+    "/v1/scorecard-templates": {
+      "get": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "ListScorecardTemplates",
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScorecardTemplateSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "CreateScorecardTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScorecardTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardTemplateDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/scorecard-templates/{templateId}": {
+      "get": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "GetScorecardTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "UpdateScorecardTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScorecardTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/scorecard-templates/{templateId}/history": {
+      "get": {
+        "tags": [
+          "Scorecard templates"
+        ],
+        "operationId": "GetScorecardTemplateHistory",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/webhooks/event-types": {
       "get": {
         "tags": [
@@ -7097,6 +7411,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "rating": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApplicationRating"
+              }
+            ]
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
@@ -7357,6 +7681,30 @@
         },
         "description": "A note as it stands: its latest text, its author and when it was written and last edited."
       },
+      "ApplicationRating": {
+        "required": [
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/RatingState"
+          },
+          "value": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "scorecards": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        "description": "The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people's judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them."
+      },
       "ApplicationSource": {
         "enum": [
           "Recruiter",
@@ -7453,6 +7801,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "rating": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApplicationRating"
+              }
+            ]
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
@@ -8913,6 +9271,31 @@
         },
         "description": "Makes a custom role by copying a role: a built-in one (`copyFrom`) or a custom one (`copyFromRoleId`), never\r\nboth. Owner-only permissions are never copied."
       },
+      "CreateScorecardTemplateRequest": {
+        "required": [
+          "name",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardQuestion"
+            }
+          },
+          "copiedFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A new scorecard of the organization's own, optionally a copy of another (`copiedFrom`, by id)."
+      },
       "CreateWebhookEndpointRequest": {
         "required": [
           "url",
@@ -8946,22 +9329,6 @@
           "StronglyDemonstrated",
           null
         ]
-      },
-      "CriterionRatingInput": {
-        "required": [
-          "criterionId",
-          "rating"
-        ],
-        "type": "object",
-        "properties": {
-          "criterionId": {
-            "type": "string"
-          },
-          "rating": {
-            "$ref": "#/components/schemas/CriterionRating"
-          }
-        },
-        "description": "The rating for one criterion of the stage's scorecard."
       },
       "CurrentOrganization": {
         "required": [
@@ -12343,6 +12710,14 @@
           "File"
         ]
       },
+      "RatingState": {
+        "enum": [
+          "NotRated",
+          "Rated",
+          "AfterYourScorecard"
+        ],
+        "description": "`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first."
+      },
       "Recommendation": {
         "enum": [
           "StrongNo",
@@ -12526,45 +12901,115 @@
       },
       "Scorecard": {
         "required": [
-          "criteria"
+          "name",
+          "questions"
         ],
         "type": "object",
         "properties": {
-          "criteria": {
+          "name": {
+            "type": "string"
+          },
+          "questions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ScorecardCriterion"
+              "$ref": "#/components/schemas/ScorecardQuestion"
             }
           }
         },
-        "description": "The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those."
+        "description": "A job's copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate's rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those."
       },
-      "ScorecardCriterion": {
+      "ScorecardAnswerEntry": {
         "required": [
-          "id",
-          "label"
+          "questionId",
+          "label",
+          "type"
         ],
         "type": "object",
         "properties": {
-          "id": {
+          "questionId": {
             "type": "string"
           },
           "label": {
             "type": "string"
           },
-          "guidance": {
+          "type": {
+            "$ref": "#/components/schemas/ScorecardQuestionType"
+          },
+          "value": {
             "type": [
               "null",
               "string"
             ]
+          },
+          "values": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "rating": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            }
           }
-        }
+        },
+        "description": "A question as the reviewer was asked it, and their answer. `value` is \"yes\" or \"no\" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer's option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered."
+      },
+      "ScorecardAnswerInput": {
+        "required": [
+          "questionId"
+        ],
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "values": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "rating": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "The answer to one question: `value` for the yes-or-no kinds (\"yes\" or \"no\"), a choice (an option id) and the\r\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale."
       },
       "ScorecardEntry": {
         "required": [
           "id",
           "stageId",
           "reviewerUserId",
+          "answers",
+          "rating",
           "ratings",
           "recommendation",
           "note",
@@ -12584,6 +13029,19 @@
           "reviewerUserId": {
             "type": "string",
             "format": "uuid"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardAnswerEntry"
+            }
+          },
+          "rating": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           },
           "ratings": {
             "type": "array",
@@ -12613,7 +13071,59 @@
             "format": "date-time"
           }
         },
-        "description": "One reviewer's scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004)."
+        "description": "One reviewer's scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
+      },
+      "ScorecardQuestion": {
+        "required": [
+          "id",
+          "type",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ScorecardQuestionType"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "guidance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            }
+          }
+        },
+        "description": "One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only."
+      },
+      "ScorecardQuestionType": {
+        "enum": [
+          "YesNo",
+          "SingleChoice",
+          "MultiChoice",
+          "ShortText",
+          "LongText",
+          "Rating5",
+          "Rating10",
+          "RatingYesNo"
+        ],
+        "description": "A scorecard question's answer kind. The General kinds share QuestionType's names. The Rating kinds are\r\nthe ones the candidate's rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no)."
       },
       "ScorecardRating": {
         "required": [
@@ -12640,7 +13150,79 @@
             ]
           }
         },
-        "description": "A criterion as the reviewer was asked it, and their rating; null when they did not rate it."
+        "description": "A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it."
+      },
+      "ScorecardTemplateDetail": {
+        "required": [
+          "id",
+          "name",
+          "builtIn",
+          "copiedFrom",
+          "questions",
+          "lastUpdated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "builtIn": {
+            "type": "boolean"
+          },
+          "copiedFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardQuestion"
+            }
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          }
+        },
+        "description": "One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note."
+      },
+      "ScorecardTemplateSummary": {
+        "required": [
+          "id",
+          "name",
+          "builtIn",
+          "questions",
+          "ratingQuestions",
+          "lastUpdated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "builtIn": {
+            "type": "boolean"
+          },
+          "questions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ratingQuestions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          }
+        },
+        "description": "A scorecard in the organization's library: a built-in (`builtIn`, ScreenHire's and read only) or one of its own.\r\nA hiring template's stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy."
       },
       "SendEmailsRequest": {
         "required": [
@@ -12970,7 +13552,7 @@
       "SubmitScorecardRequest": {
         "required": [
           "stageId",
-          "ratings",
+          "answers",
           "recommendation"
         ],
         "type": "object",
@@ -12978,10 +13560,10 @@
           "stageId": {
             "type": "string"
           },
-          "ratings": {
+          "answers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CriterionRatingInput"
+              "$ref": "#/components/schemas/ScorecardAnswerInput"
             }
           },
           "recommendation": {
@@ -13424,6 +14006,25 @@
         },
         "description": "Renames a custom role and sets what it can do."
       },
+      "UpdateScorecardTemplateRequest": {
+        "required": [
+          "name",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScorecardQuestion"
+            }
+          }
+        },
+        "description": "An own scorecard's name and questions, replaced whole. Jobs that copied it keep their copy."
+      },
       "UpdateWebhookEndpointRequest": {
         "required": [
           "url",
@@ -13814,6 +14415,12 @@
                 "$ref": "#/components/schemas/Scorecard"
               }
             ]
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal."
@@ -13911,6 +14518,9 @@
     },
     {
       "name": "Tasks"
+    },
+    {
+      "name": "Scorecard templates"
     },
     {
       "name": "Webhooks"

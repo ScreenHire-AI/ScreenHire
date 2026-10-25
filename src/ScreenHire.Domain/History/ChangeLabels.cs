@@ -24,6 +24,26 @@ public static class ChangeLabels
         _ => type.ToString(),
     };
 
+    /// <summary>A scorecard question's answer kind as the answer menu names it; the Rating kinds sit under "Rating".</summary>
+    public static string ScorecardKind(ScorecardQuestionType type) => type switch
+    {
+        ScorecardQuestionType.YesNo => "Yes or no",
+        ScorecardQuestionType.SingleChoice => "Choice",
+        ScorecardQuestionType.MultiChoice => "Multi-choice",
+        ScorecardQuestionType.ShortText => "Short text",
+        ScorecardQuestionType.LongText => "Long text",
+        ScorecardQuestionType.Rating5 => "1 to 5",
+        ScorecardQuestionType.Rating10 => "1 to 10",
+        ScorecardQuestionType.RatingYesNo => "Yes or no",
+        _ => type.ToString(),
+    };
+
+    /// <summary>A scorecard question's answer kind with its group for a rating, as the answer button reads: "Rating, 1 to 5".</summary>
+    public static string ScorecardAnswer(ScorecardQuestionType type) =>
+        type.IsRating()
+            ? $"Rating, {ScorecardKind(type)}"
+            : ScorecardKind(type);
+
     public static string Stage(StageKind kind) => kind.ToString();
 
     public static string Trigger(TriggerType type) => type switch

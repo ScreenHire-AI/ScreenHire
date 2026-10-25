@@ -31,6 +31,22 @@ public sealed class ChangeContext(ScreenHireDbContext db, EmailTemplates emailTe
         return await db.HiringTemplates.AsNoTracking().Where(t => t.Id == id).Select(t => t.Name).SingleOrDefaultAsync(cancellationToken);
     }
 
+    /// <summary>The name of the library scorecard <paramref name="key"/> names: a built-in, or one of the organization's own.</summary>
+    public async ValueTask<string?> ScorecardNameAsync(string? key, CancellationToken cancellationToken)
+    {
+        if (BuiltInScorecards.Find(key) is { } builtIn)
+        {
+            return builtIn.Name;
+        }
+
+        if (!Guid.TryParseExact(key, "D", out var id))
+        {
+            return null;
+        }
+
+        return await db.ScorecardTemplates.AsNoTracking().Where(t => t.Id == id).Select(t => t.Name).SingleOrDefaultAsync(cancellationToken);
+    }
+
     /// <summary>The definition of the newest version of a template below <paramref name="version"/>, or null for none.</summary>
     public async ValueTask<HiringTemplateDefinition?> PreviousDefinitionAsync(Guid templateId, int version, CancellationToken cancellationToken)
     {

@@ -142,6 +142,20 @@ internal static class JobEndpoints
             }
         }
 
+        // The template's stages name library scorecards; the job copies the questions of each, so they must all exist.
+        var scorecards = template is null
+            ? new Dictionary<string, Scorecard>()
+            : await ScorecardReferences.OwnAsync(db, template.Definition.Workflow.ScorecardTemplateIds(), cancellationToken);
+        if (template is not null)
+        {
+            template.Definition.Workflow.WithScorecardCopies(scorecards, out var missing);
+            if (missing.Count > 0)
+            {
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                    "templateVersionId", "The template names a scorecard that is not in the library any more. Choose another in the template first."));
+            }
+        }
+
         var defaults = template?.Definition.PostingDefaults ?? PostingDefaults.None;
         var title = request.Title?.Trim() ?? "";
         var slug = request.Slug?.Trim() ?? await FreeSlugAsync(db, Slugs.FromTitle(title), cancellationToken);
@@ -172,7 +186,7 @@ internal static class JobEndpoints
         job.Revise(content, now);
         if (template is not null)
         {
-            job.UseTemplate(template);
+            job.UseTemplate(template, scorecards);
         }
 
         db.Jobs.Add(job);
@@ -520,9 +534,11 @@ internal static class JobEndpoints
             return TypedResults.NotFound();
         }
 
+        // The template names its scorecards and the job holds copies, so compare with the copies the job would take now.
+        var (latestWorkflow, _) = await ScorecardReferences.CopyAsync(db, latest.Definition.Workflow, "", cancellationToken);
         return TypedResults.Ok(new JobTemplateDiff(
             templateId, sourceVersionId, sourceVersion, latest.Id, latest.Version, latest.Version > sourceVersion,
-            WorkflowDiff.Compare(job.Workflow, latest.Definition.Workflow)));
+            WorkflowDiff.Compare(job.Workflow, latestWorkflow)));
     }
 
     // Tailors the job's own copy of its workflow (workflow-engine.md §1). Validated like a template, guardrails included,
@@ -548,22 +564,33 @@ internal static class JobEndpoints
             return conflict;
         }
 
-        if ((await EmailTemplateReferences.ValidateAsync(db, request.Workflow, cancellationToken)).ToProblems("workflow") is { } problems)
+        // A stage that picks a library scorecard names it; the job takes its own copy of the questions here.
+        var workflow = request.Workflow;
+        if (workflow?.Stages is not null)
+        {
+            (workflow, var missing) = await ScorecardReferences.CopyAsync(db, workflow, "workflow", cancellationToken);
+            if (missing.ToProblems("") is { } missingProblems)
+            {
+                return TypedResults.ValidationProblem(missingProblems);
+            }
+        }
+
+        if ((await EmailTemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
 
-        if (WorkflowDiff.Compare(job.Workflow, request.Workflow).Count == 0)
+        if (WorkflowDiff.Compare(job.Workflow, workflow!).Count == 0)
         {
             return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
         }
 
-        if (await OccupiedStagesProblemAsync(db, job, request.Workflow, cancellationToken) is { } occupied)
+        if (await OccupiedStagesProblemAsync(db, job, workflow!, cancellationToken) is { } occupied)
         {
             return occupied;
         }
 
-        job.ReviseWorkflow(request.Workflow, time.GetUtcNow());
+        job.ReviseWorkflow(workflow!, time.GetUtcNow());
         return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
     }
 
@@ -597,7 +624,13 @@ internal static class JobEndpoints
                 "templateVersionId", "No published version of this job's template has this id."));
         }
 
-        if ((await EmailTemplateReferences.ValidateAsync(db, version.Definition.Workflow, cancellationToken)).ToProblems("workflow") is { } problems)
+        var (copied, missing) = await ScorecardReferences.CopyAsync(db, version.Definition.Workflow, "workflow", cancellationToken);
+        if (missing.ToProblems("") is { } missingProblems)
+        {
+            return TypedResults.ValidationProblem(missingProblems);
+        }
+
+        if ((await EmailTemplateReferences.ValidateAsync(db, copied, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -607,7 +640,8 @@ internal static class JobEndpoints
             return occupied;
         }
 
-        job.ApplyTemplateUpdate(version, time.GetUtcNow());
+        job.ApplyTemplateUpdate(version, time.GetUtcNow(),
+            await ScorecardReferences.OwnAsync(db, version.Definition.Workflow.ScorecardTemplateIds(), cancellationToken));
         return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
     }
 

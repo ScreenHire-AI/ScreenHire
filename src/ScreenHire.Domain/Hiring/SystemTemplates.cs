@@ -3,7 +3,9 @@ namespace ScreenHire.Domain.Hiring;
 /// <summary>
 /// Ids of the system templates the <c>AddHiringModel</c> migration ships, and of later versions of them. Each version's
 /// definition lives only in the migration that added it, because a migration must not change once it has run; a change
-/// to a system template is a new version in a new migration.
+/// to a system template is a new version in a new migration. The one rewrite in place so far is a change of storage, not
+/// of content: <c>AddScorecardTemplates</c> made every version's stages name their built-in scorecard
+/// (<see cref="BuiltInScorecards"/>) instead of holding v0.2 criteria.
 /// </summary>
 public static class SystemTemplates
 {

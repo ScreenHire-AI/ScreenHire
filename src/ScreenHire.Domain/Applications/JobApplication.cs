@@ -235,21 +235,25 @@ public sealed class JobApplication : ITenantOwned
 
     /// <summary>
     /// A reviewer's scorecard for <paramref name="stage"/> and the timeline entry that records it, which raises the
-    /// ReviewerDecision trigger. <paramref name="ratings"/> holds ratings by criterion id; a criterion it leaves out is
-    /// not rated. The caller checks that every id is one of the stage's criteria.
+    /// ReviewerDecision trigger. <paramref name="answers"/> holds answers by question id, checked by the caller with
+    /// <see cref="ScorecardAnswers.Check"/> against the stage's scorecard; a question it leaves out is unanswered.
     /// </summary>
     public (ApplicationScorecard Scorecard, ApplicationEvent Entry) SubmitScorecard(
         WorkflowStage stage,
         Guid reviewerUserId,
-        IReadOnlyDictionary<string, CriterionRating?> ratings,
+        IReadOnlyDictionary<string, ScorecardAnswerValue> answers,
         Recommendation recommendation,
         string? note,
         int workflowVersion,
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(stage);
-        ArgumentNullException.ThrowIfNull(ratings);
-        var criteria = stage.Scorecard?.Criteria ?? throw new InvalidOperationException($"Stage {stage.Id} has no scorecard.");
+        ArgumentNullException.ThrowIfNull(answers);
+        var card = stage.Scorecard ?? throw new InvalidOperationException($"Stage {stage.Id} has no scorecard.");
+        if (ScorecardAnswers.Check(card, answers) is { Count: > 0 } errors)
+        {
+            throw new ArgumentException($"The answers do not fit the scorecard: {errors[0].Message}", nameof(answers));
+        }
 
         var scorecardId = Guid.CreateVersion7();
         var entry = NewEvent(
@@ -265,7 +269,7 @@ public sealed class JobApplication : ITenantOwned
             JobId = JobId,
             StageId = stage.Id,
             ReviewerUserId = reviewerUserId,
-            Ratings = [.. criteria.Select(c => new CriterionScore(c.Id, c.Label, ratings.GetValueOrDefault(c.Id)))],
+            Answers = ScorecardAnswers.Keep(card, answers),
             Recommendation = recommendation,
             Note = ApplicationScorecard.Normalize(note),
             WorkflowVersion = workflowVersion,

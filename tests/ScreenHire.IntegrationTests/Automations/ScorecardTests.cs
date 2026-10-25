@@ -31,7 +31,7 @@ public sealed class ScorecardTests(AppHostFixture fixture)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var application = await InInterviewAsync(recruiter);
-        var body = Scorecard("interview", "StrongYes", ("role_skills", "Demonstrated"), ("problem_solving", "StronglyDemonstrated"));
+        var body = Scorecard("interview", "StrongYes", ("role_skills", 4), ("problem_solving", 5));
 
         var created = (await recruiter.PostAsync($"/v1/applications/{application}/scorecards", body)).Expect(HttpStatusCode.Created);
         var retried = (await recruiter.PostAsync($"/v1/applications/{application}/scorecards", body)).Expect(HttpStatusCode.OK);
@@ -40,10 +40,14 @@ public sealed class ScorecardTests(AppHostFixture fixture)
         retried.Id().Should().Be(created.Id());
         created.Id("reviewerUserId").Should().Be(recruiter.UserId);
         created.Text("recommendation").Should().Be("StrongYes");
-        created.Text("ratings.0.criterionId").Should().Be("role_skills");
-        created.Text("ratings.0.label").Should().Be("Skills the role needs");
-        created.Text("ratings.2.criterionId").Should().Be("work_knowledge");
-        created.At("ratings.2.rating").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "a criterion left out is not rated");
+        created.Text("answers.0.questionId").Should().Be("role_skills");
+        created.Text("answers.0.label").Should().Be("Skills the role needs");
+        created.Text("answers.0.type").Should().Be("Rating5");
+        created.At("answers.0.rating").GetInt32().Should().Be(4);
+        created.Text("answers.2.questionId").Should().Be("work_knowledge");
+        created.At("answers.2.rating").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "a question left out is not answered");
+        created.At("rating").GetDecimal().Should().Be(4.5m, "the mean of the two answered rating questions");
+        created.Count("ratings").Should().Be(0, "ratings is the v0.2 shape and stays empty on a scorecard with answers");
         run.GetProperty("eventId").GetGuid().Should().Be(created.Id("timelineEventId"));
         run.GetProperty("facts").GetProperty("reviewerRecommendation").GetString().Should().Be("StrongYes");
         (await recruiter.GetAsync($"/v1/applications/{application}")).Body.GetProperty("tags").EnumerateArray()
@@ -81,7 +85,7 @@ public sealed class ScorecardTests(AppHostFixture fixture)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var application = await InInterviewAsync(recruiter);
-        var body = Scorecard("interview", "Yes", ("role_skills", "Demonstrated"));
+        var body = Scorecard("interview", "Yes", ("role_skills", 3));
 
         var results = await Task.WhenAll(
             recruiter.PostAsync($"/v1/applications/{application}/scorecards", body),
@@ -94,7 +98,7 @@ public sealed class ScorecardTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_scorecard_is_for_a_stage_with_one_that_the_application_has_reached_and_its_own_criteria()
+    public async Task A_scorecard_is_for_a_stage_with_one_that_the_application_has_reached_and_its_own_questions()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await AutomationSamples.JobWithAutomationsAsync(recruiter, "Data Engineer", AdvanceOnYes());
@@ -104,54 +108,60 @@ public sealed class ScorecardTests(AppHostFixture fixture)
         var notReached = await recruiter.PostAsync(url, Scorecard("interview", "Yes"));
         var noScorecard = await recruiter.PostAsync(url, Scorecard("applied", "Yes"));
         (await recruiter.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
-        var unknown = await recruiter.PostAsync(url, Scorecard("screening", "Yes", ("role_skills", "Demonstrated")));
-        var twice = await recruiter.PostAsync(url, Scorecard("screening", "Yes", ("relevant_experience", "Demonstrated"), ("relevant_experience", "Demonstrated")));
-        var badRecommendation = await recruiter.PostAsync(url, new JsonObject { ["stageId"] = "screening", ["ratings"] = new JsonArray(), ["recommendation"] = "Maybe" });
+        var unknown = await recruiter.PostAsync(url, Scorecard("screening", "Yes", ("role_skills", 3)));
+        var twice = await recruiter.PostAsync(url, Scorecard("screening", "Yes", ("relevant_experience", 3), ("relevant_experience", 3)));
+        var badRecommendation = await recruiter.PostAsync(url, new JsonObject { ["stageId"] = "screening", ["answers"] = new JsonArray(), ["recommendation"] = "Maybe" });
 
         notReached.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("stageId");
         noScorecard.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("stageId");
-        unknown.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("ratings[0].criterionId");
-        twice.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("ratings");
+        unknown.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("answers[0]");
+        twice.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("answers");
         badRecommendation.Status.Should().Be(HttpStatusCode.BadRequest);
-        (await recruiter.PostAsync(url, Scorecard("screening", "No", ("relevant_experience", "PartlyDemonstrated")))).Expect(HttpStatusCode.Created);
+        (await recruiter.PostAsync(url, Scorecard("screening", "No", ("relevant_experience", 2)))).Expect(HttpStatusCode.Created);
     }
 
     [Fact]
-    public async Task A_scorecard_without_a_recommendation_or_with_a_rating_left_blank_is_refused_and_stores_nothing()
+    public async Task A_scorecard_without_a_recommendation_or_answers_or_with_a_wrong_shaped_answer_is_refused_and_stores_nothing()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var application = await InInterviewAsync(recruiter);
         var url = $"/v1/applications/{application}/scorecards";
 
-        // A missing enum would otherwise bind to its first member, StrongNo or NotDemonstrated, and a scorecard is final.
-        var noRecommendation = await recruiter.PostAsync(url, new JsonObject { ["stageId"] = "interview", ["ratings"] = new JsonArray() });
-        var blankRating = await recruiter.PostAsync(url, new JsonObject
+        // A missing enum would otherwise bind to its first member, StrongNo, and a scorecard is final.
+        var noRecommendation = await recruiter.PostAsync(url, new JsonObject { ["stageId"] = "interview", ["answers"] = new JsonArray() });
+        var noAnswers = await recruiter.PostAsync(url, new JsonObject { ["stageId"] = "interview", ["recommendation"] = "Yes" });
+        var outOfRange = await recruiter.PostAsync(url, Scorecard("interview", "Yes", ("role_skills", 6)));
+        var belowRange = await recruiter.PostAsync(url, Scorecard("interview", "Yes", ("role_skills", 0)));
+        var wrongShape = await recruiter.PostAsync(url, new JsonObject
         {
             ["stageId"] = "interview",
-            ["ratings"] = new JsonArray(new JsonObject { ["criterionId"] = "role_skills" }),
+            ["answers"] = new JsonArray(new JsonObject { ["questionId"] = "role_skills", ["value"] = "great" }),
             ["recommendation"] = "Yes",
         });
 
         noRecommendation.Status.Should().Be(HttpStatusCode.BadRequest);
-        blankRating.Status.Should().Be(HttpStatusCode.BadRequest);
+        noAnswers.Status.Should().Be(HttpStatusCode.BadRequest);
+        outOfRange.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("answers[0]");
+        belowRange.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("answers[0]");
+        wrongShape.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("answers[0]");
         (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(0);
         (await recruiter.GetAsync($"/v1/applications/{application}/automation-runs")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
     }
 
     [Fact]
-    public async Task A_retry_after_the_workflow_changed_returns_the_stored_scorecard_with_the_criteria_as_they_were()
+    public async Task A_retry_after_the_workflow_changed_returns_the_stored_scorecard_with_the_questions_as_they_were()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var (job, application) = await JobAndApplicationInInterviewAsync(recruiter);
-        var body = Scorecard("interview", "Yes", ("role_skills", "Demonstrated"), ("problem_solving", "PartlyDemonstrated"));
+        var body = Scorecard("interview", "Yes", ("role_skills", 4), ("problem_solving", 2));
         var created = (await recruiter.PostAsync($"/v1/applications/{application}/scorecards", body)).Expect(HttpStatusCode.Created);
 
-        // Rename one criterion and drop the other from the job's interview scorecard.
+        // Rename one question and drop the other from the job's interview scorecard.
         var current = (await recruiter.GetAsync($"/v1/jobs/{job}")).Expect(HttpStatusCode.OK);
         var workflow = JsonNode.Parse(current.At("workflow").GetRawText())!.AsObject();
-        var criteria = workflow["stages"]!.AsArray().Single(s => s!["id"]!.GetValue<string>() == "interview")!["scorecard"]!["criteria"]!.AsArray();
-        criteria.Single(c => c!["id"]!.GetValue<string>() == "role_skills")!["label"] = "Platform skills";
-        criteria.Remove(criteria.Single(c => c!["id"]!.GetValue<string>() == "problem_solving"));
+        var questions = workflow["stages"]!.AsArray().Single(s => s!["id"]!.GetValue<string>() == "interview")!["scorecard"]!["questions"]!.AsArray();
+        questions.Single(c => c!["id"]!.GetValue<string>() == "role_skills")!["label"] = "Platform skills";
+        questions.Remove(questions.Single(c => c!["id"]!.GetValue<string>() == "problem_solving"));
         (await recruiter.PutAsync($"/v1/jobs/{job}/workflow", new JsonObject
         {
             ["workflow"] = workflow, ["expectedWorkflowVersion"] = current.At("workflowVersion").GetInt32(),
@@ -162,8 +172,9 @@ public sealed class ScorecardTests(AppHostFixture fixture)
         retried.Id().Should().Be(created.Id());
         var listed = (await recruiter.GetAsync($"/v1/applications/{application}/scorecards")).Expect(HttpStatusCode.OK);
         listed.Count().Should().Be(1);
-        listed.Text("0.ratings.0.label").Should().Be("Skills the role needs");
-        listed.Text("0.ratings.1.criterionId").Should().Be("problem_solving");
+        listed.Text("0.answers.0.label").Should().Be("Skills the role needs");
+        listed.Text("0.answers.1.questionId").Should().Be("problem_solving");
+        listed.At("0.answers.1.rating").GetInt32().Should().Be(2);
     }
 
     [Fact]
@@ -196,10 +207,7 @@ public sealed class ScorecardTests(AppHostFixture fixture)
         return (job, application);
     }
 
-    private static JsonObject Scorecard(string stageId, string recommendation, params (string Criterion, string Rating)[] ratings) => new()
-    {
-        ["stageId"] = stageId,
-        ["ratings"] = new JsonArray([.. ratings.Select(r => (JsonNode)new JsonObject { ["criterionId"] = r.Criterion, ["rating"] = r.Rating })]),
-        ["recommendation"] = recommendation,
-    };
+    // The built-in scorecards' questions are all 1 to 5 ratings.
+    private static JsonObject Scorecard(string stageId, string recommendation, params (string Question, int Rating)[] ratings) =>
+        ScorecardSupport.Submission(stageId, recommendation, [.. ratings.Select(r => ScorecardSupport.Answer(r.Question, rating: r.Rating))]);
 }

@@ -26,7 +26,7 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
             .Expect(HttpStatusCode.Created);
         (await robin.PostAsync($"/v1/applications/{application.Id()}/scorecards", new JsonObject
         {
-            ["stageId"] = "interview", ["ratings"] = new JsonArray(), ["recommendation"] = "Yes",
+            ["stageId"] = "interview", ["answers"] = new JsonArray(), ["recommendation"] = "Yes",
         })).Expect(HttpStatusCode.Created);
 
         var move = (await robin.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "offer" }))

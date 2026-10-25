@@ -49,6 +49,7 @@ import type {
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
   CreateRoleRequest,
+  CreateScorecardTemplateRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
   CurrentUser,
@@ -64,6 +65,7 @@ import type {
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
   GetRoleHistoryParams,
+  GetScorecardTemplateHistoryParams,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
@@ -108,6 +110,8 @@ import type {
   RoleCatalogue,
   SandboxBoardListing,
   ScorecardEntry,
+  ScorecardTemplateDetail,
+  ScorecardTemplateSummary,
   SendEmailsRequest,
   SentEmail,
   SignInMethods,
@@ -127,6 +131,7 @@ import type {
   UpdateJobWorkflowRequest,
   UpdateOrganizationRequest,
   UpdateRoleRequest,
+  UpdateScorecardTemplateRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -10521,6 +10526,557 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getSubmitScorecardMutationOptions(options?.()) }), queryClient);
     }
+
+export type listScorecardTemplatesResponse200 = {
+  data: ScorecardTemplateSummary[]
+  status: 200
+}
+
+export type listScorecardTemplatesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listScorecardTemplatesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listScorecardTemplatesResponseSuccess = (listScorecardTemplatesResponse200) & {
+  headers: Headers;
+};
+export type listScorecardTemplatesResponseError = (listScorecardTemplatesResponse401 | listScorecardTemplatesResponse429) & {
+  headers: Headers;
+};
+
+export const getListScorecardTemplatesUrl = () => {
+
+
+
+
+  return `/v1/scorecard-templates`
+}
+
+export const listScorecardTemplates = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listScorecardTemplatesResponseSuccess> => {
+
+  return apiQueryFetch<listScorecardTemplatesResponseSuccess>(getListScorecardTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListScorecardTemplatesQueryKey = () => {
+    return [
+    'v1','scorecard-templates'
+    ] as const;
+    }
+
+
+export const getListScorecardTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof listScorecardTemplates>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listScorecardTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListScorecardTemplatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listScorecardTemplates>>> = ({ signal }) => listScorecardTemplates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listScorecardTemplates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListScorecardTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof listScorecardTemplates>>>
+export type ListScorecardTemplatesQueryError = ErrorType<void>
+
+
+
+export function createListScorecardTemplates<TData = Awaited<ReturnType<typeof listScorecardTemplates>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listScorecardTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListScorecardTemplatesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createScorecardTemplateResponse201 = {
+  data: ScorecardTemplateDetail
+  status: 201
+}
+
+export type createScorecardTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type createScorecardTemplateResponseSuccess = (createScorecardTemplateResponse201) & {
+  headers: Headers;
+};
+export type createScorecardTemplateResponseError = (createScorecardTemplateResponse400 | createScorecardTemplateResponse401 | createScorecardTemplateResponse403 | createScorecardTemplateResponse409 | createScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getCreateScorecardTemplateUrl = () => {
+
+
+
+
+  return `/v1/scorecard-templates`
+}
+
+export const createScorecardTemplate = async (createScorecardTemplateRequest: CreateScorecardTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createScorecardTemplateResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createScorecardTemplateResponseSuccess>(getCreateScorecardTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createScorecardTemplateRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateScorecardTemplateMutationKey = () => ['createScorecardTemplate'] as const;
+
+export const getCreateScorecardTemplateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createScorecardTemplate>>, TError,CreateScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createScorecardTemplate>>, TError,CreateScorecardTemplateMutationVariables, TContext> => {
+
+const mutationKey = getCreateScorecardTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createScorecardTemplate>>, CreateScorecardTemplateMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createScorecardTemplate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateScorecardTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof createScorecardTemplate>>>
+    export type CreateScorecardTemplateMutationBody = CreateScorecardTemplateRequest
+    export type CreateScorecardTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateScorecardTemplateMutationVariables = {data: CreateScorecardTemplateRequest}
+
+    export const createCreateScorecardTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createScorecardTemplate>>, TError,CreateScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createScorecardTemplate>>,
+        TError,
+        CreateScorecardTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateScorecardTemplateMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type getScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getScorecardTemplateResponseSuccess = (getScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type getScorecardTemplateResponseError = (getScorecardTemplateResponse401 | getScorecardTemplateResponse404 | getScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getGetScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}`
+}
+
+export const getScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getScorecardTemplateResponseSuccess> => {
+
+  return apiQueryFetch<getScorecardTemplateResponseSuccess>(getGetScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetScorecardTemplateQueryKey = (templateId: string,) => {
+    return [
+    'v1','scorecard-templates',templateId
+    ] as const;
+    }
+
+
+export const getGetScorecardTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getScorecardTemplate>>, TError = ErrorType<void>>(templateId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetScorecardTemplateQueryKey(templateId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getScorecardTemplate>>> = ({ signal }) => getScorecardTemplate(templateId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetScorecardTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getScorecardTemplate>>>
+export type GetScorecardTemplateQueryError = ErrorType<void>
+
+
+
+export function createGetScorecardTemplate<TData = Awaited<ReturnType<typeof getScorecardTemplate>>, TError = ErrorType<void>>(
+ templateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetScorecardTemplateQueryOptions(templateId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateScorecardTemplateResponse200 = {
+  data: ScorecardTemplateDetail
+  status: 200
+}
+
+export type updateScorecardTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateScorecardTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateScorecardTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateScorecardTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateScorecardTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type updateScorecardTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type updateScorecardTemplateResponseSuccess = (updateScorecardTemplateResponse200) & {
+  headers: Headers;
+};
+export type updateScorecardTemplateResponseError = (updateScorecardTemplateResponse400 | updateScorecardTemplateResponse401 | updateScorecardTemplateResponse403 | updateScorecardTemplateResponse404 | updateScorecardTemplateResponse409 | updateScorecardTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getUpdateScorecardTemplateUrl = (templateId: string,) => {
+
+
+
+
+  return `/v1/scorecard-templates/${templateId}`
+}
+
+export const updateScorecardTemplate = async (templateId: string,
+    updateScorecardTemplateRequest: UpdateScorecardTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateScorecardTemplateResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateScorecardTemplateResponseSuccess>(getUpdateScorecardTemplateUrl(templateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateScorecardTemplateRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateScorecardTemplateMutationKey = () => ['updateScorecardTemplate'] as const;
+
+export const getUpdateScorecardTemplateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateScorecardTemplate>>, TError,UpdateScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateScorecardTemplate>>, TError,UpdateScorecardTemplateMutationVariables, TContext> => {
+
+const mutationKey = getUpdateScorecardTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateScorecardTemplate>>, UpdateScorecardTemplateMutationVariables> = (props) => {
+          const {templateId,data} = props ?? {};
+
+          return  updateScorecardTemplate(templateId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateScorecardTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof updateScorecardTemplate>>>
+    export type UpdateScorecardTemplateMutationBody = UpdateScorecardTemplateRequest
+    export type UpdateScorecardTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateScorecardTemplateMutationVariables = {templateId: string;data: UpdateScorecardTemplateRequest}
+
+    export const createUpdateScorecardTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateScorecardTemplate>>, TError,UpdateScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateScorecardTemplate>>,
+        TError,
+        UpdateScorecardTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateScorecardTemplateMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getScorecardTemplateHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getScorecardTemplateHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getScorecardTemplateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getScorecardTemplateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getScorecardTemplateHistoryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getScorecardTemplateHistoryResponseSuccess = (getScorecardTemplateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getScorecardTemplateHistoryResponseError = (getScorecardTemplateHistoryResponse400 | getScorecardTemplateHistoryResponse401 | getScorecardTemplateHistoryResponse404 | getScorecardTemplateHistoryResponse429) & {
+  headers: Headers;
+};
+
+export const getGetScorecardTemplateHistoryUrl = (templateId: string,
+    params?: GetScorecardTemplateHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/scorecard-templates/${templateId}/history?${stringifiedParams}` : `/v1/scorecard-templates/${templateId}/history`
+}
+
+export const getScorecardTemplateHistory = async (templateId: string,
+    params?: GetScorecardTemplateHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getScorecardTemplateHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getScorecardTemplateHistoryResponseSuccess>(getGetScorecardTemplateHistoryUrl(templateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetScorecardTemplateHistoryQueryKey = (templateId: string,
+    params?: GetScorecardTemplateHistoryParams,) => {
+    return [
+    'v1','scorecard-templates',templateId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetScorecardTemplateHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getScorecardTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(templateId: string,
+    params?: GetScorecardTemplateHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetScorecardTemplateHistoryQueryKey(templateId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getScorecardTemplateHistory>>> = ({ signal }) => getScorecardTemplateHistory(templateId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplateHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetScorecardTemplateHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getScorecardTemplateHistory>>>
+export type GetScorecardTemplateHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetScorecardTemplateHistory<TData = Awaited<ReturnType<typeof getScorecardTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ templateId: () =>  string,
+    params?: () =>  GetScorecardTemplateHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetScorecardTemplateHistoryQueryOptions(templateId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listWebhookEventTypesResponse200 = {
   data: string[]

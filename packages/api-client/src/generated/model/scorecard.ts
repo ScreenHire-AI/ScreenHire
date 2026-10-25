@@ -4,15 +4,18 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { ScorecardCriterion } from './scorecardCriterion.ts';
+import type { ScorecardQuestion } from './scorecardQuestion.ts';
 
 /**
- * The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled
- * scale CriterionRating, and an overall Recommendation. Submitting one raises the
- * TriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`
- * fact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty
- * (CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.
+ * A job's copy of a library scorecard: the questions a reviewer answers for a stage, then an overall
+ * Recommendation and a note, which every scorecard has. Submitting one raises the
+ * TriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.
+ * Rating questions average into the candidate's rating (ADR-0013, `RatingRule`); nothing else on a scorecard
+ * does, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never
+ * personality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that
+ * name those.
  */
 export interface Scorecard {
-  criteria: ScorecardCriterion[];
+  name: string;
+  questions: ScorecardQuestion[];
 }

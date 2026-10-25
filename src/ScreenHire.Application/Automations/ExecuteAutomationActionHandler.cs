@@ -281,6 +281,7 @@ public static partial class ExecuteAutomationActionHandler
             Kind = kind,
             Note = note,
             AssigneeUserId = assigneeUserId,
+            StageId = context.Application.CurrentStageId,
             AutomationRunId = context.Run.Id,
             CreatedAt = context.Now,
         });

@@ -15,6 +15,11 @@ sources:
   - resource: src/ScreenHire.Domain/Automations/AutomationFacts.cs
   - resource: src/ScreenHire.Domain/Automations/AutomationRun.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationScorecard.cs
+  - resource: src/ScreenHire.Domain/Applications/ScorecardAnswers.cs
+  - resource: src/ScreenHire.Domain/Applications/RatingRule.cs
+  - resource: src/ScreenHire.Domain/Applications/ReviewerGate.cs
+  - resource: src/ScreenHire.Domain/Hiring/BuiltInScorecards.cs
+  - resource: src/ScreenHire.Domain/Hiring/ScorecardTemplate.cs
   - resource: src/ScreenHire.Domain/Applications/QuestionnaireRequest.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
@@ -34,6 +39,10 @@ sources:
   - resource: apps/api/Endpoints/WorkflowEndpoints.cs
   - resource: apps/api/Endpoints/AutomationEndpoints.cs
   - resource: apps/api/Endpoints/ScorecardEndpoints.cs
+  - resource: apps/api/Endpoints/ScorecardTemplateEndpoints.cs
+  - resource: apps/api/Hiring/RatingReads.cs
+  - resource: apps/api/Hiring/ScorecardReferences.cs
+  - resource: apps/api/Hiring/TemplateReferences.cs
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
   - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
@@ -49,6 +58,13 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
   - resource: apps/dashboard/src/lib/components/answer-menu.svelte
+  - resource: apps/dashboard/src/lib/components/scorecard-builder.svelte
+  - resource: apps/dashboard/src/lib/components/scorecard-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/rating.svelte
+  - resource: apps/dashboard/src/lib/components/rating-answer.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/scorecard-picker.svelte
+  - resource: apps/dashboard/src/lib/scorecards.ts
+  - resource: apps/dashboard/src/lib/rating-column.ts
   - resource: apps/dashboard/src/routes/(preview)/preview/form/+page.svelte
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/sla.ts
@@ -146,9 +162,12 @@ job's) opens the same tabs in `workflow-summary.svelte`, which reads it as conte
 validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
-  in a Sheet drawer and its scorecard in another (`scorecard-builder.svelte`): criteria with what to look for, reordered
-  with buttons. Adding a scorecard starts from job-related defaults, and the sheet says criteria never rate
-  personality, emotion or honesty. A stage that ends the application offers no scorecard. Automations whose trigger
+  in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
+  team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
+  the workflow. The library's own editor comes with the Templates page (roadmap); until then a team's own scorecard is
+  made through `/v1/scorecard-templates`, and the form builder it will use (`scorecard-builder.svelte`) is in the style
+  guide. A stage that ends the application offers no
+  scorecard. Automations whose trigger
   has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
   workflow" lane. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
@@ -206,6 +225,8 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
   `POST` and `DELETE /v1/applications/{id}/tags`
 - `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
 - `GET` and `POST /v1/applications/{id}/scorecards` (an API key reads them; only a signed-in person submits one)
+- `GET` and `POST /v1/scorecard-templates`, `GET` and `PUT /v1/scorecard-templates/{id}`,
+  `GET /v1/scorecard-templates/{id}/history`: the scorecard library (section 8)
 - Webhooks: `/v1/webhooks` (below).
 
 ### Webhook subscriptions
@@ -314,8 +335,11 @@ The data model and API from the jobs and templates task, and the engine that run
   `linkedin_export`), so `answers.{id}` names one question. No file questions: the follow-up page works without
   JavaScript and takes no uploads. The knockout rules apply to follow-up questions as to apply questions.
 - **Validation** is `DefinitionValidator`: structure (ids, stage, question and questionnaire references, per-kind
-  fields) plus the guardrails above as an allowlist. A stage may carry a scorecard (section 8): 1 to 20 criteria with unique ids,
-  never on a hired, rejected or withdrawn stage. An automation that uses an `integrity.*` or `verification.*` fact, or an
+  fields) plus the guardrails above as an allowlist. A stage may have a scorecard (section 8), never on a hired, rejected
+  or withdrawn stage: a hiring template's stage names a library scorecard (`scorecardTemplateId`, a built-in's id or a
+  uuid) and holds no copy, and a job's stage holds its copy, 1 to 20 questions with unique ids. A condition on the
+  candidate's rating (`application.rating`, `rating`, `scorecard.*` and the like) is refused outright, whatever the
+  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses an `integrity.*` or `verification.*` fact, or an
   `IntegrityAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
   workflow: an automation that reads a tag such an automation adds, or fires on a stage it moves applications into,
@@ -325,9 +349,10 @@ The data model and API from the jobs and templates task, and the engine that run
   every condition is a knockout question equal to its disqualifying answer, with `allowAutoReject` set, may `Reject`,
   and it must give the candidate a reason. Accommodation status and the AI-use declaration are not facts. Publishing a
   template version validates it again, so a draft saved under older rules cannot go live.
-- **What the validator cannot check:** a question's meaning, or a scorecard criterion's. It refuses criteria that
-  name personality, emotion, honesty and the like (whole words, so "data integrity" passes), but that is a backstop:
-  a criterion rates the job, and the builder's sheet and review of system templates hold that line.
+- **What the validator cannot check:** a question's meaning, a scorecard question's included. It refuses scorecard
+  questions, guidance and options that name personality, emotion, honesty and the like (whole words, so "data
+  integrity" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
+  the built-ins hold that line.
   A knockout question must be an objective eligibility check (right
   to work, a required licence). A knockout on AI use or on needing an accommodation would reject candidates for
   exactly what ADR-0004 and the accommodation guardrail protect; the template builder must say so, and review of
@@ -338,7 +363,8 @@ The data model and API from the jobs and templates task, and the engine that run
   (`copyFromVersionId`) to customise it, and the copy remembers its source (`copied_from_template_id`), so its history
   starts "created the template from Software engineer" ([change-history.md](change-history.md)). `AddScorecards` ships "Software engineer" version 3 and "Hourly role"
   version 2, the earlier versions with default scorecards on their review stages; the default workflow (a job made
-  without a template) has scorecards on Screening and Interview. `AddFollowUpQuestionnaires` ships "Software engineer"
+  without a template) has scorecards on Screening and Interview. `AddScorecardTemplates` rewrote every version in
+  place to name the built-in scorecards instead of holding v0.2 criteria: a change of storage, not of what they ask. `AddFollowUpQuestionnaires` ships "Software engineer"
   version 4 and "Hourly role" version 3, whose right-to-work automation fires on `ApplicationSubmitted`: it read an
   apply-form answer on a `QuestionnaireCompleted` trigger that nothing raised.
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
@@ -476,17 +502,26 @@ entries). The facts snapshot replays additions and removals in timeline order, i
 from every later evaluation. No automation action removes a tag. A Manual automation runs from the application's
 Automations panel, which sends a new `Idempotency-Key` with each click.
 
-**Scorecards and the reviewer decision.** A stage's scorecard (`Scorecard` on `WorkflowStage`) lists job-related
-criteria. A reviewer rates each on one fixed, labelled scale (`CriterionRating`: not demonstrated, partly
-demonstrated, demonstrated, strongly demonstrated), may leave one unrated, and gives a required overall
-`Recommendation` (strong no, no, yes, strong yes). Ratings and recommendations are categories: nothing sums or
-averages them, in the API or the dashboard (ADR-0004's evidence, not verdicts, for people's judgements too).
+**Scorecards and the reviewer decision.** A scorecard is a library object (ADR-0013): ScreenHire's built-ins
+(`BuiltInScorecards`, in code and read only: a team copies one to change it) and an organization's own
+(`ScorecardTemplate`, table `scorecard_templates`, tracked in change history). A hiring template's stage names one in
+`scorecardTemplateId`; a job's stage holds its own copy (`Scorecard`: the name and the questions), which the API makes
+when the job is created from a template, takes a template update, or a workflow edit picks another scorecard. So every
+candidate for one job answers the same questions, and editing the library changes the jobs created afterwards, never
+a job that has its copy. A template stage that names a scorecard the library does not have is refused at save and at
+publish.
+
+A question (`ScorecardQuestion`) has an answer kind: Yes or no, Choice, Multi-choice, Short text, Long text, or one of
+the Rating kinds, 1 to 5 (`Rating5`), 1 to 10 (`Rating10`) and Yes or no (`RatingYesNo`). It may be required. Every
+scorecard then asks for a required overall `Recommendation` (strong no, no, yes, strong yes) and a note.
 
 - `POST /v1/applications/{id}/scorecards` stores one reviewer's scorecard for a stage that has one and that the
-  application has been in. It copies each criterion's label as asked, so a later workflow change cannot rewrite it.
-  In one transaction with the `application_scorecards` row it appends a `ScorecardSubmitted` timeline entry (the
-  stage and the recommendation), publishes `RunAutomations(ReviewerDecision, stage, entry)` and raises the
-  `ScorecardSubmitted` realtime event (ids only).
+  application has been in. Each answer takes its kind's shape: "yes" or "no", an option id, option ids, text (500 or
+  10,000 characters), or a number on the scale; a required question must be answered. It keeps each question as asked
+  (label, kind, options), so a later workflow change cannot rewrite it. In one transaction with the
+  `application_scorecards` row it appends a `ScorecardSubmitted` timeline entry (the stage and the recommendation),
+  publishes `RunAutomations(ReviewerDecision, stage, entry)` and raises the `ScorecardSubmitted` realtime event (ids
+  only).
 - One scorecard per reviewer and stage, on a unique index. The same submission again, a retried or doubled request,
   returns the stored one with 200 and raises nothing. A different one is 409: a scorecard is final, and the role may
   not update or delete the rows. Deleting the application is the only way one goes, by cascade.
@@ -496,9 +531,33 @@ averages them, in the API or the dashboard (ADR-0004's evidence, not verdicts, f
   Only its conditions may test `reviewer.recommendation` (EqualTo, In or Exists, on the recommendation names).
 - Only a person submits a scorecard. An API key gets 403, and a Viewer gets 403 as on every write. Both may read
   scorecards.
-- Integrity output never feeds a scorecard. The sheet shows only the criteria and the scale, and no automation action
-  writes one. A reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout
-  rejects.
+- Integrity output never feeds a scorecard. The sheet shows only the questions, and no automation action writes one. A
+  reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout rejects.
+
+**The candidate's rating** (ADR-0013 decision 13, `RatingRule`) is one to five stars from people's scorecards:
+
+- Each answered rating question maps onto 1 to 5. A 1 to 5 answer counts as it is. A 1 to 10 answer is spread so that
+  1 counts as 1 and 10 as 5 (`1 + (n - 1) * 4 / 9`). A rating Yes counts as 5 and No as 1. Halving a 1 to 10 answer
+  would put a 1 at 0.5, off the scale, so the spread keeps both ends on it.
+- Each scorecard counts once, as the mean of its answered rating questions; the rating is the mean of those, to one
+  decimal, halves away from zero, with the number of scorecards that counted. This differs from a flat mean of every
+  answer: the rating opens to each scorecard with its own number (4.3, 3.7 and 4.3 make 4.1), which only a mean of
+  means matches.
+- A scorecard with no answered rating question counts for nothing, and so does a v0.2 scorecard: its labels (Not
+  demonstrated to Strongly demonstrated) were never numbers. Until one counts, the candidate is "Not rated yet". v0.2
+  scorecards still read as they were given.
+- It averages people's judgements about the work only: never integrity results, AI signals or the stage, which is a
+  decision already made. It is worked out on every read (`RatingReads`) and never stored.
+- No automation reads it: `DefinitionValidator` refuses a condition on it with the reason.
+- A reviewer sees it only after giving their own (`ReviewerGate`). A reviewer is a member with an open Review task
+  (`ApplicationTaskKind.Review`, made by AssignReviewer) assigned to them on the application that their scorecards have
+  not answered. A review in a stage with a scorecard is answered only by their scorecard for that stage (the task's
+  `stageId`), so scoring another stage does not show it. A review in a stage without a scorecard, or one made before
+  tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned. Until then the API leaves the rating (`AfterYourScorecard`, no number),
+  the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. A
+  Review task for the whole team holds nothing back, and neither does an API key. Ticking the task done also shows it.
+- The rating is on `ApplicationSummary` and `ApplicationDetail`, so the job's table, the candidates list and the
+  candidate page show it, as the reader may see it. Each `ScorecardEntry` has its own `rating`.
 
 **Follow-up questionnaires.** The link is the careers board's `/questionnaires/{token}`. Its token names the
 organization and the request, protected with ASP.NET Core Data Protection under its own purpose
@@ -534,8 +593,9 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   moves applications into, or with no stage once any signal-driven automation moves applications. A person decides in
   between, but the candidate reached that reviewer because of the signal, so the guardrail stays conservative. Such
   an automation may route, never queue a rejection.
-- The rating scale is fixed rather than set per scorecard: one scale reads the same on every candidate, and labels
-  cannot drift into a numeric score.
+- v0.3 reverses v0.2's "nothing averages scorecards" (ADR-0013): rating questions average into the candidate's
+  rating, under the limits above. Rating scales are plain numbers with Low and High under their ends, not labels, and
+  a question counts toward the rating because its kind is in the Rating group, not through a switch.
 - Signal-driven automations may not use `NotifyTeam` even though "notify" reads as routing. ADR-0004 lists route, tag,
   assign and request verification, and the validator keeps to that list.
 - A signal may move an application into a screening, assessment, verification or interview stage only, not any

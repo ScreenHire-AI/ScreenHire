@@ -1,14 +1,16 @@
-import type { QuestionType } from '@screenhire/api-client';
+import type { QuestionType, ScorecardQuestionType } from '@screenhire/api-client';
 import CircleDotIcon from '@lucide/svelte/icons/circle-dot';
 import HashIcon from '@lucide/svelte/icons/hash';
 import LinkIcon from '@lucide/svelte/icons/link';
 import ListChecksIcon from '@lucide/svelte/icons/list-checks';
 import PaperclipIcon from '@lucide/svelte/icons/paperclip';
+import StarIcon from '@lucide/svelte/icons/star';
 import TextAlignStartIcon from '@lucide/svelte/icons/text-align-start';
 import TextCursorInputIcon from '@lucide/svelte/icons/text-cursor-input';
 import ToggleLeftIcon from '@lucide/svelte/icons/toggle-left';
+import { ratingKinds } from '#lib/scorecards.js';
 import type { LucideIcon } from '#lib/shell.js';
-import { questionTypeLabels } from '#lib/workflow.js';
+import { questionTypeLabels, scorecardQuestionTypeLabels } from '#lib/workflow.js';
 
 // The form builder's answer kinds (design system section 11, Form builder and Answer menu). Each editor that mounts the
 // builder passes the menu it offers: application questions and follow-up questionnaires below, scorecards their own
@@ -54,6 +56,23 @@ export const generalKinds = [
 ] as const satisfies readonly AnswerKind<QuestionType>[];
 
 const moreKinds = [kind('Number', HashIcon), kind('Url', LinkIcon), kind('File', PaperclipIcon)] as const satisfies readonly AnswerKind<QuestionType>[];
+
+/**
+ * A scorecard's menu: the General kinds and the Rating group, each rating with a star (section 11, Answer menu). A
+ * Rating question is one the candidate's rating averages; choosing the group is choosing that, so there is no switch.
+ */
+export const scorecardKinds: readonly AnswerKindGroup<ScorecardQuestionType>[] = [
+  { label: 'General', kinds: generalKinds },
+  {
+    label: 'Rating',
+    kinds: ratingKinds.map((value) => ({
+      value,
+      label: scorecardQuestionTypeLabels[value],
+      icon: StarIcon,
+      ...(value === 'RatingYesNo' ? { fixed: ['Yes', 'No'] } : {}),
+    })),
+  },
+];
 
 /** The apply form's menu: every kind a question supports. */
 export const applyFormKinds: readonly AnswerKindGroup<QuestionType>[] = [

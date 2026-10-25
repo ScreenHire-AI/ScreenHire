@@ -25,6 +25,7 @@ public static class TrackedKinds
         Track<HiringTemplateVersion>(ChangeSubjectKind.HiringTemplate, v => v.TemplateId.ToString("D"), TemplateVersionAsync),
         Track<EmailTemplate>(ChangeSubjectKind.EmailTemplate, t => t.Key, EmailTemplateAsync),
         Track<Job>(ChangeSubjectKind.Job, j => j.Id.ToString("D"), JobAsync),
+        Track<ScorecardTemplate>(ChangeSubjectKind.ScorecardTemplate, t => t.Key, ScorecardTemplateAsync),
         Track<CustomRole>(ChangeSubjectKind.Role, r => r.Id.ToString("D"), RoleChanges.Describe),
     ];
 
@@ -68,6 +69,11 @@ public static class TrackedKinds
     private static ValueTask<IReadOnlyList<ChangeLine>> EmailTemplateAsync(
         EmailTemplate? before, EmailTemplate? after, ChangeContext context, CancellationToken cancellationToken) =>
         ValueTask.FromResult(EmailTemplateChanges.Describe(before, after, context.BuiltInWording((after ?? before)?.BuiltInId)));
+
+    private static async ValueTask<IReadOnlyList<ChangeLine>> ScorecardTemplateAsync(
+        ScorecardTemplate? before, ScorecardTemplate? after, ChangeContext context, CancellationToken cancellationToken) =>
+        ScorecardTemplateChanges.Describe(
+            before, after, before is null ? await context.ScorecardNameAsync(after?.CopiedFrom, cancellationToken) : null);
 
     private static async ValueTask<IReadOnlyList<ChangeLine>> JobAsync(
         Job? before, Job? after, ChangeContext context, CancellationToken cancellationToken)

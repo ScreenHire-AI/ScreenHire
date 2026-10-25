@@ -87,6 +87,7 @@ internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfigurati
     {
         builder.Property(s => s.StageId).HasMaxLength(40);
         builder.Property(s => s.Ratings).HasJsonColumn();
+        builder.Property(s => s.Answers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
         builder.Property(s => s.Recommendation).HasConversion<string>().HasMaxLength(20);
         builder.Property(s => s.Note).HasMaxLength(ApplicationScorecard.MaxNoteLength);
 

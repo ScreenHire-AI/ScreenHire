@@ -114,6 +114,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
+    public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();
+
     /// <summary>Every change to the configuration people edit (<c>ChangeHistoryInterceptor</c>); append-only.</summary>
     public DbSet<ChangeRecord> ChangeRecords => Set<ChangeRecord>();
 

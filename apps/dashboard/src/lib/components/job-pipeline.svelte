@@ -22,6 +22,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { integrityColumns } from '#lib/integrity-columns.js';
+  import { ratingColumn } from '#lib/rating-column.js';
   import {
     bulkMoveStages,
     isIntegrityFiltered,
@@ -195,7 +196,7 @@
       sortId="job-candidates"
       {stages}
       {moves}
-      extraColumns={integrityColumns}
+      extraColumns={[...integrityColumns, ratingColumn]}
       bind:selectedIds
       emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
       onclearfilters={filtering ? clearFilters : undefined}

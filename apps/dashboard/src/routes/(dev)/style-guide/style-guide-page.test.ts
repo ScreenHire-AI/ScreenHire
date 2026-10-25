@@ -86,6 +86,8 @@ const panels: Record<string, string[]> = {
   'Settings menu': ['Settings menu'],
   'Form builder': ['Form builder'],
   'Answer menu': ['Answer menu'],
+  Rating: ['Rating'],
+  'Rating answer': ['Rating answer'],
 };
 
 // The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5

@@ -9,6 +9,7 @@ sources:
   - resource: src/ScreenHire.Domain/History/DefinitionChanges.cs
   - resource: src/ScreenHire.Domain/History/HiringTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/EmailTemplateChanges.cs
+  - resource: src/ScreenHire.Domain/History/ScorecardTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/JobChanges.cs
   - resource: src/ScreenHire.Domain/History/RoleChanges.cs
   - resource: src/ScreenHire.Domain/History/ChangeLabels.cs
@@ -28,8 +29,8 @@ sources:
 
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
-templates, email templates, jobs and custom roles today, scorecard templates when their task adds them. Built-in roles
-never change, so they have no history. It never holds
+templates, email templates, scorecard templates, jobs and custom roles today. Built-in roles never change, so they
+have no history. It never holds
 candidate data, so it has no retention limit.
 
 ## What is recorded
@@ -38,7 +39,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `Job` or `Role`, and its id. A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job` or `Role`, and its id. A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `lines` | JSONB: one line per change, each its words (`parts`, the changed thing's name marked strong) and its values before and after (`details`) |
@@ -70,7 +71,7 @@ change through the tracker; the email template endpoints delete through it for t
 
 The describers in `src/ScreenHire.Domain/History` are pure functions from the entity before and after to lines:
 
-- `DefinitionChanges` compares hiring definitions. Stages, questions, scorecard criteria, automations and follow-up
+- `DefinitionChanges` compares hiring definitions. Stages, questions, scorecard questions, automations and follow-up
   questionnaires are matched by their stable ids, so a renamed question is one rename. Question ids are unique across
   the apply questionnaire and every follow-up, so a question moved between them is no change. Parts without ids (an
   automation's actions and conditions) show in that automation's details. Raw JSON never reaches a line.

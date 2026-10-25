@@ -43,9 +43,10 @@ export const invalidations: InvalidationMap = {
   ApplicationNoteEdited: [applicationsPath],
   ApplicationNoteDeleted: [applicationsPath],
   ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
-  ScorecardSubmitted: [applicationsPath],
+  // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
+  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath],
   QuestionnaireAnswered: [applicationsPath],
-  ApplicationTaskCompleted: [applicationsPath, tasksPath],
+  ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
 };

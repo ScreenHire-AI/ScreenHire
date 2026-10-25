@@ -5,7 +5,7 @@ using static ScreenHire.Domain.History.ChangeLabels;
 namespace ScreenHire.Domain.History;
 
 /// <summary>
-/// A hiring definition's changes in words. Stages, questions, scorecard criteria, automations and follow-up
+/// A hiring definition's changes in words. Stages, questions, scorecard questions, automations and follow-up
 /// questionnaires are matched by their stable ids (HiringWorkflow.cs), so a renamed question is one rename rather than a
 /// removal and an addition. Question ids are unique across the apply questionnaire and every follow-up, so a question is
 /// found wherever it sits. Parts without ids (an automation's actions and conditions) are compared inside their
@@ -80,19 +80,28 @@ public static class DefinitionChanges
                 break;
         }
 
-        switch (a.Scorecard, b.Scorecard)
+        switch (a.HasScorecard(), b.HasScorecard())
         {
-            case (null, { } added):
-                lines.Add(ChangeLine.Of("added a scorecard to ", b.Name, details: [new("Criteria", null, Join(added.Criteria.Select(c => c.Label)))]));
+            case (false, true):
+                lines.Add(ChangeLine.Of("added a scorecard to ", b.Name, details: [new("Scorecard", null, ScorecardName(b))]));
                 break;
-            case ({ } removed, null):
-                lines.Add(ChangeLine.Of("removed the scorecard from ", b.Name, details: [new("Criteria", Join(removed.Criteria.Select(c => c.Label)), null)]));
+            case (true, false):
+                lines.Add(ChangeLine.Of("removed the scorecard from ", b.Name, details: [new("Scorecard", ScorecardName(a), null)]));
                 break;
-            case ({ } left, { } right) when CriteriaDetails(left, right) is { Count: > 0 } details:
+            case (true, true) when a.ScorecardTemplateId != b.ScorecardTemplateId || a.Scorecard?.Name != b.Scorecard?.Name:
+                lines.Add(ChangeLine.Of("changed the scorecard of ", b.Name, details: [new("Scorecard", ScorecardName(a), ScorecardName(b))]));
+                break;
+            case (true, true) when a.Scorecard is { } left && b.Scorecard is { } right
+                && ScorecardQuestionDetails(left.Questions, right.Questions) is { Count: > 0 } details:
                 lines.Add(ChangeLine.Of("changed the scorecard of ", b.Name, details: details));
                 break;
         }
     }
+
+    // A job's copy says its own name; a template's stage names a built-in, or one of the organization's own scorecards,
+    // whose name a definition does not hold.
+    private static string ScorecardName(WorkflowStage stage) =>
+        stage.Scorecard?.Name ?? BuiltInScorecards.Find(stage.ScorecardTemplateId)?.Name ?? "one of your scorecards";
 
     private static List<ChangeDetail> StageDetails(WorkflowStage stage)
     {
@@ -102,38 +111,61 @@ public static class DefinitionChanges
             details.Add(new("Time limit", null, Days(days)));
         }
 
-        if (stage.Scorecard is { } scorecard)
+        if (stage.HasScorecard())
         {
-            details.Add(new("Scorecard", null, Join(scorecard.Criteria.Select(c => c.Label))));
+            details.Add(new("Scorecard", null, ScorecardName(stage)));
         }
 
         return details;
     }
 
-    private static List<ChangeDetail> CriteriaDetails(Scorecard before, Scorecard after)
+    /// <summary>
+    /// A scorecard's questions before and after, one detail per question that changed, matched by id, then the order.
+    /// The library's scorecards (<see cref="ScorecardTemplateChanges"/>) and a job's copy share it.
+    /// </summary>
+    internal static List<ChangeDetail> ScorecardQuestionDetails(IReadOnlyList<ScorecardQuestion> before, IReadOnlyList<ScorecardQuestion> after)
     {
         var details = new List<ChangeDetail>();
         Match(
-            before.Criteria, after.Criteria, c => c.Id,
-            added: c => details.Add(new(c.Label, null, Criterion(c))),
-            removed: c => details.Add(new(c.Label, Criterion(c), null)),
+            before, after, q => q.Id,
+            added: q => details.Add(new(q.Label, null, QuestionLine(q))),
+            removed: q => details.Add(new(q.Label, QuestionLine(q), null)),
             kept: (a, b) =>
             {
-                if (a != b)
+                if (QuestionLine(a) is var left && QuestionLine(b) is var right && left != right)
                 {
-                    details.Add(new(b.Label, Criterion(a), Criterion(b)));
+                    details.Add(new(b.Label, left, right));
                 }
             });
-        if (Reordered(before.Criteria, after.Criteria, c => c.Id))
+        if (Reordered(before, after, q => q.Id))
         {
-            details.Add(new("Order", Join(before.Criteria.Select(c => c.Label)), Join(after.Criteria.Select(c => c.Label))));
+            details.Add(new("Order", Join(before.Select(q => q.Label)), Join(after.Select(q => q.Label))));
         }
 
         return details;
     }
 
-    private static string Criterion(ScorecardCriterion criterion) =>
-        criterion.Guidance is { } guidance ? $"{criterion.Label}. {guidance}" : criterion.Label;
+    // A question in one line: its words, its answer kind, whether it is required, what to look for and its options.
+    private static string QuestionLine(ScorecardQuestion question)
+    {
+        var parts = new List<string> { question.Label, ChangeLabels.ScorecardAnswer(question.Type) };
+        if (question.Required)
+        {
+            parts.Add("required");
+        }
+
+        if (question.Options is { Count: > 0 } options)
+        {
+            parts.Add($"options {Join(options.Select(o => o.Label))}");
+        }
+
+        if (question.Guidance is { Length: > 0 } guidance)
+        {
+            parts.Add(guidance);
+        }
+
+        return Join(parts, ". ");
+    }
 
     private static void Questions(HiringWorkflow before, HiringWorkflow after, List<ChangeLine> lines)
     {

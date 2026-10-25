@@ -5,16 +5,20 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Recommendation } from './recommendation.ts';
+import type { ScorecardAnswerEntry } from './scorecardAnswerEntry.ts';
 import type { ScorecardRating } from './scorecardRating.ts';
 
 /**
- * One reviewer's scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are
- * categories, never a number, and nothing totals or averages them (ADR-0004).
+ * One reviewer's scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.
+ * Its rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does.
  */
 export interface ScorecardEntry {
   id: string;
   stageId: string;
   reviewerUserId: string;
+  answers: ScorecardAnswerEntry[];
+  /** @nullable */
+  rating: number | null;
   ratings: ScorecardRating[];
   recommendation: Recommendation;
   /** @nullable */

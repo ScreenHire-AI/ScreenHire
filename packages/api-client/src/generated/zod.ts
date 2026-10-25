@@ -545,6 +545,7 @@ export const CreateJobBody = zod.object({
   "validThrough": zod.iso.datetime({"offset":true}).nullish()
 }).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\r\nfrom the title.')
 
+export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createJobResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -581,12 +582,20 @@ export const CreateJobResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -717,6 +726,7 @@ export const GetJobParams = zod.object({
   "jobId": zod.uuid()
 })
 
+export const getJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const getJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const getJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const getJobResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -753,12 +763,20 @@ export const GetJobResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(getJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -911,6 +929,7 @@ export const UpdateJobBody = zod.object({
   "validThrough": zod.iso.datetime({"offset":true}).nullish()
 }).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change.')
 
+export const updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateJobResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -947,12 +966,20 @@ export const UpdateJobResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1121,6 +1148,7 @@ export const PublishJobBody = zod.union([zod.null(),zod.object({
   "boards": zod.array(zod.string()).nullish()
 }).describe('Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again.')])
 
+export const publishJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const publishJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const publishJobResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -1157,12 +1185,20 @@ export const PublishJobResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(publishJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1293,6 +1329,7 @@ export const CloseJobParams = zod.object({
   "jobId": zod.uuid()
 })
 
+export const closeJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const closeJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const closeJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const closeJobResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -1329,12 +1366,20 @@ export const CloseJobResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(closeJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1531,6 +1576,7 @@ export const UpdateJobWorkflowParams = zod.object({
   "jobId": zod.uuid()
 })
 
+export const updateJobWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
@@ -1545,12 +1591,20 @@ export const UpdateJobWorkflowBody = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(updateJobWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1637,6 +1691,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "expectedWorkflowVersion": zod.int()
 }).describe('Replaces a job\'s workflow with the recruiter\'s edit of it: the job\'s own copy, tailored. `expectedWorkflowVersion`\r\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\r\nthan overwriting their change. A stage that still holds applications cannot be removed.')
 
+export const updateJobWorkflowResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -1673,12 +1728,20 @@ export const UpdateJobWorkflowResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(updateJobWorkflowResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1814,6 +1877,7 @@ export const ApplyJobTemplateUpdateBody = zod.object({
   "expectedWorkflowVersion": zod.int()
 }).describe('Replaces a job\'s workflow with a published version of the template it came from (usually the newest, from\r\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job\'s own edits too, which the diff lists.\r\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest.')
 
+export const applyJobTemplateUpdateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault = true;
@@ -1850,12 +1914,20 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2002,6 +2074,7 @@ export const ListHiringTemplatesResponseItem = zod.object({
 export const ListHiringTemplatesResponse = zod.array(ListHiringTemplatesResponseItem)
 
 
+export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault = true;
@@ -2019,12 +2092,20 @@ export const CreateHiringTemplateBody = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2244,6 +2325,7 @@ export const CreateHiringTemplateVersionParams = zod.object({
   "templateId": zod.uuid()
 })
 
+export const createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault = true;
@@ -2259,12 +2341,20 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2360,6 +2450,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.')]).optional()
 }).describe('Starts the next version as a draft: the given definition, or a copy of the newest version\'s.')
 
+export const createHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
@@ -2379,12 +2470,20 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2489,6 +2588,7 @@ export const GetHiringTemplateVersionParams = zod.object({
   "version": zod.int()
 })
 
+export const getHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
@@ -2508,12 +2608,20 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2618,6 +2726,7 @@ export const UpdateHiringTemplateVersionParams = zod.object({
   "version": zod.int()
 })
 
+export const updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault = true;
@@ -2633,12 +2742,20 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2734,6 +2851,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.')
 }).describe('Replaces a draft version\'s definition.')
 
+export const updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
@@ -2753,12 +2871,20 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2863,6 +2989,7 @@ export const PublishHiringTemplateVersionParams = zod.object({
   "version": zod.int()
 })
 
+export const publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
@@ -2882,12 +3009,20 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2991,6 +3126,8 @@ export const ListJobApplicationsParams = zod.object({
   "jobId": zod.uuid()
 })
 
+export const listJobApplicationsResponseRatingTwoScorecardsDefault = 0;
+
 export const ListJobApplicationsResponseItem = zod.object({
   "id": zod.uuid(),
   "jobId": zod.uuid(),
@@ -3014,7 +3151,12 @@ export const ListJobApplicationsResponseItem = zod.object({
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
 }).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(listJobApplicationsResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
@@ -3041,6 +3183,7 @@ export const CreateApplicationBody = zod.object({
 
 export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const createApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
+export const createApplicationResponseRatingTwoScorecardsDefault = 0;
 
 export const CreateApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -3117,9 +3260,16 @@ export const CreateApplicationResponse = zod.object({
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(createApplicationResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
+
+export const listApplicationsResponseRatingTwoScorecardsDefault = 0;
 
 export const ListApplicationsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -3144,7 +3294,12 @@ export const ListApplicationsResponseItem = zod.object({
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
 }).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(listApplicationsResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -3155,6 +3310,7 @@ export const GetApplicationParams = zod.object({
 
 export const getApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const getApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
+export const getApplicationResponseRatingTwoScorecardsDefault = 0;
 
 export const GetApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -3231,7 +3387,12 @@ export const GetApplicationResponse = zod.object({
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(getApplicationResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3246,6 +3407,7 @@ export const MoveApplicationBody = zod.object({
 
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const moveApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
+export const moveApplicationResponseRatingTwoScorecardsDefault = 0;
 
 export const MoveApplicationResponse = zod.object({
   "id": zod.uuid(),
@@ -3322,7 +3484,12 @@ export const MoveApplicationResponse = zod.object({
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(moveApplicationResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3427,6 +3594,7 @@ export const AddApplicationTagBody = zod.object({
 
 export const addApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
 export const addApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
+export const addApplicationTagResponseRatingTwoScorecardsDefault = 0;
 
 export const AddApplicationTagResponse = zod.object({
   "id": zod.uuid(),
@@ -3503,7 +3671,12 @@ export const AddApplicationTagResponse = zod.object({
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(addApplicationTagResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3517,6 +3690,7 @@ export const RemoveApplicationTagQueryParams = zod.object({
 
 export const removeApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
 export const removeApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
+export const removeApplicationTagResponseRatingTwoScorecardsDefault = 0;
 
 export const RemoveApplicationTagResponse = zod.object({
   "id": zod.uuid(),
@@ -3593,7 +3767,12 @@ export const RemoveApplicationTagResponse = zod.object({
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(removeApplicationTagResponseRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3620,6 +3799,8 @@ export const ListCandidatesResponse = zod.array(ListCandidatesResponseItem)
 export const GetCandidateParams = zod.object({
   "candidateId": zod.uuid()
 })
+
+export const getCandidateResponseApplicationsItemRatingTwoScorecardsDefault = 0;
 
 export const GetCandidateResponse = zod.object({
   "id": zod.uuid(),
@@ -3650,7 +3831,12 @@ export const GetCandidateResponse = zod.object({
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
 }).describe('The integrity chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
-  "slaDueAt": zod.iso.datetime({"offset":true}).nullish()
+  "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "rating": zod.union([zod.null(),zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(getCandidateResponseApplicationsItemRatingTwoScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')),
   "firstName": zod.string(),
   "lastName": zod.string().nullable()
@@ -4808,6 +4994,7 @@ export const RevokeApiKeyResponse = zod.object({
 }).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
+export const validateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const validateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
@@ -4822,12 +5009,20 @@ export const ValidateWorkflowBody = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(validateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -4922,6 +5117,7 @@ export const ValidateWorkflowResponse = zod.object({
 }).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
 
 
+export const simulateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
 export const simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
@@ -4937,12 +5133,20 @@ export const SimulateWorkflowBody = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "slaDays": zod.int().nullish(),
   "scorecard": zod.union([zod.null(),zod.object({
-  "criteria": zod.array(zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
   "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
-  "guidance": zod.string().nullish()
-}))
-}).describe('The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled\r\nscale CriterionRating, and an overall Recommendation. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation`\r\nfact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty\r\n(CLAUDE.md non-negotiable 3); DefinitionValidator refuses criteria that name those.')]).optional()
+  "required": zod.boolean().default(simulateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -5219,17 +5423,30 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "id": zod.uuid(),
   "stageId": zod.string(),
   "reviewerUserId": zod.uuid(),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "rating": zod.int().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
+  "rating": zod.number().nullable(),
   "ratings": zod.array(zod.object({
   "criterionId": zod.string(),
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
-}).describe('A criterion as the reviewer was asked it, and their rating; null when they did not rate it.')),
+}).describe('A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.')),
   "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true})
-}).describe('One reviewer\'s scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004).')
+}).describe('One reviewer\'s scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
 
 
@@ -5239,10 +5456,12 @@ export const SubmitScorecardParams = zod.object({
 
 export const SubmitScorecardBody = zod.object({
   "stageId": zod.string(),
-  "ratings": zod.array(zod.object({
-  "criterionId": zod.string(),
-  "rating": zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])
-}).describe('The rating for one criterion of the stage\'s scorecard.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "rating": zod.int().nullish()
+}).describe('The answer to one question: `value` for the yes-or-no kinds ("yes" or "no"), a choice (an option id) and the\r\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale.')),
   "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullish()
 }).describe('A reviewer\'s scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409.')
@@ -5251,17 +5470,204 @@ export const SubmitScorecardResponse = zod.object({
   "id": zod.uuid(),
   "stageId": zod.string(),
   "reviewerUserId": zod.uuid(),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "rating": zod.int().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
+  "rating": zod.number().nullable(),
   "ratings": zod.array(zod.object({
   "criterionId": zod.string(),
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
-}).describe('A criterion as the reviewer was asked it, and their rating; null when they did not rate it.')),
+}).describe('A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.')),
   "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true})
-}).describe('One reviewer\'s scorecard for one stage: a labelled rating per criterion and an overall recommendation. Ratings are\r\ncategories, never a number, and nothing totals or averages them (ADR-0004).')
+}).describe('One reviewer\'s scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
+
+
+export const ListScorecardTemplatesResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "questions": zod.int(),
+  "ratingQuestions": zod.int(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('A scorecard in the organization\'s library: a built-in (`builtIn`, ScreenHire\'s and read only) or one of its own.\r\nA hiring template\'s stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy.')
+export const ListScorecardTemplatesResponse = zod.array(ListScorecardTemplatesResponseItem)
+
+
+export const createScorecardTemplateBodyQuestionsItemRequiredDefault = false;
+
+export const CreateScorecardTemplateBody = zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(createScorecardTemplateBodyQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.')),
+  "copiedFrom": zod.string().nullish()
+}).describe('A new scorecard of the organization\'s own, optionally a copy of another (`copiedFrom`, by id).')
+
+export const createScorecardTemplateResponseQuestionsItemRequiredDefault = false;
+
+export const CreateScorecardTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "copiedFrom": zod.string().nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(createScorecardTemplateResponseQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
+
+
+export const GetScorecardTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const getScorecardTemplateResponseQuestionsItemRequiredDefault = false;
+
+export const GetScorecardTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "copiedFrom": zod.string().nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(getScorecardTemplateResponseQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
+
+
+export const UpdateScorecardTemplateParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const updateScorecardTemplateBodyQuestionsItemRequiredDefault = false;
+
+export const UpdateScorecardTemplateBody = zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateScorecardTemplateBodyQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('An own scorecard\'s name and questions, replaced whole. Jobs that copied it keep their copy.')
+
+export const updateScorecardTemplateResponseQuestionsItemRequiredDefault = false;
+
+export const UpdateScorecardTemplateResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "builtIn": zod.boolean(),
+  "copiedFrom": zod.string().nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateScorecardTemplateResponseQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
+
+
+export const GetScorecardTemplateHistoryParams = zod.object({
+  "templateId": zod.string()
+})
+
+export const GetScorecardTemplateHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetScorecardTemplateHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
 
 
 export const ListWebhookEventTypesResponseItem = zod.string()

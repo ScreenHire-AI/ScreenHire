@@ -61,9 +61,29 @@ public sealed class JobsApiTests(AppHostFixture fixture)
         created.At("template.version").GetInt32().Should().Be(4);
         created.At("template.updateAvailable").GetBoolean().Should().BeFalse();
         var templateVersion = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/versions/4");
-        created.At("workflow").GetRawText().Should().Be(templateVersion.At("definition.workflow").GetRawText(), "the job holds its own copy of the workflow");
+        // The template's stages name library scorecards; the job holds a copy of their questions, and nothing else differs.
+        var templateStages = templateVersion.At("definition.workflow.stages").EnumerateArray().ToList();
+        var jobStages = created.At("workflow.stages").EnumerateArray().ToList();
+        jobStages.Select(s => s.GetProperty("id").GetString()).Should().Equal(templateStages.Select(s => s.GetProperty("id").GetString()));
+        foreach (var (templateStage, jobStage) in templateStages.Zip(jobStages))
+        {
+            templateStage.Has("scorecard").Should().BeFalse("a template names its scorecard and holds no copy");
+            if (templateStage.Has("scorecardTemplateId"))
+            {
+                var named = templateStage.GetProperty("scorecardTemplateId").GetString();
+                jobStage.GetProperty("scorecardTemplateId").GetString().Should().Be(named);
+                var library = (await recruiter.GetAsync($"/v1/scorecard-templates/{named}")).Expect(HttpStatusCode.OK);
+                jobStage.GetProperty("scorecard").GetProperty("questions").GetRawText().Should().Be(library.At("questions").GetRawText());
+                jobStage.GetProperty("scorecard").GetProperty("name").GetString().Should().Be(library.Text("name"));
+            }
+            else
+            {
+                jobStage.Has("scorecard").Should().BeFalse("a stage that names no scorecard has none");
+            }
+        }
+
         created.Text("workflow.stages.2.id").Should().Be("technical");
-        created.Text("workflow.stages.3.scorecard.criteria.0.id").Should().Be("role_skills", "the newest version ships default scorecards");
+        created.Text("workflow.stages.3.scorecard.questions.0.id").Should().Be("role_skills", "the newest version ships default scorecards");
     }
 
     [Fact]

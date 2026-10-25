@@ -84,7 +84,7 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
         (await ours.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
         var scorecard = (await ours.PostAsync($"/v1/applications/{application}/scorecards", new JsonObject
         {
-            ["stageId"] = "interview", ["ratings"] = new JsonArray(), ["recommendation"] = "Yes",
+            ["stageId"] = "interview", ["answers"] = new JsonArray(), ["recommendation"] = "Yes",
         })).Expect(HttpStatusCode.Created);
         var scored = await ourClient.WaitForAsync("ScorecardSubmitted", "scorecardId", scorecard.Id(), cancellationToken);
         scored.GetProperty("eventId").GetGuid().Should().Be(scorecard.Id("timelineEventId"));

@@ -6,11 +6,12 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { personName } from '#lib/team.js';
+  import { answerText } from '#lib/scorecards.js';
   import { ratingLabels, recommendationLabels } from '#lib/workflow.js';
 
   // Submitted scorecards (design system section 11): an icon in a circle, the reviewer's recommendation and who gave it
-  // when, the stage as a fact pill, then each criterion with its rating and the note quoted below. Recommendations and
-  // ratings are words, never numbers, and nothing adds them up: each is one person's judgement (ADR-0004).
+  // when, the stage as a fact pill, then each question and its answer as a summary list ("Not answered" when left out)
+  // and the note quoted below. A v0.2 scorecard shows its criteria with their labelled ratings, as it was given.
   let {
     scorecards,
     stageName,
@@ -39,6 +40,12 @@
           <RelativeTime at={scorecard.submittedAt} class="text-caption text-muted-foreground" />
         </div>
         <SummaryList>
+          {#each scorecard.answers as answer (answer.questionId)}
+            {@const text = answerText(answer)}
+            <SummaryItem label={answer.label}>
+              {#if text !== null}<span class="break-words whitespace-pre-line">{text}</span>{:else}<span class="text-muted-foreground">Not answered</span>{/if}
+            </SummaryItem>
+          {/each}
           {#each scorecard.ratings as rating (rating.criterionId)}
             <SummaryItem label={rating.label}>
               {#if rating.rating}{ratingLabels[rating.rating]}{:else}<span class="text-muted-foreground">Not rated</span>{/if}

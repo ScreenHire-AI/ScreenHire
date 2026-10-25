@@ -7,7 +7,7 @@
 import type { CriterionRating } from './criterionRating.ts';
 
 /**
- * A criterion as the reviewer was asked it, and their rating; null when they did not rate it.
+ * A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.
  */
 export interface ScorecardRating {
   criterionId: string;

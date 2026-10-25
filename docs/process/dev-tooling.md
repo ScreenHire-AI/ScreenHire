@@ -81,7 +81,7 @@ report findings as `file:line`, severity, evidence and fix; the caller verifies 
 |---|---|---|---|
 | [`review-finder`](../../.claude/agents/review-finder.md) | read-only | `/task-review` (one per dimension) | one review dimension: correctness, non-negotiables and security, or conventions |
 | [`tenant-isolation-guard`](../../.claude/agents/tenant-isolation-guard.md) | read-only | `/task-review`, `/add-migration` | `OrganizationId` on tenant rows, query scope, named query filters, RLS, cross-tenant paths |
-| [`integrity-guardrails`](../../.claude/agents/integrity-guardrails.md) | read-only | `/task-review` | no scores, no rejection from integrity, no emotion or biometric inference, notice before collection, telemetry aggregates only, no scraping |
+| [`integrity-guardrails`](../../.claude/agents/integrity-guardrails.md) | read-only | `/task-review` | no scores (the candidate rating only under ADR-0013), no rejection from integrity, no emotion or biometric inference, notice before collection, telemetry aggregates only, no scraping |
 | [`licence-check`](../../.claude/agents/licence-check.md) | read-only | `/task-review`, any skill that adds a package | every new NuGet or npm package against ADR-0008 |
 | [`migration-safety`](../../.claude/agents/migration-safety.md) | read-only | `/add-migration`, `/task-review` | generated SQL, types, existing data, destructive operations, snapshot drift, RLS for tenant tables |
 | [`doc-auditor`](../../.claude/agents/doc-auditor.md) | read-only | `/sync-docs` | lists in docs against the sources that define them |

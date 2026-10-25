@@ -8,7 +8,8 @@ namespace ScreenHire.Domain.Hiring;
 // - No polymorphism and no untyped members (object, JsonElement): each element is one flat record with a kind enum and
 //   optional per-kind fields, which DefinitionValidator checks. Orval and the JSON Schema stay simple that way.
 // - Add members as optional (a default value), never rename or remove one: published versions are immutable JSONB rows
-//   that must keep deserializing.
+//   that must keep deserializing. The one exception so far is the v0.2 scorecard's criteria, which migration
+//   AddScorecardTemplates rewrote in every stored definition and workflow, in the same transaction, before removing them.
 // - Element ids are stable keys (stages, questions, automations). Diffs match by id, and facts such as
 //   `answers.work_authorization` refer to them.
 
@@ -27,12 +28,17 @@ public sealed record HiringWorkflow(
     IReadOnlyList<Automation> Automations,
     IReadOnlyList<FollowUpQuestionnaire>? FollowUpQuestionnaires = null)
 {
-    /// <summary>The workflow a job gets when it is created without a template.</summary>
+    /// <summary>
+    /// The workflow a job gets when it is created without a template. A job holds its own copy of each scorecard, so its
+    /// stages carry the built-in scorecards' questions as well as their ids.
+    /// </summary>
     public static HiringWorkflow Default { get; } = new(
         [
             new("applied", "Applied", StageKind.Applied),
-            new("screening", "Screening", StageKind.Screening, SlaDays: 3, Scorecard: Scorecard.DefaultScreening),
-            new("interview", "Interview", StageKind.Interview, Scorecard: Scorecard.DefaultInterview),
+            new("screening", "Screening", StageKind.Screening, SlaDays: 3,
+                Scorecard: BuiltInScorecards.Screening.ToScorecard(), ScorecardTemplateId: BuiltInScorecards.Screening.Id),
+            new("interview", "Interview", StageKind.Interview,
+                Scorecard: BuiltInScorecards.Interview.ToScorecard(), ScorecardTemplateId: BuiltInScorecards.Interview.Id),
             new("offer", "Offer", StageKind.Offer),
             new("hired", "Hired", StageKind.Hired),
             new("rejected", "Rejected", StageKind.Rejected),
@@ -48,6 +54,56 @@ public sealed record HiringWorkflow(
     /// <summary>The follow-up questionnaire with <paramref name="questionnaireId"/>, or null.</summary>
     public FollowUpQuestionnaire? FindFollowUp(string? questionnaireId) =>
         FollowUpQuestionnaires?.FirstOrDefault(q => q?.Id == questionnaireId);
+
+    /// <summary>
+    /// This workflow as a hiring template holds it: each stage names its library scorecard and holds no copy of the
+    /// questions (workflow-engine.md section 8).
+    /// </summary>
+    public HiringWorkflow WithScorecardReferences() =>
+        this with { Stages = [.. Stages.Select(s => s.Scorecard is null ? s : s with { Scorecard = null })] };
+
+    /// <summary>
+    /// This workflow as a job holds it: every stage that names a library scorecard and holds no copy gets one, from the
+    /// built-ins or from <paramref name="library"/>, the organization's own keyed by id. A job keeps that copy, so editing
+    /// the library never changes the questions a job's candidates answer. <paramref name="missing"/> lists the indexes of
+    /// the stages whose scorecard is in neither.
+    /// </summary>
+    public HiringWorkflow WithScorecardCopies(IReadOnlyDictionary<string, Scorecard> library, out IReadOnlyList<int> missing)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        if (!Stages.Any(s => s is { Scorecard: null, ScorecardTemplateId: not null }))
+        {
+            missing = [];
+            return this;
+        }
+
+        var notFound = new List<int>();
+        var stages = new List<WorkflowStage>(Stages.Count);
+        for (var i = 0; i < Stages.Count; i++)
+        {
+            var stage = Stages[i];
+            if (stage is { Scorecard: null, ScorecardTemplateId: { } key })
+            {
+                if ((BuiltInScorecards.Find(key)?.ToScorecard() ?? library.GetValueOrDefault(key)) is { } copy)
+                {
+                    stage = stage with { Scorecard = copy };
+                }
+                else
+                {
+                    notFound.Add(i);
+                }
+            }
+
+            stages.Add(stage);
+        }
+
+        missing = notFound;
+        return this with { Stages = stages };
+    }
+
+    /// <summary>The library scorecards the stages name, each once.</summary>
+    public IReadOnlyList<string> ScorecardTemplateIds() =>
+        [.. (Stages ?? []).Select(s => s?.ScorecardTemplateId).OfType<string>().Distinct(StringComparer.Ordinal)];
 }
 
 /// <summary>
@@ -65,7 +121,7 @@ public sealed record FollowUpQuestionnaire(string Id, string Name, IReadOnlyList
 /// <summary>A hiring template version's full definition: the workflow a job copies, plus defaults for the job's posting.</summary>
 public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDefaults PostingDefaults)
 {
-    public static HiringTemplateDefinition Default { get; } = new(HiringWorkflow.Default, PostingDefaults.None);
+    public static HiringTemplateDefinition Default { get; } = new(HiringWorkflow.Default.WithScorecardReferences(), PostingDefaults.None);
 }
 
 /// <summary>One step of the pipeline. <c>hired</c>, <c>rejected</c> and <c>withdrawn</c> are terminal.</summary>
@@ -74,11 +130,19 @@ public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDe
 /// <c>slaDays</c>: Optional time limit: candidates should not wait longer than this in the stage. It measures the hiring
 /// team's delay, never the candidate: past it the application shows as overdue and <see cref="TriggerType.SlaBreached"/>
 /// fires. A hired, rejected or withdrawn stage ends the application, so a limit there is ignored.
-/// <c>scorecard</c>: Optional: what reviewers rate candidates on in this stage. Not on a terminal stage.
+/// <c>scorecard</c>: A job's own copy of the stage's scorecard, made when the job took the workflow, so every candidate
+/// for the job answers the same questions. Only in a job's workflow; a hiring template's stage names its scorecard in
+/// <c>scorecardTemplateId</c> instead.
+/// <c>scorecardTemplateId</c>: Optional: the library scorecard reviewers fill in this stage, a built-in's id or one of the
+/// organization's own. Not on a terminal stage.
 /// </remarks>
-public sealed record WorkflowStage(string Id, string Name, StageKind Kind, int? SlaDays = null, Scorecard? Scorecard = null)
+public sealed record WorkflowStage(
+    string Id, string Name, StageKind Kind, int? SlaDays = null, Scorecard? Scorecard = null, string? ScorecardTemplateId = null)
 {
     // Methods, not properties: a property would join the serialized definition and its JSON Schema.
+
+    /// <summary>Whether reviewers fill a scorecard in this stage: it names a library scorecard or holds a copy.</summary>
+    public bool HasScorecard() => Scorecard is not null || ScorecardTemplateId is not null;
 
     /// <summary>Whether the stage's time limit counts: it has one, and the stage does not end the application.</summary>
     public bool HasSla() => SlaDays is not null && Enum.IsDefined(Kind) && !Kind.IsTerminal();
@@ -91,39 +155,61 @@ public sealed record WorkflowStage(string Id, string Name, StageKind Kind, int? 
 }
 
 /// <summary>
-/// The structured judgement a reviewer records for a stage: a rating on each job-related criterion, on the labelled
-/// scale <see cref="CriterionRating"/>, and an overall <see cref="Recommendation"/>. Submitting one raises the
-/// <see cref="TriggerType.ReviewerDecision"/> trigger with the recommendation as the <c>reviewer.recommendation</c>
-/// fact. Criteria are about the job (skills, experience, the work itself), never personality, emotion or honesty
-/// (CLAUDE.md non-negotiable 3); <see cref="DefinitionValidator"/> refuses criteria that name those.
+/// A job's copy of a library scorecard: the questions a reviewer answers for a stage, then an overall
+/// <see cref="Recommendation"/> and a note, which every scorecard has. Submitting one raises the
+/// <see cref="TriggerType.ReviewerDecision"/> trigger with the recommendation as the <c>reviewer.recommendation</c> fact.
+/// Rating questions average into the candidate's rating (ADR-0013, <c>RatingRule</c>); nothing else on a scorecard
+/// does, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never
+/// personality, emotion or honesty (CLAUDE.md non-negotiable 3); <see cref="DefinitionValidator"/> refuses questions that
+/// name those.
 /// </summary>
-public sealed record Scorecard(IReadOnlyList<ScorecardCriterion> Criteria)
-{
-    /// <summary>The screening scorecard of the default workflow: what the job asks for, nothing about the person.</summary>
-    public static Scorecard DefaultScreening { get; } = new(
-    [
-        new("role_requirements", "Meets the role's requirements", "The experience, qualifications or licences the job description asks for."),
-        new("relevant_experience", "Relevant experience", "Work they have done that is like this job's work."),
-    ]);
-
-    /// <summary>The interview scorecard of the default workflow.</summary>
-    public static Scorecard DefaultInterview { get; } = new(
-    [
-        new("role_skills", "Skills the role needs", "The skills in the job description, shown in examples or answers."),
-        new("problem_solving", "Problem solving", "How they work through a problem taken from this job's work."),
-        new("work_knowledge", "Knowledge of the work", "What they know about the tools, methods or rules this job uses."),
-    ]);
-}
-
 /// <remarks>
-/// <c>id</c>: Stable key, unique within the scorecard; a submitted rating refers to it.
+/// <c>name</c>: The library scorecard's name when the job copied it, such as "Technical interview".
+/// </remarks>
+public sealed record Scorecard(string Name, IReadOnlyList<ScorecardQuestion> Questions);
+
+/// <summary>One scorecard question. <see cref="Options"/> apply to the choice types only.</summary>
+/// <remarks>
+/// <c>id</c>: Stable key, unique within the scorecard; a submitted answer refers to it.
+/// <c>required</c>: A reviewer answers it to submit. A rating question left unanswered adds nothing to the rating.
 /// <c>guidance</c>: Optional: what a reviewer looks for, shown under the label.
 /// </remarks>
-public sealed record ScorecardCriterion(string Id, string Label, string? Guidance = null);
+public sealed record ScorecardQuestion(
+    string Id,
+    ScorecardQuestionType Type,
+    string Label,
+    bool Required = false,
+    string? Guidance = null,
+    IReadOnlyList<QuestionOption>? Options = null);
 
 /// <summary>
-/// A reviewer's rating of one criterion. Categorical on purpose: the levels are labels, never summed or averaged into a
-/// score (ADR-0004's evidence, not verdicts, applied to people's judgements too).
+/// A scorecard question's answer kind. The General kinds share <see cref="QuestionType"/>'s names. The Rating kinds are
+/// the ones the candidate's rating averages: <see cref="Rating5"/> (1 to 5), <see cref="Rating10"/> (1 to 10) and
+/// <see cref="RatingYesNo"/> (yes or no).
+/// </summary>
+public enum ScorecardQuestionType
+{
+    YesNo,
+    SingleChoice,
+    MultiChoice,
+    ShortText,
+    LongText,
+    Rating5,
+    Rating10,
+    RatingYesNo,
+}
+
+public static class ScorecardQuestionTypes
+{
+    /// <summary>Whether answers of this kind count toward the candidate's rating (<c>RatingRule</c>).</summary>
+    public static bool IsRating(this ScorecardQuestionType type) =>
+        type is ScorecardQuestionType.Rating5 or ScorecardQuestionType.Rating10 or ScorecardQuestionType.RatingYesNo;
+}
+
+/// <summary>
+/// A v0.2 reviewer's rating of one criterion, on the labelled scale scorecards had before answer kinds. Kept so the
+/// scorecards submitted then read as they were. They never count toward the candidate's rating: these labels were never
+/// numbers.
 /// </summary>
 public enum CriterionRating
 {

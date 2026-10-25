@@ -135,7 +135,7 @@ internal static class TemplateEndpoints
         }
 
         definition ??= HiringTemplateDefinition.Default;
-        if ((await EmailTemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } definitionProblems)
+        if ((await TemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } definitionProblems)
         {
             return TypedResults.ValidationProblem(definitionProblems);
         }
@@ -203,7 +203,7 @@ internal static class TemplateEndpoints
         }
 
         var definition = request.Definition ?? template.Versions.MaxBy(v => v.Version)?.Definition ?? HiringTemplateDefinition.Default;
-        if ((await EmailTemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } problems)
+        if ((await TemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -256,7 +256,7 @@ internal static class TemplateEndpoints
             return TypedResults.Problem($"Version {version} is published and cannot change; create a new version.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        if ((await EmailTemplateReferences.ValidateAsync(db, request.Definition, cancellationToken)).ToProblems("definition") is { } problems)
+        if ((await TemplateReferences.ValidateAsync(db, request.Definition, cancellationToken)).ToProblems("definition") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -299,7 +299,7 @@ internal static class TemplateEndpoints
 
         if (found.Status == TemplateVersionStatus.Draft)
         {
-            if ((await EmailTemplateReferences.ValidateAsync(outbox.DbContext, found.Definition, cancellationToken)).ToProblems("definition") is { } problems)
+            if ((await TemplateReferences.ValidateAsync(outbox.DbContext, found.Definition, cancellationToken)).ToProblems("definition") is { } problems)
             {
                 return TypedResults.ValidationProblem(problems);
             }

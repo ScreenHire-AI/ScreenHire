@@ -80,6 +80,21 @@ public static class FactSchema
     public static bool IsSignal(string? fact) =>
         fact is not null && (fact.StartsWith("integrity.", StringComparison.Ordinal) || fact.StartsWith("verification.", StringComparison.Ordinal));
 
+    /// <summary>
+    /// A fact that would name the candidate's rating or a scorecard's answers. None exists on purpose, and the validator
+    /// refuses these names with the reason rather than as unknown: the rating informs people, who decide, and no
+    /// automation acts on it (ADR-0013). An <c>answers.</c> fact names an application question, never a scorecard's, so
+    /// <c>answers.rating</c> is not one.
+    /// </summary>
+    public static bool IsRating(string? fact) =>
+        fact is not null
+        && !fact.StartsWith(AnswersPrefix, StringComparison.Ordinal)
+        && (fact.Equals("rating", StringComparison.OrdinalIgnoreCase)
+            || fact.EndsWith(".rating", StringComparison.OrdinalIgnoreCase)
+            || fact.StartsWith("rating.", StringComparison.OrdinalIgnoreCase)
+            || fact.StartsWith("scorecard.", StringComparison.OrdinalIgnoreCase)
+            || fact.StartsWith("scorecards.", StringComparison.OrdinalIgnoreCase));
+
     /// <summary>A timing or telemetry fact, which the engine never evaluates for an application with an accommodation.</summary>
     public static bool IsTimingOrTelemetry(string? fact) =>
         fact is not null && (fact == HoursInStage || fact.StartsWith(TelemetryPrefix, StringComparison.Ordinal));

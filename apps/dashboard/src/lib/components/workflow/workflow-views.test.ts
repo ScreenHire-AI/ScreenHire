@@ -4,6 +4,7 @@ import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
+import { apiStub } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import { stubViewport } from '../../../test-support/viewport.js';
 import WorkflowHarness from '../../../test-support/workflow-harness.svelte';
@@ -275,25 +276,61 @@ describe('workflow builder', () => {
     expect(options(within(sheet).getByRole('combobox', { name: 'Action 1' }))).toEqual(['Add a tag', 'Assign a reviewer', 'Notify the team', 'Create a task']);
   });
 
-  it('gives a review stage a scorecard of job-related criteria in a sheet, and an end stage none', async () => {
+  it('gives a review stage a scorecard from the library in a sheet, and an end stage none', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/scorecard-templates': () =>
+            Response.json([
+              { id: 'phone-screen', name: 'Phone screen', builtIn: true, questions: 2, ratingQuestions: 2, lastUpdated: { at: null, by: 'ScreenHire' } },
+              { id: '01a157d4-0000-7000-8000-0000000005c1', name: 'Technical interview', builtIn: false, questions: 1, ratingQuestions: 1, lastUpdated: { at: null, by: null } },
+            ]),
+          'GET /v1/scorecard-templates/phone-screen': () =>
+            Response.json({
+              id: 'phone-screen',
+              name: 'Phone screen',
+              builtIn: true,
+              copiedFrom: null,
+              questions: [
+                { id: 'role_requirements', type: 'Rating5', label: "Meets the role's requirements", required: false },
+                { id: 'notes', type: 'LongText', label: 'Notes', required: false },
+              ],
+              lastUpdated: { at: null, by: 'ScreenHire' },
+            }),
+        }),
+      ),
+    );
     const { container } = renderViews('editor');
     const stages = screen.getByRole('region', { name: 'Stages' });
 
-    expect(within(stages).queryByRole('button', { name: 'Edit scorecard for Hired' })).toBeNull();
-    await fireEvent.click(within(stages).getByRole('button', { name: 'Edit scorecard for Phone screen' }));
+    expect(within(stages).queryByRole('button', { name: 'Choose scorecard for Hired' })).toBeNull();
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Choose scorecard for Phone screen' }));
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
-    expect(sheet).toHaveTextContent('never personality, emotion or honesty.');
-    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add scorecard' }));
+    const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
+    await within(sheet).findByRole('option', { name: 'Technical interview' });
+    expect(sheet).toHaveTextContent('No scorecard: reviewers record no decision in Phone screen.');
 
-    const criteria = within(sheet).getByRole('list', { name: 'Criteria' });
-    expect(within(criteria).getAllByRole('textbox', { name: /^Criterion / }).map((input) => (input as HTMLInputElement).value)).toEqual([
-      "Meets the role's requirements",
-      'Relevant experience',
+    await fireEvent.change(picker, { target: { value: 'phone-screen' } });
+    const questions = await within(sheet).findByRole('list', { name: 'Questions' });
+    expect(within(questions).getAllByRole('listitem').map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      "Meets the role's requirements Rating, 1 to 5",
+      'Notes Long text',
     ]);
-    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add criterion' }));
-    expect(within(criteria).getAllByRole('listitem')).toHaveLength(3);
-    expect(within(stages).getByText('Scorecard: 3 criteria and a recommendation')).toBeInTheDocument();
+    expect(stages).toHaveTextContent('Scorecard: Phone screen');
     await expectNoAxeViolations(container);
+    vi.unstubAllGlobals();
+  });
+
+  it('says so, with a retry, when the scorecard library does not load', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/scorecard-templates': () => new Response(null, { status: 500 }) })));
+    renderViews('editor');
+    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Choose scorecard for Phone screen' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
+
+    expect(await within(sheet).findByRole('alert')).toHaveTextContent('Could not load the scorecard library');
+    expect(within(sheet).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });
 
