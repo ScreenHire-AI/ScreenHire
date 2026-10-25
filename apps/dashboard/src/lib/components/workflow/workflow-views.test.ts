@@ -100,7 +100,7 @@ describe('read-only workflow', () => {
     await expectNoAxeViolations(container);
   });
 
-  it('reads the questionnaire as content, beside the candidate preview', async () => {
+  it('reads the questionnaire as content, with the candidate preview behind the switch (A8)', async () => {
     const { container } = renderViews('summary', 'questionnaire');
 
     const pane = screen.getByRole('tabpanel', { name: 'Questionnaire' });
@@ -110,9 +110,14 @@ describe('read-only workflow', () => {
     expect(questions).toHaveTextContent('Do you have the right to work here?');
     expect(within(questions).getByText('Knockout if no')).toHaveAttribute('data-slot', 'badge');
     expect(within(questions).getByText('Required')).toHaveAttribute('data-slot', 'badge');
-    // The candidate's form is a preview to try, not the template's data.
-    expect(within(pane).getByRole('region', { name: 'Candidate preview' })).toBeInTheDocument();
     await expectNoAxeViolations(container);
+
+    // The candidate's form never shares the screen with the content: the switch swaps them.
+    expect(within(pane).queryByRole('group', { name: 'Screen size' })).toBeNull();
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
+    expect(within(pane).queryByRole('region', { name: 'Screening questions' })).toBeNull();
+    expect(within(pane).getByRole('group', { name: 'Screen size' })).toBeInTheDocument();
+    expect(within(pane).getByRole('group', { name: 'Do you have the right to work here?' })).toBeInTheDocument();
   });
 
   it('reads each follow-up questionnaire as its own panel', () => {
@@ -205,14 +210,24 @@ describe('workflow builder', () => {
     await fireEvent.input(name, { target: { value: 'Availability' } });
     expect(within(choices).getByRole('button', { name: 'Availability' })).toBeInTheDocument();
     const questions = within(pane).getByRole('region', { name: 'Questions' });
-    // The first question's id is unique across the workflow: the apply form already has `right_to_work`.
-    expect(questions).toHaveTextContent('answers.question');
-    const types = within(questions).getAllByRole('combobox', { name: 'Answer type' })[0]!;
-    expect(within(types).queryByRole('option', { name: 'File upload' })).toBeNull();
-    // The follow-up's page asks only its questions: no details and no resume.
-    const preview = within(pane).getByRole('region', { name: 'Candidate preview' });
-    expect(within(preview).queryByRole('textbox', { name: /Full name/ })).toBeNull();
+    expect(within(questions).getByRole('button', { name: /^Edit question 1: New question / })).toBeInTheDocument();
     await expectNoAxeViolations(container);
+
+    // A follow-up's page takes no uploads, so its answer menu has no File.
+    await fireEvent.pointerDown(within(questions).getByRole('button', { name: 'Add a question' }), { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).queryByRole('menuitem', { name: 'File' })).toBeNull();
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Short text' }));
+    // Each new question's id is unique across the workflow, the apply form's questions included.
+    await fireEvent.click(within(questions).getByRole('button', { name: 'Duplicate New question' }));
+    expect(within(questions).getAllByRole('button', { name: /^Edit question \d: New question Short text$/ })).toHaveLength(2);
+
+    // The follow-up's page asks only its questions: no details and no resume.
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
+    expect(within(pane).queryByRole('region', { name: 'Questions' })).toBeNull();
+    expect(within(pane).queryByRole('textbox', { name: /Full name/ })).toBeNull();
+    expect(within(pane).getAllByRole('textbox', { name: /^New question/ })).toHaveLength(3);
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Edit' }));
 
     await fireEvent.click(within(pane).getByRole('button', { name: 'Remove questionnaire' }));
     expect(within(choices).queryByRole('button', { name: 'Availability' })).toBeNull();
