@@ -18,9 +18,11 @@ public sealed class TemplateLibraryTests(AppHostFixture fixture)
     public async Task An_archived_hiring_template_reads_only_starts_no_job_and_comes_back_when_restored()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
         var (templateId, versionId) = await owner.CreatePublishedTemplateAsync("Summer interns");
         var url = $"/v1/templates/{templateId}";
 
+        (await other.PostAsync($"{url}/archive")).Expect(HttpStatusCode.NotFound);
         var archived = (await owner.PostAsync($"{url}/archive")).Expect(HttpStatusCode.OK);
         (await owner.PostAsync($"{url}/archive")).Expect(HttpStatusCode.OK);
 
@@ -32,6 +34,7 @@ public sealed class TemplateLibraryTests(AppHostFixture fixture)
         var job = await owner.PostAsync("/v1/jobs", WithTemplate(Samples.RemoteJob("Intern"), versionId));
         job.Expect(HttpStatusCode.BadRequest).ProblemMessage("templateVersionId").Should().Contain("archived");
 
+        (await other.PostAsync($"{url}/unarchive")).Expect(HttpStatusCode.NotFound);
         var restored = (await owner.PostAsync($"{url}/unarchive")).Expect(HttpStatusCode.OK);
         restored.At("archived").GetBoolean().Should().BeFalse();
         await owner.CreateJobAsync(WithTemplate(Samples.RemoteJob("Intern"), versionId));
