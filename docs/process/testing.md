@@ -100,6 +100,12 @@ webhooks ([workflow-engine.md](../architecture/workflow-engine.md) §5) it sets 
 may post to a `WebhookReceiver` (a Kestrel server on `127.0.0.1` that a test starts), and shortens the retry delays
 (`AppHostFixture.WebhookRetryDelays`, 1 s and 3 s) and the disable limit (two failed deliveries).
 
+A fixture that needs a stack of its own subclasses `AppHostFixture` and takes it as a class fixture: `ExtraArguments`
+adds AppHost settings (`DevelopmentDemoFixture` turns the demo on), and `Configure` changes the resources before the
+stack builds. `ProductionApiFixture` uses it to run the API in Production after doing what a deploy does first (migrate,
+the application role's login, Wolverine's tables), with no worker and no health wait, because Production maps no
+`/health`.
+
 Every resource's console log goes to `TestResults/logs/<fixture>/<resource>.log` next to the test assembly (for
 example `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/logs/E2EFixture/dashboard.log`), streamed with Aspire's
 `ResourceLoggerService` and rewritten each run. A resource that stops with an error while the tests run is kept in

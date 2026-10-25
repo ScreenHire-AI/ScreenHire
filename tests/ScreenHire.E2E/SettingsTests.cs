@@ -2,12 +2,14 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The Settings area in a real browser: an owner invites a colleague who accepts through the Mailpit email, then changes
-/// their role and removes them; a brand colour saved here reaches the careers page; an API key is shown once, works, and
+/// The Settings area in a real browser: the sidebar's one Settings item opens the Settings menu; an owner invites a
+/// colleague, starting from Viewer, who accepts through the Mailpit email, then changes their role and removes them;
+/// Compare roles opens Roles; a brand colour saved here reaches the careers page; an API key is shown once, works, and
 /// stops working when revoked. Each test signs in as a new owner of a new organization.
 /// </summary>
 public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -24,8 +26,16 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         var (owner, _) = await OwnerAsync();
         await SignInAsync(owner);
 
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Team" }).ClickAsync();
+        // Settings is one sidebar item; its pages are in the Settings menu.
+        var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(1);
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveCountAsync(0);
+        await main.GetByRole(AriaRole.Link, new() { Name = "Settings" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Organization");
+        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings" });
+        await menu.GetByRole(AriaRole.Link, new() { Name = "Team" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/team"));
+        await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveAttributeAsync("aria-current", "page");
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Team");
         var members = Page.GetByRole(AriaRole.Region, new() { Name = "Members" });
         await Expect(members.GetByRole(AriaRole.Row).Filter(new() { HasText = owner })).ToContainTextAsync("Owner");
@@ -34,8 +44,11 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         var colleague = ApiSession.NewEmail("colleague");
         await Page.Locator("[data-slot=header-band]").GetByRole(AriaRole.Button, new() { Name = "Invite" }).ClickAsync();
         var invite = Page.GetByRole(AriaRole.Dialog, new() { Name = "Invite a colleague" });
+        // The sheet starts at Viewer, the least access, and says what each role is for.
+        await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Viewer") })).ToBeCheckedAsync();
+        await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") })).ToHaveAccessibleNameAsync(new Regex("Works the jobs"));
         await invite.GetByLabel("Email").FillAsync(colleague);
-        await invite.GetByLabel("Role").SelectOptionAsync("Recruiter");
+        await invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") }).CheckAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await invite.GetByRole(AriaRole.Button, new() { Name = "Send invitation" }).ClickAsync();
         await Expect(invite).ToBeHiddenAsync();
@@ -51,7 +64,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             await page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
             // A Recruiter has no Settings in the sidebar.
-            await Expect(page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveCountAsync(0);
+            await Expect(page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(0);
         }
 
         await Page.ReloadAsync();
@@ -75,13 +88,36 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
+    public async Task Compare_roles_in_the_invite_sheet_opens_Roles_with_what_each_role_can_do()
+    {
+        var (owner, _) = await OwnerAsync();
+        await SignInAsync(owner);
+        await GoToAsync("dashboard", "/settings/team");
+
+        await Page.Locator("[data-slot=header-band]").GetByRole(AriaRole.Button, new() { Name = "Invite" }).ClickAsync();
+        var invite = Page.GetByRole(AriaRole.Dialog, new() { Name = "Invite a colleague" });
+        await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Viewer") })).ToBeCheckedAsync();
+        await invite.GetByRole(AriaRole.Link, new() { Name = "Compare roles" }).ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/roles"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Roles");
+        var grid = Page.GetByRole(AriaRole.Region, new() { Name = "What each role can do" }).GetByRole(AriaRole.Table);
+        // From the API's catalogue: a Recruiter moves candidates, a Viewer does not, and only an Owner manages Owners.
+        await Expect(grid.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Rowheader, new() { Name = "Move candidates", Exact = true }) }))
+            .ToContainTextAsync(new Regex(@"Yes\s*Yes\s*Yes\s*No"));
+        await Expect(grid.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Rowheader, new() { Name = "Manage Owners", Exact = true }) }))
+            .ToContainTextAsync(new Regex(@"Yes\s*No\s*No\s*No"));
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
     public async Task A_brand_colour_saved_in_settings_reaches_the_careers_page()
     {
         var (owner, slug) = await OwnerAsync();
         await SignInAsync(owner);
         await GoToAsync("dashboard", "/settings/branding");
 
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Careers branding");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Branding");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "On your careers pages" })).ToContainTextAsync("ScreenHire's colours");
         await ExpectNoAccessibilityViolationsAsync();
 
@@ -146,7 +182,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         const string recruiter = "jordan@brightwater.example.com"; // the seeded Brightwater Recruiter (DevSso/config.json)
         await SignInAsync(recruiter);
 
-        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Heading, new() { Name = "Settings" })).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(0);
         await GoToAsync("dashboard", "/settings/team");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Owners and admins only" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Members" })).ToHaveCountAsync(0);
@@ -187,19 +223,20 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         if (width is >= 768 and < 1024)
         {
-            // The icon rail scrolls, so the last settings link is reachable on a short window.
-            var webhooks = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Webhooks" });
-            await webhooks.ScrollIntoViewIfNeededAsync();
-            var box = await webhooks.BoundingBoxAsync();
+            // The icon rail scrolls, so its Settings item, the last, is reachable on a short window.
+            var settings = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" });
+            await settings.ScrollIntoViewIfNeededAsync();
+            var box = await settings.BoundingBoxAsync();
             box.Should().NotBeNull();
-            (box!.Y + box.Height).Should().BeLessThanOrEqualTo(height, "the rail's last settings link is on screen");
+            (box!.Y + box.Height).Should().BeLessThanOrEqualTo(height, "the rail's Settings item is on screen");
         }
 
         (string Path, string Title)[] pages =
         [
             ("/settings/organization", "Organization"),
             ("/settings/team", "Team"),
-            ("/settings/branding", "Careers branding"),
+            ("/settings/roles", "Roles"),
+            ("/settings/branding", "Branding"),
             ("/settings/integrity", "Integrity"),
             ("/settings/api-keys", "API keys"),
             ("/settings/webhooks", "Webhooks"),

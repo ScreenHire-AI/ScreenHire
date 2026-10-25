@@ -1,9 +1,14 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ScreenHire.Domain.Organizations;
 
 /// <summary>
 /// Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in
 /// <see cref="RolePermissions"/>.
 /// </summary>
+// CA1711 keeps the "Permission" suffix for .NET's code access security types, which .NET no longer has. This is the
+// product's word for it, in the API contract and on the Roles page.
+[SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "The product's term; not a code access security type.")]
 public enum Permission
 {
     ViewHiring,
