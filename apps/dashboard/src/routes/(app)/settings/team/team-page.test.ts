@@ -2,7 +2,7 @@ import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, T
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
-import { apiStub, user } from '../../../../test-support/fixtures.js';
+import { apiStub, roleCatalogue, user } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -39,6 +39,7 @@ function renderPage(role: OrganizationRole, routes: Parameters<typeof apiStub>[0
       'GET /v1/organization/members': () => Response.json(team),
       'GET /v1/organization/invitations': () => Response.json(invitations),
       'GET /v1/organization/api-keys': () => Response.json([]),
+      'GET /v1/organization/roles': () => Response.json(roleCatalogue),
       ...routes,
     }),
   );
@@ -77,6 +78,23 @@ describe('team page', () => {
     renderPage('Owner', { 'GET /v1/organization/invitations': () => Response.json([]) });
 
     expect(await screen.findByText('No open invitations.')).toBeInTheDocument();
+  });
+
+  it('sorts the members by name, and by access from the Role header (L2)', async () => {
+    localStorage.clear();
+    const viewer = member('m-5', 'Bailey Fox', 'Viewer');
+    renderPage('Owner', {}, [recruiter, viewer, admin, owner]);
+    await screen.findAllByText('Casey Morgan');
+    const table = screen.getAllByRole('table')[0]!;
+    const names = () => within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell')[0]!.textContent?.replace('You', '').trim());
+
+    expect(within(table).getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(names()).toEqual(['Avery Quinn', 'Bailey Fox', 'Casey Morgan', 'Jordan Lee']);
+
+    await fireEvent.click(within(table).getByRole('button', { name: 'Role' }));
+
+    expect(within(table).getByRole('columnheader', { name: /Role/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(names()).toEqual(['Avery Quinn', 'Casey Morgan', 'Jordan Lee', 'Bailey Fox']);
   });
 
   it('gives an Owner actions on everyone but themselves', async () => {
@@ -144,27 +162,39 @@ describe('team page', () => {
   });
 
   describe('inviting', () => {
-    async function openInviteDialog() {
+    async function openInviteSheet() {
       await screen.findAllByText('Casey Morgan');
       await fireEvent.click(screen.getByRole('button', { name: 'Invite' }));
       return screen.findByRole('dialog', { name: 'Invite a colleague' });
     }
 
-    const roleOptions = (dialog: HTMLElement) => within(within(dialog).getByLabelText('Role')).getAllByRole('option').map((option) => option.textContent);
+    const roleChoices = (sheet: HTMLElement) => within(within(sheet).getByRole('radiogroup', { name: 'Role' })).getAllByRole('radio');
+    const roleNames = (sheet: HTMLElement) => roleChoices(sheet).map((radio) => radio.getAttribute('value'));
 
-    it('offers an Owner every role in the invite dialog', async () => {
+    it('offers an Owner every role in the invite sheet, starting at Viewer, the least access', async () => {
       renderPage('Owner');
+      const sheet = await openInviteSheet();
 
-      expect(roleOptions(await openInviteDialog())).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer']);
+      expect(roleNames(sheet)).toEqual(['Owner', 'Admin', 'Recruiter', 'Viewer']);
+      expect(within(sheet).getByRole('radio', { name: /^Viewer/ })).toBeChecked();
+      await expectNoAxeViolations();
     });
 
-    it('offers an Admin no Owner option in the invite dialog', async () => {
+    it('describes each role from the permission catalogue and links to Compare roles', async () => {
+      renderPage('Owner');
+      const sheet = await openInviteSheet();
+
+      expect(await within(sheet).findByRole('radio', { name: 'Viewer Sees jobs and candidates and changes nothing.' })).toBeInTheDocument();
+      expect(within(sheet).getByRole('link', { name: 'Compare roles' })).toHaveAttribute('href', '/settings/roles');
+    });
+
+    it('offers an Admin no Owner option in the invite sheet', async () => {
       renderPage('Admin');
 
-      expect(roleOptions(await openInviteDialog())).toEqual(['Admin', 'Recruiter', 'Viewer']);
+      expect(roleNames(await openInviteSheet())).toEqual(['Admin', 'Recruiter', 'Viewer']);
     });
 
-    it('posts the email and role, then closes the dialog', async () => {
+    it('posts the email and the role chosen, then closes the sheet', async () => {
       const bodies: unknown[] = [];
       renderPage('Owner', {
         'POST /v1/organization/invitations': (init) => {
@@ -172,19 +202,19 @@ describe('team page', () => {
           return Response.json(invitations[0], { status: 201 });
         },
       });
-      const dialog = await openInviteDialog();
+      const sheet = await openInviteSheet();
 
-      await fireEvent.input(within(dialog).getByLabelText('Email'), { target: { value: 'taylor@example.com' } });
-      await fireEvent.change(within(dialog).getByLabelText('Role'), { target: { value: 'Viewer' } });
-      await fireEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));
+      await fireEvent.input(within(sheet).getByLabelText('Email'), { target: { value: 'taylor@example.com' } });
+      await fireEvent.click(within(sheet).getByRole('radio', { name: /^Recruiter/ }));
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));
 
-      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Viewer' }]));
+      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Recruiter' }]));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
     it('asks for an email address before sending anything', async () => {
       const fetchMock = renderPage('Owner');
-      const dialog = await openInviteDialog();
+      const dialog = await openInviteSheet();
 
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));
 
@@ -194,7 +224,7 @@ describe('team page', () => {
 
     it('says email is not set up when the API answers 404', async () => {
       renderPage('Owner', { 'POST /v1/organization/invitations': () => new Response(null, { status: 404 }) });
-      const dialog = await openInviteDialog();
+      const dialog = await openInviteSheet();
 
       await fireEvent.input(within(dialog).getByLabelText('Email'), { target: { value: 'taylor@example.com' } });
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Send invitation' }));

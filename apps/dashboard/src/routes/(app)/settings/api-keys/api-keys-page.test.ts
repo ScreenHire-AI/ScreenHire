@@ -57,6 +57,32 @@ afterEach(() => {
 });
 
 describe('API keys page', () => {
+  it('says what the API is for, how to call it and where the reference is, at the API origin the API reports', async () => {
+    renderPage([syncKey], {
+      'GET /v1/meta': () => Response.json({ name: 'ScreenHire', version: '1.0.0', environment: 'Production', apiOrigin: 'https://api.example.com' }),
+    });
+    const panel = await screen.findByRole('region', { name: 'Use the ScreenHire API' });
+
+    expect(await within(panel).findByText('https://api.example.com/v1')).toBeInTheDocument();
+    expect(within(panel).getByText('Authorization: Bearer shk_…')).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'API reference (opens in a new tab)' })).toHaveAttribute('href', 'https://api.example.com/scalar');
+    expect(within(panel).getByRole('link', { name: 'OpenAPI file (opens in a new tab)' })).toHaveAttribute('href', 'https://api.example.com/openapi/v1.json');
+    expect(within(panel).getByLabelText('Example request')).toHaveTextContent('curl https://api.example.com/v1/jobs');
+    await expectNoAxeViolations();
+  });
+
+  it('sorts the keys by name (L2)', async () => {
+    localStorage.clear();
+    renderPage([syncKey, oldKey]);
+    const table = (await screen.findAllByRole('table'))[0]!;
+
+    expect(within(table).getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell')[1]!.textContent?.trim())).toEqual([
+      'Old reporting job',
+      'Payroll sync',
+    ]);
+  });
+
   it('lists the keys with their access and shows a revoked key as Revoked', async () => {
     renderPage([syncKey, oldKey]);
 

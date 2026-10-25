@@ -67,6 +67,14 @@ public class AppHostFixture : IAsyncLifetime
     /// </summary>
     protected virtual IReadOnlyList<string> ExtraArguments => [];
 
+    /// <summary>
+    /// Changes to the AppHost's resources before it builds, for a fixture whose stack differs in more than a setting (an
+    /// API in another environment). The shared fixture changes nothing.
+    /// </summary>
+    protected virtual void Configure(IDistributedApplicationTestingBuilder builder)
+    {
+    }
+
     /// <summary>Resources that must report healthy before any test runs.</summary>
     protected virtual IReadOnlyList<string> RequiredResources => ["api"];
 
@@ -95,6 +103,7 @@ public class AppHostFixture : IAsyncLifetime
                 .. ExtraArguments,
             ],
             startup.Token);
+        Configure(builder);
         app = await builder.BuildAsync(startup.Token);
         watcher = WatchResourcesAsync(app, watching.Token);
         try

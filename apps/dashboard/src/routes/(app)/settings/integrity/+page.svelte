@@ -17,6 +17,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import SettingsMenu from '#lib/components/settings-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -90,9 +91,10 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrity' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand form title="Integrity" />
+  <HeaderBand title="Integrity" />
 
-  <div class="mx-auto flex w-full max-w-form flex-col gap-5 px-4 py-6 md:px-6">
+  <SettingsMenu>
+    <div class="flex w-full max-w-form flex-col gap-5">
     {#if settings.isError && !detail}
       <Panel title="Consistency check">
         <QueryError message={describeError(settings.error, 'Could not load the integrity settings')} onretry={() => settings.refetch()} inset />
@@ -147,4 +149,5 @@
       </Panel>
     {/if}
   </div>
+  </SettingsMenu>
 </main>

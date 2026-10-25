@@ -84,6 +84,7 @@ const panels: Record<string, string[]> = {
   'Sort header': ['Table'],
   'Built in badge': ['Built in badge'],
   'Reorder grip': ['Reorder grip'],
+  'Settings menu': ['Settings menu'],
   'Form builder': ['Form builder'],
   'Answer menu': ['Answer menu'],
 };

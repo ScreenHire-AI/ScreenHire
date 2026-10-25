@@ -2,6 +2,7 @@
   import type { CurrentUser } from '@screenhire/api-client';
   import type { ConnectionStatus } from '@screenhire/realtime';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
+  import SettingsIcon from '@lucide/svelte/icons/settings';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
   import { page } from '$app/state';
@@ -177,30 +178,25 @@
       </Sidebar.Group>
 
       {#if isAdministrator(user?.organization?.role)}
-        <!-- Owners and admins only; the pages under it say so to anyone else who opens one by its address. -->
+        <!-- One item for owners and admins only; its pages share the Settings menu (section 11), and say so to anyone else
+             who opens one by its address. -->
         <Sidebar.Group>
-          <Sidebar.GroupLabel>
-            {#snippet child({ props })}<h2 {...props}>Settings</h2>{/snippet}
-          </Sidebar.GroupLabel>
           <Sidebar.Menu>
-            {#each settingsSections as setting (setting.href)}
-              {@const Icon = setting.icon}
-              <Sidebar.MenuItem>
-                <Sidebar.MenuButton
-                  isActive={page.url.pathname.startsWith(setting.href)}
-                  tooltipContent={setting.label}
-                  tooltipContentProps={tooltipFor(setting.href)}
-                  onclick={closeSheet}
-                >
-                  {#snippet child({ props })}
-                    <a href={setting.href} {...props}>
-                      <Icon aria-hidden="true" />
-                      <span {@attach truncation(setting.href)} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{setting.label}</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.MenuButton>
-              </Sidebar.MenuItem>
-            {/each}
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton
+                isActive={page.url.pathname.startsWith('/settings/')}
+                tooltipContent="Settings"
+                tooltipContentProps={tooltipFor('settings')}
+                onclick={closeSheet}
+              >
+                {#snippet child({ props })}
+                  <a href={settingsSections[0]!.href} {...props}>
+                    <SettingsIcon aria-hidden="true" />
+                    <span {@attach truncation('settings')} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">Settings</span>
+                  </a>
+                {/snippet}
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
           </Sidebar.Menu>
         </Sidebar.Group>
       {/if}

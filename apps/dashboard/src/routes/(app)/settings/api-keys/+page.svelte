@@ -1,10 +1,20 @@
 <script lang="ts">
   import BanIcon from '@lucide/svelte/icons/ban';
+  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import type { ApiKeyScope, ApiKeySummary, HttpValidationProblemDetails } from '@screenhire/api-client';
-  import { ApiError, createCreateApiKey, createListApiKeys, createRevokeApiKey } from '@screenhire/api-client/svelte-query';
+  import { ApiError, createCreateApiKey, createGetMeta, createListApiKeys, createRevokeApiKey } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import {
+    createSortedRowModel,
+    createTable,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
@@ -17,7 +27,12 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
+  import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import SummaryItem from '#lib/components/summary-item.svelte';
+  import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -32,10 +47,13 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
 
   // Organization API keys for the hiring API (ADR-0011), on the list template. A new key is shown once, in a dialog,
-  // and kept nowhere else; the list shows only its first characters. Revoking is for good.
+  // and kept nowhere else; the list shows only its first characters. Revoking is for good. Under the keys, a panel says
+  // what the API is for, how to call it and where its reference is (design system section 22). The API's public origin
+  // comes from the API itself (ScreenHire:Domains:ApiHost through /v1/meta), never from a host written here.
   const keysPath = '/v1/organization/api-keys';
 
   const queryClient = useQueryClient();
@@ -45,8 +63,33 @@
   const create = createCreateApiKey(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, keysPath) } }));
   const revoke = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, keysPath) } }));
 
+  const meta = createGetMeta();
+  const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const list = $derived(keys.data?.data ?? []);
   const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
+
+  // The table sorts (L2), keys by name first.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  // `any`: one list mixes columns of different value types.
+  const columns: ColumnDef<typeof features, ApiKeySummary, any>[] = [
+    { id: 'status', header: 'Status', accessorFn: (key) => (key.revokedAt ? 'Revoked' : 'Active'), sortFn: 'alphanumeric' },
+    { id: 'name', header: 'Name', accessorFn: (key) => key.name, sortFn: 'alphanumeric' },
+    { id: 'key', header: 'Key', accessorFn: (key) => key.prefix, sortFn: 'alphanumeric' },
+    { id: 'access', header: 'Access', accessorFn: (key) => access(key.scopes), sortFn: 'alphanumeric' },
+    { id: 'lastUsed', header: 'Last used', accessorFn: (key) => key.lastUsedAt ?? '', sortFn: 'basic', sortDescFirst: true },
+    { id: 'created', header: 'Created', accessorFn: (key) => key.createdAt, sortFn: 'basic', sortDescFirst: true },
+  ];
+  const sort = createTableSort('api-keys', { id: 'name', desc: false }, ['status', 'name', 'key', 'access', 'lastUsed', 'created']);
+  const table = createTable({
+    ...tableSortOptions(() => sort),
+    features,
+    columns,
+    get data() {
+      return list;
+    },
+    getRowId: (key) => key.id,
+  });
+  const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
 
   let announcement = $state('');
 
@@ -117,7 +160,7 @@
     actions={sidebar.isMobile ? undefined : createButton}
   />
 
-  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+  <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>
     {#if keys.isError}
       <Panel title="Keys"><QueryError message={describeError(keys.error, 'Could not load the API keys')} onretry={() => keys.refetch()} inset /></Panel>
@@ -139,13 +182,13 @@
             <Empty.Header>
               <Empty.Media variant="icon"><KeyRoundIcon /></Empty.Media>
               <Empty.Title>No API keys yet</Empty.Title>
-              <Empty.Description>A key lets another system read and change your jobs and candidates.</Empty.Description>
             </Empty.Header>
             <Empty.Content><Button variant="outline" size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />Create key</Button></Empty.Content>
           </Empty.Root>
         {:else}
+          <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
           <ul class="md:hidden">
-            {#each list as key (key.id)}
+            {#each sorted as key (key.id)}
               <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
                 <div class="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span class="flex min-w-0 flex-wrap items-center gap-2">
@@ -164,22 +207,21 @@
           <div class="overflow-x-auto max-md:hidden">
             <Table.Root>
               <Table.Header>
-                <Table.Row class="bg-muted hover:bg-muted">
-                  <Table.Head class="px-4.5">Status</Table.Head>
-                  <Table.Head>Name</Table.Head>
-                  <Table.Head>Key</Table.Head>
-                  <Table.Head>Access</Table.Head>
-                  <Table.Head>Last used</Table.Head>
-                  <Table.Head>Created</Table.Head>
-                  <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-                </Table.Row>
+                {#each table.getHeaderGroups() as group (group.id)}
+                  <Table.Row class="bg-muted hover:bg-muted">
+                    {#each group.headers as header (header.id)}
+                      <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : undefined} />
+                    {/each}
+                    <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+                  </Table.Row>
+                {/each}
               </Table.Header>
               <Table.Body>
-                {#each list as key (key.id)}
+                {#each sorted as key (key.id)}
                   <Table.Row class="h-12">
                     <Table.Cell class="px-4.5">{@render status(key)}</Table.Cell>
                     <Table.Cell class="w-full max-w-0"><TruncatedText text={key.name} class="font-semibold" /></Table.Cell>
-                    <Table.Cell class="font-mono text-code text-muted-foreground">{key.prefix}…</Table.Cell>
+                    <Table.Cell class="text-muted-foreground">{key.prefix}…</Table.Cell>
                     <Table.Cell>{access(key.scopes)}</Table.Cell>
                     <Table.Cell class="text-muted-foreground">{#if key.lastUsedAt}<DateText at={key.lastUsedAt} />{:else}Never{/if}</Table.Cell>
                     <Table.Cell class="text-muted-foreground"><DateText at={key.createdAt} /></Table.Cell>
@@ -192,7 +234,41 @@
         {/if}
       </Panel>
     {/if}
-  </div>
+
+    <Panel title="Use the ScreenHire API">
+      <div class="flex flex-col gap-4">
+        <p class="max-w-measure">
+          A key lets another system read and change your jobs, candidates, applications and templates. A key never sees integrity
+          results.
+        </p>
+        <SummaryList>
+          <SummaryItem label="Base URL">
+            {#if apiOrigin}<span class="font-mono text-code break-all">{apiOrigin}/v1</span>{:else}<Skeleton class="h-4 w-48" />{/if}
+          </SummaryItem>
+          <SummaryItem label="Sign in with"><span class="font-mono text-code break-all">Authorization: Bearer shk_…</span></SummaryItem>
+          <SummaryItem label="Access">Read only, or read and write. Write also changes hiring data, as a Recruiter can.</SummaryItem>
+          <SummaryItem label="Reference">
+            {#if apiOrigin}
+              <span class="flex flex-wrap gap-x-4 gap-y-1">
+                <a href={`${apiOrigin}/scalar`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                  <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">API reference</span> <span class="sr-only">(opens in a new tab)</span>
+                </a>
+                <a href={`${apiOrigin}/openapi/v1.json`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                  <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">OpenAPI file</span> <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </span>
+            {:else if meta.isError}
+              <span class="text-muted-foreground">Could not find the API's address.</span>
+            {:else}<Skeleton class="h-4 w-48" />{/if}
+          </SummaryItem>
+        </SummaryList>
+        {#if apiOrigin}
+          <pre aria-label="Example request" class="rounded-lg bg-secondary px-3.5 py-3 font-mono text-code break-all whitespace-pre-wrap">curl {apiOrigin}/v1/jobs \
+  -H "Authorization: Bearer $SCREENHIRE_KEY"</pre>
+        {/if}
+      </div>
+    </Panel>
+  </SettingsMenu>
 
   {#if sidebar.isMobile}
     <ActionBar>{@render createButton()}</ActionBar>
