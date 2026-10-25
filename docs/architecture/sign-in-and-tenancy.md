@@ -40,6 +40,10 @@ sources:
   - resource: apps/dashboard/src/lib/auth.ts
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
+  - resource: apps/dashboard/src/lib/moves.svelte.ts
+  - resource: apps/dashboard/src/routes/(app)/settings/roles/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/settings/roles/[roleId]/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/settings/roles/compare/+page.svelte
 ---
 # Sign-in, organizations and tenant isolation
 
