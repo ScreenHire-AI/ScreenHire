@@ -254,66 +254,72 @@
           {#snippet rail()}<CandidateRail {detail} {editable} />{/snippet}
           <Tabs.Content value="overview" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'overview'}
-            <OverviewTab
-              {detail}
-              timeline={entries}
-              timelineError={timeline.error}
-              onretrytimeline={() => timeline.refetch()}
-              {members}
-              {currentUserId}
-              {role}
-              {editable}
-              {names}
-              {questions}
-              {manualAutomations}
-            />{/if}
+              <OverviewTab
+                {detail}
+                timeline={entries}
+                timelineError={timeline.error}
+                onretrytimeline={() => timeline.refetch()}
+                {members}
+                {currentUserId}
+                {role}
+                {editable}
+                {names}
+                {questions}
+                {manualAutomations}
+              />
+            {/if}
           </Tabs.Content>
           <Tabs.Content value="application" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'application'}
-            <ApplicationTab {detail} {questions} />{/if}
+              <ApplicationTab {detail} {questions} />
+            {/if}
           </Tabs.Content>
           <Tabs.Content value="messages" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'messages'}
-            <MessagesTab
-              {entries}
-              error={timeline.error}
-              onretry={() => timeline.refetch()}
-              {members}
-              {currentUserId}
-              onemail={canEmail ? () => (emailOpen = true) : undefined}
-            />{/if}
+              <MessagesTab
+                {entries}
+                error={timeline.error}
+                onretry={() => timeline.refetch()}
+                {members}
+                {currentUserId}
+                onemail={canEmail ? () => (emailOpen = true) : undefined}
+              />
+            {/if}
           </Tabs.Content>
           <Tabs.Content value="scorecards" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'scorecards'}
-            <ScorecardsTab
-              scorecards={scorecards.data?.data}
-              error={scorecards.error}
-              onretry={() => scorecards.refetch()}
-              stageName={(id) => stageName(id)}
-              {members}
-              {currentUserId}
-              announcement={scorecardAnnouncement}
-              onfill={editable && scoreable.length > 0 ? () => (scorecardOpen = true) : undefined}
-            />{/if}
+              <ScorecardsTab
+                scorecards={scorecards.data?.data}
+                error={scorecards.error}
+                onretry={() => scorecards.refetch()}
+                stageName={(id) => stageName(id)}
+                {members}
+                {currentUserId}
+                announcement={scorecardAnnouncement}
+                onfill={editable && scoreable.length > 0 ? () => (scorecardOpen = true) : undefined}
+              />
+            {/if}
           </Tabs.Content>
           <Tabs.Content value="integrity" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'integrity'}
-            <IntegrityPanel applicationId={detail.id} />
-            <ReviewLog applicationId={detail.id} />{/if}
+              <IntegrityPanel applicationId={detail.id} />
+              <ReviewLog applicationId={detail.id} />
+            {/if}
           </Tabs.Content>
           <Tabs.Content value="activity" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'activity'}
-            <ActivityPanel
-              applicationId={detail.id}
-              {entries}
-              error={timeline.error}
-              onretry={() => timeline.refetch()}
-              {members}
-              {currentUserId}
-              {role}
-              {editable}
-              {names}
-            />{/if}
+              <ActivityPanel
+                applicationId={detail.id}
+                {entries}
+                error={timeline.error}
+                onretry={() => timeline.refetch()}
+                {members}
+                {currentUserId}
+                {role}
+                {editable}
+                {names}
+              />
+            {/if}
           </Tabs.Content>
         </DetailLayout>
       </div>

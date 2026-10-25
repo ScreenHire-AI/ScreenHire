@@ -203,12 +203,16 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        var earlier = step.Now.AddMinutes(-12);
+        // After everything the candidate's timeline already holds, which the demo wrote moments ago, so the notes are the
+        // newest entries and Overview's last five show them.
+        var last = await db.ApplicationEvents.Where(e => e.ApplicationId == application.Id)
+            .MaxAsync(e => (DateTimeOffset?)e.OccurredAt, cancellationToken) ?? step.Now;
+        var gap = (step.Now - last) / 3;
         var (jordansNote, jordansEntry) = application.AddNote(
-            $"{NoteMentions.Token(avery)}, the take-home is due Friday. Can you review it with me on Monday?", earlier, jordan);
+            $"{NoteMentions.Token(avery)}, the take-home is due Friday. Can you review it with me on Monday?", last + gap, jordan);
         var (averysNote, averysEntry) = application.AddNote(
             $"Good detail on the billing ledger. {NoteMentions.Token(jordan)}, ask in the technical round how they tested the migration.",
-            earlier.AddMinutes(4), avery);
+            last + (gap * 2), avery);
         db.ApplicationNotes.AddRange(jordansNote, averysNote);
         db.ApplicationEvents.AddRange(jordansEntry, averysEntry);
         foreach (var (note, entry, mentioned) in new[] { (jordansNote, jordansEntry, avery), (averysNote, averysEntry, jordan) })

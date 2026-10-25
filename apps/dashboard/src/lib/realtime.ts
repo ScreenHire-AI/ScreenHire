@@ -25,8 +25,8 @@ export const tasksPath = '/v1/tasks';
  * (`/v1/applications/{id}/integrity`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show. Tags show in every list, which filter by them; a note, and its edits and deletion,
  * show on the application's timeline only, and so does a sent email (ApplicationEmailed). TeammateMentioned refreshes
- * nothing: the note's own event does, and the shell turns the mention into a card for the person mentioned. Answers to a follow-up questionnaire
- * (QuestionnaireAnswered) show on the application's page and its timeline.
+ * nothing: the note's own event does, and the shell turns the mention into a card for the person mentioned. Answers to
+ * a follow-up questionnaire (QuestionnaireAnswered) show on the application's page and its timeline.
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],

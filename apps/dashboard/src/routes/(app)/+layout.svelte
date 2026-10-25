@@ -12,7 +12,7 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { mentionNotification, Notifications, teamNotification } from '#lib/notifications.svelte.js';
+  import { mentionNotification, mentionNotificationId, Notifications, teamNotification } from '#lib/notifications.svelte.js';
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
   import { savedViews } from '#lib/saved-views.js';
@@ -31,12 +31,14 @@
   // A NotifyTeam action shows in the tray. TeamNotified carries ids only, so the tray reads the application and the run
   // (for the action's note) through the API first; an application this person cannot read shows nothing.
   const notifications = new Notifications();
-  // A note that mentions this person shows in their tray only: the event reaches the whole organization, ids only.
+  // A note that mentions this person shows in their tray only: the event reaches the whole organization, ids only. A
+  // deleted note takes its card with it, so the card never links to a note that is gone.
   const stopNotifying = live.onEvent((event) => {
     if (event.type === 'TeamNotified') void notifyTeam(event.data.applicationId, event.data.runId);
     if (event.type === 'TeammateMentioned' && event.data.mentionedUserId === data.user?.id) {
       void notifyMention(event.data.applicationId, event.data.noteId, event.data.authorUserId);
     }
+    if (event.type === 'ApplicationNoteDeleted') notifications.dismiss(mentionNotificationId(event.data.noteId));
   });
 
   async function notifyTeam(applicationId: string, runId: string) {

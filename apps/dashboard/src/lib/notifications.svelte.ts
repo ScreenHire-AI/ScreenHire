@@ -52,6 +52,11 @@ export function teamNotification(
   };
 }
 
+/** The tray id of a note's mention card, so the card can leave when the note is deleted. */
+export function mentionNotificationId(noteId: string): string {
+  return `mention:${noteId}`;
+}
+
 /**
  * The words for a mention (TeammateMentioned carries ids only, so the shell reads the application and the team first):
  * one per note, the candidate and job as the title, who mentioned you, and a link to the note on Activity. The note's
@@ -63,7 +68,7 @@ export function mentionNotification(
   authorName: string | undefined,
 ): Notification {
   return {
-    id: `mention:${noteId}`,
+    id: mentionNotificationId(noteId),
     kind: 'mention',
     title: `${application.candidate.fullName}, ${application.jobTitle}`,
     detail: authorName ? `${authorName} mentioned you in a note.` : 'You were mentioned in a note.',

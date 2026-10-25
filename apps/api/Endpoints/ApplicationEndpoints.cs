@@ -310,6 +310,11 @@ internal static class ApplicationEndpoints
             {
                 return NoteConflict();
             }
+            catch (DbUpdateException exception) when (exception.IsForeignKeyViolation() || exception.IsUniqueViolation())
+            {
+                // A mention added to a note deleted, or given the same mention, by a request that committed first.
+                return NoteConflict();
+            }
         }
 
         return TypedResults.Ok(note.ToDetail());

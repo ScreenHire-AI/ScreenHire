@@ -7,8 +7,9 @@
   import { cn } from '#lib/utils.js';
 
   // The shell's notifications (design system section 11): overlay cards in the bottom corner, newest on top, each with
-  // an icon for what raised it (a bell for the team, an at sign for a mention), its link and a Dismiss button. They never time out, because each holds a link (WCAG 2.2.1). The region is always in
-  // the page, so a screen reader hears a new one politely. On phones they sit above a page's action bar.
+  // an icon for what raised it (a bell for the team, an at sign for a mention), its link and a Dismiss button. They
+  // never time out, because each holds a link (WCAG 2.2.1). The region is always in the page, so a screen reader hears
+  // a new one politely. On phones they sit above a page's action bar.
   let {
     items,
     ondismiss,

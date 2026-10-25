@@ -6,7 +6,8 @@
 
   // An assessment's level on its three-step scale (design system section 16): the current step is marked "This
   // candidate", with a thick bar and its badge; the others are thin and neutral, never faded like disabled controls.
-  // Levels are categories, so the scale has steps, not a needle, and nothing on it is a score (ADR-0004).
+  // Levels are categories, so the scale has steps, not a needle, and nothing on it is a score (ADR-0004). Labels keep
+  // their full names (section 16): the other steps' labels wrap rather than truncate.
   let {
     levels,
     current,
@@ -26,20 +27,33 @@
     ai: 'bg-status-ai-mark',
     neutral: 'bg-muted-foreground',
   };
+  // The steps share the width equally until the current step's badge would not fit its third (a phone): then its column
+  // grows to the badge and the other two share what is left, their labels wrapping.
+  const columns = [
+    'grid-cols-[minmax(max-content,1fr)_minmax(0,1fr)_minmax(0,1fr)]',
+    'grid-cols-[minmax(0,1fr)_minmax(max-content,1fr)_minmax(0,1fr)]',
+    'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(max-content,1fr)]',
+  ];
   const position = $derived(levels.findIndex((level) => level.label === current.label));
   const place = $derived(position === 0 ? 'the lowest' : position === levels.length - 1 ? 'the highest' : 'the middle');
 </script>
 
-<div role="img" aria-label={`${name}: ${current.label}, ${place} of ${levels.length}`} data-level-scale class="grid grid-cols-3 gap-2">
+<div
+  role="img"
+  aria-label={`${name}: ${current.label}, ${place} of ${levels.length}`}
+  data-level-scale
+  class={cn('grid gap-2', columns[position] ?? 'grid-cols-3')}
+>
   {#each levels as level (level.label)}
     {@const here = level.label === current.label}
     <div aria-hidden="true" data-current={here || undefined} class="flex min-w-0 flex-col gap-1.5">
-      <span class={cn('text-caption font-semibold text-muted-foreground', !here && 'invisible')}>This candidate</span>
+      <!-- One line in every column, so the bars stay level: the hidden copies only hold the row's height. -->
+      <span class={cn('truncate text-caption font-semibold text-muted-foreground', !here && 'invisible')}>This candidate</span>
       <span class={cn('w-full rounded-full', here ? cn('h-2', marks[statuses[level.status].tone]) : 'h-1 bg-border')}></span>
       {#if here}
         <StatusBadge status={level.status} label={level.label} class="self-start" />
       {:else}
-        <span class="truncate text-caption text-muted-foreground">{level.label}</span>
+        <span class="text-caption text-muted-foreground">{level.label}</span>
       {/if}
     </div>
   {/each}

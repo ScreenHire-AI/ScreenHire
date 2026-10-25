@@ -10,7 +10,8 @@
   // you type. The arrow keys move, Enter or Tab picks, Esc closes the list (and only the list). The field shows names
   // ("@Robin Hale") and keeps who was picked in `picked`, so `toStored` can save each mention as the member's id. A
   // textarea cannot take the combobox role, so the field points at the list with aria-controls and
-  // aria-activedescendant, which a textbox allows. Ctrl or Cmd Enter saves; a form shows an @ button below md that calls `startMention`.
+  // aria-activedescendant, which a textbox allows. Ctrl or Cmd Enter saves; a form shows an @ button below md that
+  // calls `startMention`.
   let {
     value = $bindable(''),
     picked = $bindable([]),

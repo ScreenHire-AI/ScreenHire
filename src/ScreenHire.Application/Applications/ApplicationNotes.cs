@@ -113,9 +113,16 @@ public static partial class TeammateMentionedHandler
         }
 
         var link = links.Value.Url(MentionEmail.NotePath(message.ApplicationId, mention.NoteId));
-        if (!email.IsConfigured || link is null)
+        if (!email.IsConfigured)
         {
-            LogNotSent(logger, mention.Id, "no email sender or dashboard address is configured");
+            LogNotSent(logger, mention.Id, "no email sender is configured");
+            return;
+        }
+
+        if (link is null)
+        {
+            // Email works but this worker has no ScreenHire:Domains:AppHost: a deployment mistake, not a choice.
+            LogNoDashboardAddress(logger, mention.Id);
             return;
         }
 
@@ -154,4 +161,7 @@ public static partial class TeammateMentionedHandler
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Mention {MentionId} was not emailed: {Reason}")]
     private static partial void LogNotSent(ILogger logger, Guid mentionId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Mention {MentionId} was not emailed: the worker has no ScreenHire:Domains:AppHost to link to")]
+    private static partial void LogNoDashboardAddress(ILogger logger, Guid mentionId);
 }
