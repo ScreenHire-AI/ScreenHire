@@ -122,11 +122,14 @@ internal static class TeamEndpoints
     }
 
     // Job titles come through the job, under the reader's job access: a reader on Only jobs they're on gets no entry
-    // about a job they cannot see, so the log never names one (ADR-0015).
+    // about a job they cannot see, so the log never names one (ADR-0015). The job filter applies before the limit, so
+    // entries about hidden jobs never crowd out older ones the reader may see.
     private static async Task<Ok<List<MembershipLogEntry>>> ListMembershipLog(
         ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
     {
+        var seesAllJobs = tenant.SeesAllJobs;
         var entries = await db.MembershipEvents.AsNoTracking()
+            .Where(e => seesAllJobs || e.JobId == null || db.Jobs.Any(j => j.Id == e.JobId))
             .OrderByDescending(e => e.OccurredAt)
             .Take(LogEntries)
             .ToListAsync(cancellationToken);
@@ -139,7 +142,6 @@ internal static class TeamEndpoints
             .Where(t => templateIds.Contains(t.Id))
             .ToDictionaryAsync(t => t.Id, t => t.Name, cancellationToken);
         return TypedResults.Ok(entries
-            .Where(e => tenant.SeesAllJobs || e.JobId is not { } jobId || titles.ContainsKey(jobId))
             .Select(e => e.ToLogEntry(
                 e.JobId is { } job ? titles.GetValueOrDefault(job) : null,
                 e.HiringTemplateId is { } template ? templates.GetValueOrDefault(template) : null))

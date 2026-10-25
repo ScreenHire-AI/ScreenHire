@@ -66,6 +66,7 @@ internal static class HiringTeamEndpoints
         }
 
         var db = outbox.DbContext;
+        // No CommitAsync here: SaveChangesAndFlushMessagesAsync commits this transaction with the outbox rows.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, tenant.OrganizationId!.Value, cancellationToken);
         var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
