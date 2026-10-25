@@ -28,6 +28,7 @@
     error,
     onretry,
     members,
+    mentionable,
     currentUserId,
     permissions,
     names,
@@ -40,6 +41,8 @@
     error?: unknown;
     onretry: () => void;
     members: readonly TeamMember[] | undefined;
+    /** The teammates a note may mention: those who can see the candidate (ADR-0015). Every member while unknown. */
+    mentionable?: readonly TeamMember[];
     currentUserId: string | undefined;
     /** What the person's role allows: Add notes and tags writes, edits and deletes their own notes, Delete anyone's notes any note. */
     permissions: readonly Permission[];
@@ -102,7 +105,7 @@
     <NoteForm
       {applicationId}
       note={{ id: item.noteId, text: entry.note ?? '' }}
-      members={members ?? []}
+      members={mentionable ?? members ?? []}
       {currentUserId}
       ondone={refresh}
       oncancel={() => (editing = null)}
@@ -150,7 +153,7 @@
       </div>
     {/if}
     {#if editable}
-      <NoteForm {applicationId} members={members ?? []} {currentUserId} ondone={refresh} />
+      <NoteForm {applicationId} members={mentionable ?? members ?? []} {currentUserId} ondone={refresh} />
     {/if}
     {#if error}
       <QueryError message={describeError(error, 'Could not load the activity')} {onretry} inset />

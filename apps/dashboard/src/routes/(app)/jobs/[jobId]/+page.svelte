@@ -2,10 +2,12 @@
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import SendIcon from '@lucide/svelte/icons/send';
+  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
   import {
     ApiError,
     createGetJob,
+    createGetJobHiringTeam,
     createListBoards,
     createListJobApplications,
     createListTeamMembers,
@@ -21,6 +23,7 @@
   import Fact from '#lib/components/fact.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
+  import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
@@ -44,7 +47,7 @@
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
-  import { can } from '#lib/permissions.js';
+  import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import type { PageProps } from './$types';
@@ -68,6 +71,12 @@
   const members = $derived(team.data?.data);
   const currentUserId = $derived(page.data.user?.id);
   let historyOpen = $state(false);
+  // Hiring team (ADR-0015): who works on the job, and who on Only jobs they're on sees it.
+  const hiringTeam = createGetJobHiringTeam(() => params.jobId);
+  const teamCount = $derived(hiringTeam.data?.data.length);
+  let teamOpen = $state(false);
+  let teamChosen = false;
+  const currentMemberId = $derived(members?.find((member) => member.userId === currentUserId)?.id);
   const history = createHistoryPages(
     (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
     () => historyOpen,
@@ -174,6 +183,9 @@
               <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
             {/if}
             <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
+            <Button variant="outline" size="lg" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
+              <UsersRoundIcon aria-hidden="true" />Hiring team{#if teamCount !== undefined}<Badge variant="count">{teamCount}</Badge>{/if}
+            </Button>
           {/if}
           <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
           {#if sidebar.isMobile || detail.status === 'Open'}
@@ -181,7 +193,9 @@
               label="More actions"
               onclosed={() => {
                 if (closeChosen) confirmClose = true;
+                if (teamChosen) teamOpen = true;
                 closeChosen = false;
+                teamChosen = false;
               }}
             >
               {#if sidebar.isMobile}
@@ -194,6 +208,7 @@
                 <DropdownMenu.Item>
                   {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/workflow`}><WorkflowIcon aria-hidden="true" />Edit workflow</a>{/snippet}
                 </DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Hiring team</DropdownMenu.Item>
               {/if}
               {#if detail.status === 'Open'}
                 {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
@@ -227,6 +242,15 @@
         {/snippet}
         {#snippet tabs()}<RecordTabs label="Job sections" tabs={sections} />{/snippet}
       </HeaderBand>
+      <HiringTeamSheet
+        bind:open={teamOpen}
+        kind="job"
+        id={detail.id}
+        name={detail.title}
+        mayEdit={can(page.data.user, 'EditJobs')}
+        {currentMemberId}
+        seesAllJobs={seesAllJobs(page.data.user)}
+      />
       <HistorySheet
         bind:open={historyOpen}
         name={detail.title}

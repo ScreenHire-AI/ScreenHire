@@ -1,7 +1,7 @@
 import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
-import { assignableRoles, mayAssign, roleFromKey, roleKey, settingsSectionOf, visibleSettingsSections } from './settings.js';
+import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, settingsSectionOf, visibleSettingsSections } from './settings.js';
 
 // The expectations follow TeamPolicy.cs (src/ScreenHire.Domain/Organizations): someone with Manage the team gives a role
 // only when it holds nothing their own role does not. For the built-in roles that is Owners managing everyone, Admins
@@ -85,5 +85,31 @@ describe('visibleSettingsSections', () => {
     expect(settingsSectionOf('/settings/roles/compare')?.label).toBe('Roles');
     expect(settingsSectionOf('/settings/team')?.label).toBe('Team');
     expect(settingsSectionOf('/settings')).toBeUndefined();
+  });
+});
+
+// TeamPolicy.MayGiveJobAccess and JobAccessRules.SeesAllJobs (ADR-0015).
+describe('job access', () => {
+  it('has Owners and Admins see every job whatever they were set to', () => {
+    expect(seesAllJobsWith('Owner', 'HiringTeamOnly')).toBe(true);
+    expect(seesAllJobsWith('Admin', 'HiringTeamOnly')).toBe(true);
+    expect(seesAllJobsWith('Recruiter', 'HiringTeamOnly')).toBe(false);
+    expect(seesAllJobsWith('Custom', 'All')).toBe(true);
+  });
+
+  it('lets someone on their own jobs give only that, never All jobs or a role that sees them all', () => {
+    expect(mayGiveJobAccess(false, 'Viewer', 'HiringTeamOnly')).toBe(true);
+    expect(mayGiveJobAccess(false, 'Viewer', 'All')).toBe(false);
+    expect(mayGiveJobAccess(false, 'Admin', 'HiringTeamOnly')).toBe(false);
+    expect(mayGiveJobAccess(true, 'Admin', 'All')).toBe(true);
+  });
+
+  it('leaves API keys and webhooks out of Settings for someone on their own jobs', () => {
+    const owner = userAs('Owner');
+    const scoped: CurrentUser = { ...owner, organization: { ...owner.organization!, seesAllJobs: false } };
+
+    expect(visibleSettingsSections(owner).map((section) => section.label)).toContain('API keys');
+    expect(visibleSettingsSections(scoped).map((section) => section.label)).not.toContain('API keys');
+    expect(visibleSettingsSections(scoped).map((section) => section.label)).not.toContain('Webhooks');
   });
 });
