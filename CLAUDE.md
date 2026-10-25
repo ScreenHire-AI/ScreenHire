@@ -183,8 +183,9 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
   calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Hiring API groups (jobs,
   applications, candidates, templates) use `.AllowApiKeys()`, which also accepts an organization API key (ADR-0011);
   nothing else does. Tenant-owned entities implement `ITenantOwned` and get a row-level security policy in their
-  migration. The API and worker connect as `screenhire_app` (bound by RLS); handlers never filter by organization
-  themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user
+  migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
+  policy too, and an event that carries a `JobId` implements `IJobEvent` (ADR-0015). The API and worker connect as
+  `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user
   secrets.
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
   settings need it. The DbContext is registered without EF's retrying execution strategy (`DisableRetry`), which

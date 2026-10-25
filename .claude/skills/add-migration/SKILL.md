@@ -39,6 +39,9 @@ A table that holds one organization's data (jobs, candidates, applications, temp
       (the `NULLIF` matters: an unset setting reads back as `''`). The `screenhire_app` grants come from that
       migration's default privileges; `Down` drops the policy and disables RLS. `RowLevelSecurityTests` fails while
       a table with an `organization_id` column has no forced policy.
+- [ ] a row under one job or application implements `IJobScoped` or `IApplicationScoped` (ADR-0015), which adds the
+      `JobScope` query filter, and the migration adds a restrictive `job_scope` policy as `AddJobAccess` does;
+      `JobAccessTests.Every_table_under_a_job_has_a_restrictive_job_scope_policy` fails while one is missing.
 
 Run the `tenant-isolation-guard` agent on the change before you finish.
 

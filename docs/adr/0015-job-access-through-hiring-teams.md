@@ -72,5 +72,10 @@ query filters and row-level security that every read passes through.
   arrive through the same groups.
 - A member on Only jobs they're on cannot see the slugs of other jobs, so a job they create gets a slug ending in part
   of its id. It can change until the job is published.
+- Two answers still say that something hidden exists, without naming it: the 409 for a candidate only on hidden jobs
+  (decision 6), and the 409 for a slug they typed that a hidden job already has. We accept both. Each tells a member
+  something about their own organization, never its contents.
+- A hiring team save replaces the whole team, and the last save wins. Two people editing the same team at once can
+  undo each other's change; both changes are in the membership log.
 - A task an automation assigns to someone not on the job's team stays hidden from them until they join it.
 - Hiring team changes are not in a job's change history; their home is the membership log.
