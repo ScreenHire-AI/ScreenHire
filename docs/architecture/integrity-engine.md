@@ -222,7 +222,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
   level and filterable from an "Integrity" menu on the Candidates list, with calm authenticity quiet, calm AI assistance
   empty but for its words for screen readers, and the reason count as plain text after the chip; a job's authenticity
-  filter chips, one per level with its count, which filter the job's table and board; the "Needs review" and "Verification suggested" saved views (authenticity above its
+  filter chips, one per level with its count, which filter the job's table and board; the "To review" and "To verify" saved views (authenticity above its
   lowest level, not dismissed; AI assistance is information, not a queue); and the candidate's Integrity tab, marked
   with a dot when authenticity is above its lowest level and not dismissed. The tab shows each assessment's level on
   its three-step scale, a summary card per kind of check (Network, Identity, Automation and Content always; Files for

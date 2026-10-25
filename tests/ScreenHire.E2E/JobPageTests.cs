@@ -7,7 +7,7 @@ using ScreenHire.Application.Integrity;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The job page on design system v0.3 (docs/design/design-system.md section 22) in a real browser: the authenticity
+/// The job page on design system v0.3 (docs/design/design-system.md section 21) in a real browser: the authenticity
 /// chips and the Stage filter, a sort that outlives a reload, a posting a board did not take as a notice with the
 /// Distribution tab's count, and a board that fits a wide window without moving the page. Each test signs in as a new
 /// person with a new organization, and adds its job and applications through the API.

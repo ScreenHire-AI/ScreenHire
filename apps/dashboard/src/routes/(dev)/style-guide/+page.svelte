@@ -32,6 +32,7 @@
   import AnswerMenu from '#lib/components/answer-menu.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
   import Picker from '#lib/components/picker.svelte';
@@ -79,7 +80,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TagList from '#lib/components/tag-list.svelte';
-  import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
+  import type { TaskRow } from '#lib/components/task-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -108,6 +109,7 @@
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
+  import TaskCheckboxDemo from './task-checkbox-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
   // width to see the section 8 sizes; the components respond to the frame, not the window. Development builds only.
@@ -233,6 +235,7 @@
 
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
+  let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
   const sampleTeam = [
     { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
     { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
@@ -582,6 +585,12 @@
             onpick={() => {}}
           />
         </Panel>
+        <Panel title="Choice card" class="flex-[1_1_320px]">
+          <div role="radiogroup" aria-label="Jobs" class="flex flex-col gap-2">
+            <ChoiceCard name="style-guide-jobs" value="All" bind:group={jobsChoice} title="All jobs" description="Including jobs added later." />
+            <ChoiceCard name="style-guide-jobs" value="HiringTeamOnly" bind:group={jobsChoice} title="Only jobs they're on" description="Each job's hiring team decides." />
+          </div>
+        </Panel>
       </div>
 
       <Panel title="Step marker">
@@ -792,7 +801,7 @@
           />
         </Panel>
         <Panel title="Task list" class="flex-[1_1_320px]">
-          <TaskList label="Tasks" tasks={sampleTasks} members={sampleTeam} currentUserId="u1" oncomplete={() => {}} />
+          <TaskCheckboxDemo tasks={sampleTasks} members={sampleTeam} />
         </Panel>
         <Panel title="Scorecard" class="flex-[1_1_320px]">
           <ScorecardList scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />

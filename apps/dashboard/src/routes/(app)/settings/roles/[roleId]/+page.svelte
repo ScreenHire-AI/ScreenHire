@@ -46,7 +46,7 @@
   import { mayAssign, roleKey } from '#lib/settings.js';
   import type { PageProps } from './$types';
 
-  // One role's page (design system section 22, ADR-0014). A custom role is edited here on the form template: its name,
+  // One role's page (design system section 21, ADR-0014). A custom role is edited here on the form template: its name,
   // what it may do as a checkbox per permission, then Save. Seeing jobs and candidates is in every role, Owner-only
   // permissions are never in a custom role, and nobody gives a permission their own role lacks, so those rows are locked
   // and say why (E3). Last updated and History come from change history (T6); Copy role and Delete role are in the More

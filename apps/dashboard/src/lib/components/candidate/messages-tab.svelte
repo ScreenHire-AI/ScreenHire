@@ -14,7 +14,7 @@
   import { describeError } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
 
-  // Every email to the candidate, about any of their applications, newest first (design system section 22), with the
+  // Every email to the candidate, about any of their applications, newest first (design system section 21), with the
   // email composer on top for people who can send. Each row opens to the email exactly as it went. Emails sent before
   // ScreenHire kept each one have only their subject. Candidates cannot reply into ScreenHire yet, so this tab says
   // nothing about replies.

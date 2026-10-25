@@ -90,7 +90,7 @@
   // an open job is on the boards.
   const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
 
-  // The job's peer views (section 22): the work area first, then Distribution, whose count says how many boards the job
+  // The job's peer views (section 21): the work area first, then Distribution, whose count says how many boards the job
   // is on (E2). The tab is in the address, so a link reaches it and a reload keeps it.
   const tab = $derived((page.shallow?.url ?? page.url).searchParams.get('tab') === 'distribution' ? 'distribution' : 'candidates');
   const sections = $derived.by((): RecordTab[] => {
@@ -112,7 +112,7 @@
   }
 
   let view = $state<'table' | 'board'>('table');
-  // The board fills the window below the header and scrolls inside itself, so the page never scrolls (section 22).
+  // The board fills the window below the header and scrolls inside itself, so the page never scrolls (section 21).
   const boardFills = $derived(tab === 'candidates' && view === 'board' && !sidebar.isMobile);
   let confirmClose = $state(false);
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.

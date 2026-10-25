@@ -27,13 +27,13 @@ const day = 24 * 60 * 60 * 1000;
 export const savedViews: readonly SavedView[] = [
   {
     id: 'needs-review',
-    label: 'Needs review',
+    label: 'To review',
     status: 'review',
     matches: (application) => needsReview(application),
   },
   {
     id: 'verification-recommended',
-    label: 'Verification suggested',
+    label: 'To verify',
     status: 'verification',
     matches: (application) => verificationRecommended(application),
   },
@@ -52,7 +52,7 @@ export const savedViews: readonly SavedView[] = [
   },
   {
     id: 'not-screened',
-    label: 'Not screened yet',
+    label: 'Not screened',
     icon: InboxIcon,
     matches: (application) => application.stage.kind === 'Applied',
   },

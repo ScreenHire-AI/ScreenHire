@@ -56,6 +56,7 @@ const panels: Record<string, string[]> = {
   Mention: ['Mention'],
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
+  'Task checkbox': ['Task list'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],
@@ -88,6 +89,7 @@ const panels: Record<string, string[]> = {
   'Answer menu': ['Answer menu'],
   Rating: ['Rating'],
   'Rating answer': ['Rating answer'],
+  'Choice card': ['Choice card'],
   Picker: ['Picker'],
 };
 

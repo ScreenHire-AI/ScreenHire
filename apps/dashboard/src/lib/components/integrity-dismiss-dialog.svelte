@@ -76,7 +76,7 @@
     <Dialog.Header>
       <Dialog.Title>Dismiss this {name} assessment?</Dialog.Title>
       <Dialog.Description>
-        The evidence stays on record and your reason goes in the review log{assessment?.kind === 'authenticity' ? '; the candidate leaves "Needs review".' : '.'}
+        The evidence stays on record and your reason goes in the review log{assessment?.kind === 'authenticity' ? '; the candidate leaves "To review".' : '.'}
       </Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">

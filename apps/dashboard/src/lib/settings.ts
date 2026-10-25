@@ -12,7 +12,7 @@ import type { LucideIcon } from '#lib/shell.js';
 /**
  * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
  * Settings item opens the first the person may use, and the command palette lists those. Kept apart from `sections`,
- * which every member sees and which the G chords read. Email templates live on the Templates page (section 22), and
+ * which every member sees and which the G chords read. Email templates live on the Templates page (section 21), and
  * their old addresses here redirect there.
  */
 export const settingsSections: readonly { label: string; href: string; icon: LucideIcon; permission: Permission; allJobs?: true }[] = [

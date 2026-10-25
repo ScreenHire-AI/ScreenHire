@@ -25,7 +25,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
 
-  // Hiring team (design system section 22, ADR-0015): the people who work on a job. Anyone on Only jobs they're on sees
+  // Hiring team (design system section 21, ADR-0015): the people who work on a job. Anyone on Only jobs they're on sees
   // the job through this list. On a hiring template it is the default team that new jobs from the template start with.
   // Changes collect here and land on Save; Copy from another job brings that job's people into the list first. Without
   // the permission the sheet only lists the people and says why (E3). Someone who sees only their own jobs cannot take

@@ -4,7 +4,7 @@ namespace ScreenHire.UnitTests.Hiring;
 
 /// <summary>
 /// What a workflow uses from the template library, and the "Not used in 6 months" rule the Templates page filters by
-/// (design system section 22).
+/// (design system section 21).
 /// </summary>
 public sealed class TemplateUsesTests
 {

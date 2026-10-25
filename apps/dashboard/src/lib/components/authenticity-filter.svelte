@@ -5,7 +5,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { authenticityLevels, authenticityOrder, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
 
-  // A job's authenticity levels as filter chips with counts (design system section 22): one toggle per level, which
+  // A job's authenticity levels as filter chips with counts (design system section 21): one toggle per level, which
   // filters the candidates, and a second click clears it. The chips carry words and counts only: status icons belong in
   // status badges (I2), and a status colour never comes without them (T1). On a phone, where the chips do not fit, the
   // same choices sit in a filter menu.

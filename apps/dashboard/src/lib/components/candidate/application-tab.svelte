@@ -6,7 +6,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
 
-  // The whole application (design system section 22): the answers, each follow-up questionnaire an automation sent with
+  // The whole application (design system section 21): the answers, each follow-up questionnaire an automation sent with
   // its answers once given, read against the questions as the candidate saw them, and the candidate's declarations.
   let { detail, questions }: { detail: ApplicationDetail; questions: ReadonlyMap<string, Question> } = $props();
 </script>

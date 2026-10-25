@@ -32,6 +32,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -69,7 +70,7 @@
   // (W6). Someone whose role has Manage the team gives only roles that hold nothing their own does not (TeamPolicy), so
   // Owners manage everyone and Admins everyone but Owners. Your own row has no actions: handing over is done by another
   // owner. Invite opens a sheet that describes each role from the API's catalogue and starts at Viewer, the least access
-  // (design system section 22). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
+  // (design system section 21). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
   // Edit access changes the role and the job access together in one sheet.
   let { data }: PageProps = $props();
 
@@ -536,15 +537,7 @@
         </div>
         <div role="radiogroup" aria-labelledby="invite-role-label" class="flex flex-col gap-2">
           {#each offered as role (roleKey(role))}
-            <label
-              class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-            >
-              <input type="radio" name="role" value={roleKey(role)} bind:group={$form.role} class="mt-0.5 size-4 shrink-0 accent-primary" />
-              <span class="flex min-w-0 flex-col gap-0.5">
-                <span class="font-semibold break-words">{role.name}</span>
-                <span class="text-muted-foreground">{role.description}</span>
-              </span>
-            </label>
+            <ChoiceCard name="role" value={roleKey(role)} bind:group={$form.role} title={role.name} description={role.description} />
           {/each}
         </div>
         <Field.Error errors={$errors.role?.map((message) => ({ message }))} />
@@ -556,25 +549,9 @@
         {:else}
           <div role="radiogroup" aria-labelledby="invite-jobs-label" class="flex flex-col gap-2">
             {#if inviteMayOfferAll}
-              <label
-                class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-              >
-                <input type="radio" name="jobAccess" value="All" bind:group={$form.jobAccess} class="mt-0.5 size-4 shrink-0 accent-primary" />
-                <span class="flex min-w-0 flex-col gap-0.5">
-                  <span class="font-semibold">All jobs</span>
-                  <span class="text-muted-foreground">Including jobs added later.</span>
-                </span>
-              </label>
+              <ChoiceCard name="jobAccess" value="All" bind:group={$form.jobAccess} title="All jobs" description="Including jobs added later." />
             {/if}
-            <label
-              class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-            >
-              <input type="radio" name="jobAccess" value="HiringTeamOnly" bind:group={$form.jobAccess} class="mt-0.5 size-4 shrink-0 accent-primary" />
-              <span class="flex min-w-0 flex-col gap-0.5">
-                <span class="font-semibold">Only jobs they're on</span>
-                <span class="text-muted-foreground">Add them to each job's hiring team after they join.</span>
-              </span>
-            </label>
+            <ChoiceCard name="jobAccess" value="HiringTeamOnly" bind:group={$form.jobAccess} title="Only jobs they're on" description="Add them to each job's hiring team after they join." />
           </div>
         {/if}
       </div>

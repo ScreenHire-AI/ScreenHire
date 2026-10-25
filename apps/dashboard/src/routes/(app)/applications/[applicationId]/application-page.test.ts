@@ -560,8 +560,10 @@ describe('application page', () => {
     expect(await within(tasks).findByText('Call the references.')).toBeInTheDocument();
     expect(within(tasks).getByText('To-do')).toBeInTheDocument();
     expect(within(tasks).getByText('For the team')).toBeInTheDocument();
-    await fireEvent.click(within(tasks).getByRole('button', { name: 'Mark done, Call the references.' }));
+    await fireEvent.click(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' }));
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url) === `/v1/tasks/${taskId}/complete` && init?.method === 'POST')).toBe(true));
+    expect(await within(tasks).findByRole('button', { name: 'Undo, Call the references.' })).toBeInTheDocument();
+    expect(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' })).toBeChecked();
   });
 
   it('runs a manual automation with its own idempotency key, and offers only manual ones', async () => {

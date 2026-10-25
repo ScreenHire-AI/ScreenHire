@@ -15,7 +15,7 @@ import type { Component } from 'svelte';
 import { personName } from '#lib/team.js';
 
 /**
- * An application's Activity (design system section 22): every entry newest first, saying who and how long ago, and a
+ * An application's Activity (design system section 21): every entry newest first, saying who and how long ago, and a
  * filter by kind with counts. A note shows its latest text and says Edited, so its edits are not lines of their own; a
  * deleted note leaves one line saying who deleted it and when, never its text.
  */

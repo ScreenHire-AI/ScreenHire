@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "ScreenHire design system"
-description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI, employer branding, and the components and screens the v0.3 build adds."
+description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI, employer branding, and what v0.3 changed on each screen."
 tags: [design-system, ui, checklist]
 sources:
   - resource: packages/ui/src/tokens.css
@@ -18,11 +18,9 @@ sources:
 
 > Status: **v0.3 (2026-10-25)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
 > [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
-> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard has the
-> v0.3 foundation: status icons, pages that fill the window, the surface shadow and the v0.3 labels, the shared v0.3
-> components and the form builder in section 11. The candidate page is built: fixed tabs, the details rail, the file
-> viewer, and notes with mentions. Section 21 lists the components the v0.3 build still adds, and section 22 the
-> screens it changes.
+> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
+> built to v0.3: every screen, and every component in section 11 with its example in the style guide. Section 21
+> records what v0.3 changed on each screen.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -435,7 +433,8 @@ in a development build, shows every component in each state, and its test fails 
 | Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, filtered by kind (All, Notes, Emails, Scorecards, Stage and tags) with a count on each, and opens with the note box; Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
 | Mention | `MentionField` on shadcn `Textarea`; `NoteForm` for the note box and editing in place; `NoteText` | @ opens the organization's members, without yourself, narrowing as you type: arrow keys move, Enter or Tab picks, Esc closes the list only. The list sits under the field, each member an avatar, name and role; the field points at it with `aria-controls` and `aria-activedescendant`, because a textarea cannot be a combobox. An @ button (Mention someone) starts one below `md`. Ctrl or Cmd Enter saves, hinted in the Save tooltip. A mention is stored as the member's user id and shows their current name ("@former teammate" once they leave). The person mentioned gets a notification card and an email that says who and where and never quotes the note; a mention an edit adds notifies only that person. Save is outline, because the page's primary is Move to stage (A1) |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
-| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. An open task has a checkbox for a role that changes hiring data: ticking it marks the task done, with Undo for 10 seconds. On My tasks the candidate's name links to the application and the job is a pill |
+| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. For a role that changes hiring data an open task has the task checkbox in its icon's place. On My tasks the candidate's name links to the application and the job is a pill |
+| Task checkbox | shadcn `Checkbox` in `TaskList`; `createTaskCompletion` in `#lib/tasks.svelte.ts` | Ticking marks the task done on the server at once, so leaving the page keeps it done. The row stays where it is for 10 seconds, ticked and struck through, with an outline Undo; Undo, or unticking, opens the task again. Then a done task leaves an open list. Its label names the task, and on My tasks the candidate. A tick that fails unticks and says why (`FailureText`). Its hit area is 44px on touch (F4) |
 | Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
 | Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
@@ -463,11 +462,12 @@ in a development build, shows every component in each state, and its test fails 
 | Sort header | `SortHeader` in the TanStack table header; `SortMenu` on phones; `#lib/table-sort.svelte.ts` | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header; a second click reverses. Each table opens on its default (a job's candidates on Stage, those needing attention first: overdue, the longest first, then pipeline order; candidates across jobs on Applied, newest first), and each person's sort is remembered per table in the browser (`preferences`), so it does not follow them to another browser. The Sort chip offers the same choices on a phone, above the list items |
 | Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
-| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Integrity, API keys and Webhooks. Email templates are on the Templates page (section 22), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
+| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Integrity, API keys and Webhooks. Email templates are on the Templates page (section 21), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
 | Form builder | `FormBuilder` and `AnswerMenu` on `Panel`, `ReorderList` and shadcn `Switch`; `#lib/form-builder.ts` | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms. The questions are rows in one panel with their count (S4), and every row starts closed. A closed row reads as text: the question, an asterisk when required, its answer kind's icon and name top right, the help line, and the options with the mark the person will see (a circle for Choice, a square for Multi-choice). The row is one button that opens it, beside its grip. Only one question is open at a time, with a `primary` bar down its left edge: its text, the answer kind button top right (the answer menu), the help line, the options with their own grip list ending in an outline Add option, then what the kind needs (a knockout, a number's range, a file's types). Its footer holds Duplicate and Delete icon buttons and the Required switch. Duplicate puts the copy straight after the original and opens it. Deleting changes nothing until Save, so it does not confirm (section 10). A problem shows under its question whether the row is open or closed (W4). Add a question, under the list, opens the answer menu. Questions and options reorder with a grip (A7). The editor that mounts it has the Edit / Preview switch at its top (A8). Changing a question never changes answers already given |
 | Answer menu | `AnswerMenu` on shadcn `DropdownMenu` | Picks a question's answer kind, each group under its heading and each kind with its icon; the current kind is ticked, and Add a question opens the same menu with nothing ticked. General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Application questions add More: Number, Link and File. A follow-up questionnaire offers the same without File, because its page takes no uploads. A scorecard offers General and Rating, each rating with a star: 1 to 5, 1 to 10, Yes or no |
 | Rating | `Rating`; `#lib/rating-column.ts` for a job's table | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from (in words in the count's tooltip), opening, from a small outline button (A6), to each scorecard that counts with its own number and recommendation. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer with a scorecard to give reads "Rating after your scorecard" ("After yours" in a table cell, the rest in its tooltip) until they submit their own; no automation acts on it. "Not rated yet" until a scorecard counts. A job's table has a Rating column, highest first, the unrated last |
 | Rating answer | `RatingAnswer` on shadcn `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale. Each button is a radio in the question's group; the chosen one takes `accent` (A6) and an inset ring in `accent-foreground`, so a chosen button is not told from a hovered one by a faint fill alone, and choosing it again clears an optional answer. A number scale never wraps: its buttons share the row equally, up to the control size, so 1 to 10 on a phone has buttons narrower than 44 px (still above WCAG 2.5.8's 24 px) and High stays under 10 |
+| Choice card | `ChoiceCard`: a native radio in a labelled card | A choice of a few options in a `radiogroup` with its label: each a bordered card with its name and one muted line, and the whole card is the target. The chosen card takes the `primary` edge and `accent` fill. A member's jobs (All jobs or Only jobs they're on), the role in Invite, and the role to copy in New role |
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
 
 ## 12. Words
@@ -512,7 +512,7 @@ Always the browser's locale (US English by default), through one shared formatte
 Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Size 16 and
 stroke 1.75 are set once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a
 label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges and in a status's
-saved view in the sidebar (section 22), and no other control or decoration uses them. The warning triangle marks only
+saved view in the sidebar (section 21), and no other control or decoration uses them. The warning triangle marks only
 the integrity cards that fed a level (section 16). A problem in words (a failed action, a form error, a builder's
 problem to fix) starts with `circle-alert` in the verify icon colour (`ProblemIcon`). It is not a status icon, so it
 never stands in for a badge.
@@ -583,20 +583,11 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
 
 - Change this file first. A change to a decision (anything in ADR-0010 or ADR-0013) also gets an ADR.
 - Tokens live in `packages/ui` and reach components through Tailwind classes; this file names them.
-- A new component or pattern joins section 11 before a second screen uses it. A row in section 21 moves into section
-  11 when the build adds its example to the style guide, whose test reads section 11.
+- A new component or pattern joins section 11, with its example in the style guide, before a second screen uses it.
+  The style guide's test reads section 11 and fails on a row with no example.
 - The `design-review` agent reads section 2 on every run, so a new check here is enforced from the next review on.
 
-## 21. Components the v0.3 build adds
-
-These join section 11 one by one, each when the build adds it to the style guide.
-
-| Component | Built on | Rules |
-|---|---|---|
-| Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
-| Choice card | native radio inputs in labelled cards (`MemberAccessSheet`, Invite on Team) | A choice of a few options, each a bordered card with its name and one muted line; the chosen card takes the `primary` edge and `accent` fill, and the whole card is the target. Used for a member's jobs: All jobs or Only jobs they're on |
-
-## 22. Screens the v0.3 build changes
+## 21. Screens the v0.3 build changed
 
 - **Job:** the work area first. The authenticity bar becomes filter chips with counts, the stages a Stage filter,
   and Distribution its own tab, whose count says 7/8. A refused posting is a notice that names the board and links to
@@ -664,6 +655,12 @@ These join section 11 one by one, each when the build adds it to the style guide
   Admin the choice is a line saying they see all jobs. Invite asks the same, starting at All jobs. Someone who sees
   only their own jobs is offered only Only jobs they're on (A3).
 - **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
+  Built: Mine is the tasks assigned to the person, For the team the tasks assigned to nobody in particular, and
+  Everyone's every task the person can see, which job access limits (ADR-0015). Each is a toggle with its count, so the
+  header band shows none (W4); Open and Done are the other toggle group (section 7). The task checkbox (section 11)
+  completes a task on My tasks and on the candidate's Overview.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
+  Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
+  ordinary one. The short name is also the candidates page's title for the view.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API
   reference is served in production.

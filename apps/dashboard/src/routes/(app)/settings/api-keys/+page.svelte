@@ -52,7 +52,7 @@
 
   // Organization API keys for the hiring API (ADR-0011), on the list template. A new key is shown once, in a dialog,
   // and kept nowhere else; the list shows only its first characters. Revoking is for good. Under the keys, a panel says
-  // what the API is for, how to call it and where its reference is (design system section 22). The API's public origin
+  // what the API is for, how to call it and where its reference is (design system section 21). The API's public origin
   // comes from the API itself (ScreenHire:Domains:ApiHost through /v1/meta), never from a host written here.
   const keysPath = '/v1/organization/api-keys';
 

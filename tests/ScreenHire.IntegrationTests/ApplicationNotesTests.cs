@@ -7,7 +7,7 @@ using ScreenHire.IntegrationTests.Realtime;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// Notes the team edits and deletes, and the mentions in them (design system section 22): only the author edits a
+/// Notes the team edits and deletes, and the mentions in them (design system section 21): only the author edits a
 /// note, the author, an Owner or an Admin deletes it, and the server checks both. Deleting erases the note's text,
 /// leaving only who deleted it and when. A mention is a member's user id; the person mentioned gets an email that says
 /// who and where and never quotes the note, and a mention an edit adds notifies only that person.

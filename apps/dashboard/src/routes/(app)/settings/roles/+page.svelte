@@ -32,7 +32,7 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import type { PageProps } from './$types';
 
-  // The organization's roles (design system section 22, ADR-0014) on the list template: the four ScreenHire supplies,
+  // The organization's roles (design system section 21, ADR-0014) on the list template: the four ScreenHire supplies,
   // marked Built in, then the ones the team made, which nothing marks (W6). Each row opens the role's page. New role
   // copies a role in a sheet and opens the copy; Compare roles is the table of what each role can do.
   let { data }: PageProps = $props();

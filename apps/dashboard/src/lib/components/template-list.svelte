@@ -62,7 +62,7 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { filterCounts, matchesFilter, templateFilters, templateKindViews, usedByLabel, type TemplateFilter, type TemplateKind } from '#lib/templates.js';
 
-  // One tab of the Templates page (design system section 22): the list template's table panel (section 7). Its header
+  // One tab of the Templates page (design system section 21): the list template's table panel (section 7). Its header
   // holds the tab's one sentence and the search; under it the filters with their counts (T4), then a table that sorts
   // every column (L2) and opens on Last updated, newest first, with the person's sort remembered per kind. The name is
   // semibold with Built in after it for ScreenHire's own (W6, L1); a draft is the Draft badge in Version; Used by is a

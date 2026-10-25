@@ -11,7 +11,7 @@
   import { describeError } from '#lib/query.js';
   import { roleKey } from '#lib/settings.js';
 
-  // Compare roles (design system section 22): what each role can do, built-in and the team's own, from the catalogue the
+  // Compare roles (design system section 21): what each role can do, built-in and the team's own, from the catalogue the
   // API serves (RolePermissions.cs), never copy typed into the page. A fixed grid in the catalogue's order, which does
   // not sort (L2); each role's name opens its page. A narrow panel gets a list item per permission instead, naming the
   // roles that have it.

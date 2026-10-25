@@ -18,7 +18,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
 
-  // An application's Activity (design system section 22): a box for a note, then what anyone did, newest first, saying
+  // An application's Activity (design system section 21): a box for a note, then what anyone did, newest first, saying
   // who and how long ago. On Overview it shows the latest five and links to the Activity tab; there, every entry, with a
   // filter by kind and its counts. A note's More menu holds Edit for its author, and Delete for the author, an Owner or
   // an Admin, confirmed in a dialog; anyone else sees no menu. The API checks both.

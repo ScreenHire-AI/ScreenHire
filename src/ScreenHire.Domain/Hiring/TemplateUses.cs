@@ -2,7 +2,7 @@ namespace ScreenHire.Domain.Hiring;
 
 /// <summary>
 /// What a workflow uses from the template library, for the Templates page's Used by and "Not used in 6 months"
-/// (docs/design/design-system.md section 22). Pure: the API loads the workflows and the times, and asks these.
+/// (docs/design/design-system.md section 21). Pure: the API loads the workflows and the times, and asks these.
 /// </summary>
 public static class TemplateUses
 {

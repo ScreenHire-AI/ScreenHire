@@ -1,6 +1,6 @@
 import type { TemplateUse, UsageItem } from '@screenhire/api-client';
 
-// The Templates page (design system section 22): one tab per kind of template, each listing its templates with where
+// The Templates page (design system section 21): one tab per kind of template, each listing its templates with where
 // they are used, filtered by All, In use, Not used in 6 months and Archived.
 
 export type TemplateKind = 'hiring' | 'scorecards' | 'emails';

@@ -16,7 +16,7 @@
   import { toDisplay, toStored, type PickedMention } from '#lib/mentions.js';
   import { isApple } from '#lib/shortcuts.js';
 
-  // A note for the hiring team (design system section 22): the box on Overview and Activity, and the same field in place
+  // A note for the hiring team (design system section 21): the box on Overview and Activity, and the same field in place
   // of a note while its author edits it. @ mentions a teammate (MentionField); the API stores each mention as the
   // member's id, and the person gets a card and an email that never quotes the note. Save is outline: the page's one
   // primary is Move to stage (A1). Ctrl or Cmd Enter saves; while editing, Esc cancels.

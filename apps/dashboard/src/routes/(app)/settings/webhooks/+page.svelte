@@ -40,7 +40,7 @@
 
   // The organization's webhook endpoints (workflow-engine.md section 8), on the list template. Each row opens the
   // endpoint: its events, delivery log and replay. Under the endpoints, a panel says what webhooks are for, how to check
-  // a message and where the reference is (design system section 22): the events come from the API, and the reference's
+  // a message and where the reference is (design system section 21): the events come from the API, and the reference's
   // origin from /v1/meta (ScreenHire:Domains:ApiHost).
   const sidebar = Sidebar.useSidebar();
   const endpoints = createListWebhookEndpoints();

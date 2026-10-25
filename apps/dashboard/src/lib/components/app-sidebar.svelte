@@ -160,7 +160,7 @@
                 {#snippet child({ props })}
                   <a href={`/candidates?view=${view.id}`} {...props}>
                     {#if view.status}
-                      <!-- A status view shows that status's icon, in its colour (section 22); other views an ordinary icon. -->
+                      <!-- A status view shows that status's icon, in its colour (section 21); other views an ordinary icon. -->
                       <StatusIcon status={view.status} class="size-4 group-data-[collapsible=icon]:size-5" />
                     {:else}
                       {@const Icon = view.icon}

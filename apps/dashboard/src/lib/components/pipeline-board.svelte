@@ -131,7 +131,7 @@
           {#each column.cards as card (card.id)}
             {@const authenticity = chipOf(card.integrity, 'authenticity')}
             {@const ai = chipOf(card.integrity, 'aiAssistance')}
-            <!-- Calm says nothing (section 22): the status row shows only what needs a look or is still waiting. -->
+            <!-- Calm says nothing (section 21): the status row shows only what needs a look or is still waiting. -->
             {@const showStatus = isOverdue(card, clock.now) || !authenticity || authenticity.level.rank > 0 || (ai !== null && ai.level.rank > 0)}
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions: svelte-dnd-action makes each card focusable (tabindex 0) and draggable; these keys are its non-drag alternative -->
             <li

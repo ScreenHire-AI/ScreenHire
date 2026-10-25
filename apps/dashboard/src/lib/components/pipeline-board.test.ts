@@ -106,7 +106,7 @@ describe('pipeline board', () => {
     expect(screen.queryByRole('listitem', { name: /^Jordan Lee,/ })).toBeNull();
   });
 
-  it('says nothing on a calm card, and shows only what needs a look (section 22)', async () => {
+  it('says nothing on a calm card, and shows only what needs a look (section 21)', async () => {
     const rows = [
       { ...applications[0]!, integrity: summary() },
       { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'], aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['B'] }) },

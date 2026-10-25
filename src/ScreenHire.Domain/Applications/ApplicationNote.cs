@@ -119,7 +119,7 @@ public static partial class NoteMentions
 }
 
 /// <summary>
-/// Who may change a note (design system section 22): only its author edits it; the author, or a role with Delete
+/// Who may change a note (design system section 21): only its author edits it; the author, or a role with Delete
 /// anyone's notes (Owners and Admins among the built-in roles), deletes it. An API key is the author of the notes it
 /// wrote. The API checks this on every edit and delete.
 /// </summary>

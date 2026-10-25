@@ -35,7 +35,7 @@
   import { describeError } from '#lib/query.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
 
-  // A job's candidates as a table or a board, the job page's work area (design system section 22). The panel header holds
+  // A job's candidates as a table or a board, the job page's work area (design system section 21). The panel header holds
   // the search and the view switch; the row under it holds the Stage filter and the authenticity chips, one line that
   // scrolls inside the panel (F5). Ticked rows get the selection bar. On a phone the filters are menus beside the Sort
   // chip. The page filters nothing itself.

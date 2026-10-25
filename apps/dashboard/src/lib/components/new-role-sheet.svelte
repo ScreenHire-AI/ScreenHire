@@ -6,6 +6,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { goto } from '$app/navigation';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -16,7 +17,7 @@
   import { mayAssign, roleKey } from '#lib/settings.js';
   import { cn } from '#lib/utils.js';
 
-  // New role (design system section 22, ADR-0014): a name and the role to copy, then the role's own page, where the
+  // New role (design system section 21, ADR-0014): a name and the role to copy, then the role's own page, where the
   // person changes what it may do. Only roles the person could give are offered to copy, and never Owner: its one
   // extra permission is Owner-only and a copy would not keep it. Starts at Viewer, the least access, or at the role
   // whose Copy role opened it.
@@ -109,15 +110,7 @@
         <span id="new-role-from-label" class="text-body font-medium">Copy from</span>
         <div role="radiogroup" aria-labelledby="new-role-from-label" class="flex flex-col gap-2">
           {#each sources as role (roleKey(role))}
-            <label
-              class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-            >
-              <input type="radio" name="from" value={roleKey(role)} bind:group={$form.from} class="mt-0.5 size-4 shrink-0 accent-primary" />
-              <span class="flex min-w-0 flex-col gap-0.5">
-                <span class="font-semibold break-words">{role.name}</span>
-                <span class="text-muted-foreground">{role.description}</span>
-              </span>
-            </label>
+            <ChoiceCard name="from" value={roleKey(role)} bind:group={$form.from} title={role.name} description={role.description} />
           {/each}
         </div>
         <Field.Error errors={$errors.from?.map((message) => ({ message }))} />

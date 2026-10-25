@@ -54,7 +54,7 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoSidewaysScrollAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Open navigation" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Navigation" });
-        await Expect(sheet.GetByRole(AriaRole.Link, new() { NameRegex = new("^Needs review") })).ToBeVisibleAsync();
+        await Expect(sheet.GetByRole(AriaRole.Link, new() { NameRegex = new("^To review") })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-shell-390-sheet");
 

@@ -24,6 +24,7 @@ sources:
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCompleted.cs
+  - resource: src/ScreenHire.Application/Automations/ApplicationTaskReopened.cs
   - resource: src/ScreenHire.Application/Automations/AutomationEngine.cs
   - resource: src/ScreenHire.Application/Automations/AutomationFailures.cs
   - resource: src/ScreenHire.Application/Automations/AutomationMessages.cs
@@ -508,11 +509,12 @@ blocked) and `TeamNotified` reach the organization's dashboards; quiet outcomes 
 accommodation never reaches anyone's browser. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
 
 **Tasks, notes and tags by hand.** The tasks automations make are the dashboard's My tasks: `GET /v1/tasks` lists open
-tasks for the signed-in person and the whole team (no assignee), oldest first; `scope=Everyone` adds teammates' and
-`status=Completed` lists the most recent 200 done ones. `POST /v1/tasks/{id}/complete` records who finished it and when,
-once, and raises `ApplicationTaskCompleted`; it never changes the application, so a rejection review is still decided
-by a person moving the candidate. Anyone whose role changes hiring data may complete any of the organization's tasks;
-the team shares the work. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
+tasks assigned to the signed-in person, oldest first; `scope=Team` lists the ones assigned to nobody in particular,
+`scope=Everyone` every task the person can see, and `status=Completed` the most recent 200 done ones. `POST
+/v1/tasks/{id}/complete` records who finished it and when, once, and raises `ApplicationTaskCompleted`; `POST
+/v1/tasks/{id}/reopen`, the dashboard's Undo, opens a done task again and raises `ApplicationTaskReopened`. Neither
+changes the application, so a rejection review is still decided by a person moving the candidate. Anyone whose role
+changes hiring data may complete or reopen any of the organization's tasks; the team shares the work. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
 automation reads), and edit and delete them (`PUT` and `DELETE /v1/applications/{id}/notes/{noteId}`; only the author
 edits, and the author or a role with Delete anyone's notes deletes, which the API checks against the role in this organization). A
 note's text lives in `application_notes`, never in the append-only timeline: its `NoteAdded`, `NoteEdited` and
