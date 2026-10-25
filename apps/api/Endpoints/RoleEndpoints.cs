@@ -100,7 +100,7 @@ internal static class RoleEndpoints
 
         var now = time.GetUtcNow();
         var role = CustomRole.Copy(organizationId, request.Name, source.Name, source.Permissions, now);
-        var actor = await ActorAsync(db, tenant, cancellationToken);
+        var actor = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         if (!TeamPolicy.MayManageRole(actor, null, RolePermissions.ForCustom(role.Permissions)))
         {
             return TeamProblems.MoreAccess();
@@ -142,7 +142,7 @@ internal static class RoleEndpoints
             return TypedResults.NotFound();
         }
 
-        var actor = await ActorAsync(db, tenant, cancellationToken);
+        var actor = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         var before = RolePermissions.ForCustom(role.Permissions);
         var after = RolePermissions.ForCustom(request.Permissions!);
         if (!TeamPolicy.MayManageRole(actor, before, after))
@@ -203,7 +203,7 @@ internal static class RoleEndpoints
             return TypedResults.NotFound();
         }
 
-        var actor = await ActorAsync(db, tenant, cancellationToken);
+        var actor = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         if (!TeamPolicy.MayManageRole(actor, RolePermissions.ForCustom(role.Permissions), null))
         {
             return TeamProblems.MoreAccess();
@@ -263,10 +263,6 @@ internal static class RoleEndpoints
             .Select(g => new { g.Key.Role, g.Key.CustomRoleId, Count = g.Count() })
             .ToListAsync(cancellationToken))
         .ToDictionary(g => (g.Role, g.CustomRoleId), g => g.Count);
-
-    private static async Task<IReadOnlySet<Permission>> ActorAsync(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
-        (await RoleAccess.ForMemberAsync(db, tenant.OrganizationId!.Value, tenant.UserId!.Value, cancellationToken))?.Permissions
-        ?? new HashSet<Permission>();
 
     private static Task<bool> NameTakenAsync(ScreenHireDbContext db, string normalizedName, Guid? except, CancellationToken cancellationToken) =>
         db.CustomRoles.AnyAsync(r => r.NormalizedName == normalizedName && r.Id != except, cancellationToken);

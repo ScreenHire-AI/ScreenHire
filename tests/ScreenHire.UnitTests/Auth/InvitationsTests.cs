@@ -31,7 +31,7 @@ public sealed class InvitationsTests
         var link = new Uri("https://app.example.com/invitations/accept#invitation=abc");
 
         var message = Invitations.Compose(
-            "invitee@example.com", "Acme <b>Labs</b>\r\nBcc: x", "Avery Quinn", OrganizationRole.Admin, link, TimeSpan.FromDays(7));
+            "invitee@example.com", "Acme <b>Labs</b>\r\nBcc: x", "Avery Quinn", Invitations.RoleWords(RoleAccess.BuiltIn(OrganizationRole.Admin)), link, TimeSpan.FromDays(7));
 
         message.Subject.Should().NotContain("\n").And.NotContain("\r");
         message.HtmlBody.Should().Contain("Acme &lt;b&gt;Labs&lt;/b&gt;").And.NotContain("<b>Labs</b>");

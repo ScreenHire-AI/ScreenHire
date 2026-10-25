@@ -165,16 +165,27 @@ internal sealed class UpdateRoleRequestValidator : AbstractValidator<UpdateRoleR
             .Must(permissions => permissions is null
                 || RolePermissions.Permissions.Where(p => p.EveryRole).All(p => permissions.Contains(p.Permission)))
             .WithMessage("Every role sees jobs and candidates.");
+        // The delete route asks for Add notes and tags first (NotePolicy then allows anyone's note), so one without the
+        // other would do nothing.
+        RuleFor(r => r.Permissions)
+            .Must(permissions => permissions is null
+                || !permissions.Contains(Permission.DeleteAnyNote) || permissions.Contains(Permission.AddNotesAndTags))
+            .WithMessage("Delete anyone's notes comes with Add notes and tags. Allow both, or neither.");
     }
 }
 
 internal static class RoleValidation
 {
-    /// <summary>A custom role's name: 1 to 50 characters, and not one of the built-in roles' names.</summary>
+    /// <summary>
+    /// A custom role's name: 1 to 50 characters on one line, and not one of the built-in roles' names. One line because
+    /// the name goes into the plain-text invitation email and the membership log as it was typed.
+    /// </summary>
     public static IRuleBuilderOptions<T, string> RoleName<T>(this IRuleBuilder<T, string> rule) =>
         rule.Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter a name.")
             .Must(name => name is null || name.Trim().Length <= CustomRole.MaxNameLength)
             .WithMessage($"Use at most {CustomRole.MaxNameLength} characters.")
+            .Must(name => name is null || !name.Any(char.IsControl))
+            .WithMessage("Keep the name on one line, with no tabs.")
             .Must(name => name is null || !RolePermissions.IsBuiltInName(name))
             .WithMessage("Owner, Admin, Recruiter and Viewer are ScreenHire's roles. Choose another name.");
 

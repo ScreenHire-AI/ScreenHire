@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.Api.Auth;
 
@@ -37,6 +38,13 @@ internal sealed record RoleAccess(OrganizationRole Role, Guid? CustomRoleId, str
             _ => BuiltIn(row.Role),
         };
     }
+
+    /// <summary>What the signed-in member may do in the current organization; nothing when they are not a member.</summary>
+    public static async Task<IReadOnlySet<Permission>> PermissionsOfAsync(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        tenant is { OrganizationId: { } organizationId, UserId: { } userId }
+            ? (await ForMemberAsync(db, organizationId, userId, cancellationToken))?.Permissions ?? new HashSet<Permission>()
+            : new HashSet<Permission>();
 
     /// <summary>
     /// The role a request asks to give: a built-in, or one of this organization's custom roles by id. Null when the

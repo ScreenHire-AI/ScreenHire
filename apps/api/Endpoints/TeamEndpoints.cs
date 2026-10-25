@@ -117,7 +117,7 @@ internal static class TeamEndpoints
 
         var from = await HeldAsync(db, member.Role, member.CustomRoleId, cancellationToken);
         if (members.All(m => m.UserId != tenant.UserId)
-            || !TeamPolicy.MayChange(await ActorAsync(db, tenant, cancellationToken), from.Permissions, to.Permissions))
+            || !TeamPolicy.MayChange(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), from.Permissions, to.Permissions))
         {
             return TeamProblems.Refused(
                 new HashSet<Permission>([.. from.Permissions, .. to.Permissions]),
@@ -174,7 +174,7 @@ internal static class TeamEndpoints
 
         var held = await HeldAsync(db, member.Role, member.CustomRoleId, cancellationToken);
         if (members.All(m => m.UserId != tenant.UserId)
-            || !TeamPolicy.MayRemove(await ActorAsync(db, tenant, cancellationToken), held.Permissions))
+            || !TeamPolicy.MayRemove(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), held.Permissions))
         {
             return TeamProblems.Refused(held.Permissions, "Only an owner can remove an owner.");
         }
@@ -231,7 +231,7 @@ internal static class TeamEndpoints
             return UnknownRole();
         }
 
-        var actor = await ActorAsync(db, tenant, cancellationToken);
+        var actor = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         if (!TeamPolicy.MayAssign(actor, role.Permissions))
         {
             return TeamProblems.Refused(role.Permissions, "Only an owner can invite another owner.");
@@ -319,7 +319,7 @@ internal static class TeamEndpoints
         }
 
         var offered = await HeldAsync(db, invitation.Role, invitation.CustomRoleId, cancellationToken);
-        if (!TeamPolicy.MayAssign(await ActorAsync(db, tenant, cancellationToken), offered.Permissions))
+        if (!TeamPolicy.MayAssign(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), offered.Permissions))
         {
             return TeamProblems.Refused(offered.Permissions, "Only an owner can revoke an invitation to become an owner.");
         }
@@ -341,11 +341,6 @@ internal static class TeamEndpoints
 
     private static bool IsLastOwner(List<OrganizationMember> members, OrganizationMember member) =>
         member.Role == OrganizationRole.Owner && members.Count(m => m.Role == OrganizationRole.Owner) == 1;
-
-    /// <summary>The signed-in member's permissions; none when they are not a member.</summary>
-    private static async Task<IReadOnlySet<Permission>> ActorAsync(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
-        (await RoleAccess.ForMemberAsync(db, tenant.OrganizationId!.Value, tenant.UserId!.Value, cancellationToken))?.Permissions
-        ?? new HashSet<Permission>();
 
     /// <summary>
     /// A role somebody has or an invitation offers. Its custom role exists while anyone has it (a restricting foreign

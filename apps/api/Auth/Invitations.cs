@@ -51,10 +51,6 @@ internal static class Invitations
         return db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", cancellationToken);
     }
 
-    internal static EmailMessage Compose(
-        string to, string organizationName, string inviterName, OrganizationRole role, Uri link, TimeSpan lifetime) =>
-        Compose(to, organizationName, inviterName, role.ToString().ToLowerInvariant(), link, lifetime);
-
     /// <summary>The invitation email for a role as its name reads in a sentence: "viewer", or a custom role as typed.</summary>
     internal static EmailMessage Compose(
         string to, string organizationName, string inviterName, string roleName, Uri link, TimeSpan lifetime)

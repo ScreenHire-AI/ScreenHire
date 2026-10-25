@@ -25,6 +25,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             ALTER TABLE custom_roles DISABLE ROW LEVEL SECURITY;
             """;
 
+        // Before custom roles there is no Custom role to load, so whoever has one, or is offered one, becomes a Viewer,
+        // the role that can do least. FORCE binds the owner running this too, so it is lifted around the updates.
+        private const string GiveCustomRolesViewer = """
+            ALTER TABLE organization_members NO FORCE ROW LEVEL SECURITY;
+            ALTER TABLE organization_invitations NO FORCE ROW LEVEL SECURITY;
+            UPDATE organization_members SET role = 'Viewer', custom_role_id = NULL WHERE role = 'Custom';
+            UPDATE organization_invitations SET role = 'Viewer', custom_role_id = NULL WHERE role = 'Custom';
+            ALTER TABLE organization_members FORCE ROW LEVEL SECURITY;
+            ALTER TABLE organization_invitations FORCE ROW LEVEL SECURITY;
+            """;
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -127,6 +138,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(GiveCustomRolesViewer);
             migrationBuilder.Sql(DisableRowLevelSecurity);
 
             migrationBuilder.DropForeignKey(
