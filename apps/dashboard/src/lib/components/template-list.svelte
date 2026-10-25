@@ -25,6 +25,7 @@
 
 <script lang="ts">
   import FileStackIcon from '@lucide/svelte/icons/file-stack';
+  import PlusIcon from '@lucide/svelte/icons/plus';
   import type { TeamMember } from '@screenhire/api-client';
   import {
     createColumnHelper,
@@ -80,6 +81,7 @@
     hasMenu,
     message = '',
     failure = '',
+    oncreate,
   }: {
     kind: TemplateKind;
     rows: readonly TemplateRow[];
@@ -96,6 +98,8 @@
     /** What the last row action did, in the panel's footer. */
     message?: string;
     failure?: string;
+    /** Starts a new template of this kind, for a role that may; an empty list offers it (E1). */
+    oncreate?: () => void;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -223,6 +227,8 @@
       </Empty.Header>
       {#if filtering}
         <Empty.Content><Button variant="outline" size="lg" onclick={clearFilters}>Show all</Button></Empty.Content>
+      {:else if oncreate}
+        <Empty.Content><Button variant="outline" size="lg" onclick={oncreate}><PlusIcon aria-hidden="true" />New template</Button></Empty.Content>
       {/if}
     </Empty.Root>
   {:else if sidebar.isMobile}

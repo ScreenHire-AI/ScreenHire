@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArchiveIcon from '@lucide/svelte/icons/archive';
+  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -279,6 +279,7 @@
         {currentUserId}
         menu={hiringMenu}
         hasMenu={() => editsHiring}
+        oncreate={editsHiring ? () => (creatingHiring = true) : undefined}
         message={messages.hiring}
         failure={failures.hiring}
       />
@@ -295,6 +296,7 @@
         {currentUserId}
         menu={scorecardMenu}
         hasMenu={() => editsHiring}
+        oncreate={editsHiring ? () => (creatingScorecard = true) : undefined}
         message={messages.scorecards}
         failure={failures.scorecards}
       />
@@ -331,7 +333,7 @@
         <DropdownMenu.Item onSelect={() => (creatingScorecard = true)}>Scorecard</DropdownMenu.Item>
       {/if}
       {#if editsEmails}
-        <DropdownMenu.Item onSelect={() => goto('/templates/emails/new')}>Email template</DropdownMenu.Item>
+        <DropdownMenu.Item>{#snippet child({ props })}<a href="/templates/emails/new" {...props}>Email template</a>{/snippet}</DropdownMenu.Item>
       {/if}
     </DropdownMenu.Content>
   </DropdownMenu.Root>
@@ -342,7 +344,7 @@
     {#if row.archived}
       <DropdownMenu.Item onSelect={() => setArchived(kind, row, false)}><ArchiveRestoreIcon aria-hidden="true" />Restore</DropdownMenu.Item>
     {:else}
-      <DropdownMenu.Item onSelect={() => setArchived(kind, row, true)}><ArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item>
+      <DropdownMenu.Item onSelect={() => setArchived(kind, row, true)}><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item>
     {/if}
   {/if}
 {/snippet}

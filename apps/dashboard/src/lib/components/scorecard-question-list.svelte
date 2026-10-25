@@ -4,7 +4,7 @@
   import { scorecardQuestionTypeLabels } from '#lib/workflow.js';
 
   // A scorecard's questions read as content (design system section 7, read-only view): each question, an asterisk when
-  // required, then its answer kind and what to look for. Every scorecard then asks for a recommendation and a note.
+  // required, then its answer kind and what to look for.
   let { questions }: { questions: readonly ScorecardQuestion[] } = $props();
 </script>
 
@@ -18,4 +18,3 @@
     </li>
   {/each}
 </ol>
-<p class="text-muted-foreground">Then an overall recommendation and a note.</p>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArchiveIcon from '@lucide/svelte/icons/archive';
+  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -200,7 +200,7 @@
             {#if duplicable}<DropdownMenu.Item onSelect={duplicateTemplate}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>{/if}
             {#if !detail.builtIn && !detail.archived}
               <DropdownMenu.Item onSelect={() => run(() => archive.mutateAsync({ templateId: params.templateId }), 'Archived.', 'Could not archive the template')}
-                ><ArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item
+                ><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item
               >
             {/if}
             {#if detail.builtIn && detail.edited}

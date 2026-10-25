@@ -14,9 +14,6 @@
 </script>
 
 <section aria-labelledby={`${uid}-title`} class="@container flex w-full max-w-xl flex-col gap-5 rounded-panel border border-border bg-card p-4 shadow-surface">
-  <header class="flex flex-col gap-1">
-    <h2 id={`${uid}-title`} class="text-heading">Scorecard for Jordan Lee</h2>
-    <p class="text-muted-foreground">A sample candidate</p>
-  </header>
+  <h2 id={`${uid}-title`} class="text-heading">Scorecard for Jordan Lee</h2>
   <ScorecardFields {questions} bind:values bind:picks bind:recommendation bind:note idPrefix={uid} />
 </section>

@@ -13,7 +13,7 @@
     createUpdateHiringTemplateVersion,
     getGetHiringTemplateHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
-  import ArchiveIcon from '@lucide/svelte/icons/archive';
+  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CheckIcon from '@lucide/svelte/icons/check';
@@ -31,13 +31,13 @@
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import Hint from '#lib/components/hint.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -50,6 +50,7 @@
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
+  import { formatDateTime } from '#lib/dates.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { can } from '#lib/permissions.js';
@@ -201,7 +202,7 @@
 
 <TopBar crumbs={[{ label: 'Templates', href: templatesHref('hiring') }, { label: detail?.name ?? 'Template' }]} back />
 
-<main class={[sidebar.isMobile && detail && current && 'pb-28']}>
+<main class={[sidebar.isMobile && detail && current && mayEdit && 'pb-28']}>
   {#if template.isError}
     <HeaderBand title={notFound ? 'Template not found' : 'Template'} />
     <div class={workArea}>
@@ -241,9 +242,14 @@
   {:else}
     {#snippet versionItems()}
       {#each versions.toReversed() as candidate (candidate.id)}
-        <DropdownMenu.Item onSelect={() => goto(`/templates/${detail.id}?version=${candidate.version}`)}>
-          Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
-          {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+        <!-- A version is a place, so its item is a link (A5). -->
+        <DropdownMenu.Item>
+          {#snippet child({ props })}
+            <a href={`/templates/${detail.id}?version=${candidate.version}`} {...props}>
+              Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
+              {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+            </a>
+          {/snippet}
         </DropdownMenu.Item>
       {/each}
     {/snippet}
@@ -251,7 +257,7 @@
     {#snippet ownItems()}
       <DropdownMenu.Item disabled={busy} onSelect={copyTemplate}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
       {#if !detail.archived}
-        <DropdownMenu.Item disabled={busy} onSelect={() => setArchived(true)}><ArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item>
+        <DropdownMenu.Item disabled={busy} onSelect={() => setArchived(true)}><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item>
       {/if}
     {/snippet}
 
@@ -328,7 +334,13 @@
             {/if}
           </Fact>
           <Fact label="Version">
-            <span class="tabular-nums">{current.version}</span>{#if current.status !== 'Draft' && current.publishedAt}, published <RelativeTime at={current.publishedAt} />{/if}
+            {#if current.status !== 'Draft' && current.publishedAt}
+              <Hint content={`Published ${formatDateTime(current.publishedAt)}`}>
+                {#snippet children({ props })}<span {...props} class="tabular-nums">{current.version}</span>{/snippet}
+              </Hint>
+            {:else}
+              <span class="tabular-nums">{current.version}</span>
+            {/if}
           </Fact>
           <Fact label="Last updated">
             <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => (historyOpen = true)} />
@@ -372,7 +384,7 @@
         {/if}
       </div>
 
-      {#if sidebar.isMobile}
+      {#if sidebar.isMobile && mayEdit}
         <ActionBar>{@render primaryAction()}</ActionBar>
       {/if}
     </Tabs.Root>

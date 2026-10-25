@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArchiveIcon from '@lucide/svelte/icons/archive';
+  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -245,7 +245,7 @@
               <DropdownMenu.Item onSelect={copyScorecard}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
               {#if !detail.archived}
                 <DropdownMenu.Item onSelect={() => run(() => archive.mutateAsync({ templateId: params.templateId }), 'Archived.', 'Could not archive the scorecard')}
-                  ><ArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item
+                  ><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item
                 >
               {/if}
             </MoreMenu>
@@ -270,7 +270,6 @@
             <Skeleton class="h-5 w-32" />
           {/if}
         </Fact>
-        <Fact label="Questions"><span class="tabular-nums">{questions.length}</span></Fact>
         <Fact label="Rating questions"><span class="tabular-nums">{ratingCount}</span></Fact>
         <Fact label="Last updated">
           <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.builtIn ? undefined : () => (historyOpen = true)} />
