@@ -70,7 +70,7 @@ export interface ShortcutGroup {
 }
 
 /** True on Apple platforms, where the command palette is ⌘K. */
-const isApple = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+export const isApple = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /**
  * Every keyboard shortcut in the dashboard, for the `?` dialog (design system section 15). A new shortcut joins this
@@ -111,6 +111,13 @@ export function shortcutGroups(
         { label: 'Move a card to the next stage', keys: ['Shift', '→'], singleKey: false },
         { label: 'Move a card to the previous stage', keys: ['Shift', '←'], singleKey: false },
         { label: 'Open a card', keys: ['Enter'], singleKey: false },
+      ],
+    },
+    {
+      label: 'Notes',
+      shortcuts: [
+        { label: 'Mention a teammate', keys: ['@'], singleKey: false },
+        { label: 'Save the note', keys: apple ? ['⌘', 'Enter'] : ['Ctrl', 'Enter'], singleKey: false },
       ],
     },
   ];

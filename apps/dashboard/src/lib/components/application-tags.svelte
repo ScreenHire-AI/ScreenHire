@@ -1,12 +1,12 @@
 <script lang="ts">
   import { createAddApplicationTag, createRemoveApplicationTag } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import Panel from '#lib/components/panel.svelte';
+  import DetailsRailSection from '#lib/components/details-rail-section.svelte';
   import TagList from '#lib/components/tag-list.svelte';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath, candidatesPath, jobsPath } from '#lib/realtime.js';
 
-  // An application's Tags panel: the tag list, adding and removing through the API. Every list shows tags and filters
+  // An application's tags, a section of the candidate's details rail: the tag list, adding and removing through the API. Every list shows tags and filters
   // by them, so a change refetches them all; other dashboards get it through ApplicationTagsChanged. Automations read
   // tags as `application.tags`.
   let { applicationId, tags, editable }: { applicationId: string; tags: readonly string[]; editable: boolean } = $props();
@@ -42,7 +42,7 @@
   }
 </script>
 
-<Panel title="Tags" count={tags.length}>
+<DetailsRailSection title="Tags">
   <TagList
     {tags}
     onadd={editable ? onadd : undefined}
@@ -51,4 +51,4 @@
     {failure}
   />
   <p role="status" class="sr-only">{announcement}</p>
-</Panel>
+</DetailsRailSection>

@@ -8,6 +8,8 @@ export interface Notification {
   /** The automation's note, or what it did. */
   detail: string;
   href: string;
+  /** What raised it, for the card's icon: an automation that notified the team, or a note that mentioned you. */
+  kind?: 'team' | 'mention';
 }
 
 /** The most the tray shows at once; an older one leaves when a new one arrives. */
@@ -47,5 +49,24 @@ export function teamNotification(
     title: `${application.candidate.fullName}, ${application.jobTitle}`,
     detail: note || (run ? `The automation "${run.automationName}" notified the team.` : 'An automation notified the team.'),
     href: `/applications/${application.id}`,
+  };
+}
+
+/**
+ * The words for a mention (TeammateMentioned carries ids only, so the shell reads the application and the team first):
+ * one per note, the candidate and job as the title, who mentioned you, and a link to the note on Activity. The note's
+ * text is never in the card, as it is never in the email.
+ */
+export function mentionNotification(
+  noteId: string,
+  application: { id: string; candidate: { fullName: string }; jobTitle: string },
+  authorName: string | undefined,
+): Notification {
+  return {
+    id: `mention:${noteId}`,
+    kind: 'mention',
+    title: `${application.candidate.fullName}, ${application.jobTitle}`,
+    detail: authorName ? `${authorName} mentioned you in a note.` : 'You were mentioned in a note.',
+    href: `/applications/${application.id}?tab=activity#note-${noteId}`,
   };
 }

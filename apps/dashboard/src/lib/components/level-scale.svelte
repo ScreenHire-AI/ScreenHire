@@ -1,0 +1,46 @@
+<script lang="ts">
+  import StatusBadge from '#lib/components/status-badge.svelte';
+  import type { LevelView } from '#lib/integrity.js';
+  import { statuses, type StatusTone } from '#lib/status.js';
+  import { cn } from '#lib/utils.js';
+
+  // An assessment's level on its three-step scale (design system section 16): the current step is marked "This
+  // candidate", with a thick bar and its badge; the others are thin and neutral, never faded like disabled controls.
+  // Levels are categories, so the scale has steps, not a needle, and nothing on it is a score (ADR-0004).
+  let {
+    levels,
+    current,
+    name,
+  }: {
+    /** Lowest first. */
+    levels: readonly LevelView[];
+    current: LevelView;
+    /** The assessment, for screen readers: "Authenticity". */
+    name: string;
+  } = $props();
+
+  const marks: Record<StatusTone, string> = {
+    clear: 'bg-status-clear-mark',
+    review: 'bg-status-review-mark',
+    verify: 'bg-status-verify-mark',
+    ai: 'bg-status-ai-mark',
+    neutral: 'bg-muted-foreground',
+  };
+  const position = $derived(levels.findIndex((level) => level.label === current.label));
+  const place = $derived(position === 0 ? 'the lowest' : position === levels.length - 1 ? 'the highest' : 'the middle');
+</script>
+
+<div role="img" aria-label={`${name}: ${current.label}, ${place} of ${levels.length}`} data-level-scale class="grid grid-cols-3 gap-2">
+  {#each levels as level (level.label)}
+    {@const here = level.label === current.label}
+    <div aria-hidden="true" data-current={here || undefined} class="flex min-w-0 flex-col gap-1.5">
+      <span class={cn('text-caption font-semibold text-muted-foreground', !here && 'invisible')}>This candidate</span>
+      <span class={cn('w-full rounded-full', here ? cn('h-2', marks[statuses[level.status].tone]) : 'h-1 bg-border')}></span>
+      {#if here}
+        <StatusBadge status={level.status} label={level.label} class="self-start" />
+      {:else}
+        <span class="truncate text-caption text-muted-foreground">{level.label}</span>
+      {/if}
+    </div>
+  {/each}
+</div>

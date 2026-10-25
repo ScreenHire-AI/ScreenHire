@@ -6,7 +6,7 @@
   import { maxPreviewPages, readFrameMessage, type RenderRequest } from '#lib/file-viewer/protocol.js';
   import { cn } from '#lib/utils.js';
 
-  // A candidate's PDF, drawn in isolation, for the resume preview and the file viewer. Uploaded files are untrusted, so the
+  // A candidate's PDF, drawn in isolation, for the full-window file viewer. Uploaded files are untrusted, so the
   // file is drawn inside a sandboxed frame with an opaque origin and a policy that allows only the viewer's own script
   // (file-viewer-plugin.ts): nothing in the file can reach the dashboard's cookies, DOM or API. The dashboard fetches the
   // bytes and hands them over; the frame answers with its height and page count, and nothing else is read from it. Show

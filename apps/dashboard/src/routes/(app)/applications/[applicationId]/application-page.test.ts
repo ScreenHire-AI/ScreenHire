@@ -2,7 +2,7 @@ import type { ApplicationDetail, ApplicationTaskEntry, ApplicationTimelineEntry,
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId, stages, user } from '../../../../test-support/fixtures.js';
-import { pendingIntegrity } from '../../../../test-support/integrity-fixtures.js';
+import { botIntegrity, pendingIntegrity } from '../../../../test-support/integrity-fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 // After the fixtures: the mock below reads `user`.
 import { page } from '$app/state';
@@ -144,7 +144,19 @@ const timeline: ApplicationTimelineEntry[] = [
   entry({ type: 'StageChanged', occurredAt: '2026-10-20T10:00:00Z', actorUserId: teammate, fromStageId: 'applied', toStageId: 'screening', note: 'Strong portfolio.' }),
   entry({ type: 'TagAdded', occurredAt: '2026-10-20T10:05:00Z', tag: 'fast-track', automationRunId: '01a157d4-0000-7000-8000-000000000306' }),
   entry({ type: 'StageChanged', occurredAt: '2026-10-20T11:00:00Z', actorUserId: user.id, fromStageId: 'screening', toStageId: 'interview' }),
-  entry({ type: 'NoteAdded', occurredAt: '2026-10-20T11:30:00Z', actorUserId: '01a157d4-0000-7000-8000-0000000000dd', note: 'Ask about the notice period.' }),
+  entry({ type: 'NoteAdded', occurredAt: '2026-10-20T11:30:00Z', actorUserId: '01a157d4-0000-7000-8000-0000000000dd', note: 'Ask about the notice period.', noteId: '01a157d4-0000-7000-8000-0000000003a1' }),
+];
+
+// Notes for the menu tests: one of the signed-in person's, one of a teammate's, and one deleted since.
+const ownNote = '01a157d4-0000-7000-8000-0000000003a2';
+const teammatesNote = '01a157d4-0000-7000-8000-0000000003a3';
+const deletedNote = '01a157d4-0000-7000-8000-0000000003a4';
+const notes: ApplicationTimelineEntry[] = [
+  entry({ type: 'NoteAdded', occurredAt: '2026-10-20T12:00:00Z', actorUserId: user.id, noteId: ownNote, note: `Ask @[${teammate}] about the call.`, noteEditedAt: '2026-10-20T12:30:00Z' }),
+  entry({ type: 'NoteEdited', occurredAt: '2026-10-20T12:30:00Z', actorUserId: user.id, noteId: ownNote }),
+  entry({ type: 'NoteAdded', occurredAt: '2026-10-20T12:05:00Z', actorUserId: teammate, noteId: teammatesNote, note: 'Strong portfolio.' }),
+  entry({ type: 'NoteAdded', occurredAt: '2026-10-20T12:06:00Z', actorUserId: teammate, noteId: deletedNote, note: null }),
+  entry({ type: 'NoteDeleted', occurredAt: '2026-10-20T12:40:00Z', actorUserId: teammate, noteId: deletedNote }),
 ];
 
 // The routes every render reads; a test adds the writes it makes.
@@ -172,19 +184,105 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   page.data.user = user;
+  page.url = new URL('http://dashboard.test/');
 });
 
-function renderPage() {
+/** Renders the page on `tab`, as its address (?tab=) says; Playwright switches tabs by clicking. */
+function renderPage(tab?: string) {
+  page.url = new URL(`http://dashboard.test/applications/${applicationId}${tab ? `?tab=${tab}` : ''}`);
   return render(WithQueryClient, { props: { component: Page, props: { params: { applicationId } } } });
 }
 
+const asRole = (role: 'Owner' | 'Admin' | 'Recruiter' | 'Viewer') => (page.data.user = { ...user, organization: { ...user.organization!, role } });
+
+async function openMenu(item: HTMLElement) {
+  const trigger = within(item).getByRole('button', { name: 'More actions for this note' });
+  await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+  return screen.findByRole('menu');
+}
+
+/** A note's line in Activity, once the timeline is in. */
+const noteItem = (noteId: string) =>
+  waitFor(() => {
+    const item = document.getElementById(`note-${noteId}`);
+    if (!item) throw new Error(`No note ${noteId} yet`);
+    return item;
+  });
+
+const lines = (region: HTMLElement) => within(region).getAllByRole('listitem').map((item) => item.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim());
+
 describe('application page', () => {
+  it('has the same six tabs in the same order, with counts and a marker on Integrity when the level needs a look', async () => {
+    stubApi({ [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...botIntegrity(), applicationId }) });
+    renderPage();
+
+    const tabs = await screen.findByRole('tablist', { name: 'Candidate sections' });
+    await waitFor(() => expect(within(tabs).getByRole('tab', { name: /^Integrity/ })).toHaveTextContent('Verification suggested'));
+    await waitFor(() =>
+      expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+        'Overview',
+        'Application',
+        'Messages 0',
+        'Scorecards 0',
+        'Integrity, Verification suggested',
+        'Activity 6',
+      ]),
+    );
+    expect(within(tabs).getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(tabs.querySelector('[data-tab-marker]')).toBeInTheDocument();
+  });
+
+  it('keeps the job, contact, files and tags in the details rail', async () => {
+    renderPage();
+    const rail = await screen.findByRole('complementary', { name: 'Details' });
+
+    const facts = within(rail)
+      .getAllByRole('term')
+      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
+    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Source', 'Email']);
+    expect(facts[0]![1]).toBe('Screening');
+    expect(facts[3]![1]).toBe('Careers page');
+    expect(within(rail).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
+    expect(within(rail).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
+    const files = within(rail).getByRole('region', { name: 'Files' });
+    expect(within(files).getByRole('button', { name: 'View Casey Morgan CV.pdf' })).toBeInTheDocument();
+    // The scan withheld the portfolio, so its row says why and offers neither View nor Download.
+    expect(files).toHaveTextContent('Unsafe file');
+    expect(within(rail).getByRole('region', { name: 'Tags' })).toBeInTheDocument();
+    const band = screen.getByRole('heading', { level: 1, name: 'Casey Morgan' }).closest<HTMLElement>('[data-slot="header-band"]')!;
+    expect(within(band).queryAllByRole('term')).toEqual([]);
+    expect(await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeInTheDocument();
+  });
+
   it("links the resume through the API's download route, as a full navigation", async () => {
     renderPage();
 
     const link = await screen.findByRole('link', { name: 'Download Casey Morgan CV.pdf' });
     expect(link).toHaveAttribute('href', `/v1/applications/${applicationId}/files/${resumeId}`);
     expect(link).toHaveAttribute('data-sveltekit-reload');
+  });
+
+  it('puts what needs you now, the last five things anyone did and the answers on Overview', async () => {
+    renderPage();
+
+    const steps = await screen.findByRole('region', { name: 'Next steps' });
+    await within(steps).findByText('Call the references.');
+    const activity = screen.getByRole('region', { name: 'Activity' });
+    await waitFor(() => expect(within(activity).getAllByRole('listitem')).toHaveLength(5));
+    expect(within(activity).getByRole('link', { name: 'All 6 in Activity' })).toHaveAttribute('href', '?tab=activity');
+    await screen.findByRole('region', { name: 'Automations' });
+    const panels = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
+    expect(panels).toEqual(['Next steps', 'Automations', 'Activity', 'Answers']);
+  });
+
+  it('shows the integrity next step on Overview when the level needs a look, never as a reason to reject', async () => {
+    stubApi({ [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...botIntegrity(), applicationId }) });
+    renderPage();
+    const steps = await screen.findByRole('region', { name: 'Next steps' });
+
+    await within(steps).findByText(/Confirm the candidate is who they say they are/);
+    expect(steps).toHaveTextContent('Not a reason to reject on its own.');
+    expect(within(steps).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=integrity');
   });
 
   it("labels each answer with the job's question and shows choices by their labels", async () => {
@@ -199,18 +297,18 @@ describe('application page', () => {
     expect(rows[0]![1]).toBe('Yes');
     expect(rows[1]![1]).toBe('3 to 5 years');
     expect(rows[3]![1]).toBe('Small teams.\nReal problems.');
-    // A file answer is a file tile; one the scan withheld says why and offers no download.
-    expect(rows[2]![1]).toMatch(/portfolio\.pdf.*Unsafe file/);
-    expect(within(answers).queryByRole('link')).not.toBeInTheDocument();
+    // A file answer names the file; its row is in the details rail.
+    expect(rows[2]![1]).toBe('portfolio.pdf');
+    expect(within(answers).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['?tab=application']);
   });
 
   it('tells the activity newest first, saying who made each change', async () => {
-    renderPage();
+    renderPage('activity');
     const region = await screen.findByRole('region', { name: 'Activity' });
 
     await within(region).findByText(/Moved from Screening to Interview/);
     await within(region).findByText(/by Robin Ashby/);
-    expect(within(region).getAllByRole('listitem').map((item) => item.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+    expect(lines(region)).toEqual([
       'Note by a former teammate',
       'Moved from Screening to Interview by you',
       'Tagged "fast-track" by an automation',
@@ -219,19 +317,95 @@ describe('application page', () => {
       'Applied on the careers page, into Applied',
     ]);
     expect(within(region).getByText('"Strong portfolio."')).toBeInTheDocument();
-    expect(within(region).getByText('"Ask about the notice period."')).toBeInTheDocument();
+    expect(within(region).getByText('Ask about the notice period.')).toBeInTheDocument();
   });
 
-  it('shows each follow-up questionnaire with its answers, and its sends and answers in the activity', async () => {
-    stubApi({
-      [`GET /v1/applications/${applicationId}/timeline`]: () =>
-        Response.json([
-          ...timeline,
-          entry({ type: 'QuestionnaireSent', occurredAt: '2026-10-20T11:40:00Z', automationRunId: '01a157d4-0000-7000-8000-000000000312', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
-          entry({ type: 'QuestionnaireCompleted', occurredAt: '2026-10-20T12:00:00Z', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
-        ]),
+  it('filters Activity by kind, with a count on each', async () => {
+    renderPage('activity');
+    const region = await screen.findByRole('region', { name: 'Activity' });
+    const filter = within(region).getByRole('group', { name: 'Show' });
+
+    await waitFor(() =>
+      expect(within(filter).getAllByRole('button').map((button) => button.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+        'All 6',
+        'Notes 1',
+        'Emails 0',
+        'Scorecards 0',
+        'Stage and tags 4',
+      ]),
+    );
+    await fireEvent.click(within(filter).getByRole('button', { name: /^Notes/ }));
+    await waitFor(() => expect(within(region).getAllByRole('listitem')).toHaveLength(1));
+    expect(within(filter).getByRole('button', { name: /^Notes/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it("shows a note's mentions by their current names, says Edited, and keeps one line for a deleted note", async () => {
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]) });
+    renderPage('activity');
+    const region = await screen.findByRole('region', { name: 'Activity' });
+
+    const own = await noteItem(ownNote);
+    expect(own).toHaveTextContent('Ask @Robin Ashby about the call. Edited');
+    expect(region).not.toHaveTextContent('Edited a note');
+    expect(document.getElementById(`note-${deletedNote}`)).not.toBeInTheDocument();
+    expect(lines(region)[0]).toBe('Deleted a note by Robin Ashby');
+  });
+
+  it("offers Edit and Delete on your own note, Delete only to an owner or admin on another's, and no menu to a recruiter", async () => {
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]) });
+    renderPage('activity');
+    await screen.findByRole('region', { name: 'Activity' });
+    const own = await noteItem(ownNote);
+    let menu = await openMenu(own);
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit', 'Delete']);
+    await fireEvent.keyDown(menu, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    menu = await openMenu(document.getElementById(`note-${teammatesNote}`)!);
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Delete']);
+    cleanup();
+
+    asRole('Recruiter');
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]) });
+    renderPage('activity');
+    const theirs = await noteItem(teammatesNote);
+    expect(within(theirs).queryByRole('button', { name: 'More actions for this note' })).not.toBeInTheDocument();
+    expect(within(document.getElementById(`note-${ownNote}`)!).getByRole('button', { name: 'More actions for this note' })).toBeInTheDocument();
+  });
+
+  it('edits your own note in place, keeping its mentions, and deletes one after a confirm', async () => {
+    const fetch = stubApi({
+      [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]),
+      [`PUT /v1/applications/${applicationId}/notes/${ownNote}`]: () => Response.json({ id: ownNote }),
+      [`DELETE /v1/applications/${applicationId}/notes/${teammatesNote}`]: () => new Response(null, { status: 204 }),
     });
-    renderPage();
+    renderPage('activity');
+    await screen.findByRole('region', { name: 'Activity' });
+    const own = await noteItem(ownNote);
+
+    await fireEvent.click(within(await openMenu(own)).getByRole('menuitem', { name: 'Edit' }));
+    const field = await within(own).findByLabelText('Edit your note');
+    expect(field).toHaveValue('Ask @Robin Ashby about the call.');
+    await fireEvent.input(field, { target: { value: 'Ask @Robin Ashby about the call today.' } });
+    await fireEvent.click(within(own).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith(`/notes/${ownNote}`) && init?.method === 'PUT')).toBe(true));
+    const put = fetch.mock.calls.find(([url, init]) => String(url).endsWith(`/notes/${ownNote}`) && init?.method === 'PUT');
+    expect(JSON.parse(String(put![1]!.body))).toEqual({ note: `Ask @[${teammate}] about the call today.` });
+
+    await fireEvent.click(within(await openMenu(document.getElementById(`note-${teammatesNote}`)!)).getByRole('menuitem', { name: 'Delete' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete this note?' });
+    expect(dialog).toHaveTextContent('It leaves Overview and Activity for the whole team.');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete note' }));
+    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith(`/notes/${teammatesNote}`) && init?.method === 'DELETE')).toBe(true));
+  });
+
+  it('shows each follow-up questionnaire with its answers on Application, and its sends and answers in Activity', async () => {
+    const withFollowUps = [
+      ...timeline,
+      entry({ type: 'QuestionnaireSent', occurredAt: '2026-10-20T11:40:00Z', automationRunId: '01a157d4-0000-7000-8000-000000000312', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
+      entry({ type: 'QuestionnaireCompleted', occurredAt: '2026-10-20T12:00:00Z', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
+    ];
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(withFollowUps) });
+    renderPage('application');
 
     const answered = await screen.findByRole('region', { name: 'Follow-up: Availability' });
     const rows = within(answered)
@@ -243,40 +417,60 @@ describe('application page', () => {
     ]);
     expect(answered).toHaveTextContent(/Answered/);
     expect(await screen.findByRole('region', { name: 'Follow-up: References' })).toHaveTextContent(/Sent .* \(2 times\), not answered yet\./);
+    cleanup();
 
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(withFollowUps) });
+    renderPage('activity');
     const activity = await screen.findByRole('region', { name: 'Activity' });
     await within(activity).findByText(/Answered the "Availability" questionnaire/);
     expect(within(activity).getByText(/Sent the "Availability" questionnaire/)).toBeInTheDocument();
   });
 
-  it('shows the integrity panel first, waiting for the checks', async () => {
-    renderPage();
-    const panel = await screen.findByRole('region', { name: 'Integrity' });
+  it('lists the emails sent to the candidate on Messages, newest first', async () => {
+    stubApi({
+      [`GET /v1/applications/${applicationId}/timeline`]: () =>
+        Response.json([
+          ...timeline,
+          entry({ type: 'EmailSent', occurredAt: '2026-10-20T09:02:00Z', emailSubject: 'Application received' }),
+          entry({ type: 'EmailSent', occurredAt: '2026-10-20T10:01:00Z', actorUserId: teammate, emailSubject: 'Next steps for Senior .NET Engineer' }),
+        ]),
+    });
+    renderPage('messages');
+    const messages = await screen.findByRole('region', { name: 'Messages' });
 
-    await within(panel).findByText(/Checks are still running/);
-    expect(panel).toHaveTextContent('No automated decision has been made. Every action is logged.');
-    // First in the page's order, so one column (tablet and phone) starts with it.
-    await screen.findByRole('region', { name: 'Tasks' });
-    await screen.findByRole('region', { name: 'Automations' });
-    const panels = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
-    expect(panels).toEqual(['Integrity', 'Resume', 'Answers', 'Follow-up: Availability', 'Follow-up: References', 'Declarations', 'Tasks', 'Tags', 'Automations', 'Review log', 'Activity']);
+    await waitFor(() => expect(lines(messages)).toEqual(['Next steps for Senior .NET Engineer by Robin Ashby', 'Application received']));
   });
 
-  it('adds a note from Activity, in a sheet', async () => {
+  it('shows the Integrity tab with its checks and the review log', async () => {
+    renderPage('integrity');
+
+    await screen.findByText(/Checks are still running/);
+    expect(document.body).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(await screen.findByRole('region', { name: 'Review log' })).toBeInTheDocument();
+  });
+
+  it('adds a note from the box, mentioning a teammate picked from the list by keyboard', async () => {
     const fetch = stubApi({
       [`POST /v1/applications/${applicationId}/notes`]: () => Response.json(entry({ type: 'NoteAdded', note: 'Great call.' }), { status: 201 }),
     });
     renderPage();
     const activity = await screen.findByRole('region', { name: 'Activity' });
+    const field = (await within(activity).findByLabelText('Note for the hiring team')) as HTMLTextAreaElement;
 
-    await fireEvent.click(await within(activity).findByRole('button', { name: 'Add note' }));
-    const sheet = await screen.findByRole('dialog', { name: 'Add a note' });
-    await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: '  Great call.  ' } });
-    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add note' }));
+    field.value = 'Great call, @Ro';
+    field.setSelectionRange(15, 15);
+    await fireEvent.input(field);
+    const list = await within(activity).findByRole('listbox', { name: 'Teammates' });
+    expect(within(list).getAllByRole('option').map((option) => option.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['RA Robin Ashby Recruiter']);
+    expect(field).toHaveAttribute('aria-activedescendant', within(list).getByRole('option').id);
+    await fireEvent.keyDown(field, { key: 'Enter' });
+    await waitFor(() => expect(field).toHaveValue('Great call, @Robin Ashby '));
+    expect(within(activity).queryByRole('listbox')).not.toBeInTheDocument();
 
-    await within(activity).findByText('Note added.');
+    await fireEvent.click(within(activity).getByRole('button', { name: 'Save note' }));
+    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith('/notes') && init?.method === 'POST')).toBe(true));
     const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/notes') && init?.method === 'POST');
-    expect(JSON.parse(String(post![1]!.body))).toEqual({ note: 'Great call.' });
+    expect(JSON.parse(String(post![1]!.body))).toEqual({ note: `Great call, @[${teammate}]` });
   });
 
   it('adds a tag and removes one, each with its own button beside the pill', async () => {
@@ -306,12 +500,12 @@ describe('application page', () => {
     }
   });
 
-  it("completes a task an automation made, naming who it is for", async () => {
+  it('completes a task an automation made, naming who it is for', async () => {
     const fetch = stubApi({
       [`POST /v1/tasks/${taskId}/complete`]: () => Response.json({ ...task, completedAt: '2026-10-20T12:00:00Z', completedByUserId: user.id }),
     });
     renderPage();
-    const tasks = await screen.findByRole('region', { name: 'Tasks' });
+    const tasks = await screen.findByRole('region', { name: 'Next steps' });
 
     expect(await within(tasks).findByText('Call the references.')).toBeInTheDocument();
     expect(within(tasks).getByText('To-do')).toBeInTheDocument();
@@ -358,35 +552,21 @@ describe('application page', () => {
   });
 
   it('leaves out the controls that change hiring data for a viewer', async () => {
-    page.data.user = { ...user, organization: { ...user.organization!, role: 'Viewer' } };
+    asRole('Viewer');
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]) });
     renderPage();
-    const tasks = await screen.findByRole('region', { name: 'Tasks' });
+    const tasks = await screen.findByRole('region', { name: 'Next steps' });
     await within(tasks).findByText('Call the references.');
 
     expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Activity' })).queryByRole('button', { name: 'Add note' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Activity' })).queryByLabelText('Note for the hiring team')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions for this note' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 
-  it('puts the contact details under the name and the facts in the header band', async () => {
-    renderPage();
-    const heading = await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
-    const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
-
-    expect(within(band).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
-    const facts = within(band)
-      .getAllByRole('term')
-      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
-    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Source']);
-    expect(facts[0]![1]).toBe('Screening');
-    expect(facts[3]![1]).toBe('Careers page');
-    expect(within(band).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
-    expect(await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeInTheDocument();
-  });
-
-  it("shows the candidate's declarations", async () => {
-    renderPage();
+  it("shows the candidate's declarations on Application", async () => {
+    renderPage('application');
     const declarations = await screen.findByRole('region', { name: 'Declarations' });
 
     expect(declarations).toHaveTextContent('Used AI: Grammar checks only.');
@@ -434,7 +614,7 @@ describe('application page', () => {
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
         [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([submitted]),
       });
-      renderPage();
+      renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
 
       await within(panel).findByText('Strong yes');
@@ -457,7 +637,7 @@ describe('application page', () => {
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
         [`POST /v1/applications/${applicationId}/scorecards`]: () => Response.json({ ...submitted, reviewerUserId: user.id }, { status: 201 }),
       });
-      renderPage();
+      renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
 
       await fireEvent.click(await within(panel).findByRole('button', { name: 'Fill scorecard' }));
@@ -488,7 +668,7 @@ describe('application page', () => {
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
         [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([{ ...submitted, reviewerUserId: user.id }]),
       });
-      renderPage();
+      renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
       await within(panel).findByText('by you');
       expect(within(panel).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
@@ -496,13 +676,13 @@ describe('application page', () => {
 
       page.data.user = { ...user, organization: { ...user.organization!, role: 'Viewer' } };
       stubApi({ [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob) });
-      renderPage();
+      renderPage('scorecards');
       const viewed = await screen.findByRole('region', { name: 'Scorecards' });
       await within(viewed).findByText('No scorecards yet.');
       expect(within(viewed).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
     });
 
-    it('records a scorecard in Activity by its stage, leaving the judgement to the panel', async () => {
+    it('records a scorecard in Activity by its stage, leaving the judgement to the Scorecards tab', async () => {
       stubApi({
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
         [`GET /v1/applications/${applicationId}/timeline`]: () =>
@@ -511,7 +691,7 @@ describe('application page', () => {
             entry({ type: 'ScorecardSubmitted', occurredAt: '2026-10-20T11:45:00Z', actorUserId: teammate, stageId: 'interview', recommendation: 'StrongYes' }),
           ]),
       });
-      renderPage();
+      renderPage('activity');
       const activity = await screen.findByRole('region', { name: 'Activity' });
 
       await within(activity).findByText(/Scorecard for Interview/);
