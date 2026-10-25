@@ -2,7 +2,9 @@
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PreviewFrame from '#lib/components/preview-frame.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
@@ -33,6 +35,7 @@
   const followUps = $derived(followUpsOf(workflow));
   const scored = $derived(workflow.stages.filter((stage) => stage.scorecard));
   const days = (count: number) => `${count}-day limit`;
+  let mode = $state<'edit' | 'preview'>('edit');
 </script>
 
 <!-- A stored version that today's validator refuses: say why, as the badge counts it. -->
@@ -133,8 +136,14 @@
 {/snippet}
 
 <Tabs.Content value="questionnaire">
-  <div class="flex flex-wrap items-start gap-5">
-    <div class="flex min-w-0 flex-[999_1_520px] flex-col gap-5">
+  <!-- Content and the candidate's form never share the screen (A8): the switch swaps them in place. -->
+  <div class="flex flex-col gap-5">
+    <EditPreviewSwitch bind:mode />
+    {#if mode === 'preview'}
+      <PreviewFrame>
+        <QuestionnairePreview {questions} />
+      </PreviewFrame>
+    {:else}
       <Panel title="AI use while applying">
         <p>{aiUseLabels[workflow.integrityPolicy.aiUse]}</p>
       </Panel>
@@ -150,10 +159,7 @@
           {@render questionList(followUp.questions)}
         </Panel>
       {/each}
-    </div>
-    <Panel title="Candidate preview" class="flex-[1_1_320px] lg:sticky lg:top-4">
-      <QuestionnairePreview {questions} />
-    </Panel>
+    {/if}
   </div>
 </Tabs.Content>
 

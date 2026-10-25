@@ -13,14 +13,14 @@ public static class ChangeLabels
 {
     public static string Question(QuestionType type) => type switch
     {
-        QuestionType.ShortText => "Short answer",
-        QuestionType.LongText => "Long answer",
+        QuestionType.ShortText => "Short text",
+        QuestionType.LongText => "Long text",
         QuestionType.YesNo => "Yes or no",
-        QuestionType.SingleChoice => "One choice",
-        QuestionType.MultiChoice => "Several choices",
+        QuestionType.SingleChoice => "Choice",
+        QuestionType.MultiChoice => "Multi-choice",
         QuestionType.Number => "Number",
         QuestionType.Url => "Link",
-        QuestionType.File => "File upload",
+        QuestionType.File => "File",
         _ => type.ToString(),
     };
 

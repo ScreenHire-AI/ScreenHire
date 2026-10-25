@@ -231,14 +231,14 @@ export const aiUseLabels: Record<AiUsePolicy, string> = {
 };
 
 export const questionTypeLabels: Record<QuestionType, string> = {
-  ShortText: 'Short answer',
-  LongText: 'Long answer',
+  ShortText: 'Short text',
+  LongText: 'Long text',
   YesNo: 'Yes or no',
-  SingleChoice: 'One choice',
-  MultiChoice: 'Several choices',
+  SingleChoice: 'Choice',
+  MultiChoice: 'Multi-choice',
   Number: 'Number',
   Url: 'Link',
-  File: 'File upload',
+  File: 'File',
 };
 
 export const questionTypes = Object.keys(questionTypeLabels) as QuestionType[];
