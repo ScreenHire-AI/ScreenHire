@@ -258,7 +258,8 @@
           </SummaryItem>
         </SummaryList>
         {#if apiOrigin}
-          <pre aria-label="Example request" class="overflow-x-auto rounded-lg bg-secondary px-3.5 py-3 font-mono text-code">curl {apiOrigin}/v1/jobs   -H "Authorization: Bearer $SCREENHIRE_KEY"</pre>
+          <pre aria-label="Example request" class="rounded-lg bg-secondary px-3.5 py-3 font-mono text-code break-all whitespace-pre-wrap">curl {apiOrigin}/v1/jobs \
+  -H "Authorization: Bearer $SCREENHIRE_KEY"</pre>
         {/if}
       </div>
     </Panel>

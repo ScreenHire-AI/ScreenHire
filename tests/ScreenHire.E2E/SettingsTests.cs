@@ -47,7 +47,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         // The sheet starts at Viewer, the least access, and says what each role is for.
         await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Viewer") })).ToBeCheckedAsync();
         await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") })).ToHaveAccessibleNameAsync(new Regex("Works the jobs"));
-        await invite.GetByLabel("Email").FillAsync(colleague);
+        await invite.GetByLabel("Email", new() { Exact = true }).FillAsync(colleague);
         await invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") }).CheckAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await invite.GetByRole(AriaRole.Button, new() { Name = "Send invitation" }).ClickAsync();
