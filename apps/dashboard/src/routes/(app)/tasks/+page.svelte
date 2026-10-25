@@ -41,7 +41,7 @@
   <HeaderBand title="My tasks" count={tasks.isSuccess ? all.length : undefined} countLabel={all.length === 1 ? 'task' : 'tasks'} />
 
   <div class="@container">
-    <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6">
+    <div class="flex w-full flex-col px-4 py-6 md:px-6">
       <Panel title={panelTitle} flush>
         <!-- The filters, in a row under the header because the list has no search (section 7). Each group stays on one
              line (F5); in a narrow container the two groups stack, so every choice shows at a glance (section 11). -->

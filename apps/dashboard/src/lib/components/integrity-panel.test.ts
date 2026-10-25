@@ -53,7 +53,7 @@ describe('integrity panel', () => {
     renderPanel();
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: Verification recommended')).toBeInTheDocument();
+    expect(within(authenticity).getByText('Authenticity: Verification suggested')).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('3 observations from network and automation checks back each other up.');
     expect(authenticity).toHaveTextContent('Suggested next step: Confirm the candidate is who they say they are');
     expect(within(authenticity).getByRole('heading', { name: 'Reasons 3' })).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('integrity panel', () => {
     expect(log).toHaveTextContent('"Video call on Monday."');
     // The level stays as assessed; the chip says it was dismissed and the button is gone.
     const authenticity = section('Authenticity');
-    expect(within(authenticity).getByText('Authenticity: Verification recommended, dismissed after review')).toBeInTheDocument();
+    expect(within(authenticity).getByText('Authenticity: Verification suggested, dismissed after review')).toBeInTheDocument();
     expect(within(authenticity).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
   });
 
@@ -279,7 +279,7 @@ describe('integrity panel', () => {
     await Promise.all((invalidations.IntegrityAssessed ?? []).map((path) => invalidatePath(client, path)));
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: Verification recommended')).toBeInTheDocument();
+    expect(within(authenticity).getByText('Authenticity: Verification suggested')).toBeInTheDocument();
     expect(screen.queryByText(/Checks are still running/)).not.toBeInTheDocument();
   });
 

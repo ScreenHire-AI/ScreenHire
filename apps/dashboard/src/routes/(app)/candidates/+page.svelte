@@ -58,7 +58,7 @@
   // the team's delay never counts against a candidate (workflow-engine.md section 8). Every status view has a mark. One
   // candidate at a time, from their page, is still a person's decision.
   const emailTemplates = createListEmailTemplates();
-  const statusPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.mark));
+  const statusPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.status));
   const canEmail = $derived(
     Boolean(emailTemplates.data?.data.sendingEnabled) && canChangeHiringData(page.data.user) && !statusPicked,
   );
@@ -80,17 +80,16 @@
     title={view?.label ?? 'Candidates'}
     count={applications.isSuccess ? shown.length : undefined}
     countLabel={shown.length === 1 ? 'application' : 'applications'}
-    wide
   />
 
   <div class="@container">
-    <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
+    <div class="flex w-full flex-col px-4 py-6 md:px-6">
       <Panel title="Applications" flush>
         {#snippet tools()}
           <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
           <TagFilterMenu bind:tag={tagFilter} {tags} />
-          {#if selectedCount > 0}<Badge variant="muted">{selectedCount} selected</Badge>{/if}
+          {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}
           {#if canEmail && selectedCount > 0 && !phone.current}
             <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
           {/if}

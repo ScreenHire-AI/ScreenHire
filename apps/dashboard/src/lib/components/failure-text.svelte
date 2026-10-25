@@ -1,8 +1,8 @@
 <script lang="ts">
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import ProblemIcon from '#lib/components/problem-icon.svelte';
   import { cn } from '#lib/utils.js';
 
-  // A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). The line is
+  // A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1). The line is
   // always in the page, empty until there is a message, so screen readers announce it when one arrives. A section that
   // cannot load at all is `QueryError` instead.
   let {
@@ -18,5 +18,5 @@
 </script>
 
 <p {role} data-slot="failure-text" class={cn('flex items-center gap-2 text-body text-status-verify empty:hidden', className)}>
-  {#if message}<StatusMark shape="square" tone="verify" />{message}{/if}
+  {#if message}<ProblemIcon />{message}{/if}
 </p>

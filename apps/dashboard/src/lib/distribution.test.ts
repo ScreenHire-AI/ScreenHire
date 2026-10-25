@@ -7,17 +7,17 @@ const later = (ms: number) => new Date(now + ms).toISOString();
 
 describe('describePosting', () => {
   const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string | null, string][] = [
-    ['Live', {}, 'Live', null, 'clear'],
-    ['Queued', { expectedBy: later(20_000) }, 'Queued', '~20s', 'review'],
-    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', '~2m', 'review'],
-    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', '~1d', 'review'],
-    ['Submitted', { confirmsLive: false }, 'Sent', null, 'review'],
-    ['Closing', { expectedBy: later(30_000) }, 'Removing', '~30s', 'review'],
-    ['Closing', { confirmsRemoval: false }, 'Removal requested', null, 'review'],
-    ['Closed', {}, 'Removed', null, 'neutral'],
-    ['Rejected', { lastError: 'Title too long.' }, 'Rejected', null, 'verify'],
-    ['Error', {}, 'Error', null, 'verify'],
-    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', null, 'verify'],
+    ['Live', {}, 'Live', null, 'open'],
+    ['Queued', { expectedBy: later(20_000) }, 'Queued', '~20s', 'waiting'],
+    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', '~2m', 'waiting'],
+    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', '~1d', 'waiting'],
+    ['Submitted', { confirmsLive: false }, 'Sent', null, 'waiting'],
+    ['Closing', { expectedBy: later(30_000) }, 'Removing', '~30s', 'waiting'],
+    ['Closing', { confirmsRemoval: false }, 'Removal requested', null, 'waiting'],
+    ['Closed', {}, 'Removed', null, 'notInEffect'],
+    ['Rejected', { lastError: 'Title too long.' }, 'Needs fixes', null, 'needsFixes'],
+    ['Error', {}, 'Error', null, 'needsFixes'],
+    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', null, 'needsFixes'],
   ];
 
   it.each(cases)('%s %o reads %s, estimate %s, as a %s status', (state, overrides, label, eta, status) => {
@@ -36,7 +36,7 @@ describe('describePosting', () => {
   });
 
   it('reads "not posted" for a board the job is not on', () => {
-    expect(describePosting(undefined, now)).toMatchObject({ label: 'Not posted', status: 'neutral' });
+    expect(describePosting(undefined, now)).toMatchObject({ label: 'Not posted', status: 'notInEffect' });
   });
 });
 

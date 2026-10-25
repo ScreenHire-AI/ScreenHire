@@ -19,6 +19,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { describeError } from '#lib/query.js';
+  import { needsAttention } from '#lib/status.js';
   import { endpointStatus } from '#lib/webhooks.js';
 
   // The organization's webhook endpoints (workflow-engine.md section 8), on the list template. Each row opens the
@@ -44,7 +45,7 @@
     actions={sidebar.isMobile ? undefined : addButton}
   />
 
-  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     {#if endpoints.isError}
       <Panel title="Endpoints">
         <QueryError message={describeError(endpoints.error, 'Could not load the webhooks')} onretry={() => endpoints.refetch()} inset />
@@ -128,7 +129,7 @@
 <!-- Calm states are quiet in a list; an endpoint the worker turned off needs someone, so it is filled (T3). -->
 {#snippet badge(endpoint: WebhookEndpointEntry)}
   {@const status = endpointStatus(endpoint)}
-  <StatusBadge status={status.status} label={status.label} quiet={status.status !== 'verify'} />
+  <StatusBadge status={status.status} label={status.label} quiet={!needsAttention(status.status)} />
 {/snippet}
 
 {#snippet addButton()}

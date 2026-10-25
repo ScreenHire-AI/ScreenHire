@@ -200,7 +200,7 @@ describe('application page', () => {
     expect(rows[1]![1]).toBe('3 to 5 years');
     expect(rows[3]![1]).toBe('Small teams.\nReal problems.');
     // A file answer is a file tile; one the scan withheld says why and offers no download.
-    expect(rows[2]![1]).toMatch(/portfolio\.pdf.*Withheld: malware found/);
+    expect(rows[2]![1]).toMatch(/portfolio\.pdf.*Unsafe file/);
     expect(within(answers).queryByRole('link')).not.toBeInTheDocument();
   });
 
@@ -316,7 +316,7 @@ describe('application page', () => {
     expect(await within(tasks).findByText('Call the references.')).toBeInTheDocument();
     expect(within(tasks).getByText('To-do')).toBeInTheDocument();
     expect(within(tasks).getByText('For the team')).toBeInTheDocument();
-    await fireEvent.click(within(tasks).getByRole('button', { name: 'Complete, Call the references.' }));
+    await fireEvent.click(within(tasks).getByRole('button', { name: 'Mark done, Call the references.' }));
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url) === `/v1/tasks/${taskId}/complete` && init?.method === 'POST')).toBe(true));
   });
 
@@ -363,7 +363,7 @@ describe('application page', () => {
     const tasks = await screen.findByRole('region', { name: 'Tasks' });
     await within(tasks).findByText('Call the references.');
 
-    expect(within(tasks).queryByRole('button', { name: /^Complete/ })).not.toBeInTheDocument();
+    expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Activity' })).queryByRole('button', { name: 'Add note' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();

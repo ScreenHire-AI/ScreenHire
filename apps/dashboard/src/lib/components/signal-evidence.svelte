@@ -18,7 +18,7 @@
   {:else if evidence.kind === 'Quote'}
     <figure class="flex flex-col gap-1">
       <figcaption class="text-muted-foreground">{evidence.label}</figcaption>
-      <blockquote class="rounded-md border border-border-subtle bg-card px-2.5 py-1.5 whitespace-pre-line break-words">{evidence.text}</blockquote>
+      <blockquote class="max-w-measure rounded-md border border-border-subtle bg-card px-2.5 py-1.5 whitespace-pre-line break-words">{evidence.text}</blockquote>
       {#if evidence.source}<p class="text-caption text-muted-foreground">{evidence.source}</p>{/if}
     </figure>
   {:else if evidence.kind === 'TextComparison'}

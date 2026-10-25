@@ -199,7 +199,7 @@
     actions={sidebar.isMobile ? undefined : inviteButton}
   />
 
-  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
 
     <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>

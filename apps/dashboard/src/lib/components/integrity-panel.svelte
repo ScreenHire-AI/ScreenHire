@@ -9,7 +9,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -55,7 +55,7 @@
   <li class="flex flex-col gap-1 px-3 py-2.5" data-signal={signal.code}>
     <span class="font-mono text-code text-muted-foreground">{signal.code}</span>
     <span class="font-semibold">{signal.title}</span>
-    <p class="text-secondary-foreground">{signal.explanation}</p>
+    <p class="max-w-measure text-secondary-foreground">{signal.explanation}</p>
     {#if signal.evidence.length > 0}
       <div class="mt-0.5 flex flex-col gap-1.5">
         {#each signal.evidence as evidence, index (index)}<SignalEvidence {evidence} />{/each}
@@ -63,7 +63,7 @@
     {/if}
     {#each signal.counterEvidence as counter, index (index)}
       <div class="mt-0.5 flex flex-col gap-1 border-l-2 border-border pl-3" data-counter-evidence>
-        <p><span class="font-semibold">Counter-evidence:</span> {counter.explanation}</p>
+        <p class="max-w-measure"><span class="font-semibold">Counter-evidence:</span> {counter.explanation}</p>
         {#if counter.evidence}<SignalEvidence evidence={counter.evidence} />{/if}
       </div>
     {/each}
@@ -87,7 +87,7 @@
       </div>
       <IntegrityChip {kind} {level} dismissed={view.dismissal !== null} />
     </div>
-    <p>{view.summary}</p>
+    <p class="max-w-measure">{view.summary}</p>
     <!-- Every result keeps its next step (section 16): a calm one as a quiet line, the others in an inset. -->
     {#if level.rank > 0}
       <p class="rounded-lg bg-secondary px-3 py-2 text-secondary-foreground"><span class="font-semibold">Suggested next step:</span> {view.nextStep}</p>
@@ -110,7 +110,7 @@
     {/if}
 
     {#if view.dismissal}
-      <p class="text-muted-foreground">
+      <p class="max-w-measure text-muted-foreground">
         Dismissed by {reviewerName(view.dismissal.actorUserId, view.dismissal.actorName, page.data.user?.id)} <RelativeTime at={view.dismissal.dismissedAt} class="inline" />:
         {dismissReasonLabels[view.dismissal.reason]}{view.dismissal.note ? `. "${view.dismissal.note}"` : '.'}
       </p>
@@ -144,10 +144,10 @@
       </div>
     {/if}
   {:else if detail.status === 'Pending' || (!detail.authenticity && !detail.aiAssistance)}
-    <p class="flex items-center gap-2 px-4.5 py-4 text-muted-foreground max-md:px-4">
-      <StatusMark shape="ring" tone="neutral" />
-      Checks are still running. This panel updates on its own when they finish.
-    </p>
+    <div class="flex flex-wrap items-center gap-2 px-4.5 py-4 text-muted-foreground max-md:px-4">
+      <StatusBadge status="working" label="Checks pending" />
+      <p>Checks are still running. This panel updates on its own when they finish.</p>
+    </div>
   {:else}
     <div class="flex flex-col divide-y divide-border-subtle">
       {#if detail.authenticity}{@render assessment('authenticity', detail.authenticity, authenticityLevels[detail.authenticity.level])}{/if}

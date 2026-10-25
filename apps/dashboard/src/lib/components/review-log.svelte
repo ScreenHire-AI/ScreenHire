@@ -47,7 +47,7 @@
   );
 </script>
 
-<Panel title="Review log">
+<Panel title="Review log" count={entries?.length}>
   {#snippet actions()}
     {#if entries}<Button variant="outline" onclick={() => (noteOpen = true)}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>{/if}
   {/snippet}

@@ -39,7 +39,7 @@ describe('overdue', () => {
     ];
 
     expect(view.label).toBe('Overdue');
-    expect(view.mark).toEqual({ shape: 'diamond', tone: 'review' });
+    expect(view.status).toBe('overdue');
     expect(rows.filter((row) => view.matches(row, now)).map((row) => row.id)).toEqual([applications[0]!.id]);
   });
 });

@@ -101,11 +101,10 @@
     count={jobs.isSuccess ? all.length : undefined}
     countLabel={all.length === 1 ? 'job' : 'jobs'}
     actions={sidebar.isMobile ? undefined : newJob}
-    wide
   />
 
   <!-- The content container (S6): the list template's one table panel. -->
-  <div class="mx-auto flex w-full max-w-page flex-col px-4 py-6 md:px-6 2xl:max-w-page-wide">
+  <div class="flex w-full flex-col px-4 py-6 md:px-6">
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
@@ -114,7 +113,10 @@
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). -->
       <div class="flex items-center overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
         <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
-          <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>All</Toggle>
+          <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>
+            All
+            {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
+          </Toggle>
           {#each statuses as status (status)}
             <Toggle size="lg" bind:pressed={() => statusFilter === status, () => (statusFilter = status)}>
               {jobStatus[status].label}

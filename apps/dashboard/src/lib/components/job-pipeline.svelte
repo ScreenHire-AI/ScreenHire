@@ -134,7 +134,10 @@
       <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
       {#if selected.length > 0}
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}>Move {selected.length} selected…</DropdownMenu.Trigger>
+          <!-- The count sits in the count badge after the label (T4); the name says what it counts. -->
+          <DropdownMenu.Trigger aria-label="Move {selected.length} selected…" class={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}
+            >Move <Badge variant="count">{selected.length}</Badge></DropdownMenu.Trigger
+          >
           <DropdownMenu.Content align="end" class="w-52">
             {#each moveTargets as stage (stage.id)}
               <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
@@ -175,7 +178,7 @@
     <!-- The stage filter: one line that scrolls inside the panel rather than wrapping (F5). -->
     <div class="flex items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
       <div role="group" aria-label="Stage" class="flex shrink-0 gap-1">
-        {#each [{ id: null, name: 'All', count: null }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
+        {#each [{ id: null, name: 'All', count: applications.length }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
           <Toggle size="lg" bind:pressed={() => stageFilter === option.id, () => (stageFilter = option.id)}>
             {option.name}
             {#if option.count !== null}<Badge variant="count">{option.count}</Badge>{/if}

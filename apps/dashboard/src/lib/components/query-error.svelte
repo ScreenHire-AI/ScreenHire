@@ -1,5 +1,5 @@
 <script lang="ts">
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import ProblemIcon from '#lib/components/problem-icon.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
 
   // A request that failed: what went wrong, in a sentence, and a way to try again. Never the raw response. On the page it
@@ -12,10 +12,10 @@
   data-slot="query-error"
   class={[
     'flex flex-wrap items-center gap-3 px-4 py-3',
-    inset ? 'rounded-lg bg-secondary' : 'rounded-panel border border-border bg-card',
+    inset ? 'rounded-lg bg-secondary' : 'rounded-panel border border-border bg-card shadow-surface',
   ]}
 >
-  <StatusMark shape="square" tone="verify" />
+  <ProblemIcon />
   <p class="flex-[1_1_12rem] text-status-verify">{message}</p>
   <Button variant="outline" size="lg" onclick={() => onretry()}>Try again</Button>
 </div>

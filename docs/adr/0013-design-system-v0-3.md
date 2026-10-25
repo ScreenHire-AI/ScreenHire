@@ -91,3 +91,10 @@ feedback became a rule on the canvas, and the owner approved the result. This AD
   `max-w-page`, `page-wide` and `basis-side`, and moves the integrity panel to a candidate tab.
 - The scorecard model gains answer kinds and rating questions; the apply form asks for first and last name, so
   emails can say `firstName`.
+
+## Amendment (2026-10-25, the foundation build)
+
+- Decision 5 covers buttons that act. A toggle in a labelled group is a choice, not an action, so an unpressed toggle
+  stays bare and the pressed one takes `accent`, as section 11 already showed. Check A6 says so.
+- A problem in words (a failed action, a form error) starts with `circle-alert`, which is not a status icon, so I2
+  keeps status icons inside status badges.

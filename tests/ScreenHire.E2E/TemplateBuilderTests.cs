@@ -78,7 +78,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         // An automation on the integrity checks that tries to reject: the API's guardrail refuses it.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Automations for the whole workflow") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Edit automations for the whole workflow") }).ClickAsync();
         var drawer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Whole workflow" });
         await drawer.GetByRole(AriaRole.Button, new() { Name = "Add automation" }).ClickAsync();
         var firstAction = drawer.GetByRole(AriaRole.Combobox, new() { NameRegex = new Regex("^Action 1") });
@@ -86,7 +86,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await drawer.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The integrity checks finish" });
         await drawer.GetByRole(AriaRole.Button, new() { Name = "Add condition" }).ClickAsync();
         await drawer.GetByLabel("Fact for condition 1").SelectOptionAsync(new SelectOptionValue { Label = "Integrity: authenticity" });
-        await drawer.GetByLabel("Value for condition 1").SelectOptionAsync(new SelectOptionValue { Label = "Verification recommended" });
+        await drawer.GetByLabel("Value for condition 1").SelectOptionAsync(new SelectOptionValue { Label = "Verification suggested" });
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Reject" });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Reason", Exact = true }).FillAsync("The role needs a verified identity.");
         await Expect(drawer.GetByRole(AriaRole.Article)).ToContainTextAsync(Guardrail);
@@ -160,14 +160,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await newJob.GetByLabel("Country").FillAsync("GB");
         await newJob.GetByRole(AriaRole.Button, new() { Name = "Create job" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Warehouse associate, nights");
-        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Workflow") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Edit workflow") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Workflow: Warehouse associate, nights");
         await Expect(HeaderBand).ToContainTextAsync($"From {templateName} v1");
 
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
         var sample = Page.GetByRole(AriaRole.Form, new() { Name = "Sample application" });
         await sample.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The integrity checks finish" });
-        await sample.GetByLabel("Authenticity").SelectOptionAsync(new SelectOptionValue { Label = "Verification recommended" });
+        await sample.GetByLabel("Authenticity").SelectOptionAsync(new SelectOptionValue { Label = "Verification suggested" });
         await sample.GetByLabel(RightToWork).SelectOptionAsync(new SelectOptionValue { Label = "Yes" });
         await sample.GetByRole(AriaRole.Button, new() { Name = "Run test" }).ClickAsync();
         var results = Page.GetByRole(AriaRole.Region, new() { Name = "What would happen" });
@@ -213,7 +213,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await row.GetByRole(AriaRole.Link, new() { Name = "Retail assistant, weekends" }).ClickAsync();
         await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Retail assistant v1");
         await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Update available");
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Workflow" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Edit workflow" }).ClickAsync();
         var update = Page.GetByRole(AriaRole.Region, new() { Name = "Template update available" });
         await Expect(update).ToContainTextAsync("Retail assistant has version 2; this job uses version 1.");
         await update.GetByRole(AriaRole.Button, new() { Name = "Review update" }).ClickAsync();

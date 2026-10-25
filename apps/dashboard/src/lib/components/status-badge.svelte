@@ -1,26 +1,17 @@
-<script lang="ts" module>
-  /**
-   * The status meanings in design system section 3.2. `ai` is information and has no mark; `neutral` is a state that
-   * needs nothing (not started, ended).
-   */
-  export type Status = 'clear' | 'review' | 'verify' | 'ai' | 'neutral';
-
-  const shapes = { clear: 'circle', review: 'diamond', verify: 'square', neutral: 'ring' } as const;
-</script>
-
 <script lang="ts">
-  import StatusMark from '#lib/components/status-mark.svelte';
+  import StatusIcon from '#lib/components/status-icon.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
+  import { statuses, type StatusName } from '#lib/status.js';
   import { cn } from '#lib/utils.js';
 
-  // A status: shape mark, colour and label, always together (T1). `quiet` is for calm states in lists and tables: the
-  // mark and muted text, no fill (T3).
-  let { status, label, quiet = false, class: className }: { status: Status; label: string; quiet?: boolean; class?: string } = $props();
+  // A status: its icon, colour and label, always together (T1). `quiet` is for calm states in lists and tables: the icon
+  // and muted text, no fill (T3).
+  let { status, label, quiet = false, class: className }: { status: StatusName; label: string; quiet?: boolean; class?: string } = $props();
+
+  const tone = $derived(statuses[status].tone);
 </script>
 
-<Badge variant={quiet ? 'quiet' : status} data-status={status} class={cn('h-[22px] gap-1.5', !quiet && 'px-2.5', className)}>
-  {#if status !== 'ai'}
-    <StatusMark shape={shapes[status]} tone={status} class="size-1.5" />
-  {/if}
+<Badge variant={quiet ? 'quiet' : tone} data-status={tone} class={cn('h-6 gap-1.5', !quiet && 'pr-2.5 pl-2', className)}>
+  <StatusIcon {status} />
   {label}
 </Badge>

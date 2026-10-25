@@ -59,7 +59,9 @@ new route is the `/add-dashboard-page` skill.
   also joins `typeScale` in `#lib/utils.ts`, or `cn()` reads it as a colour and drops it; a new named radius
   (`rounded-panel`) joins `radii` there for the same reason.
 - Status is its icon, a colour and a text label, always all three (design system section 3.2). Colour alone
-  fails WCAG 1.4.1.
+  fails WCAG 1.4.1. Every status is a name in `statuses` (`#lib/status.ts`), which holds its icon and colour;
+  `StatusBadge` takes the name and a label. A new status takes the row whose meaning it shares and joins the table in
+  section 3.2.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
   reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves
   take their stages from `bulkMoveStages` (`#lib/integrity.ts`).
@@ -78,7 +80,7 @@ new route is the `/add-dashboard-page` skill.
   a header button and `aria-sort`) but never filters: pages filter the rows they pass in (stage, saved view,
   `IntegrityFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
   the list in `#lib/saved-views.ts`.
-- Integrity levels are drawn from `#lib/integrity.ts` (label, shape, tone, badge variant) through `IntegrityChip`;
+- Integrity levels are drawn from `#lib/integrity.ts` (label, short label, status) through `IntegrityChip`;
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 
 ## Checks

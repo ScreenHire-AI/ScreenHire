@@ -53,7 +53,7 @@ function signal(code: string, title: string, overrides: Partial<IntegritySignalV
   };
 }
 
-/** The bot: verification recommended, with reasons, one context signal and counter-evidence. */
+/** The bot: verification suggested, with reasons, one context signal and counter-evidence. */
 export function botIntegrity(overrides: Partial<ApplicationIntegrity> = {}): ApplicationIntegrity {
   return {
     applicationId: integrityApplicationId,

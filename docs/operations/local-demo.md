@@ -161,7 +161,7 @@ makes have no history until someone edits them.
 ## A five-minute demo
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, and the Status filter
-   counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification recommended".
+   counts what is open and what is a draft. The sidebar's saved views count what needs attention: "Needs review" and "Verification suggested".
 2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The Authenticity panel counts the seven applicants
    by level, each level's toggle filters the table to it, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting

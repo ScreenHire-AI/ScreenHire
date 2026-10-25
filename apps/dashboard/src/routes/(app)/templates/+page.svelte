@@ -17,6 +17,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -101,10 +102,9 @@
     count={templates.isSuccess ? list.length : undefined}
     countLabel={list.length === 1 ? 'template' : 'templates'}
     actions={sidebar.isMobile ? undefined : newTemplate}
-    wide
   />
 
-  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6 2xl:max-w-page-wide">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     {#if templates.isError}
       <Panel title="All templates"><QueryError message={describeError(templates.error, 'Could not load templates')} onretry={() => templates.refetch()} inset /></Panel>
     {:else}
@@ -147,7 +147,7 @@
                 {#snippet facts()}
                   {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
                   <Badge variant="muted" class="tabular-nums">{template.latestPublishedVersion ? `Version ${template.latestPublishedVersion}` : 'Not published'}</Badge>
-                  {#if template.draftVersion}<Badge variant="muted" class="tabular-nums">Draft {template.draftVersion}</Badge>{/if}
+                  {#if template.draftVersion}<StatusBadge status="draft" label={`Draft ${template.draftVersion}`} quiet />{/if}
                 {/snippet}
               </ListItem>
             {/each}

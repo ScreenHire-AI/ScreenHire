@@ -6,14 +6,17 @@ tags: [design-system, ui, checklist]
 sources:
   - resource: packages/ui/src/tokens.css
   - resource: packages/ui/src/theme.css
+  - resource: apps/dashboard/src/lib/status.ts
+  - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/+page.svelte
 ---
 # ScreenHire design system
 
 > Status: **v0.3 (2026-10-25)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
 > [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
-> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is still
-> built to v0.2: section 21 lists the components the v0.3 build adds, and section 22 the screens it changes.
+> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard has the
+> v0.3 foundation: status icons, pages that fill the window, the surface shadow and the v0.3 labels. Section 21 lists the
+> components the v0.3 build still adds, and section 22 the screens it changes.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -78,7 +81,9 @@ Authors check their screens against this list, and the `design-review` agent rep
   button never navigates. Badges, pills and counts are never clickable, except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
-  column header is the one bare text button, marked by its sort icon (L2). A button never looks like a badge.
+  column header is the one bare text button, marked by its sort icon (L2). A toggle in a labelled group is a choice,
+  not an action: its label names the choice, the pressed one takes `accent` and the others stay bare (section 11). A
+  button never looks like a badge.
 - **A7** Reorder by dragging a grip. Clicking the grip opens Move up, Move down, Move to top and Move to bottom, and
   Space with the arrow keys moves it. No up and down arrow buttons.
 - **A8** An editor whose result someone else sees (a questionnaire, a scorecard, an email template, a careers page)
@@ -199,14 +204,19 @@ Each status has its own Lucide icon. The icon alone tells statuses apart, so col
 
 | Colour | Statuses and their icons | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Icon colour |
 |---|---|---|---|---|---|
-| Clear | No concerns, No problems found, Delivering, Done (`circle-check`); Open, a job taking applications (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| Clear | No concerns, No problems found, Delivering, Done; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review | Review suggested (`eye`); Overdue by 2 days (`clock-alert`) | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
-| Verify | Verification suggested (`id-card`); Needs fixes, for a refused posting or a workflow with problems (`wrench`); Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
+| Verify | Verification suggested (`id-card`). Needs fixes, for a refused posting or a workflow with problems, and for a posting a board did not answer (Error), a webhook Turned off after failures and a delivery that Failed (`wrench`). Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI (information) | No signs, Some signs or Strong signs of AI help (`sparkles`) | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
-| Grey: waiting or not started | Sent and Queued, waiting on someone else (`clock-4`); Scanning, ScreenHire at work (`loader-circle`); Closed (`door-closed`); Draft (`file-pen-line`); Not posted, a board the job is not on (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
+| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try (`clock-4`). Scanning and Checks pending, ScreenHire at work; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Offline, the live updates connection (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. No status uses the warning triangle: it marks only the
 integrity cards that fed a level (section 16). Counts use tabular figures.
+
+In code, every status is a name in `statuses` (`#lib/status.ts`) with its icon and colour, and `StatusBadge` draws it.
+The icon colour is the `status-*-mark` token (`status-ai-mark` for AI), and grey statuses use `muted-foreground`. In
+lists and tables only the review and verify statuses get a filled badge (T3). AI assistance stays quiet in a list at
+every level, because it is information.
 
 **Overdue** is the hiring team's status, never the candidate's. An application is overdue once it has been in its stage
 longer than the stage's time limit (`slaDays`), which measures how long the team has kept the candidate waiting. It
@@ -231,7 +241,8 @@ about the board and not this status.
 | `scrim` | `#000000` | | |
 
 Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (icon `#F2B84B`); verify `#F7957A` on
-`#3D1A10` (icon `#F27A55`); AI `#C7C8FA` on `#26264A`. In dark mode, higher layers get lighter (section 6).
+`#3D1A10` (icon `#F27A55`); AI `#C7C8FA` on `#26264A` (icon `#C7C8FA`); grey icons take `muted-foreground`. In dark mode,
+higher layers get lighter (section 6), and the surface shadow is darker so it still shows on the dark page.
 
 ### 3.4 Candidate and marketing pages
 
@@ -290,7 +301,7 @@ questionnaire preview shows the candidate base with `text-candidate-body`.
 | Panel header | 56px (52px on phones), 16 to 18px side padding |
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
-| Content widths | Pages fill the window. Text measure 72ch for long paragraphs, 688px `form`; the details rail 340px. The v0.3 build replaces `max-w-page`, `page-wide` and `basis-side` |
+| Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`), forms at 688px (`max-w-form`), and the details rail is 340px (`basis-rail`, `--container-rail`). If a layout needs a limit, the element gets a max-width, never the page |
 | Board columns | 296px; an empty or closed stage shrinks to 188px |
 
 ## 6. Layers
@@ -301,13 +312,14 @@ Atlassian's surfaces.
 | Layer | What lives there | Looks like |
 |---|---|---|
 | Page | Layout only. Nothing readable sits on it. | `background` |
-| Surface | Header band, panels, tables, sidebar, top bar | `card`, 1px `border`; panels and cards add the soft surface shadow `0 1px 2px rgb(28 27 25 / .06), 0 1px 3px rgb(28 27 25 / .04)`, a token the v0.3 build adds |
+| Surface | Header band, panels, tables, sidebar, top bar | `card`, 1px `border`; panels and cards add the soft surface shadow `shadow-surface`: `0 1px 2px rgb(28 27 25 / .06), 0 1px 3px rgb(28 27 25 / .04)`, and in dark mode `0 1px 2px rgb(0 0 0 / .5), 0 1px 3px rgb(0 0 0 / .3)` |
 | Inset | A well inside a surface: resume preview, board column | `secondary`, no edge |
 | Raised | The one thing in hand: a dragged card, a toolbar stuck while scrolling | surface, edge, `0 4px 12px rgb(28 27 25 / .14)` |
 | Overlay | Menus, popovers, tooltips, sheets, dialogs, toasts | surface, edge, `0 16px 48px rgb(28 27 25 / .18)`; dialogs dim the page |
 
 - Every section is a panel with its title inside the panel header. Panels in a row share a top edge.
-- Shadows: the soft surface shadow on panels and cards, then raised and overlay. Nothing else. No card inside a card.
+- Shadows: the soft surface shadow on panels and cards (a board card, a workflow graph node, the graph's controls),
+  then raised and overlay. Nothing else. No card inside a card.
 - Inside an inset, data and controls sit on `card` with a `border-subtle` edge (a quoted answer, a list of fact pills,
   a field), so they read as values in the well, not as another layer.
 - A summary band is an inset across the top of a panel, full width with no edge of its own. Summary cards, the next
@@ -394,7 +406,7 @@ in a development build, shows every component in each state, and its test fails 
 | Component | Built on | Rules |
 |---|---|---|
 | Header band, Panel | Our components (`HeaderBand` with `Fact` for the facts row, `Panel`) | Section 7 |
-| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Icon, colour, label (T1, T3); each status's icon is in section 3.2 |
+| Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Icon, colour, label (T1, T3): 24px high, the 14px icon in its icon colour, then the label in 12px semibold. It takes a status name from `#lib/status.ts`; each status's icon is in section 3.2 |
 | Overdue badge | `OverdueBadge` on `StatusBadge` and `Hint` | Section 3.2: the review badge, "Overdue by" and how long, the due time in a tooltip that opens on hover, focus or tap. First in the stage cell of a candidate table and list item, first in a board card's status row, and beside the title on an application's page (S2, T2). Never on a hired, rejected or withdrawn stage |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces. For tags, and for facts in a list item or a sheet; never in a header, which has a facts row, or a table cell (W3, L1) |
 | Count | `Badge` count variant | The grey count badge (min 28px) after its label on a control (T4); plain text in a table |
@@ -423,14 +435,14 @@ in a development build, shows every component in each state, and its test fails 
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
-| Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the verify mark and colour (T1) |
+| Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the problem icon and the verify colour (T1, section 14) |
 | Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a detail page a last item, With a note, opens the move in a sheet with a note |
 | Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template |
 | Email sheet | `EmailSheet` on shadcn `Sheet` | Email one candidate or a selection (section 9, in place). In the v0.3 build it becomes the email composer (section 21): start from a template or a blank email, change this one email, insert variables, and preview with the candidate's own details; Send is the one primary. The rejection email is never offered (section 16), and no bulk email while an integrity filter or view picked the rows |
-| Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: mark, colour and label (T1); the rail shows the mark with a tooltip |
-| Failure text | `FailureText` on the status mark | A failed action or form, in one line where it happened: the verify mark, its colour and the reason (T1). A section that cannot load uses `QueryError` |
+| Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline); the rail shows the icon with a tooltip |
+| Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16; on a candidate the panel becomes the Integrity tab. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
 
 ## 12. Words
@@ -474,8 +486,11 @@ Always the browser's locale (US English by default), through one shared formatte
 
 Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Size 16 and
 stroke 1.75 are set once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a
-label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges, and no other
-control or decoration uses them. The warning triangle marks only the integrity cards that fed a level (section 16).
+label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges and in a status's
+saved view in the sidebar (section 22), and no other control or decoration uses them. The warning triangle marks only
+the integrity cards that fed a level (section 16). A problem in words (a failed action, a form error, a builder's
+problem to fix) starts with `circle-alert` in the verify icon colour (`ProblemIcon`). It is not a status icon, so it
+never stands in for a badge.
 
 ## 15. Shortcuts
 
@@ -491,7 +506,8 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - Each assessment shows its level as a status badge, a one-line summary, its reasons with evidence and
   counter-evidence, and its suggested next step. A calm result keeps its next step as one quiet line ("Suggested next
   step: No action needed."), not a boxed callout.
-- AI assistance is information: its own colour, no mark, never a warning.
+- AI assistance is information: its own colour and the `sparkles` icon at every level, quiet in lists, never a
+  warning.
 - No score, no percentage, no reject control. The panel ends with "No automated decision has been made. Every action
   is logged."
 - Facts shown elsewhere on the page (the candidate's AI declaration) are not repeated in the panel (W4).

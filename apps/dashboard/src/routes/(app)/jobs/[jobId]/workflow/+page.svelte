@@ -19,6 +19,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -119,7 +120,7 @@
 
   const changeWords: Record<WorkflowChangeKind, string> = { Added: 'Added', Removed: 'Removed', Changed: 'Changed' };
   const notFound = $derived(job.error instanceof ApiError && job.error.status === 404);
-  const workArea = 'mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6';
+  const workArea = 'flex w-full flex-col gap-5 px-4 py-6 md:px-6';
 </script>
 
 <svelte:head>
@@ -151,7 +152,7 @@
   {:else if !detail || !draft.workflow}
     <div aria-hidden="true">
       <div class="border-b border-border bg-card">
-        <div class="mx-auto flex max-w-page flex-col gap-4 px-4 pt-5 md:px-6">
+        <div class="flex flex-col gap-4 px-4 pt-5 md:px-6">
           <Skeleton class="h-9 w-80 max-w-full" />
           <Skeleton class="h-8 w-96 max-w-full" />
         </div>
@@ -173,7 +174,7 @@
             {:else}
               <Badge variant="muted">Not from a template</Badge>
             {/if}
-            {#if readonly}<Badge variant="muted">Job closed</Badge>{/if}
+            {#if readonly}<StatusBadge status="closed" label="Job closed" />{/if}
           </span>
         {/snippet}
         {#snippet actions()}

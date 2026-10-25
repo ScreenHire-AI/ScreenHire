@@ -142,7 +142,7 @@ describe('webhook endpoint page', () => {
 
     const reason = await screen.findByRole('region', { name: 'Why it is off' });
     expect(within(reason).getByText('Ten deliveries in a row failed.')).toBeInTheDocument();
-    expect(screen.getByText('Off after failures')).toBeInTheDocument();
+    expect(screen.getAllByText('Turned off').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Turn on' })).toBeInTheDocument();
   });
 

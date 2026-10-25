@@ -51,7 +51,7 @@
             <span class="font-semibold">{item.event}</span>
             {#if item.actor}<span class="text-muted-foreground">{item.actor}</span>{/if}
           </p>
-          {#if item.note}<p class="break-words">"{item.note}"</p>{/if}
+          {#if item.note}<p class="max-w-measure break-words">"{item.note}"</p>{/if}
           <RelativeTime at={item.at} class="text-caption text-muted-foreground" />
         </div>
       </li>

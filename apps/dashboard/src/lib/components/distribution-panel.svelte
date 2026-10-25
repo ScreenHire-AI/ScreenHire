@@ -13,6 +13,7 @@
   import { boardAction, boardRows, describePosting, type BoardAction } from '#lib/distribution.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { needsAttention } from '#lib/status.js';
 
   // Where the job is posted: one row per board with its state as a status badge, the board's estimate as a fact pill
   // and the one thing the person can do there. Publishing a draft to every board is the page's primary action, in its
@@ -93,8 +94,8 @@
             {#if action}
               {@const text = actionLabels[action](row.name)}
               <Button
-                variant="ghost"
-                class="ml-auto text-primary"
+                variant="outline"
+                class="ml-auto"
                 aria-label={text.label}
                 disabled={busyBoard === row.boardId}
                 onclick={() => act(action, row.boardId, row.name)}>{text.text}</Button
@@ -106,7 +107,7 @@
             <Hint content={view.detail}>
               {#snippet children({ props })}
                 <span {...props} data-posting-state class="inline-flex rounded-full">
-                  <StatusBadge status={view.status} label={view.label} quiet={view.status !== 'verify'} />
+                  <StatusBadge status={view.status} label={view.label} quiet={!needsAttention(view.status)} />
                 </span>
               {/snippet}
             </Hint>

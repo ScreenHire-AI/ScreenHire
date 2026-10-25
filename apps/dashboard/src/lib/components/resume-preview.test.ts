@@ -129,8 +129,8 @@ describe('resume preview', () => {
   });
 
   it.each([
-    ['Pending', 'Being scanned for malware'],
-    ['Infected', 'Withheld: malware found'],
+    ['Pending', 'Scanning'],
+    ['Infected', 'Unsafe file'],
   ] as const)('shows neither a preview nor Download for a %s file, and says why', (scanStatus, reason) => {
     const fetch = serveFile();
     render(WithTooltips, { props: { component: ResumePreview, props: { applicationId, file: resume({ scanStatus }) } } });

@@ -3,6 +3,7 @@
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import Panel from '#lib/components/panel.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -70,7 +71,7 @@
             <li class={['flex flex-col gap-1', rowClass]}>
               <span class="flex flex-wrap items-center gap-2">
                 <span class="font-semibold break-words">{automation.name}</span>
-                {#if automation.enabled === false}<Badge variant="muted">Off</Badge>{/if}
+                {#if automation.enabled === false}<StatusBadge status="notInEffect" label="Off" quiet />{/if}
               </span>
               <span class={automation.enabled === false ? 'text-muted-foreground' : 'text-secondary-foreground'}>{summarize(automation, workflow, team.data?.data, templateNames)}</span>
             </li>

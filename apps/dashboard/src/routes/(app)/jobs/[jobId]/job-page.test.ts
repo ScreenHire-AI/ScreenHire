@@ -75,7 +75,7 @@ describe('job page', () => {
     const facts = within(band).getAllByRole('term').map((term) => term.textContent);
     expect(facts).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
     expect(within(band).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
-    expect(within(band).getByRole('link', { name: 'Workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
+    expect(within(band).getByRole('link', { name: 'Edit workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Distribution' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Pipeline' })).toBeInTheDocument();

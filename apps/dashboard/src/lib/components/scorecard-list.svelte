@@ -45,7 +45,7 @@
             </SummaryItem>
           {/each}
         </SummaryList>
-        {#if scorecard.note}<p class="break-words whitespace-pre-line">"{scorecard.note}"</p>{/if}
+        {#if scorecard.note}<p class="max-w-measure break-words whitespace-pre-line">"{scorecard.note}"</p>{/if}
       </div>
     </li>
   {/each}

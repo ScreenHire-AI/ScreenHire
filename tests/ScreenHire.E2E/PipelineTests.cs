@@ -252,9 +252,9 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
                 (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits a stage and a selection");
 
                 await pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity:") }).ClickAsync();
-                await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Verification recommended" }).ClickAsync();
+                await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Verification suggested" }).ClickAsync();
                 await Page.Keyboard.PressAsync("Escape");
-                await Expect(pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity: Verification recommended") })).ToBeVisibleAsync();
+                await Expect(pipeline.GetByRole(AriaRole.Button, new() { NameRegex = new("^Integrity: Verification suggested") })).ToBeVisibleAsync();
                 (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits the longest filter label");
             }
         }

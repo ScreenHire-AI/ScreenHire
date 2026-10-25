@@ -17,32 +17,32 @@ describe('eventLabel', () => {
 });
 
 describe('endpointStatus', () => {
-  it('is calm and labelled On while the endpoint is on', () => {
-    expect(endpointStatus({ enabled: true, disabledReason: null })).toEqual({ status: 'clear', label: 'On' });
+  it('is calm and labelled Delivering while the endpoint is on', () => {
+    expect(endpointStatus({ enabled: true, disabledReason: null })).toEqual({ status: 'done', label: 'Delivering' });
   });
 
-  it('asks for someone when the worker turned it off after failures', () => {
+  it('needs fixes when the worker turned it off after failures', () => {
     expect(endpointStatus({ enabled: false, disabledReason: 'Failed 10 deliveries in a row' })).toEqual({
-      status: 'verify',
-      label: 'Off after failures',
+      status: 'needsFixes',
+      label: 'Turned off',
     });
   });
 
   it('is calm when a person turned it off', () => {
-    expect(endpointStatus({ enabled: false, disabledReason: null })).toEqual({ status: 'neutral', label: 'Off' });
+    expect(endpointStatus({ enabled: false, disabledReason: null })).toEqual({ status: 'notInEffect', label: 'Off' });
   });
 
-  it('is On even when an old reason is still recorded', () => {
-    expect(endpointStatus({ enabled: true, disabledReason: 'Failed 10 deliveries in a row' }).label).toBe('On');
+  it('is Delivering even when an old reason is still recorded', () => {
+    expect(endpointStatus({ enabled: true, disabledReason: 'Failed 10 deliveries in a row' }).label).toBe('Delivering');
   });
 });
 
 describe('deliveryStatus', () => {
   it.each<[WebhookDeliveryStatus, string, string]>([
-    ['Succeeded', 'clear', 'Delivered'],
-    ['Pending', 'review', 'Pending'],
-    ['Failed', 'verify', 'Failed'],
-    ['Skipped', 'neutral', 'Skipped'],
+    ['Succeeded', 'done', 'Delivered'],
+    ['Pending', 'waiting', 'Pending'],
+    ['Failed', 'needsFixes', 'Failed'],
+    ['Skipped', 'notInEffect', 'Skipped'],
   ])('shows %s as %s, labelled %s', (status, tone, label) => {
     expect(deliveryStatus[status]).toEqual({ status: tone, label });
   });

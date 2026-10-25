@@ -44,7 +44,7 @@
           class="block h-80 w-full rounded-lg border border-border-subtle bg-card"
         ></iframe>
       {:else}
-        <pre data-email-text class="h-80 overflow-auto rounded-lg border border-border-subtle bg-card p-4 font-sans text-body whitespace-pre-wrap">{preview.text}</pre>
+        <pre data-email-text class="h-80 max-w-measure overflow-auto rounded-lg border border-border-subtle bg-card p-4 font-sans text-body whitespace-pre-wrap">{preview.text}</pre>
       {/if}
     </div>
   {/if}

@@ -25,8 +25,8 @@ describe('header band', () => {
 
     expect(screen.getByRole('tablist')).toBeInTheDocument();
     expect(container.querySelector('dl')).toBeNull();
-    // A list page's band widens with the page at 2xl (S6).
-    expect(container.querySelector('[data-slot="header-band"] > div')).toHaveClass('max-w-page', '2xl:max-w-page-wide');
+    // The band fills the window, as the page does (S6).
+    expect(container.querySelector('[data-slot="header-band"] > div')!.className).not.toMatch(/max-w-/);
     await expectNoAxeViolations(container);
   });
 });

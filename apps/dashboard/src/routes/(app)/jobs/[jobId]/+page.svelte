@@ -116,7 +116,7 @@
   <!-- A failed refetch keeps the job on screen; the error replaces it only when there is nothing to show. -->
   {#if job.isError && !detail}
     <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
-    <div class="mx-auto w-full max-w-page px-4 py-6 md:px-6">
+    <div class="w-full px-4 py-6 md:px-6">
       <Panel title={notFound ? 'Details' : 'Could not load the job'}>
         {#if notFound}
           <Empty.Root>
@@ -133,12 +133,12 @@
   {:else if !detail}
     <!-- Skeletons of the header band and the two columns (E1). -->
     <div aria-hidden="true" class="border-b border-border bg-card">
-      <div class="mx-auto flex w-full max-w-page flex-col gap-4 px-4 py-5 md:px-6">
+      <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
         <Skeleton class="h-9 w-full max-w-80" />
         <Skeleton class="h-10 w-full max-w-120" />
       </div>
     </div>
-    <div aria-hidden="true" class="mx-auto flex w-full max-w-page flex-wrap items-start gap-5 px-4 py-6 md:px-6">
+    <div aria-hidden="true" class="flex w-full flex-wrap items-start gap-5 px-4 py-6 md:px-6">
       <Skeleton class="h-80 min-w-0 flex-[999_1_520px] rounded-panel" />
       <Skeleton class="h-48 min-w-0 flex-[1_1_320px] rounded-panel" />
     </div>
@@ -153,7 +153,7 @@
           {#if detail.status !== 'Closed'}
             <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
           {/if}
-          <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Workflow</Button>
+          <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
         {/if}
         <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
         {#if sidebar.isMobile || detail.status === 'Open'}
@@ -214,8 +214,8 @@
       {currentUserId}
     />
 
-    <!-- The detail template (section 7): a main column and a side column, in a 1280px container (S6). -->
-    <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+    <!-- The detail template (section 7): a main column and a side column, filling the window (S6). -->
+    <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
       {#if applications.isSuccess && all.length > 0}
         <IntegrityOverview applications={all} bind:filter={() => integrityFilter, (next) => pipeline?.setIntegrityFilter(next)} />
       {:else if applications.isPending}
@@ -297,7 +297,7 @@
       {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assistance' }] as const as row (row.kind)}
         {@const chip = chipOf(application.integrity, row.kind)}
         <SummaryItem label={row.label}>
-          <IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} />
+          <IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} compact />
         </SummaryItem>
       {/each}
     </SummaryList>

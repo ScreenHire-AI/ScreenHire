@@ -117,7 +117,7 @@
     actions={sidebar.isMobile ? undefined : createButton}
   />
 
-  <div class="mx-auto flex w-full max-w-page flex-col gap-5 px-4 py-6 md:px-6">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
     {#if keys.isError}
       <Panel title="Keys"><QueryError message={describeError(keys.error, 'Could not load the API keys')} onretry={() => keys.refetch()} inset /></Panel>
@@ -204,7 +204,7 @@
 {/snippet}
 
 {#snippet status(key: ApiKeySummary)}
-  {#if key.revokedAt}<StatusBadge status="neutral" label="Revoked" quiet />{:else}<StatusBadge status="clear" label="Active" quiet />{/if}
+  {#if key.revokedAt}<StatusBadge status="notInEffect" label="Revoked" quiet />{:else}<StatusBadge status="done" label="Active" quiet />{/if}
 {/snippet}
 
 {#snippet keyMenu(key: ApiKeySummary)}

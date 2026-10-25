@@ -47,7 +47,7 @@
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
-  import StatusBadge, { type Status } from '#lib/components/status-badge.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
@@ -75,6 +75,7 @@
   import { aiAssistanceLevels, authenticityLevels } from '#lib/integrity.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
+  import type { StatusName } from '#lib/status.js';
   import EmailSheetDemo, { demoEmail } from './email-sheet-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
@@ -116,12 +117,28 @@
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
 
-  const statuses: { status: Status; label: string }[] = [
-    { status: 'clear', label: 'No concerns' },
+  // Every status in design system section 3.2, by its row: the icon alone tells them apart.
+  const statuses: { status: StatusName; label: string }[] = [
+    { status: 'done', label: 'No concerns' },
+    { status: 'open', label: 'Open' },
     { status: 'review', label: 'Review suggested' },
-    { status: 'verify', label: 'Verification recommended' },
-    { status: 'ai', label: 'Some indicators' },
-    { status: 'neutral', label: 'Draft' },
+    { status: 'overdue', label: 'Overdue by 2 days' },
+    { status: 'verification', label: 'Verification suggested' },
+    { status: 'needsFixes', label: 'Needs fixes' },
+    { status: 'unsafeFile', label: 'Unsafe file' },
+    { status: 'ai', label: 'Some signs of AI help' },
+    { status: 'waiting', label: 'Sent' },
+    { status: 'working', label: 'Scanning' },
+    { status: 'closed', label: 'Closed' },
+    { status: 'draft', label: 'Draft' },
+    { status: 'notInEffect', label: 'Not posted' },
+  ];
+  const calmStatuses: { status: StatusName; label: string }[] = [
+    { status: 'done', label: 'No concerns' },
+    { status: 'open', label: 'Live' },
+    { status: 'ai', label: 'No signs' },
+    { status: 'waiting', label: 'Queued' },
+    { status: 'closed', label: 'Closed' },
   ];
 
   const steps: Step[] = [
@@ -138,8 +155,8 @@
 
   const people = [
     { id: '1', name: 'Jordan Ellis', status: 'review', label: 'Review suggested', stage: 'Screening', source: 'Careers page', at: ago(2 * hour) },
-    { id: '2', name: 'Priya Natarajan', status: 'clear', label: 'No concerns', stage: 'Interview', source: 'Referral', at: ago(3 * day) },
-    { id: '3', name: 'Samuel Okonkwo-Hartley', status: 'verify', label: 'Verification recommended', stage: 'Applied', source: 'Job board', at: ago(9 * day) },
+    { id: '2', name: 'Priya Natarajan', status: 'done', label: 'No concerns', stage: 'Interview', source: 'Referral', at: ago(3 * day) },
+    { id: '3', name: 'Samuel Okonkwo-Hartley', status: 'verification', label: 'Verification suggested', stage: 'Applied', source: 'Job board', at: ago(9 * day) },
   ] as const;
 
   const activity: Activity[] = [
@@ -287,7 +304,7 @@
 </ConfirmDialog>
 
 <main class="flex min-h-screen flex-col">
-  <HeaderBand title="Style guide" wide>
+  <HeaderBand title="Style guide">
     {#snippet actions()}
       <label class="flex items-center gap-2">
         <span class="text-muted-foreground">Width</span>
@@ -310,7 +327,7 @@
   </HeaderBand>
 
   <div class="overflow-x-auto">
-    <div class={['mx-auto flex flex-col gap-5 px-4 py-6 md:px-6', !width && 'w-full max-w-page 2xl:max-w-page-wide']} style:width={width ? `${width}px` : undefined}>
+    <div class={['flex flex-col gap-5 px-4 py-6 md:px-6', !width && 'w-full']} style:width={width ? `${width}px` : undefined}>
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
@@ -338,7 +355,7 @@
             <figcaption class="text-caption text-muted-foreground">With tabs</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand level={3} title="Senior product designer">
-                {#snippet status()}<StatusBadge status="clear" label="Live" />{/snippet}
+                {#snippet status()}<StatusBadge status="open" label="Open" />{/snippet}
                 {#snippet actions()}<Button variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit</Button>{/snippet}
                 {#snippet tabs()}
                   <Tabs.Root value="pipeline">
@@ -395,21 +412,30 @@
       </div>
 
       <Panel title="Status badge">
-        <div class="flex flex-col gap-4">
-          <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Needs attention, or beside a title</figcaption>
-            <div class="flex flex-wrap gap-2">
-              {#each statuses as item (item.status)}<StatusBadge status={item.status} label={item.label} />{/each}
-            </div>
-          </figure>
-          <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Calm, in a list or table</figcaption>
-            <div class="flex flex-wrap gap-4">
-              <StatusBadge status="clear" label="No concerns" quiet />
-              <StatusBadge status="clear" label="Live" quiet />
-              <StatusBadge status="neutral" label="Closed" quiet />
-            </div>
-          </figure>
+        <!-- Light and dark side by side: a `.dark` box takes the dark tokens whatever the page's theme (section 3.3). -->
+        <div class="grid gap-4 @container lg:grid-cols-2">
+          {#each ['light', 'dark'] as theme (theme)}
+            <section aria-label={theme === 'dark' ? 'Dark' : 'Light'} class={['flex flex-col gap-4 rounded-lg bg-background p-4 text-foreground', theme]}>
+              <figure class="flex flex-col gap-2">
+                <figcaption class="text-caption text-muted-foreground">Needs attention, or beside a title</figcaption>
+                <div class="flex flex-wrap gap-2">
+                  {#each statuses as item (item.status)}<StatusBadge status={item.status} label={item.label} />{/each}
+                </div>
+              </figure>
+              <figure class="flex flex-col gap-2">
+                <figcaption class="text-caption text-muted-foreground">Calm, in a list or table</figcaption>
+                <div class="flex flex-wrap gap-4">
+                  {#each calmStatuses as item (item.status)}<StatusBadge status={item.status} label={item.label} quiet />{/each}
+                </div>
+              </figure>
+              <figure class="flex flex-col gap-2">
+                <figcaption class="text-caption text-muted-foreground">A panel on the page, with the soft surface shadow</figcaption>
+                <div class="rounded-panel border border-border bg-card p-4 shadow-surface">
+                  <p class="flex flex-wrap items-center gap-2">Count on a pressed toggle <Toggle pressed size="lg">Screening <Badge variant="count">5</Badge></Toggle></p>
+                </div>
+              </figure>
+            </section>
+          {/each}
         </div>
       </Panel>
 
@@ -670,7 +696,7 @@
               {#each people as person (person.id)}
                 <Table.Row class="h-12">
                   <Table.Cell class="px-4"><a href="#table" class="font-semibold text-foreground no-underline hover:underline">{person.name}</a></Table.Cell>
-                  <Table.Cell><StatusBadge status={person.status} label={person.label} quiet={person.status === 'clear'} /></Table.Cell>
+                  <Table.Cell><StatusBadge status={person.status} label={person.label} quiet={person.status === 'done'} /></Table.Cell>
                   <Table.Cell>{person.stage}</Table.Cell>
                   <Table.Cell><DateText at={person.at} /></Table.Cell>
                 </Table.Row>
@@ -683,7 +709,7 @@
       <Panel title="Search field" flush>
         {#snippet tools()}
           <SearchField label="Search candidates" class="ml-auto flex-[0_1_15rem]" />
-          <Badge variant="muted">2 selected</Badge>
+          <span class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">2</Badge></span>
         {/snippet}
         <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">A list's table panel holds its title, then its search and filters, in the header.</p>
       </Panel>
@@ -693,7 +719,7 @@
           <ul>
             {#each people as person (person.id)}
               <ListItem href="#list-item" title={person.name}>
-                {#snippet status()}<StatusBadge status={person.status} label={person.label} quiet={person.status === 'clear'} />{/snippet}
+                {#snippet status()}<StatusBadge status={person.status} label={person.label} quiet={person.status === 'done'} />{/snippet}
                 {#snippet meta()}<DateText at={person.at} />{/snippet}
                 {#snippet facts()}
                   <Badge variant="muted">{person.stage}</Badge>

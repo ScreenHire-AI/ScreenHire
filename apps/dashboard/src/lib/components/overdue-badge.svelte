@@ -15,7 +15,7 @@
   <Hint content={`Time limit passed ${formatDateTime(dueAt)}`}>
     {#snippet children({ props })}
       <span {...props} class={cn('inline-flex w-fit shrink-0 rounded-full', className)}>
-        <StatusBadge status="review" label={overdueLabel(dueAt, clock.now)} />
+        <StatusBadge status="overdue" label={overdueLabel(dueAt, clock.now)} />
       </span>
     {/snippet}
   </Hint>

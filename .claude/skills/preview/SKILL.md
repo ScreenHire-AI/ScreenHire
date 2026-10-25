@@ -98,7 +98,7 @@ In a Kangentic task, use the task's browser pane (the `kangentic_browser_*` tool
    "Unverified address" button signs in with Avery's email and is refused. Wait for `h1` with text `Jobs`.
 4. `kangentic_browser_query_all` on `a[href^="/jobs/"]` with `includeHtml`, take the `href` of "Senior .NET Engineer"
    and `kangentic_browser_navigate` to it. Clicking by text can land on the first job link.
-5. Wait up to 60 s, twice if needed, for `[data-integrity-chip="authenticity"][data-level="Verification recommended"]`.
+5. Wait up to 60 s, twice if needed, for `[data-integrity-chip="authenticity"][data-level="Verification suggested"]`.
    Text alone matches the sidebar's saved view of the same name.
 
 An offscreen pane (another project is open in Kangentic) screenshots blank; read the page with

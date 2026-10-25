@@ -20,21 +20,14 @@ function legend() {
 }
 
 describe('integrity overview', () => {
-  it('is a panel with the applicant count, a number per level in words and marks, and a stacked bar hidden from screen readers', () => {
+  it('is a panel with the applicant count and a number per level in words, with no colour-only bar (T1)', () => {
     const { container } = render(Harness, { props: { applications: rows } });
 
     const panel = screen.getByRole('region', { name: 'Authenticity' });
     expect(within(panel).getByRole('heading', { level: 2 }).parentElement).toHaveTextContent('Authenticity 5');
-    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification recommended 1', 'Checks pending 1']);
+    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification suggested 1', 'Checks pending 1']);
     expect(screen.getByText('1 dismissed after review')).toBeInTheDocument();
-    const bar = container.querySelector('[data-bar]')!.parentElement!;
-    expect(bar).toHaveAttribute('aria-hidden', 'true');
-    expect([...bar.children].map((part) => [part.getAttribute('data-bar'), (part as HTMLElement).style.flexGrow])).toEqual([
-      ['NoConcerns', '2'],
-      ['ReviewSuggested', '1'],
-      ['VerificationRecommended', '1'],
-      ['Pending', '1'],
-    ]);
+    expect(container.querySelector('[class*="bg-status-"]')).toBeNull();
   });
 
   it('filters the table by a level from its legend, and clears it on a second press', async () => {
@@ -53,6 +46,6 @@ describe('integrity overview', () => {
   it('leaves out the pending entry once every application is assessed', () => {
     render(Harness, { props: { applications: rows.slice(0, 4) } });
 
-    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification recommended 1']);
+    expect(legend()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification suggested 1']);
   });
 });

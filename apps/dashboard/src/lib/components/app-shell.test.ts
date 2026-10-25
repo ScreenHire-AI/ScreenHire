@@ -39,16 +39,16 @@ describe('app shell', () => {
       'Templates',
       'My tasks',
       'Needs review 2',
-      'Verification recommended 1',
+      'Verification suggested 1',
       'Overdue 5',
       'New today 4',
       'Not screened yet 3',
       'Interviewing 0',
       ...settings,
     ]);
-    // Navigation pairs an icon with its label (I1); status shapes mark the integrity and Overdue views only (I2).
-    const marks = links.map((link) => link.querySelector('[data-shape]')?.getAttribute('data-shape') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'diamond', 'square', 'diamond', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    // Navigation pairs an icon with its label (I1); status icons mark the integrity and Overdue views only (I2).
+    const marks = links.map((link) => link.querySelector('[data-status-icon]')?.getAttribute('data-status-icon') ?? (link.querySelector('svg') ? 'icon' : null));
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
     expect(screen.getByRole('heading', { level: 2, name: 'Settings' })).toBeInTheDocument();
     expect(within(links[4]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^Needs review/ })).toHaveAttribute('aria-current', 'page');
@@ -176,7 +176,7 @@ describe('app shell', () => {
     const links = within(main()).getAllByRole('link');
     expect(links.map((link) => link.textContent?.trim()).slice(4)).toEqual([
       'Needs review',
-      'Verification recommended',
+      'Verification suggested',
       'Overdue',
       'New today',
       'Not screened yet',
@@ -202,15 +202,15 @@ describe('app shell', () => {
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,
       get(this: HTMLElement) {
-        return this.textContent === 'Verification recommended' ? 2000 : 0;
+        return this.textContent === 'Verification suggested' ? 2000 : 0;
       },
     });
     try {
       stubViewport(1280);
       render(ShellHarness, { props: { user, viewCounts } });
 
-      await fireEvent.focus(within(main()).getByRole('link', { name: /^Verification recommended/ }));
-      await waitFor(() => expect(tooltip()).toHaveTextContent('Verification recommended, 1'));
+      await fireEvent.focus(within(main()).getByRole('link', { name: /^Verification suggested/ }));
+      await waitFor(() => expect(tooltip()).toHaveTextContent('Verification suggested, 1'));
       expect(tooltip()).not.toHaveAttribute('hidden');
 
       await fireEvent.focus(within(main()).getByRole('link', { name: /^New today/ }));

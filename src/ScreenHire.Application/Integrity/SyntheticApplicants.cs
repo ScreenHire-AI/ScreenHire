@@ -63,7 +63,7 @@ public static class SyntheticApplicants
 
     /// <summary>
     /// A script: hosting provider's network, a throwaway inbox, a phone number that is not valid, the honeypot filled,
-    /// webdriver markers and six seconds from open to send. Expected: verification recommended.
+    /// webdriver markers and six seconds from open to send. Expected: verification suggested.
     /// </summary>
     public static SyntheticApplicant Bot { get; } = new(
         "bot",
@@ -128,7 +128,7 @@ public static class SyntheticApplicants
     /// <summary>
     /// Three applications from one operation: different names, plus-tagged addresses of one inbox, one phone, one
     /// device, one resume file, a hosting provider abroad, and twenty seconds per form. Expected: verification
-    /// recommended, with the later members also sharing details with the earlier ones.
+    /// suggested, with the later members also sharing details with the earlier ones.
     /// </summary>
     public static IReadOnlyList<SyntheticApplicant> ApplicationFarm { get; } =
     [

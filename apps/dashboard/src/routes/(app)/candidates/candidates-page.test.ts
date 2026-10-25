@@ -75,13 +75,15 @@ describe('candidates page', () => {
   it('counts the ticked rows in a pill in the panel header, as the table has no footer (K1, W3)', async () => {
     render_();
     await screen.findByRole('link', { name: 'Casey Morgan' });
-    expect(screen.queryByText(/selected$/)).toBeNull();
+    expect(document.querySelector('[data-selected-count]')).toBeNull();
 
     await fireEvent.click(screen.getByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
 
-    const pill = screen.getByText('1 selected');
-    expect(pill).toHaveAttribute('data-slot', 'badge');
-    expect(screen.getByRole('region', { name: 'Applications' }).querySelector('header')).toContainElement(pill);
+    // The count sits in the count badge after its label (T4).
+    const selected = document.querySelector<HTMLElement>('[data-selected-count]')!;
+    expect(selected).toHaveTextContent('Selected 1');
+    expect(selected.querySelector('[data-slot="badge"]')).toHaveClass('min-w-7');
+    expect(screen.getByRole('region', { name: 'Applications' }).querySelector('header')).toContainElement(selected);
   });
 
   it('offers Email for the ticked rows, and none in a view that integrity picked (ADR-0004)', async () => {
@@ -106,7 +108,7 @@ describe('candidates page', () => {
     appPage.url = new URL('http://dashboard.test/candidates?view=needs-review');
     render_(flagged);
     await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
-    expect(await screen.findByText('1 selected')).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-selected-count]')).toHaveTextContent('Selected 1'));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
   });

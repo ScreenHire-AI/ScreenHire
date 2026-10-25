@@ -45,8 +45,10 @@ describe('distribution panel', () => {
     expect(stateOf('sandbox')).toBe('Queued');
     expect(etaOf('sandbox')).toBe('~20s');
     expect(etaOf('careers')).toBeUndefined();
-    expect(item('careers').querySelector('[data-shape]')).toHaveAttribute('data-shape', 'circle');
-    expect(item('sandbox').querySelector('[data-shape]')).toHaveAttribute('data-shape', 'diamond');
+    expect(item('careers').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'door-open');
+    // Waiting on the board is grey: nobody needs to act (T3).
+    expect(item('sandbox').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'clock-4');
+    expect(item('sandbox').querySelector('[data-status]')).toHaveAttribute('data-status', 'neutral');
     expect(screen.getByRole('region', { name: 'Distribution' })).toBeInTheDocument();
     expect(item('adzuna')).toHaveTextContent('this board never confirms when a job shows');
   });

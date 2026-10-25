@@ -15,14 +15,14 @@ describe('live indicator', () => {
     expect(screen.getByRole('status')).toHaveTextContent(`Live updates: ${label}`);
   });
 
-  it('gives each kind of status its own shape', () => {
-    const shapes = (['connected', 'reconnecting', 'disconnected'] as const).map((status) => {
+  it('gives each kind of status its own icon (T1)', () => {
+    const icons = (['connected', 'reconnecting', 'disconnected'] as const).map((status) => {
       const { container, unmount } = render(LiveIndicator, { props: { status } });
-      const mark = container.querySelector('[aria-hidden="true"]')!.className;
+      const icon = container.querySelector('[data-status-icon]')!.getAttribute('data-status-icon');
       unmount();
-      return mark.includes('rounded-full') ? 'circle' : mark.includes('rotate-45') ? 'diamond' : 'square';
+      return icon;
     });
 
-    expect(shapes).toEqual(['circle', 'diamond', 'square']);
+    expect(icons).toEqual(['circle-check', 'loader-circle', 'circle-minus']);
   });
 });

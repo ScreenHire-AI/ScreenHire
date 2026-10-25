@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { AiAssistanceLevel, AuthenticityLevel } from '@screenhire/api-client';
   import ListFilterIcon from '@lucide/svelte/icons/list-filter';
-  import StatusMark from '#lib/components/status-mark.svelte';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
@@ -70,7 +69,6 @@
         <DropdownMenu.RadioItem value="all">Any level</DropdownMenu.RadioItem>
         {#each authenticityOptions as option (option.id)}
           <DropdownMenu.RadioItem value={option.id}>
-            <StatusMark shape={option.view.shape} tone={option.view.tone} />
             {option.view.label}
           </DropdownMenu.RadioItem>
         {/each}
