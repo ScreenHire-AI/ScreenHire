@@ -100,7 +100,7 @@ describe('scorecard template page', () => {
   it('reads a built-in only, says why, and offers Copy scorecard with no History (E3)', async () => {
     renderPage('screening');
 
-    expect(await screen.findByText(/ScreenHire supplies this scorecard, so it cannot be changed/)).toBeInTheDocument();
+    expect(await screen.findByText(/Copy this ScreenHire scorecard to change it/)).toBeInTheDocument();
     expect(screen.getByText('Built in')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy scorecard' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
@@ -112,7 +112,7 @@ describe('scorecard template page', () => {
     pageState.data.user = userAs('Viewer');
     renderPage('s-own');
 
-    expect(await screen.findByText(/Your role cannot change scorecards/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ask an owner, admin or recruiter to change scorecards/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
   });

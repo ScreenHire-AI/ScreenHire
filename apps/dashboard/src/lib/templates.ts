@@ -1,4 +1,4 @@
-import type { LastUpdate, TemplateUse, UsageItem } from '@screenhire/api-client';
+import type { TemplateUse, UsageItem } from '@screenhire/api-client';
 
 // The Templates page (design system section 22): one tab per kind of template, each listing its templates with where
 // they are used, filtered by All, In use, Not used in 6 months and Archived.
@@ -14,7 +14,10 @@ export const templateKindViews: Record<TemplateKind, { label: string; noun: stri
   emails: { label: 'Emails', noun: 'Email templates', sentence: 'What candidates receive, by hand or from an automation.' },
 };
 
-/** The longest name each kind takes (the API's limits). */
+/**
+ * The longest name each kind takes: the API's limits, from `HiringTemplateConfiguration`,
+ * `ScorecardTemplate.MaxNameLength` and `EmailTemplate.MaxNameLength`.
+ */
 export const maxNameLength: Record<TemplateKind, number> = { hiring: 120, scorecards: 80, emails: 100 };
 
 /** The Templates page's address, on a kind's tab. */
@@ -98,9 +101,6 @@ export function usageHref(item: UsageItem): string {
 /** A thing that uses a template, in words: the job or template, and for an automation its name after a colon. */
 export const usageLabel = (item: UsageItem): string => (item.automationName ? `${item.name}: ${item.automationName}` : item.name);
 
-/** The newest change's time, for sorting by Last updated; undefined for a built-in nobody changed. */
-export const updatedAt = (lastUpdated: LastUpdate): string | undefined => lastUpdated.at ?? undefined;
-
 /** A subject in pieces: plain text, and each `{{ variable }}` as its label, which reads as a muted word (L1). */
 export function subjectParts(subject: string, labels: ReadonlyMap<string, string>): { text: string; variable: boolean }[] {
   const parts: { text: string; variable: boolean }[] = [];
@@ -115,6 +115,9 @@ export function subjectParts(subject: string, labels: ReadonlyMap<string, string
   return parts;
 }
 
-/** The API paths whose queries a template change makes stale, for `invalidatePath`. */
+// The API paths whose queries a template change makes stale, for `invalidatePath`.
+
+/** The scorecard templates list. */
 export const scorecardTemplatesPath = '/v1/scorecard-templates';
+/** Where every template is used. */
 export const templateUsagePath = '/v1/template-usage';

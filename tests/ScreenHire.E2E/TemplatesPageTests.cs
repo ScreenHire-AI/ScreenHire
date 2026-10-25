@@ -108,7 +108,7 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
         await Page.GotoAsync(DashboardUrl("/templates?tab=scorecards"));
         var list = Region("Scorecards");
         await list.GetByRole(AriaRole.Link, new() { Name = "Screening", Exact = true }).ClickAsync();
-        await Expect(Page.GetByText("ScreenHire supplies this scorecard, so it cannot be changed.", new() { Exact = false })).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Copy this ScreenHire scorecard to change it.", new() { Exact = false })).ToBeVisibleAsync();
         await Page.GoBackAsync();
         await list.GetByRole(AriaRole.Button, new() { Name = "Actions for Screening" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Duplicate" }).ClickAsync();

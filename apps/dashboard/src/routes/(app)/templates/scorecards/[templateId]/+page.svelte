@@ -231,7 +231,20 @@
       {/if}
     {/snippet}
 
-    <HeaderBand title={detail.name}>
+    {#snippet readOnlyReason()}
+      <!-- Read only says why and what to do (E3), in one line under the title. -->
+      <p>
+        {#if detail.builtIn}
+          Copy this ScreenHire scorecard to change it.
+        {:else if !mayEdit}
+          Ask an owner, admin or recruiter to change scorecards.
+        {:else}
+          Restore this scorecard to use it or change it.
+        {/if}
+      </p>
+    {/snippet}
+
+    <HeaderBand title={detail.name} details={editable ? undefined : readOnlyReason}>
       {#snippet status()}
         {#if detail.builtIn}<BuiltInBadge />{/if}
         {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
@@ -316,16 +329,6 @@
         </div>
       {:else}
         <Panel title="Questions" count={questions.length} class="max-w-form">
-          <!-- Read only says why and what to do (E3). -->
-          <p class="mb-3 text-muted-foreground">
-            {#if detail.builtIn}
-              ScreenHire supplies this scorecard, so it cannot be changed. Copy it to make one of your own.
-            {:else if !mayEdit}
-              Your role cannot change scorecards. Ask an owner, admin or recruiter of your organization.
-            {:else}
-              This scorecard is archived, so it is out of the pickers. Restore it to use it or change it.
-            {/if}
-          </p>
           <div class="flex flex-col gap-2"><ScorecardQuestionList {questions} /></div>
         </Panel>
       {/if}
