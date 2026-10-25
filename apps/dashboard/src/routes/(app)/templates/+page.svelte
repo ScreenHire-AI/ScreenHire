@@ -143,7 +143,7 @@
           <ul class="md:hidden">
             {#each shown as template (template.id)}
               <ListItem href={`/templates/${template.id}`} title={template.name}>
-                {#snippet meta()}<DateText at={template.updatedAt ?? template.createdAt} />{/snippet}
+                {#snippet meta()}<DateText at={template.lastUpdated.at ?? template.createdAt} />{/snippet}
                 {#snippet facts()}
                   {#if template.isSystem}<Badge variant="muted">ScreenHire</Badge>{/if}
                   <Badge variant="muted" class="tabular-nums">{template.latestPublishedVersion ? `Version ${template.latestPublishedVersion}` : 'Not published'}</Badge>
@@ -160,7 +160,7 @@
                   <Table.Head>Description</Table.Head>
                   <Table.Head>Published</Table.Head>
                   <Table.Head>Draft</Table.Head>
-                  <Table.Head class="pr-4.5 text-right">Updated</Table.Head>
+                  <Table.Head class="pr-4.5 text-right">Last updated</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -187,7 +187,7 @@
                       {#if template.latestPublishedVersion}Version {template.latestPublishedVersion}{:else}<span class="text-muted-foreground">Not yet</span>{/if}
                     </Table.Cell>
                     <Table.Cell class="text-muted-foreground tabular-nums">{template.draftVersion ? `Version ${template.draftVersion}` : ''}</Table.Cell>
-                    <Table.Cell class="pr-4.5 text-right text-muted-foreground"><span class="relative"><DateText at={template.updatedAt ?? template.createdAt} /></span></Table.Cell>
+                    <Table.Cell class="pr-4.5 text-right text-muted-foreground"><span class="relative"><DateText at={template.lastUpdated.at ?? template.createdAt} /></span></Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>

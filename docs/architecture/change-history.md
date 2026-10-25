@@ -116,7 +116,8 @@ its hash and a webhook secret.
 
 ## Dashboard
 
-`LastUpdated` is the last fact of the header ("2 hours ago by Avery Quinn"), with a History button; `HistorySheet`
+`LastUpdated` is the last fact of the header ("2 hours ago by Avery Quinn"), with a History button, and the jobs, hiring
+templates and email templates tables have a Last updated column with the date (section 13); `HistorySheet`
 groups the entries by day and shows each line, with the values before and after behind Show the change. Pages read the
 pages with `createHistoryPages` (`#lib/history-pages.svelte.ts`) over the generated query options, only while the sheet
 is open; a save that invalidates the object's path refreshes them. `#lib/history.ts` names the actor the way the rest
