@@ -7,6 +7,7 @@ sources:
   - resource: packages/ui/src/tokens.css
   - resource: packages/ui/src/theme.css
   - resource: apps/dashboard/src/lib/status.ts
+  - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/+page.svelte
 ---
 # ScreenHire design system

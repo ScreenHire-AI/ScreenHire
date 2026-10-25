@@ -2,7 +2,7 @@
   import type { StatusTone } from '#lib/status.js';
 
   // Each status's icon colour (design system sections 3.2 and 3.3): the `-mark` tokens, which dark mode redefines.
-  export const iconColours: Record<StatusTone, string> = {
+  const iconColours: Record<StatusTone, string> = {
     clear: 'text-status-clear-mark',
     review: 'text-status-review-mark',
     verify: 'text-status-verify-mark',

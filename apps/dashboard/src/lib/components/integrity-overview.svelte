@@ -5,9 +5,9 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { authenticityLevels, authenticityOrder, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
 
-  // A job's authenticity at a glance (design-system section 1): a panel with the applicant count, a numeric legend whose
-  // entries are toggles that filter the candidate table, and a stacked bar. The bar is decoration for sighted readers;
-  // the legend carries the numbers.
+  // A job's authenticity at a glance (design-system section 1): a panel with the applicant count and a toggle per level
+  // with its count, which filters the candidate table. No colour-only bar: a status colour comes with its icon and label
+  // (T1), and section 22 makes the levels filter chips with counts.
   let {
     applications,
     filter = $bindable(),
@@ -17,13 +17,6 @@
   } = $props();
 
   const overview = $derived(integrityOverview(applications));
-
-  const bars: Record<AuthenticityLevel | 'Pending', string> = {
-    NoConcerns: 'bg-status-clear-mark',
-    ReviewSuggested: 'bg-status-review-mark',
-    VerificationRecommended: 'bg-status-verify-mark',
-    Pending: 'bg-input',
-  };
 
   const entries = $derived([
     ...authenticityOrder.map((id) => ({ id, view: authenticityLevels[id], count: overview.levels[id] })),
@@ -48,11 +41,6 @@
           </Toggle>
         {/each}
       </div>
-    </div>
-    <div aria-hidden="true" class="flex h-2 gap-0.5 overflow-hidden rounded-full bg-secondary">
-      {#each entries as entry (entry.id)}
-        {#if entry.count > 0}<span data-bar={entry.id} class={bars[entry.id]} style:flex-grow={entry.count}></span>{/if}
-      {/each}
     </div>
     {#if overview.dismissed > 0}
       <p class="text-caption text-muted-foreground">{overview.dismissed} dismissed after review</p>

@@ -116,7 +116,7 @@ export interface IntegrityOverview {
   dismissed: number;
 }
 
-/** Counts for a job's stacked bar and its legend. The parts add up to the total. */
+/** Counts for a job's Authenticity panel. The parts add up to the total. */
 export function integrityOverview(applications: readonly ApplicationSummary[]): IntegrityOverview {
   const overview: IntegrityOverview = {
     total: applications.length,
