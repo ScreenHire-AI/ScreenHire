@@ -55,9 +55,13 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  GetEmailTemplateHistoryParams,
+  GetHiringTemplateHistoryParams,
+  GetJobHistoryParams,
   HiringTemplateDetail,
   HiringTemplateSummary,
   HiringTemplateVersionDetail,
+  HistoryPage,
   HttpValidationProblemDetails,
   InvitationAcceptance,
   InvitationRequest,
@@ -2844,6 +2848,122 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getUpdateJobMutationOptions(options?.()) }), queryClient);
     }
 
+export type getJobHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getJobHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getJobHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobHistoryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobHistoryResponseSuccess = (getJobHistoryResponse200) & {
+  headers: Headers;
+};
+export type getJobHistoryResponseError = (getJobHistoryResponse400 | getJobHistoryResponse401 | getJobHistoryResponse404 | getJobHistoryResponse429) & {
+  headers: Headers;
+};
+
+export const getGetJobHistoryUrl = (jobId: string,
+    params?: GetJobHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/history?${stringifiedParams}` : `/v1/jobs/${jobId}/history`
+}
+
+export const getJobHistory = async (jobId: string,
+    params?: GetJobHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getJobHistoryResponseSuccess>(getGetJobHistoryUrl(jobId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobHistoryQueryKey = (jobId: string,
+    params?: GetJobHistoryParams,) => {
+    return [
+    'v1','jobs',jobId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetJobHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getJobHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(jobId: string,
+    params?: GetJobHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobHistoryQueryKey(jobId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobHistory>>> = ({ signal }) => getJobHistory(jobId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getJobHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetJobHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getJobHistory>>>
+export type GetJobHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetJobHistory<TData = Awaited<ReturnType<typeof getJobHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ jobId: () =>  string,
+    params?: () =>  GetJobHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetJobHistoryQueryOptions(jobId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
 export type publishJobResponse200 = {
   data: JobDetail
   status: 200
@@ -4053,6 +4173,122 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getUpdateHiringTemplateMutationOptions(options?.()) }), queryClient);
     }
+
+export type getHiringTemplateHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getHiringTemplateHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getHiringTemplateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringTemplateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHiringTemplateHistoryResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getHiringTemplateHistoryResponseSuccess = (getHiringTemplateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getHiringTemplateHistoryResponseError = (getHiringTemplateHistoryResponse400 | getHiringTemplateHistoryResponse401 | getHiringTemplateHistoryResponse404 | getHiringTemplateHistoryResponse429) & {
+  headers: Headers;
+};
+
+export const getGetHiringTemplateHistoryUrl = (templateId: string,
+    params?: GetHiringTemplateHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/templates/${templateId}/history?${stringifiedParams}` : `/v1/templates/${templateId}/history`
+}
+
+export const getHiringTemplateHistory = async (templateId: string,
+    params?: GetHiringTemplateHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringTemplateHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getHiringTemplateHistoryResponseSuccess>(getGetHiringTemplateHistoryUrl(templateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHiringTemplateHistoryQueryKey = (templateId: string,
+    params?: GetHiringTemplateHistoryParams,) => {
+    return [
+    'v1','templates',templateId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetHiringTemplateHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getHiringTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(templateId: string,
+    params?: GetHiringTemplateHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHiringTemplateHistoryQueryKey(templateId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHiringTemplateHistory>>> = ({ signal }) => getHiringTemplateHistory(templateId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetHiringTemplateHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getHiringTemplateHistory>>>
+export type GetHiringTemplateHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetHiringTemplateHistory<TData = Awaited<ReturnType<typeof getHiringTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ templateId: () =>  string,
+    params?: () =>  GetHiringTemplateHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetHiringTemplateHistoryQueryOptions(templateId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type createHiringTemplateVersionResponse201 = {
   data: HiringTemplateVersionDetail
@@ -10832,6 +11068,117 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getDeleteEmailTemplateMutationOptions(options?.()) }), queryClient);
     }
+
+export type getEmailTemplateHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getEmailTemplateHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getEmailTemplateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getEmailTemplateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getEmailTemplateHistoryResponseSuccess = (getEmailTemplateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getEmailTemplateHistoryResponseError = (getEmailTemplateHistoryResponse400 | getEmailTemplateHistoryResponse401 | getEmailTemplateHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetEmailTemplateHistoryUrl = (templateId: string,
+    params?: GetEmailTemplateHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/email-templates/${templateId}/history?${stringifiedParams}` : `/v1/email-templates/${templateId}/history`
+}
+
+export const getEmailTemplateHistory = async (templateId: string,
+    params?: GetEmailTemplateHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getEmailTemplateHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getEmailTemplateHistoryResponseSuccess>(getGetEmailTemplateHistoryUrl(templateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailTemplateHistoryQueryKey = (templateId: string,
+    params?: GetEmailTemplateHistoryParams,) => {
+    return [
+    'v1','email-templates',templateId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetEmailTemplateHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getEmailTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(templateId: string,
+    params?: GetEmailTemplateHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getEmailTemplateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailTemplateHistoryQueryKey(templateId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailTemplateHistory>>> = ({ signal }) => getEmailTemplateHistory(templateId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getEmailTemplateHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetEmailTemplateHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailTemplateHistory>>>
+export type GetEmailTemplateHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetEmailTemplateHistory<TData = Awaited<ReturnType<typeof getEmailTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ templateId: () =>  string,
+    params?: () =>  GetEmailTemplateHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getEmailTemplateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetEmailTemplateHistoryQueryOptions(templateId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type previewEmailTemplateResponse200 = {
   data: EmailPreview

@@ -277,6 +277,9 @@ Two layers, so one mistake is not a breach.
 
    `api_keys` (migration `AddApiKeys`) follows the `jobs` pattern too, without `DELETE` for `screenhire_app`.
 
+   `change_records` (migration `AddChangeHistory`), the history of templates and jobs, follows the `jobs` pattern and
+   is append-only: `screenhire_app` has no `UPDATE` or `DELETE` on it ([change-history.md](change-history.md)).
+
 `users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
 `OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.
@@ -295,7 +298,7 @@ Who the tenant is:
 | Request | Tenant |
 |---|---|
 | Signed in | `TenantResolutionMiddleware`: the user's active organization (or first membership), read on every request |
-| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above) |
+| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor |
 | Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization |
 | Onboarding | The new organization, from just before it is saved |
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |

@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 
 /**
  * One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording
@@ -19,5 +20,6 @@ export interface EmailTemplateEntry {
   body: string;
   /** @nullable */
   updatedAt: string | null;
+  lastUpdated: LastUpdate;
   questionnaireOnly?: boolean;
 }

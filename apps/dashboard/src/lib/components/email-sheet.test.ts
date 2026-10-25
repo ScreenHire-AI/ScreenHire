@@ -19,6 +19,7 @@ const template = (id: string, name: string, rejectOnly = false) => ({
   subject: '',
   body: '',
   updatedAt: null,
+  lastUpdated: { at: null, by: 'ScreenHire' },
 });
 
 function renderSheet(sendStatus = 202) {

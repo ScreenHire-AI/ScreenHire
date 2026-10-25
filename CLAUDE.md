@@ -171,6 +171,10 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
   A message about one organization's data implements `ITenantMessage`, or its handler sees no tenant rows under RLS;
   client-visible events implement `ITenantEvent`, which extends it. Every `ITenantEvent` reaches its organization's open
   dashboards with no hub code; add its Zod schema and invalidation with `/add-realtime-event`.
+- Change history: an edit of a hiring template, an email template or a job is recorded by `ChangeHistoryInterceptor`
+  in the same save; `TrackedKinds` is the allow-list, and tracking another kind is one line there plus a history route
+  ([`docs/architecture/change-history.md`](docs/architecture/change-history.md)). Change tracked objects through the
+  change tracker, never `ExecuteUpdate`/`ExecuteDelete`, or the change goes unrecorded.
 - Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
   twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
   `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,

@@ -18,6 +18,7 @@ const template = (id: string, name: string, description: string | null): HiringT
   draftVersion: null,
   createdAt: '2026-10-01T09:00:00Z',
   updatedAt: null,
+  lastUpdated: { at: '2026-10-01T09:00:00Z', by: null },
 });
 
 function stubTemplates(templates: HiringTemplateSummary[]) {

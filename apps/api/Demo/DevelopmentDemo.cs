@@ -15,6 +15,7 @@ using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -37,6 +38,10 @@ namespace ScreenHire.Api.Demo;
 /// <item>The open jobs posted to boards through the same publish as the dashboard's: the .NET and designer jobs to every
 /// board, the frontend job to the careers page and the sandbox board only.</item>
 /// <item>"Support Engineer", from the template, published to every board, for the closed job below.</item>
+/// <item>Change history (<see cref="SeedHistoryAsync"/>): Jordan Ellis starts version 2 of the template (a question and a
+/// longer time limit on Interview) and changes the
+/// draft job's salary, and Avery Quinn adds an "Interview invitation" email and edits its subject, on top of the steps above, which Avery
+/// makes. Applying and moving candidates are not tracked changes.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
@@ -142,6 +147,8 @@ internal sealed partial class DevelopmentDemo(
             await TryAsync(() => SeedJobFromTemplateAsync(published, ClosedJobSlug, ClosedJob, stoppingToken), stoppingToken);
         }
 
+        await TryAsync(() => SeedHistoryAsync(stoppingToken), stoppingToken);
+
         foreach (var (slug, boards) in OpenJobs)
         {
             await TryAsync(() => PostAsync(slug, boards, stoppingToken), stoppingToken);
@@ -191,8 +198,10 @@ internal sealed partial class DevelopmentDemo(
         }
     }
 
-    // Each step gets its own scope, signed in as Brightwater's Owner: one transaction and outbox flush, like a request.
-    private async Task<Step?> BeginAsync(AsyncServiceScope scope, CancellationToken cancellationToken)
+    // Each step gets its own scope, acting for Brightwater's Owner: one transaction and outbox flush, like a request. A
+    // step that changes a template or a job also signs in as `signedIn` (an email of the seeder's members), so the change
+    // history names the person, as it would for the dashboard's edit. Applying and moving candidates sign nobody in.
+    private async Task<Step?> BeginAsync(AsyncServiceScope scope, CancellationToken cancellationToken, string? signedIn = null)
     {
         var services = scope.ServiceProvider;
         var outbox = services.GetRequiredService<IDbContextOutbox<ScreenHireDbContext>>();
@@ -204,21 +213,29 @@ internal sealed partial class DevelopmentDemo(
             return null;
         }
 
-        // Identity's normalized form (UpperInvariantLookupNormalizer), as the seeder stores it.
-        var ownerEmail = DevelopmentDataSeeder.DemoOwnerEmail.ToUpperInvariant();
-        var owner = await db.Users.AsNoTracking()
-            .Where(u => u.NormalizedEmail == ownerEmail)
-            .Select(u => (Guid?)u.Id)
-            .SingleOrDefaultAsync(cancellationToken);
-        services.GetRequiredService<TenantContext>().SetOrganization(organization.Id);
+        var owner = await UserIdAsync(db, DevelopmentDataSeeder.DemoOwnerEmail, cancellationToken);
+        var tenant = services.GetRequiredService<TenantContext>();
+        tenant.SetOrganization(organization.Id);
+        if (signedIn is not null && await UserIdAsync(db, signedIn, cancellationToken) is { } user)
+        {
+            tenant.SetUser(user);
+        }
+
         return new Step(services, outbox, organization.Id, owner, time.GetUtcNow());
+    }
+
+    // Identity's normalized form (UpperInvariantLookupNormalizer), as the seeder stores it.
+    private static Task<Guid?> UserIdAsync(ScreenHireDbContext db, string email, CancellationToken cancellationToken)
+    {
+        var normalized = email.ToUpperInvariant();
+        return db.Users.AsNoTracking().Where(u => u.NormalizedEmail == normalized).Select(u => (Guid?)u.Id).SingleOrDefaultAsync(cancellationToken);
     }
 
     // The id of the template's newest published version, which the demo's jobs are created from.
     private async Task<Guid?> SeedTemplateAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { } step)
         {
             return null;
         }
@@ -250,7 +267,7 @@ internal sealed partial class DevelopmentDemo(
         var template = HiringTemplate.Create(
             step.OrganizationId, TemplateName,
             "How Brightwater hires engineers: the Software engineer pipeline, with an email to the candidate at each step.",
-            definition, step.Now, step.Owner);
+            definition, step.Now, step.Owner, copiedFrom: SystemTemplates.SoftwareEngineer);
         var version = template.Versions.Single();
         template.Publish(version, step.Now, step.Owner);
         db.HiringTemplates.Add(template);
@@ -262,7 +279,7 @@ internal sealed partial class DevelopmentDemo(
     private async Task SeedJobEmailsAsync(string slug, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { } step)
         {
             return;
         }
@@ -289,7 +306,7 @@ internal sealed partial class DevelopmentDemo(
     private async Task SeedQuestionnaireAsync(string slug, Questionnaire questionnaire, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { } step)
         {
             return;
         }
@@ -325,7 +342,7 @@ internal sealed partial class DevelopmentDemo(
         Guid templateVersionId, string slug, Func<Guid, DateTimeOffset, Job> create, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { } step)
         {
             return;
         }
@@ -341,6 +358,93 @@ internal sealed partial class DevelopmentDemo(
         job.UseTemplate(version);
         db.Jobs.Add(job);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>The question Jordan Ellis adds to version 2 of Brightwater's template, so its History has a story to tell.</summary>
+    public static Question NoticePeriodQuestion { get; } = new("demo_notice_period", QuestionType.ShortText, "What is your notice period?");
+
+    /// <summary>The email template of Brightwater's own that Avery Quinn adds and then edits.</summary>
+    public const string InterviewEmailName = "Interview invitation";
+
+    // Edits a team would make in its first days, made through the same tracked saves as the dashboard's, so the History
+    // sheets of the template, an email template and a job have entries by two people. Each edit is made once.
+    private async Task SeedHistoryAsync(CancellationToken cancellationToken)
+    {
+        await using (var scope = scopes.CreateAsyncScope())
+        {
+            if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoRecruiterEmail) is { } step)
+            {
+                var db = step.Outbox.DbContext;
+                var template = await db.HiringTemplates.Include(t => t.Versions)
+                    .SingleOrDefaultAsync(t => t.OrganizationId == step.OrganizationId && t.Name == TemplateName, cancellationToken);
+                if (template is { Versions: [{ Status: TemplateVersionStatus.Published } published] })
+                {
+                    // Version 2 as a draft: one more question and two more days for Interview.
+                    var workflow = published.Definition.Workflow;
+                    var draft = template.CreateDraft(
+                        published.Definition with
+                        {
+                            Workflow = workflow with
+                            {
+                                Stages = [.. workflow.Stages.Select(s => s.Id == "interview" ? s with { SlaDays = (s.SlaDays ?? 3) + 2 } : s)],
+                                Questionnaire = new Questionnaire([.. workflow.Questionnaire.Questions, NoticePeriodQuestion]),
+                            },
+                        },
+                        step.Now, step.Services.GetRequiredService<TenantContext>().UserId);
+                    db.HiringTemplateVersions.Add(draft);
+                    await db.SaveChangesAsync(cancellationToken);
+
+                    // A second save a little later: the new question becomes required.
+                    var revised = draft.Definition.Workflow;
+                    draft.Revise(draft.Definition with
+                    {
+                        Workflow = revised with
+                        {
+                            Questionnaire = new Questionnaire([.. revised.Questionnaire.Questions.Select(q => q.Id == NoticePeriodQuestion.Id ? q with { Required = true } : q)]),
+                        },
+                    });
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            }
+        }
+
+        await using (var scope = scopes.CreateAsyncScope())
+        {
+            if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is { } step)
+            {
+                // An email of Brightwater's own, then a second edit of its subject. The built-ins keep ScreenHire's
+                // wording, so every email the demo sends reads as the seeded tests expect.
+                var db = step.Outbox.DbContext;
+                if (!await db.EmailTemplates.AnyAsync(t => t.Name == InterviewEmailName, cancellationToken))
+                {
+                    var template = EmailTemplate.CreateCustom(
+                        step.OrganizationId, InterviewEmailName, "Interview for {{ jobTitle }}",
+                        "Hi {{ candidateName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
+                        "Someone from our team will contact you within two working days to find a time that suits you.\n\n{{ organizationName }}",
+                        step.Now);
+                    db.EmailTemplates.Add(template);
+                    await db.SaveChangesAsync(cancellationToken);
+
+                    template.Subject = "Interview for {{ jobTitle }} at {{ organizationName }}";
+                    template.UpdatedAt = time.GetUtcNow();
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            }
+        }
+
+        await using (var scope = scopes.CreateAsyncScope())
+        {
+            if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoRecruiterEmail) is { } step)
+            {
+                var db = step.Outbox.DbContext;
+                var job = await db.Jobs.SingleOrDefaultAsync(j => j.Slug == DraftJobSlug && j.Status == JobStatus.Draft, cancellationToken);
+                if (job is { SalaryMin: 70_000m })
+                {
+                    job.Revise(job.Snapshot() with { Salary = new JobSalary(75_000, 95_000, "GBP", SalaryPeriod.Year) }, step.Now);
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            }
+        }
     }
 
     private static Job DraftJob(Guid organizationId, DateTimeOffset now)
@@ -396,7 +500,7 @@ internal sealed partial class DevelopmentDemo(
     private async Task PostAsync(string slug, IReadOnlyList<string>? boards, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { } step)
         {
             return;
         }
@@ -432,7 +536,7 @@ internal sealed partial class DevelopmentDemo(
     private async Task CloseAsync(string slug, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        if (await BeginAsync(scope, cancellationToken) is not { } step)
+        if (await BeginAsync(scope, cancellationToken, DevelopmentDataSeeder.DemoOwnerEmail) is not { } step)
         {
             return;
         }

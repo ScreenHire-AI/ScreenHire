@@ -27,6 +27,9 @@ public sealed class HiringTemplate
 
     public DateTimeOffset? UpdatedAt { get; private set; }
 
+    /// <summary>The template this one was copied from, a system template or the organization's own, if any.</summary>
+    public Guid? CopiedFromTemplateId { get; init; }
+
     /// <summary>The newest published version's number, or null if none is published yet.</summary>
     public int? LatestPublishedVersion { get; private set; }
 
@@ -37,11 +40,17 @@ public sealed class HiringTemplate
 
     public HiringTemplateVersion? Draft => versions.SingleOrDefault(v => v.Status == TemplateVersionStatus.Draft);
 
-    /// <summary>A new organization template whose first version is a draft holding <paramref name="definition"/>.</summary>
+    /// <summary>
+    /// A new organization template whose first version is a draft holding <paramref name="definition"/>, copied from
+    /// the template <paramref name="copiedFrom"/> when one is given.
+    /// </summary>
     public static HiringTemplate Create(
-        Guid organizationId, string name, string? description, HiringTemplateDefinition definition, DateTimeOffset now, Guid? userId)
+        Guid organizationId, string name, string? description, HiringTemplateDefinition definition, DateTimeOffset now, Guid? userId, Guid? copiedFrom = null)
     {
-        var template = new HiringTemplate { OrganizationId = organizationId, Name = name, Description = description, CreatedAt = now };
+        var template = new HiringTemplate
+        {
+            OrganizationId = organizationId, Name = name, Description = description, CreatedAt = now, CopiedFromTemplateId = copiedFrom,
+        };
         template.CreateDraft(definition, now, userId);
         return template;
     }

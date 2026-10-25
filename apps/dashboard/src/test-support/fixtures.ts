@@ -22,6 +22,7 @@ export const jobs: JobSummary[] = [
     employmentType: 'FullTime',
     department: null,
     templateUpdateAvailable: false,
+    lastUpdated: { at: '2026-10-19T09:00:00Z', by: 'Member', userId: user.id },
   },
   {
     id: '01a157d4-0000-7000-8000-000000000002',
@@ -35,6 +36,7 @@ export const jobs: JobSummary[] = [
     employmentType: 'FullTime',
     department: 'Engineering',
     templateUpdateAvailable: false,
+    lastUpdated: { at: '2026-10-18T12:00:00Z', by: 'ScreenHire' },
   },
 ];
 

@@ -7,7 +7,9 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.History;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
@@ -33,6 +35,7 @@ internal static class TemplateEndpoints
             .RequireHiringRole()
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{templateId:guid}", GetTemplate).WithName("GetHiringTemplate").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{templateId:guid}/history", GetHistory).WithName("GetHiringTemplateHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{templateId:guid}", UpdateTemplate).WithName("UpdateHiringTemplate")
             .RequireAntiforgeryToken()
             .RequireHiringRole()
@@ -68,14 +71,35 @@ internal static class TemplateEndpoints
             .ThenBy(t => t.Name)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
-        return [.. templates.Select(t => t.ToSummary())];
+        var changes = await ChangeHistoryQueries.LastAsync(
+            db, ChangeSubjectKind.HiringTemplate, [.. templates.Where(t => !t.IsSystem).Select(t => SubjectId(t.Id))], cancellationToken);
+        return [.. templates.Select(t => t.ToSummary(changes.GetValueOrDefault(SubjectId(t.Id))))];
     }
 
     private static async Task<Results<Ok<HiringTemplateDetail>, NotFound>> GetTemplate(
         Guid templateId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var template = await LoadAsync(db, templateId, tracking: false, cancellationToken);
-        return template is null ? TypedResults.NotFound() : TypedResults.Ok(template.ToDetail());
+        return template is null ? TypedResults.NotFound() : TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
+    }
+
+    // Every change to the template and its versions, newest first.
+    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetHistory(
+        Guid templateId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
+        {
+            return problem;
+        }
+
+        if (!await db.HiringTemplates.AnyAsync(t => t.Id == templateId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.HiringTemplate, SubjectId(templateId), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
     }
 
     private static async Task<Results<Created<HiringTemplateDetail>, ValidationProblem>> CreateTemplate(
@@ -92,17 +116,21 @@ internal static class TemplateEndpoints
         }
 
         var definition = request.Definition;
+        Guid? copiedFrom = null;
         if (request.CopyFromVersionId is { } sourceId)
         {
             // Through the tenant filter: an own version or a system one.
-            definition = await db.HiringTemplateVersions.AsNoTracking()
+            var source = await db.HiringTemplateVersions.AsNoTracking()
                 .Where(v => v.Id == sourceId)
-                .Select(v => v.Definition)
+                .Select(v => new { v.Definition, v.TemplateId })
                 .SingleOrDefaultAsync(cancellationToken);
-            if (definition is null)
+            if (source is null)
             {
                 return TypedResults.ValidationProblem(ValidationExtensions.Problem("copyFromVersionId", "No template version has this id."));
             }
+
+            definition = source.Definition;
+            copiedFrom = source.TemplateId;
         }
 
         definition ??= HiringTemplateDefinition.Default;
@@ -112,10 +140,11 @@ internal static class TemplateEndpoints
         }
 
         var template = HiringTemplate.Create(
-            tenant.OrganizationId!.Value, request.Name.Trim(), Text.NullIfBlank(request.Description), Sanitize(definition), time.GetUtcNow(), tenant.UserId);
+            tenant.OrganizationId!.Value, request.Name.Trim(), Text.NullIfBlank(request.Description), Sanitize(definition), time.GetUtcNow(), tenant.UserId,
+            copiedFrom);
         db.HiringTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Created($"/v1/templates/{template.Id}", template.ToDetail());
+        return TypedResults.Created($"/v1/templates/{template.Id}", await DetailAsync(db, template, cancellationToken));
     }
 
     private static async Task<Results<Ok<HiringTemplateDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateTemplate(
@@ -144,7 +173,7 @@ internal static class TemplateEndpoints
 
         template.Rename(request.Name.Trim(), Text.NullIfBlank(request.Description), time.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(template.ToDetail());
+        return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
     }
 
     // Starts the next version as a draft: the given definition, or a copy of the newest version's.
@@ -295,6 +324,13 @@ internal static class TemplateEndpoints
 
         return TypedResults.Ok(found.ToDetail());
     }
+
+    private static async Task<HiringTemplateDetail> DetailAsync(ScreenHireDbContext db, HiringTemplate template, CancellationToken cancellationToken) =>
+        template.ToDetail(template.IsSystem
+            ? null
+            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.HiringTemplate, SubjectId(template.Id), cancellationToken));
+
+    private static string SubjectId(Guid templateId) => templateId.ToString("D");
 
     private static Task<HiringTemplate?> LoadAsync(ScreenHireDbContext db, Guid templateId, bool tracking, CancellationToken cancellationToken)
     {

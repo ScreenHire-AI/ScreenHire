@@ -7,7 +7,7 @@ import { stubViewport } from '../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-vi.mock('$app/state', () => ({ page: { state: {}, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
+vi.mock('$app/state', () => ({ page: { state: {}, data: {}, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
 
 const job = {
   id: jobId,
@@ -33,6 +33,7 @@ const job = {
   publishedAt: '2026-10-18T12:00:00Z',
   closedAt: null,
   postings: [posting('careers', 'Careers page'), posting('sandbox', 'Sandbox board')],
+  lastUpdated: { at: '2026-10-18T12:00:00Z', by: 'ScreenHire' },
 } as unknown as JobDetail;
 
 const boards = [board('careers', 'Careers page', { canUnpublishPerBoard: false }), board('sandbox', 'Sandbox board')];
@@ -43,6 +44,7 @@ function stub(detail: JobDetail, routes: Parameters<typeof apiStub>[0] = {}) {
       [`GET /v1/jobs/${jobId}`]: () => Response.json(detail),
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(applications),
       'GET /v1/boards': () => Response.json(boards),
+      'GET /v1/organization/members': () => Response.json([]),
       ...routes,
     }),
   );
@@ -71,7 +73,7 @@ describe('job page', () => {
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
     expect(within(band).getByText('Open')).toBeInTheDocument();
     const facts = within(band).getAllByRole('term').map((term) => term.textContent);
-    expect(facts).toEqual(['Location', 'Type', 'Salary', 'Opened']);
+    expect(facts).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
     expect(within(band).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
     expect(within(band).getByRole('link', { name: 'Workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();

@@ -67,6 +67,36 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         }
     }
 
+    [Fact]
+    public async Task An_owner_edits_a_template_then_sees_the_change_in_its_history()
+    {
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        var (owner, _, _, _) = await SceneAsync();
+        await SignInAsync(owner);
+
+        await Page.GotoAsync(DashboardUrl("/settings/email-templates"));
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).First.ClickAsync();
+        var band = Page.Locator("[data-slot=header-band]");
+        await Expect(band).ToContainTextAsync("By ScreenHire");
+        var subject = Page.GetByLabel("Subject");
+        var original = await subject.InputValueAsync();
+        await subject.FillAsync($"Next steps {marker} for {{{{ jobTitle }}}}");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/email-templates"));
+
+        // Back on the template: Last updated names the person, and History says what they changed.
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).First.ClickAsync();
+        await Expect(band).ToContainTextAsync("by you");
+        await band.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });
+        await Expect(sheet.GetByRole(AriaRole.Heading, new() { Name = "Today" })).ToBeVisibleAsync();
+        await Expect(sheet.GetByRole(AriaRole.Listitem).First).ToContainTextAsync("You changed the subject");
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Show the change" }).ClickAsync();
+        await Expect(sheet.GetByRole(AriaRole.Definition).First).ToContainTextAsync(original);
+        await Expect(sheet.GetByRole(AriaRole.Definition).First).ToContainTextAsync($"Next steps {marker} for {{{{ jobTitle }}}}");
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
     // A new person and organization with one draft job and an application per name in Candidates, created through the API
     // as that person, so the browser signs in to exactly this data.
     private async Task<(string Owner, Guid JobId, string Title, IReadOnlyList<string> Addresses)> SceneAsync()
