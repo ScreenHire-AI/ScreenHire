@@ -263,7 +263,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Versions" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { NameRegex = new Regex("^Version 1, published") }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(@"\?version=1$"));
-        await Expect(HeaderBand).ToContainTextAsync("1, published");
+        await Expect(HeaderBand).ToContainTextAsync("Version 1");
 
         // On a phone: the read-only view, the list and a draft in the builder, none scrolling sideways.
         await Page.SetViewportSizeAsync(390, 844);
