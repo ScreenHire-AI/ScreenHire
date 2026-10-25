@@ -33,6 +33,7 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/OrganizationInvitation.cs
   - resource: src/ScreenHire.Domain/Organizations/OrganizationMember.cs
   - resource: src/ScreenHire.Domain/Organizations/TeamPolicy.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CustomRoleConfiguration.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/ITenantContext.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSecurity.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSessionInterceptor.cs
@@ -41,6 +42,7 @@ sources:
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
   - resource: apps/dashboard/src/lib/moves.svelte.ts
+  - resource: apps/dashboard/src/lib/components/new-role-sheet.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/[roleId]/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/compare/+page.svelte
@@ -212,7 +214,7 @@ candidates."). Removing a member also closes their open real-time connections in
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
 every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
 Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
-someone else wrote; Owners and Admins have it. `RolePermissionsTests` reads each guarded route from
+someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first. `RolePermissionsTests` reads each guarded route from
 `apps/api/Endpoints`, fails when a route has no permission or a different one, and holds the built-in roles to the exact
 sets the role-name checks used to allow, so no existing member's access changed. `GET /v1/organization/roles` serves the
 catalogue, with the organization's custom roles, to any member.
@@ -245,7 +247,7 @@ created as well, for a role that manages keys (ADR-0011). The API stays the judg
 | `GET /{roleId}` | Any member | One custom role, with what it was copied from. Another organization's id is 404. |
 | `GET /{roleId}/history` | Any member | The role's change history, newest first. |
 | `POST /` | Manage the team | Makes a role by copying `copyFrom` (a built-in role) or `copyFromRoleId` (a custom one). |
-| `PUT /{roleId}` | Manage the team | Renames it and sets its permissions. An Owner-only permission, or one without See jobs and candidates, is 400. |
+| `PUT /{roleId}` | Manage the team | Renames it and sets its permissions. An Owner-only permission, a set without See jobs and candidates, Delete anyone's notes without Add notes and tags, or a name over one line is 400. |
 | `DELETE /{roleId}` | Manage the team | Deletes it, or 409 while anyone has it or an open invitation offers it. |
 
 ### Team members and invitations
