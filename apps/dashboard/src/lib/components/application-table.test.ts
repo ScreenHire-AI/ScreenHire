@@ -1,11 +1,11 @@
 import { renderSnippet } from '@tanstack/svelte-table';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
 import { integrityColumns } from '#lib/integrity-columns.js';
 import { preferences } from '#lib/preferences.svelte.js';
-import { applications } from '../../test-support/fixtures.js';
+import { applications, stages } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/integrity-fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
@@ -14,6 +14,11 @@ import ApplicationTable from './application-table.svelte';
 const headerTexts = () => screen.getAllByRole('columnheader').map((header) => header.textContent?.trim());
 const dataRows = () => screen.getAllByRole('row').filter((row) => within(row).queryAllByRole('cell').length > 1);
 const rowOf = (name: string) => screen.getByRole('link', { name }).closest('tr')!;
+
+// A remembered sort lives in localStorage, which outlasts each test.
+beforeEach(() => {
+  localStorage.clear();
+});
 
 afterEach(() => {
   preferences.setShortcutsEnabled(true);
@@ -92,9 +97,76 @@ describe('candidate table', () => {
     expect(names()).toEqual(['Casey Morgan', 'Sam Taylor', 'Jordan Lee']);
     expect(header()).toHaveAttribute('aria-sort', 'ascending');
 
+    // A third click reverses it again: a sorted table never goes back to unsorted (L2).
     await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
+    expect(header()).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it("opens a job's table with the candidates needing attention first: overdue, longest first, then pipeline order", async () => {
+    const day = 86_400_000;
+    const due = (daysAgo: number) => new Date(Date.now() - daysAgo * day).toISOString();
+    const rows = [
+      { ...applications[0]!, slaDueAt: due(-3) },
+      { ...applications[1]!, slaDueAt: due(1) },
+      { ...applications[2]!, slaDueAt: due(2) },
+    ];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, stages } } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
+
+    expect(names()).toEqual(['Sam Taylor', 'Jordan Lee', 'Casey Morgan']);
+    expect(screen.getByRole('columnheader', { name: /Stage/ })).toHaveAttribute('aria-sort', 'ascending');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
     expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
-    expect(header()).not.toHaveAttribute('aria-sort');
+
+    // Coming back to Stage from another column starts again with those needing attention first.
+    await fireEvent.click(screen.getByRole('button', { name: 'Applied' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
+    expect(names()).toEqual(['Sam Taylor', 'Jordan Lee', 'Casey Morgan']);
+    expect(screen.getByRole('columnheader', { name: /Stage/ })).toHaveAttribute('aria-sort', 'ascending');
+  });
+
+  it('opens a table across jobs newest first by Applied, and sorts every column, Stage by its name', async () => {
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true } } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
+
+    expect(screen.getByRole('columnheader', { name: /Applied/ })).toHaveAttribute('aria-sort', 'descending');
+    // Every column with a value has a sort button (L2); the checkbox column has none.
+    const sortable = screen.getAllByRole('columnheader').filter((header) => within(header).queryByRole('button'));
+    expect(sortable.map((header) => header.textContent?.trim())).toEqual(['Candidate', 'Job', 'Stage', 'Source', 'Applied']);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Candidate' }));
+    expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
+    expect(screen.getByRole('columnheader', { name: /Candidate/ })).toHaveAttribute('aria-sort', 'ascending');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
+    expect(dataRows().map((row) => within(row).getByText(/^(Applied|Screening)$/).textContent)).toEqual(['Applied', 'Applied', 'Screening']);
+  });
+
+  it('opens on its default when the remembered sort names a column the table does not have', () => {
+    localStorage.setItem('screenhire:sort:candidates', JSON.stringify({ id: 'tags', desc: false }));
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true, sortId: 'candidates' } } });
+
+    expect(screen.getByRole('columnheader', { name: /Applied/ })).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it("remembers the person's sort for the table named by sortId", async () => {
+    const rows = [
+      { ...applications[0]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
+      { ...applications[1]!, integrity: null },
+      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
+    ];
+    const props = { applications: rows, extraColumns: integrityColumns, sortId: 'job-candidates' };
+    const first = render(WithTooltips, { props: { component: ApplicationTable, props } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
+    expect(JSON.parse(localStorage.getItem('screenhire:sort:job-candidates')!)).toEqual({ id: 'authenticity', desc: false });
+    first.unmount();
+
+    render(WithTooltips, { props: { component: ApplicationTable, props } });
+    expect(screen.getByRole('columnheader', { name: /Authenticity/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 
   it('moves the cursor with J and K, focusing and tinting the row', async () => {

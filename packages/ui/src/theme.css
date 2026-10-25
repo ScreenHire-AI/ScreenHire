@@ -16,6 +16,10 @@
   --text-panel-title: 1.25rem;
   --text-panel-title--line-height: 1.75rem;
   --text-panel-title--font-weight: 650;
+  /* A metric card's value, in the UI face (section 11). */
+  --text-metric: 2rem;
+  --text-metric--line-height: 2.375rem;
+  --text-metric--font-weight: 600;
   --text-heading: 1rem;
   --text-heading--line-height: 1.5rem;
   --text-heading--font-weight: 600;

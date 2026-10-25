@@ -90,7 +90,8 @@ describe('job pipeline', () => {
     expect(screen.getByText('No candidates match these filters.')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(within(panelHeader()).getByRole('searchbox', { name: 'Search candidates' })).toHaveValue('');
-    expect(names()).toEqual(applications.map((application) => application.candidateName));
+    // Every row is back, in the job table's order (those needing attention first).
+    expect(names().toSorted()).toEqual(applications.map((application) => application.candidateName).toSorted());
   });
 
   it('offers no stage that ends a candidacy to a bulk move while an integrity filter is set (ADR-0004)', async () => {

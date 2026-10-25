@@ -11,6 +11,8 @@ vi.mock('virtual:file-viewer', () => ({ viewerDocument: '<!doctype html><title>v
 // No file behind the sample PDF: its download fails, which is the state the page shows.
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 404 })));
+  // The sortable table remembers its sort in localStorage.
+  localStorage.clear();
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -71,6 +73,17 @@ const panels: Record<string, string[]> = {
   'Email sheet': ['Email sheet'],
   'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
+  'Details rail': ['Details rail'],
+  Tabs: ['Tabs'],
+  Notice: ['Notice'],
+  'Summary card': ['Summary card'],
+  'Metric card': ['Metric card'],
+  'File row and file viewer': ['File row and file viewer'],
+  'Edit / Preview switch': ['Edit / Preview switch'],
+  'Count button': ['Count button'],
+  'Sort header': ['Table'],
+  'Built in badge': ['Built in badge'],
+  'Reorder grip': ['Reorder grip'],
 };
 
 describe('style guide', () => {

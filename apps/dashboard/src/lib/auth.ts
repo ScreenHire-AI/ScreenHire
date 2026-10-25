@@ -7,7 +7,7 @@ const onboardingRoute = '/(auth)/onboarding';
  * Pages anyone may see, signed in or not. Development pages return 404 from their own load in a production build.
  * Accepting an invitation signs in as the invited address, whoever is signed in now, so it must not redirect.
  */
-const openRoutes = ['/(dev)/style-guide', '/(auth)/invitations/accept'];
+const openRoutes = ['/(dev)/style-guide', '/(dev)/style-guide/preview', '/(auth)/invitations/accept'];
 
 /** The query parameter that carries where to go after signing in. */
 export const returnUrlParameter = 'returnUrl';

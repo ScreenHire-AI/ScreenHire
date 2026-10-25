@@ -21,9 +21,10 @@ describe('auth guard', () => {
     expect(guardRedirect(null, null, url('/no-such-page'))).toBe('/sign-in?returnUrl=%2Fno-such-page');
   });
 
-  it('lets everyone reach the style guide, whose own load hides it outside development', () => {
+  it('lets everyone reach the style guide and its pop-out preview, whose own loads hide them outside development', () => {
     for (const user of [null, newcomer, member]) {
       expect(guardRedirect('/(dev)/style-guide', user, url('/style-guide'))).toBeNull();
+      expect(guardRedirect('/(dev)/style-guide/preview', user, url('/style-guide/preview?channel=abc'))).toBeNull();
     }
   });
 

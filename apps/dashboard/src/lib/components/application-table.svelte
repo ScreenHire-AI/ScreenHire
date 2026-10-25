@@ -1,8 +1,5 @@
 <script lang="ts">
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
-  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import { createTable, FlexRender, renderSnippet } from '@tanstack/svelte-table';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { tick, type Snippet } from 'svelte';
@@ -12,6 +9,8 @@
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -23,6 +22,8 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
+  import { isOverdue } from '#lib/sla.js';
+  import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
   let {
     applications,
@@ -35,6 +36,15 @@
     selectedIds = $bindable([]),
     emptyText = 'No candidates yet.',
     onclearfilters,
+    sortId,
+    sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, [
+      'candidate',
+      ...extraColumns.flatMap((column) => (column.id ? [column.id] : [])),
+      ...(showJob ? ['job'] : []),
+      'stage',
+      'source',
+      'applied',
+    ]),
   }: {
     applications: readonly ApplicationSummary[];
     /** The table's accessible name. */
@@ -53,19 +63,48 @@
     emptyText?: string;
     /** While the page filters the rows: the empty state's one action (E1). */
     onclearfilters?: () => void;
+    /** Names the table in the person's remembered sorts (`candidates`, `job-candidates`); without it the sort is forgotten. */
+    sortId?: string;
+    /**
+     * The sort, when the page needs it too. A job's table (with `stages`) opens with the candidates needing attention
+     * first, every other table newest first by Applied (L2), unless the person chose another.
+     */
+    sort?: TableSortState;
   } = $props();
 
   const columns = $derived<CandidateColumn[]>([
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
-    { id: 'candidate', header: 'Candidate', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
+    // Every column sorts (L2); text columns by their words, A to Z first.
+    { id: 'candidate', header: 'Candidate', accessorFn: (application) => application.candidateName, sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
     // Status first, right after the name (T2): the integrity columns, then the facts.
     ...extraColumns,
-    ...(showJob ? [{ id: 'job', header: 'Job', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn] : []),
-    { id: 'stage', header: 'Stage', accessorFn: (application) => application.stage.name, enableSorting: false, cell: ({ row }) => renderSnippet(stageCell, row.original) },
-    { id: 'source', header: 'Source', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
-    { id: 'applied', header: 'Applied', cell: ({ row }) => renderSnippet(appliedCell, row.original) },
+    ...(showJob
+      ? [{ id: 'job', header: 'Job', accessorFn: (application) => application.jobTitle, sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn]
+      : []),
+    // On a job's table the Stage column sorts by attention: overdue rows first, the longest overdue at the top, then the
+    // rest in pipeline order. Overdue is the team's own delay (section 3.2), so the order never leans on integrity output.
+    // Across jobs there is no one pipeline order, so it sorts by the stage's name.
+    {
+      id: 'stage',
+      header: 'Stage',
+      accessorFn: (application) => (stages ? attentionRank(application) : application.stage.name),
+      sortFn: stages ? 'basic' : 'alphanumeric',
+      // The rank is a number, which TanStack would sort descending first; attention comes first.
+      sortDescFirst: false,
+      cell: ({ row }) => renderSnippet(stageCell, row.original),
+    },
+    { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
+    // Applied sorts, newest first: the order every candidate table opens on (L2).
+    { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     ...(stages && moves ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
+
+  // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
+  function attentionRank(application: ApplicationSummary): number {
+    if (isOverdue(application, Date.now())) return Date.parse(application.slaDueAt!) - 1e15;
+    const position = stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1;
+    return position < 0 ? Number.MAX_SAFE_INTEGER : position;
+  }
 
   // Phones get two-line list items in place of the table (design system section 8), at the shell's own phone width.
   const phone = new IsMobile();
@@ -82,6 +121,7 @@
   const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
 
   const table = createTable({
+    ...tableSortOptions(() => sort),
     features: candidateTableFeatures,
     get columns() {
       return columns;
@@ -294,6 +334,8 @@
   {#if rows.length === 0}
     {@render empty()}
   {:else}
+    <!-- List items have no headers, so the Sort chip offers the headers' choices (L2). -->
+    <div class="flex justify-end border-b border-border-subtle px-4 py-2"><SortMenu {table} /></div>
     <ul aria-label={label}>
       {#each rows as row (row.id)}
         {@render listItem(row.original)}
@@ -316,12 +358,9 @@
           {#each table.getHeaderGroups() as group (group.id)}
             <tr>
               {#each group.headers as header (header.id)}
-                {@const sorted = header.column.getCanSort() ? header.column.getIsSorted() : false}
-                <th
-                  scope="col"
-                  aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
+                <SortHeader
+                  {header}
                   class={[
-                    'h-11 border-b border-border py-0 text-caption whitespace-nowrap text-muted-foreground',
                     header.id === 'select' ? selectColumn : 'px-3',
                     header.id === 'candidate' && nameColumn,
                     header.id === 'candidate' && scrolledSideways && nameEdge,
@@ -330,27 +369,7 @@
                     header.id === 'source' && optionalColumn,
                     (header.id === 'applied' || header.id === 'move') && 'text-right',
                   ]}
-                >
-                  {#if header.isPlaceholder}{:else if header.column.getCanSort()}
-                    <!-- Each press cycles the sort (the column says which way comes first), then back to the API's order. aria-sort on the header tells screen readers which way it is sorted. -->
-                    <button
-                      type="button"
-                      onclick={header.column.getToggleSortingHandler()}
-                      class="-mx-1 inline-flex h-6 items-center gap-1 rounded-sm px-1 hover:text-foreground pointer-coarse:h-11"
-                    >
-                      <FlexRender {header} />
-                      {#if sorted === 'desc'}
-                        <ArrowDownIcon aria-hidden="true" class="size-3" />
-                      {:else if sorted === 'asc'}
-                        <ArrowUpIcon aria-hidden="true" class="size-3" />
-                      {:else}
-                        <ChevronsUpDownIcon aria-hidden="true" class="size-3 opacity-60" />
-                      {/if}
-                    </button>
-                  {:else}
-                    <FlexRender {header} />
-                  {/if}
-                </th>
+                />
               {/each}
             </tr>
           {/each}

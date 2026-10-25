@@ -9,14 +9,17 @@ sources:
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/+page.svelte
+  - resource: apps/dashboard/src/lib/table-sort.svelte.ts
+  - resource: apps/dashboard/src/lib/preview-window.svelte.ts
 ---
 # ScreenHire design system
 
 > Status: **v0.3 (2026-10-25)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
 > [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard has the
-> v0.3 foundation: status icons, pages that fill the window, the surface shadow and the v0.3 labels. Section 21 lists the
-> components the v0.3 build still adds, and section 22 the screens it changes.
+> v0.3 foundation: status icons, pages that fill the window, the surface shadow and the v0.3 labels, and the shared v0.3
+> components in section 11. Section 21 lists the components the v0.3 build still adds, and section 22 the screens it
+> changes.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -269,6 +272,7 @@ nothing sets a pixel root.
 |---|---|---|---|
 | `page-title` | 28 / 34 (24 / 30 on phones) | Bricolage 700, -0.02em | The page's `h1` |
 | `panel-title` | 20 / 28 | Bricolage 650 | A record's name inside a panel or sheet |
+| `metric` | 32 / 38 | Hanken 600 | A metric card's value, in the UI face (section 11) |
 | `heading` | 16 / 24 | Hanken 600 | Panel and section titles |
 | `body` | 14 / 20 | Hanken 400, 600 for emphasis | Everything else |
 | `reading` | 16 / 26 | Hanken 400 | Resumes, notes, integrity explanations |
@@ -414,8 +418,8 @@ in a development build, shows every component in each state, and its test fails 
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
-| File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention |
-| Resume preview | Our component, in an inset | The v0.3 build replaces it with the file viewer (section 21): a page shows a file row and the file opens full window. Untrusted files render isolated |
+| File tile | Our component | Type icon, name, size and page count as fact pills, Download; scan status only when a file needs attention. Replaced by the file row; the candidate page build removes its last uses |
+| Resume preview | Our component, in an inset, on `FileFrame` | Replaced by the file row and the file viewer, because a page never embeds a preview (section 9); the candidate page build removes it |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
@@ -423,7 +427,7 @@ in a development build, shows every component in each state, and its test fails 
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8. The sections, the saved views, then Settings for owners and admins only; nobody else sees the group |
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
-| Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts (L2) |
+| Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2) |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | Our component | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People show by name ("by Robin Ashby", "by you") |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
@@ -444,6 +448,17 @@ in a development build, shows every component in each state, and its test fails 
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline); the rail shows the icon with a tooltip |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog` | Section 16; on a candidate the panel becomes the Integrity tab. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
+| Details rail | `DetailsRail` with `DetailsRailSection`s; `DetailLayout` places it | A detail page's 340px column on the right with the record's details, one surface whose sections each have a small heading; it never moves between tabs and folds under the header, before the content, below `lg` (section 7) |
+| Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in the count where one fits (Distribution 7/8, posted on 7 of 8 boards, which screen readers hear in words), and a small marker only where it does not (E2): a dot in the status's icon colour with its words for screen readers, never a status icon (I2). The list scrolls sideways, never wraps (F5) |
+| Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
+| Summary card | shadcn `Card` as it is (`SummaryCard`), on a summary band (`SummaryBand`, section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most, the rest in a tooltip). A link when it opens what it counts |
+| Metric card | shadcn `Card` (`MetricCard`) | The value in the UI typeface (`metric`), a signed change against a named period (+7 vs last week), a 12-point line and a readout on hover, tap and focus; no description. The change is green when good and amber when it needs a look, decided per metric (fewer days to hire is good). It opens its report |
+| File row and file viewer | `FileRow`; `FileViewer` on shadcn `Dialog`; `FileFrame` | A page shows a file row: type icon, name, size, View and Download, or the scan status when a file is withheld. View opens the file in a full-window dialog with Close and Download, never a new tab. Untrusted files render isolated in a sandboxed frame; it draws PDFs, and other types keep Download only |
+| Edit / Preview switch | `EditPreviewSwitch` (`Toggle` group and an icon button); `PreviewFrame`; `#lib/preview-window.svelte.ts` | A8: a pencil and an eye; the window icon (`app-window`, "Open in a new window") pops the preview out, and the window follows each edit over a same-origin `BroadcastChannel`. A candidate page previews in a phone, tablet or desktop frame at its real size |
+| Count button | `CountButton`: outline `Button` and `Sheet` | A count in a header ("2 hiring templates") that opens a sheet listing each item as a link, with search past 10 (T4). With nothing to list it is plain text |
+| Sort header | `SortHeader` in the TanStack table header; `SortMenu` on phones; `#lib/table-sort.svelte.ts` | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header; a second click reverses. Each table opens on its default (a job's candidates on Stage, those needing attention first: overdue, the longest first, then pipeline order; candidates across jobs on Applied, newest first), and each person's sort is remembered per table in the browser (`preferences`), so it does not follow them to another browser. The Sort chip offers the same choices on a phone, above the list items |
+| Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
+| Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
 
 ## 12. Words
 
@@ -568,21 +583,10 @@ These join section 11 one by one, each when the build adds it to the style guide
 
 | Component | Built on | Rules |
 |---|---|---|
-| Details rail | Our component | A detail page's 340px column on the right with the record's details; it never moves between tabs and folds under the header below `lg` (section 7) |
-| Tabs | shadcn `Tabs` | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in the count where one fits (Distribution 7/8, posted on 7 of 8 boards), and a small marker only where it does not (E2) |
-| Notice | Our component | A problem to fix: the status's soft colour, full width, what is wrong in words and a link to the fix (E2) |
-| Summary card | shadcn `Card` as it is, on a summary band (section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most). A link when it opens what it counts |
-| Metric card | shadcn `Card` | The value in the UI typeface, a signed change against a named period (+7 vs last week), a 12-point line and a hover readout; no description. The change is green when good and amber when it needs a look, decided per metric (fewer days to hire is good). It opens its report |
-| File row and file viewer | Our components | A page shows a file row: type icon, name, size and Download. The file opens in a full-window viewer; untrusted files render isolated |
-| Edit / Preview switch | `Toggle` group and an icon button | A8: a pencil and an eye; the window icon pops the preview out. A candidate page previews in a phone, tablet or desktop frame |
-| Count button | Outline `Button` and `Sheet` | A count in a header ("2 hiring templates") that opens a sheet listing each item as a link, with search past 10 (T4) |
-| Sort header | A button in the TanStack table header | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header |
-| Built in badge | `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Form builder | Our component | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms: a card per question with its answer kind top right, options listed with the mark the person will see (a circle for Choice, a square for Multi-choice) ending in Add option, and Duplicate, Delete and Required in the card's footer. Only the question being edited opens, with an accent bar; the others read as text, with an asterisk when required. Questions reorder with a grip (A7) |
 | Answer menu | `DropdownMenu` | Picks a question's answer kind, and Add a question opens the same menu. Under General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Under Rating, each with a star: 1 to 5, 1 to 10, Yes or no |
 | Rating | Our component | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from, opening to each one. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer sees it only after submitting their own; no automation acts on it |
 | Rating answer | `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale |
-| Reorder grip | Our component | A7: a drag handle whose click opens Move up, Move down, Move to top and Move to bottom |
 | Email composer | `Sheet`, and the reply box on the Messages tab | Start from a template or a blank email, change this one email, insert variables such as `firstName`, preview with the candidate's own details, then Send. It lands in Activity and Messages. Replaces the Email sheet |
 | Mention | The note field | @ mentions a teammate, who gets a notification card and an email that never quotes the note |
 | Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |

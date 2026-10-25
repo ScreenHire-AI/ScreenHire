@@ -4,8 +4,11 @@ import type { StatusName } from '#lib/status.js';
 /** The API offers a file only once its scan is clean or when no scanner is configured (docs/architecture/apply-flow.md). */
 export const canDownload = (file: ApplicationFileSummary) => file.scanStatus === 'Clean' || file.scanStatus === 'NotScanned';
 
-/** The resume preview draws PDFs, and only files a person may download. */
-export const canPreview = (file: ApplicationFileSummary) => canDownload(file) && file.contentType === 'application/pdf';
+/**
+ * The file viewer draws PDFs, in its isolated frame, and only files a person may download. Images and Word files have
+ * no View; they keep Download.
+ */
+export const canView = (file: ApplicationFileSummary) => canDownload(file) && file.contentType === 'application/pdf';
 
 type Withheld = { label: string; status: StatusName };
 

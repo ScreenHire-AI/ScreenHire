@@ -200,6 +200,7 @@
     <ApplicationTable
       applications={shown}
       label={`Candidates for ${jobTitle}`}
+      sortId="job-candidates"
       {stages}
       {moves}
       extraColumns={integrityColumns}

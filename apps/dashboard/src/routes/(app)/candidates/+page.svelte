@@ -106,6 +106,7 @@
           <ApplicationTable
             applications={shown}
             showJob
+            sortId="candidates"
             extraColumns={integrityColumns}
             bind:activeId
             bind:selectedIds
