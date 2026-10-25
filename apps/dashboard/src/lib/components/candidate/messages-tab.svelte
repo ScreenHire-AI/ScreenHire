@@ -43,7 +43,7 @@
   );
 </script>
 
-<Panel title="Messages" count={items?.length}>
+<Panel title="Messages">
   {#if error}
     <QueryError message={describeError(error, 'Could not load the messages')} {onretry} inset />
   {:else if items && items.length === 0}

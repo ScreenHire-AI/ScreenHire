@@ -161,7 +161,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Verified outside ScreenHire' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Video call on Monday.' } });
@@ -186,7 +186,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Other reason' }));
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
@@ -202,7 +202,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
 
@@ -216,7 +216,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     let dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Explained by the candidate' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Said so on the phone.' } });
@@ -227,7 +227,7 @@ describe('integrity panel', () => {
 
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    await fireEvent.click(screen.getByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(within(section('Authenticity')).getByRole('button', { name: 'Dismiss' }));
     dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('radio', { name: 'The observations do not apply' })).toBeChecked();
     expect(within(dialog).getByLabelText('Note (optional)')).toHaveValue('');

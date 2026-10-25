@@ -45,8 +45,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
             """;
 
-        // Back to text in the timeline: each surviving note's text returns to its NoteAdded entry, and the edit and
-        // delete entries, which the earlier model cannot read, go.
+        // Back to text in the timeline: each surviving note's text returns to its NoteAdded entry. A deleted note's text is
+        // gone for good, so its entry keeps no text and loses its note id, which the earlier model would read as a note
+        // that never existed. The edit and delete entries go too, on purpose: the earlier model cannot read their types,
+        // so the record of who deleted a note is lost on a rollback.
         private const string RestoreNotes = """
             ALTER TABLE application_events NO FORCE ROW LEVEL SECURITY;
             ALTER TABLE application_notes NO FORCE ROW LEVEL SECURITY;
@@ -55,6 +57,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             SET data = (e.data - 'noteId') || jsonb_build_object('note', n.text)
             FROM application_notes n
             WHERE e.type = 'NoteAdded' AND n.id = (e.data ->> 'noteId')::uuid;
+
+            UPDATE application_events SET data = data - 'noteId' WHERE type = 'NoteAdded' AND NOT data ? 'note';
 
             DELETE FROM application_events WHERE type IN ('NoteEdited', 'NoteDeleted');
 

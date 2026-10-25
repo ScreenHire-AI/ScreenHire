@@ -288,7 +288,7 @@ internal static class ApplicationEndpoints
             return TypedResults.Problem(title: "Author only", detail: "Only the author can edit a note.", statusCode: StatusCodes.Status403Forbidden);
         }
 
-        if (await MentionProblemsAsync(db, tenant, request.Note, cancellationToken) is { } mentionProblems)
+        if (await MentionProblemsAsync(db, tenant, request.Note, cancellationToken, note) is { } mentionProblems)
         {
             return TypedResults.ValidationProblem(mentionProblems);
         }
@@ -378,12 +378,13 @@ internal static class ApplicationEndpoints
         return application is null || note is null ? null : (application, note);
     }
 
-    // Every mention names a member of this organization. Narrowed to it explicitly: the members filter also shows the
-    // signed-in person's memberships in other organizations.
+    // Every mention a note adds names a member of this organization. One it already had may name someone who has left
+    // since, and stays, so an edit never fails for it. Narrowed to this organization explicitly: the members filter also
+    // shows the signed-in person's memberships in other organizations.
     private static async Task<Dictionary<string, string[]>?> MentionProblemsAsync(
-        ScreenHireDbContext db, ITenantContext tenant, string text, CancellationToken cancellationToken)
+        ScreenHireDbContext db, ITenantContext tenant, string text, CancellationToken cancellationToken, ApplicationNote? existing = null)
     {
-        var mentioned = NoteMentions.Parse(text);
+        var mentioned = NoteMentions.Parse(text).Except(existing?.Mentions.Select(m => m.UserId) ?? []).ToList();
         if (mentioned.Count == 0)
         {
             return null;

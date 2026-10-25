@@ -33,7 +33,7 @@
   } = $props();
 </script>
 
-<Panel title="Scorecards" count={scorecards?.length}>
+<Panel title="Scorecards">
   {#snippet actions()}
     {#if onfill}
       <Button variant="outline" onclick={onfill}><ClipboardCheckIcon aria-hidden="true" />Fill scorecard</Button>

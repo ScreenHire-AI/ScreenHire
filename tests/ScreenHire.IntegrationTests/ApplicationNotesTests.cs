@@ -114,6 +114,23 @@ public sealed class ApplicationNotesTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task An_edit_keeps_a_mention_of_someone_who_has_left_and_checks_only_the_mentions_it_adds()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var leaver = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        using var outsider = await fixture.SignedInWithOrganizationAsync();
+        var application = await ApplicationAsync(owner, "Casey Morgan");
+        var note = (await owner.PostAsync($"/v1/applications/{application}/notes", Note($"Ask {Mention(leaver)}.")))
+            .Expect(HttpStatusCode.Created).Id("noteId");
+        (await owner.DeleteAsync($"/v1/organization/members/{await owner.MemberIdAsync(leaver.UserId)}")).Expect(HttpStatusCode.NoContent);
+
+        (await owner.PutAsync($"/v1/applications/{application}/notes/{note}", Note($"Ask {Mention(leaver)} first.")))
+            .Expect(HttpStatusCode.OK);
+        (await owner.PutAsync($"/v1/applications/{application}/notes/{note}", Note($"Ask {Mention(leaver)} and {Mention(outsider)}.")))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("note");
+    }
+
+    [Fact]
     public async Task An_admin_of_another_organization_is_only_a_recruiter_here()
     {
         using var ownerA = await fixture.SignedInWithOrganizationAsync();

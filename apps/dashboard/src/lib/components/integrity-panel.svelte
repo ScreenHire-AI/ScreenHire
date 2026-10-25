@@ -87,7 +87,7 @@
     <details bind:open={() => expanded[signal.id] ?? false, (open) => (expanded = { ...expanded, [signal.id]: open })} class="group">
       <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
         <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
-        <Badge variant="muted">{checkTitle(signal.category)}</Badge>
+        <span class="text-caption text-muted-foreground">{checkTitle(signal.category)}</span>
         <span class="font-mono text-code text-muted-foreground">{signal.code}</span>
       </summary>
       <div class="flex flex-col gap-1.5 px-3 pb-3">
@@ -188,7 +188,7 @@
       {:else if level.rank > 0}
         <div>
           <Button variant="outline" size="lg" onclick={() => startDismiss(kind, view.id)}>
-            Dismiss {kind === 'authenticity' ? 'authenticity' : 'AI assistance'} with a reason
+            Dismiss
           </Button>
         </div>
       {/if}

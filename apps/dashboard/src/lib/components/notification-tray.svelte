@@ -25,7 +25,7 @@
       <li class="pointer-events-auto flex items-start gap-3 rounded-panel border border-border bg-card p-3 shadow-overlay">
         <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">{#if item.kind === 'mention'}<AtSignIcon />{:else}<BellIcon />{/if}</span>
         <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
-          <a href={item.href} class="font-semibold break-words underline-offset-2 hover:underline">{item.title}</a>
+          <a href={item.href} class="font-semibold break-words underline underline-offset-2">{item.title}</a>
           <p class="break-words">{item.detail}</p>
         </div>
         <IconButton label="Dismiss notification" onclick={() => ondismiss(item.id)}><XIcon aria-hidden="true" /></IconButton>

@@ -57,6 +57,8 @@
   let editing = $state<string | null>(null);
   let deleting = $state<string | null>(null);
   let confirmOpen = $state(false);
+  // Delete was chosen in a menu: its dialog opens once the menu has closed and focus is back on the menu's button.
+  let deleteChosen = false;
   let announcement = $state('');
 
   const visible = $derived(entries ? visibleEntries(entries) : undefined);
@@ -116,12 +118,12 @@
   {@const entry = byId.get(item.id)}
   {#if entry && item.noteId && editing !== item.noteId && (mayEdit(entry) || mayDelete(entry))}
     {@const noteId = item.noteId}
-    <MoreMenu label="More actions for this note" quiet size="icon" onclosed={() => deleting === noteId && (confirmOpen = true)}>
+    <MoreMenu label="More actions for this note" quiet size="icon" onclosed={() => deleteChosen && ((deleteChosen = false), (confirmOpen = true))}>
       {#if mayEdit(entry)}
         <DropdownMenu.Item onSelect={() => (editing = noteId)}><PencilIcon aria-hidden="true" />Edit</DropdownMenu.Item>
       {/if}
       {#if mayDelete(entry)}
-        <DropdownMenu.Item variant="destructive" onSelect={() => (deleting = noteId)}><Trash2Icon aria-hidden="true" />Delete</DropdownMenu.Item>
+        <DropdownMenu.Item variant="destructive" onSelect={() => ((deleting = noteId), (deleteChosen = true))}><Trash2Icon aria-hidden="true" />Delete</DropdownMenu.Item>
       {/if}
     </MoreMenu>
   {/if}
@@ -133,7 +135,6 @@
 
 <Panel
   title="Activity"
-  count={limit === undefined && visible ? counts.all : undefined}
   footer={limit !== undefined && allHref && visible && visible.length > limit ? allLink : undefined}
 >
   <div class="flex flex-col gap-4">
