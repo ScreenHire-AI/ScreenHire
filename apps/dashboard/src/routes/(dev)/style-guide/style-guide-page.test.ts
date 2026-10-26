@@ -20,10 +20,13 @@ afterEach(() => {
 
 const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));
-vi.mock(import('$app/state'), async (importOriginal) => ({
-  ...(await importOriginal()),
-  page: { url: new URL('http://localhost:4323/style-guide') } as never,
-}));
+vi.mock(import('$app/state'), async (importOriginal) => {
+  const { userAs } = await import('../../../test-support/fixtures.js');
+  return {
+    ...(await importOriginal()),
+    page: { url: new URL('http://localhost:4323/style-guide'), data: { user: userAs('Owner') } } as never,
+  };
+});
 
 /** Section 11's rows, by the name in the Component column. */
 function catalogue(): string[] {

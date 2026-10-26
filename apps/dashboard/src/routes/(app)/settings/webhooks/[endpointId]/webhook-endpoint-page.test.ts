@@ -143,9 +143,10 @@ describe('webhook endpoint page', () => {
   it('shows why an endpoint the worker turned off is off, with Turn on', async () => {
     renderPage(endpoint({ enabled: false, disabledReason: 'Ten deliveries in a row failed.', disabledAt: '2026-10-19T09:00:00Z' }));
 
-    const reason = await screen.findByRole('region', { name: 'Why it is off' });
-    expect(within(reason).getByText('Ten deliveries in a row failed.')).toBeInTheDocument();
-    expect(screen.getAllByText('Turned off').length).toBeGreaterThan(0);
+    // A problem to fix, as a notice at the top of the work area (E2).
+    const reason = (await screen.findByText(/Ten deliveries in a row failed\./)).closest('[data-slot="notice"]');
+    expect(reason).not.toBeNull();
+    expect(reason).toHaveTextContent('Turned off');
     expect(screen.getByRole('button', { name: 'Turn on' })).toBeInTheDocument();
   });
 
@@ -180,7 +181,7 @@ describe('webhook endpoint page', () => {
     await screen.findAllByText('application.submitted');
 
     expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Why it is off' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="notice"]')).toBeNull();
   });
 
   it('turns the endpoint off from the More menu with enabled false', async () => {

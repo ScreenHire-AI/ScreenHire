@@ -1,14 +1,28 @@
 import { render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import type { CurrentUser } from '@screenhire/api-client';
+import { userAs } from '../../test-support/fixtures.js';
 import SettingsMenu from './settings-menu.svelte';
 
-vi.mock('$app/state', () => ({ page: { url: new URL('http://dashboard.test/settings/team') } }));
+const state = vi.hoisted(() => ({ user: undefined as CurrentUser | undefined }));
+vi.mock('$app/state', () => ({
+  page: {
+    url: new URL('http://dashboard.test/settings/team'),
+    get data() {
+      return { user: state.user };
+    },
+  },
+}));
 
 const content = createRawSnippet(() => ({ render: () => '<p>Page content</p>' }));
 
 describe('settings menu', () => {
+  beforeEach(() => {
+    state.user = userAs('Owner');
+  });
+
   it('lists every settings page in order, beside the page content, and marks the current one', async () => {
     render(SettingsMenu, { props: { children: content } });
     const menu = screen.getByRole('navigation', { name: 'Settings' });
@@ -26,6 +40,18 @@ describe('settings menu', () => {
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');
     expect(screen.getByText('Page content')).toBeInTheDocument();
     await expectNoAxeViolations();
+  });
+
+  it('lists only the pages the role may use', () => {
+    state.user = userAs('Recruiter');
+    render(SettingsMenu, { props: { children: content } });
+    const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
+      .queryAllByRole('link')
+      .map((link) => link.textContent?.trim());
+
+    expect(labels).not.toContain('Team');
+    expect(labels).not.toContain('Roles');
+    expect(labels).not.toContain('API keys');
   });
 
   it('scrolls the row, which may hide the current entry past its edge, to centre it', () => {
