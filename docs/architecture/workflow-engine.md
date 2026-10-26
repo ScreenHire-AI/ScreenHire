@@ -61,6 +61,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-editor.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
@@ -181,7 +182,7 @@ the page's header band. A workflow that cannot be edited there (a ScreenHire tem
 job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no form controls. The
 validation result is a status badge beside the page title.
 
-- **Pipeline:** the stages in order (reordered with buttons, never only by dragging) and, per stage, its automations
+- **Pipeline:** the stages in order (reordered by dragging a grip, or from the menu the grip opens, `ReorderList`), and an automation's actions the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
@@ -189,7 +190,7 @@ validation result is a status badge beside the page title.
   stage already names it. A stage that ends the application offers no
   scorecard. Automations whose trigger
   has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
-  workflow" lane. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  workflow" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): a
   "Whole workflow" lane and the stages along the top, one row per automation from trigger to conditions to actions,
