@@ -227,12 +227,16 @@ candidates."). Removing a member also closes their open real-time connections in
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
 every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
-Owner-only (`OwnerOnly`): no custom role holds it. Create tasks came after custom roles, with the route that creates a
-task by hand: the built-in roles that write hiring data have it, and a custom role has it only once someone adds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
-someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first. `RolePermissionsTests` reads each guarded route from
+Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
+someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
+
+Create tasks came after custom roles, with the route that creates a task by hand. The built-in roles that write hiring
+data have it. It is a hiring write, and a Write key needs every hiring write in its creator's role, so the
+`GrantCreateTasksToCustomRoles` migration gave it to each custom role that already held all the other hiring writes;
+any other custom role has it only once an Owner adds it. `RolePermissionsTests` reads each guarded route from
 `apps/api/Endpoints`, fails when a route has no permission or a different one, and holds the built-in roles to the exact
-sets the role-name checks used to allow (plus Create tasks), so no existing member lost access. `GET /v1/organization/roles` serves the
-catalogue, with the organization's custom roles, to any member.
+sets the role-name checks used to allow (plus Create tasks), so no existing member lost access.
+`GET /v1/organization/roles` serves the catalogue, with the organization's custom roles, to any member.
 
 **Custom roles** (`custom_roles`, `CustomRole`) start as a copy of a role, built-in or custom, and change on their own
 page. A copy never keeps an Owner-only permission, and reading a role drops one again, so a stored row cannot grant it.

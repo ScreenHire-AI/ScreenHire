@@ -515,7 +515,7 @@ tasks for the signed-in person and the whole team (no assignee), oldest first; `
 once, and raises `ApplicationTaskCompleted`; it never changes the application, so a rejection review is still decided
 by a person moving the candidate. Anyone whose role changes hiring data may complete any of the organization's tasks;
 the team shares the work. A person with Create tasks, or an API key with the Write scope, gives the team a task by hand
-(`POST /v1/applications/{id}/tasks`, `ApplicationChanges.CreateTaskAsync`): a `Task` with a note of up to 2,000
+(`POST /v1/applications/{id}/tasks`, `ApplicationChanges.CreateTaskAsync`): a `Task` with a note of up to 1,000
 characters, for one member who can see the candidate (as a mention must) or the whole team, in the application's
 current stage. It records a `TaskCreated` timeline entry with the task's note and whoever created it, a person or the key,
 and raises `ApplicationTaskCreated`; like every task, it never changes the application. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no

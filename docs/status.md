@@ -115,6 +115,5 @@ brackets.
   one `IntegrityReads.LoadAsync` call in `get_application` and a view that marks quoted evidence as candidate-written.
 - MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
   (ADR-0011 decision 6).
-
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (integrity-engine.md §10.9). In the browser pane, `/preview` waits for an integrity chip before it checks anything live.

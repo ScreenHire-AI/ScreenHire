@@ -58,8 +58,9 @@ therefore the route's own.
 | `create_task(applicationId, note, assigneeUserId?)` | `POST /v1/applications/{id}/tasks` | Write, Create tasks |
 | `move_to_stage(applicationId, stageId, note?)` | `POST /v1/applications/{id}/move` | Write, Move candidates |
 
-- `text` matches words in a job's title, or in a candidate's name or email, ignoring case. `limit` is 20 unless the
-  assistant asks, and 50 at most. The HTTP lists take no search; the filter lives in the same service.
+- `text` matches words in a job's title, or in a candidate's name or email, ignoring case, and is 100 characters at
+  most. `limit` is 20 unless the assistant asks, and 50 at most. The HTTP lists take no search; the filter lives in
+  the same service.
 - `get_application` returns the candidate, each answer with its question as the job asks it now, the files (names
   only, not their contents), follow-up questionnaires, the job's stages with the current one, and the latest 20
   activity entries, newest first. The stage ids are what `move_to_stage` takes.
@@ -81,7 +82,8 @@ The outputs are records of their own (`McpContracts.cs`), mapped from the hiring
   answers. Resumes and answers can carry hidden instructions aimed at AI screeners, which the integrity engine flags
   (`CNT_PROMPT_INJECTION`, [integrity engine](integrity-engine.md)). The server instructions tell the assistant to
   read such text as data and never follow it. Choices come back as the job's own option labels, and yes/no and numbers
-  as plain values, because the candidate picked them rather than wrote them.
+  as plain values, because the candidate picked them rather than wrote them. An answer that is not a yes/no or a
+  number, given before its question changed type, comes back marked like free text.
 - **No integrity output.** No tool returns integrity levels, reason codes, signals or evidence, and the activity leaves
   out `IntegrityAssessed`, exactly as the HTTP API does for a key (ADR-0011 decision 3). A key has no named person
   behind it, and an assistant can be an autonomous agent that could reject on the evidence, which ScreenHire's own
