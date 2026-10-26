@@ -109,11 +109,12 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Data Engineer"));
         var application = await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
 
-        // Every membership row is a built-in role with no custom role, as every row from before custom roles is.
+        // Every membership row is a built-in role with no custom role, as every row from before custom roles is. Create
+        // tasks came later, with the task route, and went to every role that writes hiring data.
         string[] viewing = ["ViewHiring"];
         string[] recruiting =
         [
-            .. viewing, "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CompleteTasks", "EmailCandidates",
+            .. viewing, "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CreateTasks", "CompleteTasks", "EmailCandidates",
             "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
         ];
         string[] administering = [.. recruiting, "DeleteAnyNote", "EditEmailTemplates", "EditSettings", "ManageApiKeys", "ManageWebhooks", "ManageTeam"];
@@ -224,6 +225,20 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))
             .Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("More access than your role");
         (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Export", ["scopes"] = new JsonArray("Read") }))
+            .Expect(HttpStatusCode.Created);
+
+        // Create tasks is a hiring write too: a role with every other one still makes no Write key, which is why
+        // GrantCreateTasksToCustomRoles gave it to the custom roles that had all the others.
+        string[] otherWrites =
+        [
+            "ViewHiring", "ManageApiKeys", "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CompleteTasks",
+            "EmailCandidates", "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
+        ];
+        (await owner.PutAsync($"/v1/organization/roles/{lead}", Update("Team lead", otherWrites))).Expect(HttpStatusCode.OK);
+        (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))
+            .Expect(HttpStatusCode.Forbidden);
+        (await owner.PutAsync($"/v1/organization/roles/{lead}", Update("Team lead", [.. otherWrites, "CreateTasks"]))).Expect(HttpStatusCode.OK);
+        (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))
             .Expect(HttpStatusCode.Created);
     }
 

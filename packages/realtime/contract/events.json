@@ -83,6 +83,16 @@
     }
   },
   {
+    "type": "ApplicationTaskCreated",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "taskId": "0199f0c4-0000-7000-8000-000000000002",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000003",
+      "jobId": "0199f0c4-0000-7000-8000-000000000004",
+      "createdAt": "2026-10-20T09:05:00+00:00"
+    }
+  },
+  {
     "type": "AutomationRunFinished",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

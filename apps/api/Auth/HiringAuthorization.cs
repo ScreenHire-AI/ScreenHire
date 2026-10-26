@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -38,20 +39,7 @@ internal static class HiringAuthorization
                 var user = invocation.HttpContext.User;
                 if (user.IsApiKey())
                 {
-                    if (!RolePermissions.HiringWrites.Contains(permission))
-                    {
-                        return TypedResults.Problem(
-                            title: "Not for API keys",
-                            detail: "An API key cannot do this. Sign in to the dashboard instead.",
-                            statusCode: StatusCodes.Status403Forbidden);
-                    }
-
-                    return user.HasApiKeyScope(ApiKeyScope.Write)
-                        ? await next(invocation)
-                        : TypedResults.Problem(
-                            title: "Read-only key",
-                            detail: "This API key can read hiring data but not change it. Create a key with the Write scope.",
-                            statusCode: StatusCodes.Status403Forbidden);
+                    return KeyRefusal(user, permission) is { } refused ? refused : await next(invocation);
                 }
 
                 var services = invocation.HttpContext.RequestServices;
@@ -77,6 +65,29 @@ internal static class HiringAuthorization
                     : await next(invocation);
             })
             .ProducesProblem(StatusCodes.Status403Forbidden);
+
+    /// <summary>
+    /// Why an API key may not use <paramref name="permission"/>, or null when it may: only a hiring write
+    /// (<see cref="RolePermissions.HiringWrites"/>), and only with the <see cref="ApiKeyScope.Write"/> scope. The route
+    /// filter above and the MCP tools both ask this, so a key gets the same answer either way.
+    /// </summary>
+    public static ProblemHttpResult? KeyRefusal(ClaimsPrincipal user, Permission permission)
+    {
+        if (!RolePermissions.HiringWrites.Contains(permission))
+        {
+            return TypedResults.Problem(
+                title: "Not for API keys",
+                detail: "An API key cannot do this. Sign in to the dashboard instead.",
+                statusCode: StatusCodes.Status403Forbidden);
+        }
+
+        return user.HasApiKeyScope(ApiKeyScope.Write)
+            ? null
+            : TypedResults.Problem(
+                title: "Read-only key",
+                detail: "This API key can read hiring data but not change it. Create a key with the Write scope.",
+                statusCode: StatusCodes.Status403Forbidden);
+    }
 
     /// <summary>The 403 title when the permission needs All jobs and the member sees only their own.</summary>
     public const string NeedsAllJobsTitle = "Needs all jobs";

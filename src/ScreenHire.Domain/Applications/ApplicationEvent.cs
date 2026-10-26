@@ -58,6 +58,9 @@ public enum ApplicationEventType
 
     /// <summary>A note was deleted, its text with it: only who deleted it and when remain.</summary>
     NoteDeleted,
+
+    /// <summary>A person or an API key gave the hiring team a task about the application. Automations' tasks show as their runs.</summary>
+    TaskCreated,
 }
 
 /// <summary>
@@ -81,7 +84,8 @@ public enum ApplicationEventType
 /// its link and, once completed, its answers. The answers are never kept here.
 /// <c>noteId</c>: For <see cref="ApplicationEventType.NoteAdded"/>, <see cref="ApplicationEventType.NoteEdited"/> and
 /// <see cref="ApplicationEventType.NoteDeleted"/>, the note (<see cref="ApplicationNote"/>), which holds the text. A
-/// note's text is never kept here; <c>note</c> is a stage move's note.
+/// note's text is never kept here; <c>note</c> is a stage move's note, or a created task's.
+/// <c>taskId</c>: For <see cref="ApplicationEventType.TaskCreated"/>, the task (<c>ApplicationTask</c>).
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -101,4 +105,5 @@ public sealed record ApplicationEventData(
     string? QuestionnaireId = null,
     Guid? QuestionnaireRequestId = null,
     Guid? NoteId = null,
-    Guid? EmailId = null);
+    Guid? EmailId = null,
+    Guid? TaskId = null);

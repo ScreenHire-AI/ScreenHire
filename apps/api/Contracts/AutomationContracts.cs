@@ -1,3 +1,4 @@
+using FluentValidation;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
 
@@ -100,6 +101,13 @@ public enum TaskScope
     Everyone,
 }
 
+/// <summary>A task for the hiring team about one application, from a person or an API key.</summary>
+/// <remarks>
+/// <c>assigneeUserId</c>: The member who should do it, a user id as on the team list; null for anyone on the hiring team.
+/// They must see the job: all jobs, or on its hiring team.
+/// </remarks>
+public sealed record CreateApplicationTaskRequest(string Note, Guid? AssigneeUserId = null);
+
 /// <summary>A manual automation was queued. <c>eventId</c> keys its run: find it in the application's automation runs.</summary>
 public sealed record ManualAutomationQueued(Guid ApplicationId, string AutomationId, Guid EventId);
 
@@ -117,4 +125,13 @@ internal static class AutomationMappings
     public static ApplicationTaskEntry ToEntry(this ApplicationTask task) =>
         new(task.Id, task.ApplicationId, task.Kind, task.Note, task.AssigneeUserId, task.AutomationRunId, task.CreatedAt, task.CompletedAt,
             task.CompletedByUserId);
+}
+
+internal sealed class CreateApplicationTaskRequestValidator : AbstractValidator<CreateApplicationTaskRequest>
+{
+    public CreateApplicationTaskRequestValidator()
+    {
+        RuleFor(r => r.Note).NotEmpty().Must(note => !string.IsNullOrWhiteSpace(note)).WithMessage("Say what the task is.")
+            .MaximumLength(ApplicationTask.MaxNoteLength);
+    }
 }

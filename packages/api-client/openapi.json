@@ -3429,6 +3429,127 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/tasks": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "CreateApplicationTask",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "operationId": "ListApplicationTasks",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationTaskEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/files/{fileId}": {
       "get": {
         "tags": [
@@ -5691,51 +5812,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/AutomationRunEntry"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/applications/{applicationId}/tasks": {
-      "get": {
-        "tags": [
-          "Automations"
-        ],
-        "operationId": "ListApplicationTasks",
-        "parameters": [
-          {
-            "name": "applicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ApplicationTaskEntry"
                   }
                 }
               }
@@ -8242,7 +8318,8 @@
           "QuestionnaireSent",
           "QuestionnaireCompleted",
           "NoteEdited",
-          "NoteDeleted"
+          "NoteDeleted",
+          "TaskCreated"
         ]
       },
       "ApplicationFileSummary": {
@@ -8807,6 +8884,13 @@
             ]
           },
           "emailId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "taskId": {
             "type": [
               "null",
               "string"
@@ -9863,6 +9947,25 @@
           }
         },
         "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site's."
+      },
+      "CreateApplicationTaskRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "assigneeUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A task for the hiring team about one application, from a person or an API key."
       },
       "CreatedApiKey": {
         "required": [
@@ -12848,7 +12951,8 @@
           "ManageWebhooks",
           "ManageTeam",
           "ManageOwners",
-          "DeleteAnyNote"
+          "DeleteAnyNote",
+          "CreateTasks"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions."
       },

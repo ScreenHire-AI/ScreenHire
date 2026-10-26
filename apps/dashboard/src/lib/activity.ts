@@ -3,6 +3,7 @@ import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
 import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
 import InboxIcon from '@lucide/svelte/icons/inbox';
 import ListChecksIcon from '@lucide/svelte/icons/list-checks';
+import ListTodoIcon from '@lucide/svelte/icons/list-todo';
 import PencilIcon from '@lucide/svelte/icons/pencil';
 import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
 import SendIcon from '@lucide/svelte/icons/send';
@@ -71,6 +72,7 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   EmailSent: SendIcon,
   QuestionnaireSent: ClipboardListIcon,
   QuestionnaireCompleted: ListChecksIcon,
+  TaskCreated: ListTodoIcon,
 };
 
 /** What the screen knows that an entry names by id: stage names and follow-up questionnaire names. */
@@ -111,6 +113,9 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
     case 'QuestionnaireCompleted':
       // The answers are on the Application tab.
       return `Answered the "${names.followUpName(entry.questionnaireRequestId)}" questionnaire`;
+    case 'TaskCreated':
+      // What the task asks shows under it, quoted, as a stage move's note does.
+      return 'Created a task';
   }
 }
 
