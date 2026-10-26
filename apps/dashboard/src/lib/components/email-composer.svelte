@@ -10,6 +10,7 @@
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import QueryError from '#lib/components/query-error.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -177,7 +178,7 @@
   <Field.Field>
     <Field.Label for={`${id}-start`}>Start from</Field.Label>
     {#if templates.isError}
-      <FailureText message={describeError(templates.error, 'Could not load the templates')} />
+      <QueryError message={describeError(templates.error, 'Could not load the templates')} onretry={() => templates.refetch()} inset />
     {:else}
       <select id={`${id}-start`} class={selectClass} value={startFrom} onchange={(event) => choose(event.currentTarget.value)} disabled={!templates.data}>
         <option value="">Blank email</option>

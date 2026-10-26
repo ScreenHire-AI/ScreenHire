@@ -259,7 +259,7 @@
                 </a>
               </span>
             {:else if meta.isError}
-              <span class="text-muted-foreground">Could not find the API's address.</span>
+              <FailureText message={describeError(meta.error, "Could not find the API's address")} />
             {:else}<Skeleton class="h-4 w-48" />{/if}
           </SummaryItem>
         </SummaryList>

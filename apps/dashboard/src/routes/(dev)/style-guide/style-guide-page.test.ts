@@ -79,6 +79,7 @@ const panels: Record<string, string[]> = {
   'Details rail': ['Details rail'],
   Tabs: ['Tabs'],
   Notice: ['Notice'],
+  'Expandable row': ['Expandable row'],
   'Summary card': ['Summary card'],
   'Metric card': ['Metric card'],
   'File row and file viewer': ['File row and file viewer'],

@@ -28,7 +28,7 @@
   <div class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-1">
     <p class="min-w-0 flex-[1_1_16rem]">{@render children()}</p>
     {#if href && link}
-      <a {href} class="shrink-0 font-semibold underline underline-offset-2">{link}</a>
+      <a {href} class="inline-flex min-h-6 shrink-0 items-center font-semibold underline underline-offset-2 pointer-coarse:min-h-11">{link}</a>
     {/if}
   </div>
 </div>

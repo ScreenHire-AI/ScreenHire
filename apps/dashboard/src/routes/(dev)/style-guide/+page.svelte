@@ -15,6 +15,7 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import PlusIcon from '@lucide/svelte/icons/plus';
+  import SendIcon from '@lucide/svelte/icons/send';
   import StarIcon from '@lucide/svelte/icons/star';
   import SunIcon from '@lucide/svelte/icons/sun';
   import TimerIcon from '@lucide/svelte/icons/timer';
@@ -52,6 +53,7 @@
   import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import ExpandableRow from '#lib/components/expandable-row.svelte';
   import Notice from '#lib/components/notice.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
@@ -130,6 +132,7 @@
 
   let shortcutsOpen = $state(false);
   let confirmOpen = $state(false);
+  let emailOpen = $state(true);
   let secretOpen = $state(false);
   const demoStages: WorkflowStage[] = [
     { id: 'applied', name: 'Applied', kind: 'Applied' },
@@ -885,6 +888,31 @@
             </div>
           </figure>
         </div>
+      </Panel>
+
+      <Panel title="Expandable row">
+        <ol aria-label="Emails" class="flex flex-col divide-y divide-border-subtle">
+          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+            <ExpandableRow id="style-guide-email-1" bind:expanded={emailOpen}>
+              {#snippet icon()}<SendIcon />{/snippet}
+              {#snippet summary()}
+                <span class="font-semibold break-words">Your interview with Brightwater Studio</span>
+                <span class="text-caption text-muted-foreground">Robin Ashby, 2 hours ago</span>
+              {/snippet}
+              <p>Hi Priya, thank you for your time on Thursday. We would like to invite you to a second interview.</p>
+            </ExpandableRow>
+          </li>
+          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+            <ExpandableRow id="style-guide-email-2">
+              {#snippet icon()}<SendIcon />{/snippet}
+              {#snippet summary()}
+                <span class="font-semibold break-words">We received your application for Senior Product Designer</span>
+                <span class="text-caption text-muted-foreground">Sent, yesterday</span>
+              {/snippet}
+              <p>Hi Priya, thank you for applying. The hiring team will review it.</p>
+            </ExpandableRow>
+          </li>
+        </ol>
       </Panel>
 
       <Panel title="Notice">

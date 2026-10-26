@@ -131,7 +131,7 @@
 {/snippet}
 
 {#snippet allLink()}
-  <a href={allHref} class="font-semibold text-primary underline underline-offset-2">All {visible?.length} in Activity</a>
+  <a href={allHref} class="inline-flex min-h-6 items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">All {visible?.length} in Activity</a>
 {/snippet}
 
 <Panel

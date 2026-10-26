@@ -88,7 +88,7 @@
         <StatusBadge status={integrityStep.level.status} label={integrityStep.level.label} />
         <p class="max-w-measure font-semibold">{integrityStep.view.nextStep}</p>
         <p class="max-w-measure text-muted-foreground">Suggested by the integrity checks. Not a reason to reject on its own.</p>
-        <a href="?tab=integrity" class="font-semibold text-primary underline underline-offset-2">See the reasons</a>
+        <a href="?tab=integrity" class="inline-flex min-h-6 items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
       </div>
     {/if}
     {#if !tasks.isPending && !tasks.isError && taskRows.length === 0 && !integrityStep}
