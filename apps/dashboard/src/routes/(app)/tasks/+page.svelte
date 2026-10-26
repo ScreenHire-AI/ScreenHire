@@ -1,6 +1,6 @@
 <script lang="ts">
   import ListTodoIcon from '@lucide/svelte/icons/list-todo';
-  import type { TaskListItem, TaskStatusFilter } from '@screenhire/api-client';
+  import type { TaskListItem, TaskScope, TaskStatusFilter } from '@screenhire/api-client';
   import { createListTasks, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
@@ -20,34 +20,41 @@
 
   // The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview), on the list template. Mine is the
   // tasks assigned to the person, For the team the tasks assigned to nobody in particular, and Everyone's every task the
-  // person can see. One list of everyone's tasks gives all three and their counts, split the way the API's TaskScope
-  // splits them. New tasks arrive live with AutomationRunFinished, and completions with ApplicationTaskCompleted and
-  // ApplicationTaskReopened (#lib/realtime.ts).
-  type Scope = 'Mine' | 'Team' | 'Everyone';
-  const scopes: readonly { value: Scope; label: string }[] = [
+  // person can see. One list of everyone's open tasks gives all three and their counts, split the way the API's
+  // TaskScope splits them. Done tasks are each scope's newest 200 (TaskEndpoints), so each scope asks for its own: split
+  // from everyone's, a busy team's newest 200 would hide the person's older ones. New tasks arrive live with
+  // AutomationRunFinished, and completions with ApplicationTaskCompleted and ApplicationTaskReopened (#lib/realtime.ts).
+  const scopes: readonly { value: TaskScope; label: string }[] = [
     { value: 'Mine', label: 'Mine' },
     { value: 'Team', label: 'For the team' },
     { value: 'Everyone', label: "Everyone's" },
   ];
   let status = $state<TaskStatusFilter>('Open');
-  let scope = $state<Scope>('Mine');
-  const tasks = createListTasks(() => ({ status, scope: 'Everyone' }));
+  let scope = $state<TaskScope>('Mine');
+  const open = createListTasks(() => ({ status: 'Open', scope: 'Everyone' }), () => ({ query: { enabled: status === 'Open' } }));
+  const done = Object.fromEntries(
+    scopes.map(({ value }) => [
+      value,
+      createListTasks(() => ({ status: 'Completed', scope: value }), () => ({ query: { enabled: status === 'Completed' } })),
+    ]),
+  ) as Record<TaskScope, typeof open>;
+  const tasks = $derived(status === 'Open' ? open : done[scope]);
   const team = createListTeamMembers();
   const currentUserId = $derived(page.data.user?.id);
   const editable = $derived(can(page.data.user, 'CompleteTasks'));
   const completion = createTaskCompletion(() => currentUserId);
   // A ticked task keeps its place for its 10 seconds of Undo, though the refetched open list no longer has it.
-  const everyone = $derived.by(() => {
-    const rows = completion.withHeld(tasks.data?.data ?? []);
-    return status === 'Open' ? rows.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)) : rows;
-  });
-  const inScope = (task: TaskListItem, which: Scope) =>
+  const everyone = $derived(
+    completion.withHeld(open.data?.data ?? []).toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)),
+  );
+  const inScope = (task: TaskListItem, which: TaskScope) =>
     which === 'Everyone' || (which === 'Mine' ? task.assigneeUserId === currentUserId && currentUserId !== undefined : task.assigneeUserId === null);
-  const shown = $derived(everyone.filter((task) => inScope(task, scope)));
-  // Counts leave out the ticked tasks an open list still shows.
-  const counted = $derived(status === 'Open' ? everyone.filter((task) => !task.completedAt) : everyone);
-  const countOf = (which: Scope) => counted.filter((task) => inScope(task, which)).length;
-  const panelTitle = $derived(status === 'Open' ? 'Open tasks' : 'Done');
+  const shown = $derived(status === 'Open' ? everyone.filter((task) => inScope(task, scope)) : (done[scope].data?.data ?? []));
+  // Open counts leave out the ticked tasks the list still shows.
+  const countOf = (which: TaskScope) =>
+    status === 'Open' ? everyone.filter((task) => !task.completedAt && inScope(task, which)).length : done[which].data?.data.length;
+  // The panel is Tasks whichever toggle is pressed, so its title does not repeat the toggle (W4); the list says which.
+  const listLabel = $derived(status === 'Open' ? 'Open tasks' : 'Done tasks');
 </script>
 
 <svelte:head>
@@ -62,20 +69,22 @@
 
   <div class="@container">
     <div class="flex w-full flex-col px-4 py-6 md:px-6">
-      <Panel title={panelTitle} flush>
+      <Panel title="Tasks" flush>
         <!-- The filters, in a row under the header because the list has no search (section 7). Each group stays on one
-             line (F5); in a narrow container the two groups stack, so every choice shows at a glance (section 11). -->
+             line (F5); in a narrow container the two groups stack, and the Whose toggles, whose counts all matter at a
+             glance, stack one per line (section 11, Toggle). -->
         <div class="@container/filters overflow-x-auto [scrollbar-width:thin] border-b border-border-subtle px-4.5 py-2 max-md:px-4">
           <div class="flex flex-col items-start gap-2 @md/filters:flex-row @md/filters:items-center @md/filters:gap-4">
             <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
               <Toggle size="lg" bind:pressed={() => status === 'Open', () => (status = 'Open')}>Open</Toggle>
               <Toggle size="lg" bind:pressed={() => status === 'Completed', () => (status = 'Completed')}>Done</Toggle>
             </div>
-            <div role="group" aria-label="Whose" class="flex shrink-0 gap-1">
+            <div role="group" aria-label="Whose" class="flex shrink-0 flex-col items-start gap-1 @md/filters:flex-row">
               {#each scopes as option (option.value)}
                 <Toggle size="lg" bind:pressed={() => scope === option.value, () => (scope = option.value)}>
                   {option.label}
-                  {#if tasks.isSuccess}<Badge variant="count">{countOf(option.value)}</Badge>{/if}
+                  {@const count = countOf(option.value)}
+                  {#if tasks.isSuccess && count !== undefined}<Badge variant="count">{count}</Badge>{/if}
                 </Toggle>
               {/each}
             </div>
@@ -109,14 +118,14 @@
                 {status === 'Open' ? 'Automations add tasks here when a workflow asks for a review or a to-do.' : 'Tasks you and your team complete show here.'}
               </Empty.Description>
             </Empty.Header>
-            {#if scope !== 'Everyone' && countOf('Everyone') > 0}
+            {#if scope !== 'Everyone' && (countOf('Everyone') ?? 0) > 0}
               <Empty.Content><Button variant="outline" size="lg" onclick={() => (scope = 'Everyone')}>Show everyone's</Button></Empty.Content>
             {/if}
           </Empty.Root>
         {:else}
           <div class="flex flex-col gap-3 px-4.5 py-4 max-md:px-4">
             <TaskList
-              label={panelTitle}
+              label={listLabel}
               tasks={shown}
               members={team.data?.data}
               {currentUserId}

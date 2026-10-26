@@ -77,7 +77,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GotoAsync(DashboardUrl("/tasks"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("My tasks");
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
-        var open = Region("Open tasks");
+        var open = Region("Tasks");
         await Expect(open.GetByRole(AriaRole.Link, new() { Name = Tagged, Exact = true })).ToBeVisibleAsync();
         await Expect(open).ToContainTextAsync("For the team");
         await ExpectNoAccessibilityViolationsAsync();
@@ -91,7 +91,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(open.GetByRole(AriaRole.Button, new() { Name = $"Undo, {Tagged}: Call the references." })).ToBeVisibleAsync();
         await Expect(open.GetByText("Nothing to do")).ToBeVisibleAsync(new() { Timeout = 20_000 });
         await Page.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
-        await Expect(Region("Done")).ToContainTextAsync("by you");
+        await Expect(Region("Tasks")).ToContainTextAsync("by you");
     }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });

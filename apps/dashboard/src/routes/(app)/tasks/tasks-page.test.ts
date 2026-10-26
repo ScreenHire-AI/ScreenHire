@@ -43,6 +43,8 @@ function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
   const fetch = vi.fn(
     apiStub({
       'GET /v1/tasks?status=Open&scope=Everyone': () => Response.json(open),
+      'GET /v1/tasks?status=Completed&scope=Mine': () => Response.json([]),
+      'GET /v1/tasks?status=Completed&scope=Team': () => Response.json(done),
       'GET /v1/tasks?status=Completed&scope=Everyone': () => Response.json(done),
       'GET /v1/organization/members': () => Response.json(members),
       ...routes,
@@ -66,7 +68,7 @@ afterEach(() => {
 describe('my tasks page', () => {
   it("opens on the person's own tasks, with a count on Mine, For the team and Everyone's", async () => {
     renderPage();
-    const panel = await screen.findByRole('region', { name: 'Open tasks' });
+    const panel = await screen.findByRole('region', { name: 'Tasks' });
     const whose = screen.getByRole('group', { name: 'Whose' });
 
     await waitFor(() => expect(within(whose).getByRole('button', { name: 'Mine 1' })).toHaveAttribute('aria-pressed', 'true'));
@@ -133,6 +135,38 @@ describe('my tasks page', () => {
     await waitFor(() => expect(posted(fetch, `/v1/tasks/${mine.id}/reopen`)).toBe(true));
   });
 
+  it('keeps Undo for a task ticked again while its Undo is still saving, and completes it after the reopen', async () => {
+    let finishReopen = () => {};
+    const order: string[] = [];
+    const fetch = renderPage({
+      [`POST /v1/tasks/${mine.id}/complete`]: () => {
+        order.push('complete');
+        return Response.json({ ...mine, completedAt: '2026-10-20T12:00:00Z', completedByUserId: user.id });
+      },
+      [`POST /v1/tasks/${mine.id}/reopen`]: () =>
+        new Promise<Response>((resolve) => {
+          finishReopen = () => {
+            order.push('reopen');
+            resolve(Response.json(mine));
+          };
+        }),
+    });
+
+    await fireEvent.click(await screen.findByRole('checkbox', { name: tick }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Undo, Jordan Lee: Review this application.' }));
+    await waitFor(() => expect(posted(fetch, `/v1/tasks/${mine.id}/reopen`)).toBe(true));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: tick })).not.toBeChecked());
+
+    // Ticked again before the reopen has answered.
+    await fireEvent.click(screen.getByRole('checkbox', { name: tick }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: tick })).toBeChecked());
+    finishReopen();
+
+    await waitFor(() => expect(order).toEqual(['complete', 'reopen', 'complete']));
+    expect(screen.getByRole('checkbox', { name: tick })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Undo, Jordan Lee: Review this application.' })).toBeInTheDocument();
+  });
+
   it('unticks the task and says why when completing fails', async () => {
     renderPage({ [`POST /v1/tasks/${mine.id}/complete`]: () => new Response(null, { status: 500 }) });
 
@@ -144,15 +178,29 @@ describe('my tasks page', () => {
 
   it('shows done tasks with who finished them, and no checkbox on them', async () => {
     renderPage();
-    await screen.findByRole('region', { name: 'Open tasks' });
+    await screen.findByRole('region', { name: 'Tasks' });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await fireEvent.click(screen.getByRole('button', { name: /^Everyone's/ }));
-    const panel = await screen.findByRole('region', { name: 'Done' });
+    const panel = await screen.findByRole('region', { name: 'Tasks' });
     expect(await within(panel).findByText(/by Robin Ashby/)).toBeInTheDocument();
     expect(within(panel).queryByRole('checkbox')).not.toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole('button', { name: /^Mine/ }));
     expect(await screen.findByText('Nothing done yet')).toBeInTheDocument();
+  });
+
+  it("asks for each scope's own done tasks, so a busy team does not crowd out the person's", async () => {
+    const fetch = renderPage();
+    await screen.findByRole('region', { name: 'Tasks' });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    const whose = screen.getByRole('group', { name: 'Whose' });
+    await waitFor(() => expect(within(whose).getByRole('button', { name: 'Mine 0' })).toBeInTheDocument());
+    expect(within(whose).getByRole('button', { name: 'For the team 1' })).toBeInTheDocument();
+    expect(within(whose).getByRole('button', { name: "Everyone's 1" })).toBeInTheDocument();
+    for (const scope of ['Mine', 'Team', 'Everyone']) {
+      expect(fetch.mock.calls.some(([called]) => String(called) === `/v1/tasks?status=Completed&scope=${scope}`)).toBe(true);
+    }
   });
 });

@@ -29,8 +29,14 @@ export function createTaskCompletion(currentUserId: () => string | undefined) {
   const reopenTask = createReopenTask(() => ({ mutation: { onSettled: refetch } }));
 
   // The tasks ticked in the last 10 seconds, as the list should draw them, with the completion on its way or done. An
-  // entry being undone draws the task open again, without Undo, until the lists have refetched it.
-  const held = new SvelteMap<string, { task: Completable; saved: Promise<boolean>; timer?: ReturnType<typeof setTimeout> }>();
+  // entry being undone draws the task open again, without Undo, until the lists have refetched it; ticking it again
+  // meanwhile replaces the entry, and its completion waits for the reopen so the server sees them in order. Each
+  // callback removes only the entry it made.
+  type Held = { task: Completable; saved: Promise<boolean>; timer?: ReturnType<typeof setTimeout> };
+  const held = new SvelteMap<string, Held>();
+  const release = (taskId: string, entry: Held) => {
+    if (held.get(taskId) === entry) held.delete(taskId);
+  };
   let announcement = $state('');
   let failure = $state('');
 
@@ -71,36 +77,45 @@ export function createTaskCompletion(currentUserId: () => string | undefined) {
     complete(task: Completable): void {
       failure = '';
       const done = { ...task, completedAt: new Date().toISOString(), completedByUserId: currentUserId() ?? null };
-      const saved = completeTask
-        .mutateAsync({ taskId: task.id })
+      const reopening = held.get(task.id)?.saved ?? Promise.resolve(true);
+      const entry: Held = { task: done, saved: Promise.resolve(false) };
+      entry.saved = reopening
+        .then(() => completeTask.mutateAsync({ taskId: task.id }))
         .then(() => {
           announcement = `Marked "${task.note}" done.`;
           return true;
         })
         .catch((error: unknown) => {
-          clearTimeout(held.get(task.id)?.timer);
-          held.delete(task.id);
+          clearTimeout(entry.timer);
+          release(task.id, entry);
           fail(describeError(error, 'Could not complete the task'));
           return false;
         });
-      held.set(task.id, { task: done, saved, timer: setTimeout(() => held.delete(task.id), undoMilliseconds) });
+      entry.timer = setTimeout(() => release(task.id, entry), undoMilliseconds);
+      held.set(task.id, entry);
     },
 
     async undo(taskId: string): Promise<void> {
-      const entry = held.get(taskId);
-      if (entry?.timer === undefined) return;
+      const ticked = held.get(taskId);
+      if (ticked?.timer === undefined) return;
       failure = '';
-      clearTimeout(entry.timer);
-      const open = { ...entry.task, completedAt: null, completedByUserId: null };
-      held.set(taskId, { task: open, saved: entry.saved });
-      try {
-        if (!(await entry.saved)) return;
+      clearTimeout(ticked.timer);
+      const entry: Held = { task: { ...ticked.task, completedAt: null, completedByUserId: null }, saved: Promise.resolve(false) };
+      const reopen = async () => {
+        if (!(await ticked.saved)) return false;
         await reopenTask.mutateAsync({ taskId });
-        announcement = `"${entry.task.note}" is open again.`;
+        return true;
+      };
+      const reopened = reopen();
+      // A completion that follows waits for this one, whether it worked or not.
+      entry.saved = reopened.catch(() => false);
+      held.set(taskId, entry);
+      try {
+        if (await reopened) announcement = `"${ticked.task.note}" is open again.`;
       } catch (error) {
         fail(describeError(error, 'Could not undo'));
       } finally {
-        held.delete(taskId);
+        release(taskId, entry);
       }
     },
   };
