@@ -63,7 +63,7 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
     public void Configure(EntityTypeBuilder<ApplicationTask> builder)
     {
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20);
-        builder.Property(t => t.Note).HasMaxLength(1000);
+        builder.Property(t => t.Note).HasMaxLength(ApplicationTask.MaxNoteLength);
         builder.Property(t => t.StageId).HasMaxLength(40);
         // Completing updates WHERE completed_at IS NULL, so of two people completing a task at the same moment one
         // wins and the other's save conflicts (TaskEndpoints.CompleteTask returns the winner's entry).

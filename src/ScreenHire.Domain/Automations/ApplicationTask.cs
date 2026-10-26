@@ -11,8 +11,8 @@ namespace ScreenHire.Domain.Automations;
 /// </summary>
 public sealed class ApplicationTask : IApplicationScoped
 {
-    /// <summary>The longest note a person or an API key gives a task.</summary>
-    public const int MaxNoteLength = 2000;
+    /// <summary>The longest note a task holds, from a person, an API key or an automation (the column's length).</summary>
+    public const int MaxNoteLength = 1000;
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

@@ -51,9 +51,9 @@ describe('activity', () => {
     expect(describeEvent(entries[0]!, names)).toBe('Applied on the careers page, into Applied');
   });
 
-  it('says what a task asks, with whoever created it, and lists it under All only', () => {
+  it('names a created task, with whoever created it, and lists it under All only', () => {
     const task = entry('t', { type: 'TaskCreated', note: 'Check the references', taskId: 't1', actorApiKeyId: 'k1', actorApiKeyName: 'Assistant' });
-    expect(describeEvent(task, names)).toBe('Created the task "Check the references"');
+    expect(describeEvent(task, names)).toBe('Created a task');
     expect(actorText(task, [], undefined)).toBe('by Assistant');
     expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, stage: 0 });
   });

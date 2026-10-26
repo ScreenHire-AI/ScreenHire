@@ -37,6 +37,7 @@ internal sealed class HiringTools(
     private const int DefaultLimit = 20;
     private const int MaxLimit = 50;
     private const int ActivityShown = 20;
+    private const int MaxSearchLength = 100;
     private const string NoApplication = "No application with that id in this organization.";
 
     [McpServerTool(Name = "find_jobs", Title = "Find jobs", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
@@ -47,7 +48,7 @@ internal sealed class HiringTools(
         [Description("How many jobs to return, 1 to 50.")] int? limit = null,
         CancellationToken cancellationToken = default)
     {
-        var jobs = await JobReads.ListAsync(db, new(text, status, Limit(limit)), cancellationToken);
+        var jobs = await JobReads.ListAsync(db, new(Search(text), status, Limit(limit)), cancellationToken);
         return new([.. jobs.Select(j => j.ToMcp())]);
     }
 
@@ -62,7 +63,7 @@ internal sealed class HiringTools(
         [Description("How many applications to return, 1 to 50.")] int? limit = null,
         CancellationToken cancellationToken = default)
     {
-        var applications = await ApplicationReads.ListAsync(user, tenant, db, new(jobId, text, Limit(limit)), cancellationToken);
+        var applications = await ApplicationReads.ListAsync(user, tenant, db, new(jobId, Search(text), Limit(limit)), cancellationToken);
         return new([.. applications.Select(a => a.ToMcp())]);
     }
 
@@ -134,7 +135,7 @@ internal sealed class HiringTools(
     public async Task<McpTask> CreateTask(
         ClaimsPrincipal user,
         [Description("The application's id.")] Guid applicationId,
-        [Description("What to do, up to 2,000 characters.")] string note,
+        [Description("What to do, up to 1,000 characters.")] string note,
         [Description("The user id of one member who can see the candidate. Leave out for anyone on the hiring team.")] Guid? assigneeUserId = null,
         CancellationToken cancellationToken = default)
     {
@@ -164,4 +165,8 @@ internal sealed class HiringTools(
     }
 
     private static int Limit(int? limit) => Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+
+    // A name, an email or a few words of a title: anything longer is not a search, and each character is work for ILIKE.
+    private static string? Search(string? text) =>
+        text?.Trim().Length > MaxSearchLength ? throw new McpException($"Search for {MaxSearchLength} characters or fewer.") : text;
 }

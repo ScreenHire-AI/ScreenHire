@@ -1,3 +1,4 @@
+using System.Globalization;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
@@ -156,14 +157,18 @@ internal static class McpMappings
             [.. followUp.Answers.Select(a => a.ToMcp(questions.GetValueOrDefault(a.QuestionId), new Dictionary<string, ApplicationFileSummary>()))]);
     }
 
-    // A question the job no longer asks keeps its id as its label, and its answer is treated as free text.
+    // A question the job no longer asks keeps its id as its label, and its answer is treated as free text. So is a yes/no
+    // or number answer that is not one, given before the question changed type. Choices are option ids the job made,
+    // checked when the candidate applied, so they are never the candidate's words.
     private static McpAnswer ToMcp(this ApplicationAnswer answer, Question? question, Dictionary<string, ApplicationFileSummary> files)
     {
         var label = question?.Label ?? answer.QuestionId;
         string OptionLabel(string id) => question?.Options?.FirstOrDefault(o => o.Id == id)?.Label ?? id;
         return question?.Type switch
         {
-            QuestionType.YesNo or QuestionType.Number => new(answer.QuestionId, label, question.Type, Value: answer.Value),
+            QuestionType.YesNo when answer.Value is "yes" or "no" => new(answer.QuestionId, label, question.Type, Value: answer.Value),
+            QuestionType.Number when decimal.TryParse(answer.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out _) =>
+                new(answer.QuestionId, label, question.Type, Value: answer.Value),
             QuestionType.SingleChoice => new(answer.QuestionId, label, question.Type, Choices: answer.Value is null ? [] : [OptionLabel(answer.Value)]),
             QuestionType.MultiChoice => new(answer.QuestionId, label, question.Type, Choices: [.. (answer.Values ?? []).Select(OptionLabel)]),
             QuestionType.File => new(answer.QuestionId, label, question.Type,

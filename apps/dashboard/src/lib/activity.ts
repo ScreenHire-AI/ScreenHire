@@ -2,8 +2,8 @@ import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
 import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
 import InboxIcon from '@lucide/svelte/icons/inbox';
-import ListTodoIcon from '@lucide/svelte/icons/list-todo';
 import ListChecksIcon from '@lucide/svelte/icons/list-checks';
+import ListTodoIcon from '@lucide/svelte/icons/list-todo';
 import PencilIcon from '@lucide/svelte/icons/pencil';
 import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
 import SendIcon from '@lucide/svelte/icons/send';
@@ -114,7 +114,8 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       // The answers are on the Application tab.
       return `Answered the "${names.followUpName(entry.questionnaireRequestId)}" questionnaire`;
     case 'TaskCreated':
-      return `Created the task "${entry.note ?? ''}"`;
+      // What the task asks shows under it, quoted, as a stage move's note does.
+      return 'Created a task';
   }
 }
 
