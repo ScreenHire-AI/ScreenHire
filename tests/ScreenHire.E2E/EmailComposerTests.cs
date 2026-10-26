@@ -71,7 +71,8 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(row).ToBeVisibleAsync(new() { Timeout = 30_000 });
         await row.ClickAsync();
         await Expect(row).ToHaveAttributeAsync("aria-expanded", "true");
-        await Expect(messages.Locator("[data-email-subject]")).ToHaveTextAsync($"Interview {marker} for {scene.Title}");
+        // The row names the subject; the opened email does not repeat it (W4).
+        await Expect(row).ToContainTextAsync($"Interview {marker} for {scene.Title}");
         await Expect(messages.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync($"Your portfolio stood out {marker}.");
         await Expect(messages).Not.ToContainTextAsync("repl", new() { IgnoreCase = true });
         await ExpectNoAccessibilityViolationsAsync();

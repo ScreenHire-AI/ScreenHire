@@ -251,7 +251,7 @@
       <DetailLayout>
         {#snippet rail()}
           <DetailsRail>
-            <DetailsRailSection title="Events">
+            <DetailsRailSection title="Events" count={detail.events.length}>
               <ul class="flex flex-col gap-2" aria-label="Event types">
                 {#each detail.events as type (type)}
                   <!-- Each event in words, then its type as the code a receiver reads (W2), as the Webhooks page lists them. -->

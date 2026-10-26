@@ -90,7 +90,7 @@ describe('webhook endpoint page', () => {
     }
     expect(within(deliveries).getAllByText('HTTP 500, Receiver unavailable').length).toBeGreaterThan(0);
 
-    const events = screen.getByRole('region', { name: 'Events' });
+    const events = screen.getByRole('region', { name: /^Events/ });
     expect(within(events).getByText('application.submitted')).toBeInTheDocument();
     expect(within(events).getByText('job.stage_changed')).toBeInTheDocument();
     await expectNoAxeViolations();

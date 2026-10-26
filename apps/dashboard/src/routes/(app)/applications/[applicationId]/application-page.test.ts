@@ -482,7 +482,9 @@ describe('application page', () => {
 
     await fireEvent.click(rows[0]!);
     expect(rows[0]).toHaveAttribute('aria-expanded', 'true');
-    await waitFor(() => expect(messages.querySelector('[data-email-subject]')).toHaveTextContent('Next steps for Senior .NET Engineer'));
+    // The opened email shows its parts; the row above it already names the subject, so it is not repeated (W4).
+    expect(await within(messages).findByRole('group', { name: 'Part' })).toBeInTheDocument();
+    expect(within(messages).getAllByText(/Next steps for Senior \.NET Engineer/)).toHaveLength(1);
 
     await fireEvent.click(rows[1]!);
     expect(within(messages).getByText(/Only the subject was kept/)).toBeInTheDocument();
