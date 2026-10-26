@@ -248,6 +248,7 @@
                     <SortHeader
                       {header}
                       class={[
+                        'px-3',
                         (header.id === 'status' || header.id === 'actions') && 'px-4',
                         header.id === 'status' && 'sticky left-0 bg-muted',
                         header.id === 'actions' && 'w-14',

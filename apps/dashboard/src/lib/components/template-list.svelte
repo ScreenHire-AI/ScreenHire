@@ -266,6 +266,7 @@
                 <SortHeader
                   {header}
                   class={[
+                    'px-3',
                     header.id === 'name' && 'px-4.5',
                     header.id === 'name' && overflowing && 'sticky left-0 z-[1] bg-muted',
                     header.id === 'name' && overflowing && scrolledSideways && nameEdge,

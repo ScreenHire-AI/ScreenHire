@@ -5,7 +5,8 @@
   import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import { undoMilliseconds } from '#lib/tasks.svelte.js';
 
-  // Tasks ticked in place: each stays ticked with Undo for 10 seconds, then reads as done. Nothing is saved.
+  // Tasks ticked in place: each stays ticked with Undo for 10 seconds, then reads as done. Nothing is saved, so this
+  // keeps its own timers rather than createTaskCompletion, which calls the API.
   let { tasks, members }: { tasks: readonly TaskRow[]; members: readonly TeamMember[] } = $props();
 
   const ticked = new SvelteMap<string, { at: string; timer?: ReturnType<typeof setTimeout> }>();
