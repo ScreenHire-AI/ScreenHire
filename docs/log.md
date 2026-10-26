@@ -1,6 +1,6 @@
 # Log
 
-## 2026-10-25, later
+## 2026-10-25
 
 **The dashboard is built to v0.3.** The last screens landed (Tasks with Mine, For the team and Everyone's, each ticked
 done with Undo for 10 seconds, which reopens the task on the server; saved views with short names), and the
@@ -11,11 +11,10 @@ updated and History (T6). Four findings were rules the rest of the system contra
 design system: a page's action that opens another page is a button rendered as a link (A5), a webhook endpoint has no
 history because its row holds a secret (T6), a form keeps its actions at its end on a phone, and a table wider than
 its panel beside the full sidebar scrolls inside it (section 8). Section 21 of the design system, the components the
-build still added, is gone: Task checkbox and Choice card joined section 11, and the screens section is now 21. The
-roadmap records the workflow as done, and CLAUDE.md now says long, complex tasks go through Planning with automatic
+build still added, is gone: Task checkbox and Choice card joined section 11, and the screens section is now 21. A
+second review pass added Expandable row to section 11 (an email on Messages), put a webhook endpoint's events on the
+details rail, and made the Settings menu list only the pages a role may use. The roadmap records the workflow as done, and CLAUDE.md now says long, complex tasks go through Planning with automatic
 approval.
-
-## 2026-10-25
 
 **Design system v0.3** ([ADR-0013](adr/0013-design-system-v0-3.md)), approved on the owner's "ScreenHire design v0.3
 review" canvas. `design/design-system.md` keeps its section numbers and checklist ids: v0.2 checks were amended in
