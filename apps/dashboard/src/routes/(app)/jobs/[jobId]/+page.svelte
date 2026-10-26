@@ -174,12 +174,11 @@
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
-      <HeaderBand title={detail.title}>
+      <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
+           the actions onto a second row. -->
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
-          <!-- What saving the details or publishing did, beside the actions that did it, as the workflow page says it. -->
-          <p role="status" class="text-muted-foreground empty:hidden">{page.state.saved ?? ''}</p>
-          <FailureText message={publishFailure} />
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
           {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
           {#if !sidebar.isMobile}
@@ -319,4 +318,9 @@
   <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
     <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
   </Button>
+{/snippet}
+
+{#snippet outcome()}
+  <p role="status" class="empty:hidden">{page.state.saved ?? ''}</p>
+  <FailureText message={publishFailure} />
 {/snippet}
