@@ -1,7 +1,5 @@
 <script lang="ts">
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import BotIcon from '@lucide/svelte/icons/bot';
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import CircleXIcon from '@lucide/svelte/icons/circle-x';
@@ -614,8 +612,8 @@
 
       <Panel title="Icon button">
         <div class="flex flex-wrap items-center gap-1">
-          <IconButton label="Move up"><ArrowUpIcon /></IconButton>
-          <IconButton label="Move down"><ArrowDownIcon /></IconButton>
+          <IconButton label="More actions"><EllipsisIcon /></IconButton>
+          <IconButton label="Edit"><PencilIcon /></IconButton>
           <IconButton label="Remove"><Trash2Icon /></IconButton>
         </div>
       </Panel>

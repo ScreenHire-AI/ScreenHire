@@ -299,7 +299,7 @@
                           {#if header.id === 'actions'}
                             <th scope="col" class="w-12 border-b border-border pr-4.5"><span class="sr-only">Actions</span></th>
                           {:else}
-                            <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : header.id === 'attempts' ? 'text-right' : undefined} />
+                            <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : undefined} />
                           {/if}
                         {/each}
                       </Table.Row>
@@ -313,7 +313,7 @@
                         <Table.Cell class="max-w-64 font-semibold whitespace-nowrap">
                           <Hint content={delivery.eventType}>{#snippet children({ props })}<span {...props} class="block truncate">{eventLabel(delivery.eventType)}</span>{/snippet}</Hint>
                         </Table.Cell>
-                        <Table.Cell class="text-right tabular-nums">{delivery.attempts}</Table.Cell>
+                        <Table.Cell class="tabular-nums">{delivery.attempts}</Table.Cell>
                         <Table.Cell class="w-full max-w-0 text-muted-foreground">
                           {#if response(delivery)}<TruncatedText text={response(delivery)} />{/if}
                         </Table.Cell>
