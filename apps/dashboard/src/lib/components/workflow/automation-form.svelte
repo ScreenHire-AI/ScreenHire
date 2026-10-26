@@ -227,17 +227,21 @@
               {#if rule.operator === 'Exists'}
                 <span></span>
               {:else if rule.operator === 'In'}
-                <label class={labelClass}>
-                  Values, separated by commas <span class="sr-only">for condition {ruleIndex + 1}</span>
-                  <Input
-                    value={(rule.values ?? []).join(', ')}
-                    onchange={(event) =>
-                      (rule.values = event.currentTarget.value
-                        .split(',')
-                        .map((value) => value.trim())
-                        .filter(Boolean))}
-                  />
-                </label>
+                <div class="flex min-w-0 flex-col gap-1">
+                  <label class={labelClass}>
+                    Values <span class="sr-only">for condition {ruleIndex + 1}</span>
+                    <Input
+                      aria-describedby={`${uid}-values-${ruleIndex}-hint`}
+                      value={(rule.values ?? []).join(', ')}
+                      onchange={(event) =>
+                        (rule.values = event.currentTarget.value
+                          .split(',')
+                          .map((value) => value.trim())
+                          .filter(Boolean))}
+                    />
+                  </label>
+                  <p id={`${uid}-values-${ruleIndex}-hint`} class="text-muted-foreground">Separated by commas.</p>
+                </div>
               {:else if fact?.values}
                 <label class={labelClass}>
                   Value <span class="sr-only">for condition {ruleIndex + 1}</span>

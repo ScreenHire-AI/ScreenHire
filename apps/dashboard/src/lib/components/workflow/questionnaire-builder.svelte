@@ -13,6 +13,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import FormBuilder from '#lib/components/form-builder.svelte';
+  import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -83,12 +84,16 @@
     </div>
     <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/form')} />
   </div>
-  <FieldErrors id="follow-ups-errors" messages={errorsAt(errors, 'followUpQuestionnaires')} />
+  <!-- A problem with the follow-ups as a whole, said in the surface below the switch (S3). -->
+  {#snippet followUpsErrors()}<FieldErrors id="follow-ups-errors" messages={errorsAt(errors, 'followUpQuestionnaires')} />{/snippet}
 
   {#if mode === 'preview'}
-    <PreviewFrame>
-      <QuestionnairePreview {questions} followUp={!!current} />
-    </PreviewFrame>
+    <Panel title="Preview">
+      {@render followUpsErrors()}
+      <PreviewFrame>
+        <QuestionnairePreview {questions} followUp={!!current} />
+      </PreviewFrame>
+    </Panel>
   {:else}
     {#if current}
       <Panel title="Follow-up questionnaire">
@@ -96,17 +101,28 @@
           <!-- A short label, so the panel title keeps its row at phone width (F5); the accessible name says what it removes. -->
           <Button variant="outline" aria-label="Remove questionnaire" onclick={removeFollowUp}>Remove</Button>
         {/snippet}
+        {@render followUpsErrors()}
         <div class="flex max-w-form flex-col gap-1.5">
-          <label class={labelClass}>
-            <span>Name <span class="font-mono text-code font-normal text-muted-foreground">{current.id}</span></span>
-            <Input bind:value={current.name} maxlength={80} aria-describedby="follow-up-note" aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
-          </label>
+          <!-- The questionnaire's id is detail: it is in the label's tooltip (W6). -->
+          <div class={labelClass}>
+            <Hint content={`Questionnaire id: ${current.id}`}>
+              {#snippet children({ props })}<label {...props} for="follow-up-name" class="w-fit">Name</label>{/snippet}
+            </Hint>
+            <Input
+              id="follow-up-name"
+              bind:value={current.name}
+              maxlength={80}
+              aria-describedby="follow-up-note"
+              aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined}
+            />
+          </div>
           <FieldErrors id="follow-up-name-errors" messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.name`)]} />
           <p id="follow-up-note" class="text-muted-foreground">A "Send a questionnaire" automation emails the candidate a link to it.</p>
         </div>
       </Panel>
     {:else}
       <Panel title="AI use while applying">
+        {@render followUpsErrors()}
         <div class="flex max-w-form flex-col gap-1.5">
           <select class={selectClass} aria-label="AI use while applying" aria-describedby="ai-use-note" bind:value={workflow.integrityPolicy.aiUse}>
             {#each Object.entries(aiUseLabels) as [policy, label] (policy)}<option value={policy}>{label}</option>{/each}

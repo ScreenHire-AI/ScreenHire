@@ -177,6 +177,9 @@
       <HeaderBand title={detail.title}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
+          <!-- What saving the details or publishing did, beside the actions that did it, as the workflow page says it. -->
+          <p role="status" class="text-muted-foreground empty:hidden">{page.state.saved ?? ''}</p>
+          <FailureText message={publishFailure} />
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
           {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
           {#if !sidebar.isMobile}
@@ -231,10 +234,8 @@
           {/if}
           {#if detail.template}
             <Fact label="Template">
-              <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                {detail.template.templateName} v{detail.template.version}
-                {#if detail.template.updateAvailable}<Badge variant="muted">Update available</Badge>{/if}
-              </span>
+              <!-- The fact's state in its words, never a pill in a header (section 11, Fact pill). -->
+              {detail.template.templateName} v{detail.template.version}{#if detail.template.updateAvailable}, update available{/if}
             </Fact>
           {/if}
           <Fact label="Last updated">
@@ -265,15 +266,8 @@
         {currentUserId}
       />
 
-      <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). What saving
-           the details or publishing did is said once, above either tab. -->
+      <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
-        {#if page.state.saved || publishFailure}
-          <div class="flex flex-col gap-1">
-            <FailureText message={publishFailure} />
-            <p role="status" class="text-body text-muted-foreground empty:hidden">{page.state.saved ?? ''}</p>
-          </div>
-        {/if}
         <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
           {#each problems as problem (problem.kind)}
             <Notice href="?tab=distribution" link="Fix on Distribution">{problem.text}</Notice>

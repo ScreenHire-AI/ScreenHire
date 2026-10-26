@@ -124,7 +124,7 @@ describe('jobs page', () => {
 
     // Each count, All's included, is a count badge after its label (T4).
     const toggles = within(statusFilter()).getAllByRole('button');
-    expect(toggles.map((toggle) => toggle.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['All 3', 'Open 1', 'Draft 1', 'Closed 1']);
+    expect(toggles.map((toggle) => toggle.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['All', 'Open 1', 'Draft 1', 'Closed 1']);
     expect(toggles[0]).toHaveAttribute('aria-pressed', 'true');
   });
 

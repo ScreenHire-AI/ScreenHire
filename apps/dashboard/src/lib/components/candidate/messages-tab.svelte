@@ -44,7 +44,8 @@
   const manyJobs = $derived(new Set(emails?.map((email) => email.applicationId)).size > 1);
 </script>
 
-<Panel title="Messages" count={emails?.length}>
+<!-- The tab says how many there are; the panel does not repeat it (W4). -->
+<Panel title="Messages">
   <div class="flex flex-col gap-5">
     {#if recipient}
       <section aria-labelledby="messages-compose" class="flex flex-col gap-3 border-b border-border-subtle pb-5">

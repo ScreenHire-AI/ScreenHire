@@ -649,10 +649,10 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   permission catalogue, a column per role. Each cell says Yes or No in words: L1 keeps icons out of cells, and the
   check is a status icon (I2). In a panel narrower than 896px (the full sidebar at 1024, and phones) it is a list instead:
   each permission, what it covers, and the roles that have it as badges. A custom role's page is the form template: Name, then What this role can do with a
-  checkbox per permission and the count chosen ("4 of 16"), then Cancel and Save in that panel's footer; rows nobody can change here (See jobs
-  and candidates, in every role; Manage Owners, Owner only; a permission the person's own role lacks) have a lock and
-  say why. Its header's facts are People, Copied from and Last updated with History; Copy role and Delete role are in
-  More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
+  checkbox per permission and the count chosen ("4 of 16"), then Cancel and Save in that panel's footer; rows nobody
+  can change here (See jobs and candidates, in every role; Manage Owners, Owner only; a permission the person's own role
+  lacks) have a lock and say why. Its header's facts are Copied from and Last updated with History (the people are
+  counted on their panel, W4); Copy role and Delete role are in More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
   Built in beside its title and Copy role as the primary action. Both list the people with the role, each with the jobs
   they see ("All jobs", or a count button that lists them) and an Edit access on Team link.
   Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All jobs", or "2 jobs" for someone on Only jobs

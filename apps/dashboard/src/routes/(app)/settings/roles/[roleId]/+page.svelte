@@ -223,7 +223,6 @@
         {/if}
       {/snippet}
       {#snippet facts()}
-        <Fact label="People">{people.length}</Fact>
         {#if detail}<Fact label="Copied from">{detail.copiedFrom}</Fact>{/if}
         <Fact label="Last updated">
           <LastUpdated

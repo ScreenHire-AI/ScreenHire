@@ -212,12 +212,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ReadAsync(await session.PostAsync($"/v1/templates/{templateId}/versions/2/publish", new { }, Ct), HttpStatusCode.OK);
 
         await SignInAsync(email);
-        // The jobs list marks the job with a pill, and the job's facts say so beside the template's version.
+        // The jobs list marks the job with a pill, and the job's Template fact says so after the version.
         var row = Page.GetByRole(AriaRole.Table, new() { Name = "Jobs" }).GetByRole(AriaRole.Row).Filter(new() { HasText = "Retail assistant, weekends" });
         await Expect(row).ToContainTextAsync("Template update");
         await row.GetByRole(AriaRole.Link, new() { Name = "Retail assistant, weekends" }).ClickAsync();
-        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Retail assistant v1");
-        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Update available");
+        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Retail assistant v1, update available");
         await Page.GetByRole(AriaRole.Link, new() { Name = "Edit workflow" }).ClickAsync();
         var update = Page.GetByRole(AriaRole.Region, new() { Name = "Template update available" });
         await Expect(update).ToContainTextAsync("Retail assistant has version 2; this job uses version 1.");

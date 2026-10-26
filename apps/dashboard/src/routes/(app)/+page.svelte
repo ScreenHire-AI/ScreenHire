@@ -173,10 +173,8 @@
       <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
         <div class="min-w-0 flex-1 overflow-x-auto">
           <div role="group" aria-label="Status" class="flex w-max gap-1">
-            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>
-              All
-              {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
-            </Toggle>
+            <!-- All's count is the header's (W4). -->
+            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>All</Toggle>
             {#each statuses as status (status)}
               <Toggle size="lg" bind:pressed={() => statusFilter === status, () => (statusFilter = status)}>
                 {jobStatus[status].label}
