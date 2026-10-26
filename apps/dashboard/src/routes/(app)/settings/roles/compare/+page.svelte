@@ -58,9 +58,10 @@
           </div>
           <p class="sr-only" role="status">Loading the roles…</p>
         {:else}
-          <!-- The grid needs about 42rem to keep the Covers column readable; a narrower panel lists each permission instead (F2). -->
+          <!-- The grid needs about 56rem to keep the Covers column readable beside five roles; a narrower panel lists each
+               permission instead (F2). More roles than that scroll inside the panel (F1). -->
           <div class="@container">
-            <div class="@2xl:hidden">
+            <div class="@4xl:hidden">
               {#each groups as [group, permissions] (group)}
                 <h3 class="border-b border-border-subtle bg-muted px-4 py-2.5 text-caption font-semibold">{group}</h3>
                 <ul>
@@ -76,7 +77,7 @@
                 </ul>
               {/each}
             </div>
-            <div class="hidden overflow-x-auto @2xl:block">
+            <div class="hidden overflow-x-auto @4xl:block">
               <table class="w-full border-collapse text-left">
                 <thead class="bg-muted">
                   <tr>
@@ -99,7 +100,7 @@
                     {#each permissions as permission (permission.permission)}
                       <tr class="h-12 border-b border-border-subtle">
                         <th scope="row" class="sticky left-0 z-10 bg-card px-4.5 font-semibold whitespace-nowrap">{permission.name}</th>
-                        <td class="w-full max-w-0 px-3 text-muted-foreground"><TruncatedText text={permission.description} /></td>
+                        <td class="w-full max-w-0 min-w-56 px-3 text-muted-foreground"><TruncatedText text={permission.description} /></td>
                         {#each roles as role (roleKey(role))}
                           <td class="px-3 text-center">
                             {#if has(role, permission)}Yes{:else}<span class="text-muted-foreground">No</span>{/if}

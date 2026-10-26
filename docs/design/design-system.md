@@ -17,7 +17,8 @@ sources:
 # ScreenHire design system
 
 > Status: **v0.3 (2026-10-25)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
-> [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
+> [ADR-0010](../adr/0010-design-system-v0-2.md), [ADR-0013](../adr/0013-design-system-v0-3.md) and
+> [ADR-0016](../adr/0016-design-system-v0-3-review-amendments.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
 > built to v0.3: every screen, and every component in section 11 with its example in the style guide. Section 21
 > records what v0.3 changed on each screen.
@@ -83,7 +84,10 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
 - **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
   underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet, and a
-  button never navigates. Badges, pills and counts are never clickable, except a count button in a header (T4).
+  button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
+  Cancel on a form, Back) is an outline or primary button that renders as a link (`<a>`), because it starts that
+  action. A menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
+  except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
   column header is the one bare text button, marked by its sort icon (L2). A toggle in a labelled group is a choice,
@@ -130,7 +134,9 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
   say "by ScreenHire". History opens a sheet with every change, newest first and grouped by day: who, when and what,
-  with before and after on request.
+  with before and after on request. The one exception is a record whose row holds a secret (a webhook endpoint):
+  change history never reads it, so its header says when it was added and when its secret was last rotated instead
+  (ADR-0016).
 
 **Icons and shortcuts**
 
@@ -368,9 +374,9 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 | Window | under 768px | 768 to 1023px (`md`) | 1024 to 1535px (`lg`, `xl`) | 1536px and up (`2xl`) |
 | Navigation | Sidebar as a sheet behind a menu button; Back on detail pages | Icon rail, labels in tooltips | Full sidebar | Full sidebar |
 | Columns | One; the details rail folds under the header | One; the details rail folds under the header | Tabs and the details rail | Same, filling the window |
-| Header band | Facts in a two-column grid | Facts wrap | One line of facts | One line of facts |
-| Actions | Primary in a bar at the bottom; the rest in More | In the header; extras fold into More | In the header | In the header |
-| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks, and while it scrolls the row's link covers that cell only | Full | Full, optional columns may show |
+| Header band | Facts in a two-column grid | Facts wrap | One line of facts where they fit; beside the full sidebar they may wrap | One line of facts |
+| Actions | Primary in a bar at the bottom; the rest in More. A form keeps Cancel and its primary at its end (section 7) | In the header; extras fold into More | In the header | In the header |
+| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks, and while it scrolls the row's link covers that cell only | Full; a table wider than its panel beside the full sidebar scrolls inside it, as on a tablet | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
 On a phone the workflow graph is for reading: its nodes have no buttons, one line says to edit in Pipeline, and the
@@ -438,7 +444,7 @@ in a development build, shows every component in each state, and its test fails 
 | Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
 | Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
-| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
+| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
@@ -612,7 +618,7 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   (Owners and Admins), deletes it, after a confirm. The details rail holds the job, contact, files and tags.
   Built: Messages lists every email to the candidate, about any of their applications, newest first, with the email
   composer on top for people who can send. Each row opens to the email as it went; one sent before ScreenHire kept a
-  copy of each email says only its subject was kept. Replies wait for roadmap item 3, so the tab says nothing about
+  copy of each email says only its subject was kept. Replies wait for roadmap item 1, so the tab says nothing about
   them.
 - **Templates:** one page with a tab per kind (Hiring, Scorecards, Emails). Each tab says in one sentence what its
   templates are for, each row says where it is used, and each editor has the Edit / Preview switch. A job keeps the

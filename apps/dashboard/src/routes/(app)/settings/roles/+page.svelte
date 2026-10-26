@@ -169,7 +169,7 @@
                         {#if builtIn(role)}<BuiltInBadge class="shrink-0" />{/if}
                       </span>
                     </Table.Cell>
-                    <Table.Cell class="w-full max-w-0 text-muted-foreground"><span class="flex min-w-0"><TruncatedText text={role.description} /></span></Table.Cell>
+                    <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground"><span class="flex min-w-0"><TruncatedText text={role.description} /></span></Table.Cell>
                     <Table.Cell class="tabular-nums">{role.people}</Table.Cell>
                     <Table.Cell class="whitespace-nowrap text-muted-foreground">
                       {#if role.lastUpdated.at}<span class="relative"><DateText at={role.lastUpdated.at} /></span>{:else}By ScreenHire{/if}

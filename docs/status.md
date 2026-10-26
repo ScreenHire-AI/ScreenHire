@@ -8,10 +8,11 @@ sources:
 ---
 # MVP status
 
-Snapshot 2026-10-23, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
+Snapshot 2026-10-25, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
 workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
-collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012) and the "Workflow
-builder" workflow (PRs #44, #45 and the editable graph). The whole product
+collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012), the "Workflow
+builder" workflow (PRs #44, #45 and the editable graph) and the "Design system v0.3, the review's features, and roles
+with job access" workflow (PRs #47 to #58 and the remaining screens). The whole product
 runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
@@ -31,10 +32,10 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
 | Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling | #36 |
-| Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations make, a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40 |
+| Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations make (Mine, For the team and Everyone's, each ticked done with Undo for 10 seconds), a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40, the remaining screens |
 | Scorecards | A scorecard library (built-ins and your own, with history) whose questions take answer kinds, a stage picking one and each job keeping its copy, a required recommendation; submitting one raises the "reviewer decision" trigger. Rating questions make the candidate's one-to-five-star rating, shown after a reviewer gives their own and never read by an automation ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1), ADR-0013) | #41, the scorecards v0.3 task |
 | Email | Organization email templates (Liquid subject, plain-text message, live preview, a test send), email to one candidate or a selection, the rejection email only with Reject ([email](architecture/email.md)) | #42 |
-| Change history | Who changed a hiring template, an email template, a scorecard or a job, when and what: Last updated as the last header fact and a History sheet of every change in plain words, newest first by day, with before and after on request; the paged history on the API ([change history](architecture/change-history.md)) | the change history task |
+| Change history | Who changed a hiring template, an email template, a scorecard, a job, a custom role or an organization setting (its name, brand colour or integrity settings), when and what: Last updated as the last header fact and a History sheet of every change in plain words, newest first by day, with before and after on request; the paged history on the API ([change history](architecture/change-history.md)) | the change history task |
 | Follow-up questionnaires | Answers and the application's source as automation facts, so a knockout can match; follow-up questionnaires in a workflow, sent by a SendQuestionnaire automation through a signed, time-limited link to a careers page that works without JavaScript; answering one fires the "questionnaire answered" trigger ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)) | #45 |
 | Stage time limits | A stage's time limit (SLA) passing fires the "time limit passes" trigger, which may only remind the team, and an application past it shows an Overdue badge | #44 |
 | Workflow graph | The builder's graph edits the same draft as the Pipeline view: add an automation to a stage or the whole workflow, open its form at any node, remove it, and draw a "move to a stage" link; every node is a tab stop, the arrow keys move between nodes, and a validation problem shows on its node. On a phone the graph is for reading ([workflow engine](architecture/workflow-engine.md#4-builder-ux-dashboard)) | the editable graph task |
@@ -43,7 +44,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, three steps that work without JavaScript, direct-to-storage resume upload | #11 |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
 | Integrity | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
-| Dashboard | Every page on [design system v0.2](design/design-system.md) (ADR-0010): the shell with a sidebar, an icon rail and a phone sheet; jobs and their forms; the candidates list and job pipeline; the candidate page, now on v0.3 with fixed tabs, the details rail, the full-window file viewer and notes the team edits, deletes and @mentions in; templates and the workflow builder; live updates; integrity badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33 |
+| Dashboard | Every page on [design system v0.3](design/design-system.md) (ADR-0013, ADR-0016), with a design review of the whole dashboard at 390, 1024, 1440 and 1920px: the shell with a sidebar, an icon rail and a phone sheet, and saved views with their status icons and short names; jobs and their forms; the candidates list and the job pipeline, whose tables fill the window; the candidate page with fixed tabs, the details rail, the full-window file viewer and notes the team edits, deletes and @mentions in; templates and the workflow builder, whose stages reorder with a grip; live updates; integrity badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33, #48 to #58, the remaining screens |
 | Demo data | The local demo fills every screen, with a questionnaire on every seeded job and answers for every candidate, and a second Brightwater member (Jordan Ellis, Recruiter) | #20, #23, #38 |
 | Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets, a visual design pass at three widths in `/task-review`, the docs as an Open Knowledge Format bundle (ADR-0012) | #4, #5, #6, #8, #22, #28 |
 

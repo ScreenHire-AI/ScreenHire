@@ -95,8 +95,9 @@ subsystem.
 
 ## Board pipeline (Kangentic)
 
-Tasks move Executing → Code Review → Testing → Merge → Done on their own. Workflow tasks skip Planning, where Kangentic
-approves the plan automatically; their briefs are the plan. Each column's automation reads the **last line** of the
+Tasks move (Planning →) Executing → Code Review → Testing → Merge → Done on their own. Long, complex tasks go through
+Planning, where Kangentic approves the plan automatically; simple ones start at Executing, and their briefs are the
+plan. Each column's automation reads the **last line** of the
 agent's final message, so these lines are contracts: print one only when its condition holds, alone, with nothing
 after it.
 

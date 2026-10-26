@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The email composer and the Messages tab in a real browser (roadmap item 2): an owner starts from a template, changes
+/// The email composer and the Messages tab in a real browser (design system section 21, Candidate): an owner starts from a template, changes
 /// its subject and body for one candidate, previews it with the candidate's first name and sends it. Mailpit and the
 /// candidate's Messages show the changed email, and the template stays as it was. A blank email goes from the Messages
 /// box. A candidate added with one name, as every candidate from before the name was split, still shows it whole. The

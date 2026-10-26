@@ -303,14 +303,19 @@
                 {/each}
               </fieldset>
             {/each}
+            <!-- The form's actions end it, in the panel's footer, so nothing readable sits on the page (S3). -->
+            {#snippet footer()}
+              <div class="flex flex-col gap-2">
+                <Field.Error errors={$errors.permissions?._errors?.map((message) => ({ message }))} />
+                <FailureText message={$errors._errors?.[0]} />
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <p role="status" class="mr-auto text-muted-foreground empty:hidden">{saved}</p>
+                  <Button href={listHref} variant="outline" size="lg">Cancel</Button>
+                  <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save</Button>
+                </div>
+              </div>
+            {/snippet}
           </Panel>
-          <Field.Error errors={$errors.permissions?._errors?.map((message) => ({ message }))} />
-          <FailureText message={$errors._errors?.[0]} />
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <p role="status" class="mr-auto text-muted-foreground empty:hidden">{saved}</p>
-            <Button href={listHref} variant="outline" size="lg">Cancel</Button>
-            <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save</Button>
-          </div>
         </form>
       {:else}
         {@const held = detail?.permissions ?? summary?.permissions ?? []}

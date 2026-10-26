@@ -260,7 +260,7 @@ public sealed class EmailTests(AppHostFixture fixture)
         (await owner.PostAsync("/v1/emails/preview", Draft(application, "Hi", "{{ nope }}"))).Expect(HttpStatusCode.BadRequest);
     }
 
-    // The email composer (roadmap item 2): a template changed for one send goes to each candidate rendered with their own
+    // The email composer (design system section 11): a template changed for one send goes to each candidate rendered with their own
     // details, the template stays as it was, and each candidate's copy is kept as it went, for Messages.
     [Fact]
     public async Task A_template_changed_for_one_send_reaches_each_candidate_as_written_and_is_kept_as_it_went()

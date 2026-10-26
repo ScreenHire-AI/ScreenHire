@@ -1,5 +1,20 @@
 # Log
 
+## 2026-10-25, later
+
+**The dashboard is built to v0.3.** The last screens landed (Tasks with Mine, For the team and Everyone's, each ticked
+done with Undo for 10 seconds, which reopens the task on the server; saved views with short names), and the
+`design-review` agent ran over the whole dashboard, code and screenshots at 390, 1024, 1440 and 1920px. Its findings
+were fixed: workflow stages and automation actions reorder with a grip (A7), the candidate tables fill the window
+(S6), the webhook delivery log sorts (L2), and the Organization, Branding and Integrity settings pages have Last
+updated and History (T6). Four findings were rules the rest of the system contradicts; ADR-0016 settles them in the
+design system: a page's action that opens another page is a button rendered as a link (A5), a webhook endpoint has no
+history because its row holds a secret (T6), a form keeps its actions at its end on a phone, and a table wider than
+its panel beside the full sidebar scrolls inside it (section 8). Section 21 of the design system, the components the
+build still added, is gone: Task checkbox and Choice card joined section 11, and the screens section is now 21. The
+roadmap records the workflow as done, and CLAUDE.md now says long, complex tasks go through Planning with automatic
+approval.
+
 ## 2026-10-25
 
 **Design system v0.3** ([ADR-0013](adr/0013-design-system-v0-3.md)), approved on the owner's "ScreenHire design v0.3

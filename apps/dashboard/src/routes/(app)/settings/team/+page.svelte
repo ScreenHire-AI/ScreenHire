@@ -368,7 +368,7 @@
                       {#if member.userId === myId}<Badge variant="muted" class="shrink-0">You</Badge>{/if}
                     </span>
                   </Table.Cell>
-                  <Table.Cell class="w-full max-w-0 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
+                  <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
                   <Table.Cell class="max-w-48 pr-4"><TruncatedText text={member.roleName} /></Table.Cell>
                   <Table.Cell class="whitespace-nowrap tabular-nums">{jobsText(member)}</Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
@@ -427,7 +427,7 @@
             <Table.Body>
               {#each sortedInvitations as invitation (invitation.id)}
                 <Table.Row class="h-12">
-                  <Table.Cell class="w-full max-w-0 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
+                  <Table.Cell class="w-full max-w-0 min-w-48 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
                   <Table.Cell class="max-w-48 pr-4"><TruncatedText text={invitation.roleName} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={invitation.createdAt} /></Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={invitation.expiresAt} /></Table.Cell>
