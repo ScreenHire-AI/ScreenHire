@@ -13,8 +13,8 @@ history because its row holds a secret (T6), a form keeps its actions at its end
 its panel beside the full sidebar scrolls inside it (section 8). Section 21 of the design system, the components the
 build still added, is gone: Task checkbox and Choice card joined section 11, and the screens section is now 21. A
 second review pass added Expandable row to section 11 (an email on Messages), put a webhook endpoint's events on the
-details rail, and made the Settings menu list only the pages a role may use. The roadmap records the workflow as done, and CLAUDE.md now says long, complex tasks go through Planning with automatic
-approval.
+details rail, and made the Settings menu list only the pages a role may use. The roadmap records the workflow as
+done, and CLAUDE.md now says long, complex tasks go through Planning with automatic approval.
 
 **Design system v0.3** ([ADR-0013](adr/0013-design-system-v0-3.md)), approved on the owner's "ScreenHire design v0.3
 review" canvas. `design/design-system.md` keeps its section numbers and checklist ids: v0.2 checks were amended in
