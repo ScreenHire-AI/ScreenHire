@@ -145,7 +145,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl" {onOpenAutoFocus} {onCloseAutoFocus}>
     <Sheet.Header>
       <Sheet.Title>Automations: {laneName}</Sheet.Title>
-      <Sheet.Description>Each runs on its own when its trigger happens. Changes save with the workflow.</Sheet.Description>
+      <Sheet.Description>Each runs on its own when its trigger happens, and saves with the workflow.</Sheet.Description>
     </Sheet.Header>
     <div class="@container flex flex-col gap-6 px-4 pb-4">
       {#each drawerItems as index (workflow.automations[index]!.id)}
