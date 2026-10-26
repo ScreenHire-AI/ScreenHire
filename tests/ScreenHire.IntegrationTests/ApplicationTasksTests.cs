@@ -84,7 +84,9 @@ public sealed class ApplicationTasksTests(AppHostFixture fixture)
         var path = $"/v1/applications/{application}/tasks";
 
         (await owner.PostAsync(path, new JsonObject { ["note"] = "   " })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("note");
-        (await owner.PostAsync(path, new JsonObject { ["note"] = new string('a', 2001) })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("note");
+        (await owner.PostAsync(path, new JsonObject { ["note"] = new string('a', 1001) })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("note");
+        // The longest note fits the column: a validator looser than the column would turn this into a 500.
+        (await owner.PostAsync(path, new JsonObject { ["note"] = new string('a', 1000) })).Expect(HttpStatusCode.Created);
         (await owner.PostAsync(path, new JsonObject { ["note"] = "Call", ["assigneeUserId"] = outsider.UserId.ToString() }))
             .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("assigneeUserId");
         (await owner.PostAsync(path, new JsonObject { ["note"] = "Call", ["assigneeUserId"] = limited.UserId.ToString() }))

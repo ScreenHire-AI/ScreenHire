@@ -44,6 +44,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         var jobs = await mcp.CallAsync("find_jobs", new() { ["text"] = "platform", ["status"] = "Open" });
         jobs.GetProperty("jobs").EnumerateArray().Select(j => j.GetProperty("id").GetGuid()).Should().Equal(job.Id());
 
+        (await mcp.CallFailingAsync("find_candidates", new() { ["text"] = new string('a', 101) })).Should().Contain("100 characters");
         var found = await mcp.CallAsync("find_candidates", new() { ["text"] = "casey" });
         var match = found.GetProperty("applications").EnumerateArray().Should().ContainSingle().Subject;
         match.GetProperty("applicationId").GetGuid().Should().Be(application);
@@ -101,6 +102,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
             ("add_tag", new() { ["applicationId"] = application, ["tag"] = "mine" }),
             ("create_task", new() { ["applicationId"] = application, ["note"] = "Mine" }),
             ("move_to_stage", new() { ["applicationId"] = application, ["stageId"] = "screening" }),
+            ("remove_tag", new() { ["applicationId"] = application, ["tag"] = "mine" }),
         })
         {
             var call = () => reader.CallToolAsync(tool, arguments, cancellationToken: TestContext.Current.CancellationToken).AsTask();
@@ -129,6 +131,11 @@ public sealed class McpServerTests(AppHostFixture fixture)
         (await mcp.CallFailingAsync("add_note", new() { ["applicationId"] = theirApplication, ["note"] = "Hello" })).Should().Contain("No application");
         (await mcp.CallFailingAsync("add_tag", new() { ["applicationId"] = theirApplication, ["tag"] = "mine" })).Should().Contain("No application");
         (await mcp.CallFailingAsync("create_task", new() { ["applicationId"] = theirApplication, ["note"] = "Mine" })).Should().Contain("No application");
+        var ourJob = await ours.CreateJobAsync(Samples.RemoteJob("Our Engineer"));
+        await ours.PublishJobAsync(ourJob.Id());
+        var ourApplication = (await ours.CreateApplicationAsync(ourJob.Id(), ApiSession.NewEmail("ours"))).Id();
+        (await mcp.CallFailingAsync("create_task", new() { ["applicationId"] = ourApplication, ["note"] = "Call", ["assigneeUserId"] = theirs.UserId }))
+            .Should().Contain("assigneeUserId", "another organization's member is nobody here");
         (await mcp.CallFailingAsync("move_to_stage", new() { ["applicationId"] = theirApplication, ["stageId"] = "screening" }))
             .Should().Contain("No application");
 

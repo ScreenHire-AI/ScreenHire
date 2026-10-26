@@ -226,6 +226,20 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
             .Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("More access than your role");
         (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Export", ["scopes"] = new JsonArray("Read") }))
             .Expect(HttpStatusCode.Created);
+
+        // Create tasks is a hiring write too: a role with every other one still makes no Write key, which is why
+        // GrantCreateTasksToCustomRoles gave it to the custom roles that had all the others.
+        string[] otherWrites =
+        [
+            "ViewHiring", "ManageApiKeys", "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CompleteTasks",
+            "EmailCandidates", "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
+        ];
+        (await owner.PutAsync($"/v1/organization/roles/{lead}", Update("Team lead", otherWrites))).Expect(HttpStatusCode.OK);
+        (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))
+            .Expect(HttpStatusCode.Forbidden);
+        (await owner.PutAsync($"/v1/organization/roles/{lead}", Update("Team lead", [.. otherWrites, "CreateTasks"]))).Expect(HttpStatusCode.OK);
+        (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))
+            .Expect(HttpStatusCode.Created);
     }
 
     [Fact]
