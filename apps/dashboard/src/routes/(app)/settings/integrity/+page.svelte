@@ -4,6 +4,7 @@
   import {
     ApiError,
     createGetOrganizationIntegritySettings,
+    getGetOrganizationIntegritySettingsHistoryQueryOptions,
     createUpdateOrganizationIntegritySettings,
     getGetOrganizationIntegritySettingsQueryKey,
   } from '@screenhire/api-client/svelte-query';
@@ -13,6 +14,7 @@
   import { z } from 'zod';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
@@ -91,7 +93,13 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrity' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Integrity" />
+  <HeaderBand title="Integrity">
+    {#snippet facts()}
+      {#if detail}
+        <HistoryFact value={detail.lastUpdated} name="Integrity settings" page={(before) => getGetOrganizationIntegritySettingsHistoryQueryOptions({ before })} />
+      {/if}
+    {/snippet}
+  </HeaderBand>
 
   <SettingsMenu>
     <div class="flex w-full max-w-form flex-col gap-5">

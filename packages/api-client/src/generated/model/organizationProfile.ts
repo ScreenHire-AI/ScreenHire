@@ -4,10 +4,12 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 
 /**
  * The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after
- * onboarding; `careersUrl` is its careers board on the configured careers domain.
+ * onboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name's
+ * last change, or when the organization was made; its history is `/v1/organization/history`.
  */
 export interface OrganizationProfile {
   id: string;
@@ -16,4 +18,5 @@ export interface OrganizationProfile {
   homeRegion: string;
   careersUrl: string;
   createdAt: string;
+  lastUpdated: LastUpdate;
 }

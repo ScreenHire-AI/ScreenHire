@@ -65,6 +65,9 @@ import type {
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetOrganizationBrandingHistoryParams,
+  GetOrganizationHistoryParams,
+  GetOrganizationIntegritySettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
   HiringTeamMember,
@@ -7797,6 +7800,321 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getUpdateOrganizationMutationOptions(options?.()) }), queryClient);
     }
+
+export type getOrganizationHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationHistoryResponseSuccess = (getOrganizationHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationHistoryResponseError = (getOrganizationHistoryResponse400 | getOrganizationHistoryResponse401 | getOrganizationHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationHistoryUrl = (params?: GetOrganizationHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/history?${stringifiedParams}` : `/v1/organization/history`
+}
+
+export const getOrganizationHistory = async (params?: GetOrganizationHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationHistoryResponseSuccess>(getGetOrganizationHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationHistoryQueryKey = (params?: GetOrganizationHistoryParams,) => {
+    return [
+    'v1','organization','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOrganizationHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetOrganizationHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationHistory>>> = ({ signal }) => getOrganizationHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationHistory>>>
+export type GetOrganizationHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetOrganizationHistory<TData = Awaited<ReturnType<typeof getOrganizationHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetOrganizationHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getOrganizationBrandingHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationBrandingHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationBrandingHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationBrandingHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationBrandingHistoryResponseSuccess = (getOrganizationBrandingHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationBrandingHistoryResponseError = (getOrganizationBrandingHistoryResponse400 | getOrganizationBrandingHistoryResponse401 | getOrganizationBrandingHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationBrandingHistoryUrl = (params?: GetOrganizationBrandingHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/branding/history?${stringifiedParams}` : `/v1/organization/branding/history`
+}
+
+export const getOrganizationBrandingHistory = async (params?: GetOrganizationBrandingHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationBrandingHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationBrandingHistoryResponseSuccess>(getGetOrganizationBrandingHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationBrandingHistoryQueryKey = (params?: GetOrganizationBrandingHistoryParams,) => {
+    return [
+    'v1','organization','branding','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOrganizationBrandingHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationBrandingHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetOrganizationBrandingHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationBrandingHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationBrandingHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationBrandingHistory>>> = ({ signal }) => getOrganizationBrandingHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationBrandingHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationBrandingHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationBrandingHistory>>>
+export type GetOrganizationBrandingHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetOrganizationBrandingHistory<TData = Awaited<ReturnType<typeof getOrganizationBrandingHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetOrganizationBrandingHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationBrandingHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationBrandingHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getOrganizationIntegritySettingsHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationIntegritySettingsHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationIntegritySettingsHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationIntegritySettingsHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationIntegritySettingsHistoryResponseSuccess = (getOrganizationIntegritySettingsHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationIntegritySettingsHistoryResponseError = (getOrganizationIntegritySettingsHistoryResponse400 | getOrganizationIntegritySettingsHistoryResponse401 | getOrganizationIntegritySettingsHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationIntegritySettingsHistoryUrl = (params?: GetOrganizationIntegritySettingsHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/integrity-settings/history?${stringifiedParams}` : `/v1/organization/integrity-settings/history`
+}
+
+export const getOrganizationIntegritySettingsHistory = async (params?: GetOrganizationIntegritySettingsHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationIntegritySettingsHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationIntegritySettingsHistoryResponseSuccess>(getGetOrganizationIntegritySettingsHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationIntegritySettingsHistoryQueryKey = (params?: GetOrganizationIntegritySettingsHistoryParams,) => {
+    return [
+    'v1','organization','integrity-settings','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOrganizationIntegritySettingsHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetOrganizationIntegritySettingsHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationIntegritySettingsHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>> = ({ signal }) => getOrganizationIntegritySettingsHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationIntegritySettingsHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>>
+export type GetOrganizationIntegritySettingsHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetOrganizationIntegritySettingsHistory<TData = Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetOrganizationIntegritySettingsHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationIntegritySettingsHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationIntegritySettingsHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type getOrganizationBrandingResponse200 = {
   data: OrganizationBranding

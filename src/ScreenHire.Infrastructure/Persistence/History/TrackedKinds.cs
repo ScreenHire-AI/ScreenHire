@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
+using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 
@@ -27,12 +28,21 @@ public static class TrackedKinds
         Track<Job>(ChangeSubjectKind.Job, j => j.Id.ToString("D"), JobAsync),
         Track<ScorecardTemplate>(ChangeSubjectKind.ScorecardTemplate, t => t.Key, ScorecardTemplateAsync),
         Track<CustomRole>(ChangeSubjectKind.Role, r => r.Id.ToString("D"), RoleChanges.Describe),
+
+        // One organization row holds the name and the brand colour, which two settings pages edit: each has a history of
+        // its own, and a save that changes only one of them records nothing for the other.
+        Track<Organization>(ChangeSubjectKind.Organization, o => o.Id.ToString("D"), SettingsChanges.Name),
+        Track<Organization>(ChangeSubjectKind.Branding, o => o.Id.ToString("D"), SettingsChanges.Branding),
+        Track<IntegritySettings>(ChangeSubjectKind.IntegritySettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Integrity),
     ];
 
-    private static readonly Dictionary<Type, TrackedKind> ByType = All.ToDictionary(k => k.EntityType);
+    private static readonly ILookup<Type, TrackedKind> ByType = All.ToLookup(k => k.EntityType);
 
-    /// <summary>The tracked kind of <paramref name="entityType"/>, or null when its changes are not recorded.</summary>
-    public static TrackedKind? Find(Type entityType) => ByType.GetValueOrDefault(entityType);
+    /// <summary>The tracked kinds of <paramref name="entityType"/>, none when its changes are not recorded.</summary>
+    public static IReadOnlyList<TrackedKind> FindAll(Type entityType) => [.. ByType[entityType]];
+
+    /// <summary>The one tracked kind of <paramref name="entityType"/>, or null when its changes are not recorded.</summary>
+    public static TrackedKind? Find(Type entityType) => ByType[entityType].SingleOrDefault();
 
     /// <summary>A kind whose lines need nothing beyond the entity before and after the save.</summary>
     public static TrackedKind Track<T>(ChangeSubjectKind subject, Func<T, string> subjectId, Func<T?, T?, IReadOnlyList<ChangeLine>> describe)

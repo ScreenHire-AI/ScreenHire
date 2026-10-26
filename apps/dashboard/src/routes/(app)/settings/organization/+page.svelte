@@ -2,7 +2,13 @@
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import SaveIcon from '@lucide/svelte/icons/save';
   import type { HttpValidationProblemDetails, OrganizationProfile } from '@screenhire/api-client';
-  import { ApiError, createGetOrganization, createUpdateOrganization, getGetOrganizationQueryKey } from '@screenhire/api-client/svelte-query';
+  import {
+    ApiError,
+    createGetOrganization,
+    createUpdateOrganization,
+    getGetOrganizationHistoryQueryOptions,
+    getGetOrganizationQueryKey,
+  } from '@screenhire/api-client/svelte-query';
   import { UpdateOrganizationBody } from '@screenhire/api-client/zod';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';
@@ -11,6 +17,7 @@
   import { invalidateAll } from '$app/navigation';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -84,7 +91,11 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Organization' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Organization" />
+  <HeaderBand title="Organization">
+    {#snippet facts()}
+      {#if detail}<HistoryFact value={detail.lastUpdated} name={detail.name} page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
+    {/snippet}
+  </HeaderBand>
 
   <SettingsMenu>
     <div class="flex w-full max-w-form flex-col gap-5">
