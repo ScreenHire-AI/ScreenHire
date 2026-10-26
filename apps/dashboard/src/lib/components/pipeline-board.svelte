@@ -21,7 +21,7 @@
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
 
-  // A job's candidates by stage (design system sections 5 and 22). A stage with candidates is a 296px column and an
+  // A job's candidates by stage (design system sections 5 and 21). A stage with candidates is a 296px column and an
   // empty one shrinks to 188px. The stages that end a candidacy share one 188px Closed column that counts each of them,
   // so every stage fits a wide window; their candidates are in the table, under the Stage filter. The board scrolls
   // inside itself, sideways and down each column, and never moves the page.
@@ -131,7 +131,7 @@
           {#each column.cards as card (card.id)}
             {@const authenticity = chipOf(card.integrity, 'authenticity')}
             {@const ai = chipOf(card.integrity, 'aiAssistance')}
-            <!-- Calm says nothing (section 22): the status row shows only what needs a look or is still waiting. -->
+            <!-- Calm says nothing (section 21): the status row shows only what needs a look or is still waiting. -->
             {@const showStatus = isOverdue(card, clock.now) || !authenticity || authenticity.level.rank > 0 || (ai !== null && ai.level.rank > 0)}
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions: svelte-dnd-action makes each card focusable (tabindex 0) and draggable; these keys are its non-drag alternative -->
             <li

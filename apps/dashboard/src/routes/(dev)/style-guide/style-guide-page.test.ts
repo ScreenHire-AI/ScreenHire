@@ -4,7 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
-import Page from './+page.svelte';
+import Page from './style-guide.svelte';
 
 // The real viewer (pdf.js) is built by file-viewer-plugin.ts and is not needed to draw the page.
 vi.mock('virtual:file-viewer', () => ({ viewerDocument: '<!doctype html><title>viewer</title>' }));
@@ -20,10 +20,13 @@ afterEach(() => {
 
 const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));
-vi.mock(import('$app/state'), async (importOriginal) => ({
-  ...(await importOriginal()),
-  page: { url: new URL('http://localhost:4323/style-guide') } as never,
-}));
+vi.mock(import('$app/state'), async (importOriginal) => {
+  const { userAs } = await import('../../../test-support/fixtures.js');
+  return {
+    ...(await importOriginal()),
+    page: { url: new URL('http://localhost:4323/style-guide'), data: { user: userAs('Owner') } } as never,
+  };
+});
 
 /** Section 11's rows, by the name in the Component column. */
 function catalogue(): string[] {
@@ -56,6 +59,7 @@ const panels: Record<string, string[]> = {
   Mention: ['Mention'],
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
+  'Task checkbox': ['Task list'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],
@@ -75,6 +79,7 @@ const panels: Record<string, string[]> = {
   'Details rail': ['Details rail'],
   Tabs: ['Tabs'],
   Notice: ['Notice'],
+  'Expandable row': ['Expandable row'],
   'Summary card': ['Summary card'],
   'Metric card': ['Metric card'],
   'File row and file viewer': ['File row and file viewer'],
@@ -88,6 +93,7 @@ const panels: Record<string, string[]> = {
   'Answer menu': ['Answer menu'],
   Rating: ['Rating'],
   'Rating answer': ['Rating answer'],
+  'Choice card': ['Choice card'],
   Picker: ['Picker'],
 };
 

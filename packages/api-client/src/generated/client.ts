@@ -50,6 +50,9 @@ import type {
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetOrganizationBrandingHistoryParams,
+  GetOrganizationHistoryParams,
+  GetOrganizationIntegritySettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
   HiringTeamMember,
@@ -4452,6 +4455,177 @@ return apiFetch<updateOrganizationResponse>(getUpdateOrganizationUrl(),
 
 
 
+export type getOrganizationHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationHistoryResponseSuccess = (getOrganizationHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationHistoryResponseError = (getOrganizationHistoryResponse400 | getOrganizationHistoryResponse401 | getOrganizationHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationHistoryResponse = (getOrganizationHistoryResponseSuccess | getOrganizationHistoryResponseError)
+
+export const getGetOrganizationHistoryUrl = (params?: GetOrganizationHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/history?${stringifiedParams}` : `/v1/organization/history`
+}
+
+export const getOrganizationHistory = async (params?: GetOrganizationHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationHistoryResponse> => {
+
+  return apiFetch<getOrganizationHistoryResponse>(getGetOrganizationHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getOrganizationBrandingHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationBrandingHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationBrandingHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationBrandingHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationBrandingHistoryResponseSuccess = (getOrganizationBrandingHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationBrandingHistoryResponseError = (getOrganizationBrandingHistoryResponse400 | getOrganizationBrandingHistoryResponse401 | getOrganizationBrandingHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationBrandingHistoryResponse = (getOrganizationBrandingHistoryResponseSuccess | getOrganizationBrandingHistoryResponseError)
+
+export const getGetOrganizationBrandingHistoryUrl = (params?: GetOrganizationBrandingHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/branding/history?${stringifiedParams}` : `/v1/organization/branding/history`
+}
+
+export const getOrganizationBrandingHistory = async (params?: GetOrganizationBrandingHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationBrandingHistoryResponse> => {
+
+  return apiFetch<getOrganizationBrandingHistoryResponse>(getGetOrganizationBrandingHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getOrganizationIntegritySettingsHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationIntegritySettingsHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationIntegritySettingsHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationIntegritySettingsHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationIntegritySettingsHistoryResponseSuccess = (getOrganizationIntegritySettingsHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationIntegritySettingsHistoryResponseError = (getOrganizationIntegritySettingsHistoryResponse400 | getOrganizationIntegritySettingsHistoryResponse401 | getOrganizationIntegritySettingsHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationIntegritySettingsHistoryResponse = (getOrganizationIntegritySettingsHistoryResponseSuccess | getOrganizationIntegritySettingsHistoryResponseError)
+
+export const getGetOrganizationIntegritySettingsHistoryUrl = (params?: GetOrganizationIntegritySettingsHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/integrity-settings/history?${stringifiedParams}` : `/v1/organization/integrity-settings/history`
+}
+
+export const getOrganizationIntegritySettingsHistory = async (params?: GetOrganizationIntegritySettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationIntegritySettingsHistoryResponse> => {
+
+  return apiFetch<getOrganizationIntegritySettingsHistoryResponse>(getGetOrganizationIntegritySettingsHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type getOrganizationBrandingResponse200 = {
   data: OrganizationBranding
   status: 200
@@ -6243,6 +6417,56 @@ export const getCompleteTaskUrl = (taskId: string,) => {
 export const completeTask = async (taskId: string, options?: Parameters<typeof apiFetch>[1]): Promise<completeTaskResponse> => {
 
   return apiFetch<completeTaskResponse>(getCompleteTaskUrl(taskId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type reopenTaskResponse200 = {
+  data: ApplicationTaskEntry
+  status: 200
+}
+
+export type reopenTaskResponse401 = {
+  data: void
+  status: 401
+}
+
+export type reopenTaskResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type reopenTaskResponse404 = {
+  data: void
+  status: 404
+}
+
+export type reopenTaskResponseSuccess = (reopenTaskResponse200) & {
+  headers: Headers;
+};
+export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404) & {
+  headers: Headers;
+};
+
+export type reopenTaskResponse = (reopenTaskResponseSuccess | reopenTaskResponseError)
+
+export const getReopenTaskUrl = (taskId: string,) => {
+
+
+
+
+  return `/v1/tasks/${taskId}/reopen`
+}
+
+export const reopenTask = async (taskId: string, options?: Parameters<typeof apiFetch>[1]): Promise<reopenTaskResponse> => {
+
+  return apiFetch<reopenTaskResponse>(getReopenTaskUrl(taskId),
   {
     ...options,
     method: 'POST'

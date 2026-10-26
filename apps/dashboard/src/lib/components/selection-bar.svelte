@@ -5,7 +5,7 @@
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { cn } from '#lib/utils.js';
 
-  // The bar a list panel shows while rows are ticked (design system section 22): how many, then Move and Email for them,
+  // The bar a list panel shows while rows are ticked (design system section 21): how many, then Move and Email for them,
   // and Clear selection at the end. The page decides what is offered: the stages come from `bulkMoveStages`, and Email
   // is left out while an integrity filter picked the rows (ADR-0004). It says the count once (W4), so the buttons' names
   // carry it only for screen readers.

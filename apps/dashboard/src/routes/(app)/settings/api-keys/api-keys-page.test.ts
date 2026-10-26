@@ -47,7 +47,7 @@ async function createKey(name: string, access: 'Read only' | 'Read and write') {
   await fireEvent.click(await screen.findByRole('button', { name: 'Create key' }));
   const dialog = await screen.findByRole('dialog', { name: 'Create an API key' });
   await fireEvent.input(within(dialog).getByLabelText('Name'), { target: { value: name } });
-  await fireEvent.click(within(dialog).getByLabelText(access));
+  await fireEvent.click(within(dialog).getByRole('radio', { name: new RegExp(`^${access}`) }));
   await fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
   return dialog;
 }

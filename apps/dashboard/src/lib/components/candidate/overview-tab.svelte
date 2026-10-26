@@ -15,7 +15,7 @@
   import { describeError } from '#lib/query.js';
   import { createTaskCompletion } from '#lib/tasks.svelte.js';
 
-  // A candidate's Overview (design system section 22): what needs you now (Next steps: the application's tasks and, when
+  // A candidate's Overview (design system section 21): what needs you now (Next steps: the application's tasks and, when
   // the integrity level needs a look, its suggested next step), the last five things anyone did with a box for a note,
   // and the answers. The integrity step links to its reasons and is never a reason to reject on its own (ADR-0004).
   let {
@@ -50,12 +50,12 @@
   const tasks = createListApplicationTasks(() => detail.id);
   // Shared with the Integrity tab: one query.
   const integrity = createGetApplicationIntegrity(() => detail.id);
-  const completion = createTaskCompletion();
+  const completion = createTaskCompletion(() => currentUserId);
 
   const authenticity = $derived(integrity.data?.data.authenticity);
   const level = $derived(authenticity ? authenticityLevels[authenticity.level] : undefined);
   const integrityStep = $derived(authenticity && level && level.rank > 0 && !authenticity.dismissal ? { view: authenticity, level } : undefined);
-  const taskRows = $derived(tasks.data?.data.toReversed() ?? []);
+  const taskRows = $derived(completion.withHeld(tasks.data?.data.toReversed() ?? []));
 </script>
 
 <Panel title="Next steps">
@@ -78,7 +78,8 @@
         {members}
         {currentUserId}
         oncomplete={permissions.includes('CompleteTasks') ? (task) => completion.complete(task) : undefined}
-        busy={completion.pending}
+        onundo={(taskId) => completion.undo(taskId)}
+        undoable={(taskId) => completion.undoable(taskId)}
       />
       <FailureText message={completion.failure} />
     {/if}
@@ -87,7 +88,7 @@
         <StatusBadge status={integrityStep.level.status} label={integrityStep.level.label} />
         <p class="max-w-measure font-semibold">{integrityStep.view.nextStep}</p>
         <p class="max-w-measure text-muted-foreground">Suggested by the integrity checks. Not a reason to reject on its own.</p>
-        <a href="?tab=integrity" class="font-semibold text-primary underline underline-offset-2">See the reasons</a>
+        <a href="?tab=integrity" class="inline-flex min-h-6 items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
       </div>
     {/if}
     {#if !tasks.isPending && !tasks.isError && taskRows.length === 0 && !integrityStep}

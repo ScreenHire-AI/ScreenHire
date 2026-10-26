@@ -121,22 +121,25 @@
 
 <div class="flex flex-col gap-2">
   <span id={`${idPrefix}-recommendation`} class="text-body font-semibold">Overall recommendation <span class="sr-only">(required)</span></span>
-  <ToggleGroup.Root
-    type="single"
-    variant="outline"
-    size="lg"
-    spacing={0}
-    aria-labelledby={`${idPrefix}-recommendation`}
-    aria-describedby={missingRecommendation ? `${idPrefix}-recommendation-error` : undefined}
-    class="max-w-full flex-wrap"
-    bind:value={() => recommendation, (next) => (recommendation = (next as Recommendation) ?? '')}
-  >
-    {#each recommendations as value (value)}
-      <ToggleGroup.Item {value} class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground"
-        >{recommendationLabels[value]}</ToggleGroup.Item
-      >
-    {/each}
-  </ToggleGroup.Root>
+  <!-- One line that scrolls inside its panel on a narrow screen, never wraps (F5). The padding keeps the focus ring
+       clear of the scroller's edge. -->
+  <div class="-m-1 max-w-[calc(100%+--spacing(2))] overflow-x-auto p-1 [scrollbar-width:thin]">
+    <ToggleGroup.Root
+      type="single"
+      variant="outline"
+      size="lg"
+      spacing={0}
+      aria-labelledby={`${idPrefix}-recommendation`}
+      aria-describedby={missingRecommendation ? `${idPrefix}-recommendation-error` : undefined}
+      bind:value={() => recommendation, (next) => (recommendation = (next as Recommendation) ?? '')}
+    >
+      {#each recommendations as value (value)}
+        <ToggleGroup.Item {value} class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground"
+          >{recommendationLabels[value]}</ToggleGroup.Item
+        >
+      {/each}
+    </ToggleGroup.Root>
+  </div>
   {#if missingRecommendation}<Field.Error id={`${idPrefix}-recommendation-error`} errors={[{ message: 'Choose a recommendation.' }]} />{/if}
 </div>
 

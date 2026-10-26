@@ -38,11 +38,11 @@ describe('app shell', () => {
       'Candidates',
       'Templates',
       'My tasks',
-      'Needs review 2',
-      'Verification suggested 1',
+      'To review 2',
+      'To verify 1',
       'Overdue 5',
       'New today 4',
-      'Not screened yet 3',
+      'Not screened 3',
       'Interviewing 0',
       ...settings,
     ]);
@@ -52,7 +52,7 @@ describe('app shell', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/organization');
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
     expect(within(links[4]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
-    expect(screen.getByRole('link', { name: /^Needs review/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /^To review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
     await expectNoAxeViolations();
   });
@@ -83,7 +83,7 @@ describe('app shell', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
 
     const sheet = await screen.findByRole('dialog', { name: 'Navigation' });
-    expect(within(sheet).getAllByRole('link', { name: /^Needs review/ })).toHaveLength(1);
+    expect(within(sheet).getAllByRole('link', { name: /^To review/ })).toHaveLength(1);
     await expectNoAxeViolations();
 
     await fireEvent.click(within(sheet).getByRole('link', { name: 'Jobs' }));
@@ -176,11 +176,11 @@ describe('app shell', () => {
 
     const links = within(main()).getAllByRole('link');
     expect(links.map((link) => link.textContent?.trim()).slice(4)).toEqual([
-      'Needs review',
-      'Verification suggested',
+      'To review',
+      'To verify',
       'Overdue',
       'New today',
-      'Not screened yet',
+      'Not screened',
       'Interviewing',
       ...settings,
     ]);
@@ -202,15 +202,15 @@ describe('app shell', () => {
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,
       get(this: HTMLElement) {
-        return this.textContent === 'Verification suggested' ? 2000 : 0;
+        return this.textContent === 'To verify' ? 2000 : 0;
       },
     });
     try {
       stubViewport(1280);
       render(ShellHarness, { props: { user, viewCounts } });
 
-      await fireEvent.focus(within(main()).getByRole('link', { name: /^Verification suggested/ }));
-      await waitFor(() => expect(tooltip()).toHaveTextContent('Verification suggested, 1'));
+      await fireEvent.focus(within(main()).getByRole('link', { name: /^To verify/ }));
+      await waitFor(() => expect(tooltip()).toHaveTextContent('To verify, 1'));
       expect(tooltip()).not.toHaveAttribute('hidden');
 
       await fireEvent.focus(within(main()).getByRole('link', { name: /^New today/ }));

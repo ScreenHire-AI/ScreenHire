@@ -15,6 +15,7 @@
   } from '@tanstack/svelte-table';
   import ActionBar from '#lib/components/action-bar.svelte';
   import DateText from '#lib/components/date-text.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -40,7 +41,7 @@
 
   // The organization's webhook endpoints (workflow-engine.md section 8), on the list template. Each row opens the
   // endpoint: its events, delivery log and replay. Under the endpoints, a panel says what webhooks are for, how to check
-  // a message and where the reference is (design system section 22): the events come from the API, and the reference's
+  // a message and where the reference is (design system section 21): the events come from the API, and the reference's
   // origin from /v1/meta (ScreenHire:Domains:ApiHost).
   const sidebar = Sidebar.useSidebar();
   const endpoints = createListWebhookEndpoints();
@@ -181,7 +182,7 @@
                 {/each}
               </ul>
             {:else if eventTypes.isError}
-              <span class="text-muted-foreground">Could not load the events.</span>
+              <FailureText message={describeError(eventTypes.error, 'Could not load the events')} />
             {:else}<Skeleton class="h-4 w-48" />{/if}
           </SummaryItem>
           <SummaryItem label="Check each message">
@@ -204,7 +205,7 @@
                 <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">Webhooks in the API reference</span> <span class="sr-only">(opens in a new tab)</span>
               </a>
             {:else if meta.isError}
-              <span class="text-muted-foreground">Could not find the API's address.</span>
+              <FailureText message={describeError(meta.error, "Could not find the API's address")} />
             {:else}<Skeleton class="h-4 w-48" />{/if}
           </SummaryItem>
         </SummaryList>

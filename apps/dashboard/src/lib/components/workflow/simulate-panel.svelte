@@ -115,6 +115,8 @@
           : { message: describeError(error, 'Could not run the test'), problems: [] };
     }
   }
+
+  const uid = $props.id();
 </script>
 
 <div class="flex flex-wrap items-start gap-5">
@@ -178,7 +180,13 @@
                   {/if}
                 </select>
               {:else}
-                <Input bind:value={answers[question.id]} placeholder={question.type === 'MultiChoice' ? 'Option ids, separated by commas' : undefined} />
+                <Input
+                  bind:value={answers[question.id]}
+                  aria-describedby={question.type === 'MultiChoice' ? `${uid}-${question.id}-hint` : undefined}
+                />
+                {#if question.type === 'MultiChoice'}
+                  <span id={`${uid}-${question.id}-hint`} class="font-normal text-muted-foreground">Option ids, separated by commas.</span>
+                {/if}
               {/if}
             </label>
           {/each}
@@ -188,7 +196,10 @@
       <fieldset class="flex flex-col gap-2">
         <legend class={kickerClass}>Application</legend>
         <div class="grid gap-2 @xl:grid-cols-3">
-          <label class={labelClass}>Tags, separated by commas<Input bind:value={tags} /></label>
+          <div class="flex min-w-0 flex-col gap-1">
+            <label class={labelClass}>Tags<Input bind:value={tags} aria-describedby={`${uid}-tags-hint`} /></label>
+            <p id={`${uid}-tags-hint`} class="text-muted-foreground">Separated by commas.</p>
+          </div>
           <label class={labelClass}>
             Source
             <select class={selectClass} bind:value={source}>
@@ -218,10 +229,13 @@
             </select>
           </label>
         </div>
-        <label class="flex items-center gap-2 pointer-coarse:min-h-11 font-semibold">
-          <input type="checkbox" class={checkboxClass} bind:checked={accommodation} />
-          The candidate asked for an accommodation (timing facts are off)
-        </label>
+        <div class="flex flex-col gap-0.5">
+          <label class="flex items-center gap-2 pointer-coarse:min-h-11 font-semibold">
+            <input type="checkbox" class={checkboxClass} bind:checked={accommodation} aria-describedby={`${uid}-accommodation-hint`} />
+            Accommodation requested
+          </label>
+          <p id={`${uid}-accommodation-hint`} class="pl-6 text-muted-foreground">The candidate asked for one, so the timing facts are off.</p>
+        </div>
       </fieldset>
 
       <div><Button type="submit" variant="outline" size="lg" disabled={simulate.isPending}>Run test</Button></div>

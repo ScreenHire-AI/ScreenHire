@@ -10,7 +10,7 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { sourceName } from '#lib/format.js';
 
-  // A candidate's details rail (design system sections 7 and 22): the job and where they are in it, contact, files and
+  // A candidate's details rail (design system sections 7 and 21): the job and where they are in it, contact, files and
   // tags, the same on every tab. Stage leads, because the header holds tabs, not a facts row. A file opens in the
   // full-window viewer from its row; the page never embeds one (section 9).
   let { detail, editable }: { detail: ApplicationDetail; editable: boolean } = $props();

@@ -75,16 +75,17 @@
 
 <TopBar crumbs={view ? [{ label: 'Candidates', href: '/candidates' }, { label: view.label }] : [{ label: 'Candidates' }]} />
 
-<main class="flex min-w-0 flex-col">
+<!-- From a tablet up the table fills the window below the header and scrolls inside itself (S6). -->
+<main class={['flex min-w-0 flex-col', !phone.current && 'h-[calc(100svh-3.5rem)] min-h-160']}>
   <HeaderBand
     title={view?.label ?? 'Candidates'}
     count={applications.isSuccess ? shown.length : undefined}
     countLabel={shown.length === 1 ? 'application' : 'applications'}
   />
 
-  <div class="@container">
-    <div class="flex w-full flex-col px-4 py-6 md:px-6">
-      <Panel title="Applications" flush>
+  <div class={['@container', !phone.current && 'flex min-h-0 flex-1 flex-col']}>
+    <div class={['flex w-full flex-col px-4 py-6 md:px-6', !phone.current && 'min-h-0 flex-1']}>
+      <Panel title="Applications" flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
         {#snippet tools()}
           <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           <IntegrityFilterMenu bind:filter={integrityFilter} />
@@ -105,6 +106,7 @@
         {:else}
           <ApplicationTable
             applications={shown}
+            fill={!phone.current}
             showJob
             sortId="candidates"
             extraColumns={integrityColumns}

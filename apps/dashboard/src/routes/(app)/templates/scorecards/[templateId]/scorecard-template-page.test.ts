@@ -83,7 +83,6 @@ describe('scorecard template page', () => {
     expect(await screen.findByRole('button', { name: '2 hiring templates' })).toBeInTheDocument();
 
     await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Technical review' } });
-    expect(screen.getByRole('button', { name: 'Discard changes' })).toBeInTheDocument();
     await fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'Preview' }));
     expect(screen.queryByLabelText('Name')).toBeNull();
     const preview = screen.getByRole('region', { name: 'Scorecard for Jordan Lee' });
@@ -95,6 +94,19 @@ describe('scorecard template page', () => {
     await waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]).toMatchObject({ name: 'Technical review', questions: own.questions });
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
+  });
+
+  it('discards unsaved changes from More, after a confirmation (A2)', async () => {
+    renderPage('s-own');
+    await screen.findByRole('heading', { level: 1, name: 'Technical interview' });
+
+    await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Technical review' } });
+    await fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Discard changes' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Discard your changes?' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Discard changes' }));
+
+    await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('Technical interview'));
   });
 
   it('reads a built-in only, says why, and offers Copy scorecard with no History (E3)', async () => {

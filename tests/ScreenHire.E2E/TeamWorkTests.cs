@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
 
@@ -71,10 +72,12 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await notifications.GetByRole(AriaRole.Button, new() { Name = "Dismiss notification" }).ClickAsync();
         await Expect(notifications.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(0);
 
-        // My tasks lists it for the team; completing it empties the open list and puts it under Done.
+        // My tasks lists it under For the team; ticking it keeps it, ticked, with Undo for 10 seconds, then it leaves the
+        // open list for Done.
         await Page.GotoAsync(DashboardUrl("/tasks"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("My tasks");
-        var open = Region("Open tasks");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
+        var open = Region("Tasks");
         await Expect(open.GetByRole(AriaRole.Link, new() { Name = Tagged, Exact = true })).ToBeVisibleAsync();
         await Expect(open).ToContainTextAsync("For the team");
         await ExpectNoAccessibilityViolationsAsync();
@@ -84,10 +87,11 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
             .Should().BeTrue("the page never scrolls sideways (F1)");
         await SaveScreenshotAsync(Page, "dashboard-my-tasks-phone");
         await Page.SetViewportSizeAsync(1440, 1000);
-        await open.GetByRole(AriaRole.Button, new() { Name = $"Mark done for {Tagged}: Call the references." }).ClickAsync();
-        await Expect(open.GetByText("Nothing to do")).ToBeVisibleAsync();
+        await open.GetByRole(AriaRole.Checkbox, new() { Name = $"Mark done for {Tagged}: Call the references." }).ClickAsync();
+        await Expect(open.GetByRole(AriaRole.Button, new() { Name = $"Undo, {Tagged}: Call the references." })).ToBeVisibleAsync();
+        await Expect(open.GetByText("Nothing to do")).ToBeVisibleAsync(new() { Timeout = 20_000 });
         await Page.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
-        await Expect(Region("Done")).ToContainTextAsync("by you");
+        await Expect(Region("Tasks")).ToContainTextAsync("by you");
     }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });

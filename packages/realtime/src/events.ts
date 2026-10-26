@@ -50,6 +50,8 @@ export const realtimeEventSchemas = {
   QuestionnaireAnswered: z.object({ organizationId: id, applicationId: id, jobId: id, requestId: id, eventId: id, answeredAt: instant }),
   ApplicationTaskCreated: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, createdAt: instant }),
   ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, completedAt: instant }),
+  // Undo after ticking a task.
+  ApplicationTaskReopened: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, reopenedAt: instant }),
   // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
   AutomationRunFinished: z.object({
     organizationId: id,

@@ -10,7 +10,7 @@ namespace ScreenHire.E2E;
 /// The integrity UI in a real browser (ADR-0004, docs/architecture/integrity-engine.md section 7): the synthetic
 /// applicants apply through the careers submission path while the recruiter watches the job, their chips and the job's
 /// overview arrive live, the evidence panel shows the reasons, evidence, next step and AI policy, and a dismissal with a
-/// reason lands in the audit log and takes the candidate out of "Needs review". Each test signs in as a new person with
+/// reason lands in the audit log and takes the candidate out of "To review". Each test signs in as a new person with
 /// a new organization.
 /// </summary>
 public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -142,9 +142,9 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await SaveScreenshotAsync(Page, "dashboard-integrity-panel-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
 
-        // "Needs review" now holds the two farm members; the dismissed bot and the genuine applicant are not in it.
-        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Needs review") }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Needs review");
+        // "To review" now holds the two farm members; the dismissed bot and the genuine applicant are not in it.
+        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^To review") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("To review");
         var queue = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
         await Expect(CandidateLinks(queue)).ToHaveCountAsync(2);
         await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmFirst.FullName })).ToBeVisibleAsync();

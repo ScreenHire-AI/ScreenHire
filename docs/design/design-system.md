@@ -1,14 +1,14 @@
 ---
 type: Reference
 title: "ScreenHire design system"
-description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI, employer branding, and the components and screens the v0.3 build adds."
+description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, integrity UI, employer branding, and what v0.3 changed on each screen."
 tags: [design-system, ui, checklist]
 sources:
   - resource: packages/ui/src/tokens.css
   - resource: packages/ui/src/theme.css
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/marketing/src/components/StatusIcon.astro
-  - resource: apps/dashboard/src/routes/(dev)/style-guide/+page.svelte
+  - resource: apps/dashboard/src/routes/(dev)/style-guide/style-guide.svelte
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
@@ -17,12 +17,11 @@ sources:
 # ScreenHire design system
 
 > Status: **v0.3 (2026-10-25)**. Decisions: [ADR-0009](../adr/0009-design-system-warm-grid.md), amended by
-> [ADR-0010](../adr/0010-design-system-v0-2.md) and [ADR-0013](../adr/0013-design-system-v0-3.md). Visual reference: the
-> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard has the
-> v0.3 foundation: status icons, pages that fill the window, the surface shadow and the v0.3 labels, the shared v0.3
-> components and the form builder in section 11. The candidate page is built: fixed tabs, the details rail, the file
-> viewer, and notes with mentions. Section 21 lists the components the v0.3 build still adds, and section 22 the
-> screens it changes.
+> [ADR-0010](../adr/0010-design-system-v0-2.md), [ADR-0013](../adr/0013-design-system-v0-3.md) and
+> [ADR-0016](../adr/0016-design-system-v0-3-review-amendments.md). Visual reference: the
+> owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
+> built to v0.3: every screen, and every component in section 11 with its example in the style guide. Section 21
+> records what v0.3 changed on each screen.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -85,7 +84,10 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
 - **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
   underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet, and a
-  button never navigates. Badges, pills and counts are never clickable, except a count button in a header (T4).
+  button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
+  Cancel on a form, Back) is an outline or primary button that renders as a link (`<a>`), because it starts that
+  action. A menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
+  except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
   column header is the one bare text button, marked by its sort icon (L2). A toggle in a labelled group is a choice,
@@ -132,7 +134,9 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
   say "by ScreenHire". History opens a sheet with every change, newest first and grouped by day: who, when and what,
-  with before and after on request.
+  with before and after on request. The one exception is a record whose row holds a secret (a webhook endpoint):
+  change history never reads it, so its header says when it was added and when its secret was last rotated instead
+  (ADR-0016).
 
 **Icons and shortcuts**
 
@@ -370,9 +374,9 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 | Window | under 768px | 768 to 1023px (`md`) | 1024 to 1535px (`lg`, `xl`) | 1536px and up (`2xl`) |
 | Navigation | Sidebar as a sheet behind a menu button; Back on detail pages | Icon rail, labels in tooltips | Full sidebar | Full sidebar |
 | Columns | One; the details rail folds under the header | One; the details rail folds under the header | Tabs and the details rail | Same, filling the window |
-| Header band | Facts in a two-column grid | Facts wrap | One line of facts | One line of facts |
-| Actions | Primary in a bar at the bottom; the rest in More | In the header; extras fold into More | In the header | In the header |
-| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks, and while it scrolls the row's link covers that cell only | Full | Full, optional columns may show |
+| Header band | Facts in a two-column grid | Facts wrap | One line of facts where they fit; beside the full sidebar they may wrap | One line of facts |
+| Actions | Primary in a bar at the bottom; the rest in More. A form keeps Cancel and its primary at its end (section 7) | In the header; extras fold into More | In the header | In the header |
+| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks, and while it scrolls the row's link covers that cell only | Full; a table wider than its panel beside the full sidebar scrolls inside it, as on a tablet | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
 On a phone the workflow graph is for reading: its nodes have no buttons, one line says to edit in Pipeline, and the
@@ -435,11 +439,12 @@ in a development build, shows every component in each state, and its test fails 
 | Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, filtered by kind (All, Notes, Emails, Scorecards, Stage and tags) with a count on each, and opens with the note box; Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
 | Mention | `MentionField` on shadcn `Textarea`; `NoteForm` for the note box and editing in place; `NoteText` | @ opens the organization's members, without yourself, narrowing as you type: arrow keys move, Enter or Tab picks, Esc closes the list only. The list sits under the field, each member an avatar, name and role; the field points at it with `aria-controls` and `aria-activedescendant`, because a textarea cannot be a combobox. An @ button (Mention someone) starts one below `md`. Ctrl or Cmd Enter saves, hinted in the Save tooltip. A mention is stored as the member's user id and shows their current name ("@former teammate" once they leave). The person mentioned gets a notification card and an email that says who and where and never quotes the note; a mention an edit adds notifies only that person. Save is outline, because the page's primary is Move to stage (A1) |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
-| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. An open task has a checkbox for a role that changes hiring data: ticking it marks the task done, with Undo for 10 seconds. On My tasks the candidate's name links to the application and the job is a pill |
+| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. For a role that changes hiring data an open task has the task checkbox in its icon's place. On My tasks the candidate's name links to the application and the job is a pill |
+| Task checkbox | shadcn `Checkbox` in `TaskList`; `createTaskCompletion` in `#lib/tasks.svelte.ts` | Ticking marks the task done on the server at once, so leaving the page keeps it done. The row stays where it is for 10 seconds, ticked and struck through, with an outline Undo; Undo, or unticking, opens the task again. Then a done task leaves an open list. Its label names the task, and on My tasks the candidate. A tick that fails unticks and says why (`FailureText`). Its hit area is 44px on touch (F4) |
 | Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
 | Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
-| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
+| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
@@ -452,9 +457,10 @@ in a development build, shows every component in each state, and its test fails 
 | Live indicator | `LiveIndicator` | The live updates status in the sidebar's footer: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline); the rail shows the icon with a tooltip |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Integrity tab | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
-| Details rail | `DetailsRail` with `DetailsRailSection`s; `DetailLayout` places it | A detail page's 340px column on the right with the record's details, one surface whose sections each have a small heading; it never moves between tabs and folds under the header, before the content, below `lg` (section 7) |
+| Details rail | `DetailsRail` with `DetailsRailSection`s; `DetailLayout` places it | A detail page's 340px column on the right with the record's details, one surface whose sections each have a small heading, with a count badge after it where the section lists things that grow (T4); it never moves between tabs and folds under the header, before the content, below `lg` (section 7) |
 | Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in the count where one fits (Distribution 7/8, posted on 7 of 8 boards, which screen readers hear in words), and a small marker only where it does not (E2): a dot in the status's icon colour with its words for screen readers, never a status icon (I2). The list scrolls sideways, never wraps (F5) |
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
+| Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row. Its words wrap rather than truncate, since a tooltip has no place inside a button. The rows share one surface and its dividers (S4) |
 | Summary card | shadcn `Card` as it is (`SummaryCard`), on a summary band (`SummaryBand`, section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most, the rest in a tooltip). A link when it opens what it counts |
 | Metric card | shadcn `Card` (`MetricCard`) | The value in the UI typeface (`metric`), a signed change against a named period (+7 vs last week), a 12-point line and a readout on hover, tap and focus; no description. The change is green when good and amber when it needs a look, decided per metric (fewer days to hire is good). It opens its report |
 | File row and file viewer | `FileRow`; `FileViewer` on shadcn `Dialog`; `FileFrame` | A page shows a file row: type icon, name, size, View and Download, or the scan status when a file is withheld. View opens the file in a full-window dialog with Close and Download, never a new tab. Untrusted files render isolated in a sandboxed frame; it draws PDFs, and other types keep Download only |
@@ -463,11 +469,12 @@ in a development build, shows every component in each state, and its test fails 
 | Sort header | `SortHeader` in the TanStack table header; `SortMenu` on phones; `#lib/table-sort.svelte.ts` | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header; a second click reverses. Each table opens on its default (a job's candidates on Stage, those needing attention first: overdue, the longest first, then pipeline order; candidates across jobs on Applied, newest first), and each person's sort is remembered per table in the browser (`preferences`), so it does not follow them to another browser. The Sort chip offers the same choices on a phone, above the list items |
 | Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
-| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Integrity, API keys and Webhooks. Email templates are on the Templates page (section 22), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
+| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Integrity, API keys and Webhooks. Email templates are on the Templates page (section 21), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
 | Form builder | `FormBuilder` and `AnswerMenu` on `Panel`, `ReorderList` and shadcn `Switch`; `#lib/form-builder.ts` | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms. The questions are rows in one panel with their count (S4), and every row starts closed. A closed row reads as text: the question, an asterisk when required, its answer kind's icon and name top right, the help line, and the options with the mark the person will see (a circle for Choice, a square for Multi-choice). The row is one button that opens it, beside its grip. Only one question is open at a time, with a `primary` bar down its left edge: its text, the answer kind button top right (the answer menu), the help line, the options with their own grip list ending in an outline Add option, then what the kind needs (a knockout, a number's range, a file's types). Its footer holds Duplicate and Delete icon buttons and the Required switch. Duplicate puts the copy straight after the original and opens it. Deleting changes nothing until Save, so it does not confirm (section 10). A problem shows under its question whether the row is open or closed (W4). Add a question, under the list, opens the answer menu. Questions and options reorder with a grip (A7). The editor that mounts it has the Edit / Preview switch at its top (A8). Changing a question never changes answers already given |
 | Answer menu | `AnswerMenu` on shadcn `DropdownMenu` | Picks a question's answer kind, each group under its heading and each kind with its icon; the current kind is ticked, and Add a question opens the same menu with nothing ticked. General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Application questions add More: Number, Link and File. A follow-up questionnaire offers the same without File, because its page takes no uploads. A scorecard offers General and Rating, each rating with a star: 1 to 5, 1 to 10, Yes or no |
 | Rating | `Rating`; `#lib/rating-column.ts` for a job's table | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from (in words in the count's tooltip), opening, from a small outline button (A6), to each scorecard that counts with its own number and recommendation. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer with a scorecard to give reads "Rating after your scorecard" ("After yours" in a table cell, the rest in its tooltip) until they submit their own; no automation acts on it. "Not rated yet" until a scorecard counts. A job's table has a Rating column, highest first, the unrated last |
 | Rating answer | `RatingAnswer` on shadcn `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale. Each button is a radio in the question's group; the chosen one takes `accent` (A6) and an inset ring in `accent-foreground`, so a chosen button is not told from a hovered one by a faint fill alone, and choosing it again clears an optional answer. A number scale never wraps: its buttons share the row equally, up to the control size, so 1 to 10 on a phone has buttons narrower than 44 px (still above WCAG 2.5.8's 24 px) and High stays under 10 |
+| Choice card | `ChoiceCard`: a native radio in a labelled card | A choice of a few options in a `radiogroup` with its label: each a bordered card with its name and one muted line, and the whole card is the target. The chosen card takes the `primary` edge and `accent` fill. A member's jobs (All jobs or Only jobs they're on), the role in Invite, and the role to copy in New role |
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
 
 ## 12. Words
@@ -512,7 +519,7 @@ Always the browser's locale (US English by default), through one shared formatte
 Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Size 16 and
 stroke 1.75 are set once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a
 label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges and in a status's
-saved view in the sidebar (section 22), and no other control or decoration uses them. The warning triangle marks only
+saved view in the sidebar (section 21), and no other control or decoration uses them. The warning triangle marks only
 the integrity cards that fed a level (section 16). A problem in words (a failed action, a form error, a builder's
 problem to fix) starts with `circle-alert` in the verify icon colour (`ProblemIcon`). It is not a status icon, so it
 never stands in for a badge.
@@ -583,20 +590,11 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
 
 - Change this file first. A change to a decision (anything in ADR-0010 or ADR-0013) also gets an ADR.
 - Tokens live in `packages/ui` and reach components through Tailwind classes; this file names them.
-- A new component or pattern joins section 11 before a second screen uses it. A row in section 21 moves into section
-  11 when the build adds its example to the style guide, whose test reads section 11.
+- A new component or pattern joins section 11, with its example in the style guide, before a second screen uses it.
+  The style guide's test reads section 11 and fails on a row with no example.
 - The `design-review` agent reads section 2 on every run, so a new check here is enforced from the next review on.
 
-## 21. Components the v0.3 build adds
-
-These join section 11 one by one, each when the build adds it to the style guide.
-
-| Component | Built on | Rules |
-|---|---|---|
-| Task checkbox | shadcn `Checkbox` | Ticking marks a task done, with Undo for 10 seconds |
-| Choice card | native radio inputs in labelled cards (`MemberAccessSheet`, Invite on Team) | A choice of a few options, each a bordered card with its name and one muted line; the chosen card takes the `primary` edge and `accent` fill, and the whole card is the target. Used for a member's jobs: All jobs or Only jobs they're on |
-
-## 22. Screens the v0.3 build changes
+## 21. Screens the v0.3 build changed
 
 - **Job:** the work area first. The authenticity bar becomes filter chips with counts, the stages a Stage filter,
   and Distribution its own tab, whose count says 7/8. A refused posting is a notice that names the board and links to
@@ -621,7 +619,7 @@ These join section 11 one by one, each when the build adds it to the style guide
   (Owners and Admins), deletes it, after a confirm. The details rail holds the job, contact, files and tags.
   Built: Messages lists every email to the candidate, about any of their applications, newest first, with the email
   composer on top for people who can send. Each row opens to the email as it went; one sent before ScreenHire kept a
-  copy of each email says only its subject was kept. Replies wait for roadmap item 3, so the tab says nothing about
+  copy of each email says only its subject was kept. Replies wait for roadmap item 1, so the tab says nothing about
   them.
 - **Templates:** one page with a tab per kind (Hiring, Scorecards, Emails). Each tab says in one sentence what its
   templates are for, each row says where it is used, and each editor has the Edit / Preview switch. A job keeps the
@@ -650,11 +648,12 @@ These join section 11 one by one, each when the build adds it to the style guide
   Compare roles and New role. New role opens a sheet with a name and the role to copy, never Owner, then Create and
   edit opens the copy's page. Compare roles is the full-width table of what each role can do, read from the API's
   permission catalogue, a column per role. Each cell says Yes or No in words: L1 keeps icons out of cells, and the
-  check is a status icon (I2). A custom role's page is the form template: Name, then What this role can do with a
-  checkbox per permission and the count chosen ("4 of 16"), then Cancel and Save; rows nobody can change here (See jobs
-  and candidates, in every role; Manage Owners, Owner only; a permission the person's own role lacks) have a lock and
-  say why. Its header's facts are People, Copied from and Last updated with History; Copy role and Delete role are in
-  More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
+  check is a status icon (I2). In a panel narrower than 896px (the full sidebar at 1024, and phones) it is a list instead:
+  each permission, what it covers, and the roles that have it as badges. A custom role's page is the form template: Name, then What this role can do with a
+  checkbox per permission and the count chosen ("4 of 16"), then Cancel and Save in that panel's footer; rows nobody
+  can change here (See jobs and candidates, in every role; Manage Owners, Owner only; a permission the person's own role
+  lacks) have a lock and say why. Its header's facts are Copied from and Last updated with History (the people are
+  counted on their panel, W4); Copy role and Delete role are in More, and deleting a role somebody has is refused, saying how many. A built-in role's page is a read-only view with
   Built in beside its title and Copy role as the primary action. Both list the people with the role, each with the jobs
   they see ("All jobs", or a count button that lists them) and an Edit access on Team link.
   Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All jobs", or "2 jobs" for someone on Only jobs
@@ -664,6 +663,12 @@ These join section 11 one by one, each when the build adds it to the style guide
   Admin the choice is a line saying they see all jobs. Invite asks the same, starting at All jobs. Someone who sees
   only their own jobs is offered only Only jobs they're on (A3).
 - **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
+  Built: Mine is the tasks assigned to the person, For the team the tasks assigned to nobody in particular, and
+  Everyone's every task the person can see, which job access limits (ADR-0015). Each is a toggle with its count, so the
+  header band shows none (W4); Open and Done are the other toggle group (section 7). The task checkbox (section 11)
+  completes a task on My tasks and on the candidate's Overview.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
+  Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
+  ordinary one. The short name is also the candidates page's title for the view.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API
   reference is served in production.

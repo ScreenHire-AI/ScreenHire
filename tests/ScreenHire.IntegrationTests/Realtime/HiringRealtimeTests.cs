@@ -82,11 +82,15 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
 
         (await ours.PostAsync($"/v1/applications/{application}/automations/todo/run")).Expect(HttpStatusCode.Accepted);
         await Automations.AutomationSamples.WaitForRunAsync(ours, application, "todo", "Completed");
-        var task = (await ours.GetAsync("/v1/tasks")).Body.EnumerateArray()
+        // The automation's task is for the whole team (no assignee); a task made by hand may sit beside it.
+        var task = (await ours.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray()
             .Single(t => t.GetProperty("automationRunId").ValueKind != System.Text.Json.JsonValueKind.Null).GetProperty("id").GetGuid();
         (await ours.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.OK);
         var completed = await ourClient.WaitForAsync("ApplicationTaskCompleted", "taskId", task, cancellationToken);
         completed.GetProperty("applicationId").GetGuid().Should().Be(application);
+        (await ours.PostAsync($"/v1/tasks/{task}/reopen")).Expect(HttpStatusCode.OK);
+        var reopened = await ourClient.WaitForAsync("ApplicationTaskReopened", "taskId", task, cancellationToken);
+        reopened.GetProperty("jobId").GetGuid().Should().Be(job);
 
         (await ours.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
         var scorecard = (await ours.PostAsync($"/v1/applications/{application}/scorecards", new JsonObject

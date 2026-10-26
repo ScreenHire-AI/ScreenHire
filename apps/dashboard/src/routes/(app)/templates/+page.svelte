@@ -58,7 +58,7 @@
   } from '#lib/templates.js';
   import { cn } from '#lib/utils.js';
 
-  // The Templates page (design system section 22): one tab per kind, in the address (?tab=), each the list of its
+  // The Templates page (design system section 21): one tab per kind, in the address (?tab=), each the list of its
   // templates with where each is used. New template offers the kinds the person's role may make. The row menus hold
   // Duplicate, Archive or Restore, and Reset to original for a built-in email the team edited. Archive is undone by
   // Restore on the same screen, so it does not confirm (section 10); Reset discards the team's wording, so it does (A2).

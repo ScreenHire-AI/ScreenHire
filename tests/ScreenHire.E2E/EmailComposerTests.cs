@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The email composer and the Messages tab in a real browser (roadmap item 2): an owner starts from a template, changes
+/// The email composer and the Messages tab in a real browser (design system section 21, Candidate): an owner starts from a template, changes
 /// its subject and body for one candidate, previews it with the candidate's first name and sends it. Mailpit and the
 /// candidate's Messages show the changed email, and the template stays as it was. A blank email goes from the Messages
 /// box. A candidate added with one name, as every candidate from before the name was split, still shows it whole. The
@@ -71,7 +71,8 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(row).ToBeVisibleAsync(new() { Timeout = 30_000 });
         await row.ClickAsync();
         await Expect(row).ToHaveAttributeAsync("aria-expanded", "true");
-        await Expect(messages.Locator("[data-email-subject]")).ToHaveTextAsync($"Interview {marker} for {scene.Title}");
+        // The row names the subject; the opened email does not repeat it (W4).
+        await Expect(row).ToContainTextAsync($"Interview {marker} for {scene.Title}");
         await Expect(messages.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync($"Your portfolio stood out {marker}.");
         await Expect(messages).Not.ToContainTextAsync("repl", new() { IgnoreCase = true });
         await ExpectNoAccessibilityViolationsAsync();

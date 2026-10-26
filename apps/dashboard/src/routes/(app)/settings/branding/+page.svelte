@@ -6,6 +6,7 @@
     ApiError,
     createGetOrganization,
     createGetOrganizationBranding,
+    getGetOrganizationBrandingHistoryQueryOptions,
     createUpdateOrganizationBranding,
     getGetOrganizationBrandingQueryKey,
   } from '@screenhire/api-client/svelte-query';
@@ -15,6 +16,7 @@
   import { z } from 'zod';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
@@ -119,7 +121,11 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Branding' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Branding" />
+  <HeaderBand title="Branding">
+    {#snippet facts()}
+      {#if detail}<HistoryFact value={detail.lastUpdated} name="Brand colour" page={(before) => getGetOrganizationBrandingHistoryQueryOptions({ before })} />{/if}
+    {/snippet}
+  </HeaderBand>
 
   <SettingsMenu>
     <div class="flex w-full max-w-form flex-col gap-5">

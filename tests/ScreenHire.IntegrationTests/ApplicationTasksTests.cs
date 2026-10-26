@@ -24,8 +24,11 @@ public sealed class ApplicationTasksTests(AppHostFixture fixture)
         task.Text("note").Should().Be("Check the references.");
         task.At("assigneeUserId").ValueKind.Should().Be(JsonValueKind.Null, "no assignee means anyone on the hiring team");
         task.At("automationRunId").ValueKind.Should().Be(JsonValueKind.Null);
-        var tasks = (await recruiter.GetAsync("/v1/tasks")).Expect(HttpStatusCode.OK);
+        // No assignee is a task for the team: the My tasks page's For the team scope, not Mine.
+        var tasks = (await recruiter.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK);
         tasks.Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.Id());
+        (await recruiter.GetAsync("/v1/tasks")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid())
+            .Should().NotContain(task.Id(), "Mine is only what is assigned to the person");
         var created = (await recruiter.GetAsync($"/v1/applications/{application}/timeline")).Body.EnumerateArray()
             .Single(e => e.GetProperty("type").GetString() == "TaskCreated");
         created.GetProperty("taskId").GetGuid().Should().Be(task.Id());

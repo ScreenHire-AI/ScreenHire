@@ -28,7 +28,7 @@
      */
     compact?: boolean;
     /**
-     * Calm says nothing (design system section 22): the lowest level of an assessment that no one needs to look at shows
+     * Calm says nothing (design system section 21): the lowest level of an assessment that no one needs to look at shows
      * no words, only its description for screen readers. A pending check is not calm, so it still shows.
      */
     hideCalm?: boolean;

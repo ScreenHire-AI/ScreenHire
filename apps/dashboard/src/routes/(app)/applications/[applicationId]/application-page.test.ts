@@ -482,7 +482,9 @@ describe('application page', () => {
 
     await fireEvent.click(rows[0]!);
     expect(rows[0]).toHaveAttribute('aria-expanded', 'true');
-    await waitFor(() => expect(messages.querySelector('[data-email-subject]')).toHaveTextContent('Next steps for Senior .NET Engineer'));
+    // The opened email shows its parts; the row above it already names the subject, so it is not repeated (W4).
+    expect(await within(messages).findByRole('group', { name: 'Part' })).toBeInTheDocument();
+    expect(within(messages).getAllByText(/Next steps for Senior \.NET Engineer/)).toHaveLength(1);
 
     await fireEvent.click(rows[1]!);
     expect(within(messages).getByText(/Only the subject was kept/)).toBeInTheDocument();
@@ -560,8 +562,10 @@ describe('application page', () => {
     expect(await within(tasks).findByText('Call the references.')).toBeInTheDocument();
     expect(within(tasks).getByText('To-do')).toBeInTheDocument();
     expect(within(tasks).getByText('For the team')).toBeInTheDocument();
-    await fireEvent.click(within(tasks).getByRole('button', { name: 'Mark done, Call the references.' }));
+    await fireEvent.click(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' }));
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url) === `/v1/tasks/${taskId}/complete` && init?.method === 'POST')).toBe(true));
+    expect(await within(tasks).findByRole('button', { name: 'Undo, Call the references.' })).toBeInTheDocument();
+    expect(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' })).toBeChecked();
   });
 
   it('runs a manual automation with its own idempotency key, and offers only manual ones', async () => {
@@ -608,7 +612,7 @@ describe('application page', () => {
     const tasks = await screen.findByRole('region', { name: 'Next steps' });
     await within(tasks).findByText('Call the references.');
 
-    expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
+    expect(within(tasks).queryByRole('checkbox', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Activity' })).queryByLabelText('Note for the hiring team')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More actions for this note' })).not.toBeInTheDocument();
@@ -624,7 +628,7 @@ describe('application page', () => {
     expect(within(screen.getByRole('region', { name: 'Activity' })).getByLabelText('Note for the hiring team')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Tags' })).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Move to stage, Casey Morgan' })).not.toBeInTheDocument();
-    expect(within(tasks).queryByRole('button', { name: /^Mark done/ })).not.toBeInTheDocument();
+    expect(within(tasks).queryByRole('checkbox', { name: /^Mark done/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 

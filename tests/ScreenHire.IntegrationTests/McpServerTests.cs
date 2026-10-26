@@ -72,7 +72,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         (await mcp.CallAsync("move_to_stage", new() { ["applicationId"] = application, ["stageId"] = rejected }))
             .GetProperty("stage").GetProperty("kind").GetString().Should().Be("Rejected", "a rejection the person asked for follows the API's rules");
 
-        (await owner.GetAsync("/v1/tasks")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
+        (await owner.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
         var keyId = key.Id("key.id");
         var changes = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
             .Where(e => e.GetProperty("type").GetString() != "Submitted")

@@ -38,6 +38,7 @@
     emptyText = 'No candidates yet.',
     onclearfilters,
     filters,
+    fill = false,
     sortId,
     sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, [
       'candidate',
@@ -49,6 +50,11 @@
     ]),
   }: {
     applications: readonly ApplicationSummary[];
+    /**
+     * The table fills its panel's height and scrolls inside itself, so it never stops short of the window (S6). The
+     * panel and the page around it must fill the height too. Without it the table stops at a fixed height.
+     */
+    fill?: boolean;
     /** The table's accessible name. */
     label?: string;
     /** Adds a Job column, for the table across every job. */
@@ -358,14 +364,14 @@
   {/if}
 {:else}
   <!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->
-  <div class="flex flex-col" {onkeydown} {onfocusin}>
+  <div class={['flex flex-col', fill && 'min-h-0 flex-1']} {onkeydown} {onfocusin}>
     <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
          instead of the page scrolling sideways on a phone (F1). On a tablet the table scrolls sideways here, with the
          checkbox and name columns stuck to its left edge (section 8). -->
     <div
       bind:this={scrollElement}
       onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
-      class="@container/table relative max-h-[min(70vh,640px)] overflow-auto"
+      class={['@container/table relative overflow-auto', fill ? 'min-h-0 flex-1' : 'max-h-[min(70vh,640px)]']}
     >
       <table aria-label={label} aria-rowcount={rows.length + 1} class="w-full border-collapse text-left">
         <thead class="sticky top-0 z-10 bg-muted">

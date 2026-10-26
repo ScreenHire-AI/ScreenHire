@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The Templates page in a real browser (design system section 22): one tab per kind of template, email templates moved
+/// The Templates page in a real browser (design system section 21): one tab per kind of template, email templates moved
 /// there from Settings with the old address redirecting, Reset to original on a built-in email the team edited, a
 /// scorecard edited in the form builder and seen in Preview and History, and archiving and restoring a template. Each
 /// test signs in as a new person with a new organization.

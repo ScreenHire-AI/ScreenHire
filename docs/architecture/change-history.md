@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Change history"
-description: "Who changed a hiring template, an email template, a job or a custom role, when and what: change records written by an EF Core interceptor in the same save, lines in plain words matched by element ids, Last updated on each read contract, the paged history routes, and how to track another kind."
+description: "Who changed a hiring template, an email template, a job, a custom role or an organization setting, when and what: change records written by an EF Core interceptor in the same save, lines in plain words matched by element ids, Last updated on each read contract, the paged history routes, and how to track another kind."
 tags: [history, audit, templates, jobs]
 sources:
   - resource: src/ScreenHire.Domain/History/ChangeRecord.cs
@@ -10,6 +10,7 @@ sources:
   - resource: src/ScreenHire.Domain/History/HiringTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/EmailTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/ScorecardTemplateChanges.cs
+  - resource: src/ScreenHire.Domain/History/SettingsChanges.cs
   - resource: src/ScreenHire.Domain/History/JobChanges.cs
   - resource: src/ScreenHire.Domain/History/RoleChanges.cs
   - resource: src/ScreenHire.Domain/History/ChangeLabels.cs
@@ -30,8 +31,11 @@ sources:
 
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
-templates, email templates, scorecard templates, jobs and custom roles today. Built-in roles never change, so they
-have no history. It never holds
+templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
+its brand colour and its integrity settings, each with a history of its own (`/v1/organization/history`,
+`/branding/history`, `/integrity-settings/history`). Built-in roles never change, so they have no history. A webhook
+endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
+shows when it was added and when its secret was last rotated instead. It never holds
 candidate data, so it has no retention limit. A job's hiring team and a template's default team are left out: who
 was added or removed is the membership log's to record (ADR-0015).
 
@@ -41,7 +45,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job` or `Role`, and its id. A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding` or `IntegritySettings`, and its id (the organization's id for the last three). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `lines` | JSONB: one line per change, each its words (`parts`, the changed thing's name marked strong) and its values before and after (`details`) |
@@ -100,7 +104,8 @@ on purpose when a task renames an answer kind on one side only: change both.
 
 `TrackedKinds` is an allow-list: the interceptor never reads an entity that is not on it, so an API key's hash, a
 webhook endpoint's signing secret and an invitation's token hash cannot reach the history. `TrackedKindsTests` fails
-when a tracked entity has a secret-like property, and `ChangeHistoryTests` checks the stored lines against a real key,
+when a tracked entity has a secret-like property (a monthly token budget counts a model's tokens and is the one
+exception it allows), and `ChangeHistoryTests` checks the stored lines against a real key,
 its hash and a webhook secret.
 
 A tracked definition can hold a secret too: a webhook's address often carries its token in the path or the query. A
@@ -142,7 +147,9 @@ of the dashboard names people (`personName`: "you", the current name, "a former 
 
 1. Add a `ChangeSubjectKind` value.
 2. Add one line to `TrackedKinds.All`: the entity, its subject id and its describer. A describer that needs only the
-   entity before and after is a plain function; reuse `DefinitionChanges` for questions.
+   entity before and after is a plain function; reuse `DefinitionChanges` for questions. One entity can feed two
+   histories (the organization row: its name and its brand colour), one line each, when each describer returns no
+   lines for the other's changes.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
    check.
 4. Put `lastUpdated` on its read contracts with `ChangeHistoryQueries.LastAsync` and `LastUpdate.From`.

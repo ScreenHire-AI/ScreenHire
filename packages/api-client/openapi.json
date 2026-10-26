@@ -4291,6 +4291,183 @@
         ]
       }
     },
+    "/v1/organization/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationBrandingHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/integrity-settings/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationIntegritySettingsHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/branding": {
       "get": {
         "tags": [
@@ -5963,6 +6140,58 @@
           "Tasks"
         ],
         "operationId": "CompleteTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/tasks/{taskId}/reopen": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "operationId": "ReopenTask",
         "parameters": [
           {
             "name": "taskId",
@@ -12769,7 +12998,8 @@
         "required": [
           "brandColor",
           "palette",
-          "brandAdjusted"
+          "brandAdjusted",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -12791,15 +13021,19 @@
           },
           "brandAdjusted": {
             "type": "boolean"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable."
+        "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour's last change (\"by ScreenHire\" while it is ScreenHire's default); its history is `/branding/history`."
       },
       "OrganizationIntegritySettings": {
         "required": [
           "llmConsistencyCheck",
           "monthlyTokenBudget",
-          "tokensUsedThisMonth"
+          "tokensUsedThisMonth",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -12816,9 +13050,12 @@
           "tokensUsedThisMonth": {
             "type": "integer",
             "format": "int64"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The organization's integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\r\n`tokensUsedThisMonth` is what the check has used so far this month."
+        "description": "The organization's integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings' last\r\nchange (\"by ScreenHire\" while they are the defaults); their history is `/integrity-settings/history`."
       },
       "OrganizationProfile": {
         "required": [
@@ -12827,7 +13064,8 @@
           "slug",
           "homeRegion",
           "careersUrl",
-          "createdAt"
+          "createdAt",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -12850,9 +13088,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain."
+        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name's\r\nlast change, or when the organization was made; its history is `/v1/organization/history`."
       },
       "OrganizationRole": {
         "enum": [
@@ -14768,9 +15009,10 @@
       "TaskScope": {
         "enum": [
           "Mine",
+          "Team",
           "Everyone"
         ],
-        "description": "Whose tasks a list shows: the signed-in person's and the whole team's (unassigned), or everyone's."
+        "description": "Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),\r\nor everyone's (every task the person can see)."
       },
       "TaskStatusFilter": {
         "enum": [

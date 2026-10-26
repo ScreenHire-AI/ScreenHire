@@ -52,6 +52,7 @@ export const invalidations: InvalidationMap = {
   QuestionnaireAnswered: [applicationsPath],
   ApplicationTaskCreated: [applicationsPath, tasksPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
+  ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
 };

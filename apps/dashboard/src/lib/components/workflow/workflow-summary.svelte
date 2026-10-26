@@ -142,9 +142,11 @@
   <div class="flex flex-col gap-5">
     <EditPreviewSwitch bind:mode />
     {#if mode === 'preview'}
-      <PreviewFrame>
-        <QuestionnairePreview {questions} />
-      </PreviewFrame>
+      <Panel title="Preview">
+        <PreviewFrame>
+          <QuestionnairePreview {questions} />
+        </PreviewFrame>
+      </Panel>
     {:else}
       <Panel title="AI use while applying">
         <p>{aiUseLabels[workflow.integrityPolicy.aiUse]}</p>

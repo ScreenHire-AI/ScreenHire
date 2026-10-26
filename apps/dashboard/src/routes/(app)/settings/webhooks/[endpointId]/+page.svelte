@@ -17,19 +17,35 @@
     createUpdateWebhookEndpoint,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import {
+    createSortedRowModel,
+    createTable,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
   import { goto } from '$app/navigation';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
+  import DetailLayout from '#lib/components/detail-layout.svelte';
+  import DetailsRailSection from '#lib/components/details-rail-section.svelte';
+  import DetailsRail from '#lib/components/details-rail.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
+  import Hint from '#lib/components/hint.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -41,7 +57,8 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { needsAttention } from '#lib/status.js';
-  import { deliveryStatus, endpointStatus } from '#lib/webhooks.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
+  import { deliveryStatus, endpointStatus, eventLabel } from '#lib/webhooks.js';
   import type { PageProps } from './$types';
 
   // One webhook endpoint (workflow-engine.md section 8), on the detail template: whether it is on, its delivery log with
@@ -70,6 +87,29 @@
   const detail = $derived(endpoint.data?.data);
   const notFound = $derived(endpoint.error instanceof ApiError && endpoint.error.status === 404);
   const log = $derived(deliveries.data?.data ?? []);
+
+  // The delivery log sorts like every table (L2), newest first.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  // `any`: one list mixes columns of different value types.
+  const columns: ColumnDef<typeof features, WebhookDeliveryEntry, any>[] = [
+    { id: 'status', header: 'Status', accessorFn: (delivery) => deliveryStatus[delivery.status].label, sortFn: 'alphanumeric' },
+    { id: 'event', header: 'Event', accessorFn: (delivery) => eventLabel(delivery.eventType), sortFn: 'alphanumeric' },
+    { id: 'attempts', header: 'Attempts', accessorFn: (delivery) => delivery.attempts, sortFn: 'basic' },
+    { id: 'response', header: 'Response', accessorFn: (delivery) => response(delivery), sortFn: 'alphanumeric' },
+    { id: 'sent', header: 'Sent', accessorFn: (delivery) => delivery.createdAt, sortFn: 'basic' },
+    { id: 'actions', header: () => 'Actions', enableSorting: false },
+  ];
+  const sort = createTableSort('webhook-deliveries', { id: 'sent', desc: true }, ['status', 'event', 'attempts', 'response', 'sent']);
+  const table = createTable({
+    ...tableSortOptions(() => sort),
+    features,
+    columns,
+    get data() {
+      return log;
+    },
+    getRowId: (delivery) => delivery.id,
+  });
+  const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
   const title = $derived(detail ? (detail.description ?? detail.url) : 'Endpoint');
   const editHref = $derived(`/settings/webhooks/${params.endpointId}/edit`);
 
@@ -175,7 +215,10 @@
         {/if}
         <MoreMenu label="More actions" onclosed={onMenuClosed}>
           {#if sidebar.isMobile}
-            <DropdownMenu.Item onSelect={() => goto(editHref)}><PencilIcon aria-hidden="true" />Edit</DropdownMenu.Item>
+            <!-- Edit goes to a page, so the item is a link (A5). -->
+            <DropdownMenu.Item>
+              {#snippet child({ props })}<a {...props} href={editHref}><PencilIcon aria-hidden="true" />Edit</a>{/snippet}
+            </DropdownMenu.Item>
           {/if}
           {#if detail.enabled}
             <DropdownMenu.Item onSelect={() => setEnabled(detail, false)}><PowerOffIcon aria-hidden="true" />Turn off</DropdownMenu.Item>
@@ -197,102 +240,105 @@
     <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
       <p role="status" class="sr-only">{announcement}</p>
 
-      <!-- Why it is off comes first in the page's order, so one column starts with it. From lg it sits at the top of the
-           side column, and the main column spans both of the side column's rows (section 7). -->
-      <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_var(--container-rail)] lg:grid-rows-[auto_1fr] lg:items-start">
-        {#if detail.disabledReason}
-          <div class="min-w-0 lg:col-start-2 lg:row-start-1">
-            <Panel title="Why it is off">
-              <p>{detail.disabledReason}</p>
-              {#if detail.disabledAt}<p class="mt-2 text-muted-foreground">Turned off <RelativeTime at={detail.disabledAt} /></p>{/if}
-            </Panel>
-          </div>
-        {/if}
+      {#if detail.disabledReason}
+        <!-- A problem to fix (E2), at the top of the work area; Turn on is the fix, in the header. -->
+        <Notice>
+          {detail.disabledReason}
+          {#if detail.disabledAt}Turned off <RelativeTime at={detail.disabledAt} />.{/if}
+        </Notice>
+      {/if}
 
-        <div class="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
-            {#if deliveries.isError}
-              <div class="p-4">
-                <QueryError message={describeError(deliveries.error, 'Could not load the deliveries')} onretry={() => deliveries.refetch()} inset />
-              </div>
-            {:else if deliveries.isPending}
-              <div aria-hidden="true" class="flex flex-col">
-                {#each [0, 1, 2] as row (row)}
-                  <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
-                    <Skeleton class="h-4 w-20" />
-                    <Skeleton class="h-4 min-w-0 flex-1" />
-                    <Skeleton class="h-4 w-24" />
-                  </div>
-                {/each}
-              </div>
-              <p class="sr-only" role="status">Loading the deliveries…</p>
-            {:else if log.length === 0}
-              <Empty.Root>
-                <Empty.Header>
-                  <Empty.Description>No deliveries yet.</Empty.Description>
-                </Empty.Header>
-              </Empty.Root>
-            {:else}
-              <ul class="md:hidden">
-                {#each log as delivery (delivery.id)}
-                  <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
-                    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <span class="flex min-w-0 flex-wrap items-center gap-2">
-                        {@render deliveryBadge(delivery)}
-                        <span class="min-w-0 font-mono text-code break-all">{delivery.eventType}</span>
-                      </span>
-                      <span class="flex flex-wrap gap-x-3 text-caption text-muted-foreground">
-                        <DateText at={delivery.createdAt} />
-                        {#if response(delivery)}<span class="min-w-0 break-words">{response(delivery)}</span>{/if}
-                      </span>
-                    </div>
-                    {@render replayButton(delivery)}
-                  </li>
+      <DetailLayout>
+        {#snippet rail()}
+          <DetailsRail>
+            <DetailsRailSection title="Events" count={detail.events.length}>
+              <ul class="flex flex-col gap-2" aria-label="Event types">
+                {#each detail.events as type (type)}
+                  <!-- Each event in words, then its type as the code a receiver reads (W2), as the Webhooks page lists them. -->
+                  <li class="min-w-0 break-words">{eventLabel(type)} <span class="font-mono text-code break-all text-muted-foreground">{type}</span></li>
                 {/each}
               </ul>
-              <div class="overflow-x-auto max-md:hidden">
-                <Table.Root>
-                  <Table.Header>
-                    <Table.Row class="bg-muted hover:bg-muted">
-                      <Table.Head class="px-4.5">Status</Table.Head>
-                      <Table.Head>Event</Table.Head>
-                      <Table.Head class="text-right">Attempts</Table.Head>
-                      <Table.Head>Response</Table.Head>
-                      <Table.Head>Sent</Table.Head>
-                      <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {#each log as delivery (delivery.id)}
-                      <Table.Row class="h-12">
-                        <Table.Cell class="px-4.5">{@render deliveryBadge(delivery)}</Table.Cell>
-                        <Table.Cell class="font-mono text-code whitespace-nowrap">{delivery.eventType}</Table.Cell>
-                        <Table.Cell class="text-right tabular-nums">{delivery.attempts}</Table.Cell>
-                        <Table.Cell class="w-full max-w-0 text-muted-foreground">
-                          {#if response(delivery)}<TruncatedText text={response(delivery)} />{/if}
-                        </Table.Cell>
-                        <Table.Cell class="text-muted-foreground"><DateText at={delivery.createdAt} /></Table.Cell>
-                        <Table.Cell class="pr-4.5 text-right">{@render replayButton(delivery)}</Table.Cell>
-                      </Table.Row>
-                    {/each}
-                  </Table.Body>
-                </Table.Root>
-              </div>
-            {/if}
-          </Panel>
-        </div>
-
-        <!-- Without the status panel the events take the side column's top, level with the deliveries (S4). -->
-        <div class={['flex min-w-0 flex-col gap-5 lg:col-start-2', detail.disabledReason ? 'lg:row-start-2' : 'lg:row-span-2 lg:row-start-1']}>
-          <Panel title="Events" count={detail.events.length}>
-            <ul class="flex flex-col gap-2" aria-label="Event types">
-              {#each detail.events as type (type)}
-                <li class="min-w-0 font-mono text-code break-all">{type}</li>
+            </DetailsRailSection>
+          </DetailsRail>
+        {/snippet}
+        <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
+          {#if deliveries.isError}
+            <div class="p-4">
+              <QueryError message={describeError(deliveries.error, 'Could not load the deliveries')} onretry={() => deliveries.refetch()} inset />
+            </div>
+          {:else if deliveries.isPending}
+            <div aria-hidden="true" class="flex flex-col">
+              {#each [0, 1, 2] as row (row)}
+                <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
+                  <Skeleton class="h-4 w-20" />
+                  <Skeleton class="h-4 min-w-0 flex-1" />
+                  <Skeleton class="h-4 w-24" />
+                </div>
+              {/each}
+            </div>
+            <p class="sr-only" role="status">Loading the deliveries…</p>
+          {:else if log.length === 0}
+            <Empty.Root>
+              <Empty.Header>
+                <Empty.Description>No deliveries yet.</Empty.Description>
+              </Empty.Header>
+            </Empty.Root>
+          {:else}
+            <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
+            <ul class="md:hidden">
+              {#each sorted as delivery (delivery.id)}
+                <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+                  <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span class="flex min-w-0 flex-wrap items-center gap-2">
+                      {@render deliveryBadge(delivery)}
+                      <span class="min-w-0 font-semibold break-words">{eventLabel(delivery.eventType)}</span>
+                    </span>
+                    <span class="flex flex-wrap gap-x-3 text-caption text-muted-foreground">
+                      <DateText at={delivery.createdAt} />
+                      {#if response(delivery)}<span class="min-w-0 break-words">{response(delivery)}</span>{/if}
+                    </span>
+                  </div>
+                  {@render replayButton(delivery)}
+                </li>
               {/each}
             </ul>
-          </Panel>
-        </div>
-      </div>
+            <div class="overflow-x-auto max-md:hidden">
+              <Table.Root>
+                <Table.Header>
+                  {#each table.getHeaderGroups() as group (group.id)}
+                    <Table.Row class="bg-muted hover:bg-muted">
+                      {#each group.headers as header (header.id)}
+                        {#if header.id === 'actions'}
+                          <th scope="col" class="w-12 border-b border-border pr-4.5"><span class="sr-only">Actions</span></th>
+                        {:else}
+                          <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : undefined} />
+                        {/if}
+                      {/each}
+                    </Table.Row>
+                  {/each}
+                </Table.Header>
+                <Table.Body>
+                  {#each sorted as delivery (delivery.id)}
+                    <Table.Row class="h-12">
+                      <Table.Cell class="px-4.5">{@render deliveryBadge(delivery)}</Table.Cell>
+                      <!-- The row's name, in words; the event type itself is in the tooltip (L1). -->
+                      <Table.Cell class="max-w-64 font-semibold whitespace-nowrap">
+                        <Hint content={delivery.eventType}>{#snippet children({ props })}<span {...props} class="block truncate">{eventLabel(delivery.eventType)}</span>{/snippet}</Hint>
+                      </Table.Cell>
+                      <Table.Cell class="tabular-nums">{delivery.attempts}</Table.Cell>
+                      <Table.Cell class="w-full max-w-0 text-muted-foreground">
+                        {#if response(delivery)}<TruncatedText text={response(delivery)} />{/if}
+                      </Table.Cell>
+                      <Table.Cell class="text-muted-foreground"><DateText at={delivery.createdAt} /></Table.Cell>
+                      <Table.Cell class="pr-4.5 text-right">{@render replayButton(delivery)}</Table.Cell>
+                    </Table.Row>
+                  {/each}
+                </Table.Body>
+              </Table.Root>
+            </div>
+          {/if}
+        </Panel>
+      </DetailLayout>
     </div>
 
     {#if sidebar.isMobile && !detail.enabled}

@@ -31,7 +31,7 @@ when its condition holds, alone, with nothing after it.
 | Column | Agent | What starts the work | Exit lines |
 |---|---|---|---|
 | To Do | — | — | You (or a workflow) move the task on |
-| Planning | Opus, plan mode | Spawns on entry | Kangentic approves the plan (`planApproval: automatic`) → Executing. **Workflow tasks skip this column:** their brief is the plan. Save each one with `routeStart: "Executing"`. Plan mode ignores allow rules and passes only MCP tools marked read-only, so every Aspire MCP call waits for a person, and a workflow task stuck in Planning can be neither moved nor rerouted. |
+| Planning | Opus, plan mode | Spawns on entry | Kangentic approves the plan (`planApproval: automatic`) → Executing. **Long, complex tasks go through it; simple ones skip it:** their brief is the plan, and each is saved with `routeStart: "Executing"`. Plan mode ignores allow rules and passes only MCP tools marked read-only, so every Aspire MCP call waits for a person, and a workflow task stuck in Planning can be neither moved nor rerouted. |
 | Executing | Opus, auto mode | Spawns on entry with the brief | `Implementation: complete`, then `Findings: applied`; or `Blocked: dependency not on main` |
 | Code Review | Opus, auto mode, **isolated session, new every time** | `/task-review <base>` | `Verdict: Ready` / `Verdict: Blocked` |
 | Testing | Sonnet, auto mode | `/pull-request` | `PR: ready to merge` / `PR: blocked` |

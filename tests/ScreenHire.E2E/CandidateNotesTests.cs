@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// A hiring team writing notes on a candidate (design system sections 11 and 22), in one new organization with an Owner,
+/// A hiring team writing notes on a candidate (design system sections 11 and 21), in one new organization with an Owner,
 /// an Admin and a Recruiter, each in a browser of their own: the Owner mentions the Recruiter through the @ list, the
 /// Recruiter is emailed without the note's words and sees a card if the dashboard is open, the Owner edits the note and it
 /// says Edited, the Recruiter has no menu on the Owner's note and the API refuses their edit and delete, and the Admin

@@ -9,4 +9,5 @@
   const email = createGetSentEmail(() => emailId, () => ({ query: { staleTime: Infinity } }));
 </script>
 
-<EmailPreview preview={email.data?.data} failure={email.isError ? describeError(email.error, 'Could not load the email') : undefined} />
+<!-- The row that opened it shows the subject, so the preview does not repeat it (W4). -->
+<EmailPreview subject={false} preview={email.data?.data} failure={email.isError ? describeError(email.error, 'Could not load the email') : undefined} />

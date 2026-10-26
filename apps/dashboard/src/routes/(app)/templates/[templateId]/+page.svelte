@@ -303,7 +303,6 @@
         {#snippet status()}
           {#if detail.isSystem}<BuiltInBadge />{/if}
           {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
-          {#if current.status === 'Draft'}<StatusBadge status="draft" label="Draft" />{/if}
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
         {/snippet}
         {#snippet actions()}
@@ -359,7 +358,8 @@
                 {#snippet children({ props })}<span {...props} class="tabular-nums">{current.version}</span>{/snippet}
               </Hint>
             {:else}
-              <span class="tabular-nums">{current.version}</span>
+              <!-- A draft is a state of the version, so its badge sits in this fact (W6). -->
+              <span class="inline-flex items-center gap-2"><span class="tabular-nums">{current.version}</span><StatusBadge status="draft" label="Draft" /></span>
             {/if}
           </Fact>
           {#if !detail.isSystem && teamSize !== undefined}

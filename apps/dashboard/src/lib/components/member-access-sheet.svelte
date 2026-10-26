@@ -4,6 +4,7 @@
   import type { JobAccess, PermissionSummary, RoleSummary, TeamMember } from '@screenhire/api-client';
   import { createChangeMemberJobAccess, createChangeMemberRole, createListMemberJobs } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
@@ -14,7 +15,7 @@
   import { mayGiveJobAccess, roleKey, seesAllJobsWith } from '#lib/settings.js';
   import { cn } from '#lib/utils.js';
 
-  // A member's access (design system section 22, ADR-0015): one role, for what they can do, and which jobs they see:
+  // A member's access (design system section 21, ADR-0015): one role, for what they can do, and which jobs they see:
   // all of them, or only the jobs whose hiring team they are on. The jobs themselves are read only here; each job's
   // Hiring team changes them, so a job has one home for its people (W6). Owners and Admins see all jobs whatever the
   // choice, so it is not offered for them. Someone who sees only their own jobs cannot give All jobs, so the choice is
@@ -116,25 +117,9 @@
           {:else}
             <div role="radiogroup" aria-labelledby="access-jobs-label" class="flex flex-col gap-2">
               {#if mayOfferAll}
-                <label
-                  class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-                >
-                  <input type="radio" name="jobAccess" value="All" bind:group={accessChoice} class="mt-0.5 size-4 shrink-0 accent-primary" />
-                  <span class="flex min-w-0 flex-col gap-0.5">
-                    <span class="font-semibold">All jobs</span>
-                    <span class="text-muted-foreground">Including jobs added later.</span>
-                  </span>
-                </label>
+                <ChoiceCard name="jobAccess" value="All" bind:group={accessChoice} title="All jobs" description="Including jobs added later." />
               {/if}
-              <label
-                class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-              >
-                <input type="radio" name="jobAccess" value="HiringTeamOnly" bind:group={accessChoice} class="mt-0.5 size-4 shrink-0 accent-primary" />
-                <span class="flex min-w-0 flex-col gap-0.5">
-                  <span class="font-semibold">Only jobs they're on</span>
-                  <span class="text-muted-foreground">Each job's hiring team decides.</span>
-                </span>
-              </label>
+              <ChoiceCard name="jobAccess" value="HiringTeamOnly" bind:group={accessChoice} title="Only jobs they're on" description="Each job's hiring team decides." />
             </div>
           {/if}
         </div>
@@ -154,7 +139,7 @@
               {/each}
             </ul>
           {/if}
-          <p class="text-caption text-muted-foreground">To add or remove {firstName}, use the Hiring team on each job's page.</p>
+          <p class="text-caption text-muted-foreground">Each job's Hiring team changes this list.</p>
         </section>
 
         {#if chosen}
@@ -162,7 +147,7 @@
             <h3 id="access-can" class="text-body font-medium">What {firstName} can do</h3>
             <ul class="flex flex-col gap-1.5">
               {#each can as permission (permission.permission)}
-                <li class="flex gap-2"><CheckIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-status-clear" />{permission.name}</li>
+                <li class="flex gap-2"><CheckIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />{permission.name}</li>
               {/each}
             </ul>
           </section>

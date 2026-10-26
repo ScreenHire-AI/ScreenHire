@@ -36,7 +36,7 @@
 
 <Panel title="Answers" count={answers.length}>
   {#snippet actions()}
-    {#if fullHref}<a href={fullHref} class="font-semibold text-primary underline underline-offset-2">Full application</a>{/if}
+    {#if fullHref}<a href={fullHref} class="inline-flex min-h-6 items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">Full application</a>{/if}
   {/snippet}
   {#if answers.length === 0}
     <p class="text-muted-foreground">No questionnaire answers.</p>

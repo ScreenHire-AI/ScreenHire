@@ -8,6 +8,7 @@
   import { z } from 'zod';
   import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import QueryError from '#lib/components/query-error.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -115,7 +116,7 @@
         {#if eventTypes.isPending}
           <div aria-hidden="true" class="flex flex-col gap-2">{#each [0, 1, 2] as row (row)}<Skeleton class="h-6 w-56" />{/each}</div>
         {:else if eventTypes.isError}
-          <FailureText message={describeError(eventTypes.error, 'Could not load the events')} />
+          <QueryError message={describeError(eventTypes.error, 'Could not load the events')} onretry={() => eventTypes.refetch()} inset />
         {:else}
           {#each types as type (type)}
             <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">

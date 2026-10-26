@@ -18,4 +18,20 @@ public sealed class ApplicationTaskTests
         task.CompletedAt.Should().Be(Monday.AddHours(1));
         task.CompletedByUserId.Should().Be(first);
     }
+
+    [Fact]
+    public void Reopening_clears_who_finished_and_leaves_an_open_task_as_it_is()
+    {
+        var task = new ApplicationTask { Kind = ApplicationTaskKind.Task, Note = "Call the references.", CreatedAt = Monday };
+        task.Reopen().Should().BeFalse("an open task has nothing to undo");
+
+        task.Complete(Guid.CreateVersion7(), Monday.AddHours(1));
+        task.Reopen().Should().BeTrue();
+
+        task.CompletedAt.Should().BeNull();
+        task.CompletedByUserId.Should().BeNull();
+        var again = Guid.CreateVersion7();
+        task.Complete(again, Monday.AddHours(2)).Should().BeTrue("a reopened task can be done again");
+        task.CompletedByUserId.Should().Be(again);
+    }
 }

@@ -14,7 +14,7 @@
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import { cn } from '#lib/utils.js';
 
-  // Picker (design system section 21): an outline button that opens a searchable list and adds the one chosen, such as
+  // Picker (design system section 11): an outline button that opens a searchable list and adds the one chosen, such as
   // a person to a hiring team or the job to copy one from. Typing filters by name; Enter or a click picks, and the list
   // closes. Nothing to pick is said in the list, never by disabling the button (A3).
   let {

@@ -58,7 +58,7 @@ describe('candidate table', () => {
     expect(document.getElementById(trigger.getAttribute('aria-describedby')!)).toHaveTextContent(/^Time limit passed /);
   });
 
-  it('says nothing for AI assistance on a calm row, and keeps the words for screen readers (section 22)', () => {
+  it('says nothing for AI assistance on a calm row, and keeps the words for screen readers (section 21)', () => {
     const rows = [
       { ...applications[0]!, integrity: summary() },
       { ...applications[1]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['A'] }) },

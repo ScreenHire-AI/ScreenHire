@@ -4,7 +4,7 @@ import { load as loadList } from './+page.js';
 import { load as loadTemplate } from './[templateId]/+page.js';
 import { load as loadNew } from './new/+page.js';
 
-// Email templates moved to the Templates page (design system section 22): every old address lands on its new one.
+// Email templates moved to the Templates page (design system section 21): every old address lands on its new one.
 function locationOf(run: () => unknown): string {
   try {
     run();

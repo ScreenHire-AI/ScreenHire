@@ -4776,8 +4776,14 @@ export const GetOrganizationResponse = zod.object({
   "slug": zod.string(),
   "homeRegion": zod.string(),
   "careersUrl": zod.string(),
-  "createdAt": zod.iso.datetime({"offset":true})
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain.')
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name\'s\r\nlast change, or when the organization was made; its history is `/v1/organization/history`.')
 
 
 export const UpdateOrganizationBody = zod.object({
@@ -4790,8 +4796,104 @@ export const UpdateOrganizationResponse = zod.object({
   "slug": zod.string(),
   "homeRegion": zod.string(),
   "careersUrl": zod.string(),
-  "createdAt": zod.iso.datetime({"offset":true})
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain.')
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name\'s\r\nlast change, or when the organization was made; its history is `/v1/organization/history`.')
+
+
+export const GetOrganizationHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetOrganizationHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+
+
+export const GetOrganizationBrandingHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetOrganizationBrandingHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+
+
+export const GetOrganizationIntegritySettingsHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetOrganizationIntegritySettingsHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
 
 
 export const GetOrganizationBrandingResponse = zod.object({
@@ -4802,8 +4904,14 @@ export const GetOrganizationBrandingResponse = zod.object({
   "brandText": zod.string(),
   "brandUi": zod.string()
 }).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
-  "brandAdjusted": zod.boolean()
-}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+  "brandAdjusted": zod.boolean(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour\'s last change ("by ScreenHire" while it is ScreenHire\'s default); its history is `/branding/history`.')
 
 
 export const UpdateOrganizationBrandingBody = zod.object({
@@ -4818,15 +4926,27 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "brandText": zod.string(),
   "brandUi": zod.string()
 }).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
-  "brandAdjusted": zod.boolean()
-}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable.')
+  "brandAdjusted": zod.boolean(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour\'s last change ("by ScreenHire" while it is ScreenHire\'s default); its history is `/branding/history`.')
 
 
 export const GetOrganizationIntegritySettingsResponse = zod.object({
   "llmConsistencyCheck": zod.boolean(),
   "monthlyTokenBudget": zod.int().nullable(),
-  "tokensUsedThisMonth": zod.int()
-}).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month.')
+  "tokensUsedThisMonth": zod.int(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\r\nchange ("by ScreenHire" while they are the defaults); their history is `/integrity-settings/history`.')
 
 
 export const UpdateOrganizationIntegritySettingsBody = zod.object({
@@ -4837,8 +4957,14 @@ export const UpdateOrganizationIntegritySettingsBody = zod.object({
 export const UpdateOrganizationIntegritySettingsResponse = zod.object({
   "llmConsistencyCheck": zod.boolean(),
   "monthlyTokenBudget": zod.int().nullable(),
-  "tokensUsedThisMonth": zod.int()
-}).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month.')
+  "tokensUsedThisMonth": zod.int(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish()
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('The organization\'s integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\r\nchange ("by ScreenHire" while they are the defaults); their history is `/integrity-settings/history`.')
 
 
 export const ListTeamMembersResponseItem = zod.object({
@@ -5629,7 +5755,7 @@ export const RunManualAutomationResponse = zod.object({
 
 export const ListTasksQueryParams = zod.object({
   "status": zod.enum(['Open', 'Completed']).optional(),
-  "scope": zod.enum(['Mine', 'Everyone']).optional()
+  "scope": zod.enum(['Mine', 'Team', 'Everyone']).optional()
 })
 
 export const ListTasksResponseItem = zod.object({
@@ -5654,6 +5780,23 @@ export const CompleteTaskParams = zod.object({
 })
 
 export const CompleteTaskResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedByUserId": zod.uuid().nullable()
+}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+
+
+export const ReopenTaskParams = zod.object({
+  "taskId": zod.uuid()
+})
+
+export const ReopenTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
   "kind": zod.enum(['Review', 'Task', 'RejectionReview']),

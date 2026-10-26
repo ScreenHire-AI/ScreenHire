@@ -7,7 +7,7 @@ using ScreenHire.Application.Integrity;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The candidate page on the detail template (design system sections 7, 11 and 22) at the sizes F1 names and the review
+/// The candidate page on the detail template (design system sections 7, 11 and 21) at the sizes F1 names and the review
 /// canvas's 820 and 390: the content and the 340px details rail side by side from a laptop up, the rail above the content
 /// on a tablet and a phone, and Move to stage in a bar at the bottom on a phone. The same six tabs for every candidate,
 /// and a rail that does not move between them. Signs in as a new person with a new organization.

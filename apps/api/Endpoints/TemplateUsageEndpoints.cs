@@ -7,7 +7,7 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// Where each template is used, for the Templates page (docs/design/design-system.md section 22). One read route for
+/// Where each template is used, for the Templates page (docs/design/design-system.md section 21). One read route for
 /// every kind, kept apart from the template lists, which many screens read only to name templates.
 /// </summary>
 internal static class TemplateUsageEndpoints

@@ -35,7 +35,7 @@
   import { describeError } from '#lib/query.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
 
-  // A job's candidates as a table or a board, the job page's work area (design system section 22). The panel header holds
+  // A job's candidates as a table or a board, the job page's work area (design system section 21). The panel header holds
   // the search and the view switch; the row under it holds the Stage filter and the authenticity chips, one line that
   // scrolls inside the panel (F5). Ticked rows get the selection bar. On a phone the filters are menus beside the Sort
   // chip. The page filters nothing itself.
@@ -128,7 +128,7 @@
 <!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. On a phone the
      header has no room for a usable search beside the view switch, so the search takes its own row under it (F5). The
      board fills the panel, which fills the page's height, so it scrolls inside itself. -->
-<Panel title="Pipeline" flush fill={view === 'board'} class={view === 'board' ? 'min-h-0 flex-1' : undefined} {onkeydown}>
+<Panel title="Pipeline" flush fill={!sidebar.isMobile} class={sidebar.isMobile ? undefined : 'min-h-0 flex-1'} {onkeydown}>
   {#snippet tools()}
     {#if !sidebar.isMobile}{@render searchField('flex-[0_1_15rem] @max-3xl/panel:flex-1')}{/if}
   {/snippet}
@@ -193,6 +193,7 @@
     <ApplicationTable
       applications={shown}
       label={`Candidates for ${jobTitle}`}
+      fill={!sidebar.isMobile}
       sortId="job-candidates"
       {stages}
       {moves}

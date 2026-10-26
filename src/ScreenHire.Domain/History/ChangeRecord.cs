@@ -15,6 +15,15 @@ public enum ChangeSubjectKind
 
     /// <summary>A custom role (<see cref="CustomRole"/>); built-in roles never change.</summary>
     Role,
+
+    /// <summary>The organization's name, on Settings, Organization.</summary>
+    Organization,
+
+    /// <summary>The organization's brand colour, on Settings, Branding.</summary>
+    Branding,
+
+    /// <summary>The organization's integrity settings, on Settings, Integrity.</summary>
+    IntegritySettings,
 }
 
 /// <summary>

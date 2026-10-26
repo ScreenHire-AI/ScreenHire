@@ -454,9 +454,11 @@ public sealed class JobAccessTests(AppHostFixture fixture)
 
         (await owner.GetAsync("/v1/tasks?scope=Everyone")).Expect(HttpStatusCode.OK).Count().Should().Be(1);
         (await recruiter.GetAsync("/v1/tasks?scope=Everyone")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        (await recruiter.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK).Count().Should().Be(0, "the to-do is for the team, on a job they do not see");
 
         await owner.SetHiringTeamAsync(job, await owner.MemberIdAsync(recruiter.UserId));
         (await recruiter.GetAsync("/v1/tasks?scope=Everyone")).Expect(HttpStatusCode.OK).Count().Should().Be(1);
+        (await recruiter.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK).Count().Should().Be(1);
     }
 
     [Fact]

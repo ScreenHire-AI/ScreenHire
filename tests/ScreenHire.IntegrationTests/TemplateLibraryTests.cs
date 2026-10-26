@@ -6,7 +6,7 @@ using static ScreenHire.IntegrationTests.ScorecardSupport;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// The Templates page's API (design system section 22): archiving an organization's own hiring, scorecard and email
+/// The Templates page's API (design system section 21): archiving an organization's own hiring, scorecard and email
 /// templates, which leaves the pickers and reads only until restored, never a built-in; and <c>/v1/template-usage</c>,
 /// where each template is used and when it was last used, counted in the organization's own data only.
 /// </summary>

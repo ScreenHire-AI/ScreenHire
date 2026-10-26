@@ -7,7 +7,16 @@
   // An email as the candidate receives it (design system section 11): the subject, then the HTML part or the plain-text
   // part. The HTML is the API's rendering, but it is still a template a tenant wrote, so it renders in a sandboxed frame
   // with no scripts, never in the page. While `preview` is undefined it shows a skeleton of the same shape (E1).
-  let { preview, failure }: { preview: EmailPreview | undefined; failure?: string } = $props();
+  let {
+    preview,
+    failure,
+    subject = true,
+  }: {
+    preview: EmailPreview | undefined;
+    failure?: string;
+    /** The subject line; false where the row that opened the email already shows it (W4). */
+    subject?: boolean;
+  } = $props();
 
   let part = $state<'html' | 'text'>('html');
   const parts = [
@@ -27,8 +36,10 @@
     <p class="sr-only" role="status">Loading the preview…</p>
   {:else}
     <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-      <p class="min-w-0 break-words"><span class="text-muted-foreground">Subject</span> <span data-email-subject class="font-semibold">{preview.subject}</span></p>
-      <div role="group" aria-label="Part" class="flex shrink-0 gap-1">
+      {#if subject}
+        <p class="min-w-0 break-words"><span class="text-muted-foreground">Subject</span> <span data-email-subject class="font-semibold">{preview.subject}</span></p>
+      {/if}
+      <div role="group" aria-label="Part" class="ml-auto flex shrink-0 gap-1">
         {#each parts as option (option.id)}
           <!-- Only a press chooses a part: the other toggle writing back "not pressed" must not switch it again. -->
           <Toggle bind:pressed={() => part === option.id, (pressed) => pressed && (part = option.id)}>{option.label}</Toggle>

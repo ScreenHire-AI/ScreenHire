@@ -167,7 +167,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Warehouse associate, nights");
         await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Edit workflow") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Workflow: Warehouse associate, nights");
-        await Expect(HeaderBand).ToContainTextAsync($"From {templateName} v1");
+        // The template the workflow came from is a header fact (W3).
+        await Expect(HeaderBand).ToContainTextAsync($"{templateName} v1");
 
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
         var sample = Page.GetByRole(AriaRole.Form, new() { Name = "Sample application" });
@@ -212,12 +213,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ReadAsync(await session.PostAsync($"/v1/templates/{templateId}/versions/2/publish", new { }, Ct), HttpStatusCode.OK);
 
         await SignInAsync(email);
-        // The jobs list marks the job with a pill, and the job's facts say so beside the template's version.
+        // The jobs list marks the job with a pill, and the job's Template fact says so after the version.
         var row = Page.GetByRole(AriaRole.Table, new() { Name = "Jobs" }).GetByRole(AriaRole.Row).Filter(new() { HasText = "Retail assistant, weekends" });
         await Expect(row).ToContainTextAsync("Template update");
         await row.GetByRole(AriaRole.Link, new() { Name = "Retail assistant, weekends" }).ClickAsync();
-        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Retail assistant v1");
-        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Update available");
+        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Retail assistant v1, update available");
         await Page.GetByRole(AriaRole.Link, new() { Name = "Edit workflow" }).ClickAsync();
         var update = Page.GetByRole(AriaRole.Region, new() { Name = "Template update available" });
         await Expect(update).ToContainTextAsync("Retail assistant has version 2; this job uses version 1.");
@@ -233,7 +233,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Applied version 2 of Retail assistant." })).ToBeVisibleAsync();
-        await Expect(HeaderBand).ToContainTextAsync("Workflow version 2");
+        await Expect(HeaderBand.Locator("[data-slot=fact]").Filter(new() { Has = Page.GetByText("Version", new() { Exact = true }) }).Locator("dd")).ToHaveTextAsync("2");
         await Expect(update).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Spinbutton, new() { Name = "Time limit (days)" }).Nth(1)).ToHaveValueAsync("2");
     }
@@ -365,7 +365,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Listitem, new() { Name = "Stage 2: Screening" }))
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 2: Screening" }))
             .ToContainTextAsync("When a candidate enters Screening, if 1 condition holds: add the tag \"fast-track\".");
 
         // The graph at a laptop's and a tablet's width, and on a phone, where it is for reading. It opens at full size.

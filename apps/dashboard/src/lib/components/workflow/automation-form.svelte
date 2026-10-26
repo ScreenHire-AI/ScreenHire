@@ -1,11 +1,10 @@
 <script lang="ts">
   import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import { createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import IconButton from '#lib/components/icon-button.svelte';
+  import ReorderList from '#lib/components/reorder-list.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import {
@@ -19,7 +18,6 @@
     factsFor,
     followUpsOf,
     hasTimeLimit,
-    moveItem,
     newAction,
     newRule,
     operatorLabels,
@@ -229,17 +227,21 @@
               {#if rule.operator === 'Exists'}
                 <span></span>
               {:else if rule.operator === 'In'}
-                <label class={labelClass}>
-                  Values, separated by commas <span class="sr-only">for condition {ruleIndex + 1}</span>
-                  <Input
-                    value={(rule.values ?? []).join(', ')}
-                    onchange={(event) =>
-                      (rule.values = event.currentTarget.value
-                        .split(',')
-                        .map((value) => value.trim())
-                        .filter(Boolean))}
-                  />
-                </label>
+                <div class="flex min-w-0 flex-col gap-1">
+                  <label class={labelClass}>
+                    Values <span class="sr-only">for condition {ruleIndex + 1}</span>
+                    <Input
+                      aria-describedby={`${uid}-values-${ruleIndex}-hint`}
+                      value={(rule.values ?? []).join(', ')}
+                      onchange={(event) =>
+                        (rule.values = event.currentTarget.value
+                          .split(',')
+                          .map((value) => value.trim())
+                          .filter(Boolean))}
+                    />
+                  </label>
+                  <p id={`${uid}-values-${ruleIndex}-hint`} class="text-muted-foreground">Separated by commas.</p>
+                </div>
               {:else if fact?.values}
                 <label class={labelClass}>
                   Value <span class="sr-only">for condition {ruleIndex + 1}</span>
@@ -280,12 +282,21 @@
 
   <fieldset class="flex flex-col gap-2">
     <legend class={kickerClass}>Then</legend>
-    <ol class="flex flex-col gap-2">
-      {#each automation.actions as action, actionIndex (actionIndex)}
+    <!-- Actions run in order and reorder with a grip (A7). They have no ids of their own, so a position names each. -->
+    <ReorderList
+      items={automation.actions}
+      key={(action) => String(automation.actions.indexOf(action))}
+      label="Actions"
+      itemLabel={(action) => `action ${automation.actions.indexOf(action) + 1}`}
+      onreorder={(next) => (automation.actions = next)}
+      class="flex flex-col gap-2"
+    >
+      {#snippet item(action, grip)}
+        {@const actionIndex = automation.actions.indexOf(action)}
         {@const field = actionField[action.type]}
         {@const actionPath = `${path}.actions[${actionIndex}]`}
         {@const actionErrors = errorsUnder(errors, actionPath).map((error) => error.message)}
-        <li class={insetClass}>
+        <div class={insetClass}>
           <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
             <label class={labelClass}>
               Action {actionIndex + 1}
@@ -355,20 +366,15 @@
             {:else}
               <span></span>
             {/if}
-            <div class="flex shrink-0 gap-0.5">
-              {#if actionIndex > 0}
-                <IconButton label={`Move action ${actionIndex + 1} up`} onclick={() => (automation.actions = moveItem(automation.actions, actionIndex, -1))}><ArrowUpIcon /></IconButton>
-              {:else}<span class="size-8 pointer-coarse:size-11"></span>{/if}
-              {#if actionIndex < automation.actions.length - 1}
-                <IconButton label={`Move action ${actionIndex + 1} down`} onclick={() => (automation.actions = moveItem(automation.actions, actionIndex, 1))}><ArrowDownIcon /></IconButton>
-              {:else}<span class="size-8 pointer-coarse:size-11"></span>{/if}
+            <div class="flex shrink-0 items-center gap-0.5">
+              {#if automation.actions.length > 1}{@render grip()}{/if}
               <IconButton label={`Remove action ${actionIndex + 1}`} onclick={() => (automation.actions = removeAt(automation.actions, actionIndex))}><Trash2Icon /></IconButton>
             </div>
           </div>
           <FieldErrors id={`${uid}-action-${actionIndex}-errors`} messages={actionErrors} />
-        </li>
-      {/each}
-    </ol>
+        </div>
+      {/snippet}
+    </ReorderList>
     <div><Button variant="outline" size="lg" onclick={() => (automation.actions = [...automation.actions, newAction('AddTag')])}>Add action</Button></div>
   </fieldset>
 

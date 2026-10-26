@@ -77,17 +77,20 @@ afterEach(() => {
 });
 
 describe('webhook endpoint page', () => {
-  it('shows the delivery log with a status label for each delivery, and the event types as codes, like the log', async () => {
+  it('shows the delivery log with a status label for each delivery and each event in words, and the events with their codes', async () => {
     renderPage(endpoint());
 
     const deliveries = await screen.findByRole('region', { name: 'Deliveries' });
-    await within(deliveries).findAllByText('application.submitted');
+    await within(deliveries).findAllByText('Application submitted');
+    expect(within(deliveries).queryByText('application.submitted')).toBeNull();
+    // Sorted like every table, newest first (L2).
+    expect(within(deliveries).getByRole('columnheader', { name: /^Sent/ })).toHaveAttribute('aria-sort', 'descending');
     for (const label of ['Delivered', 'Failed', 'Pending', 'Skipped']) {
       expect(within(deliveries).getAllByText(label).length).toBeGreaterThan(0);
     }
     expect(within(deliveries).getAllByText('HTTP 500, Receiver unavailable').length).toBeGreaterThan(0);
 
-    const events = screen.getByRole('region', { name: 'Events' });
+    const events = screen.getByRole('region', { name: /^Events/ });
     expect(within(events).getByText('application.submitted')).toBeInTheDocument();
     expect(within(events).getByText('job.stage_changed')).toBeInTheDocument();
     await expectNoAxeViolations();
@@ -111,7 +114,7 @@ describe('webhook endpoint page', () => {
 
   it('offers replay on delivered, failed and skipped deliveries but not on a Pending one', async () => {
     renderPage(endpoint());
-    await screen.findAllByText('job.published');
+    await screen.findAllByText('Job published');
 
     for (const type of ['application.submitted', 'application.moved', 'job.closed']) {
       expect(screen.getAllByRole('button', { name: `Replay the ${type} delivery` }).length).toBeGreaterThan(0);
@@ -140,9 +143,10 @@ describe('webhook endpoint page', () => {
   it('shows why an endpoint the worker turned off is off, with Turn on', async () => {
     renderPage(endpoint({ enabled: false, disabledReason: 'Ten deliveries in a row failed.', disabledAt: '2026-10-19T09:00:00Z' }));
 
-    const reason = await screen.findByRole('region', { name: 'Why it is off' });
-    expect(within(reason).getByText('Ten deliveries in a row failed.')).toBeInTheDocument();
-    expect(screen.getAllByText('Turned off').length).toBeGreaterThan(0);
+    // A problem to fix, as a notice at the top of the work area (E2).
+    const reason = (await screen.findByText(/Ten deliveries in a row failed\./)).closest('[data-slot="notice"]');
+    expect(reason).not.toBeNull();
+    expect(reason).toHaveTextContent('Turned off');
     expect(screen.getByRole('button', { name: 'Turn on' })).toBeInTheDocument();
   });
 
@@ -177,7 +181,7 @@ describe('webhook endpoint page', () => {
     await screen.findAllByText('application.submitted');
 
     expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Why it is off' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="notice"]')).toBeNull();
   });
 
   it('turns the endpoint off from the More menu with enabled false', async () => {

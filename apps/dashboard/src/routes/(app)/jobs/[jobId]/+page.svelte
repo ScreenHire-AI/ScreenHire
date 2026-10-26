@@ -90,7 +90,7 @@
   // an open job is on the boards.
   const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
 
-  // The job's peer views (section 22): the work area first, then Distribution, whose count says how many boards the job
+  // The job's peer views (section 21): the work area first, then Distribution, whose count says how many boards the job
   // is on (E2). The tab is in the address, so a link reaches it and a reload keeps it.
   const tab = $derived((page.shallow?.url ?? page.url).searchParams.get('tab') === 'distribution' ? 'distribution' : 'candidates');
   const sections = $derived.by((): RecordTab[] => {
@@ -112,8 +112,9 @@
   }
 
   let view = $state<'table' | 'board'>('table');
-  // The board fills the window below the header and scrolls inside itself, so the page never scrolls (section 22).
-  const boardFills = $derived(tab === 'candidates' && view === 'board' && !sidebar.isMobile);
+  // The table or the board fills the window below the header and scrolls inside itself, so the page never scrolls
+  // (S6, section 21).
+  const boardFills = $derived(tab === 'candidates' && !sidebar.isMobile);
   let confirmClose = $state(false);
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;
@@ -173,7 +174,9 @@
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
-      <HeaderBand title={detail.title}>
+      <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
+           the actions onto a second row. -->
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -230,10 +233,8 @@
           {/if}
           {#if detail.template}
             <Fact label="Template">
-              <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                {detail.template.templateName} v{detail.template.version}
-                {#if detail.template.updateAvailable}<Badge variant="muted">Update available</Badge>{/if}
-              </span>
+              <!-- The fact's state in its words, never a pill in a header (section 11, Fact pill). -->
+              {detail.template.templateName} v{detail.template.version}{#if detail.template.updateAvailable}, update available{/if}
             </Fact>
           {/if}
           <Fact label="Last updated">
@@ -264,15 +265,8 @@
         {currentUserId}
       />
 
-      <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). What saving
-           the details or publishing did is said once, above either tab. -->
+      <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
-        {#if page.state.saved || publishFailure}
-          <div class="flex flex-col gap-1">
-            <FailureText message={publishFailure} />
-            <p role="status" class="text-body text-muted-foreground empty:hidden">{page.state.saved ?? ''}</p>
-          </div>
-        {/if}
         <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
           {#each problems as problem (problem.kind)}
             <Notice href="?tab=distribution" link="Fix on Distribution">{problem.text}</Notice>
@@ -324,4 +318,9 @@
   <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
     <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
   </Button>
+{/snippet}
+
+{#snippet outcome()}
+  <p role="status" class="empty:hidden">{page.state.saved ?? ''}</p>
+  <FailureText message={publishFailure} />
 {/snippet}

@@ -11,13 +11,14 @@ vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dash
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
 const palette = { brand: '#1f4e5a', onBrand: '#ffffff', brandText: '#1a4550', brandUi: '#4a8c9c' };
-const saved: OrganizationBranding = { brandColor: '#1f4e5a', palette, brandAdjusted: false };
-const unset: OrganizationBranding = { brandColor: null, palette: null, brandAdjusted: false };
+const saved: OrganizationBranding = { brandColor: '#1f4e5a', palette, brandAdjusted: false, lastUpdated: { at: null, by: 'ScreenHire' } };
+const unset: OrganizationBranding = { brandColor: null, palette: null, brandAdjusted: false, lastUpdated: { at: null, by: 'ScreenHire' } };
 
 const organization: OrganizationProfile = {
   id: '01a157d4-0000-7000-8000-0000000000bb',
   name: 'Brightwater Studio',
   slug: 'brightwater',
+  lastUpdated: { at: '2026-10-01T09:00:00Z', by: null },
   homeRegion: 'eu',
   careersUrl: 'https://brightwater.careers.example.com',
   createdAt: '2026-09-01T09:00:00Z',

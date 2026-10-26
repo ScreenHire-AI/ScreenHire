@@ -25,9 +25,9 @@ describe('rating column', () => {
     expect(screen.getByRole('img', { name: '4.1 of 5 stars' })).toBeInTheDocument();
     const header = screen.getByRole('button', { name: /^Rating/ });
     await fireEvent.click(header);
-    expect(ratingCells()).toEqual(['4.1 3 from 3 scorecards', '3.7 2 from 2 scorecards', 'Not rated yet']);
+    expect(ratingCells()).toEqual(['4.1 (3) from 3 scorecards', '3.7 (2) from 2 scorecards', 'Not rated yet']);
     await fireEvent.click(header);
-    expect(ratingCells()).toEqual(['3.7 2 from 2 scorecards', '4.1 3 from 3 scorecards', 'Not rated yet']);
+    expect(ratingCells()).toEqual(['3.7 (2) from 2 scorecards', '4.1 (3) from 3 scorecards', 'Not rated yet']);
   });
 
   it('never shows a number to a reviewer with a scorecard to give', () => {

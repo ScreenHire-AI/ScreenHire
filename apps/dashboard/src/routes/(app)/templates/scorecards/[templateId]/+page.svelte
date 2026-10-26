@@ -4,6 +4,7 @@
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import SaveIcon from '@lucide/svelte/icons/save';
+  import Undo2Icon from '@lucide/svelte/icons/undo-2';
   import type { DefinitionError, ScorecardQuestion, ScorecardTemplateDetail } from '@screenhire/api-client';
   import {
     ApiError,
@@ -21,6 +22,7 @@
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
+  import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton from '#lib/components/count-button.svelte';
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -64,7 +66,7 @@
   import { problemErrors } from '#lib/workflow.js';
   import type { PageProps } from './$types';
 
-  // One library scorecard in its editor (design system sections 7 and 22, builder): the header band with Used by (the
+  // One library scorecard in its editor (design system sections 7 and 21, builder): the header band with Used by (the
   // hiring templates whose stages name it, T4), its questions and rating questions, and Last updated with History (T6);
   // then the Edit / Preview switch (A8). Edit is the form builder with the rating kinds; Preview is the scorecard as a
   // reviewer fills it in, at its real size, and pops out into a window that follows the edits. A built-in reads only,
@@ -144,6 +146,9 @@
       }
     }
   }
+
+  let discardChosen = $state(false);
+  let confirmDiscard = $state(false);
 
   function discard() {
     if (!detail) return;
@@ -255,17 +260,29 @@
         <FailureText message={failure} />
         {#if mayEdit}
           {#if !detail.builtIn}
-            <MoreMenu label="More actions">
+            <MoreMenu
+              label="More actions"
+              onclosed={() => {
+                if (discardChosen) confirmDiscard = true;
+                discardChosen = false;
+              }}
+            >
               <DropdownMenu.Item onSelect={copyScorecard}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
               {#if !detail.archived}
                 <DropdownMenu.Item onSelect={() => run(() => archive.mutateAsync({ templateId: params.templateId }), 'Archived.', 'Could not archive the scorecard')}
                   ><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item
                 >
               {/if}
+              <!-- Discarding unsaved edits cannot be undone, so it lives in a menu and confirms (A2), as on a job's workflow. -->
+              {#if editable && dirty}
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item variant="destructive" disabled={busy} onSelect={() => (discardChosen = true)}
+                  ><Undo2Icon aria-hidden="true" />Discard changes</DropdownMenu.Item
+                >
+              {/if}
             </MoreMenu>
           {/if}
           {#if !sidebar.isMobile}
-            {#if editable && dirty}<Button size="lg" variant="outline" onclick={discard} disabled={busy}>Discard changes</Button>{/if}
             {@render primaryAction()}
           {/if}
         {/if}
@@ -343,4 +360,14 @@
 </main>
 
 <!-- Unsaved work lives only on this page: ask before leaving it. -->
+<ConfirmDialog
+  bind:open={confirmDiscard}
+  title="Discard your changes?"
+  description="Your unsaved changes to this scorecard are lost."
+  cancelLabel="Keep editing"
+  confirmLabel="Discard changes"
+  failure="Could not discard the changes"
+  onconfirm={async () => discard()}
+/>
+
 <LeaveDialog unsaved={dirty && editable} title="Leave without saving this scorecard?" />

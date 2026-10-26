@@ -422,15 +422,6 @@ export function newAutomation(workflow: HiringWorkflow, stageId: string | null):
 export const laneOf = (automation: Automation): string | null =>
   triggerNeedsStage(automation.trigger.type) || triggerMayHaveStage(automation.trigger.type) ? (automation.trigger.stageId ?? null) : null;
 
-/** `list` with the item at `index` moved by `delta`, or unchanged at either end. The non-drag way to reorder. */
-export function moveItem<T>(list: readonly T[], index: number, delta: -1 | 1): T[] {
-  const target = index + delta;
-  if (target < 0 || target >= list.length) return [...list];
-  const next = [...list];
-  [next[index], next[target]] = [next[target]!, next[index]!];
-  return next;
-}
-
 /** `list` with `item` at `index`. */
 export const replaceAt = <T>(list: readonly T[], index: number, item: T): T[] => list.map((existing, i) => (i === index ? item : existing));
 

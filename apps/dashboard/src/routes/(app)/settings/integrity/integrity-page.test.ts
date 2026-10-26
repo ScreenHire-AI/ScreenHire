@@ -6,6 +6,9 @@ import { apiStub, user } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
+// Nobody has changed the defaults yet (T6).
+const lastUpdated = { at: null, by: 'ScreenHire' as const };
+
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/integrity') }, navigating: { to: null } }));
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
@@ -40,7 +43,7 @@ afterEach(() => {
 
 describe('integrity settings page', () => {
   it('loads the switch and the budget', async () => {
-    renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: 250000, tokensUsedThisMonth: 420 });
+    renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: 250000, tokensUsedThisMonth: 420, lastUpdated });
 
     expect(await check()).toBeChecked();
     expect((await budget()).value).toBe('250000');
@@ -48,21 +51,21 @@ describe('integrity settings page', () => {
   });
 
   it('loads a switch that is off and an empty budget', async () => {
-    renderPage({ llmConsistencyCheck: false, monthlyTokenBudget: null, tokensUsedThisMonth: 0 });
+    renderPage({ llmConsistencyCheck: false, monthlyTokenBudget: null, tokensUsedThisMonth: 0, lastUpdated });
 
     expect(await check()).not.toBeChecked();
     expect((await budget()).value).toBe('');
   });
 
   it('shows the tokens used this month', async () => {
-    renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 420 });
+    renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 420, lastUpdated });
 
     expect(await screen.findByText('Tokens used')).toBeInTheDocument();
     expect(screen.getByText('420')).toBeInTheDocument();
   });
 
   it('saves the switch and the budget as a number', async () => {
-    const bodies = renderPage({ llmConsistencyCheck: false, monthlyTokenBudget: null, tokensUsedThisMonth: 0 });
+    const bodies = renderPage({ llmConsistencyCheck: false, monthlyTokenBudget: null, tokensUsedThisMonth: 0, lastUpdated });
     await fireEvent.click(await check());
     await fireEvent.input(await budget(), { target: { value: '120000' } });
 
@@ -73,7 +76,7 @@ describe('integrity settings page', () => {
   });
 
   it('saves an empty budget as null', async () => {
-    const bodies = renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: 250000, tokensUsedThisMonth: 0 });
+    const bodies = renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: 250000, tokensUsedThisMonth: 0, lastUpdated });
     await fireEvent.input(await budget(), { target: { value: '' } });
 
     await fireEvent.click(await save());
@@ -82,7 +85,7 @@ describe('integrity settings page', () => {
   });
 
   it('turns the check off', async () => {
-    const bodies = renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0 });
+    const bodies = renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0, lastUpdated });
     await fireEvent.click(await check());
 
     await fireEvent.click(await save());
@@ -91,7 +94,7 @@ describe('integrity settings page', () => {
   });
 
   it('refuses a budget that is not a whole number, and sends nothing', async () => {
-    const bodies = renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0 });
+    const bodies = renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0, lastUpdated });
     await fireEvent.input(await budget(), { target: { value: '12.5k' } });
 
     await fireEvent.click(await save());
@@ -102,7 +105,7 @@ describe('integrity settings page', () => {
 
   it('says why when the API refuses the settings', async () => {
     renderPage(
-      { llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0 },
+      { llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0, lastUpdated },
       { 'PUT /v1/organization/integrity-settings': () => Response.json({ detail: 'Only owners and admins can change this.' }, { status: 403 }) },
     );
 

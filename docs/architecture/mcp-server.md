@@ -18,7 +18,7 @@ sources:
 # MCP server for AI assistants
 
 A team's AI assistant works with ScreenHire through a remote [Model Context Protocol](https://modelcontextprotocol.io)
-server on the API (roadmap item 9). It finds jobs and candidates, reads an application, adds notes, tags and tasks, and
+server on the API (roadmap item 6). It finds jobs and candidates, reads an application, adds notes, tags and tasks, and
 moves a candidate to a stage. It signs in with an organization API key ([sign-in and tenancy](sign-in-and-tenancy.md),
 "API keys"; ADR-0011), so the key's organization, scope and rate limit apply to everything it does.
 

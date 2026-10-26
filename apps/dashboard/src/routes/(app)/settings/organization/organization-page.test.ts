@@ -15,6 +15,7 @@ const organization: OrganizationProfile = {
   id: '01a157d4-0000-7000-8000-0000000000bb',
   name: 'Brightwater Studio',
   slug: 'brightwater',
+  lastUpdated: { at: '2026-10-01T09:00:00Z', by: null },
   homeRegion: 'eu',
   careersUrl: 'https://jobs.brightwater.example.com',
   createdAt: '2026-09-01T09:00:00Z',
@@ -48,10 +49,12 @@ afterEach(() => {
 });
 
 describe('organization settings page', () => {
-  it('loads the name', async () => {
+  it('loads the name, with Last updated and History last in the header (T6)', async () => {
     renderPage();
 
     expect(await screen.findByDisplayValue('Brightwater Studio')).toBe(await name());
+    expect(screen.getByText('Last updated')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^History/ })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 

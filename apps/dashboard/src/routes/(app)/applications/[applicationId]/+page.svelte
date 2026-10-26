@@ -57,7 +57,7 @@
 
   let { params }: PageProps = $props();
 
-  // A candidate (design system sections 7 and 22): the header band with the same six tabs in the same order for
+  // A candidate (design system sections 7 and 21): the header band with the same six tabs in the same order for
   // everyone, and the details rail, which never moves. The tab is in the address (?tab=), so a link can open one: the
   // Overview's "All in Activity", a mention email's link to the note. Each tab's body is its own component.
   const tabs = ['overview', 'application', 'messages', 'scorecards', 'integrity', 'activity'] as const;

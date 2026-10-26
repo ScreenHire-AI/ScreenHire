@@ -22,13 +22,22 @@ const workflow: HiringWorkflow = {
 
 // Only what the page reads from the job.
 const jobIn = (status: JobStatus) =>
-  ({ id: jobId, title: 'Senior .NET Engineer', status, workflow, workflowVersion: 3, template: null }) as unknown as JobDetail;
+  ({
+    id: jobId,
+    title: 'Senior .NET Engineer',
+    status,
+    workflow,
+    workflowVersion: 3,
+    template: null,
+    lastUpdated: { at: '2026-10-18T12:00:00Z', by: 'Avery Quinn', userId: user.id, apiKeyId: null },
+  }) as unknown as JobDetail;
 
 function stubApi(status: JobStatus) {
   const fetchMock = vi.fn(
     apiStub({
       [`GET /v1/jobs/${jobId}`]: () => Response.json(jobIn(status)),
       'POST /v1/workflows/validate': () => Response.json({ errors: [] }),
+      'GET /v1/organization/members': () => Response.json([]),
     }),
   );
   vi.stubGlobal('fetch', fetchMock);

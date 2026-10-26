@@ -71,7 +71,7 @@ public sealed class ChangeHistoryInterceptor(TimeProvider time, EmailTemplates e
         var tracker = db.ChangeTracker;
         tracker.DetectChanges();
         var entries = tracker.Entries()
-            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted && TrackedKinds.Find(e.Metadata.ClrType) is not null)
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted && TrackedKinds.FindAll(e.Metadata.ClrType).Count > 0)
             .ToList();
         if (entries.Count == 0)
         {
@@ -86,20 +86,22 @@ public sealed class ChangeHistoryInterceptor(TimeProvider time, EmailTemplates e
             var subjects = new Dictionary<(ChangeSubjectKind Kind, string Id), List<ChangeLine>>();
             foreach (var entry in entries)
             {
-                var kind = TrackedKinds.Find(entry.Metadata.ClrType)!;
-                var lines = await kind.DescribeAsync(entry, context, cancellationToken);
-                if (lines.Count == 0)
+                foreach (var kind in TrackedKinds.FindAll(entry.Metadata.ClrType))
                 {
-                    continue;
-                }
+                    var lines = await kind.DescribeAsync(entry, context, cancellationToken);
+                    if (lines.Count == 0)
+                    {
+                        continue;
+                    }
 
-                var key = (kind.Subject, kind.SubjectId(entry.Entity));
-                if (!subjects.TryGetValue(key, out var subjectLines))
-                {
-                    subjects[key] = subjectLines = [];
-                }
+                    var key = (kind.Subject, kind.SubjectId(entry.Entity));
+                    if (!subjects.TryGetValue(key, out var subjectLines))
+                    {
+                        subjects[key] = subjectLines = [];
+                    }
 
-                subjectLines.AddRange(lines);
+                    subjectLines.AddRange(lines);
+                }
             }
 
             var now = time.GetUtcNow();

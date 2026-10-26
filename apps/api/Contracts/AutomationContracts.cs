@@ -94,10 +94,14 @@ public enum TaskStatusFilter
     Completed,
 }
 
-/// <summary>Whose tasks a list shows: the signed-in person's and the whole team's (unassigned), or everyone's.</summary>
+/// <summary>
+/// Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),
+/// or everyone's (every task the person can see).
+/// </summary>
 public enum TaskScope
 {
     Mine,
+    Team,
     Everyone,
 }
 

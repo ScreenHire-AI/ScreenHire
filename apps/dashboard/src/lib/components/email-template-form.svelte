@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BracesIcon from '@lucide/svelte/icons/braces';
   import SendIcon from '@lucide/svelte/icons/send';
   import type { EmailPreview as Preview, EmailTemplateEntry, EmailTemplateVariableEntry, HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createPreviewEmailTemplate, createSendTestEmail } from '@screenhire/api-client/svelte-query';
@@ -10,6 +11,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
@@ -103,14 +105,26 @@
   let subjectInput = $state<HTMLInputElement | null>(null);
   let bodyInput = $state<HTMLTextAreaElement | null>(null);
   let lastField: 'subject' | 'body' = 'body';
-  async function insert(name: string) {
+  // Insert variable is a menu, as in the email composer (section 11): the pick goes in at the caret of the field last
+  // used, and the focus returns there once the menu has closed.
+  let caret: number | undefined;
+  function insert(name: string) {
     const element = lastField === 'subject' ? subjectInput : bodyInput;
     const current = $form[lastField];
     const next = insertAt(current, element?.selectionStart ?? current.length, element?.selectionEnd ?? current.length, variableTag(name));
     $form[lastField] = next.text;
+    caret = next.caret;
+  }
+
+  async function focusAfterInsert(event: Event) {
+    if (caret === undefined) return;
+    event.preventDefault();
+    const at = caret;
+    caret = undefined;
     await tick();
+    const element = lastField === 'subject' ? subjectInput : bodyInput;
     element?.focus();
-    element?.setSelectionRange(next.caret, next.caret);
+    element?.setSelectionRange(at, at);
   }
 
   // The preview follows the wording as it is typed, a moment after typing stops, in either mode, so Preview and the
@@ -221,15 +235,18 @@
             <Field.Error id="email-template-body-error" errors={$errors.body?.map((message) => ({ message }))} />
           </Field.Field>
 
-          <div role="group" aria-labelledby="email-template-variables" class="flex flex-col gap-2">
-            <span id="email-template-variables" class="text-body font-medium">Insert a variable</span>
-            <div class="flex flex-wrap gap-2">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              {#snippet child({ props })}
+                <Button {...props} type="button" variant="outline" class="self-start"><BracesIcon aria-hidden="true" />Insert variable</Button>
+              {/snippet}
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="start" class="min-w-52" onCloseAutoFocus={focusAfterInsert}>
               {#each usable as variable (variable.name)}
-                <!-- A6: the name says the verb; the group's label says it once for every button. -->
-                <Button type="button" variant="outline" aria-label={`Insert ${variable.label}`} onclick={() => insert(variable.name)}>{variable.label}</Button>
+                <DropdownMenu.Item onSelect={() => insert(variable.name)}>{variable.label}</DropdownMenu.Item>
               {/each}
-            </div>
-          </div>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
           <FailureText message={$errors._errors?.[0]} />
         </div>
       {:else}

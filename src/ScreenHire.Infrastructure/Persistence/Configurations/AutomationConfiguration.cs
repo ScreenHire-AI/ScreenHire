@@ -79,7 +79,7 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
             .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(t => new { t.OrganizationId, t.ApplicationId });
-        // My tasks: one person's (and the whole team's) open tasks.
+        // My tasks: Mine and For the team list by assignee, open or done.
         builder.HasIndex(t => new { t.OrganizationId, t.AssigneeUserId, t.CompletedAt });
     }
 }

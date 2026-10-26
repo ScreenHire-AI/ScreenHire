@@ -27,7 +27,7 @@
 <th
   scope="col"
   aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
-  class={cn('h-11 border-b border-border px-3 py-0 text-left text-caption font-semibold whitespace-nowrap text-muted-foreground', className)}
+  class={cn('h-11 border-b border-border px-2 py-0 text-left text-caption font-semibold whitespace-nowrap text-muted-foreground', className)}
 >
   {#if header.isPlaceholder}{:else if canSort}
     <button
