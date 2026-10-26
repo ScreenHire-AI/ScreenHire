@@ -167,7 +167,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Warehouse associate, nights");
         await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Edit workflow") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Workflow: Warehouse associate, nights");
-        await Expect(HeaderBand).ToContainTextAsync($"From {templateName} v1");
+        // The template the workflow came from is a header fact (W3).
+        await Expect(HeaderBand).ToContainTextAsync($"{templateName} v1");
 
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
         var sample = Page.GetByRole(AriaRole.Form, new() { Name = "Sample application" });
@@ -364,7 +365,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Listitem, new() { Name = "Stage 2: Screening" }))
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 2: Screening" }))
             .ToContainTextAsync("When a candidate enters Screening, if 1 condition holds: add the tag \"fast-track\".");
 
         // The graph at a laptop's and a tablet's width, and on a phone, where it is for reading. It opens at full size.

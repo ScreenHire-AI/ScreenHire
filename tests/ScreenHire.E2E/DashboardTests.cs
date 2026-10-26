@@ -153,9 +153,9 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
             await Expect(cells.Nth(4)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
         }
 
-        // The status filter counts every job and each status in a count badge after its label.
+        // The status filter counts each status in a count badge after its label; All's count is the header's (W4).
         await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button))
-            .ToHaveTextAsync([new Regex(@"^All\s*4$"), new Regex(@"^Open\s*3$"), new Regex(@"^Draft\s*1$"), new Regex(@"^Closed\s*0$")]);
+            .ToHaveTextAsync([new Regex(@"^All$"), new Regex(@"^Open\s*3$"), new Regex(@"^Draft\s*1$"), new Regex(@"^Closed\s*0$")]);
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Avery Quinn" })).ToContainTextAsync("Brightwater Studio");
         await ExpectNoAccessibilityViolationsAsync();
     }
