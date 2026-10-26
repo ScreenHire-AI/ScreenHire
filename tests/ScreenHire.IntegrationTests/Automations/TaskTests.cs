@@ -99,6 +99,29 @@ public sealed class TaskTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_reopen_read_before_another_one_saved_conflicts_instead_of_saving_twice()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var teammate = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        await ApplicationWithTasksAsync(owner, teammate.UserId);
+        var taskId = (await owner.GetAsync("/v1/tasks?scope=Team")).Id("0.id");
+        (await owner.PostAsync($"/v1/tasks/{taskId}/complete")).Expect(HttpStatusCode.OK);
+
+        // The teammate's Undo has read the done task when the owner's lands.
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+        var stale = await db.ApplicationTasks.SingleAsync(t => t.Id == taskId, Ct);
+        (await owner.PostAsync($"/v1/tasks/{taskId}/reopen")).Expect(HttpStatusCode.OK);
+
+        stale.Reopen().Should().BeTrue("this copy still reads as done");
+        var save = () => db.SaveChangesAsync(Ct);
+        await save.Should().ThrowAsync<DbUpdateConcurrencyException>();
+
+        Notes((await owner.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK)).Should().Equal("Call the references.");
+    }
+
+    [Fact]
     public async Task Another_organization_sees_and_completes_none_of_the_tasks_and_a_viewer_cannot_complete_one()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
