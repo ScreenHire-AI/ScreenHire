@@ -29,6 +29,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Team | Members with roles, email invitations that expire and work once, role changes and removal with the last Owner protected, a membership log, switching between organizations | #38 |
 | Roles and permissions | The server checks permissions, not role names, on every route; custom roles copied from a built-in or custom role, edited on their own page with History, deleted only when nobody has them; nobody gives more access than their own role has; Owner-only permissions stay with Owners; API keys capped by their creator ([ADR-0014](adr/0014-permissions-and-custom-roles.md)) | the custom roles task |
 | API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)) | #37 |
+| MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage; Read keys see only the reads; no integrity output ([MCP server](architecture/mcp-server.md)) | the MCP server task |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
 | Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling | #36 |
@@ -110,5 +111,10 @@ brackets.
 
 ## Known gaps
 
+- The MCP server gives an assistant no integrity output, as ADR-0011 refuses it to every API key, although roadmap item 6
+  asked for levels, reasons and evidence. Opening it to `/v1/mcp` is an owner decision: an amendment to ADR-0011, then
+  one `IntegrityReads.LoadAsync` call in `get_application` and a view that marks quoted evidence as candidate-written.
+- MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
+  (ADR-0011 decision 6).
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (integrity-engine.md §10.9). In the browser pane, `/preview` waits for an integrity chip before it checks anything live.

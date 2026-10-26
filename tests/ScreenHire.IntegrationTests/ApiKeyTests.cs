@@ -20,7 +20,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
         await owner.PublishJobAsync(job.Id());
-        var created = await CreateKeyAsync(owner, "ATS sync", ["Read", "Write"]);
+        var created = await owner.CreateKeyAsync("ATS sync", ["Read", "Write"]);
         var token = created.Text("token");
         using var key = new KeyClient(fixture, token);
 
@@ -62,7 +62,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
         await owner.PublishJobAsync(job.Id());
         var application = (await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"))).Id();
-        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "ATS sync", ["Read", "Write"])).Text("token"));
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("ATS sync", ["Read", "Write"])).Text("token"));
         var ownersNote = (await owner.PostAsync($"/v1/applications/{application}/notes", new JsonObject { ["note"] = "From a person." }))
             .Expect(HttpStatusCode.Created).Id("noteId");
 
@@ -88,7 +88,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, owner);
         var applicationId = await IntegritySupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
         await IntegritySupport.AssessedAsync(owner, applicationId);
-        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "Export", ["Read"])).Text("token"));
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("Export", ["Read"])).Text("token"));
 
         var session = (await owner.GetAsync($"/v1/jobs/{jobId}/applications")).Expect(HttpStatusCode.OK);
         var lists = new Dictionary<string, ApiResult>
@@ -118,7 +118,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         var bApplication = await b.CreateApplicationAsync(bJob.Id(), ApiSession.NewEmail("b-candidate"));
         var (bTemplateId, _) = await b.CreatePublishedTemplateAsync("B pipeline");
         var bJobBefore = WithoutPostingStates((await b.GetAsync($"/v1/jobs/{bJob.Id()}")).Body);
-        using var aKey = new KeyClient(fixture, (await CreateKeyAsync(a, "A sync", ["Read", "Write"])).Text("token"));
+        using var aKey = new KeyClient(fixture, (await a.CreateKeyAsync("A sync", ["Read", "Write"])).Text("token"));
 
         var responses = new Dictionary<string, ApiResult>
         {
@@ -143,7 +143,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var other = await fixture.SignedInWithOrganizationAsync();
-        var created = await CreateKeyAsync(owner, "Short-lived", ["Read"]);
+        var created = await owner.CreateKeyAsync("Short-lived", ["Read"]);
         var token = created.Text("token");
         using var key = new KeyClient(fixture, token);
         (await key.GetAsync("/v1/jobs")).Expect(HttpStatusCode.OK);
@@ -169,7 +169,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Data Engineer"));
-        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "Reporting", ["Read"])).Text("token"));
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("Reporting", ["Read"])).Text("token"));
 
         var read = await key.GetAsync($"/v1/jobs/{job.Id()}");
         ApiResult[] writes =
@@ -191,8 +191,8 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     public async Task Too_many_requests_from_one_key_get_429_without_slowing_other_keys_or_sessions()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        using var limited = new KeyClient(fixture, (await CreateKeyAsync(owner, "Limited", ["Read"], permitsPerMinute: 3)).Text("token"));
-        using var unlimited = new KeyClient(fixture, (await CreateKeyAsync(owner, "Default", ["Read"])).Text("token"));
+        using var limited = new KeyClient(fixture, (await owner.CreateKeyAsync("Limited", ["Read"], permitsPerMinute: 3)).Text("token"));
+        using var unlimited = new KeyClient(fixture, (await owner.CreateKeyAsync("Default", ["Read"])).Text("token"));
 
         var statuses = new List<HttpStatusCode>();
         for (var i = 0; i < 4; i++)
@@ -209,7 +209,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     public async Task Too_many_failed_attempts_from_one_address_get_429_for_every_key_from_it()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        var token = (await CreateKeyAsync(owner, "Good", ["Read"])).Text("token");
+        var token = (await owner.CreateKeyAsync("Good", ["Read"])).Text("token");
         // An address of its own (the API believes X-Forwarded-For from loopback), so other tests keep their budget.
         var address = $"198.51.100.{Random.Shared.Next(1, 255)}";
         using var guesser = new KeyClient(fixture, "shk_not-a-key", address);
@@ -239,7 +239,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Designer"));
         await owner.PublishJobAsync(job.Id());
         var application = await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
-        var created = await CreateKeyAsync(owner, "Everything", ["Read", "Write"]);
+        var created = await owner.CreateKeyAsync("Everything", ["Read", "Write"]);
         using var key = new KeyClient(fixture, created.Text("token"));
 
         var responses = new Dictionary<string, ApiResult>
@@ -280,7 +280,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var other = await fixture.SignedInWithOrganizationAsync();
-        var othersKey = await CreateKeyAsync(other, "Theirs", ["Read"]);
+        var othersKey = await other.CreateKeyAsync("Theirs", ["Read"]);
 
         var noRead = await owner.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Write only", ["scopes"] = new JsonArray("Write") });
         var noName = await owner.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = " ", ["scopes"] = new JsonArray("Read") });
@@ -308,7 +308,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
         var application = await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
         (await owner.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
-        using var key = new KeyClient(fixture, (await CreateKeyAsync(owner, "ATS sync", ["Read", "Write"])).Text("token"));
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("ATS sync", ["Read", "Write"])).Text("token"));
 
         var submit = await key.PostAsync($"/v1/applications/{application.Id()}/scorecards", new JsonObject
         {
@@ -346,60 +346,4 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
 
     private static List<string> Schemes(JsonElement operation) =>
         [.. operation.GetProperty("security").EnumerateArray().SelectMany(r => r.EnumerateObject().Select(p => p.Name))];
-
-    private static async Task<ApiResult> CreateKeyAsync(Tenant owner, string name, string[] scopes, int? permitsPerMinute = null)
-    {
-        var body = new JsonObject { ["name"] = name, ["scopes"] = new JsonArray([.. scopes.Select(s => JsonValue.Create(s))]) };
-        if (permitsPerMinute is { } permits)
-        {
-            body["permitsPerMinute"] = permits;
-        }
-
-        return (await owner.PostAsync("/v1/organization/api-keys", body)).Expect(HttpStatusCode.Created);
-    }
-
-    /// <summary>An integrator's client: the key in the Authorization header, no cookies and no antiforgery header.</summary>
-    private sealed class KeyClient : IDisposable
-    {
-        private readonly HttpClient client;
-
-        public KeyClient(AppHostFixture fixture, string token, string? forwardedFor = null)
-        {
-            client = new HttpClient(new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false })
-            {
-                BaseAddress = fixture.GetEndpoint("api"),
-            };
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            if (forwardedFor is not null)
-            {
-                client.DefaultRequestHeaders.Add("X-Forwarded-For", forwardedFor);
-            }
-        }
-
-        private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-        public Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, JsonNode? body = null) =>
-            client.SendAsync(new HttpRequestMessage(method, path) { Content = body is null ? null : JsonContent.Create(body) }, Ct);
-
-        public async Task<ApiResult> GetAsync(string path) => await ReadAsync(await SendAsync(HttpMethod.Get, path));
-
-        public async Task<ApiResult> PostAsync(string path, JsonNode? body = null) =>
-            await ReadAsync(await SendAsync(HttpMethod.Post, path, body ?? new JsonObject()));
-
-        public async Task<ApiResult> PutAsync(string path, JsonNode body) => await ReadAsync(await SendAsync(HttpMethod.Put, path, body));
-
-        public async Task<ApiResult> DeleteAsync(string path) => await ReadAsync(await SendAsync(HttpMethod.Delete, path));
-
-        public void Dispose() => client.Dispose();
-
-        private static async Task<ApiResult> ReadAsync(HttpResponseMessage response)
-        {
-            using (response)
-            {
-                var text = await response.Content.ReadAsStringAsync(Ct);
-                using var document = text.Length == 0 ? null : JsonDocument.Parse(text);
-                return new ApiResult(response.StatusCode, document?.RootElement.Clone() ?? default);
-            }
-        }
-    }
 }

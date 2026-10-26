@@ -66,6 +66,7 @@ export * from './consistencyCheckView.ts';
 export * from './counterEvidence.ts';
 export * from './createApiKeyRequest.ts';
 export * from './createApplicationRequest.ts';
+export * from './createApplicationTaskRequest.ts';
 export * from './createdApiKey.ts';
 export * from './createEmailTemplateRequest.ts';
 export * from './createHiringTemplateRequest.ts';

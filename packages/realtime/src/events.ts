@@ -48,6 +48,7 @@ export const realtimeEventSchemas = {
   ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant }),
   ScorecardSubmitted: z.object({ organizationId: id, applicationId: id, jobId: id, scorecardId: id, eventId: id, submittedAt: instant }),
   QuestionnaireAnswered: z.object({ organizationId: id, applicationId: id, jobId: id, requestId: id, eventId: id, answeredAt: instant }),
+  ApplicationTaskCreated: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, createdAt: instant }),
   ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, completedAt: instant }),
   // Undo after ticking a task.
   ApplicationTaskReopened: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, reopenedAt: instant }),

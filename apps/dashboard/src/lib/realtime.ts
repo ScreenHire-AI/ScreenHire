@@ -24,8 +24,9 @@ export const membersPath = '/v1/organization/members';
  * pages show each template's versions; an automation run can tag an application, which its page shows.
  * IntegrityAssessed changes the chips in every list, the job's overview and the application's integrity panel
  * (`/v1/applications/{id}/integrity`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
- * application's own tasks show. Tags show in every list, which filter by them; a note, and its edits and deletion,
- * show on the application's timeline only, and so does a sent email (ApplicationEmailed). TeammateMentioned refreshes
+ * application's own tasks show, and so can a person or an API key (ApplicationTaskCreated), which Activity shows too.
+ * Tags show in every list, which filter by them; a note, and its edits and deletion, show on the application's
+ * timeline only, and so does a sent email (ApplicationEmailed). TeammateMentioned refreshes
  * nothing: the note's own event does, and the shell turns the mention into a card for the person mentioned. Answers to
  * a follow-up questionnaire (QuestionnaireAnswered) show on the application's page and its timeline.
  */
@@ -49,6 +50,7 @@ export const invalidations: InvalidationMap = {
   // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
   ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath],
   QuestionnaireAnswered: [applicationsPath],
+  ApplicationTaskCreated: [applicationsPath, tasksPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],

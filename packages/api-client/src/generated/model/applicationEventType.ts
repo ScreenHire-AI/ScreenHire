@@ -21,4 +21,5 @@ export const ApplicationEventType = {
   QuestionnaireCompleted: 'QuestionnaireCompleted',
   NoteEdited: 'NoteEdited',
   NoteDeleted: 'NoteDeleted',
+  TaskCreated: 'TaskCreated',
 } as const;

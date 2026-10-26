@@ -1,3 +1,4 @@
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -314,6 +315,29 @@ public sealed class JobApplication : IJobScoped
             ActorUserId = actorUserId,
             OccurredAt = now,
         };
+
+    /// <summary>
+    /// A task a person or an API key gives the hiring team about this application (<paramref name="note"/>, trimmed), for
+    /// <paramref name="assigneeUserId"/> or, when null, anyone on the team, and the timeline entry that records it with
+    /// who created it. The task starts in the application's current stage; it changes nothing about the application.
+    /// </summary>
+    public (ApplicationTask Task, ApplicationEvent Entry) AddTask(
+        string note, Guid? assigneeUserId, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(note);
+        var task = new ApplicationTask
+        {
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Kind = ApplicationTaskKind.Task,
+            Note = note.Trim(),
+            AssigneeUserId = assigneeUserId,
+            StageId = CurrentStageId,
+            CreatedAt = now,
+        };
+        return (task, NewEvent(
+            ApplicationEventType.TaskCreated, new ApplicationEventData(Note: task.Note, ApiKeyId: actorApiKeyId, TaskId: task.Id), now, actorUserId));
+    }
 
     private ApplicationEvent NewEvent(ApplicationEventType type, ApplicationEventData data, DateTimeOffset now, Guid? actorUserId) =>
         new()

@@ -29,6 +29,7 @@ public enum Permission
     ManageTeam,
     ManageOwners,
     DeleteAnyNote,
+    CreateTasks,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -71,6 +72,7 @@ public static class RolePermissions
             "Note and tag a candidate, and edit or delete your own notes."),
         new(Permission.DeleteAnyNote, PermissionGroup.Hiring, "Delete anyone's notes",
             "Delete a note someone else wrote, as well as your own."),
+        new(Permission.CreateTasks, PermissionGroup.Hiring, "Create tasks", "Give the hiring team, or one person on it, a task about a candidate."),
         new(Permission.CompleteTasks, PermissionGroup.Hiring, "Complete tasks", "Mark a candidate's task done."),
         new(Permission.EmailCandidates, PermissionGroup.Hiring, "Email candidates", "Send an email to one candidate or a selection."),
         new(Permission.FillInScorecards, PermissionGroup.Hiring, "Fill in scorecards", "Score a candidate at a stage."),
@@ -103,7 +105,7 @@ public static class RolePermissions
     public static IReadOnlySet<Permission> HiringWrites { get; } = new HashSet<Permission>(
     [
         Permission.EditJobs, Permission.AddCandidates, Permission.MoveCandidates, Permission.AddNotesAndTags,
-        Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
+        Permission.CreateTasks, Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
         Permission.RunAutomations, Permission.EditHiringTemplates,
     ]);
 

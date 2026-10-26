@@ -11,7 +11,7 @@ subsystem.
 | Path | What |
 |---|---|
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
-| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`) and the SignalR hub (`Realtime/*`, `/v1/hubs/events`); emits `packages/api-client/openapi.json` at build |
+| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`), the SignalR hub (`Realtime/*`, `/v1/hubs/events`) and the MCP server for AI assistants (`Mcp/*`, `/v1/mcp`, [`docs/architecture/mcp-server.md`](docs/architecture/mcp-server.md)); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow ([`docs/architecture/apply-flow.md`](docs/architecture/apply-flow.md)) |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |

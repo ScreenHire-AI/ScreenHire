@@ -48,7 +48,7 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Notes_tags_and_completed_tasks_reach_their_own_organization_with_ids_only_and_never_another()
+    public async Task Notes_tags_and_created_and_completed_tasks_reach_their_own_organization_with_ids_only_and_never_another()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var ours = await fixture.SignedInWithOrganizationAsync();
@@ -74,9 +74,17 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
         var tagged = await ourClient.WaitForAsync("ApplicationTagsChanged", "applicationId", application, cancellationToken);
         tagged.GetProperty("jobId").GetGuid().Should().Be(job);
 
+        var made = (await ours.PostAsync($"/v1/applications/{application}/tasks", new JsonObject { ["note"] = "Book the interview." }))
+            .Expect(HttpStatusCode.Created);
+        var created = await ourClient.WaitForAsync("ApplicationTaskCreated", "taskId", made.Id(), cancellationToken);
+        created.GetProperty("applicationId").GetGuid().Should().Be(application);
+        created.TryGetProperty("note", out _).Should().BeFalse("the task's note stays behind the API");
+
         (await ours.PostAsync($"/v1/applications/{application}/automations/todo/run")).Expect(HttpStatusCode.Accepted);
         await Automations.AutomationSamples.WaitForRunAsync(ours, application, "todo", "Completed");
-        var task = (await ours.GetAsync("/v1/tasks?scope=Team")).Id("0.id");
+        // The automation's task is for the whole team (no assignee); a task made by hand may sit beside it.
+        var task = (await ours.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray()
+            .Single(t => t.GetProperty("automationRunId").ValueKind != System.Text.Json.JsonValueKind.Null).GetProperty("id").GetGuid();
         (await ours.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.OK);
         var completed = await ourClient.WaitForAsync("ApplicationTaskCompleted", "taskId", task, cancellationToken);
         completed.GetProperty("applicationId").GetGuid().Should().Be(application);
@@ -95,6 +103,7 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
 
         theirClient.ReceivedAnythingAbout(application).Should().BeFalse("another organization's notes, tags, tasks and scorecards never reach us");
         theirClient.ReceivedAnythingAbout(task).Should().BeFalse();
+        theirClient.ReceivedAnythingAbout(made.Id()).Should().BeFalse();
     }
 
     [Fact]

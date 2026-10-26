@@ -153,9 +153,10 @@ public sealed record ApplicationFileSummary(
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <c>QuestionnaireSent</c> and <c>QuestionnaireCompleted</c>,
 /// the follow-up questionnaire and the request in the application's <c>followUps</c>.
 /// <c>note</c>: For <c>NoteAdded</c>, the note's latest text, or null once it was deleted; for <c>StageChanged</c>, the
-/// move's note. A mention in a note is <c>@[userId]</c>, a member's user id; the dashboard shows their current name.
+/// move's note; for <c>TaskCreated</c>, the task's note. A mention in a note is <c>@[userId]</c>, a member's user id; the dashboard shows their current name.
 /// <c>noteId</c>: For <c>NoteAdded</c>, <c>NoteEdited</c> and <c>NoteDeleted</c>, the note, as the note routes name it.
 /// <c>noteEditedAt</c>: For <c>NoteAdded</c>, when the note's text last changed; null if it never did.
+/// <c>taskId</c>: For <c>TaskCreated</c>, the task, as the application's tasks list it.
 /// <c>actorApiKeyName</c>: The name of the API key in <c>actorApiKeyId</c>, so a key's notes show who wrote them.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
@@ -179,7 +180,8 @@ public sealed record ApplicationTimelineEntry(
     Guid? NoteId = null,
     DateTimeOffset? NoteEditedAt = null,
     string? ActorApiKeyName = null,
-    Guid? EmailId = null);
+    Guid? EmailId = null,
+    Guid? TaskId = null);
 
 /// <summary>A note as it stands: its latest text, its author and when it was written and last edited.</summary>
 /// <remarks>
@@ -283,7 +285,7 @@ internal static class ApplicationMappings
         return new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId,
             added ? note?.Text : entry.Data.Note, entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId,
             entry.Data.StageId, entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
-            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId);
+            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId, entry.Data.TaskId);
     }
 
     public static ApplicationNoteDetail ToDetail(this ApplicationNote note) =>

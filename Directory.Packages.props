@@ -43,6 +43,9 @@
     <PackageVersion Include="MailKit" Version="4.18.1" />
     <!-- Job description rich text. MIT, as are its AngleSharp and AngleSharp.Css dependencies. -->
     <PackageVersion Include="HtmlSanitizer" Version="9.2.1039" />
+    <!-- Apache-2.0, as are ModelContextProtocol and ModelContextProtocol.Core it brings. The remote MCP server at /v1/mcp
+         for AI assistants signed in with an API key (docs/architecture/mcp-server.md). -->
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.3.0" />
     <!-- Transactional email templates (Liquid). MIT; its dependencies Parlot (BSD-3-Clause) and TimeZoneConverter (MIT). -->
     <PackageVersion Include="Fluid.Core" Version="2.40.0" />
     <!-- Integrity identity checks: phone validation and number type (Apache-2.0, a port of Google's libphonenumber) and
@@ -98,6 +101,8 @@
     <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
     <!-- MIT. The .NET SignalR client, for the integration tests that connect to the real-time hub. -->
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="$(DotNetVersion)" />
+    <!-- Apache-2.0. The MCP client, for the integration tests that call /v1/mcp as an AI assistant would. -->
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.3.0" />
     <!-- Wrapper is MIT; its Deque.AxeCore.Commons dependency (axe-core) is MPL-2.0: a test-only exception (ADR-0008). -->
     <PackageVersion Include="Deque.AxeCore.Playwright" Version="4.14.0" />
   </ItemGroup>

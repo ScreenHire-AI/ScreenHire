@@ -49,4 +49,6 @@ export interface ApplicationTimelineEntry {
   actorApiKeyName?: string | null;
   /** @nullable */
   emailId?: string | null;
+  /** @nullable */
+  taskId?: string | null;
 }
