@@ -41,9 +41,6 @@ public static class TrackedKinds
     /// <summary>The tracked kinds of <paramref name="entityType"/>, none when its changes are not recorded.</summary>
     public static IReadOnlyList<TrackedKind> FindAll(Type entityType) => [.. ByType[entityType]];
 
-    /// <summary>The one tracked kind of <paramref name="entityType"/>, or null when its changes are not recorded.</summary>
-    public static TrackedKind? Find(Type entityType) => ByType[entityType].SingleOrDefault();
-
     /// <summary>A kind whose lines need nothing beyond the entity before and after the save.</summary>
     public static TrackedKind Track<T>(ChangeSubjectKind subject, Func<T, string> subjectId, Func<T?, T?, IReadOnlyList<ChangeLine>> describe)
         where T : class =>

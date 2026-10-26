@@ -21,7 +21,7 @@ public sealed partial class TrackedKindsTests
             typeof(Organization), typeof(Organization), typeof(IntegritySettings),
         ]);
         TrackedKinds.All.Select(k => k.EntityType).Should().NotContain([typeof(ApiKey), typeof(WebhookEndpoint), typeof(OrganizationInvitation)]);
-        TrackedKinds.Find(typeof(ApiKey)).Should().BeNull();
+        TrackedKinds.FindAll(typeof(ApiKey)).Should().BeEmpty();
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed partial class TrackedKindsTests
     public void A_version_row_belongs_to_its_templates_history()
     {
         var version = new HiringTemplateVersion { TemplateId = Guid.CreateVersion7(), Definition = HiringTemplateDefinition.Default };
-        var kind = TrackedKinds.Find(typeof(HiringTemplateVersion))!;
+        var kind = TrackedKinds.FindAll(typeof(HiringTemplateVersion)).Single();
 
         kind.Subject.Should().Be(ChangeSubjectKind.HiringTemplate);
         kind.SubjectId(version).Should().Be(version.TemplateId.ToString("D"));
@@ -50,7 +50,7 @@ public sealed partial class TrackedKindsTests
     {
         var reworded = EmailTemplate.Reword(Guid.CreateVersion7(), EmailTemplateIds.StageChange, "Subject", "Body", DateTimeOffset.UnixEpoch);
 
-        TrackedKinds.Find(typeof(EmailTemplate))!.SubjectId(reworded).Should().Be(EmailTemplateIds.StageChange);
+        TrackedKinds.FindAll(typeof(EmailTemplate)).Single().SubjectId(reworded).Should().Be(EmailTemplateIds.StageChange);
     }
 
     // A token budget counts a model's tokens, not a credential, so it is the one "Token" the pattern lets through.
