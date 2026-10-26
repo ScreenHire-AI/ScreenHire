@@ -4,7 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
-import Page from './+page.svelte';
+import Page from './style-guide.svelte';
 
 // The real viewer (pdf.js) is built by file-viewer-plugin.ts and is not needed to draw the page.
 vi.mock('virtual:file-viewer', () => ({ viewerDocument: '<!doctype html><title>viewer</title>' }));

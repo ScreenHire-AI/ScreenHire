@@ -8,7 +8,7 @@ sources:
   - resource: packages/ui/src/theme.css
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/marketing/src/components/StatusIcon.astro
-  - resource: apps/dashboard/src/routes/(dev)/style-guide/+page.svelte
+  - resource: apps/dashboard/src/routes/(dev)/style-guide/style-guide.svelte
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
