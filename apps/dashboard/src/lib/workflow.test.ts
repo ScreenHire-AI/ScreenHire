@@ -1,14 +1,17 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  actionsFor,
+  describeAction,
   describePath,
   errorsUnder,
   factsFor,
   idFrom,
   laneOf,
-  moveItem,
   newAction,
   newAutomation,
+  newFollowUp,
+  newQuestion,
   newRule,
   operatorsFor,
   problemErrors,
@@ -123,12 +126,6 @@ describe('elements', () => {
   it('puts stage triggers in their stage lane and the rest in the whole-workflow lane', () => {
     expect(workflow.automations.map(laneOf)).toEqual(['screening', null]);
   });
-
-  it('reorders with buttons, staying put at either end', () => {
-    expect(moveItem(['a', 'b', 'c'], 0, 1)).toEqual(['b', 'a', 'c']);
-    expect(moveItem(['a', 'b', 'c'], 0, -1)).toEqual(['a', 'b', 'c']);
-    expect(moveItem(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c']);
-  });
 });
 
 describe('validator paths', () => {
@@ -158,8 +155,112 @@ describe('validator paths', () => {
     expect(describePath(workflow, 'stages')).toBe('Stages');
   });
 
+  it('names the reviewer an AssignReviewer action asks, or the team', () => {
+    const members = [{ userId: 'u2', displayName: 'Robin Ashby' }];
+    expect(describeAction({ type: 'AssignReviewer', assigneeUserId: 'u2' }, workflow, members)).toBe('Ask Robin Ashby to review');
+    expect(describeAction({ type: 'AssignReviewer', assigneeUserId: 'gone' }, workflow, members)).toBe('Ask a teammate to review');
+    expect(describeAction({ type: 'AssignReviewer' }, workflow, members)).toBe('Ask the team to review');
+  });
+
   it('summarizes an automation in one sentence', () => {
     expect(summarize(workflow.automations[0]!, workflow)).toBe('When a candidate enters Screening, if 1 condition holds: add the tag "check".');
     expect(summarize(workflow.automations[1]!, workflow)).toBe('When someone runs it by hand: notify the team.');
+  });
+});
+
+describe('stage time limits', () => {
+  const timed: HiringWorkflow = {
+    ...workflow,
+    automations: [
+      { id: 'any', name: 'Any', trigger: { type: 'SlaBreached' }, conditions: null, actions: [{ type: 'CreateTask', note: 'Reply' }] },
+      { id: 'screen', name: 'Screen', trigger: { type: 'SlaBreached', stageId: 'screening' }, conditions: null, actions: [{ type: 'AddTag', tag: 'overdue' }] },
+    ],
+  };
+
+  it('offers a passed time limit only the reminders, keeping a saved action outside them so its error shows', () => {
+    expect(actionsFor('SlaBreached')).toEqual(['AddTag', 'AssignReviewer', 'NotifyTeam', 'CreateTask']);
+    expect(actionsFor('SlaBreached', 'Reject')).toEqual(['AddTag', 'AssignReviewer', 'NotifyTeam', 'CreateTask', 'Reject']);
+    expect(actionsFor('StageEntered')).toContain('QueueForRejectionReview');
+  });
+
+  it("puts a stage's time limit in its lane and any stage's in the whole workflow's", () => {
+    expect(laneOf(timed.automations[0]!)).toBeNull();
+    expect(laneOf(timed.automations[1]!)).toBe('screening');
+    expect(summarize(timed.automations[0]!, timed)).toBe("When a stage's time limit passes: create a task.");
+    expect(summarize(timed.automations[1]!, timed)).toBe('When the time limit in Screening passes: add the tag "overdue".');
+  });
+});
+
+describe('scorecards and the reviewer decision', () => {
+  const reviewed: HiringWorkflow = {
+    ...workflow,
+    stages: workflow.stages.map((stage) => (stage.id === 'screening' ? { ...stage, scorecardTemplateId: 'screening' } : stage)),
+    automations: [
+      { id: 'any', name: 'Any', trigger: { type: 'ReviewerDecision' }, conditions: null, actions: [{ type: 'AddTag', tag: 'reviewed' }] },
+      { id: 'screen', name: 'Screen', trigger: { type: 'ReviewerDecision', stageId: 'screening' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
+    ],
+  };
+
+  it("offers the reviewer's recommendation only to a reviewer-decision automation", () => {
+    expect(factsFor(reviewed).map((fact) => fact.fact)).not.toContain('reviewer.recommendation');
+    const recommendation = factsFor(reviewed, 'ReviewerDecision').find((fact) => fact.fact === 'reviewer.recommendation');
+    expect(recommendation?.signal).toBe(false);
+    expect(recommendation?.values?.map((value) => value.value)).toEqual(['StrongNo', 'No', 'Yes', 'StrongYes']);
+    expect(operatorsFor(recommendation!.type)).toEqual(['EqualTo', 'In', 'Exists']);
+  });
+
+  it("puts a stage's reviewer decisions in its lane and the rest in the whole workflow's", () => {
+    expect(laneOf(reviewed.automations[0]!)).toBeNull();
+    expect(laneOf(reviewed.automations[1]!)).toBe('screening');
+    expect(summarize(reviewed.automations[1]!, reviewed)).toBe('When a reviewer records a decision on Screening: add the tag "screened".');
+    expect(summarize(reviewed.automations[0]!, reviewed)).toBe('When a reviewer records a decision: add the tag "reviewed".');
+  });
+});
+
+describe('follow-up questionnaires', () => {
+  const withFollowUp: HiringWorkflow = {
+    ...workflow,
+    followUpQuestionnaires: [
+      {
+        id: 'availability',
+        name: 'Availability',
+        questions: [{ id: 'question', type: 'YesNo', label: 'Forklift licence?', required: true, knockout: { disqualifyingAnswer: false } }],
+      },
+    ],
+    automations: [
+      {
+        id: 'send',
+        name: 'Send it',
+        trigger: { type: 'StageEntered', stageId: 'screening' },
+        conditions: null,
+        actions: [{ type: 'SendQuestionnaire', questionnaireId: 'availability' }],
+      },
+      { id: 'answered', name: 'Answered', trigger: { type: 'QuestionnaireCompleted', questionnaireId: 'availability' }, conditions: null, actions: [{ type: 'AddTag', tag: 'answered' }] },
+    ],
+  };
+
+  it("offers a follow-up's answers as facts, named by their questionnaire", () => {
+    const fact = factsFor(withFollowUp).find((option) => option.fact === 'answers.question');
+    expect(fact).toMatchObject({ label: 'Answer (Availability): Forklift licence?', type: 'YesNo' });
+    expect(factsFor(withFollowUp).find((option) => option.fact === 'application.source')?.values?.map((value) => value.value)).toEqual(['CareersSite', 'Recruiter']);
+  });
+
+  it('gives a new question an id no questionnaire of the workflow uses', () => {
+    expect(newQuestion(withFollowUp).id).toBe('question_2');
+    expect(newFollowUp(withFollowUp)).toMatchObject({ id: 'questionnaire', name: 'New questionnaire', questions: [{ id: 'question_2' }] });
+  });
+
+  it('starts a SendQuestionnaire action on the first follow-up, and says what each part does', () => {
+    expect(newAction('SendQuestionnaire', withFollowUp.stages, withFollowUp.followUpQuestionnaires ?? [])).toEqual({ type: 'SendQuestionnaire', questionnaireId: 'availability' });
+    expect(summarize(withFollowUp.automations[0]!, withFollowUp)).toBe('When a candidate enters Screening: send the "Availability" questionnaire.');
+    expect(summarize(withFollowUp.automations[1]!, withFollowUp)).toBe('When the candidate answers "Availability": add the tag "answered".');
+    expect(summarize({ ...withFollowUp.automations[1]!, trigger: { type: 'QuestionnaireCompleted' } }, withFollowUp)).toBe(
+      'When a follow-up questionnaire is answered: add the tag "answered".',
+    );
+  });
+
+  it("names a follow-up's problems by the questionnaire and its question", () => {
+    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].name')).toBe('Questionnaire "Availability"');
+    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].questions[0].id')).toBe('Question "Forklift licence?" in "Availability"');
   });
 });

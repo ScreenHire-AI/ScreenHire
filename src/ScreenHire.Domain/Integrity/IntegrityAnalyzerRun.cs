@@ -7,7 +7,7 @@ namespace ScreenHire.Domain.Integrity;
 /// (application, analyzer, analyzer version) means a redelivered message, or a second run after a restart, finds the
 /// run and writes no signals twice. A new analyzer version runs again and writes its own signals.
 /// </summary>
-public sealed class IntegrityAnalyzerRun : ITenantOwned
+public sealed class IntegrityAnalyzerRun : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

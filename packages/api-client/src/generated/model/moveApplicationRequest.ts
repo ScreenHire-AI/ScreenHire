@@ -6,7 +6,8 @@
  */
 
 /**
- * Moves an application to another stage of its job's workflow. Only people move applications here.
+ * Moves an application to another stage of its job's workflow. Only people move applications here. The optional
+ * `note` is kept on the move's timeline entry.
  */
 export interface MoveApplicationRequest {
   toStageId: string;

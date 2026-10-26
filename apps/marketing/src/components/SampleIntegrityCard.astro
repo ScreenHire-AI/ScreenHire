@@ -1,6 +1,8 @@
 ---
 // The hero illustration: what a recruiter sees on a flagged application. Fictional applicant, real reason codes from
-// docs/architecture/integrity-engine.md. Status is mark + colour + label (design system §2.2).
+// docs/architecture/integrity-engine.md. Status is its icon, colour and label (design system section 3.2).
+import StatusIcon from './StatusIcon.astro';
+
 const evidence = [
   { code: 'NET_DATACENTER_IP', text: 'Applied from a hosting-provider network, not a home or mobile connection.' },
   { code: 'NET_GEO_CLAIM_MISMATCH', text: 'Says they live in Leeds, UK. The network is in Germany.' },
@@ -19,7 +21,7 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
         <span class="text-[13px] text-muted-foreground">Senior Product Designer · applied 3h ago</span>
       </div>
       <span class="inline-flex items-center gap-1.5 rounded-full bg-status-review-soft px-2.5 py-0.5 text-[12.5px] font-bold text-status-review">
-        <span aria-hidden="true" class="size-1.5 rotate-45 bg-status-review-mark"></span>Review suggested
+        <StatusIcon status="review" class="text-status-review-mark" />Review suggested
       </span>
     </div>
     <ul class="flex flex-col gap-2 px-4 py-3.5 text-sm">
@@ -31,9 +33,8 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
           </li>
         ))
       }
-      <li class="mt-0.5 flex items-center gap-2 text-[13px] text-status-clear">
-        <span aria-hidden="true" class="size-[7px] rounded-full bg-status-clear-mark"></span>Counter-evidence: the phone number is a
-        UK mobile, not a VoIP line.
+      <li class="mt-0.5 border-l-2 border-border pl-3 text-[13px]">
+        <span class="font-semibold">Counter-evidence:</span> the phone number is a UK mobile, not a VoIP line.
       </li>
     </ul>
     <p class="border-t border-border-subtle bg-muted px-4 py-2.5 text-[13px] text-secondary-foreground">
@@ -46,7 +47,7 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
     {
       boards.map((board) => (
         <span class="inline-flex items-center gap-1.5 border-r border-border-subtle px-3 py-2 font-semibold last:border-r-0">
-          <span aria-hidden="true" class="size-[7px] rounded-full bg-status-clear-mark" />
+          <StatusIcon status="open" class="text-status-clear-mark" />
           {board}
           <span class="font-mono text-[10.5px] text-status-clear">LIVE</span>
         </span>

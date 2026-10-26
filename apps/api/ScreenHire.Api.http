@@ -63,5 +63,123 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
+# Notes and tags from the hiring team; tags compare ignoring case.
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/notes
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "note": "Ask about the notice period." }
+
+###
+
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/tags
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "tag": "referral" }
+
+###
+
+DELETE {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/tags?tag=referral
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+# Scorecards: one per reviewer per stage; submitting raises the ReviewerDecision trigger.
+GET {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
+
+###
+
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "stageId": "interview", "ratings": [{ "criterionId": "role_skills", "rating": "Demonstrated" }], "recommendation": "Yes" }
+
+###
+
+# My tasks: the signed-in person's and the team's open tasks (status=Completed, scope=Everyone widen it).
+GET {{api}}/v1/tasks?status=Open&scope=Mine
+
+###
+
+POST {{api}}/v1/tasks/00000000-0000-0000-0000-000000000000/complete
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
 GET {{api}}/v1/schemas/hiring-template-definition.json
 Accept: application/schema+json
+
+###
+
+# The organization: any member reads it; Owners and Admins rename it. The slug never changes.
+GET {{api}}/v1/organization
+
+###
+
+PUT {{api}}/v1/organization
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "name": "Brightwater Studio" }
+
+###
+
+# Team: members, invitations and the membership log (Owners and Admins manage; every member reads the list).
+GET {{api}}/v1/organization/members
+
+###
+
+POST {{api}}/v1/organization/invitations
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "email": "new.teammate@example.com", "role": "Recruiter" }
+
+###
+
+PUT {{api}}/v1/organization/members/00000000-0000-0000-0000-000000000000/role
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "role": "Viewer" }
+
+###
+
+DELETE {{api}}/v1/organization/members/00000000-0000-0000-0000-000000000000
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+GET {{api}}/v1/organization/invitations
+
+###
+
+DELETE {{api}}/v1/organization/invitations/00000000-0000-0000-0000-000000000000
+X-XSRF-TOKEN: {{xsrf}}
+
+###
+
+GET {{api}}/v1/organization/membership-log
+
+###
+
+# The token comes from the emailed link's #invitation= fragment.
+POST {{api}}/v1/auth/invitations/accept
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "token": "paste-the-token-here" }
+
+###
+
+GET {{api}}/v1/auth/organizations
+
+###
+
+POST {{api}}/v1/auth/switch-organization
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "organizationId": "00000000-0000-0000-0000-000000000000" }

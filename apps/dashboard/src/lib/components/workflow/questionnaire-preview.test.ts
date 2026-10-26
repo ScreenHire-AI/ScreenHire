@@ -26,7 +26,8 @@ describe('QuestionnairePreview', () => {
 
     const labels = [...document.querySelectorAll('label[for], legend')].map((element) => element.textContent?.replace(/\s+/g, ' ').trim());
     expect(labels).toEqual([
-      'Full name',
+      'First name',
+      'Last name (optional)',
       'Email',
       'Phone (optional)',
       'Resume or CV (optional)',

@@ -19,10 +19,13 @@ function integrityColumn(kind: AssessmentKind, header: string): CandidateColumn 
         level: chip?.level ?? null,
         reasons: chip?.reasons ?? 0,
         dismissed: chip?.dismissed ?? false,
+        // AI assistance is information, so its lowest level is the default and a calm row says nothing (section 21).
+        // Authenticity keeps its quiet "No concerns": the column's one status (T3).
+        hideCalm: kind === 'aiAssistance',
       });
     },
   });
 }
 
 /** The candidate table's Authenticity and AI assistance chips, for its `extraColumns` slot; both sort by level. */
-export const integrityColumns: readonly CandidateColumn[] = [integrityColumn('authenticity', 'Authenticity'), integrityColumn('aiAssistance', 'AI assist')];
+export const integrityColumns: readonly CandidateColumn[] = [integrityColumn('authenticity', 'Authenticity'), integrityColumn('aiAssistance', 'AI assistance')];

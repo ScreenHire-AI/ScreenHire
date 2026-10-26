@@ -26,7 +26,7 @@ export interface Snapshot {
 /** The most fields one snapshot carries, as the API allows (`TelemetrySnapshot.MaxFields`). */
 export const MAX_FIELDS = 110;
 
-const FIXED_FIELDS = new Set(['fullName', 'email', 'phone', 'aiUseDetails']);
+const FIXED_FIELDS = new Set(['firstName', 'lastName', 'email', 'phone', 'aiUseDetails']);
 const QUESTION_FIELD = /^q:([a-z][a-z0-9_-]{0,39})$/;
 
 /**

@@ -9,7 +9,9 @@ internal sealed class CandidateConfiguration : IEntityTypeConfiguration<Candidat
 {
     public void Configure(EntityTypeBuilder<Candidate> builder)
     {
-        builder.Property(c => c.FullName).HasMaxLength(200);
+        builder.Property(c => c.FirstName).HasMaxLength(Candidate.MaxFirstNameLength);
+        builder.Property(c => c.LastName).HasMaxLength(Candidate.MaxNamePartLength);
+        builder.Property(c => c.FullName).HasMaxLength(Candidate.MaxFullNameLength);
         builder.Property(c => c.Email).HasMaxLength(320);
         builder.Property(c => c.NormalizedEmail).HasMaxLength(320);
         builder.Property(c => c.Phone).HasMaxLength(50);

@@ -1,0 +1,115 @@
+<script lang="ts" module>
+  import type { ApplicationTaskKind } from '@screenhire/api-client';
+
+  /** A task as the list draws it: an application's own task, or one from My tasks with its candidate and job. */
+  export interface TaskRow {
+    id: string;
+    applicationId: string;
+    kind: ApplicationTaskKind;
+    note: string;
+    assigneeUserId: string | null;
+    createdAt: string;
+    completedAt: string | null;
+    completedByUserId: string | null;
+    candidateName?: string;
+    jobTitle?: string;
+  }
+</script>
+
+<script lang="ts">
+  import CheckIcon from '@lucide/svelte/icons/check';
+  import ListTodoIcon from '@lucide/svelte/icons/list-todo';
+  import Undo2Icon from '@lucide/svelte/icons/undo-2';
+  import type { TeamMember } from '@screenhire/api-client';
+  import RelativeTime from '#lib/components/relative-time.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+  import { assigneeText, personName, taskKindLabels } from '#lib/team.js';
+
+  // Tasks automations made (design system section 11): an icon in a circle, what to do, its kind and who it is for as
+  // fact pills, and time ago; with `showCandidate`, the candidate's name links to the application. With `oncomplete`
+  // (createTaskCompletion in #lib/tasks.svelte.ts), an open task has the task checkbox in the icon's place: ticking it
+  // marks the task done and changes nothing else, and for 10 seconds (`undoable`) the row stays ticked with Undo, as
+  // does unticking it. Without it (a Viewer, A3) there is no checkbox.
+  let {
+    tasks,
+    members,
+    currentUserId,
+    oncomplete,
+    onundo,
+    undoable = () => false,
+    showCandidate = false,
+    label,
+  }: {
+    tasks: readonly TaskRow[];
+    members: readonly TeamMember[] | undefined;
+    currentUserId: string | undefined;
+    oncomplete?: (task: TaskRow) => void;
+    onundo?: (taskId: string) => void;
+    /** Whether the task was just ticked and still offers Undo. */
+    undoable?: (taskId: string) => boolean;
+    showCandidate?: boolean;
+    label: string;
+  } = $props();
+
+  // On My tasks the same note repeats across candidates, so the name says whose task it is (X1).
+  const describe = (task: TaskRow) => (showCandidate && task.candidateName ? `${task.candidateName}: ${task.note}` : task.note);
+</script>
+
+<ol aria-label={label} class="flex flex-col">
+  {#each tasks as task (task.id)}
+    {@const done = Boolean(task.completedAt)}
+    {@const undo = Boolean(onundo) && undoable(task.id)}
+    <!-- In a narrow container (the 320px side column) Undo goes under the facts, so the text and pills keep the row's
+         width (F2). -->
+    <li class="@container/task border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
+      <div class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 @md/task:grid-cols-[auto_minmax(0,1fr)_auto]">
+        {#if (!done && oncomplete) || undo}
+          <!-- The task checkbox, centred in the icon's 28px place. Its hit area reaches 44px on touch (F4). -->
+          <span class="grid size-7 shrink-0 place-items-center">
+            <Checkbox
+              class="size-5 pointer-coarse:after:-inset-3"
+              checked={done}
+              aria-label={`Mark done for ${describe(task)}`}
+              onCheckedChange={(checked) => (checked ? oncomplete?.(task) : onundo?.(task.id))}
+            />
+          </span>
+        {:else}
+          <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
+            {#if done}<CheckIcon />{:else}<ListTodoIcon />{/if}
+          </span>
+        {/if}
+        <div class="flex min-w-0 flex-col gap-1.5 pt-1">
+          <p class={['max-w-measure break-words', undo && 'text-muted-foreground line-through']}>{task.note}</p>
+          {#if showCandidate && task.candidateName}
+            <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
+          {/if}
+          <div class="flex flex-wrap items-center gap-2">
+            {#if showCandidate && task.jobTitle}<Badge variant="muted" class="max-w-60 min-w-0"><TruncatedText text={task.jobTitle} /></Badge>{/if}
+            <Badge variant="muted">{taskKindLabels[task.kind]}</Badge>
+            <Badge variant="muted">{assigneeText(task.assigneeUserId, members, currentUserId)}</Badge>
+            {#if done && task.completedAt}
+              <span class="text-caption text-muted-foreground">
+                Done <RelativeTime at={task.completedAt} />{task.completedByUserId ? ` by ${personName(task.completedByUserId, members, currentUserId)}` : ''}
+              </span>
+            {:else}
+              <RelativeTime at={task.createdAt} class="text-caption text-muted-foreground" />
+            {/if}
+          </div>
+        </div>
+        {#if undo}
+          <Button
+            variant="outline"
+            class="col-start-2 justify-self-start @md/task:col-start-3 @md/task:row-start-1"
+            aria-label={`Undo, ${describe(task)}`}
+            onclick={() => onundo?.(task.id)}
+          >
+            <Undo2Icon aria-hidden="true" />Undo
+          </Button>
+        {/if}
+      </div>
+    </li>
+  {/each}
+</ol>

@@ -1,3 +1,17 @@
+---
+type: Guide
+title: "Testing"
+description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, the flake policy and its history, and gate time."
+tags: [testing, xunit, playwright, vitest]
+sources:
+  - resource: tests/ScreenHire.Testing/AppHostFixture.cs
+  - resource: tests/ScreenHire.E2E/E2EFixture.cs
+  - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
+  - resource: apps/marketing/scripts/check-dist.mjs
+  - resource: apps/marketing/scripts/lighthouse.mjs
+  - resource: scripts/install-browsers.mjs
+  - resource: global.json
+---
 # Testing
 
 Every tier of test has a home, a pattern and a place in `pnpm verify`, so a feature task only adds tests. The gate is
@@ -7,10 +21,12 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
-| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the integrity ruleset), the integrity analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing). The API grants it `InternalsVisibleTo`. | Nothing |
-| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte, including the shared question components in the questionnaire preview; pages and query-backed components render inside `src/test-support/with-query-client.svelte` with `fetch` stubbed), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib`: formatting, the apply flow's state and checks, tenant hosts, the brand stylesheet; `src/components`: the shared question components rendered through Astro's container API with the Svelte renderer, on the server as the apply page uses them and as a `client:load` island), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
+| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the integrity ruleset), the integrity analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing), and the repository tooling in `Tooling/`: the MCP approvals, and the process guard and docs bundle checks, which run their `scripts/*.mjs` with Node. The API grants it `InternalsVisibleTo`. | Node for `Tooling/` |
+| Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte, including the shared question components in the questionnaire preview; pages and query-backed components render inside `src/test-support/with-query-client.svelte` with `fetch` stubbed (it also gives them the sidebar's context and a tooltip provider), anything else with a tooltip inside `with-tooltips.svelte`, the signed-in frame (sidebar, top bar, shortcuts dialog) inside `shell-harness.svelte`, a workflow's tabs with the builder or the read-only view inside `workflow-harness.svelte`, with `stubViewport` in `viewport.ts` setting the window width the media queries see, and `expectNoAxeViolations` in `src/test-support/axe.ts` runs axe for WCAG 2.2 A/AA on each component), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib`: formatting, the apply flow's state and checks, tenant hosts, the brand stylesheet; `src/components`: the shared question components rendered through Astro's container API with the Svelte renderer, on the server as the apply page uses them and as a `client:load` island), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
+
+When Docker is down, `pnpm docker:start` starts Docker Desktop and waits for the engine.
 
 Pick the lowest tier that can catch the bug. A rule in the domain gets a unit test even when an integration test also
 covers the endpoint. End-to-end tests prove that the pieces connect and render; they do not enumerate edge cases.
@@ -74,12 +90,32 @@ The AppHost's `ScreenHire:Frontends` setting decides which JS apps start:
 | Mode | Starts | Used by |
 |---|---|---|
 | `Dev` (default) | `dev` scripts with hot reload | `pnpm dev` |
-| `Built` | `preview` scripts over `pnpm -r build` output: what ships | `tests/ScreenHire.E2E` |
+| `Built` | the `pnpm -r build` output served as it ships: the dashboard (with its `/v1` route to the API) and marketing from Caddy containers, careers from its own Node server (`dist/server/entry.mjs`). No Vite or Astro preview server | `tests/ScreenHire.E2E` |
 | `None` | no JS apps; API, worker and infrastructure only | `tests/ScreenHire.IntegrationTests` |
 
 It also sets job distribution for tests ([job-distribution.md](../architecture/job-distribution.md) §5): the sandbox
 board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so a test can wait for its confirmations,
-and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account.
+and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account. For
+webhooks ([workflow-engine.md](../architecture/workflow-engine.md) §5) it sets `Webhooks:AllowLoopback`, so the worker
+may post to a `WebhookReceiver` (a Kestrel server on `127.0.0.1` that a test starts), and shortens the retry delays
+(`AppHostFixture.WebhookRetryDelays`, 1 s and 3 s) and the disable limit (two failed deliveries).
+
+A fixture that needs a stack of its own subclasses `AppHostFixture` and takes it as a class fixture: `ExtraArguments`
+adds AppHost settings (`DevelopmentDemoFixture` turns the demo on), and `Configure` changes the resources before the
+stack builds. `ProductionApiFixture` uses it to run the API in Production after doing what a deploy does first (migrate,
+the application role's login, Wolverine's tables), with no worker and no health wait, because Production maps no
+`/health`.
+
+Every resource's console log goes to `TestResults/logs/<fixture>/<resource>.log` next to the test assembly (for
+example `tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/logs/E2EFixture/dashboard.log`), streamed with Aspire's
+`ResourceLoggerService` and rewritten each run. A resource that stops with an error while the tests run is kept in
+`fixture.StoppedResources`, and a failing end-to-end test prints it with its exit code and log, so a server that dies
+mid-run names itself instead of failing each test with its own symptom. Read these logs first when a test fails on a
+server that stopped answering.
+
+On Windows the fixture stops the stack's own processes (API, worker, careers) by identity before Aspire disposes the
+stack, because DCP 0.26's stop can kill unrelated processes through a reused parent PID. What that covers, what it
+does not and the measurements are in [Processes on the dev machine](board-pipeline.md#processes-on-the-dev-machine).
 
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
@@ -114,7 +150,11 @@ There is no reset between tests and no Respawn. Instead:
   `SignInWithDevSsoAsync(username)` (the mock provider's login form). `ApiSession.NewEmail()` gives each test its own
   address and account; `OnboardAsync()` gives it its own organization. End-to-end tests click through the sign-in
   pages; `fixture.Mailpit` reads the emailed link. The seeded Brightwater Owner (`avery@brightwater.example.com`, Dev
-  SSO user `brightwater-owner`) is read-only like its organization: sign in as them, change nothing.
+  SSO user `brightwater-owner`) and Recruiter (`jordan@brightwater.example.com`, `brightwater-recruiter`) are
+  read-only like their organization: sign in as them, change nothing. A test that needs a member with another role
+  invites one through the API: `fixture.InviteAndJoinAsync(owner, "Viewer")` (`TeamTestSupport`) reads the invitation
+  with `Mailpit.WaitForInvitationTokenAsync` and accepts it in a new session. Invitation links carry `#invitation=`,
+  so they never pass for a sign-in link.
 - **Careers applicants.** `fixture.ApplyAsync(slug, jobId, applicant, ct)` (`SyntheticApplications` in
   `tests/ScreenHire.Testing`) submits one of the synthetic applicants (`SyntheticApplicants`) to a published job the
   way the careers server does, with its address, session and resume, so the integrity engine assesses it. Integration
@@ -136,6 +176,17 @@ Messages cross processes, so these tests wait on Wolverine's tables in Postgres,
   xUnit runs that collection on its own after the parallel tests, so no other test waits on a stopped worker. Refer
   to a collection by its type, never `[Collection(nameof(...))]`: a `[CollectionDefinition]` without a name is matched
   by type, and a string quietly makes a separate collection that runs in parallel.
+
+A test that needs the worker in the middle of something, such as saving a board's answer, plays that part itself
+rather than racing the real worker: `BoardAnswerRaceTests` holds a posting's row lock as a handler does, starts the
+request, waits until Postgres shows it blocked (`pg_blocking_pids` on the owner connection, which only observes), then
+commits. The outcome is the same on every run.
+
+A timer that waits hours or days (a `TimeElapsed` automation, a stage's time limit) is never waited for. An
+integration test reads when it falls due with `WolverineStore.ScheduledTimesAsync` and publishes the message the
+schedule would release, through `MessagingHost.StartPublisherToAppHostQueuesAsync`. An end-to-end test calls
+`fixture.ReleaseAsync(id)` (`ScheduledMessages`), which moves the real scheduled message's due time to now, and runs the
+browser's clock ahead with `Page.Clock.SetFixedTimeAsync`.
 
 What each test proves is in [`docs/architecture/messaging.md`](../architecture/messaging.md#tests).
 
@@ -193,15 +244,66 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 |---|---|---|
 | Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
-| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
 
 `MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
 sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
 Playwright's Chromium, then an installed Chrome. Its simulated mobile numbers were identical to within 3 ms across
-two consecutive full runs (about 90 s each), which is why it is in the gate. Run a subset with
+two consecutive full runs (about 90 s each). Run a subset with
 `pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
 paths are rewritten into Windows paths.
+
+### Why Lighthouse runs once, and one at a time
+
+Lighthouse used to be the last step of `pnpm verify`. On 2026-10-21 five gates ran it at once on one machine:
+five `lighthouse.mjs` processes at about 250 MB each and fourteen `pnpm` wrappers at about 92 MB each, about 2.5 GB
+before their Chromes. Five runs also measure each other, because Lighthouse multiplies the main-thread time it
+observes by 4. So it left the gate. The Testing column runs it once per task, and only when the branch changes what
+the marketing build outputs. Merge does not run it again after merging a newer `main`, so two marketing changes are
+never measured together before both land. That is a deliberate trade. Every page sits about 300 ms under the LCP
+budget, and the next marketing task's Testing run measures the combined site.
+
+`lighthouse.mjs` takes a lock file, `screenhire-lighthouse.lock` in the user's temp folder, before it starts the
+preview server. A second run waits for it, up to 10 minutes, and says so. A lock older than the 5-minute run limit
+plus a minute belongs to a run that is gone, and is taken over. Two runs started together on 2026-10-21 (all 15 pages
+and `/ /pricing/`) both passed. The second waited for the first and then measured the same LCP to within 3 ms.
+
+What the lock does not do: keep a sibling task's end-to-end tests off the CPU. Today every page has LCP about 1505 ms
+against the 1800 ms budget, and the network part of that is simulated from byte counts, so load moves it little.
+If a page fails by a few tens of milliseconds while other gates run, rerun it with nothing else running before you
+call it a regression. Do not add retries (flake policy).
+
+### What Kangentic's agent browser can and cannot measure
+
+We looked at whether the `kangentic_browser_*` tools could check the budgets against a running site instead of
+Lighthouse. The facts come from Kangentic's source (0.47) and one trial on 2026-10-21. The trial ran against the
+built site, with the viewport at 412 x 823, on `/pricing/`.
+
+| Budget | Agent browser | Lighthouse |
+|---|---|---|
+| 15 KB brotli JS per page | `kangentic_browser_network` lists method, URL, type, status and time to headers, with no size of any kind. Resource Timing through `kangentic_browser_eval` gives `encodedBodySize`, which is 0 for a cache revalidation (every subresource in the trial). | Counts script transfer bytes. Both are redundant: `check-dist.mjs` measures brotli bytes exactly in every build, and `MarketingTests` fails on any script but JSON-LD. |
+| CLS under 0.05 | A buffered `PerformanceObserver` for `layout-shift` works (0 in the trial). The load is always a warm-cache repeat visit, so a late font or image never shifts anything. | Cold load, on a simulated slow network. |
+| Mobile LCP under 1.8 s | 24 ms in the trial, on localhost with no throttling and a warm cache. That clears 1.8 s on any page, so it could not fail. | 1505 ms for the same page: Lantern's simulated slow 4G (150 ms RTT, 1.6 x 1024 Kbps) and 4x CPU slowdown (`mobileSlow4G` in `@paulirish/trace_engine`, `models/trace/lantern/simulation/Constants.js`), on a Moto G Power screen (412 x 823 at DPR 1.75) with its user agent (`lighthouse/core/config/constants.js`). |
+
+What the agent browser lacks, so the trial cannot stand in for the budget:
+
+- **No throttling.** Kangentic emulates neither network nor CPU throttling anywhere.
+- **No mobile emulation.** `kangentic_browser_set_viewport` sets the size only. A docked pane is set with
+  `mobile: false`, an offscreen pane is resized as a window, and the user agent stays desktop Chromium (the trial
+  saw `Windows NT 10.0 ... Kangentic/0.47.0`).
+- **No cold load.** Each task's pane keeps a persistent cache. The debugger attaches after the first load, so a
+  measured load is a repeat visit, and no tool clears or bypasses the cache.
+- **Skewed paint timing offscreen.** An offscreen pane, which is what an agent gets when the project is not on
+  screen, paints at 10 fps.
+- **Not a command.** It runs only inside an agent session, so a script like `pnpm verify` cannot call it.
+  `kangentic_browser_eval` is off by default, and only the user can turn it on, for every project at once, in
+  Kangentic's Settings.
+- **Not the build.** `/preview` serves marketing from `astro dev`, not the build. The trial needed a separate
+  preview server.
+
+It is still useful while working on a page: a quick look for layout shifts and their sources, or for a script that
+should not be there. The budget stays with Lighthouse.
 
 ## Flake policy
 
@@ -209,6 +311,25 @@ A test that passes on a rerun with no change is a bug. Fix the cause: an unawait
 port, shared data, or ordering between tests. Never add retries, sleeps or `Skip`, and never loosen an assertion to get
 through the gate. In end-to-end tests, wait on a condition (`Expect(...)`, a health check), never on time. The gate
 must pass twice in a row with no changes.
+
+### Flake history
+
+What failed the gate with no change, and the cause that was fixed, so the next flake is compared with these first.
+
+| When | Symptom | Cause and fix |
+|---|---|---|
+| 2026-10-21 | 8 of 896 failed: five end-to-end tests with `ERR_EMPTY_RESPONSE` or a missing redirect, the template builder's Validation region still "checking", the acceptance journey's sandbox board still Queued after 45 s, and a 409 on a republish | (1) The built dashboard's `vite preview` died 12 s after start with exit code 0xC0000409 (a native abort) and no message, and later runs saw `astro preview` do the same for marketing. Every failure but the 409 followed: the screenshots show "Reconnecting…", because validation and the live updates go through the dashboard's `/v1` proxy, so the worker was never slow. The cause inside Node was not found (25 isolated starts of marketing's `astro preview` and a handful of the dashboard's `vite preview` never crashed), so `Built` no longer runs a preview server: Caddy serves the static builds and careers runs its own Node server. Resource logs are now captured. (2) The API's publish and close read postings without the worker's row lock and failed their row version when a board's answer landed; they now take the lock (job-distribution.md). (3) The template builder test could also read the previous change's validation result; the Validation region now sets `aria-busy` while a check is on its way, and the test waits for it to clear. |
+| 2026-10-21 | 8 of 908 failed, all integration tests: `DevelopmentDemoTests.Starting_the_api_again_adds_nothing` timed out waiting for the API's second start, then seven `WorkerMessagingTests` got a 500 from the magic-link request in `ApiSession.SignInWithMagicLinkAsync` | Not proven. The two classes passed on their own straight after. Two runs later the whole integration suite failed at start with "Container runtime 'docker' was found but appears to be unhealthy" while two other worktrees ran their suites at the same time, and the next run was stopped for low memory, so the likely cause is the machine, not the tests. The failing run's resource logs were gone, because each run rewrites `TestResults/logs`; copy that folder as soon as a gate run fails, before rerunning anything. |
+| 2026-10-21 | 1 of 907 failed: `WorkflowEngineTests.A_retried_manual_run_with_the_same_idempotency_key_runs_once` waited 60 s for the automation run to complete; it passed alone and in the next two full runs | Postgres logged `FATAL: sorry, too many clients already` seconds before. The API, the worker, their Wolverine agents and the tests each keep a connection pool, and together they passed Postgres's default of 100 connections while the worker assessed every applicant. The AppHost now starts Postgres with `max_connections=300`, which `DatabaseServerTests` checks. |
+| 2026-10-22 | 15 of 981 failed, all end-to-end tests that open the careers server: the first with `ERR_EMPTY_RESPONSE`, the rest timing out after 30 s on navigation | Not proven. The careers resource log shows the Node server listening and then nothing: no request errors, no exit. Another worktree's processes were running at the same time. The next full run, with no change, passed 981 of 981. The run's resource logs and screenshots were kept outside the repository before the rerun. If careers stops answering again, first check whether its Node process is still alive: the preview servers in the first row died the same way, without a message. |
+| 2026-10-23 | 1 of 1248 failed: `PipelineTests.Moving_a_candidate_by_keyboard_updates_the_board_and_a_second_session_without_a_reload` timed out on the board's card after pressing V; the next full run, with no change, passed 1248 of 1248 | Not proven. The failure screenshot shows the table still showing, with the J cursor on the second row, so V reached no element inside the table: keyboard focus had left it while the test opened its second browser context. A component test that refetches the rows keeps focus on the row link, so a live refetch is not shown to be the cause. If it recurs, check `document.activeElement` on the first page just before V. |
+| 2026-10-25 | The same test failed the same way in 2 of 2 full `pnpm verify` runs on one branch, with the same screenshot. It passed alone, in the end-to-end project alone (76 of 76) and in the next full .NET run (1280 of 1280) with no change | Not proven. In a passing full run, the element focused just before V was the J row's link, with `document.hasFocus()` true. The failing state is still not captured: the next check should log `document.activeElement` only when the board's card is missing, so the failure itself carries it. |
+| 2026-10-25 | 1 of 1324 failed: `EmailTests.An_automation_sends_an_organization_template_that_cannot_be_deleted_while_it_is_named` found no `EmailSent` entry on the timeline ("Sequence contains no matching element") | The automation's run completes when it queues the email, and `SendAutomationEmailHandler` mails it before it commits the timeline entry. The test waited for the email in Mailpit and the run, then read the timeline once, so it could read it between the send and the commit. It now waits for the entry. |
+| 2026-10-25 | `PipelineTests.Moving_a_candidate_by_keyboard_updates_the_board_and_a_second_session_without_a_reload` again, 1 of 1324, the same timeout on the board's card | Not proven. The test now brings its page to the front after the second browser context opens, because a new window can take the window's focus, and checks the focus is inside the table before V. A recurrence fails on that check, which says the focus left the table, instead of timing out on the board. |
+| 2026-10-25 | 1 of 1386 failed: `ApiReferenceTests.The_api_reference_and_its_openapi_file_are_served_with_production_settings` was cancelled after its 1-minute listen deadline while the first `GET /scalar` was still open (`TaskCanceledException` over an aborted socket). It passed alone straight after, and in the two full runs before it on the same branch | Not proven. The production API answered no request within the minute, during the full gate's busiest stretch, with the other AppHosts up. The change on the branch (custom roles) does not touch the API reference. If it recurs, keep the production API's resource log from `TestResults/logs` before rerunning, and see whether it was still starting or stuck on the first request. |
+| 2026-10-25 | 1 of 1386 failed: `IntegrityPanelTests.Synthetic_applicants_show_their_levels_live_with_reasons_and_a_dismissal_is_logged` waited 60 s for Alex Reed's authenticity chip to read Verification suggested; it stayed at No concerns. It passed alone straight after, and in four full runs before it on the same branch | Not proven. The chip did render, with the level the table shows before the worker's assessment arrives, so either the assessment took over a minute under the full gate's load or its live update was missed. If it recurs, keep `TestResults/logs` and check the worker's log for the applicant's assessment time before rerunning. |
+| 2026-10-25 | 1 of 1548 failed: `DashboardTests.Style_guide_is_a_development_page_only` found no heading within 5 s; the screenshot is the blank app background. It passed alone twice and in two full end-to-end runs straight after | The production build answers 404 at `/style-guide`, but the page's node imported the whole component catalogue first, about 1 MB of JavaScript across 75 chunks, which the browser had to download and parse before the 404 could render. Under the full gate's load that took longer than the wait. `+page.svelte` now imports the catalogue (`style-guide.svelte`) only when `dev`, so the production node is half a kilobyte and the 404 shows at once. |
+| 2026-10-26 | 2 of 21 failed in one run of `ApplicationTasksTests`, `McpServerTests`, `TaskTests` and `HiringRealtimeTests`, right after merging main: `GET /v1/tasks?scope=Team` returned an empty list for a task a person (`ApplicationTasksTests`) or an API key (`McpServerTests`) had just created by hand, 219 and 472 ms into their tests. Each class passed alone, and the same four classes passed 21 of 21 twice straight after | Not proven. Both tests sit at the start of the run, and the list is the one query row-level security and the job scope filter, so a first request right after the AppHost starts is the suspect. If it recurs, keep `TestResults/logs` and see whether the task row existed and which `app.*` settings the list request carried. |
 
 ## Gate time
 
@@ -233,3 +354,12 @@ took 2 min 58 s and 2 min 54 s over two consecutive runs on 2026-10-20; both pas
 With the MVP acceptance journey (881 .NET tests), `pnpm verify` took 3 min 55 s and 3 min 40 s over
 two consecutive runs on 2026-10-20; both passed. The end-to-end assembly, the journey included, takes about 65 s of
 that, in parallel with the integration tests (about 85 s).
+
+With the gate-stability fixes (898 .NET tests; `Built` serves the frontends without preview servers, and publish and
+close take the posting locks), `pnpm verify:test` passed five times in a row on 2026-10-21, at commit `891dd3d`, with
+the suites in parallel as the gate runs them: 109, 112, 113, 111 and 114 s wall clock. Each run: unit about 1 s,
+end-to-end 53 to 59 s, integration 1 min 46 s to 1 min 51 s, 898 passed, none failed, and no resource stopped
+(`TestResults/logs`).
+
+With Lighthouse out of the gate (947 .NET tests), `pnpm verify` took 3 min 26 s on 2026-10-21 and passed. The
+integration tests are the longest suite, at about 2 min 05 s, in parallel with the end-to-end tests (about 65 s).

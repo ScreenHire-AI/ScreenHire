@@ -20,4 +20,5 @@ export const TriggerType = {
   CandidateReplied: 'CandidateReplied',
   InterviewScheduled: 'InterviewScheduled',
   Manual: 'Manual',
+  SlaBreached: 'SlaBreached',
 } as const;

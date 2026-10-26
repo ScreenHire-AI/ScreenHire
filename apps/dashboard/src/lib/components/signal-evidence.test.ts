@@ -24,7 +24,9 @@ describe('signal evidence', () => {
 
     const figure = screen.getByText('Answer to "Why this role?"').closest('figure')!;
     const sides = figure.querySelectorAll('.grid > div');
-    expect(figure.querySelector('.grid')).toHaveClass('sm:grid-cols-2');
+    // Side by side once the evidence itself has room, not the window: the panel may sit in the 320px side column (F2).
+    expect(figure).toHaveClass('@container');
+    expect(figure.querySelector('.grid')).toHaveClass('@sm:grid-cols-2');
     expect([...sides].map((side) => side.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'This application I thrive in fast-paced environments.',
       'Another application this week I thrive in fast paced environments!',
@@ -36,8 +38,10 @@ describe('signal evidence', () => {
 
     const metric = container.querySelector('[data-evidence-kind="Metric"]')!;
     expect(metric.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'Time from opening the form to sending it: 6 seconds · Plausible minimum for this form: 32 seconds',
+      'Time from opening the form to sending it: 6 seconds Plausible minimum for this form: 32 seconds',
     );
+    // The reference is its own line, not joined to the measurement by a separator (W3).
+    expect(within(metric as HTMLElement).getByText(/^Plausible minimum for this form:/)).toHaveClass('block');
     expect(metric.textContent).not.toContain('%');
   });
 

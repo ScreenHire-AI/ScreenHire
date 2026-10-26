@@ -1,0 +1,22 @@
+# The built dashboard as it ships (ADR-0006): adapter-static's build/ with 200.html for client-side routes, behind an
+# edge that sends /v1 (the API, its sign-in redirects and the real-time hub's WebSocket) to the API. The AppHost mounts
+# build/ at /srv and sets API_URL. Used with ScreenHire:Frontends=Built only; `pnpm dev` runs the Vite dev server.
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	handle /v1/* {
+		# As the dev server's proxy does (changeOrigin): the API sees its own host. Caddy adds X-Forwarded-For.
+		reverse_proxy {$API_URL} {
+			header_up Host {upstream_hostport}
+		}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /200.html
+		file_server
+	}
+}

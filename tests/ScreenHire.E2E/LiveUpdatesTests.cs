@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace ScreenHire.E2E;
 
 /// <summary>
@@ -46,12 +48,19 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Live");
         await other.EvaluateAsync($"() => {{ {NoReloadMarker} = true; }}");
 
-        await Page.GetByRole(AriaRole.Button, new() { Name = $"Publish {title}" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = $"Actions for {title}" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Publish to every board" }).ClickAsync();
 
         await Expect(StatusOf(other, title)).ToHaveTextAsync("Open");
-        await Expect(other.GetByText("1 jobs · 1 open")).ToBeVisibleAsync();
+        await Expect(other.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Open") }))
+            .ToHaveTextAsync(new Regex(@"^Open\s*1$"));
 
-        await Page.GetByRole(AriaRole.Button, new() { Name = $"Close {title}" }).ClickAsync();
+        // Closing from the list is the row menu's destructive item, confirmed in a dialog (A2).
+        await Page.GetByRole(AriaRole.Button, new() { Name = $"Actions for {title}" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Close & remove everywhere" }).ClickAsync();
+        var confirm = Page.GetByRole(AriaRole.Dialog, new() { Name = "Close this job and remove it everywhere?" });
+        await confirm.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
+        await Expect(confirm).ToBeHiddenAsync();
 
         await Expect(StatusOf(other, title)).ToHaveTextAsync("Closed");
         (await other.EvaluateAsync<bool>($"() => {NoReloadMarker} === true")).Should().BeTrue("the list updated in place, without a reload");
@@ -78,9 +87,9 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     private static ILocator StatusOf(IPage page, string title) =>
-        page.GetByRole(AriaRole.Region, new() { Name = "Jobs" })
+        page.GetByRole(AriaRole.Table, new() { Name = "Jobs" })
             .GetByRole(AriaRole.Row).Filter(new() { HasText = title })
-            .GetByRole(AriaRole.Cell).Nth(2);
+            .GetByRole(AriaRole.Cell).Nth(0);
 
     private static ILocator LiveIndicator(IPage page) =>
         page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" });

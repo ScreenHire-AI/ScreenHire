@@ -4,16 +4,19 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 import type { PublicBranding } from './publicBranding.ts';
 
 /**
  * The organization's careers-page branding. `palette` is what careers pages use, derived from
  * `brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.
- * `brandAdjusted` means the colour was darkened so text on it stays readable.
+ * `brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand
+ * colour's last change ("by ScreenHire" while it is ScreenHire's default); its history is `/branding/history`.
  */
 export interface OrganizationBranding {
   /** @nullable */
   brandColor: string | null;
   palette: null | PublicBranding;
   brandAdjusted: boolean;
+  lastUpdated: LastUpdate;
 }

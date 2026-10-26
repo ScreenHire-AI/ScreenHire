@@ -7,10 +7,57 @@
   --font-display: var(--sh-font-display);
   --font-mono: var(--sh-font-data);
 
+  /* Dashboard type scale (docs/design/design-system.md section 4.1): `text-body`, `text-caption`, ... Family is a
+     separate class: `font-display` for titles, `font-mono` for codes. */
+  --text-page-title: var(--sh-page-title-size);
+  --text-page-title--line-height: var(--sh-page-title-leading);
+  --text-page-title--font-weight: 700;
+  --text-page-title--letter-spacing: -0.02em;
+  --text-panel-title: 1.25rem;
+  --text-panel-title--line-height: 1.75rem;
+  --text-panel-title--font-weight: 650;
+  /* A metric card's value, in the UI face (section 11). */
+  --text-metric: 2rem;
+  --text-metric--line-height: 2.375rem;
+  --text-metric--font-weight: 600;
+  --text-heading: 1rem;
+  --text-heading--line-height: 1.5rem;
+  --text-heading--font-weight: 600;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+  --text-reading: 1rem;
+  --text-reading--line-height: 1.625rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 500;
+  --text-code: 0.75rem;
+  --text-code--line-height: 1rem;
+  /* The candidate pages' 15px base (section 4.3), for the dashboard's questionnaire preview. */
+  --text-candidate-body: 0.9375rem;
+  --text-candidate-body--line-height: 1.5;
+  /* Candidate inputs at 16px, so phones do not zoom in, and the 13px hints under them (section 4.3). Size only: the
+     controls keep their own line height. */
+  --text-candidate-input: 1rem;
+  --text-candidate-hint: 0.8125rem;
+
+  /* Widths (section 5). Pages fill the window and have none. `max-w-measure` stops a long paragraph at 72 characters,
+     `max-w-form` is the 688px form column and `basis-rail` the 340px details rail. */
+  --container-measure: 72ch;
+  --container-form: 43rem;
+  --container-rail: 21.25rem;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Section 5: panels (12px) and step markers (7px). */
+  --radius-panel: 0.75rem;
+  --radius-step: 0.4375rem;
+
+  /* Section 6: `shadow-surface` on panels and cards, then `shadow-raised` and `shadow-overlay`, the only shadows. */
+  --shadow-surface: var(--elevation-surface);
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -32,6 +79,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-row-selected: var(--row-selected);
+  --color-scrim: var(--scrim);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -53,6 +101,7 @@
   --color-status-verify-mark: var(--status-verify-mark);
   --color-status-ai: var(--status-ai);
   --color-status-ai-soft: var(--status-ai-soft);
+  --color-status-ai-mark: var(--status-ai-mark);
 
   --color-candidate-background: var(--candidate-background);
   --color-candidate-surface: var(--candidate-surface);

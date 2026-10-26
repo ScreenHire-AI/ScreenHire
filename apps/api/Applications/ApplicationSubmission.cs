@@ -21,6 +21,31 @@ namespace ScreenHire.Api.Applications;
 /// </summary>
 internal static class ApplicationSubmission
 {
+    /// <summary>The candidate as a submission names them: the name in two parts, the address and the phone.</summary>
+    public sealed record CandidateDetails(string FirstName, string? LastName, string Email, string? Phone)
+    {
+        public static CandidateDetails From(CandidateInput input) => new(input.Name.First, input.Name.Last, input.Email, input.Phone);
+
+        public static CandidateDetails From(PublicCandidateInput input) => new(input.FirstName, input.LastName, input.Email, input.Phone);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="email"/> is a candidate the signed-in member cannot see: one whose every application is on
+    /// a job outside their hiring teams (ADR-0015). Adding them to a job would hand over their stored name and phone, so
+    /// <c>CreateApplication</c> refuses it, naming nobody. Always false for anyone who sees all jobs.
+    /// </summary>
+    public static async Task<bool> IsOutOfSightAsync(ScreenHireDbContext db, string email, CancellationToken cancellationToken)
+    {
+        if (db.Tenant.SeesAllJobs)
+        {
+            return false;
+        }
+
+        var normalized = Candidate.Normalize(email);
+        return await db.Candidates.IgnoreQueryFilters([ScreenHireDbContext.JobScopeFilter]).AnyAsync(c => c.NormalizedEmail == normalized, cancellationToken)
+            && !await db.Candidates.AnyAsync(c => c.NormalizedEmail == normalized, cancellationToken);
+    }
+
     /// <summary>The new application and its candidate, or null when the candidate has already applied to the job.</summary>
     /// <remarks>
     /// An existing candidate's name and phone are left as they are. Anyone can type any email address into a careers
@@ -29,7 +54,7 @@ internal static class ApplicationSubmission
     public static async Task<(JobApplication Application, Candidate Candidate)?> SubmitAsync(
         IDbContextOutbox<ScreenHireDbContext> outbox,
         Job job,
-        CandidateInput input,
+        CandidateDetails input,
         ApplicationDeclarations declarations,
         ApplicationIntake intake,
         IReadOnlyList<VerifiedUpload> files,
@@ -38,14 +63,20 @@ internal static class ApplicationSubmission
         CancellationToken cancellationToken,
         SubmissionSession? session = null,
         IntegrityOptions? integrity = null,
-        TelemetryBinding? telemetry = null)
+        TelemetryBinding? telemetry = null,
+        Guid? actorApiKeyId = null)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
-        var candidate = await db.Candidates.SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
+        // One person is one candidate in an organization, however many jobs they apply to, so the lookup by email sees
+        // past the job scope: a member on Only jobs they're on adding someone who applied to another job attaches the new
+        // application to that candidate. The tenant filter stays, and candidates keep tenant-only row-level security for
+        // this (ADR-0015). Once added, the candidate is visible to them through this job, with this job's application only.
+        var candidate = await db.Candidates.IgnoreQueryFilters([ScreenHireDbContext.JobScopeFilter])
+            .SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
         if (candidate is null)
         {
-            candidate = Candidate.Create(job.OrganizationId, input.FullName, input.Email, input.Phone, now);
+            candidate = Candidate.Create(job.OrganizationId, input.FirstName, input.LastName, input.Email, input.Phone, now);
             db.Candidates.Add(candidate);
         }
         else if (await db.Applications.AnyAsync(a => a.JobId == job.Id && a.CandidateId == candidate.Id, cancellationToken))
@@ -55,7 +86,7 @@ internal static class ApplicationSubmission
 
         var (application, submitted) = JobApplication.Submit(
             job, candidate, declarations.AccommodationRequested, declarations.AiUseDeclaration, declarations.AiUseDetails,
-            now, actorUserId, intake);
+            now, actorUserId, intake, actorApiKeyId);
         db.Applications.Add(application);
         db.ApplicationEvents.Add(submitted);
         if (session is not null && application.Source == ApplicationSource.CareersSite)

@@ -220,7 +220,7 @@ public sealed class ConsistencyCheckerTests
         var job = new IntegrityHarness().Job;
         var application = Domain.Applications.JobApplication.Submit(
             job,
-            Domain.Candidates.Candidate.Create(job.OrganizationId, "Dana Whitfield", "dana@example.com", null, IntegrityHarness.Start),
+            Domain.Candidates.Candidate.Create(job.OrganizationId, "Dana", "Whitfield", "dana@example.com", null, IntegrityHarness.Start),
             false, Domain.Applications.AiUseDeclaration.DidNotUse, null, IntegrityHarness.Start, null);
         var uncited = new ObservedSignal(
             SignalCatalogue.Inconsistency, SignalConfidence.Medium, [SignalEvidence.Fact("Model says", "the dates differ")],

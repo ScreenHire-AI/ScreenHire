@@ -5,6 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
+/**
+ * The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made
+ * (CustomRole). Stored as text.
+ */
 export type OrganizationRole = typeof OrganizationRole[keyof typeof OrganizationRole];
 
 
@@ -13,4 +17,5 @@ export const OrganizationRole = {
   Admin: 'Admin',
   Recruiter: 'Recruiter',
   Viewer: 'Viewer',
+  Custom: 'Custom',
 } as const;

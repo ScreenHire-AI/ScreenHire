@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0007: Host on Azure (bootstrap config), Cloudflare in front"
+description: "The bootstrap hosting plan, not built yet: Azure Container Apps for the API, careers and worker, a Burstable PostgreSQL Flexible Server, Blob Storage and Key Vault, Cloudflare Free in front with Turnstile, and the monthly cost before credits."
+tags: [adr, hosting, azure]
+---
 # ADR-0007: Host on Azure (bootstrap config), Cloudflare in front
 
 - **Status:** Accepted — owner preference (2026-10-18)

@@ -27,7 +27,8 @@ terminal); wait with `aspire wait`, never a curl loop; stop with `aspire stop`, 
 
 ## 1. Prerequisites
 
-1. `docker info --format '{{.ServerVersion}}'`. If it fails, Docker Desktop is not running: report that and stop.
+1. `docker info --format '{{.ServerVersion}}'`. If it fails, run `pnpm docker:start` (it starts Docker Desktop
+   outside this task and waits for the engine). Report and stop only if that fails. Never start Docker Desktop yourself.
 2. `pnpm install --frozen-lockfile` and `dotnet tool restore`. Both return in seconds when nothing changed.
 3. `dotnet dev-certs https --check --trust`. If it finds no trusted certificate, carry on: the Aspire dashboard warns in
    the browser. Report `dotnet dev-certs https --trust` as an action for a person (trusting needs a confirmation dialog).
@@ -97,7 +98,7 @@ In a Kangentic task, use the task's browser pane (the `kangentic_browser_*` tool
    "Unverified address" button signs in with Avery's email and is refused. Wait for `h1` with text `Jobs`.
 4. `kangentic_browser_query_all` on `a[href^="/jobs/"]` with `includeHtml`, take the `href` of "Senior .NET Engineer"
    and `kangentic_browser_navigate` to it. Clicking by text can land on the first job link.
-5. Wait up to 60 s, twice if needed, for `[data-integrity-chip="authenticity"][data-level="Verification recommended"]`.
+5. Wait up to 60 s, twice if needed, for `[data-integrity-chip="authenticity"][data-level="Verification suggested"]`.
    Text alone matches the sidebar's saved view of the same name.
 
 An offscreen pane (another project is open in Kangentic) screenshots blank; read the page with

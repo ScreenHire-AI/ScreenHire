@@ -6,7 +6,7 @@
  */
 
 /**
- * Counts for one form field. `fieldId` is a question id or one of the form's own fields (`fullName`, ...).
+ * Counts for one form field. `fieldId` is a question id or one of the form's own fields (`firstName`, ...).
  */
 export interface FieldTelemetryInput {
   fieldId: string;

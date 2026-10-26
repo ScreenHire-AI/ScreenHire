@@ -5,17 +5,20 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Automation } from './automation.ts';
+import type { FollowUpQuestionnaire } from './followUpQuestionnaire.ts';
 import type { IntegrityPolicy } from './integrityPolicy.ts';
 import type { Questionnaire } from './questionnaire.ts';
 import type { WorkflowStage } from './workflowStage.ts';
 
 /**
  * What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity
- * policy and the automations.
+ * policy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.
  */
 export interface HiringWorkflow {
   stages: WorkflowStage[];
   questionnaire: Questionnaire;
   integrityPolicy: IntegrityPolicy;
   automations: Automation[];
+  /** @nullable */
+  followUpQuestionnaires?: FollowUpQuestionnaire[] | null;
 }

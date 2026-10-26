@@ -79,7 +79,7 @@ public sealed class JobApplicationTests
     public void A_candidate_of_another_organization_cannot_apply()
     {
         var (job, _) = JobAndCandidate();
-        var stranger = Candidate.Create(Guid.CreateVersion7(), "Sam Field", "sam@example.com", null, Monday);
+        var stranger = Candidate.Create(Guid.CreateVersion7(), "Sam", "Field", "sam@example.com", null, Monday);
 
         var submit = () => JobApplication.Submit(job, stranger, false, AiUseDeclaration.NotProvided, null, Monday, Recruiter);
 
@@ -112,10 +112,74 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void Removing_a_tag_ignores_case_and_records_the_tag_as_it_was()
+    {
+        var (application, _) = Submitted();
+        application.AddTag("Referral", Monday, Recruiter);
+        var apiKey = Guid.CreateVersion7();
+
+        var removed = application.RemoveTag(" referral ", Monday.AddHours(1), actorUserId: null, apiKey);
+
+        application.Tags.Should().BeEmpty();
+        removed!.Type.Should().Be(ApplicationEventType.TagRemoved);
+        removed.Data.Should().Be(new ApplicationEventData(Tag: "Referral", ApiKeyId: apiKey));
+        application.RemoveTag("referral", Monday.AddHours(2), Recruiter).Should().BeNull("a tag it does not have changes nothing");
+    }
+
+    [Fact]
+    public void A_note_is_trimmed_and_kept_with_its_author_without_changing_the_application()
+    {
+        var (application, _) = Submitted();
+
+        var (note, entry) = application.AddNote("  Ask about the notice period.  ", Monday.AddHours(1), Recruiter);
+
+        note.Text.Should().Be("Ask about the notice period.");
+        note.AuthorUserId.Should().Be(Recruiter);
+        note.ApplicationId.Should().Be(application.Id);
+        note.EditedAt.Should().BeNull();
+        entry.Type.Should().Be(ApplicationEventType.NoteAdded);
+        entry.Data.Should().Be(new ApplicationEventData(NoteId: note.Id), "the timeline names the note and never holds its text");
+        entry.ActorUserId.Should().Be(Recruiter);
+        application.CurrentStageId.Should().Be("applied");
+        application.StageEnteredAt.Should().Be(Monday);
+    }
+
+    [Fact]
     public void Emails_match_whatever_their_case_and_spacing()
     {
-        Candidate.Create(Guid.CreateVersion7(), " Alex Rivera ", " Alex.Rivera@Example.com ", " ", Monday)
-            .Should().BeEquivalentTo(new { FullName = "Alex Rivera", Email = "Alex.Rivera@Example.com", NormalizedEmail = "alex.rivera@example.com", Phone = (string?)null });
+        Candidate.Create(Guid.CreateVersion7(), " Alex ", " Rivera ", " Alex.Rivera@Example.com ", " ", Monday)
+            .Should().BeEquivalentTo(new
+            {
+                FirstName = "Alex",
+                LastName = "Rivera",
+                FullName = "Alex Rivera",
+                Email = "Alex.Rivera@Example.com",
+                NormalizedEmail = "alex.rivera@example.com",
+                Phone = (string?)null,
+            });
+    }
+
+    [Fact]
+    public void A_candidate_with_no_last_name_goes_by_their_first_name()
+    {
+        // A candidate from before the name was split keeps their whole name as the first name; a blank last name is none.
+        Candidate.Create(Guid.CreateVersion7(), "Alex Rivera", "  ", "alex@example.com", null, Monday)
+            .Should().BeEquivalentTo(new { FirstName = "Alex Rivera", LastName = (string?)null, FullName = "Alex Rivera" });
+    }
+
+    [Fact]
+    public void A_sent_email_is_recorded_by_the_id_of_its_copy_which_holds_the_body()
+    {
+        var (application, _) = Submitted();
+        var sendId = Guid.CreateVersion7();
+
+        var copy = application.PrepareEmail(sendId, null, "alex@example.com", "A quick question", "Hi Alex,\n", "<p>Hi Alex,</p>", Monday);
+        var entry = application.EmailSent(copy, Monday, Recruiter);
+
+        copy.Should().BeEquivalentTo(new { Id = sendId, application.OrganizationId, ApplicationId = application.Id, TemplateId = (string?)null });
+        entry.Id.Should().Be(sendId);
+        entry.Type.Should().Be(ApplicationEventType.EmailSent);
+        entry.Data.Should().BeEquivalentTo(new { EmailId = (Guid?)sendId, EmailSubject = "A quick question", EmailTemplateId = (string?)null });
     }
 
     private static (JobApplication Application, Job Job) Submitted()
@@ -129,6 +193,6 @@ public sealed class JobApplicationTests
     {
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Barista", Slug = "barista" };
-        return (job, Candidate.Create(organization, "Alex Rivera", "alex@example.com", null, Monday));
+        return (job, Candidate.Create(organization, "Alex", "Rivera", "alex@example.com", null, Monday));
     }
 }

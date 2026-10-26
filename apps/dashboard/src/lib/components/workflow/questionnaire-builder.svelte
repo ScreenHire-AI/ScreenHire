@@ -1,207 +1,159 @@
-<script lang="ts">
-  import type { AiUsePolicy, DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import { Button } from '#lib/components/ui/button/index.js';
-  import { Input } from '#lib/components/ui/input/index.js';
-  import { errorsAt, errorsUnder, idFrom, moveItem, newQuestion, questionTypeLabels, questionTypes, removeAt, withQuestionType } from '#lib/workflow.js';
-  import { checkboxClass, kickerClass, labelClass, selectClass } from './controls.js';
-  import FieldErrors from './field-errors.svelte';
-  import QuestionnairePreview from './questionnaire-preview.svelte';
+<script lang="ts" module>
+  import type { Question } from '@screenhire/api-client';
 
-  // The screening questions and the AI-use policy, beside a live preview of the candidate's form. Questions reorder with
-  // buttons (WCAG 2.5.7).
-  let { workflow = $bindable(), errors, readonly = false }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; readonly?: boolean } =
-    $props();
-
-  let addType = $state<QuestionType>('YesNo');
-
-  const aiUseLabels: Record<AiUsePolicy, string> = {
-    Allowed: 'Allowed: candidates may use AI tools and need not say so',
-    AllowedWithDisclosure: 'Allowed with disclosure: candidates say if they used AI tools',
-    NotAllowed: 'Not allowed: candidates are asked to write without AI tools',
-  };
-
-  const questions = $derived(workflow.questionnaire.questions);
-  const setQuestions = (next: typeof questions) => (workflow.questionnaire = { ...workflow.questionnaire, questions: next });
-  const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value));
+  /** What the questionnaire's pop-out preview window draws (`/preview/form`). */
+  export interface FormPreview {
+    form: 'apply' | 'follow-up';
+    questions: Question[];
+  }
 </script>
 
-<div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-  <section aria-labelledby="questions-heading" class="flex flex-col gap-3">
-    <fieldset disabled={readonly} class="flex flex-col gap-3">
-      <legend class="sr-only">Questionnaire</legend>
-      <label class={[labelClass, 'rounded-xl border border-border bg-card p-3.5']}>
-        AI use while applying
-        <select class={selectClass} bind:value={workflow.integrityPolicy.aiUse}>
-          {#each Object.entries(aiUseLabels) as [policy, label] (policy)}<option value={policy}>{label}</option>{/each}
-        </select>
-        <span class="font-normal text-muted-foreground">Candidates see this before they start. What they declare is never a fact an automation can use.</span>
-      </label>
+<script lang="ts">
+  import type { DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
+  import PlusIcon from '@lucide/svelte/icons/plus';
+  import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
+  import FormBuilder from '#lib/components/form-builder.svelte';
+  import Hint from '#lib/components/hint.svelte';
+  import Panel from '#lib/components/panel.svelte';
+  import PreviewFrame from '#lib/components/preview-frame.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
+  import { Input } from '#lib/components/ui/input/index.js';
+  import { Toggle } from '#lib/components/ui/toggle/index.js';
+  import { applyFormKinds, duplicateId, followUpKinds, type AnswerKindGroup } from '#lib/form-builder.js';
+  import { createPreviewSource } from '#lib/preview-window.svelte.js';
+  import { aiUseLabels, allQuestions, errorsAt, errorsUnder, followUpsOf, newFollowUp, newQuestion, withQuestionType } from '#lib/workflow.js';
+  import { labelClass, selectClass } from './controls.js';
+  import FieldErrors from './field-errors.svelte';
+  import QuestionSettings from './question-settings.svelte';
+  import QuestionnairePreview from './questionnaire-preview.svelte';
 
-      <h3 id="questions-heading" class={kickerClass}>Screening questions</h3>
-      <FieldErrors id="questions-errors" messages={[...errorsAt(errors, 'questionnaire'), ...errorsAt(errors, 'questionnaire.questions')]} />
-      {#if questions.length === 0}
-        <p class="text-[13px] text-muted-foreground">No questions yet. Every form still asks for a resume.</p>
-      {/if}
-      <ol class="flex flex-col gap-2.5">
-        {#each questions as question, index (question.id)}
-          {@const path = `questionnaire.questions[${index}]`}
-          {@const questionErrors = errorsUnder(errors, path).map((error) => error.message)}
-          <li aria-label={`Question ${index + 1}: ${question.label}`} class="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5">
-            <div class="grid items-end gap-2 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_auto]">
-              <label class={labelClass}>
-                <span>Question <span class="font-mono text-[11px] font-normal text-muted-foreground">answers.{question.id}</span></span>
-                <Input bind:value={question.label} maxlength={300} aria-invalid={questionErrors.length > 0 || undefined} />
-              </label>
-              <label class={labelClass}>
-                Answer type
-                <select class={selectClass} value={question.type} onchange={(event) => (workflow.questionnaire.questions[index] = withQuestionType(question, event.currentTarget.value as QuestionType))}>
-                  {#each questionTypes as type (type)}<option value={type}>{questionTypeLabels[type]}</option>{/each}
-                </select>
-              </label>
-              <div class="flex gap-0.5">
-                <Button variant="ghost" size="icon-sm" aria-label={`Move "${question.label}" up`} disabled={index === 0} onclick={() => setQuestions(moveItem(questions, index, -1))}
-                  ><ArrowUpIcon aria-hidden="true" /></Button
-                >
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Move "${question.label}" down`}
-                  disabled={index === questions.length - 1}
-                  onclick={() => setQuestions(moveItem(questions, index, 1))}><ArrowDownIcon aria-hidden="true" /></Button
-                >
-                <Button variant="ghost" size="icon-sm" aria-label={`Remove "${question.label}"`} onclick={() => setQuestions(removeAt(questions, index))}
-                  ><Trash2Icon aria-hidden="true" /></Button
-                >
-              </div>
-            </div>
-            <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <label class={labelClass}>
-                Help text (optional)
-                <Input bind:value={() => question.helpText ?? '', (value) => (question.helpText = value || null)} maxlength={500} />
-              </label>
-              <label class="flex items-center gap-2 self-end pb-1.5 text-[13px] font-semibold">
-                <input type="checkbox" class={checkboxClass} bind:checked={() => question.required ?? false, (on) => (question.required = on)} />
-                Required
-              </label>
-            </div>
+  // The apply form's questions and AI-use policy, and the follow-up questionnaires an automation sends after someone
+  // applied, in the form builder. One questionnaire shows at a time; the toggles are peer views of the workflow's
+  // questionnaires (design system section 11). The Edit / Preview switch swaps the builder for the candidate's form at
+  // its real size, and its window icon opens that form in a second window that follows each edit (A8).
+  let { workflow = $bindable(), errors }: { workflow: HiringWorkflow; errors: readonly DefinitionError[] } = $props();
 
-            {#if question.type === 'SingleChoice' || question.type === 'MultiChoice'}
-              <fieldset class="flex flex-col gap-1.5">
-                <legend class={kickerClass}>Options</legend>
-                {#each question.options ?? [] as option, optionIndex (option.id)}
-                  <div class="flex items-end gap-1.5">
-                    <label class={[labelClass, 'flex-1']}>
-                      <span class="sr-only">Option {optionIndex + 1}</span>
-                      <Input bind:value={option.label} maxlength={200} />
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Remove option ${option.label}`}
-                      onclick={() => (question.options = removeAt(question.options ?? [], optionIndex))}><Trash2Icon aria-hidden="true" /></Button
-                    >
-                  </div>
-                {/each}
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onclick={() => {
-                      const label = `Option ${(question.options?.length ?? 0) + 1}`;
-                      question.options = [...(question.options ?? []), { id: idFrom(label, (question.options ?? []).map((o) => o.id), 'option'), label }];
-                    }}>Add option</Button
-                  >
-                </div>
-              </fieldset>
-            {:else if question.type === 'YesNo'}
-              <div class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-muted/40 p-2.5">
-                <label class="flex items-center gap-2 text-[13px] font-semibold">
-                  <input
-                    type="checkbox"
-                    class={checkboxClass}
-                    bind:checked={() => !!question.knockout, (on) => (question.knockout = on ? { disqualifyingAnswer: false, reason: null } : null)}
-                  />
-                  Knockout question
-                </label>
-                <p class="text-[12.5px] text-muted-foreground">
-                  A knockout is an objective eligibility check only, such as the right to work or a required licence. Never use
-                  one for AI use or for needing an accommodation: that would screen people out for exactly what ScreenHire
-                  protects. A knockout answer only queues the application for a person to review unless an automation opts in
-                  to rejecting.
-                </p>
-                {#if question.knockout}
-                  <div class="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)]">
-                    <label class={labelClass}>
-                      Ineligible answer
-                      <select
-                        class={selectClass}
-                        value={question.knockout.disqualifyingAnswer ? 'yes' : 'no'}
-                        onchange={(event) => (question.knockout!.disqualifyingAnswer = event.currentTarget.value === 'yes')}
-                      >
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                      </select>
-                    </label>
-                    <label class={labelClass}>
-                      Reason the candidate sees
-                      <Input bind:value={() => question.knockout?.reason ?? '', (value) => (question.knockout!.reason = value || null)} maxlength={500} />
-                    </label>
-                  </div>
-                {/if}
-              </div>
-            {:else if question.type === 'Number'}
-              <div class="grid gap-2 sm:grid-cols-2">
-                <label class={labelClass}>
-                  Minimum (optional)
-                  <Input type="number" value={question.min ?? ''} onchange={(event) => (question.min = numberOrNull(event.currentTarget.value))} />
-                </label>
-                <label class={labelClass}>
-                  Maximum (optional)
-                  <Input type="number" value={question.max ?? ''} onchange={(event) => (question.max = numberOrNull(event.currentTarget.value))} />
-                </label>
-              </div>
-            {:else if question.type === 'File'}
-              <label class={labelClass}>
-                Accepted file types, separated by commas
-                <Input
-                  value={(question.acceptedFileTypes ?? []).join(', ')}
-                  onchange={(event) =>
-                    (question.acceptedFileTypes = event.currentTarget.value
-                      .split(',')
-                      .map((type) => type.trim().toLowerCase())
-                      .filter(Boolean))}
-                />
-              </label>
-            {:else}
-              <label class={[labelClass, 'max-w-48']}>
-                Longest answer (optional)
-                <Input type="number" min={1} value={question.maxLength ?? ''} onchange={(event) => (question.maxLength = numberOrNull(event.currentTarget.value))} />
-              </label>
-            {/if}
-            <FieldErrors id={`question-${index}-errors`} messages={questionErrors} />
-          </li>
+  /** `apply`, or the id of the follow-up questionnaire on show. */
+  let selected = $state('apply');
+  let mode = $state<'edit' | 'preview'>('edit');
+
+  const followUps = $derived(followUpsOf(workflow));
+  const index = $derived(followUps.findIndex((followUp) => followUp.id === selected));
+  const current = $derived(index >= 0 ? followUps[index] : undefined);
+  const path = $derived(current ? `followUpQuestionnaires[${index}]` : 'questionnaire');
+  const questions = $derived(current ? current.questions : workflow.questionnaire.questions);
+  const groups: readonly AnswerKindGroup<QuestionType>[] = $derived(current ? followUpKinds : applyFormKinds);
+
+  const source = createPreviewSource<FormPreview>(() => ({ form: current ? 'follow-up' : 'apply', questions }));
+
+  function setQuestions(next: Question[]) {
+    if (current) current.questions = next;
+    else workflow.questionnaire.questions = next;
+  }
+
+  function addFollowUp() {
+    const followUp = newFollowUp(workflow);
+    workflow.followUpQuestionnaires = [...followUps, followUp];
+    selected = followUp.id;
+  }
+
+  function removeFollowUp() {
+    workflow.followUpQuestionnaires = followUps.filter((followUp) => followUp.id !== selected);
+    selected = 'apply';
+  }
+
+  // A copy keeps everything but its id, which stays unique across the workflow, so `answers.{id}` names one question.
+  function duplicate(question: Question): Question {
+    const copy = $state.snapshot(question) as Question;
+    return { ...copy, id: duplicateId(question.id, allQuestions(workflow).map((other) => other.id)) };
+  }
+</script>
+
+<div class="flex flex-col gap-5">
+  <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
+      <div role="group" aria-label="Questionnaire" class="flex min-w-0 gap-1 overflow-x-auto">
+        <Toggle class="shrink-0" bind:pressed={() => selected === 'apply', (pressed) => pressed && (selected = 'apply')}>Apply form</Toggle>
+        {#each followUps as followUp (followUp.id)}
+          <Toggle class="shrink-0" bind:pressed={() => selected === followUp.id, (pressed) => pressed && (selected = followUp.id)}>
+            {followUp.name || followUp.id}
+          </Toggle>
         {/each}
-      </ol>
-      <div class="flex flex-wrap items-end gap-2">
-        <label class={[labelClass, 'w-48']}>
-          New question's answer type
-          <select class={selectClass} bind:value={addType}>
-            {#each questionTypes as type (type)}<option value={type}>{questionTypeLabels[type]}</option>{/each}
-          </select>
-        </label>
-        <Button variant="outline" onclick={() => setQuestions([...questions, newQuestion(workflow, addType)])}>Add question</Button>
       </div>
-    </fieldset>
-  </section>
+      <Button variant="outline" onclick={addFollowUp}><PlusIcon aria-hidden="true" />Add follow-up questionnaire</Button>
+    </div>
+    <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/form')} />
+  </div>
+  <!-- A problem with the follow-ups as a whole, said in the surface below the switch (S3). -->
+  {#snippet followUpsErrors()}<FieldErrors id="follow-ups-errors" messages={errorsAt(errors, 'followUpQuestionnaires')} />{/snippet}
 
-  <section aria-labelledby="preview-heading" class="flex flex-col gap-2 lg:sticky lg:top-4">
-    <h3 id="preview-heading" class={kickerClass}>Candidate preview</h3>
-    <p class="text-[12.5px] text-muted-foreground">
-      The careers apply page renders these same components. Try the answers here; nothing is sent.
-    </p>
-    <QuestionnairePreview {questions} />
-  </section>
+  {#if mode === 'preview'}
+    <Panel title="Preview">
+      {@render followUpsErrors()}
+      <PreviewFrame>
+        <QuestionnairePreview {questions} followUp={!!current} />
+      </PreviewFrame>
+    </Panel>
+  {:else}
+    {#if current}
+      <Panel title="Follow-up questionnaire">
+        {#snippet actions()}
+          <!-- A short label, so the panel title keeps its row at phone width (F5); the accessible name says what it removes. -->
+          <Button variant="outline" aria-label="Remove questionnaire" onclick={removeFollowUp}>Remove</Button>
+        {/snippet}
+        {@render followUpsErrors()}
+        <div class="flex max-w-form flex-col gap-1.5">
+          <!-- The questionnaire's id is detail: it is in the label's tooltip (W6). -->
+          <div class={labelClass}>
+            <Hint content={`Questionnaire id: ${current.id}`}>
+              {#snippet children({ props })}<label {...props} for="follow-up-name" class="w-fit">Name</label>{/snippet}
+            </Hint>
+            <Input
+              id="follow-up-name"
+              bind:value={current.name}
+              maxlength={80}
+              aria-describedby="follow-up-note"
+              aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined}
+            />
+          </div>
+          <FieldErrors id="follow-up-name-errors" messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.name`)]} />
+          <p id="follow-up-note" class="text-muted-foreground">A "Send a questionnaire" automation emails the candidate a link to it.</p>
+        </div>
+      </Panel>
+    {:else}
+      <Panel title="AI use while applying">
+        {@render followUpsErrors()}
+        <div class="flex max-w-form flex-col gap-1.5">
+          <select class={selectClass} aria-label="AI use while applying" aria-describedby="ai-use-note" bind:value={workflow.integrityPolicy.aiUse}>
+            {#each Object.entries(aiUseLabels) as [policy, label] (policy)}<option value={policy}>{label}</option>{/each}
+          </select>
+          <p id="ai-use-note" class="text-muted-foreground">Candidates see this before they start, and no automation uses their answer.</p>
+        </div>
+      </Panel>
+    {/if}
+    {#key path}
+      <FormBuilder
+        bind:items={() => questions, setQuestions}
+        {groups}
+        title={current ? 'Questions' : 'Screening questions'}
+        empty={current ? 'Add at least one question.' : 'No questions yet. Every form still asks for a resume.'}
+        key={(question) => question.id}
+        kindOf={(question) => question.type}
+        withKind={withQuestionType}
+        labelOf={(question) => question.label}
+        setLabel={(question, value) => (question.label = value)}
+        requiredOf={(question) => question.required ?? false}
+        setRequired={(question, value) => (question.required = value)}
+        help={{ label: 'Help text', get: (question) => question.helpText, set: (question, value) => (question.helpText = value) }}
+        optionsOf={(question) => question.options ?? []}
+        setOptions={(question, options) => (question.options = options)}
+        newItem={(type) => newQuestion(workflow, type)}
+        {duplicate}
+        errorsFor={(_, questionIndex) => errorsUnder(errors, `${path}.questions[${questionIndex}]`).map((error) => error.message)}
+        problems={current ? errorsAt(errors, `${path}.questions`) : [...errorsAt(errors, path), ...errorsAt(errors, `${path}.questions`)]}
+      >
+        {#snippet settings(question)}<QuestionSettings {question} />{/snippet}
+      </FormBuilder>
+    {/key}
+  {/if}
 </div>

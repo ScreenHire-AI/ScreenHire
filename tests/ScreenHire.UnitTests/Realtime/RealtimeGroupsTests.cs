@@ -11,18 +11,42 @@ public sealed class RealtimeGroupsTests
     private static readonly Guid JobId = Guid.Parse("0199f0c4-0000-7000-8000-00000000000b");
 
     [Fact]
-    public void A_tenant_event_goes_to_its_whole_organization()
+    public void A_tenant_event_with_no_job_goes_to_its_whole_organization()
+    {
+        RealtimeGroups.For(new LiveUpdatesChecked(OrganizationId, Guid.CreateVersion7()))
+            .Should().Equal($"org:{OrganizationId}");
+    }
+
+    [Fact]
+    public void A_job_event_goes_to_everyone_who_sees_all_jobs_and_to_the_jobs_hiring_team()
     {
         RealtimeGroups.For(new JobPublished(OrganizationId, JobId, DateTimeOffset.UnixEpoch))
-            .Should().Be($"org:{OrganizationId}");
+            .Should().Equal($"org:{OrganizationId}:all-jobs", $"org:{OrganizationId}:team:{JobId}")
+            .And.Equal(RealtimeGroups.AllJobs(OrganizationId), RealtimeGroups.Team(OrganizationId, JobId));
+    }
+
+    [Fact]
+    public void Every_event_that_names_a_job_is_a_job_event()
+    {
+        // A tenant event with a job id that reached the whole organization would tell members on Only jobs they're on
+        // about jobs they cannot see (ADR-0015).
+        ScreenHireMessaging.TenantEventTypes.Values
+            .Where(type => type.GetProperty("JobId")?.PropertyType == typeof(Guid))
+            .Should().OnlyContain(type => type.IsAssignableTo(typeof(IJobEvent)));
+    }
+
+    [Fact]
+    public void The_job_groups_never_collide_with_a_record_topic()
+    {
+        RealtimeGroups.Team(OrganizationId, JobId).Should().NotBe(RealtimeGroups.Topic(OrganizationId, RealtimeTopics.Job, JobId));
     }
 
     [Fact]
     public void A_topic_event_goes_only_to_its_records_subscribers_in_its_organization()
     {
         RealtimeGroups.For(new JobProgress(OrganizationId, JobId))
-            .Should().Be($"org:{OrganizationId}:job:{JobId}")
-            .And.Be(RealtimeGroups.Topic(OrganizationId, RealtimeTopics.Job, JobId), "the hub adds subscribers to this group");
+            .Should().Equal($"org:{OrganizationId}:job:{JobId}")
+            .And.Equal(RealtimeGroups.Topic(OrganizationId, RealtimeTopics.Job, JobId));
     }
 
     [Fact]

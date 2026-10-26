@@ -4,33 +4,81 @@
     createCreateHiringTemplate,
     createCreateHiringTemplateVersion,
     createGetHiringTemplate,
+    createArchiveHiringTemplate,
+    createGetHiringTemplateTeam,
     createGetHiringTemplateVersion,
+    createGetTemplateUsage,
+    createListTeamMembers,
+    createUnarchiveHiringTemplate,
     createPublishHiringTemplateVersion,
     createUpdateHiringTemplateVersion,
+    getGetHiringTemplateHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
+  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
+  import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import CheckIcon from '@lucide/svelte/icons/check';
+  import CopyIcon from '@lucide/svelte/icons/copy';
+  import LayersIcon from '@lucide/svelte/icons/layers';
+  import PencilIcon from '@lucide/svelte/icons/pencil';
+  import SaveIcon from '@lucide/svelte/icons/save';
+  import SendIcon from '@lucide/svelte/icons/send';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { beforeNavigate, goto } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import BuiltInBadge from '#lib/components/built-in-badge.svelte';
+  import CountButton from '#lib/components/count-button.svelte';
+  import Fact from '#lib/components/fact.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
+  import HeaderBand from '#lib/components/header-band.svelte';
+  import Hint from '#lib/components/hint.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
+  import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
+  import LeaveDialog from '#lib/components/leave-dialog.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
+  import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
-  import { formatShortDate } from '#lib/format.js';
+  import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
+  import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
+  import { formatDateTime } from '#lib/dates.js';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
+  import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
+  import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
+  import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
   import type { PageProps } from './$types';
 
-  // One hiring template: its versions, and the builder over the chosen one. A draft is edited and saved here, then
-  // published; a published version never changes, so editing one starts the next version as a draft.
+  // One hiring template: its versions, and the chosen one. Your own draft opens in the builder, to edit, save and
+  // publish; anything else (a ScreenHire template, a published version, an archived template) reads as content. A
+  // published version never changes, so editing one starts the next version as a draft. The header's facts are Used by
+  // (the jobs started from it, T4), the version and Last updated with History (T6). A built-in says it reads only and
+  // offers Copy template (E3); your own can be duplicated and archived, and an archived one restored. The Questionnaire
+  // tab has the Edit / Preview switch (A8): it is the part of a template that someone else sees.
   let { params }: PageProps = $props();
 
   const queryClient = useQueryClient();
-  const refresh = () => Promise.all([invalidatePath(queryClient, templatesPath), invalidatePath(queryClient, jobsPath)]);
+  const refresh = () =>
+    Promise.all([invalidatePath(queryClient, templatesPath), invalidatePath(queryClient, jobsPath), invalidatePath(queryClient, templateUsagePath)]);
   const template = createGetHiringTemplate(() => params.templateId);
   const detail = $derived(template.data?.data);
+  // The default hiring team new jobs from an own template start with (ADR-0015); a ScreenHire template has none.
+  const defaultTeam = createGetHiringTemplateTeam(() => params.templateId, () => ({ query: { enabled: detail !== undefined && !detail.isSystem } }));
+  const teamSize = $derived(defaultTeam.data?.data.length);
+  let teamOpen = $state(false);
   const requested = $derived(Number(page.url.searchParams.get('version')) || null);
   const versions = $derived(detail?.versions ?? []);
   const chosen = $derived(
@@ -43,31 +91,51 @@
     () => chosen?.version ?? 0,
   );
   const current = $derived(version.data?.data);
-  const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem);
-  const hasDraft = $derived(versions.some((candidate) => candidate.status === 'Draft'));
+  // The sidebar's own phone test (under md), where the primary action moves to the action bar.
+  const sidebar = Sidebar.useSidebar();
+  const mayEdit = $derived(can(page.data.user, 'EditHiringTemplates'));
+  const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem && !detail?.archived && mayEdit);
+  // Duplicate and Archive, for the team's own template and a role that may change templates.
+  const ownActions = $derived(mayEdit && Boolean(detail) && !detail?.isSystem);
+  const usage = createGetTemplateUsage();
+  const use = $derived(usage.data?.data.hiring.find((entry) => entry.templateId === params.templateId));
+  const draftVersion = $derived(versions.find((candidate) => candidate.status === 'Draft'));
 
   const save = createUpdateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const publish = createPublishHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const nextVersion = createCreateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const copy = createCreateHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
+  const archive = createArchiveHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
+  const unarchive = createUnarchiveHiringTemplate(() => ({ mutation: { onSettled: refresh } }));
+
+  // Last updated and History (T6). A ScreenHire template says "by ScreenHire" and has no History: nobody can change it.
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  let historyOpen = $state(false);
+  const history = createHistoryPages(
+    (before) => getGetHiringTemplateHistoryQueryOptions(params.templateId, { before }),
+    () => historyOpen,
+  );
 
   const draft = createWorkflowDraft();
   $effect(() => {
     if (current) draft.load(current.definition.workflow, `${current.id}:${current.status}`);
   });
 
-  let status = $state('');
+  let tab = $state('pipeline');
+  let notice = $state('');
   let failure = $state('');
-  const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending);
+  const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending || archive.isPending || unarchive.isPending);
 
-  // Unsaved work lives only on this page: ask before leaving it.
-  beforeNavigate((navigation) => {
-    if (draft.dirty && isDraft && !confirm('Leave without saving this draft?')) navigation.cancel();
-  });
 
   async function saveDraft(): Promise<boolean> {
     if (!current || !draft.workflow) return false;
     failure = '';
+    if (!draft.dirty) {
+      notice = 'No changes to save.';
+      return true;
+    }
     try {
       const response = await save.mutateAsync({
         templateId: params.templateId,
@@ -75,7 +143,7 @@
         data: { definition: { ...current.definition, workflow: draft.workflow } },
       });
       draft.saved(response.data.definition.workflow, `${response.data.id}:${response.data.status}`);
-      status = `Saved version ${current.version}.`;
+      notice = `Saved version ${current.version}.`;
       return true;
     } catch (error) {
       failure = draft.failed(error, 'Could not save the draft');
@@ -89,7 +157,7 @@
     failure = '';
     try {
       await publish.mutateAsync({ templateId: params.templateId, version: current.version });
-      status = `Published version ${current.version}. New jobs can use it, and jobs from older versions show an update.`;
+      notice = `Published version ${current.version}.`;
     } catch (error) {
       failure = draft.failed(error, 'Could not publish');
     }
@@ -109,89 +177,242 @@
     if (!detail || !current) return;
     failure = '';
     try {
-      const response = await copy.mutateAsync({ data: { name: `${detail.name} (copy)`, copyFromVersionId: current.id } });
+      const response = await copy.mutateAsync({
+        data: { name: copyName(detail.name, maxNameLength.hiring), description: detail.description, copyFromVersionId: current.id },
+      });
       await goto(`/templates/${response.data.id}`);
     } catch (error) {
       failure = describeError(error, 'Could not copy the template');
     }
   }
 
+  // Archive takes the template out of the pickers; Restore, on this page or under Archived, puts it back (section 10).
+  async function setArchived(archived: boolean) {
+    failure = '';
+    notice = '';
+    try {
+      await (archived ? archive : unarchive).mutateAsync({ templateId: params.templateId });
+      notice = archived ? 'Archived.' : 'Restored.';
+    } catch (error) {
+      failure = describeError(error, archived ? 'Could not archive the template' : 'Could not restore the template');
+    }
+  }
+
   const notFound = $derived(template.error instanceof ApiError && template.error.status === 404);
+  const workArea = 'flex w-full flex-col gap-5 px-4 py-6 md:px-6';
 </script>
 
 <svelte:head>
   <title>{detail?.name ?? 'Template'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Templates', href: '/templates' }, { label: detail?.name ?? 'Template' }]} />
+<TopBar crumbs={[{ label: 'Templates', href: templatesHref('hiring') }, { label: detail?.name ?? 'Template' }]} back />
 
-<main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
+<main class={[sidebar.isMobile && detail && current && mayEdit && 'pb-28']}>
   {#if template.isError}
-    {#if notFound}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Template not found</h1>
-      <p class="text-muted-foreground">This template does not exist, or it belongs to another organization. <a href="/templates">Back to templates</a></p>
-    {:else}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Template</h1>
-      <QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} />
-    {/if}
+    <HeaderBand title={notFound ? 'Template not found' : 'Template'} />
+    <div class={workArea}>
+      {#if notFound}
+        <Panel title="Details">
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Title>This template does not exist, or it belongs to another organization.</Empty.Title>
+            </Empty.Header>
+            <Empty.Content><Button href="/templates" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to templates</Button></Empty.Content>
+          </Empty.Root>
+        </Panel>
+      {:else}
+        <Panel title="Could not load the template"><QueryError message={describeError(template.error, 'Could not load this template')} onretry={() => template.refetch()} inset /></Panel>
+      {/if}
+    </div>
   {:else if !detail || !current || !draft.workflow}
     {#if version.isError}
-      <QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} />
+      <HeaderBand title={detail?.name ?? 'Template'} />
+      <div class={workArea}>
+        <Panel title="Could not load the version"><QueryError message={describeError(version.error, 'Could not load this version')} onretry={() => version.refetch()} inset /></Panel>
+      </div>
     {:else}
-      <div aria-hidden="true" class="flex flex-col gap-2">
-        <Skeleton class="h-9 w-80" />
-        <Skeleton class="h-4 w-96" />
-        <Skeleton class="mt-2 h-64 w-full" />
+      <div aria-hidden="true">
+        <div class="border-b border-border bg-card">
+          <div class="flex flex-col gap-4 px-4 pt-5 md:px-6">
+            <Skeleton class="h-9 w-80 max-w-full" />
+            <Skeleton class="h-8 w-96 max-w-full" />
+          </div>
+        </div>
+        <div class={workArea}>
+          <Skeleton class="h-96 w-full rounded-panel" />
+        </div>
       </div>
       <p class="sr-only" role="status">Loading the template…</p>
     {/if}
   {:else}
-    <section aria-label="Template" class="flex flex-wrap items-start justify-between gap-3">
-      <div class="flex min-w-0 flex-col gap-1.5">
-        <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">{detail.name}</h1>
-        <p class="flex flex-wrap items-center gap-2 font-mono text-[11.5px] text-muted-foreground uppercase">
-          <span>Version {current.version}</span>
-          <Badge variant={current.status === 'Draft' ? 'secondary' : 'clear'}>{current.status}</Badge>
-          {#if current.publishedAt}<span>Published {formatShortDate(current.publishedAt)}</span>{/if}
-          {#if detail.isSystem}<span>ScreenHire template · read-only</span>{/if}
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
+    {#snippet versionItems()}
+      {#each versions.toReversed() as candidate (candidate.id)}
+        <!-- A version is a place, so its item is a link (A5). -->
+        <DropdownMenu.Item>
+          {#snippet child({ props })}
+            <a href={`/templates/${detail.id}?version=${candidate.version}`} {...props}>
+              Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
+              {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
+            </a>
+          {/snippet}
+        </DropdownMenu.Item>
+      {/each}
+    {/snippet}
+
+    {#snippet ownItems()}
+      <DropdownMenu.Item disabled={busy} onSelect={copyTemplate}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
+      {#if !detail.archived}
+        <DropdownMenu.Item disabled={busy} onSelect={() => setArchived(true)}><FolderArchiveIcon aria-hidden="true" />Archive</DropdownMenu.Item>
+      {/if}
+    {/snippet}
+
+    {#snippet primaryAction()}
+      {#if !mayEdit}
+        <!-- A role that cannot change templates reads them only: no action. -->
+      {:else if detail.isSystem}
+        <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy template</Button>
+      {:else if detail.archived}
+        <Button size="lg" onclick={() => setArchived(false)} disabled={busy}><ArchiveRestoreIcon aria-hidden="true" />Restore</Button>
+      {:else if isDraft}
+        <Button size="lg" onclick={publishDraft} disabled={busy}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
+      {:else if draftVersion}
+        <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
+      {:else}
+        <Button size="lg" onclick={startNextVersion} disabled={busy}
+          ><PencilIcon aria-hidden="true" />Edit as version {(versions.at(-1)?.version ?? 0) + 1}</Button
+        >
+      {/if}
+    {/snippet}
+
+    {#snippet readOnlyReason()}
+      <!-- Read only says why and what to do (E3), in one line under the title. -->
+      <p>
         {#if detail.isSystem}
-          <Button onclick={copyTemplate} disabled={busy}>Copy to customise</Button>
-        {:else if isDraft}
-          <Button variant="outline" onclick={saveDraft} disabled={busy || !draft.dirty}>Save draft</Button>
-          <Button onclick={publishDraft} disabled={busy}>Publish version {current.version}</Button>
-        {:else if !hasDraft}
-          <Button onclick={startNextVersion} disabled={busy}>Edit as version {(detail.versions.at(-1)?.version ?? 0) + 1}</Button>
+          Copy this ScreenHire template to change it.
+        {:else if !mayEdit}
+          Ask an owner, admin or recruiter to change hiring templates.
+        {:else}
+          Restore this template to start jobs from it or change it.
+        {/if}
+      </p>
+    {/snippet}
+
+    <Tabs.Root bind:value={tab}>
+      <HeaderBand title={detail.name} details={!isDraft && (detail.isSystem || detail.archived || !mayEdit) ? readOnlyReason : undefined}>
+        {#snippet status()}
+          {#if detail.isSystem}<BuiltInBadge />{/if}
+          {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
+          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
+        {/snippet}
+        {#snippet actions()}
+          <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
+          <FailureText message={failure} />
+          {#if sidebar.isMobile}
+            <!-- A phone has the primary action in the action bar and the rest in More (section 8). -->
+            {#if isDraft || versions.length > 1 || ownActions}
+              <MoreMenu label="More actions">
+                {#if isDraft}<DropdownMenu.Item disabled={busy} onSelect={saveDraft}>Save draft</DropdownMenu.Item>{/if}
+                {#if ownActions}{@render ownItems()}{/if}
+                {#if versions.length > 1}
+                  {#if isDraft || ownActions}<DropdownMenu.Separator />{/if}
+                  <DropdownMenu.Label class="text-caption text-muted-foreground">Versions</DropdownMenu.Label>
+                  {@render versionItems()}
+                {/if}
+              </MoreMenu>
+            {/if}
+          {:else}
+            {#if ownActions}
+              <MoreMenu label="More actions">{@render ownItems()}</MoreMenu>
+            {/if}
+            {#if versions.length > 1}
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
+                  <LayersIcon aria-hidden="true" />Versions
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content align="end" class="w-56">{@render versionItems()}</DropdownMenu.Content>
+              </DropdownMenu.Root>
+            {/if}
+            {#if isDraft}<Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}><SaveIcon aria-hidden="true" />Save draft</Button>{/if}
+            {@render primaryAction()}
+          {/if}
+        {/snippet}
+        {#snippet facts()}
+          <Fact label="Used by">
+            {#if use}
+              <CountButton
+                items={use.usedBy.map((item) => ({ id: item.id, label: usageLabel(item), href: usageHref(item) }))}
+                one={usedByNouns.hiring.one}
+                other={usedByNouns.hiring.other}
+                empty={usedByLabel('hiring', 0)}
+                title="Used by"
+                description={detail.name}
+              />
+            {:else}
+              <Skeleton class="h-5 w-20" />
+            {/if}
+          </Fact>
+          <Fact label="Version">
+            {#if current.status !== 'Draft' && current.publishedAt}
+              <Hint content={`Published ${formatDateTime(current.publishedAt)}`}>
+                {#snippet children({ props })}<span {...props} class="tabular-nums">{current.version}</span>{/snippet}
+              </Hint>
+            {:else}
+              <!-- A draft is a state of the version, so its badge sits in this fact (W6). -->
+              <span class="inline-flex items-center gap-2"><span class="tabular-nums">{current.version}</span><StatusBadge status="draft" label="Draft" /></span>
+            {/if}
+          </Fact>
+          {#if !detail.isSystem && teamSize !== undefined}
+            <Fact label="Default hiring team">
+              <Button variant="outline" size="sm" class="tabular-nums" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
+                {teamSize === 1 ? '1 person' : `${teamSize} people`}
+              </Button>
+            </Fact>
+          {/if}
+          <Fact label="Last updated">
+            <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => (historyOpen = true)} />
+          </Fact>
+        {/snippet}
+        {#snippet tabs()}<WorkflowTabs />{/snippet}
+      </HeaderBand>
+      {#if !detail.isSystem}
+        <HiringTeamSheet
+          bind:open={teamOpen}
+          kind="template"
+          id={detail.id}
+          name={detail.name}
+          mayEdit={can(page.data.user, 'EditHiringTemplates')}
+          seesAllJobs={seesAllJobs(page.data.user)}
+        />
+        <HistorySheet
+          bind:open={historyOpen}
+          name={detail.name}
+          entries={history.entries}
+          error={history.error}
+          onretry={history.retry}
+          hasMore={history.hasMore}
+          loadingMore={history.loadingMore}
+          onmore={history.more}
+          {members}
+          {currentUserId}
+          note="Jobs keep the copy they started with; a change here reaches jobs created after it."
+        />
+      {/if}
+
+      <div class={workArea}>
+        {#if isDraft}
+          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} {tab} />
+        {:else}
+          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
         {/if}
       </div>
-    </section>
 
-    <nav aria-label="Versions" class="flex flex-wrap gap-1.5">
-      {#each versions as candidate (candidate.id)}
-        <a
-          href={`/templates/${detail.id}?version=${candidate.version}`}
-          aria-current={candidate.version === current.version ? 'page' : undefined}
-          class={[
-            'rounded-md border px-2 py-0.5 font-mono text-[11.5px] no-underline',
-            candidate.version === current.version ? 'border-primary bg-sidebar-accent font-semibold text-sidebar-accent-foreground' : 'border-border text-muted-foreground hover:bg-muted',
-          ]}>v{candidate.version} · {candidate.status === 'Draft' ? 'draft' : 'published'}</a
-        >
-      {/each}
-    </nav>
-
-    <p role="status" class="text-[13px] empty:hidden">{status}</p>
-    <p role="alert" class="text-[13px] font-semibold text-destructive empty:hidden">{failure}</p>
-    {#if !isDraft && !detail.isSystem && hasDraft}
-      <p class="text-[13px] text-muted-foreground">Published versions never change. Open the draft to edit.</p>
-    {/if}
-
-    <WorkflowEditor
-      bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
-      errors={draft.errors}
-      checking={draft.checking}
-      readonly={!isDraft}
-    />
+      {#if sidebar.isMobile && mayEdit}
+        <ActionBar>{@render primaryAction()}</ActionBar>
+      {/if}
+    </Tabs.Root>
   {/if}
 </main>
+
+<!-- Unsaved work lives only on this page: ask before leaving it. -->
+<LeaveDialog unsaved={draft.dirty && isDraft} title="Leave without saving this draft?" />

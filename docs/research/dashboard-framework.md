@@ -1,3 +1,9 @@
+---
+type: Research
+title: "Recruiter Dashboard: Svelte 5 vs Angular 22"
+description: "The scored comparison behind ADR-0006: Svelte 5 with SvelteKit against Angular 22 on speed, measured fit with the Astro candidate pages, component libraries and risks."
+tags: [research, svelte, angular]
+---
 # Recruiter Dashboard: Svelte 5 vs Angular 22
 
 > Research snapshot: **2026-10-18**. Owner ask: "take a really hard look… the faster option that will work best with the

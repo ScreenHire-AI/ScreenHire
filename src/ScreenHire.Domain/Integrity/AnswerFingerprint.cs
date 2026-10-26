@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Integrity;
 /// locality-sensitive fingerprint of word sequences, not the text; a match is confirmed against the text itself.
 /// Never compared across organizations.
 /// </summary>
-public sealed class AnswerFingerprint : ITenantOwned
+public sealed class AnswerFingerprint : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

@@ -1,4 +1,10 @@
-# .NET Building Blocks — Licence Audit & Recommendations
+---
+type: Research
+title: ".NET Building Blocks: Licence Audit & Recommendations"
+description: "The licence audit of .NET libraries (MediatR, AutoMapper, MassTransit, Finbuckle, Duende, Polly and more) with commercial thresholds and verdicts, the recommended stack behind ADR-0008, and its risks."
+tags: [research, dotnet, licences]
+---
+# .NET Building Blocks: Licence Audit & Recommendations
 
 > Research snapshot: **2026-10-18**. Primary sources (licence files, vendor pages, official docs) unless marked
 > **[U]** (unverified). Owner constraint: bootstrapping, predictable costs → prefer MIT/Apache/BSD.

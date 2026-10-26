@@ -6,11 +6,15 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
@@ -25,29 +29,30 @@ internal static class JobEndpoints
 {
     public static IEndpointRouteBuilder MapJobEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/jobs").WithTags("Jobs").RequireAuthorization();
+        var group = app.MapGroup("/v1/jobs").WithTags("Jobs").AllowApiKeys();
 
         // 401 comes from the authentication middleware, so the handlers' signatures cannot declare it.
         group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateJob).WithName("CreateJob")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").Produces(StatusCodes.Status401Unauthorized);
@@ -56,30 +61,38 @@ internal static class JobEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{jobId:guid}/workflow", UpdateJobWorkflow).WithName("UpdateJobWorkflow")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
         return app;
     }
 
-    private static async Task<List<JobSummary>> ListJobs(ScreenHireDbContext db, CancellationToken cancellationToken)
-    {
-        var rows = await db.Jobs.AsNoTracking()
-            .OrderByDescending(j => j.CreatedAt)
-            .Select(j => new
-            {
-                Job = j,
-                LatestTemplateVersion = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => t.LatestPublishedVersion).FirstOrDefault(),
-            })
-            .ToListAsync(cancellationToken);
+    private static Task<List<JobSummary>> ListJobs(ScreenHireDbContext db, CancellationToken cancellationToken) =>
+        JobReads.ListAsync(db, new(), cancellationToken);
 
-        return [.. rows.Select(r => r.Job.ToSummary(r.LatestTemplateVersion))];
+    // Every change to the job, newest first: its posting, its status and its workflow.
+    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetJobHistory(
+        Guid jobId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
+        {
+            return problem;
+        }
+
+        if (!await db.Jobs.AnyAsync(j => j.Id == jobId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.Job, jobId.ToString("D"), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
     }
 
     private static async Task<Results<Ok<JobDetail>, NotFound>> GetJob(
@@ -97,6 +110,7 @@ internal static class JobEndpoints
         ITenantContext tenant,
         JobContentValidator validator,
         BoardRegistry boards,
+        RealtimeConnections connections,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -116,11 +130,41 @@ internal static class JobEndpoints
                 return TypedResults.ValidationProblem(
                     ValidationExtensions.Problem("templateVersionId", "No published template version has this id."));
             }
+
+            // An archived template is out of the pickers: the jobs that started from it keep their copy, and no new one starts.
+            var templateId = template.TemplateId;
+            if (await db.HiringTemplates.AnyAsync(t => t.Id == templateId && t.ArchivedAt != null, cancellationToken))
+            {
+                return TypedResults.ValidationProblem(
+                    ValidationExtensions.Problem("templateVersionId", "The template is archived. Restore it, or choose another."));
+            }
+        }
+
+        // The template's stages name library scorecards; the job copies the questions of each, so they must all exist.
+        var scorecards = template is null
+            ? new Dictionary<string, Scorecard>()
+            : await ScorecardReferences.OwnAsync(db, template.Definition.Workflow.ScorecardTemplateIds(), cancellationToken);
+        if (template is not null)
+        {
+            template.Definition.Workflow.WithScorecardCopies(scorecards, out var missing);
+            if (missing.Count > 0)
+            {
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                    "templateVersionId", "The template names a scorecard that is not in the library any more. Choose another in the template first."));
+            }
         }
 
         var defaults = template?.Definition.PostingDefaults ?? PostingDefaults.None;
         var title = request.Title?.Trim() ?? "";
+        var jobId = Guid.CreateVersion7();
         var slug = request.Slug?.Trim() ?? await FreeSlugAsync(db, Slugs.FromTitle(title), cancellationToken);
+        if (request.Slug is null && !tenant.SeesAllJobs)
+        {
+            // A member on Only jobs they're on cannot see the other jobs' slugs, so a free-looking one may be taken. The
+            // end of the new job's id makes it the job's own; the slug can still change until the job is published.
+            slug = $"{slug}-{jobId.ToString("N")[^6..]}";
+        }
+
         var content = new JobSnapshot(
             title,
             slug,
@@ -144,17 +188,27 @@ internal static class JobEndpoints
         }
 
         var now = time.GetUtcNow();
-        var job = new Job { OrganizationId = tenant.OrganizationId!.Value, Title = content.Title, Slug = content.Slug, CreatedAt = now };
+        var job = new Job { Id = jobId, OrganizationId = tenant.OrganizationId!.Value, Title = content.Title, Slug = content.Slug, CreatedAt = now };
         job.Revise(content, now);
         if (template is not null)
         {
-            job.UseTemplate(template);
+            job.UseTemplate(template, scorecards);
         }
+
+        // The job starts with its template's default hiring team and the person who creates it (ADR-0015), in the same
+        // insert: the creator's id is in the row, so even a member on Only jobs they're on sees the job they just made.
+        var members = await HiringTeams.MembersAsync(db, tenant, cancellationToken);
+        var defaultTeam = template is null
+            ? []
+            : await db.HiringTemplates.AsNoTracking()
+                .Where(t => t.Id == template.TemplateId).Select(t => t.DefaultHiringTeam).SingleAsync(cancellationToken);
+        var team = job.SetHiringTeam(defaultTeam.Where(members.ContainsKey).Concat(tenant.MemberId is { } creator ? [creator] : []));
+        HiringTeams.Log(db, tenant, members, team, now, jobId: job.Id);
 
         db.Jobs.Add(job);
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await HiringTeams.SaveAsync(connections, members, team, job.OrganizationId, job.Id, () => db.SaveChangesAsync(cancellationToken), cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
@@ -244,7 +298,7 @@ internal static class JobEndpoints
     // every board's state and estimate. Publishing an open job whose content equals its newest version freezes nothing
     // and raises no JobPublished; it still posts to boards named in the request, or to every board if the job is on
     // none. A publish that races another publish, an edit or a close gets 409 (the job's row version, or a unique
-    // index), so a closed job stays closed.
+    // index), so a closed job stays closed. A board answer the worker is saving is not a race: the publish waits for it.
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
         Guid jobId,
         PublishJobRequest? request,
@@ -295,6 +349,9 @@ internal static class JobEndpoints
         {
             return TypedResults.Problem("A closed job cannot be republished; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        // Waits out a board answer the worker is saving, so the postings below are its latest state, never a 409.
+        await using var transaction = await PostingLocks.BeginForJobAsync(db, job.Id, boardId: null, cancellationToken);
 
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == job.OrganizationId, cancellationToken);
         if (requestedBoards is { } requested)
@@ -404,6 +461,7 @@ internal static class JobEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox, DistributionPlanner planner, Job job, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
+        await using var transaction = await PostingLocks.BeginForJobAsync(db, job.Id, boardId: null, cancellationToken);
         if (job.Close(now))
         {
             await outbox.PublishAsync(new JobClosed(job.OrganizationId, job.Id, job.ClosedAt!.Value));
@@ -492,9 +550,11 @@ internal static class JobEndpoints
             return TypedResults.NotFound();
         }
 
+        // The template names its scorecards and the job holds copies, so compare with the copies the job would take now.
+        var (latestWorkflow, _) = await ScorecardReferences.CopyAsync(db, latest.Definition.Workflow, "", cancellationToken);
         return TypedResults.Ok(new JobTemplateDiff(
             templateId, sourceVersionId, sourceVersion, latest.Id, latest.Version, latest.Version > sourceVersion,
-            WorkflowDiff.Compare(job.Workflow, latest.Definition.Workflow)));
+            WorkflowDiff.Compare(job.Workflow, latestWorkflow)));
     }
 
     // Tailors the job's own copy of its workflow (workflow-engine.md §1). Validated like a template, guardrails included,
@@ -520,22 +580,33 @@ internal static class JobEndpoints
             return conflict;
         }
 
-        if (DefinitionValidator.Validate(request.Workflow).ToProblems("workflow") is { } problems)
+        // A stage that picks a library scorecard names it; the job takes its own copy of the questions here.
+        var workflow = request.Workflow;
+        if (workflow?.Stages is not null)
+        {
+            (workflow, var missing) = await ScorecardReferences.CopyAsync(db, workflow, "workflow", cancellationToken);
+            if (missing.ToProblems("") is { } missingProblems)
+            {
+                return TypedResults.ValidationProblem(missingProblems);
+            }
+        }
+
+        if ((await EmailTemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
 
-        if (WorkflowDiff.Compare(job.Workflow, request.Workflow).Count == 0)
+        if (WorkflowDiff.Compare(job.Workflow, workflow!).Count == 0)
         {
             return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
         }
 
-        if (await OccupiedStagesProblemAsync(db, job, request.Workflow, cancellationToken) is { } occupied)
+        if (await OccupiedStagesProblemAsync(db, job, workflow!, cancellationToken) is { } occupied)
         {
             return occupied;
         }
 
-        job.ReviseWorkflow(request.Workflow, time.GetUtcNow());
+        job.ReviseWorkflow(workflow!, time.GetUtcNow());
         return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
     }
 
@@ -569,7 +640,13 @@ internal static class JobEndpoints
                 "templateVersionId", "No published version of this job's template has this id."));
         }
 
-        if (DefinitionValidator.Validate(version.Definition.Workflow).ToProblems("workflow") is { } problems)
+        var (copied, missing) = await ScorecardReferences.CopyAsync(db, version.Definition.Workflow, "workflow", cancellationToken);
+        if (missing.ToProblems("") is { } missingProblems)
+        {
+            return TypedResults.ValidationProblem(missingProblems);
+        }
+
+        if ((await EmailTemplateReferences.ValidateAsync(db, copied, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -579,7 +656,8 @@ internal static class JobEndpoints
             return occupied;
         }
 
-        job.ApplyTemplateUpdate(version, time.GetUtcNow());
+        job.ApplyTemplateUpdate(version, time.GetUtcNow(),
+            await ScorecardReferences.OwnAsync(db, version.Definition.Workflow.ScorecardTemplateIds(), cancellationToken));
         return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
     }
 
@@ -639,6 +717,7 @@ internal static class JobEndpoints
     /// </summary>
     internal static async Task<JobDetail?> LoadDetailAsync(ScreenHireDbContext db, BoardRegistry boards, Guid jobId, CancellationToken cancellationToken)
     {
+        var subjectId = jobId.ToString("D");
         var row = await db.Jobs.AsNoTracking()
             .Where(j => j.Id == jobId)
             .Select(j => new
@@ -647,10 +726,16 @@ internal static class JobEndpoints
                 Latest = db.JobVersions.Where(v => v.JobId == j.Id).OrderByDescending(v => v.Version).Select(v => v.Snapshot).FirstOrDefault(),
                 Template = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => new { t.Name, t.LatestPublishedVersion }).FirstOrDefault(),
                 Postings = db.JobPostings.Where(p => p.JobId == j.Id).ToList(),
+                LastChange = db.ChangeRecords
+                    .Where(r => r.SubjectKind == ChangeSubjectKind.Job && r.SubjectId == subjectId)
+                    .OrderByDescending(r => r.Sequence)
+                    .Select(r => new ChangeStamp(r.OccurredAt, r.ActorUserId, r.ActorApiKeyId))
+                    .FirstOrDefault(),
             })
             .SingleOrDefaultAsync(cancellationToken);
 
-        return row?.Job.ToDetail(row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards));
+        return row?.Job.ToDetail(
+            row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards), row.LastChange);
     }
 
     private static async Task<string> FreeSlugAsync(ScreenHireDbContext db, string slug, CancellationToken cancellationToken)

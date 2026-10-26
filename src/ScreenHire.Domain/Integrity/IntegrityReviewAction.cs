@@ -7,7 +7,7 @@ namespace ScreenHire.Domain.Integrity;
 /// the database lets the application role insert and read these rows but never change or delete one. There is no
 /// reject action here, on purpose (CLAUDE.md non-negotiable 2).
 /// </summary>
-public sealed class IntegrityReviewAction : ITenantOwned
+public sealed class IntegrityReviewAction : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

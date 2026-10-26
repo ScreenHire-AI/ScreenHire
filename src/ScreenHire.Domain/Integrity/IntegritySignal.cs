@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Integrity;
 /// and every signal carries its evidence, any counter-evidence and a plain-language explanation. Written once, never
 /// changed; a re-run under a new analyzer version writes new rows.
 /// </summary>
-public sealed class IntegritySignal : ITenantOwned
+public sealed class IntegritySignal : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

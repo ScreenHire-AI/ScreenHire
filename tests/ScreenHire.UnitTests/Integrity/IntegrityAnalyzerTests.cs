@@ -138,7 +138,7 @@ public sealed class IntegrityAnalyzerTests
         // Autofill and assistive tools can fill a hidden field, so the honeypot is dropped with an accommodation.
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Engineer", Slug = "engineer" };
-        var candidate = Candidate.Create(organization, "Casey Morgan", "casey@example.com", null, Now);
+        var candidate = Candidate.Create(organization, "Casey", "Morgan", "casey@example.com", null, Now);
         var (application, _) = JobApplication.Submit(
             job, candidate, true, AiUseDeclaration.NotProvided, null, Now, null,
             new ApplicationIntake(ApplicationSource.CareersSite, [], "2026-10-20.2", HoneypotFilled: true));
@@ -212,7 +212,7 @@ public sealed class IntegrityAnalyzerTests
     {
         var organization = Guid.CreateVersion7();
         var job = new Job { OrganizationId = organization, Title = "Engineer", Slug = "engineer", ApplicantLocationRequirements = ["GB", "IE"] };
-        var candidate = Candidate.Create(organization, "Casey Morgan", email, phone, Now);
+        var candidate = Candidate.Create(organization, "Casey", "Morgan", email, phone, Now);
         var (application, _) = JobApplication.Submit(
             job, candidate, accommodation, AiUseDeclaration.NotProvided, null, Now, null,
             new ApplicationIntake(ApplicationSource.CareersSite, [new ApplicationAnswer("a", "yes")], "2026-10-20.2", honeypot, botCheck));

@@ -1,13 +1,21 @@
 <script lang="ts">
   import { createListApplications, createListJobs } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
+  import StatusBadge from '#lib/components/status-badge.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Command from '#lib/components/ui/command/index.js';
+  import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
+  import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { sections } from '#lib/shell.js';
+  import { visibleSettingsSections } from '#lib/settings.js';
+  import { getShell, sections } from '#lib/shell.js';
 
   // Ctrl K / ⌘K: jump to a section, a job or a candidate, or run an action. Lists load when it opens.
   let { open = $bindable(false) }: { open?: boolean } = $props();
+
+  const shell = getShell();
 
   const jobs = createListJobs(() => ({ query: { enabled: open } }));
   const applications = createListApplications(() => ({ query: { enabled: open } }));
@@ -31,16 +39,25 @@
       {#each sections as section (section.href)}
         <Command.Item value={`Go to ${section.label}`} onSelect={() => run(() => goto(section.href))}>
           {section.label}
-          <Command.Shortcut>G {section.key.toUpperCase()}</Command.Shortcut>
+          {#if preferences.shortcutsEnabled}
+            <Command.Shortcut><KbdGroup><Kbd>G</Kbd><Kbd>{section.key.toUpperCase()}</Kbd></KbdGroup></Command.Shortcut>
+          {/if}
         </Command.Item>
       {/each}
     </Command.Group>
+    {#if visibleSettingsSections(page.data?.user).length > 0}
+      <Command.Group heading="Settings">
+        {#each visibleSettingsSections(page.data?.user) as setting (setting.href)}
+          <Command.Item value={`Settings ${setting.label}`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
+        {/each}
+      </Command.Group>
+    {/if}
     {#if jobs.data && jobs.data.data.length > 0}
       <Command.Group heading="Jobs">
         {#each jobs.data.data as job (job.id)}
           <Command.Item value={`Job ${job.title} ${job.id}`} onSelect={() => run(() => goto(`/jobs/${job.id}`))}>
             {job.title}
-            <span class="ml-auto font-mono text-[11px] text-muted-foreground uppercase">{job.status}</span>
+            <span class="ml-auto"><StatusBadge {...jobStatus[job.status]} quiet /></span>
           </Command.Item>
         {/each}
       </Command.Group>
@@ -53,7 +70,11 @@
             onSelect={() => run(() => goto(`/applications/${application.id}`))}
           >
             {application.candidateName}
-            <span class="ml-auto truncate text-xs text-muted-foreground">{application.jobTitle} · {application.stage.name}</span>
+            <span class="ml-auto flex min-w-0 items-center gap-2">
+              <!-- An option cannot hold a tooltip, so a long title wraps rather than being cut (F5). -->
+              <span class="min-w-0 text-right text-caption break-words text-muted-foreground">{application.jobTitle}</span>
+              <Badge variant="muted">{application.stage.name}</Badge>
+            </span>
           </Command.Item>
         {/each}
       </Command.Group>
@@ -62,8 +83,12 @@
       <Command.Item value="Switch theme" onSelect={() => run(() => preferences.toggleTheme())}>
         Switch to {preferences.theme === 'dark' ? 'light' : 'dark'} theme
       </Command.Item>
+      <Command.Item value="Show keyboard shortcuts" onSelect={() => run(() => shell.openShortcuts())}>
+        Show keyboard shortcuts
+        {#if preferences.shortcutsEnabled}<Command.Shortcut><Kbd>?</Kbd></Command.Shortcut>{/if}
+      </Command.Item>
       <Command.Item
-        value="Keyboard shortcuts"
+        value="Single-key shortcuts"
         onSelect={() => run(() => preferences.setShortcutsEnabled(!preferences.shortcutsEnabled))}
       >
         Turn single-key shortcuts {preferences.shortcutsEnabled ? 'off' : 'on'}

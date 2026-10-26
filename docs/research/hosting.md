@@ -1,4 +1,10 @@
-# Hosting — AWS vs DigitalOcean vs Hetzner
+---
+type: Research
+title: "Hosting: AWS vs DigitalOcean vs Hetzner"
+description: "AWS, DigitalOcean and Hetzner compared for a small EU production setup: the 2026 price changes, managed platforms, GDPR regions, compliance attestations and hybrid options."
+tags: [research, hosting]
+---
+# Hosting: AWS vs DigitalOcean vs Hetzner
 
 > Research snapshot: **2026-10-18**. USD, excl. VAT, 730 h/month. Priority: price-to-performance and **predictable**
 > monthly cost, with a path to enterprise-friendly compliance.

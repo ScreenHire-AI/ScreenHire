@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
@@ -23,6 +24,7 @@ internal static class ApplySetup
 
         services.AddSingleton<ApplicantUploads>();
         services.AddSingleton<TelemetrySessions>();
+        services.AddQuestionnaireLinks();
         services.AddHttpClient<TurnstileVerifier>();
         services.AddSingleton<IValidator<PublicApplicationRequest>, PublicApplicationRequestValidator>();
         services.AddSingleton<IValidator<UploadRequest>, UploadRequestValidator>();

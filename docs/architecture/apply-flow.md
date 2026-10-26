@@ -1,3 +1,25 @@
+---
+type: Design
+title: "Careers apply flow"
+description: "The candidate apply page: the notice before any collection, three steps that work without JavaScript, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, and the follow-up questionnaire page a signed link opens."
+tags: [careers, apply, astro]
+sources:
+  - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
+  - resource: apps/careers/src/pages/[organization]/uploads.ts
+  - resource: apps/careers/src/lib/apply.ts
+  - resource: apps/careers/src/lib/apply-server.ts
+  - resource: apps/careers/src/lib/brand.ts
+  - resource: apps/careers/src/lib/host.ts
+  - resource: apps/careers/src/middleware.ts
+  - resource: apps/careers/src/components/PrivacyNotice.astro
+  - resource: apps/careers/src/pages/[organization]/questionnaires/[token].astro
+  - resource: apps/careers/src/pages/[organization]/questionnaires/sent.astro
+  - resource: apps/careers/src/lib/questionnaire.ts
+  - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
+  - resource: apps/api/Applications/ApplicantUploads.cs
+  - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
+  - resource: apps/dashboard/src/lib/components/file-frame.svelte
+---
 # Careers apply flow
 
 > Status: v1 (2026-10-20). Code: `apps/careers` (pages, `src/actions`, `src/lib/apply*.ts`), `apps/api`
@@ -14,12 +36,14 @@ never calls the API.
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
 | `/jobs/{job}` | The job, the "How we keep this fair" notice and an Apply link. 410 once the job closes, 404 if unknown. |
-| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, name, email, phone, resume), **questions** (the job's questionnaire; skipped when it has none), **review** (summary, AI-use declaration, send). |
+| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), **questions** (the job's questionnaire; skipped when it has none), **review** (summary, AI-use declaration, send). |
 | `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (integrity-engine.md §10.2, "Form telemetry"). |
+| `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
+| `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -33,7 +57,7 @@ challenge's site key. Every form asks for a resume: the questionnaire's own `res
 (`ApplicationForm.DefaultResumeQuestion`).
 
 The fields are the shared question components in `packages/ui/src/questions` (`TextField`, `ChoiceField`,
-`QuestionField`, `FileField`), the same Svelte components the dashboard's questionnaire builder previews, so the
+`QuestionField`, `FileField`), the same Svelte components the dashboard's form builder previews, so the
 preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
 they ship no JavaScript; only file questions hydrate, as `FileField` islands. Their field names (`q:{id}`,
 `file:{id}`, `upload:{id}`) and element ids (`field-...`) come from `packages/ui/src/questions/model.ts`, which
@@ -67,7 +91,8 @@ server passes them on with the session token and the module's last snapshot. The
 organization and never stores it as sent, and keeps it only on the job's device-check basis: where that is `Consent`
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
-the privacy page say all of this (`NOTICE_VERSION` `2026-10-20.4`).
+the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
+answers only (`NOTICE_VERSION` `2026-10-23.1`).
 
 ## 3. Uploads
 
@@ -96,8 +121,16 @@ another job's, is simply not found.
 Reviewers download a file the same way, without the bytes passing through the API.
 `GET /v1/applications/{applicationId}/files/{fileId}` redirects to a read-only SAS URL for that one blob, valid for
 `ScreenHire:Apply:DownloadLinkLifetime` (5 minutes). The link sets `Content-Disposition: attachment` with the
-candidate's file name, so storage serves the document as a download and never renders it. A file whose scan is
-`Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
+candidate's file name, so storage serves the document as a download and never renders it on the storage origin. A
+file whose scan is `Pending` or `Infected` gets a 409 and no link. `Clean` and `NotScanned` files are offered.
+
+The dashboard's file viewer (a file row's View, in a full-window dialog; a page never embeds a preview) reads a PDF
+through the same route, in one component, `FileFrame`: it fetches the redirect target (storage's CORS rule allows
+`GET`) and hands the bytes to a viewer in an `<iframe sandbox="allow-scripts" srcdoc>`. The frame has an opaque
+origin, so nothing in it can reach the dashboard's cookies, DOM or API, and its document allows only its own script and
+stylesheet by hash (`default-src 'none'`). The viewer is pdf.js, bundled into that one script by
+`apps/dashboard/file-viewer-plugin.ts`; it draws pages to canvases, keeps their text for screen readers, and sends back
+only its height and page count. Other file types, images included, are offered as downloads only.
 
 ## 4. Submission
 
@@ -123,8 +156,8 @@ An organization's `BrandColor` becomes a `BrandPalette` on the server (`src/Scre
 colour that fails is darkened in OKLCH lightness, keeping its hue, until it passes. The public organization and board
 responses carry the palette; the careers server turns it into a stylesheet named by a hash of its content
 (`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. Owners
-and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette (there is no
-dashboard screen for it yet); the Development seed gives Brightwater one.
+and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette, from the
+dashboard's Settings > Branding page; the Development seed gives Brightwater one.
 
 Careers pages run under a strict policy: Astro's `security.csp` (hashes for what Astro emits, `default-src 'none'`,
 no `unsafe-inline`), stylesheets never inlined, the apply page adding `connect-src` for the upload origin (and
@@ -143,11 +176,31 @@ uses `localhost` otherwise. Endpoints (`/uploads`, the brand stylesheet) take th
 tenant host, a path that already starts with `/{tenant}` (a path-style link) gets a 301 to the same path without it. On the careers domain itself, the organization is in the path. Locally the AppHost sets
 `CareersDomain` to the careers endpoint, so `http://brightwater.localhost:<port>/` serves Brightwater's board.
 
-## 7. Owner actions before production
+## 8. Follow-up questionnaires
 
-- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts, and a
-  lifecycle rule that deletes unclaimed uploads (blobs with no application) after a day. Development does the first two
-  at startup (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
+After someone applied, a SendQuestionnaire automation can email them a link to a follow-up questionnaire
+(workflow-engine.md §8): `/questionnaires/{token}` on the organization's careers board. The page is one native form
+posted to the `questionnaire` Astro Action (`src/lib/questionnaire.ts`), so it works with JavaScript off and ships no
+script at all. Its fields are the same shared question components as the apply form, rendered on the server; follow-up
+questionnaires have no file questions, so there is no upload island.
+
+- **Answers only.** No device check, no form telemetry and no bot challenge: the candidate saw the notice when they
+  applied, and this page collects what they type into its fields and nothing about their browser (CLAUDE.md
+  non-negotiable 4). The page says so above the button.
+- **The link stays private.** `Cache-Control: no-store`, `noindex`, and `<meta name="referrer" content="no-referrer">`,
+  so the token is never cached or sent on. The careers server refuses a token that is not Data Protection's base64url
+  text before it builds an API path from it.
+- **Plain endings.** An answered link says "You have answered these questions" (200), an expired one "This link has
+  expired" with what to do (410), one whose questionnaire, job or application has ended "These questions are no longer
+  open" (410), and an unknown or forged one "We could not find these questions" (404). A problem with an answer comes
+  back on the same page with what was typed, as on the apply form.
+
+## 9. Owner actions before production
+
+- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts and `GET`
+  from the dashboard host (the file viewer), and a lifecycle rule that deletes unclaimed uploads (blobs with no
+  application) after a day. Development does the first two at startup
+  (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
 - Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
 - Behind a CDN or load balancer, set Astro's `security.allowedDomains` to the careers hosts when building
   `apps/careers`. Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those

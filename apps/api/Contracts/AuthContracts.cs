@@ -22,8 +22,28 @@ public sealed record OnboardingRequest(string OrganizationName, string Slug);
 /// <summary>The signed-in user, and the organization they work in (null until onboarding).</summary>
 public sealed record CurrentUser(Guid Id, string Email, string DisplayName, CurrentOrganization? Organization);
 
-/// <summary>The organization the signed-in user works in, and their role there.</summary>
-public sealed record CurrentOrganization(Guid Id, string Name, string Slug, OrganizationRole Role);
+/// <summary>
+/// The organization the signed-in user works in, their role there (a built-in one, or Custom with <c>customRoleId</c>),
+/// its name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;
+/// the API checks the same permissions on every request (ADR-0014). <c>seesAllJobs</c> is false for a member on Only
+/// jobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015).
+/// </summary>
+public sealed record CurrentOrganization(
+    Guid Id, string Name, string Slug, OrganizationRole Role, Guid? CustomRoleId, string RoleName, IReadOnlyList<Permission> Permissions,
+    bool SeesAllJobs);
+
+/// <summary>
+/// One of the signed-in user's organizations, for the organization switcher, with their role there. <c>roleName</c> is
+/// null for a custom role in an organization other than the one they work in: row-level security keeps its roles from
+/// them until they switch.
+/// </summary>
+public sealed record MyOrganization(Guid Id, string Name, string Slug, OrganizationRole Role, string? RoleName);
+
+/// <summary>Makes another of the signed-in user's organizations the one they work in.</summary>
+public sealed record SwitchOrganizationRequest(Guid OrganizationId);
+
+/// <summary>Accepts the invitation whose token an emailed link carries, signing in as the invited address.</summary>
+public sealed record InvitationAcceptance(string Token);
 
 internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkRequest>
 {
@@ -48,6 +68,11 @@ internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkReq
 internal sealed class MagicLinkVerificationValidator : AbstractValidator<MagicLinkVerification>
 {
     public MagicLinkVerificationValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
+}
+
+internal sealed class InvitationAcceptanceValidator : AbstractValidator<InvitationAcceptance>
+{
+    public InvitationAcceptanceValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
 }
 
 internal sealed class OnboardingRequestValidator : AbstractValidator<OnboardingRequest>

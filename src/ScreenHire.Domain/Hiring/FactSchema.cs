@@ -22,6 +22,13 @@ public static class FactSchema
     public const string IntegrityAiAssistance = "integrity.aiAssistance";
     public const string VerificationResult = "verification.result";
 
+    /// <summary>
+    /// The overall recommendation of the scorecard whose submission fired a <see cref="TriggerType.ReviewerDecision"/>
+    /// automation. Only that trigger has it: on any other trigger "the latest reviewer's view" would depend on which
+    /// scorecard happened to come last, on whichever stage.
+    /// </summary>
+    public const string ReviewerRecommendation = "reviewer.recommendation";
+
     // Telemetry facts arrive with the integrity engine. The prefix is reserved now so the accommodation rule already
     // covers them (workflow-engine.md §2, guardrail 4).
     private const string TelemetryPrefix = "telemetry.";
@@ -35,6 +42,7 @@ public static class FactSchema
         new(IntegrityAuthenticity, FactType.Level, FactCategory.Signal),
         new(IntegrityAiAssistance, FactType.Level, FactCategory.Signal),
         new(VerificationResult, FactType.Level, FactCategory.Signal),
+        new(ReviewerRecommendation, FactType.Recommendation, FactCategory.Reviewer),
     ];
 
     /// <summary>The fact <paramref name="fact"/> names in a workflow with these questions, or null if there is none.</summary>
@@ -63,7 +71,7 @@ public static class FactSchema
         FactType.TextList or FactType.MultiChoice => ListOperators,
         FactType.Number => NumberOperators,
         FactType.YesNo => YesNoOperators,
-        FactType.Choice or FactType.Level => ChoiceOperators,
+        FactType.Choice or FactType.Level or FactType.Recommendation => ChoiceOperators,
         FactType.File => ExistsOnly,
         _ => ExistsOnly,
     };
@@ -71,6 +79,21 @@ public static class FactSchema
     /// <summary>An integrity or verification signal: an automation that reads one may only route (ADR-0004).</summary>
     public static bool IsSignal(string? fact) =>
         fact is not null && (fact.StartsWith("integrity.", StringComparison.Ordinal) || fact.StartsWith("verification.", StringComparison.Ordinal));
+
+    /// <summary>
+    /// A fact that would name the candidate's rating or a scorecard's answers. None exists on purpose, and the validator
+    /// refuses these names with the reason rather than as unknown: the rating informs people, who decide, and no
+    /// automation acts on it (ADR-0013). An <c>answers.</c> fact names an application question, never a scorecard's, so
+    /// <c>answers.rating</c> is not one.
+    /// </summary>
+    public static bool IsRating(string? fact) =>
+        fact is not null
+        && !fact.StartsWith(AnswersPrefix, StringComparison.Ordinal)
+        && (fact.Equals("rating", StringComparison.OrdinalIgnoreCase)
+            || fact.EndsWith(".rating", StringComparison.OrdinalIgnoreCase)
+            || fact.StartsWith("rating.", StringComparison.OrdinalIgnoreCase)
+            || fact.StartsWith("scorecard.", StringComparison.OrdinalIgnoreCase)
+            || fact.StartsWith("scorecards.", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>A timing or telemetry fact, which the engine never evaluates for an application with an accommodation.</summary>
     public static bool IsTimingOrTelemetry(string? fact) =>
@@ -128,6 +151,9 @@ public enum FactType
     MultiChoice,
     File,
     Level,
+
+    /// <summary>A <see cref="Hiring.Recommendation"/> name, such as <c>StrongYes</c>: equality and In only.</summary>
+    Recommendation,
 }
 
 public enum FactCategory
@@ -136,4 +162,7 @@ public enum FactCategory
     Application,
     Timing,
     Signal,
+
+    /// <summary>What a person on the hiring team recorded: a scorecard's recommendation.</summary>
+    Reviewer,
 }

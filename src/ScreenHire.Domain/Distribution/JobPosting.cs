@@ -19,7 +19,7 @@ namespace ScreenHire.Domain.Distribution;
 /// </para>
 /// Every transition takes the time and returns whether anything changed, so a repeated or stale message is a no-op.
 /// </remarks>
-public sealed class JobPosting : ITenantOwned
+public sealed class JobPosting : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

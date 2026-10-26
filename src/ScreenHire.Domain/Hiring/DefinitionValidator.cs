@@ -25,11 +25,10 @@ public static partial class DefinitionValidator
 
     // Kinds the definition model names but the engine does not run yet. Refused at save, so no definition carries one
     // the engine would silently ignore. Verification is phase 2 (CLAUDE.md non-negotiable 3); the others need features
-    // that do not exist yet (questionnaire sending, scheduling, candidate replies).
+    // that do not exist yet (scheduling, candidate replies).
     private static readonly Dictionary<ActionType, string> UnavailableActions = new()
     {
         [ActionType.RequestVerification] = "Verification requests arrive in phase 2 and cannot be used yet.",
-        [ActionType.SendQuestionnaire] = "Sending a questionnaire cannot be used yet.",
         [ActionType.ScheduleInterview] = "Interview scheduling cannot be used yet.",
     };
 
@@ -41,7 +40,8 @@ public static partial class DefinitionValidator
     };
 
     // What an automation that uses an integrity or verification signal may do: route and step up, never reject
-    // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages.
+    // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages. SendQuestionnaire is
+    // not here: asking a candidate for more because a signal fired would act on the signal as a finding about them.
     private static readonly HashSet<ActionType> SignalSafeActions =
         [ActionType.RequestVerification, ActionType.AssignReviewer, ActionType.AddTag, ActionType.MoveToStage];
 
@@ -50,12 +50,24 @@ public static partial class DefinitionValidator
     private static readonly HashSet<StageKind> SignalSafeStages =
         [StageKind.Screening, StageKind.Assessment, StageKind.Verification, StageKind.Interview];
 
+    // What an SlaBreached automation may do. A breach measures the hiring team's delay, not the candidate, so it may only
+    // remind the team; nothing it does may count against the candidate (workflow-engine.md section 8).
+    private static readonly HashSet<ActionType> SlaBreachActions =
+        [ActionType.NotifyTeam, ActionType.AssignReviewer, ActionType.CreateTask, ActionType.AddTag];
+
     public const int MaxStages = 30;
     public const int MaxQuestions = 50;
     public const int MaxOptions = 50;
     public const int MaxAutomations = 50;
     public const int MaxRules = 20;
     public const int MaxActions = 10;
+    public const int MaxScorecardQuestions = 20;
+    public const int MaxFollowUpQuestionnaires = 10;
+
+    // Question ids the apply form gives meaning to (ApplicationForm): its resume question is there even when the apply
+    // questionnaire has none, so a follow-up question with one of these ids would make answers.{id} name two questions.
+    private static readonly HashSet<string> ApplyFormQuestionIds =
+        [Applications.ApplicationForm.ResumeQuestionId, Applications.ApplicationForm.LinkedInExportQuestionId];
 
     public static IReadOnlyList<DefinitionError> Validate(HiringTemplateDefinition? definition)
     {
@@ -66,7 +78,7 @@ public static partial class DefinitionValidator
             return errors;
         }
 
-        ValidateWorkflow(definition.Workflow, "workflow", errors);
+        ValidateWorkflow(definition.Workflow, "workflow", template: true, errors);
         ValidatePostingDefaults(definition.PostingDefaults, "postingDefaults", errors);
         return errors;
     }
@@ -74,11 +86,12 @@ public static partial class DefinitionValidator
     public static IReadOnlyList<DefinitionError> Validate(HiringWorkflow? workflow)
     {
         var errors = new List<DefinitionError>();
-        ValidateWorkflow(workflow, "", errors);
+        ValidateWorkflow(workflow, "", template: false, errors);
         return errors;
     }
 
-    private static void ValidateWorkflow(HiringWorkflow? workflow, string path, List<DefinitionError> errors)
+    // A hiring template's stages name library scorecards; a job's stages hold their own copies (workflow-engine.md §8).
+    private static void ValidateWorkflow(HiringWorkflow? workflow, string path, bool template, List<DefinitionError> errors)
     {
         if (workflow is null)
         {
@@ -86,8 +99,9 @@ public static partial class DefinitionValidator
             return;
         }
 
-        var stages = ValidateStages(workflow.Stages, Join(path, "stages"), errors);
+        var stages = ValidateStages(workflow.Stages, Join(path, "stages"), template, errors);
         var questions = ValidateQuestionnaire(workflow.Questionnaire, Join(path, "questionnaire"), errors);
+        var followUps = ValidateFollowUps(workflow.FollowUpQuestionnaires, Join(path, "followUpQuestionnaires"), questions, errors);
 
         if (workflow.IntegrityPolicy is null)
         {
@@ -98,11 +112,11 @@ public static partial class DefinitionValidator
             errors.Add(new(Join(path, "integrityPolicy.aiUse"), "Unknown AI-use policy."));
         }
 
-        ValidateAutomations(workflow.Automations, Join(path, "automations"), stages, questions, errors);
+        ValidateAutomations(workflow.Automations, Join(path, "automations"), new(stages, questions, followUps), errors);
     }
 
     private static Dictionary<string, WorkflowStage> ValidateStages(
-        IReadOnlyList<WorkflowStage>? stages, string path, List<DefinitionError> errors)
+        IReadOnlyList<WorkflowStage>? stages, string path, bool template, List<DefinitionError> errors)
     {
         var byId = new Dictionary<string, WorkflowStage>(StringComparer.Ordinal);
         if (stages is null || stages.Count == 0)
@@ -141,6 +155,8 @@ public static partial class DefinitionValidator
             {
                 errors.Add(new(Join(stagePath, "slaDays"), "An SLA is between 1 and 365 days."));
             }
+
+            ValidateStageScorecard(stage, stagePath, template, errors);
         }
 
         // Applications start in the first stage, so it has to be the one Applied stage.
@@ -157,6 +173,107 @@ public static partial class DefinitionValidator
         return byId;
     }
 
+    private static void ValidateStageScorecard(WorkflowStage stage, string path, bool template, List<DefinitionError> errors)
+    {
+        if (!stage.HasScorecard())
+        {
+            return;
+        }
+
+        if (Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal())
+        {
+            errors.Add(new(Join(path, stage.ScorecardTemplateId is null ? "scorecard" : "scorecardTemplateId"),
+                "A hired, rejected or withdrawn stage ends the application, so it has no scorecard."));
+        }
+
+        if (stage.ScorecardTemplateId is { } key && !BuiltInScorecards.IsWellFormed(key))
+        {
+            errors.Add(new(Join(path, "scorecardTemplateId"),
+                $"Unknown scorecard. Use one of {string.Join(", ", BuiltInScorecards.All.Select(b => b.Id))}, or the id of one of the organization's scorecards."));
+        }
+
+        if (template)
+        {
+            if (stage.Scorecard is not null)
+            {
+                errors.Add(new(Join(path, "scorecard"),
+                    "A hiring template's stage names a scorecard from the library in scorecardTemplateId; each job copies its questions."));
+            }
+
+            return;
+        }
+
+        // A job's stage holds its own copy. One that only names a library scorecard is copied by the API when the job is
+        // saved, and the builder validates both kinds of workflow through this overload.
+        if (stage.Scorecard is not { } scorecard)
+        {
+            return;
+        }
+
+        ValidateText(scorecard.Name, Join(path, "scorecard.name"), ScorecardTemplate.MaxNameLength, required: true, errors);
+        errors.AddRange(ValidateScorecardQuestions(scorecard.Questions, Join(path, "scorecard.questions")));
+    }
+
+    /// <summary>
+    /// The problems with a scorecard's questions, at paths under <paramref name="path"/>: 1 to
+    /// <see cref="MaxScorecardQuestions"/> questions with unique ids, options on the choice kinds only, and nothing that
+    /// rates the person rather than the job. The library's scorecards and a job's copy share these rules.
+    /// </summary>
+    public static IReadOnlyList<DefinitionError> ValidateScorecardQuestions(IReadOnlyList<ScorecardQuestion>? questions, string path)
+    {
+        var errors = new List<DefinitionError>();
+        if (questions is not { Count: > 0 and <= MaxScorecardQuestions })
+        {
+            errors.Add(new(path, $"A scorecard asks between 1 and {MaxScorecardQuestions} questions; leave the scorecard out for none."));
+            return errors;
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < questions.Count; i++)
+        {
+            var questionPath = $"{path}[{i}]";
+            if (questions[i] is not { } question)
+            {
+                errors.Add(new(questionPath, "A question is required."));
+                continue;
+            }
+
+            if (ValidateId(question.Id, Join(questionPath, "id"), errors) && !ids.Add(question.Id))
+            {
+                errors.Add(new(Join(questionPath, "id"), $"Question id '{question.Id}' is used twice."));
+            }
+
+            ValidateText(question.Label, Join(questionPath, "label"), 120, required: true, errors);
+            ValidateText(question.Guidance, Join(questionPath, "guidance"), 500, required: false, errors);
+            if (!Enum.IsDefined(question.Type))
+            {
+                errors.Add(new(Join(questionPath, "type"), "Unknown answer kind."));
+            }
+            else if (question.Type is ScorecardQuestionType.SingleChoice or ScorecardQuestionType.MultiChoice)
+            {
+                ValidateOptions(question.Options, Join(questionPath, "options"), errors);
+            }
+            else if (question.Options is { Count: > 0 })
+            {
+                errors.Add(new(Join(questionPath, "options"), "Only choice questions have options."));
+            }
+
+            var texts = new List<(string? Text, string Member)> { (question.Label, "label"), (question.Guidance, "guidance") };
+            texts.AddRange((question.Options ?? []).Select((o, n) => (o?.Label, $"options[{n}].label")));
+            foreach (var (text, member) in texts)
+            {
+                if (text is not null && PersonalJudgement().Match(text) is { Success: true } match)
+                {
+                    errors.Add(new(Join(questionPath, member),
+                        $"Ask about what the job needs, such as a skill or experience, not \"{match.Value}\". Scorecards never rate " +
+                        "personality, emotion or honesty (CLAUDE.md non-negotiable 3)."));
+                }
+            }
+        }
+
+        return errors;
+    }
+
     private static Dictionary<string, Question> ValidateQuestionnaire(Questionnaire? questionnaire, string path, List<DefinitionError> errors)
     {
         var byId = new Dictionary<string, Question>(StringComparer.Ordinal);
@@ -166,6 +283,56 @@ public static partial class DefinitionValidator
             return byId;
         }
 
+        ValidateQuestions(questions, path, followUp: false, byId, errors);
+        return byId;
+    }
+
+    // Each follow-up's questions join the apply questionnaire's in one dictionary: ids are unique across all of them, and
+    // conditions and the knockout rules read every question the same way. Returns the follow-ups by id.
+    private static Dictionary<string, FollowUpQuestionnaire> ValidateFollowUps(
+        IReadOnlyList<FollowUpQuestionnaire>? followUps, string path, Dictionary<string, Question> questions, List<DefinitionError> errors)
+    {
+        var byId = new Dictionary<string, FollowUpQuestionnaire>(StringComparer.Ordinal);
+        if (followUps is null)
+        {
+            return byId;
+        }
+
+        if (followUps.Count > MaxFollowUpQuestionnaires)
+        {
+            errors.Add(new(path, $"A workflow has at most {MaxFollowUpQuestionnaires} follow-up questionnaires."));
+        }
+
+        for (var i = 0; i < followUps.Count; i++)
+        {
+            var followUpPath = $"{path}[{i}]";
+            if (followUps[i] is not { } followUp)
+            {
+                errors.Add(new(followUpPath, "A questionnaire is required."));
+                continue;
+            }
+
+            if (ValidateId(followUp.Id, Join(followUpPath, "id"), errors) && !byId.TryAdd(followUp.Id, followUp))
+            {
+                errors.Add(new(Join(followUpPath, "id"), $"Questionnaire id '{followUp.Id}' is used twice."));
+            }
+
+            ValidateText(followUp.Name, Join(followUpPath, "name"), 80, required: true, errors);
+            if (followUp.Questions is not { Count: > 0 } followUpQuestions)
+            {
+                errors.Add(new(Join(followUpPath, "questions"), "A follow-up questionnaire asks at least one question."));
+                continue;
+            }
+
+            ValidateQuestions(followUpQuestions, followUpPath, followUp: true, questions, errors);
+        }
+
+        return byId;
+    }
+
+    private static void ValidateQuestions(
+        IReadOnlyList<Question> questions, string path, bool followUp, Dictionary<string, Question> byId, List<DefinitionError> errors)
+    {
         if (questions.Count > MaxQuestions)
         {
             errors.Add(new(Join(path, "questions"), $"A questionnaire has at most {MaxQuestions} questions."));
@@ -181,15 +348,27 @@ public static partial class DefinitionValidator
                 continue;
             }
 
-            if (ValidateId(question.Id, Join(questionPath, "id"), errors) && !byId.TryAdd(question.Id, question))
+            if (ValidateId(question.Id, Join(questionPath, "id"), errors))
             {
-                errors.Add(new(Join(questionPath, "id"), $"Question id '{question.Id}' is used twice."));
+                if (followUp && ApplyFormQuestionIds.Contains(question.Id))
+                {
+                    errors.Add(new(Join(questionPath, "id"), $"'{question.Id}' is a question on the apply form. Choose another id."));
+                }
+                else if (!byId.TryAdd(question.Id, question))
+                {
+                    errors.Add(new(Join(questionPath, "id"), followUp
+                        ? $"Question id '{question.Id}' is used twice. Ids are unique across all of a workflow's questionnaires."
+                        : $"Question id '{question.Id}' is used twice."));
+                }
             }
 
             ValidateQuestion(question, questionPath, errors);
+            if (followUp && question.Type == QuestionType.File)
+            {
+                // The follow-up page works without JavaScript and takes no uploads (workflow-engine.md §8).
+                errors.Add(new(Join(questionPath, "type"), "A follow-up questionnaire cannot ask for a file. Ask for files on the apply form."));
+            }
         }
-
-        return byId;
     }
 
     private static void ValidateQuestion(Question question, string path, List<DefinitionError> errors)
@@ -288,12 +467,9 @@ public static partial class DefinitionValidator
     }
 
     private static void ValidateAutomations(
-        IReadOnlyList<Automation>? automations,
-        string path,
-        Dictionary<string, WorkflowStage> stages,
-        Dictionary<string, Question> questions,
-        List<DefinitionError> errors)
+        IReadOnlyList<Automation>? automations, string path, WorkflowParts parts, List<DefinitionError> errors)
     {
+        var (stages, questions, _) = parts;
         if (automations is null)
         {
             errors.Add(new(path, "Automations are required; use an empty list for none."));
@@ -322,30 +498,41 @@ public static partial class DefinitionValidator
             }
 
             ValidateText(automation.Name, Join(automationPath, "name"), 120, required: true, errors);
-            ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), stages, errors);
-            ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), questions, errors);
-            ValidateActions(automation.Actions, Join(automationPath, "actions"), stages, errors);
+            ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), parts, errors);
+            ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), automation.Trigger?.Type, questions, errors);
+            ValidateActions(automation.Actions, Join(automationPath, "actions"), parts, errors);
         }
 
-        var signalDriven = SignalDrivenAutomations(automations);
+        var signalDriven = DrivenAutomations(automations, DrivenBySignal);
+        var delayDriven = DrivenAutomations(automations, a => a.Trigger?.Type == TriggerType.SlaBreached);
         for (var i = 0; i < automations.Count; i++)
         {
             if (automations[i] is { } automation)
             {
-                ValidateGuardrails(automation, $"{path}[{i}]", signalDriven.Contains(i), stages, questions, errors);
+                ValidateGuardrails(automation, $"{path}[{i}]", signalDriven.Contains(i), delayDriven.Contains(i), stages, questions, errors);
             }
         }
     }
 
+    // An integrity or verification signal drives the automation directly: its trigger or a fact it reads.
+    private static bool DrivenBySignal(Automation automation) =>
+        automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
+        || automation.Conditions?.Rules?.Any(rule => rule is not null && FactSchema.IsSignal(rule.Fact)) == true;
+
     /// <summary>
-    /// The automations an integrity or verification signal can drive, directly or at one remove. Directly: a signal
-    /// trigger or a signal fact. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
+    /// The automations something can drive, directly or at one remove. For integrity and verification signals, directly
+    /// means a signal trigger or a signal fact; for an SLA breach, the SlaBreached trigger. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
     /// trigger on a stage one moves applications into, or any StageExited trigger once one moves applications at all
     /// (the stage a move leaves is wherever the application is when the action runs, which no definition can know).
+    /// A ReviewerDecision trigger counts like a stage trigger: on a stage a signal moves applications into, or with no
+    /// stage once a signal moves applications at all. A person's scorecard sits in between, but the scorecard may be
+    /// filled only because a signal put the candidate in front of that reviewer, so the guardrail stays conservative.
+    /// An SlaBreached trigger without a stage counts the same way: it fires on whatever stage the application is in.
     /// Otherwise a signal could tag or route an application and a second automation could act on the tag or the stage,
-    /// laundering the signal past guardrail 1. Repeated until nothing new is found, so chains of any length count.
+    /// laundering the signal past guardrail 1, or a breach past "never counts against the candidate". Repeated until
+    /// nothing new is found, so chains of any length count.
     /// </summary>
-    private static HashSet<int> SignalDrivenAutomations(IReadOnlyList<Automation> automations)
+    private static HashSet<int> DrivenAutomations(IReadOnlyList<Automation> automations, Func<Automation, bool> drivenDirectly)
     {
         var driven = new HashSet<int>();
         var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -357,7 +544,8 @@ public static partial class DefinitionValidator
             found = false;
             for (var i = 0; i < automations.Count; i++)
             {
-                if (driven.Contains(i) || automations[i] is not { } automation || !IsSignalDriven(automation, tags, stages, movesOut))
+                if (driven.Contains(i) || automations[i] is not { } automation
+                    || !(drivenDirectly(automation) || IsDrivenAtOneRemove(automation, tags, stages, movesOut)))
                 {
                     continue;
                 }
@@ -383,17 +571,17 @@ public static partial class DefinitionValidator
         return driven;
     }
 
-    private static bool IsSignalDriven(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages, bool signalMovesOut)
+    private static bool IsDrivenAtOneRemove(Automation automation, HashSet<string> taintedTags, HashSet<string> taintedStages, bool drivenMovesOut)
     {
-        if (automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
-            || (automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId))
-            || (automation.Trigger?.Type == TriggerType.StageExited && signalMovesOut))
+        if ((automation.Trigger?.StageId is { } stageId && taintedStages.Contains(stageId))
+            || (automation.Trigger?.Type == TriggerType.StageExited && drivenMovesOut)
+            || (automation.Trigger is { Type: TriggerType.ReviewerDecision or TriggerType.SlaBreached, StageId: null } && drivenMovesOut))
         {
             return true;
         }
 
         return automation.Conditions?.Rules?.Any(rule => rule is not null
-            && (FactSchema.IsSignal(rule.Fact) || (rule.Fact == FactSchema.Tags && ReadsTaintedTag(rule, taintedTags)))) == true;
+            && rule.Fact == FactSchema.Tags && ReadsTaintedTag(rule, taintedTags)) == true;
     }
 
     // A rule reads a tainted tag if it would hold for an application carrying that tag, judged by the evaluator itself so
@@ -403,9 +591,9 @@ public static partial class DefinitionValidator
         taintedTags.Count > 0
         && (rule.Negate || taintedTags.Any(tag => AutomationEvaluator.Holds(rule, new AutomationFacts([], [tag]))));
 
-    private static void ValidateTrigger(
-        AutomationTrigger? trigger, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
+    private static void ValidateTrigger(AutomationTrigger? trigger, string path, WorkflowParts parts, List<DefinitionError> errors)
     {
+        var stages = parts.Stages;
         if (trigger is null)
         {
             errors.Add(new(path, "A trigger is required."));
@@ -428,9 +616,50 @@ public static partial class DefinitionValidator
         {
             ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
         }
+        else if (trigger.Type == TriggerType.ReviewerDecision && trigger.StageId is not null)
+        {
+            // Optional: a decision on any stage's scorecard, or only on this one's.
+            ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+            if (stages.GetValueOrDefault(trigger.StageId) is { } stage && !stage.HasScorecard())
+            {
+                errors.Add(new(Join(path, "stageId"), $"{stage.Name} has no scorecard, so no reviewer decision is recorded there."));
+            }
+        }
+        else if (trigger.Type == TriggerType.SlaBreached)
+        {
+            // Optional: any stage's time limit, or only this one's.
+            if (trigger.StageId is not null)
+            {
+                ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+                if (stages.GetValueOrDefault(trigger.StageId) is { } stage && !stage.HasSla())
+                {
+                    errors.Add(new(Join(path, "stageId"), Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal()
+                        ? $"{stage.Name} ends the application, so its time limit never passes."
+                        : $"{stage.Name} has no time limit, so it is never overdue. Set its time limit in days."));
+                }
+            }
+            else if (stages.Count > 0 && !stages.Values.Any(s => s.HasSla()))
+            {
+                errors.Add(new(Join(path, "type"), "No stage has a time limit, so this never fires. Set a stage's time limit in days."));
+            }
+        }
         else if (trigger.StageId is not null)
         {
             errors.Add(new(Join(path, "stageId"), $"A {trigger.Type} trigger has no stage."));
+        }
+
+        if (trigger.Type == TriggerType.QuestionnaireCompleted)
+        {
+            // Optional, as a ReviewerDecision's stage is: without one it fires on any follow-up questionnaire, which keeps
+            // definitions saved before follow-ups existed valid.
+            if (trigger.QuestionnaireId is not null)
+            {
+                ValidateFollowUpReference(trigger.QuestionnaireId, Join(path, "questionnaireId"), parts.FollowUps, errors);
+            }
+        }
+        else if (trigger.QuestionnaireId is not null)
+        {
+            errors.Add(new(Join(path, "questionnaireId"), $"A {trigger.Type} trigger has no questionnaire."));
         }
 
         if (trigger.Type == TriggerType.TimeElapsed)
@@ -447,7 +676,7 @@ public static partial class DefinitionValidator
     }
 
     private static void ValidateConditions(
-        AutomationConditions? conditions, string path, Dictionary<string, Question> questions, List<DefinitionError> errors)
+        AutomationConditions? conditions, string path, TriggerType? trigger, Dictionary<string, Question> questions, List<DefinitionError> errors)
     {
         if (conditions is null)
         {
@@ -474,12 +703,33 @@ public static partial class DefinitionValidator
                 continue;
             }
 
+            if (FactSchema.IsRating(rule.Fact))
+            {
+                // Not an unknown fact: a refused one. The candidate's rating informs people and is never a condition.
+                errors.Add(new(Join(rulePath, "fact"),
+                    "The candidate's rating informs people, who decide: no automation acts on it or on a scorecard's answers (ADR-0013). " +
+                    "Use a ReviewerDecision trigger and reviewer.recommendation to act on one reviewer's recommendation."));
+                continue;
+            }
+
             var fact = FactSchema.Find(rule.Fact, questions);
             if (fact is null)
             {
                 errors.Add(new(Join(rulePath, "fact"), rule.Fact?.StartsWith(AnswersPrefix, StringComparison.Ordinal) == true
                     ? $"No question has the id '{rule.Fact[AnswersPrefix.Length..]}'."
                     : $"Unknown fact '{rule.Fact}'."));
+            }
+            else if (fact.Category == FactCategory.Reviewer && trigger != TriggerType.ReviewerDecision)
+            {
+                errors.Add(new(Join(rulePath, "fact"), "Only a ReviewerDecision automation has a reviewer's recommendation to test."));
+            }
+            else if (trigger == TriggerType.SlaBreached && FactSchema.IsTimingOrTelemetry(fact.Name))
+            {
+                // The engine skips an automation with a timing condition for an application with an accommodation, and a
+                // skipped reminder would leave that candidate waiting with nobody told (workflow-engine.md section 8).
+                errors.Add(new(Join(rulePath, "fact"),
+                    "A time limit passing already says how long the candidate waited. A timing condition here would skip the " +
+                    "reminder for a candidate with an accommodation, who would then wait with nobody told."));
             }
             else if (Enum.IsDefined(rule.Operator) && !FactSchema.OperatorsFor(fact.Type).Contains(rule.Operator))
             {
@@ -521,8 +771,7 @@ public static partial class DefinitionValidator
         }
     }
 
-    private static void ValidateActions(
-        IReadOnlyList<AutomationAction>? actions, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
+    private static void ValidateActions(IReadOnlyList<AutomationAction>? actions, string path, WorkflowParts parts, List<DefinitionError> errors)
     {
         if (actions is not { Count: > 0 and <= MaxActions })
         {
@@ -550,19 +799,19 @@ public static partial class DefinitionValidator
                 errors.Add(new(Join(actionPath, "type"), unavailable));
             }
 
-            ValidateActionFields(action, actionPath, stages, errors);
+            ValidateActionFields(action, actionPath, parts, errors);
         }
     }
 
     // Each action type's required and optional fields; anything else set on it is an error, so a definition never
     // carries a value the engine would silently ignore.
-    private static void ValidateActionFields(
-        AutomationAction action, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
+    private static void ValidateActionFields(AutomationAction action, string path, WorkflowParts parts, List<DefinitionError> errors)
     {
+        var stages = parts.Stages;
         var (required, optional) = action.Type switch
         {
             ActionType.SendEmail => (ActionField.EmailTemplate, ActionField.None),
-            ActionType.SendQuestionnaire => (ActionField.None, ActionField.None),
+            ActionType.SendQuestionnaire => (ActionField.QuestionnaireId, ActionField.None),
             ActionType.RequestVerification => (ActionField.None, ActionField.VerificationProvider),
             ActionType.MoveToStage => (ActionField.StageId, ActionField.None),
             ActionType.AddTag => (ActionField.Tag, ActionField.None),
@@ -585,6 +834,7 @@ public static partial class DefinitionValidator
         present |= action.Note is not null ? ActionField.Note : ActionField.None;
         present |= action.AssigneeUserId is not null ? ActionField.AssigneeUserId : ActionField.None;
         present |= action.VerificationProvider is not null ? ActionField.VerificationProvider : ActionField.None;
+        present |= action.QuestionnaireId is not null ? ActionField.QuestionnaireId : ActionField.None;
 
         foreach (var field in Enum.GetValues<ActionField>().Where(f => f != ActionField.None))
         {
@@ -604,15 +854,26 @@ public static partial class DefinitionValidator
             ValidateStageReference(action.StageId, Join(path, "stageId"), stages, errors);
         }
 
-        if (action.EmailTemplate is not null && !EmailTemplateIds.All.Contains(action.EmailTemplate))
+        if (action.QuestionnaireId is not null && action.Type == ActionType.SendQuestionnaire)
         {
-            errors.Add(new(Join(path, "emailTemplate"), $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}."));
+            ValidateFollowUpReference(action.QuestionnaireId, Join(path, "questionnaireId"), parts.FollowUps, errors);
+        }
+
+        if (action.EmailTemplate is not null && !EmailTemplateIds.IsWellFormed(action.EmailTemplate))
+        {
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}, or the id of one of the organization's templates."));
         }
         else if (action.Type == ActionType.SendEmail && action.EmailTemplate == EmailTemplateIds.ApplicationRejected)
         {
             // The rejection email tells a candidate they are out, so it goes only with a Reject action, which the
             // knockout and opt-in rules guard (workflow-engine.md §2, guardrail 2).
             errors.Add(new(Join(path, "emailTemplate"), "The rejection email is sent only by a Reject action. Use QueueForRejectionReview so a person decides."));
+        }
+        else if (action.Type == ActionType.SendEmail && action.EmailTemplate == EmailTemplateIds.QuestionnaireRequest)
+        {
+            // Its link is made for one questionnaire request, which only a SendQuestionnaire action creates.
+            errors.Add(new(Join(path, "emailTemplate"), "The follow-up questions email is sent only by a SendQuestionnaire action, with its link."));
         }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {
@@ -637,6 +898,7 @@ public static partial class DefinitionValidator
         Automation automation,
         string path,
         bool signalDriven,
+        bool delayDriven,
         Dictionary<string, WorkflowStage> stages,
         Dictionary<string, Question> questions,
         List<DefinitionError> errors)
@@ -666,6 +928,14 @@ public static partial class DefinitionValidator
                 continue;
             }
 
+            if (automation.Trigger?.Type == TriggerType.SlaBreached && !SlaBreachActions.Contains(action.Type))
+            {
+                errors.Add(new(actionPath,
+                    "A time limit passing measures the hiring team's delay, not the candidate, so this automation may only notify " +
+                    "the team, assign a reviewer, create a task or add a tag. Nothing it does may count against the candidate."));
+                continue;
+            }
+
             var target = action.StageId is null ? null : stages.GetValueOrDefault(action.StageId);
             if (signalDriven && (!SignalSafeActions.Contains(action.Type)
                 || (action.Type == ActionType.MoveToStage && target is not null && !SignalSafeStages.Contains(target.Kind))))
@@ -677,8 +947,22 @@ public static partial class DefinitionValidator
                 continue;
             }
 
+            // At one remove from a breach (a tag it adds, a stage reached through one), the same list as the breach itself,
+            // plus a move into a review stage as a signal may make. Not Custom, not an email: either could be a rejection
+            // under another name, and the team's delay never counts against the candidate.
+            if (delayDriven && automation.Trigger?.Type != TriggerType.SlaBreached && !SlaBreachActions.Contains(action.Type)
+                && !(action.Type == ActionType.MoveToStage && target is not null && SignalSafeStages.Contains(target.Kind)))
+            {
+                errors.Add(new(actionPath,
+                    "This automation acts on a tag or stage that a passed time limit sets. A time limit measures the hiring " +
+                    "team's delay and never counts against the candidate, so this automation may only notify the team, assign " +
+                    "a reviewer, create a task, add a tag or move to a screening, assessment, verification or interview stage."));
+                continue;
+            }
+
             var rejects = action.Type == ActionType.Reject
                 || (action.Type == ActionType.MoveToStage && target?.Kind is StageKind.Rejected or StageKind.Withdrawn);
+
             if (!rejects)
             {
                 continue;
@@ -755,6 +1039,9 @@ public static partial class DefinitionValidator
             case FactType.Number when operands.Any(o => !FactSchema.TryParseNumber(o, out _)):
                 errors.Add(new(operandPath, $"{fact.Name} is a number; compare it with a number such as 48."));
                 break;
+            case FactType.Recommendation when operands.FirstOrDefault(o => o is null || !Enum.GetNames<Recommendation>().Contains(o, StringComparer.Ordinal)) is { } notRecommendation:
+                errors.Add(new(operandPath, $"'{notRecommendation}' is not a recommendation. Use {string.Join(", ", Enum.GetNames<Recommendation>())}."));
+                break;
             case FactType.Choice or FactType.MultiChoice:
                 var options = questions[fact.Name[AnswersPrefix.Length..]].Options?.Where(o => o is not null).Select(o => o.Id).ToHashSet(StringComparer.Ordinal) ?? [];
                 if (operands.FirstOrDefault(o => o is not null && !options.Contains(o)) is { } unknown)
@@ -783,6 +1070,15 @@ public static partial class DefinitionValidator
         && question.Knockout is { } knockout
         && rule is { Operator: ConditionOperator.EqualTo, Negate: false }
         && rule.Value == (knockout.DisqualifyingAnswer ? "yes" : "no");
+
+    private static void ValidateFollowUpReference(
+        string questionnaireId, string path, Dictionary<string, FollowUpQuestionnaire> followUps, List<DefinitionError> errors)
+    {
+        if (!followUps.ContainsKey(questionnaireId))
+        {
+            errors.Add(new(path, $"No follow-up questionnaire has the id '{questionnaireId}'."));
+        }
+    }
 
     private static void ValidateStageReference(string? stageId, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
     {
@@ -834,6 +1130,7 @@ public static partial class DefinitionValidator
         ActionField.Note => "note",
         ActionField.AssigneeUserId => "assigneeUserId",
         ActionField.VerificationProvider => "verificationProvider",
+        ActionField.QuestionnaireId => "questionnaireId",
         _ => field.ToString(),
     };
 
@@ -849,7 +1146,14 @@ public static partial class DefinitionValidator
         Note = 32,
         AssigneeUserId = 64,
         VerificationProvider = 128,
+        QuestionnaireId = 256,
     }
+
+    /// <summary>What the automations of one workflow may refer to: its stages, every question by id, and its follow-ups.</summary>
+    private sealed record WorkflowParts(
+        Dictionary<string, WorkflowStage> Stages,
+        Dictionary<string, Question> Questions,
+        Dictionary<string, FollowUpQuestionnaire> FollowUps);
 
     [GeneratedRegex("^[a-z][a-z0-9_-]{0,39}$")]
     private static partial Regex Identifier();
@@ -859,4 +1163,12 @@ public static partial class DefinitionValidator
 
     [GeneratedRegex("^[A-Z]{3}$")]
     private static partial Regex CurrencyCode();
+
+    // A backstop for scorecard questions that rate the person rather than the job (CLAUDE.md non-negotiable 3). Whole words only,
+    // and not words with a fair job meaning: "data integrity", "energy sector knowledge", "character encoding" and
+    // "statistical confidence" pass. It catches the obvious cases; a criterion's meaning is for the template builder's
+    // guidance and review of system templates (workflow-engine.md §7).
+    [GeneratedRegex(@"\b(personality|personalities|emotion|emotions|emotional|emotionally|honest|honesty|dishonest|dishonesty|truthful|truthfulness|lying|liar|trustworthy|trustworthiness|sincere|sincerity|temperament|likeable|likeability|likability|culture fit|cultural fit|gut feeling|attitude|enthusiasm|enthusiastic|passion|passionate|demeanor|demeanour|motivation|motivated|charisma|charismatic|vibe|vibes)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex PersonalJudgement();
 }

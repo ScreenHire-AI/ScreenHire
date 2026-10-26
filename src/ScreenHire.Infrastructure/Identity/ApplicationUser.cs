@@ -18,4 +18,10 @@ public sealed class ApplicationUser : IdentityUser<Guid>
     public string? DisplayName { get; set; }
 
     public required DateTimeOffset CreatedAt { get; init; }
+
+    /// <summary>
+    /// The organization the user last switched to, or joined by invitation. The API makes it the tenant while the user
+    /// is still a member of it, and falls back to the first organization they joined otherwise.
+    /// </summary>
+    public Guid? ActiveOrganizationId { get; set; }
 }

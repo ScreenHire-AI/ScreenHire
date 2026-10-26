@@ -68,7 +68,7 @@ describe('steps', () => {
 
 describe('parseState', () => {
   it('round-trips the state through the hidden field', () => {
-    const state = { ...emptyState(), fullName: 'Casey Morgan', answers: { shifts: ['mornings'] }, files: { resume: upload } };
+    const state = { ...emptyState(), firstName: 'Casey', lastName: 'Morgan', answers: { shifts: ['mornings'] }, files: { resume: upload } };
 
     expect(parseState(JSON.stringify(state))).toEqual(state);
   });
@@ -92,16 +92,16 @@ describe('parseState', () => {
   it('falls back to empty for anything malformed, and drops bad uploads', () => {
     expect(parseState('{not json')).toEqual(emptyState());
     expect(parseState(null)).toEqual(emptyState());
-    const tampered = parseState(JSON.stringify({ fullName: 42, aiUseDeclaration: 'Maybe', files: { resume: { uploadId: '../../x' } } }));
+    const tampered = parseState(JSON.stringify({ firstName: 42, lastName: ['x'], aiUseDeclaration: 'Maybe', files: { resume: { uploadId: '../../x' } } }));
     expect(tampered).toEqual(emptyState());
   });
 });
 
 describe('reading a step', () => {
   it('reads details, trims them and reads the assistive technology switch', () => {
-    const state = readDetails(form([['fullName', '  Casey Morgan '], ['email', 'casey@example.com'], ['accommodationRequested', 'on']]), emptyState());
+    const state = readDetails(form([['firstName', '  Casey '], ['lastName', ' Morgan '], ['email', 'casey@example.com'], ['accommodationRequested', 'on']]), emptyState());
 
-    expect(state).toMatchObject({ fullName: 'Casey Morgan', email: 'casey@example.com', phone: '', accommodationRequested: true });
+    expect(state).toMatchObject({ firstName: 'Casey', lastName: 'Morgan', email: 'casey@example.com', phone: '', accommodationRequested: true });
   });
 
   it('reads the device-check tick', () => {
@@ -137,13 +137,13 @@ describe('reading a step', () => {
 });
 
 describe('validation', () => {
-  it('asks for a name, a real-looking email and the required resume', () => {
+  it('asks for a first name, a real-looking email and the required resume, and lets the last name be left out', () => {
     expect(validateDetails({ ...emptyState(), email: 'not-an-email' }, questions)).toEqual({
-      fullName: 'Enter your full name.',
+      firstName: 'Enter your first name.',
       email: 'Enter an email address like name@example.com.',
       [fields.file('resume')]: 'Add a file.',
     });
-    expect(validateDetails({ ...emptyState(), fullName: 'Casey', email: 'casey@example.com', files: { resume: upload } }, questions)).toEqual({});
+    expect(validateDetails({ ...emptyState(), firstName: 'Casey', email: 'casey@example.com', files: { resume: upload } }, questions)).toEqual({});
   });
 
   it('accepts a knockout answer like any other', () => {
@@ -181,7 +181,8 @@ describe('toRequest', () => {
   it('sends answers as automation conditions read them, with the notice version and the checks', () => {
     const state = {
       ...emptyState(),
-      fullName: 'Casey Morgan',
+      firstName: 'Casey',
+      lastName: 'Morgan',
       email: 'casey@example.com',
       accommodationRequested: true,
       answers: { work_authorization: 'yes', shifts: ['mornings'] },
@@ -192,7 +193,7 @@ describe('toRequest', () => {
     };
 
     expect(toRequest(state, questions, { honeypotFilled: true, botCheckToken: null, userAgent: 'Mozilla/5.0 (Example)' })).toEqual({
-      candidate: { fullName: 'Casey Morgan', email: 'casey@example.com', phone: null },
+      candidate: { firstName: 'Casey', lastName: 'Morgan', email: 'casey@example.com', phone: null },
       privacyNoticeVersion: NOTICE_VERSION,
       answers: [
         { questionId: 'resume', value: upload.uploadId },
@@ -275,6 +276,6 @@ describe('errorsFromProblem', () => {
 describe('fieldId', () => {
   it('makes element ids from field names', () => {
     expect(fieldId(fields.file('resume'))).toBe('field-file-resume');
-    expect(fieldId('fullName')).toBe('field-fullName');
+    expect(fieldId('firstName')).toBe('field-firstName');
   });
 });

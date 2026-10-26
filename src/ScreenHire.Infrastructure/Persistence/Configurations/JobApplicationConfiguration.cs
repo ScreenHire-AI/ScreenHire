@@ -57,6 +57,55 @@ internal sealed class ApplicationEventConfiguration : IEntityTypeConfiguration<A
     }
 }
 
+internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfiguration<QuestionnaireRequest>
+{
+    public void Configure(EntityTypeBuilder<QuestionnaireRequest> builder)
+    {
+        builder.Property(r => r.QuestionnaireId).HasMaxLength(40);
+        builder.Property(r => r.QuestionnaireName).HasMaxLength(80);
+        builder.Property(r => r.Questions).HasJsonColumn();
+        builder.Property(r => r.Answers).HasJsonColumn();
+        // Optimistic concurrency on xmin: two answers to one link racing each other give one success and one conflict.
+        builder.Property<uint>("Version").IsRowVersion();
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // One request per application and questionnaire: sending again finds it, and two sends racing hit this index.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.QuestionnaireId }).IsUnique();
+    }
+}
+
+internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfiguration<ApplicationScorecard>
+{
+    public void Configure(EntityTypeBuilder<ApplicationScorecard> builder)
+    {
+        builder.Property(s => s.StageId).HasMaxLength(40);
+        builder.Property(s => s.Ratings).HasJsonColumn();
+        builder.Property(s => s.Answers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
+        builder.Property(s => s.Recommendation).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.Note).HasMaxLength(ApplicationScorecard.MaxNoteLength);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(s => new { s.OrganizationId, s.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // The application's own job, in the same organization; set from the application, never from a request.
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(s => new { s.OrganizationId, s.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // One judgement per reviewer per stage: a second submission is the same request again or a conflict, and two
+        // submissions racing each other hit this index.
+        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId }).IsUnique();
+    }
+}
+
 internal sealed class ApplicationFileConfiguration : IEntityTypeConfiguration<ApplicationFile>
 {
     public void Configure(EntityTypeBuilder<ApplicationFile> builder)
@@ -76,5 +125,54 @@ internal sealed class ApplicationFileConfiguration : IEntityTypeConfiguration<Ap
         builder.HasIndex(f => new { f.OrganizationId, f.Sha256 });
         // One file answers one question of one application; also the index for an application's files.
         builder.HasIndex(f => new { f.OrganizationId, f.ApplicationId, f.QuestionId }).IsUnique();
+    }
+}
+
+internal sealed class ApplicationNoteConfiguration : IEntityTypeConfiguration<ApplicationNote>
+{
+    public void Configure(EntityTypeBuilder<ApplicationNote> builder)
+    {
+        builder.Property(n => n.Text).HasMaxLength(JobApplication.MaxNoteLength);
+
+        // Two people editing or deleting one note at once: one wins, the other gets a conflict (xmin, as on applications).
+        builder.Property<uint>("Version").IsRowVersion();
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(n => new { n.OrganizationId, n.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(n => n.Mentions).WithOne()
+            .HasForeignKey(m => new { m.OrganizationId, m.NoteId })
+            .HasPrincipalKey(n => new { n.OrganizationId, n.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(n => n.Mentions).AutoInclude();
+
+        builder.HasAlternateKey(n => new { n.OrganizationId, n.Id });
+        builder.HasIndex(n => new { n.OrganizationId, n.ApplicationId });
+    }
+}
+
+internal sealed class ApplicationEmailConfiguration : IEntityTypeConfiguration<ApplicationEmail>
+{
+    public void Configure(EntityTypeBuilder<ApplicationEmail> builder)
+    {
+        builder.Property(e => e.TemplateId).HasMaxLength(40);
+        builder.Property(e => e.To).HasMaxLength(320);
+        builder.Property(e => e.Subject).HasMaxLength(ApplicationEmail.MaxSubjectLength);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(e => new { e.OrganizationId, e.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(e => new { e.OrganizationId, e.ApplicationId });
+    }
+}
+
+internal sealed class ApplicationNoteMentionConfiguration : IEntityTypeConfiguration<ApplicationNoteMention>
+{
+    public void Configure(EntityTypeBuilder<ApplicationNoteMention> builder)
+    {
+        // A person is mentioned once per note, however often the text names them.
+        builder.HasIndex(m => new { m.OrganizationId, m.NoteId, m.UserId }).IsUnique();
     }
 }

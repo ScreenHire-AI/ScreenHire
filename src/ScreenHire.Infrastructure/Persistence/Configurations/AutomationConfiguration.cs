@@ -14,6 +14,7 @@ internal sealed class AutomationRunConfiguration : IEntityTypeConfiguration<Auto
         builder.Property(r => r.AutomationName).HasMaxLength(120);
         builder.Property(r => r.Trigger).HasConversion<string>().HasMaxLength(30);
         builder.Property(r => r.TriggerStageId).HasMaxLength(40);
+        builder.Property(r => r.TriggerQuestionnaireId).HasMaxLength(40);
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(r => r.Detail).HasMaxLength(1000);
         builder.Property(r => r.Facts).HasJsonColumn();
@@ -62,7 +63,11 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
     public void Configure(EntityTypeBuilder<ApplicationTask> builder)
     {
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20);
-        builder.Property(t => t.Note).HasMaxLength(1000);
+        builder.Property(t => t.Note).HasMaxLength(ApplicationTask.MaxNoteLength);
+        builder.Property(t => t.StageId).HasMaxLength(40);
+        // Completing updates WHERE completed_at IS NULL, so of two people completing a task at the same moment one
+        // wins and the other's save conflicts (TaskEndpoints.CompleteTask returns the winner's entry).
+        builder.Property(t => t.CompletedAt).IsConcurrencyToken();
 
         builder.HasOne<JobApplication>().WithMany()
             .HasForeignKey(t => new { t.OrganizationId, t.ApplicationId })
@@ -74,5 +79,7 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
             .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(t => new { t.OrganizationId, t.ApplicationId });
+        // My tasks: Mine and For the team list by assignee, open or done.
+        builder.HasIndex(t => new { t.OrganizationId, t.AssigneeUserId, t.CompletedAt });
     }
 }

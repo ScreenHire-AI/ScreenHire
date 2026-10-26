@@ -1,6 +1,8 @@
 <script lang="ts">
+  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
   import type { WorkflowStage } from '@screenhire/api-client';
-  import { buttonVariants } from '#lib/components/ui/button/index.js';
+  import { buttonVariants, type ButtonSize, type ButtonVariant } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { cn } from '#lib/utils.js';
 
@@ -11,7 +13,11 @@
     stages,
     disabled = false,
     compact = false,
+    variant = 'outline',
+    size,
+    class: className,
     onmove,
+    onnote,
   }: {
     candidateName: string;
     currentStageId: string;
@@ -19,7 +25,14 @@
     disabled?: boolean;
     /** A short "Move" trigger for table rows and cards. */
     compact?: boolean;
+    /** A detail page's primary action is filled. */
+    variant?: ButtonVariant;
+    /** The trigger's size when not compact; `sm` by default. */
+    size?: ButtonSize;
+    class?: string;
     onmove: (stage: WorkflowStage) => void;
+    /** Adds "With a note", which opens a sheet to move with a note (the detail page's). */
+    onnote?: () => void;
   } = $props();
 </script>
 
@@ -30,17 +43,21 @@
   <DropdownMenu.Trigger
     {disabled}
     aria-label={compact ? `Move ${candidateName} to another stage` : `Move to stage, ${candidateName}`}
-    class={cn(buttonVariants({ variant: 'outline', size: compact ? 'xs' : 'sm' }))}
+    class={cn(buttonVariants({ variant, size: compact ? 'xs' : (size ?? 'sm') }), className)}
   >
-    {compact ? 'Move' : 'Move to stage'}
+    <ArrowRightIcon aria-hidden="true" />{compact ? 'Move' : 'Move to stage'}
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="w-52">
-    <DropdownMenu.Label class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Move to</DropdownMenu.Label>
+    <DropdownMenu.Label class="text-caption text-muted-foreground">Move to</DropdownMenu.Label>
     {#each stages as stage (stage.id)}
       <DropdownMenu.Item disabled={stage.id === currentStageId} onSelect={() => onmove(stage)}>
         {stage.name}
-        {#if stage.id === currentStageId}<span class="ml-auto text-xs text-muted-foreground">current</span>{/if}
+        {#if stage.id === currentStageId}<span class="ml-auto text-caption text-muted-foreground">current</span>{/if}
       </DropdownMenu.Item>
     {/each}
+    {#if onnote}
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item onSelect={onnote}><StickyNoteIcon aria-hidden="true" />With a note…</DropdownMenu.Item>
+    {/if}
   </DropdownMenu.Content>
 </DropdownMenu.Root>

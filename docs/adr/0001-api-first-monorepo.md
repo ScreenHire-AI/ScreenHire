@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0001: API-first architecture in a single monorepo"
+description: "Why every client, the dashboard included, reads and writes only through the public HTTP API, and why every app and shared package lives in one monorepo under apps/, packages/ and src/."
+tags: [adr, api, monorepo]
+---
 # ADR-0001: API-first architecture in a single monorepo
 
 - **Status:** Accepted (2026-10-18)

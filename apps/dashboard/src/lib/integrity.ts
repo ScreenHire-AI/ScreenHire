@@ -5,48 +5,83 @@ import type {
   ApplicationSummary,
   AuthenticityLevel,
   DismissReason,
+  IntegritySignalView,
   IntegritySummary,
+  SignalCategory,
   StageKind,
 } from '@screenhire/api-client';
-import type { BadgeVariant } from '#lib/components/ui/badge/index.js';
-import type { MarkShape, MarkTone } from '#lib/distribution.js';
+import type { QueryClient } from '@tanstack/svelte-query';
+import { invalidatePath } from '#lib/query.js';
+import { applicationsPath, jobsPath } from '#lib/realtime.js';
+import type { StatusName } from '#lib/status.js';
 
 /**
- * How the dashboard shows one integrity level (docs/architecture/integrity-engine.md, design-system section 2.2):
- * always a shape mark, a colour and words. Levels are categories, never scores (ADR-0004); `rank` only orders them.
+ * How the dashboard shows one integrity level (docs/architecture/integrity-engine.md, design-system section 3.2):
+ * always its status icon, a colour and words. Levels are categories, never scores (ADR-0004); `rank` only orders them.
  */
 export interface LevelView {
-  /** The level in words: "Review suggested". */
+  /** The level in words, always in full (section 16): "Verification suggested", "Some signs of AI help". */
   label: string;
-  /** The table's short form: "Review". */
+  /** The words in a table's cell, where the column header names the assessment: "Some signs". */
   short: string;
-  shape: MarkShape;
-  tone: MarkTone;
-  variant: BadgeVariant;
+  /** The status the level shows as: its icon and colour (section 3.2). */
+  status: StatusName;
   /** 0 for the lowest level; sorting puts the highest first. */
   rank: number;
 }
 
 export const authenticityLevels: Record<AuthenticityLevel, LevelView> = {
-  NoConcerns: { label: 'No concerns', short: 'No concerns', shape: 'circle', tone: 'clear', variant: 'clear', rank: 0 },
-  ReviewSuggested: { label: 'Review suggested', short: 'Review', shape: 'diamond', tone: 'review', variant: 'review', rank: 1 },
-  VerificationRecommended: { label: 'Verification recommended', short: 'Verify', shape: 'square', tone: 'verify', variant: 'verify', rank: 2 },
+  NoConcerns: { label: 'No concerns', short: 'No concerns', status: 'done', rank: 0 },
+  ReviewSuggested: { label: 'Review suggested', short: 'Review suggested', status: 'review', rank: 1 },
+  VerificationRecommended: { label: 'Verification suggested', short: 'Verification suggested', status: 'verification', rank: 2 },
 };
 
-// AI assistance is information, not a status, so its chips share one colour and the ring mark, and the words carry the
-// level. "Not indicated" is quiet, so a column of them does not draw the eye.
+// AI assistance is information, not a status, so every level takes the AI colour and the sparkles icon, and the words
+// carry the level. In a table "No signs" is quiet, so a column of them does not draw the eye.
 export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
-  NotIndicated: { label: 'Not indicated', short: 'None', shape: 'ring', tone: 'neutral', variant: 'outline', rank: 0 },
-  SomeIndicators: { label: 'Some indicators', short: 'Some', shape: 'ring', tone: 'ai', variant: 'ai', rank: 1 },
-  StrongIndicators: { label: 'Strong indicators', short: 'Strong', shape: 'ring', tone: 'ai', variant: 'ai', rank: 2 },
+  NotIndicated: { label: 'No signs of AI help', short: 'No signs', status: 'ai', rank: 0 },
+  SomeIndicators: { label: 'Some signs of AI help', short: 'Some signs', status: 'ai', rank: 1 },
+  StrongIndicators: { label: 'Strong signs of AI help', short: 'Strong signs', status: 'ai', rank: 2 },
 };
 
 /** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
 export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
 export const aiAssistanceOrder = ['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const satisfies readonly AiAssistanceLevel[];
 
+/**
+ * The kinds of check the Integrity tab shows a summary card for (design system section 16). Network, Identity,
+ * Automation and Content always show; files and form activity only when they found something. Each is one of the
+ * engine's categories, kept apart because the engine counts independent categories to raise a level
+ * (integrity-engine.md section 10.1). The names say what was looked at, never what it means about the person: form
+ * activity (the telemetry aggregates) is neither "automation" nor "behaviour".
+ */
+export const checkKinds: readonly { category: SignalCategory; title: string; always: boolean }[] = [
+  { category: 'Network', title: 'Network', always: true },
+  { category: 'Identity', title: 'Identity', always: true },
+  { category: 'Automation', title: 'Automation', always: true },
+  { category: 'Content', title: 'Content', always: true },
+  { category: 'Document', title: 'Files', always: false },
+  { category: 'Behavioural', title: 'Form activity', always: false },
+];
+
+/** One kind of check: the reasons it found that count toward the level. */
+export interface CheckSummary {
+  category: SignalCategory;
+  title: string;
+  signals: IntegritySignalView[];
+}
+
+/** A card per kind of check, in the order of `checkKinds`, from an assessment's reasons. */
+export function checkSummaries(signals: readonly IntegritySignalView[]): CheckSummary[] {
+  const reasons = signals.filter((signal) => signal.countsTowardLevel);
+  return checkKinds
+    .map((kind) => ({ category: kind.category, title: kind.title, always: kind.always, signals: reasons.filter((signal) => signal.category === kind.category) }))
+    .filter((kind) => kind.always || kind.signals.length > 0)
+    .map(({ category, title, signals: found }) => ({ category, title, signals: found }));
+}
+
 /** An application whose checks have not finished: the API sends no integrity summary yet. */
-export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Pending', shape: 'ring', tone: 'neutral', variant: 'outline', rank: -1 };
+export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Checks pending', status: 'working', rank: -1 };
 
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
 
@@ -115,7 +150,7 @@ export interface IntegrityOverview {
   dismissed: number;
 }
 
-/** Counts for a job's stacked bar and its legend. The parts add up to the total. */
+/** Counts for a job's Authenticity panel. The parts add up to the total. */
 export function integrityOverview(applications: readonly ApplicationSummary[]): IntegrityOverview {
   const overview: IntegrityOverview = {
     total: applications.length,
@@ -152,3 +187,17 @@ export const dismissReasonLabels: Record<DismissReason, string> = {
   FalsePositive: 'The observations do not apply',
   Other: 'Other reason',
 };
+
+/**
+ * After a dismissal or a note: they change the integrity panel, the review log, the list chips (dismissed) and the
+ * "Needs review" counts, and no live event announces them.
+ */
+export function refetchAfterReview(queryClient: QueryClient): Promise<unknown> {
+  return Promise.all([invalidatePath(queryClient, applicationsPath), invalidatePath(queryClient, jobsPath)]);
+}
+
+/** Who took a review action, as the integrity panel and the review log name them: "you", or their name. */
+export function reviewerName(userId: string, name: string | null, currentUserId: string | undefined): string {
+  if (userId === currentUserId) return 'you';
+  return name ?? 'a teammate';
+}

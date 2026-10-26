@@ -1,4 +1,40 @@
-# Job Distribution Engine — In-House One-Click Post & Teardown
+---
+type: Design
+title: "Job Distribution Engine: In-House One-Click Post & Teardown"
+description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, and the distribution settings."
+tags: [distribution, job-boards, feeds, google-for-jobs]
+sources:
+  - resource: src/ScreenHire.Application/Distribution/Adapters/OwnChannelAdapters.cs
+  - resource: src/ScreenHire.Application/Distribution/Adapters/SandboxBoardAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/BoardRegistry.cs
+  - resource: src/ScreenHire.Application/Distribution/Boards.cs
+  - resource: src/ScreenHire.Application/Distribution/DistributionOptions.cs
+  - resource: src/ScreenHire.Application/Distribution/DistributionPlanner.cs
+  - resource: src/ScreenHire.Application/Distribution/DistributionRegistration.cs
+  - resource: src/ScreenHire.Application/Distribution/Feeds/FeedAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/Feeds/FeedFormats.cs
+  - resource: src/ScreenHire.Application/Distribution/GoogleIndexing/DispatchIndexingNotifications.cs
+  - resource: src/ScreenHire.Application/Distribution/GoogleIndexing/GoogleIndexingAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/GoogleIndexing/IndexingClient.cs
+  - resource: src/ScreenHire.Application/Distribution/JobBoardAdapter.cs
+  - resource: src/ScreenHire.Application/Distribution/JobPostingsChanged.cs
+  - resource: src/ScreenHire.Application/Distribution/PostingContents.cs
+  - resource: src/ScreenHire.Application/Distribution/ReconcileJobPostings.cs
+  - resource: src/ScreenHire.Application/Distribution/SyncJobPosting.cs
+  - resource: src/ScreenHire.Domain/Distribution/IndexingNotification.cs
+  - resource: src/ScreenHire.Domain/Distribution/JobPosting.cs
+  - resource: src/ScreenHire.Domain/Distribution/SandboxListing.cs
+  - resource: apps/api/Endpoints/DistributionEndpoints.cs
+  - resource: apps/api/Endpoints/PublicDistributionEndpoints.cs
+  - resource: apps/careers/src/lib/job-posting.ts
+  - resource: apps/careers/src/pages/[organization]/sitemap.xml.ts
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/adzuna.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/careerjet.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/jooble.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/talent.xsd
+  - resource: tests/ScreenHire.UnitTests/Distribution/Schemas/xml-feed.xsd
+---
+# Job Distribution Engine: In-House One-Click Post & Teardown
 
 > Status: **v1 built (2026-10-20)**. Section 5 describes what exists; sections 1 to 4 are the design it follows.
 > Owner requirement: build multiposting **in-house as proprietary tech**; aggregators only as a fallback. Research:
@@ -150,6 +186,14 @@ publish answer that arrives after a close is a no-op. `JobPostingTests` covers t
 - The handler takes a row lock on the posting (`SELECT ... FOR UPDATE` in the handler's transaction), so a publish, a
   close and a status check for one posting never interleave around a board call. It acts only while the posting still
   wants exactly that request, which makes the effect idempotent after the deduplication window too.
+- The API's publish, close and per-board take-down take the same locks, on every posting of the job they touch (in id
+  order, so two requests for one job queue instead of deadlocking), before they load the postings
+  (`PostingLocks.BeginForJobAsync`). A board answer the worker is saving is not a conflict: the request waits for that
+  answer and plans on it. Before this, the request read the posting, then failed its row version once the worker's
+  answer committed, and the recruiter got "Someone else changed this job" for the system's own work. The window recurs
+  after every publish, on every "not yet" from a board and on every Indexing API send, so waiting for the boards to
+  settle could not be the client's job. The cost is that a publish or close waits out a board call in flight. The row
+  version stays as the backstop, and 409 now means a person changed the job at the same moment.
 - When a board answers "not yet" with a time, the handler schedules `ReconcileJobPosting` for that time. That message
   calls `GetStatus`. With no time given, it backs off from `StatusPollInterval` (1 min) up to an hour.
 - `ReconcileJobPostings` runs every five minutes in the worker. It walks the organizations, as `ReportOpenJobs` does,
@@ -261,5 +305,6 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 | `DistributionPlannerTests`, `IndexingPlanTests` (unit) | the default boards, per-board states and estimates on publish and close, one event per change, one command per push board, the idempotency key, partner gating, hidden boards; deletes first within the quota |
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
 | `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
+| `BoardAnswerRaceTests` (integration) | a changed publish and a close that arrive while a board answer is being saved (the test holds the posting's lock, as the worker does) wait for it and succeed, where both were a 409 |
 | `CareersDistributionTests` (end-to-end) | the published job's page carries complete JSON-LD and a canonical link and is in the sitemap; closed, it serves 410 with a past `validThrough` and leaves the sitemap |
 | `job-posting.test.ts` (Vitest) | the JSON-LD builder and the sitemap |

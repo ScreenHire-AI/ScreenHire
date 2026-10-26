@@ -66,6 +66,8 @@ internal sealed class Tenant(ApiSession session, Guid organizationId, Guid userI
 
     public async Task<ApiResult> PutAsync(string path, JsonNode body) => await ReadAsync(await Session.PutAsync(path, body, Ct));
 
+    public async Task<ApiResult> DeleteAsync(string path) => await ReadAsync(await Session.DeleteAsync(path, Ct));
+
     /// <summary>Creates a job and expects 201.</summary>
     public async Task<ApiResult> CreateJobAsync(JsonObject body) => (await PostAsync("/v1/jobs", body)).Expect(HttpStatusCode.Created);
 

@@ -11,6 +11,7 @@ using Npgsql;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Realtime;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Persistence;
@@ -27,12 +28,16 @@ internal static class AuthEndpoints
 {
     private const string AlreadyUsedLink = "This sign-in link has expired or has already been used. Ask for a new one.";
 
+    private const string UnusableInvitation =
+        "This invitation has expired, has been withdrawn or has already been used. Ask the person who invited you for a new one.";
+
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/v1/auth").WithTags("Auth");
 
         group.MapGet("/providers", GetSignInMethods).WithName("GetSignInMethods").AllowAnonymous();
         group.MapGet("/me", GetCurrentUser).WithName("GetCurrentUser").AllowAnonymous().Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/organizations", ListMyOrganizations).WithName("ListMyOrganizations").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/challenge/{provider}", ChallengeProvider).WithName("ChallengeProvider").AllowAnonymous()
             .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy);
         // Where a provider's handler sends the browser once it has validated the response; a redirect, not an API call.
@@ -43,6 +48,8 @@ internal static class AuthEndpoints
         mutations.MapPost("/magic-link", RequestMagicLink).WithName("RequestMagicLink").AllowAnonymous();
         mutations.MapPost("/magic-link/verify", VerifyMagicLink).WithName("VerifyMagicLink").AllowAnonymous();
         mutations.MapPost("/onboarding", CompleteOnboarding).WithName("CompleteOnboarding").Produces(StatusCodes.Status401Unauthorized);
+        mutations.MapPost("/invitations/accept", AcceptInvitation).WithName("AcceptInvitation").AllowAnonymous();
+        mutations.MapPost("/switch-organization", SwitchOrganization).WithName("SwitchOrganization").Produces(StatusCodes.Status401Unauthorized);
         // Cast: a handler taking only HttpContext would otherwise bind as a RequestDelegate and drop its result.
         mutations.MapPost("/sign-out", (Delegate)SignOut).WithName("SignOut").AllowAnonymous();
 
@@ -176,6 +183,158 @@ internal static class AuthEndpoints
         return TypedResults.NoContent();
     }
 
+    // Every organization the signed-in user belongs to, for the organization switcher. Starts from their own memberships,
+    // which the filter and row-level security show whatever the current tenant is.
+    // A custom role is named only in the organization the user works in: row-level security keeps every other
+    // organization's roles from them until they switch (ADR-0014).
+    private static async Task<Ok<List<MyOrganization>>> ListMyOrganizations(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        var memberships = await (
+            from member in db.OrganizationMembers.AsNoTracking()
+            where member.UserId == tenant.UserId
+            join organization in db.Organizations on member.OrganizationId equals organization.Id
+            orderby organization.Name
+            select new { organization.Id, organization.Name, organization.Slug, member.Role, member.CustomRoleId })
+            .ToListAsync(cancellationToken);
+        var names = tenant.OrganizationId is null
+            ? new Dictionary<Guid, string>()
+            : await RoleAccess.CustomNamesAsync(db, cancellationToken);
+        return TypedResults.Ok(memberships
+            .Select(m => new MyOrganization(
+                m.Id, m.Name, m.Slug, m.Role,
+                m.Role == OrganizationRole.Custom ? names.GetValueOrDefault(m.CustomRoleId ?? Guid.Empty) : m.Role.ToString()))
+            .ToList());
+    }
+
+    // Remembered on the user (ApplicationUser.ActiveOrganizationId), so it holds on every device until they switch again.
+    // Not a member is 404, like any other organization's id. Their live-update connections into the previous organization
+    // close, on every device, so each reconnects into the one its next request reads.
+    private static async Task<Results<Ok<CurrentUser>, NotFound, UnauthorizedHttpResult>> SwitchOrganization(
+        SwitchOrganizationRequest request, HttpContext context, UserManager<ApplicationUser> users, TenantContext tenant,
+        ScreenHireDbContext db, RealtimeConnections connections, CancellationToken cancellationToken)
+    {
+        if (await users.GetUserAsync(context.User) is not { } user)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        if (!await db.OrganizationMembers.AnyAsync(m => m.UserId == user.Id && m.OrganizationId == request.OrganizationId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var previous = tenant.OrganizationId;
+        await db.Users.Where(u => u.Id == user.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.ActiveOrganizationId, request.OrganizationId), cancellationToken);
+        tenant.SetOrganization(request.OrganizationId);
+        if (previous is { } left && left != request.OrganizationId)
+        {
+            connections.Close(user.Id, left);
+        }
+
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+    }
+
+    // The emailed link signs in as the invited address, whoever this browser was signed in as: following it proves the
+    // address, as a sign-in link does. The token names its organization (Invitations), which becomes the tenant before
+    // the lookup; only a hash match inside that organization's rows accepts anything. The user is found or created before
+    // the transaction, because a unique violation inside it would abort the whole transaction.
+    private static async Task<Results<Ok<CurrentUser>, ValidationProblem>> AcceptInvitation(
+        InvitationAcceptance request, IValidator<InvitationAcceptance> validator, HttpContext context,
+        UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, TenantContext tenant, ScreenHireDbContext db,
+        TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        if (Invitations.OrganizationOf(request.Token) is not { } organizationId)
+        {
+            return InvitationRefused();
+        }
+
+        tenant.SetOrganization(organizationId);
+        var hash = MagicLinks.Hash(request.Token);
+        var now = time.GetUtcNow();
+        var invitation = await db.OrganizationInvitations.AsNoTracking()
+            .SingleOrDefaultAsync(i => i.TokenHash == hash && i.AcceptedAt == null && i.RevokedAt == null && i.ExpiresAt > now, cancellationToken);
+        if (invitation is null)
+        {
+            return InvitationRefused();
+        }
+
+        var user = await FindOrCreateUserAsync(users, db, invitation.Email, null, now)
+            ?? throw new InvalidOperationException("Could not create the user for an accepted invitation.");
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            await users.UpdateAsync(user);
+        }
+
+        tenant.SetUser(user.Id);
+        if (!await JoinAsync(db, invitation, user.Id, now, cancellationToken))
+        {
+            return InvitationRefused(); // a second click, or a revoke, got there between the read and the update
+        }
+
+        await SignInAsync(context, signIn, user);
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+    }
+
+    // One transaction under the organization's member lock: use up the invitation (one conditional UPDATE, so two clicks
+    // cannot both succeed), add the membership with its log entry, and make the organization the user's active one. A
+    // person who is already a member keeps the role they have.
+    private static async Task<bool> JoinAsync(
+        ScreenHireDbContext db, OrganizationInvitation invitation, Guid userId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        db.ChangeTracker.Clear();
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await Invitations.LockMembersAsync(db, invitation.OrganizationId, cancellationToken);
+        var accepted = await db.OrganizationInvitations
+            .Where(i => i.Id == invitation.Id && i.AcceptedAt == null && i.RevokedAt == null && i.ExpiresAt > now)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.AcceptedAt, now).SetProperty(i => i.AcceptedByUserId, userId), cancellationToken);
+        if (accepted == 0)
+        {
+            return false;
+        }
+
+        if (!await db.OrganizationMembers.AnyAsync(m => m.OrganizationId == invitation.OrganizationId && m.UserId == userId, cancellationToken))
+        {
+            // An open invitation keeps its custom role from being deleted, so this finds it; refuse rather than guess if not.
+            if (await RoleAccess.ForRoleAsync(db, invitation.Role, invitation.CustomRoleId, cancellationToken) is not { } role)
+            {
+                return false;
+            }
+
+            db.OrganizationMembers.Add(OrganizationMember.Create(
+                invitation.OrganizationId, userId, role.Role, now, role.CustomRoleId, invitation.JobAccess));
+            db.MembershipEvents.Add(new MembershipEvent
+            {
+                OrganizationId = invitation.OrganizationId,
+                Kind = MembershipEventKind.Joined,
+                ActorUserId = userId,
+                MemberUserId = userId,
+                InvitationId = invitation.Id,
+                Role = role.Role,
+                CustomRoleId = role.CustomRoleId,
+                CustomRoleName = role.Role == OrganizationRole.Custom ? role.Name : null,
+                JobAccess = invitation.JobAccess,
+                OccurredAt = now,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        await db.Users.Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.ActiveOrganizationId, invitation.OrganizationId), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
+    private static ValidationProblem InvitationRefused() =>
+        TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["token"] = [UnusableInvitation] });
+
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CompleteOnboarding(
         OnboardingRequest request, IValidator<OnboardingRequest> validator, HttpContext context, UserManager<ApplicationUser> users,
         TenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
@@ -233,13 +392,7 @@ internal static class AuthEndpoints
         // The new organization is the tenant from here on, so the membership row passes row-level security's WITH CHECK.
         tenant.SetOrganization(organization.Id);
         db.Organizations.Add(organization);
-        db.OrganizationMembers.Add(new OrganizationMember
-        {
-            OrganizationId = organization.Id,
-            UserId = user.Id,
-            Role = OrganizationRole.Owner,
-            CreatedAt = time.GetUtcNow(),
-        });
+        db.OrganizationMembers.Add(OrganizationMember.Create(organization.Id, user.Id, OrganizationRole.Owner, time.GetUtcNow()));
 
         try
         {
@@ -334,12 +487,23 @@ internal static class AuthEndpoints
     private static async Task<CurrentUser> DescribeAsync(
         ApplicationUser user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var organization = tenant.OrganizationId is { } organizationId
-            ? await db.OrganizationMembers.AsNoTracking()
+        CurrentOrganization? organization = null;
+        if (tenant.OrganizationId is { } organizationId
+            && await RoleAccess.ForMemberAsync(db, organizationId, user.Id, cancellationToken) is { } role)
+        {
+            var found = await db.Organizations.AsNoTracking()
+                .Where(o => o.Id == organizationId)
+                .Select(o => new { o.Id, o.Name, o.Slug })
+                .SingleAsync(cancellationToken);
+            var jobAccess = await db.OrganizationMembers.AsNoTracking()
                 .Where(m => m.OrganizationId == organizationId && m.UserId == user.Id)
-                .Join(db.Organizations, m => m.OrganizationId, o => o.Id, (m, o) => new CurrentOrganization(o.Id, o.Name, o.Slug, m.Role))
-                .SingleOrDefaultAsync(cancellationToken)
-            : null;
+                .Select(m => m.JobAccess)
+                .SingleAsync(cancellationToken);
+            organization = new CurrentOrganization(
+                found.Id, found.Name, found.Slug, role.Role, role.CustomRoleId, role.Name,
+                [.. RolePermissions.Permissions.Select(p => p.Permission).Where(role.Permissions.Contains)],
+                JobAccessRules.SeesAllJobs(role.Role, jobAccess));
+        }
 
         var email = user.Email ?? "";
         return new CurrentUser(user.Id, email, user.DisplayName ?? email, organization);

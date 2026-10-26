@@ -26,7 +26,9 @@ Fix small problems here and merge. Do not hand them back.
 2. `git fetch origin <base>`.
 3. If `git merge-base --is-ancestor origin/<base> HEAD` fails:
    - `git merge origin/<base> --no-edit`, resolving conflicts by `.claude/rules/integration-conflicts.md`;
-   - run the full gate (`pnpm verify`, in the background) and fix failures for up to two rounds.
+   - run the full gate (`pnpm verify`, in the background) and fix failures for up to two rounds. Do not run
+     `pnpm verify:lighthouse` again. Testing measured the branch's own change, and Merge does not re-measure it
+     together with the new `main` (`docs/process/testing.md`, "Why Lighthouse runs once, and one at a time").
 
    If it is still red, push, explain, and end with `PR: blocked`.
 4. Push: `git push origin HEAD:<pr head branch> --force-with-lease`.

@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0006: Recruiter dashboard in Svelte 5 + SvelteKit (SPA mode)"
+description: "Why the recruiter dashboard is Svelte 5 with SvelteKit 3 in SPA mode rather than Angular, the questionnaire components it shares with the Astro apply page through packages/ui, and the libraries picked for the builder, pipeline and tables."
+tags: [adr, dashboard, svelte]
+---
 # ADR-0006: Recruiter dashboard in Svelte 5 + SvelteKit (SPA mode)
 
 - **Status:** Accepted (2026-10-18) — owner approved together with the component libraries in ADR-0009

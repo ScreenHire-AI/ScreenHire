@@ -9,6 +9,7 @@
     <PackageReference Include="WolverineFx.RuntimeCompilation" />
     <PackageReference Include="Google.Apis.Auth" />
     <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" />
   </ItemGroup>
 
   <ItemGroup>

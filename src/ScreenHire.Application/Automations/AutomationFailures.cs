@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Infrastructure.Email;
@@ -33,7 +34,7 @@ public static class AutomationFailures
 
     /// <summary>
     /// Services the automation handlers take: the clock, transactional email (hidden when no sender is registered) and
-    /// the CallWebhook adapter. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
+    /// the CallWebhook adapter, and the dashboard's address for links in emails to the team. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
     /// the handlers has them.
     /// </summary>
     public static IServiceCollection AddScreenHireAutomations(this IServiceCollection services)
@@ -42,10 +43,13 @@ public static class AutomationFailures
         // The API and worker register this already; TryAdd covers any other host that runs the handlers.
         services.TryAddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
         services.TryAddSingleton<EmailTemplates>();
+        services.TryAddSingleton<EmailTemplateStore>();
         services.TryAddSingleton<TransactionalEmail>();
 
         services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
         services.TryAddSingleton<IWebhookSender, HttpWebhookSender>();
+        services.AddQuestionnaireLinks();
+        services.AddDashboardLinks();
         return services;
     }
 }

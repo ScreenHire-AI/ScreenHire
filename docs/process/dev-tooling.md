@@ -1,8 +1,51 @@
+---
+type: Reference
+title: "Claude Code tooling"
+description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, and how to add a new skill, agent or rule."
+tags: [claude-code, skills, agents, rules]
+sources:
+  - resource: .claude/skills/add-careers-page/SKILL.md
+  - resource: .claude/skills/add-dashboard-page/SKILL.md
+  - resource: .claude/skills/add-endpoint/SKILL.md
+  - resource: .claude/skills/add-marketing-page/SKILL.md
+  - resource: .claude/skills/add-message/SKILL.md
+  - resource: .claude/skills/add-migration/SKILL.md
+  - resource: .claude/skills/add-realtime-event/SKILL.md
+  - resource: .claude/skills/commit/SKILL.md
+  - resource: .claude/skills/merge-back/SKILL.md
+  - resource: .claude/skills/merge-pull-request/SKILL.md
+  - resource: .claude/skills/preview/SKILL.md
+  - resource: .claude/skills/pull-request/SKILL.md
+  - resource: .claude/skills/sync-docs/SKILL.md
+  - resource: .claude/skills/task-review/SKILL.md
+  - resource: .claude/skills/task-review/visual-probe.js
+  - resource: .claude/skills/verify/SKILL.md
+  - resource: .claude/agents/design-review.md
+  - resource: .claude/agents/doc-auditor.md
+  - resource: .claude/agents/integrity-guardrails.md
+  - resource: .claude/agents/licence-check.md
+  - resource: .claude/agents/migration-safety.md
+  - resource: .claude/agents/review-finder.md
+  - resource: .claude/agents/tenant-isolation-guard.md
+  - resource: .claude/agents/test-builder.md
+  - resource: .claude/rules/astro-public.md
+  - resource: .claude/rules/cli-features-over-custom-layers.md
+  - resource: .claude/rules/docs-stay-in-sync.md
+  - resource: .claude/rules/dotnet-api.md
+  - resource: .claude/rules/integration-conflicts.md
+  - resource: .claude/rules/no-personal-info.md
+  - resource: .claude/rules/skill-authoring.md
+  - resource: .claude/rules/svelte-dashboard.md
+  - resource: .claude/rules/unattended-runs.md
+  - resource: .claude/rules/utc-timestamps.md
+  - resource: .claude/rules/writing-style.md
+---
 # Claude Code tooling
 
 What each skill, agent and rule in [`.claude/`](../../.claude/) is for, and when to reach for it. Agents working on
 the board use these so every task follows the same paths; people can run any skill too (`/add-endpoint ...`). The
-files are the source of truth. If this page and a file disagree, fix this page (`/sync-docs` checks it).
+files are the source of truth. If this page and a file disagree, fix this page (`/sync-docs` checks it). The page
+also records tooling experiments that did not ship, so nobody repeats them blind.
 
 ## Skills
 
@@ -20,10 +63,10 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
 | [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
 | [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo, `stop` for `aspire stop` |
-| [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, runs `doc-auditor`, fixes drifted docs and prose |
+| [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, maps a changed file to its docs with `node scripts/docs-bundle.mjs sources`, runs `doc-auditor`, fixes drifted docs and prose |
 | [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
-| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
-| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate, push, open and link the PR |
+| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
+| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate (plus Lighthouse for a marketing change), push, open and link the PR |
 | [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | re-gate if `main` moved, squash-merge, confirm, realign |
 
 The last four are the board pipeline ([board-pipeline.md](board-pipeline.md)). Change them only in a task about the
@@ -38,11 +81,11 @@ report findings as `file:line`, severity, evidence and fix; the caller verifies 
 |---|---|---|---|
 | [`review-finder`](../../.claude/agents/review-finder.md) | read-only | `/task-review` (one per dimension) | one review dimension: correctness, non-negotiables and security, or conventions |
 | [`tenant-isolation-guard`](../../.claude/agents/tenant-isolation-guard.md) | read-only | `/task-review`, `/add-migration` | `OrganizationId` on tenant rows, query scope, named query filters, RLS, cross-tenant paths |
-| [`integrity-guardrails`](../../.claude/agents/integrity-guardrails.md) | read-only | `/task-review` | no scores, no rejection from integrity, no emotion or biometric inference, notice before collection, telemetry aggregates only, no scraping |
+| [`integrity-guardrails`](../../.claude/agents/integrity-guardrails.md) | read-only | `/task-review` | no scores (the candidate rating only under ADR-0013), no rejection from integrity, no emotion or biometric inference, notice before collection, telemetry aggregates only, no scraping |
 | [`licence-check`](../../.claude/agents/licence-check.md) | read-only | `/task-review`, any skill that adds a package | every new NuGet or npm package against ADR-0008 |
 | [`migration-safety`](../../.claude/agents/migration-safety.md) | read-only | `/add-migration`, `/task-review` | generated SQL, types, existing data, destructive operations, snapshot drift, RLS for tenant tables |
 | [`doc-auditor`](../../.claude/agents/doc-auditor.md) | read-only | `/sync-docs` | lists in docs against the sources that define them |
-| [`design-review`](../../.claude/agents/design-review.md) | read-only | `/task-review` (UI changes), `/add-dashboard-page` | screens against the review checklist in `docs/design/design-system.md`, the one source of truth for UI |
+| [`design-review`](../../.claude/agents/design-review.md) | read-only | `/task-review` (UI changes), `/add-dashboard-page` | screens against the review checklist in `docs/design/design-system.md`, the one source of truth for UI; reads the screenshots and probe measurements `/task-review` passes it for the checks code cannot show |
 | [`test-builder`](../../.claude/agents/test-builder.md) | writes tests | the three page skills, `/task-review` | picks the tier, writes and red-greens tests; audit-only mode returns a gap table |
 
 ## Rules
@@ -78,6 +121,57 @@ Every command in these files was run once when they were written (October 2026),
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
 `pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run
 once on 2026-10-20, after the test harness landed.
+
+`/task-review`'s visual pass was run once on 2026-10-21 against the style guide change (`e1c3177`): `/preview`
+and `/preview stop`, and `kangentic_browser_set_viewport`, `_screenshot`, `_eval` with `visual-probe.js`, `_scroll`
+and `_close_pane` on `/style-guide` and a job page at the three widths, then `design-review` on the result. The
+probe needs Kangentic's Agent Browser > Allow eval setting, which was on.
+
+## pnpm's global virtual store was tried for worktree installs and not adopted
+
+Every worktree runs `pnpm install --frozen-lockfile` as Kangentic's post-worktree script. On 2026-10-21 we measured
+pnpm's [global virtual store](https://pnpm.io/global-virtual-store) (`enableGlobalVirtualStore: true` in
+`pnpm-workspace.yaml`) and a bump to pnpm 10.34.7, the latest 10.x, as ways to make that faster. Neither shipped.
+The setting needs pnpm 10.12.1 or later, and pnpm 11.23.0 renamed it to `virtualStoreType: global`.
+
+Method: one worktree on Windows 11 with a warm store, 667 packages, every `node_modules` deleted with Node's
+`fs.promises.rm` before each run, one uncounted warm-up per configuration. The install column is pnpm's "Done in".
+
+| Configuration | Runs | Install | Delete `node_modules` |
+|---|---|---|---|
+| pnpm 10.5.0 (what `main` pins) | 6 | 22.0 to 26.4 s, median 23.9 s | 21 to 25 s |
+| pnpm 10.34.7 | 6 | 26.0 to 34.8 s, median 27.7 s | 19 to 29 s |
+| pnpm 10.34.7 with the global store, first install (fills `<store>\links`) | 1 | 24.0 s | 21 s |
+| pnpm 10.34.7 with the global store, `links` already filled | 3 | 33.7 to 35.1 s, median 34.0 s | 0.3 s |
+
+The first-install row is a single run, so it does not show that filling `links` beats reusing it. The filled row is
+what every worktree after the first would see.
+
+The board's own run of the same install for this worktree took 25.6 s on 10.5.0. Run back to back, 10.5.0 took 22.0
+to 24.0 s and 10.34.7 took 26.0 to 26.7 s.
+
+Why neither shipped:
+
+- The store made installs slower, not faster. pnpm still spent about 32 s in its linking step when all 667 entries
+  in `links` already existed, with or without `verify-store-integrity`. Only the delete got faster.
+- It is unsafe with Kangentic's cleanup. Git for Windows 2.51 (2.51.0.windows.2) `git worktree remove --force`
+  follows a junction inside an untracked folder and deletes every file in the junction's target. To reproduce it, put
+  a junction to a folder holding one file inside an untracked folder of a throwaway worktree, remove the worktree
+  with `--force`, and the file is gone. Kangentic's Done cleanup removes the root
+  `node_modules`, then runs that command on a worktree that still has `apps/*/node_modules` and
+  `packages/*/node_modules`. With the store on, those hold junctions into the shared `<pnpm store path>\links`, so
+  finishing one task would empty packages that every other worktree uses. Today the same junctions point inside the
+  worktree being deleted, so the behaviour does no harm. Node's `fs.rm` and `fs.rmSync` (Node 24, and Kangentic's
+  Electron 44), Git Bash `rm -rf`, and `Remove-Item -Recurse -Force` in PowerShell 5.1 and 7 all removed the
+  junctions without following them.
+- Turning the store on over an existing `node_modules` makes pnpm purge it, and without a TTY that aborts with
+  `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` unless `confirmModulesPurge: false` is set.
+- pnpm 10.34.7 alone was about 4 s slower per install, so the bump buys nothing here.
+- Builds, tests and the Vite dev servers were not checked with the store on, because it had already failed on speed
+  and safety.
+
+Worth another try once Kangentic deletes every `node_modules` in a worktree before it calls `git worktree remove`,
+and a pnpm release reuses filled `links` entries without linking every package again.
 
 ## Adding to this
 

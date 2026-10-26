@@ -99,9 +99,9 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         var questionsPage = Guid.CreateVersion7();
 
         // The details page twice (a later snapshot replaces the earlier), the questions page once with a pasted answer.
-        await PostAsync(client, organization, job, Snapshot(token, detailsPage, 1, fieldId: "fullName", typed: 5));
-        await PostAsync(client, organization, job, Snapshot(token, detailsPage, 2, fieldId: "fullName", typed: 12));
-        await PostAsync(client, organization, job, Snapshot(token, detailsPage, 1, fieldId: "fullName", typed: 99)); // late and stale
+        await PostAsync(client, organization, job, Snapshot(token, detailsPage, 1, fieldId: "firstName", typed: 5));
+        await PostAsync(client, organization, job, Snapshot(token, detailsPage, 2, fieldId: "firstName", typed: 12));
+        await PostAsync(client, organization, job, Snapshot(token, detailsPage, 1, fieldId: "firstName", typed: 99)); // late and stale
         await PostAsync(client, organization, job, Snapshot(token, questionsPage, 1, fieldId: "notice_period", pasted: 77, pastes: 1));
         var final = Snapshot(token, Guid.CreateVersion7(), 1, fieldId: "aiUseDetails", typed: 20);
 
@@ -129,7 +129,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         ai.SignalIds.Should().NotContain(paste.Id, "telemetry alone is not shown on the assessment; the signal is kept for when another category joins it");
 
         // A beacon that arrives after the application was sent changes nothing.
-        (await PostAsync(client, organization, job, Snapshot(token, Guid.CreateVersion7(), 1, fieldId: "fullName", pasted: 500)))
+        (await PostAsync(client, organization, job, Snapshot(token, Guid.CreateVersion7(), 1, fieldId: "firstName", pasted: 500)))
             .StatusCode.Should().Be(HttpStatusCode.Accepted);
         await using var after = await TenantDbAsync(organization.Id);
         (await after.TelemetrySnapshots.CountAsync(s => s.JobId == job.Id, Ct)).Should().Be(3);
@@ -144,7 +144,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         var token = await TokenAsync(client, organization, job);
         await PostAsync(client, organization, job, Snapshot(token, fieldId: "notice_period", pasted: 77, pastes: 1));
 
-        var applicationId = await ApplyAsync(client, organization, job, "ari.moss@example.com", token, Snapshot(token, fieldId: "fullName", typed: 8), accommodation: true);
+        var applicationId = await ApplyAsync(client, organization, job, "ari.moss@example.com", token, Snapshot(token, fieldId: "firstName", typed: 8), accommodation: true);
         await AssessedAsync(organization.Id, applicationId);
 
         await using var db = await TenantDbAsync(organization.Id);
@@ -343,7 +343,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
 
         var body = new JsonObject
         {
-            ["candidate"] = new JsonObject { ["fullName"] = "Casey Morgan", ["email"] = email },
+            ["candidate"] = new JsonObject { ["firstName"] = "Casey", ["lastName"] = "Morgan", ["email"] = email },
             ["privacyNoticeVersion"] = "2026-10-20.4",
             ["answers"] = new JsonArray(
                 new JsonObject { ["questionId"] = "resume", ["value"] = uploadId.ToString() },

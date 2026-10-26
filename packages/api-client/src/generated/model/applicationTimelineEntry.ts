@@ -25,4 +25,30 @@ export interface ApplicationTimelineEntry {
   tag: string | null;
   /** @nullable */
   automationRunId: string | null;
+  /** @nullable */
+  actorApiKeyId: string | null;
+  /** @nullable */
+  scorecardId: string | null;
+  /** @nullable */
+  stageId: string | null;
+  /** @nullable */
+  recommendation: string | null;
+  /** @nullable */
+  emailTemplateId?: string | null;
+  /** @nullable */
+  emailSubject?: string | null;
+  /** @nullable */
+  questionnaireId?: string | null;
+  /** @nullable */
+  questionnaireRequestId?: string | null;
+  /** @nullable */
+  noteId?: string | null;
+  /** @nullable */
+  noteEditedAt?: string | null;
+  /** @nullable */
+  actorApiKeyName?: string | null;
+  /** @nullable */
+  emailId?: string | null;
+  /** @nullable */
+  taskId?: string | null;
 }

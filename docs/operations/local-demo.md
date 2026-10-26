@@ -1,3 +1,16 @@
+---
+type: Guide
+title: "Run ScreenHire locally and demo it"
+description: "Running the whole stack locally with pnpm dev or /preview: prerequisites, the URLs, the Dev SSO demo logins, what DevelopmentDemo seeds on Brightwater, a five-minute demo script, what is faked locally, and what to do when something looks wrong."
+tags: [demo, local, aspire]
+sources:
+  - resource: apps/api/Demo/DemoCandidates.cs
+  - resource: apps/api/Demo/DemoQuestionnaires.cs
+  - resource: apps/api/Demo/DevelopmentDemo.cs
+  - resource: apps/apphost/DevSso/config.json
+  - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
+  - resource: .claude/skills/preview/SKILL.md
+---
 # Run ScreenHire locally and demo it
 
 Everything runs on one machine with no accounts, keys or internet services: `pnpm dev` starts the whole stack in
@@ -73,16 +86,25 @@ single ports with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashb
 
 ## Demo logins
 
-Sign in at http://localhost:4323 with **Continue with Dev SSO**, then pick a user. No password anywhere.
+Sign in at http://localhost:4323 with **Continue with Dev SSO** in the sign-in page's Single sign-on panel, then pick
+a user. No password anywhere.
 
 | Dev SSO user | Signs in as |
 |---|---|
 | Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data |
+| Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio: works on jobs and candidates, but cannot change the team or the organization's settings |
+| Robin Hale (`robin@brightwater.example.com`) | Interviewer at Brightwater Studio, a custom role Avery made from Viewer: sees candidates, adds notes and tags and fills in scorecards, but is offered no Move and no Settings. On Only jobs they're on, and on the Senior .NET Engineer job's hiring team, so that is the one job he sees |
 | Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. After the first time they keep the organization they made |
 | Any email address you type | A new user each time you use a new address: the way to show onboarding again |
 | Unverified address | Refused: the provider did not vouch for the address |
 
-**Email me a sign-in link** works too: the link arrives in Mailpit.
+The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
+one more click (**Sign in**) so a mail scanner cannot use it up.
+
+Avery manages the team in **Settings > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
+dashboard's **Join your team** page, and **Accept invitation** signs the invitee in to Brightwater with the invited
+role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, and Robin, an Interviewer, have
+no Settings in the sidebar.
 
 ## What the demo data is
 
@@ -92,14 +114,25 @@ numbers are made up.
 
 | Job | Status | Boards | What is in it |
 |---|---|---|---|
-| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note |
-| Senior Product Designer | Open | Every board | Three candidates in Applied, Screening and Interview |
-| Frontend Engineer (Svelte) | Open | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note) |
+| Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited. His Messages tab has the "Interview invitation" email Avery changed for him alone, with a sentence about his billing ledger answer that the template does not have. Its Interview stage uses Brightwater's own "Technical interview" scorecard, which asks every answer kind |
+| Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview. Jordan Ellis scored Priya Natarajan's interview, and Avery Quinn has a review to give on her, so signed in as Avery her rating reads "Rating after your scorecard" (Jordan sees it) |
+| Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note). Hannah Okoro is rated 4.2 from Avery's and Jordan's interview scorecards and Eli Thompson 3.5 from Jordan's screening one; the Rating column sorts them |
 | Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Three candidates who went through the stages: one Hired, one Rejected and one Withdrawn, each with the recruiter's notes. Its careers page answers "This job has closed" |
 | Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
-| Customer Success Lead | Draft | None | No template, an on-site job in Manchester |
+| Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
 
-Between them every stage of both pipelines holds someone. The distribution strips show the states a local stack can
+Every job asks questions, and every demo candidate answers each question of their job, so their pages show answers.
+The synthetic applicants keep the answers their integrity scenarios need.
+The .NET, Support Engineer and Backend Engineer (Payments) jobs ask the "Software engineer" questions through their
+template. The designer, frontend and Customer Success Lead jobs are seeded without one, so the demo adds a questionnaire
+to each, as a recruiter's workflow edit (`DemoQuestionnaires` in `apps/api/Demo`). All three ask about right to work
+and the notice period. The designer job adds years of experience, a portfolio link and a research story; the frontend
+job adds years of experience, Svelte use, two office days in London and a work sample link; Customer Success Lead adds
+office days in Manchester, accounts looked after and a customer kept. The answers fit each candidate's CV, and every
+link is an `example.org` address. A data volume from before the questionnaires gets them on the next start, but the
+designer and frontend candidates in it applied without answers and stay that way. Use `/preview fresh` to see every answer.
+
+Between them every stage of both pipelines holds someone. The jobs' Distribution tabs show the states a local stack can
 reach: Live (careers page, sandbox board), Sent (feeds and the job-board API), Needs fixes (a feed that wants a longer
 description), Not posted, Removal requested and Removed. Rejected and Error need a real board's answer and do not occur
 locally.
@@ -109,8 +142,17 @@ Interview. Mailpit keeps them with the rest of the data. Every candidate except 
 `apps/api/Demo/DemoCandidates.cs`; the synthetic applicants are `SyntheticApplicants` in `ScreenHire.Application`, the
 same people the integrity golden tests use ([integrity-engine.md](../architecture/integrity-engine.md) §10.8).
 
-Templates: the two system templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the
-Software engineer pipeline and questionnaire plus the three candidate emails.
+Templates: the Templates page has a tab each for hiring templates, scorecards and emails. Hiring: the two system
+templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the Software engineer pipeline and
+questionnaire plus the three candidate emails, with Jordan's version 2 as a draft. Scorecards: the built-ins and
+Brightwater's own "Technical interview". Emails: the built-ins, "Interview invitation", and Brightwater's wording of the
+built-in rejection email, "Not progressing", which offers Reset to original in its menu.
+
+Change history ([change-history.md](../architecture/change-history.md)): the demo makes its template, emails and jobs
+as Avery Quinn, so their History sheets name her. On top, Jordan Ellis starts version 2 of "Brightwater engineering"
+(a notice period question, then made required, and two more days for Interview) and changes the salary of "Backend
+Engineer (Payments)", and Avery adds an "Interview invitation" email template, edits its subject and rewords the
+built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history until someone edits them.
 
 ### What is seeded where
 
@@ -123,33 +165,77 @@ Software engineer pipeline and questionnaire plus the three candidate emails.
 
 ## A five-minute demo
 
-1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows what is open and what is a draft. The sidebar's
-   saved views count what needs attention: "Needs review" and "Verification recommended".
-2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The overview bar sorts the seven applicants by
-   authenticity level, and each row has its chip. Open Jordan Vale: the panel lists every reason (a hidden form field
+1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, opens on the last
+   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's saved views count what needs attention: "To review" and "To verify".
+2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
+   applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Integrity tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
    percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and
    "Same resume file" shared with Alex Reed and Morgan Hale, then Sam Okafor, who used AI within the job's policy and
    raises no concern.
-3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The timeline
-   records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
+3. **Move a candidate, see the email (45 s).** Open Robin Ashby, choose **Move to stage**, then Screening. The
+   rail's Stage changes and Activity records the move, and Mailpit (http://localhost:8025) shows "An update on your application for Senior .NET Engineer"
    to Robin within a second or two. Every candidate's "We received your application" email is there too, and the
    Screening and Interview emails for the designer and frontend candidates.
-4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** shows everything the posting
-   carries (salary, location, closing date, description). Press **Publish to 8 boards**. The careers page
+4. **Publish everywhere (60 s).** Open Backend Engineer (Payments). **Edit details** opens the form with everything the
+   posting carries (salary, location, closing date, description). Back on the job, press **Publish to 8 boards**, the
+   page's one primary action. The Distribution tab counts the boards the job is on. The careers page
    is live at once; the local sandbox board confirms in about 20 seconds; the feed boards show "Sent" with each one's
    usual delay. The job is now on http://localhost:4322/brightwater.
 5. **Apply as a candidate (60 s).** On the careers page, open the new job and apply: the notice comes first, then three
    short steps. The form works with JavaScript off too. Back in the dashboard, the application appears in the open job
    without a reload, and its chip follows once the checks finish.
-6. **Take it down (15 s).** **Close & remove everywhere** on the job page. The careers page now answers "This job has
+6. **Take it down (15 s).** On the job page, open **More actions**, choose **Close & remove everywhere** and confirm. The careers page now answers "This job has
    closed" (HTTP 410) and the sandbox board removes the job about 30 seconds later.
 
-Extras if there is time: Support Engineer for a closed job and its candidates' timelines with the recruiter's notes,
-the Templates page and its builder (questions, automations and the guardrail that refuses an
+Extras if there is time: the Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
+Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
+from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
+the Templates page (below) and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
+
+Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filtered by All, In use, Not used in 6 months
+and Archived.
+
+- **Emails.** Open "Application received", change the subject, then switch to **Preview**: the email with the made-up
+  Jordan Lee follows your words, and the window icon opens it in a second window that follows too. **Send me a test**
+  lands in Mailpit with `[Test]` in front. On a job's pipeline, tick a few candidates and press **Email**: each gets the
+  email in Mailpit, and it shows in their Activity. Back on the template, Last updated says "by you", and **History**
+  shows "You changed the subject". "Not progressing" has Brightwater's wording: its menu's **Reset to original**
+  confirms, then puts ScreenHire's wording back, and History says so. The old Settings address redirects here.
+- **Scorecards.** Open "Technical interview": Used by lists the hiring templates that name it, Edit is the form builder
+  with the rating kinds, and Preview is the scorecard as a reviewer fills it in. A built-in such as "Screening" reads
+  only and offers **Copy scorecard**.
+- **Hiring.** "Brightwater engineering" shows version 1 and the Draft 2 badge. **Duplicate** in a row's menu makes
+  "Brightwater engineering (copy)" and opens it; **Archive** moves your own template under Archived, out of the new job
+  page's list, until **Restore**.
+
+Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
+
+Settings is one item at the bottom of the sidebar; its pages share the Settings menu.
+
+- **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer
+  included; **Compare roles** opens the table of what each role can do. **Roles** lists the four built-in roles and
+  Interviewer, which Avery made from Viewer and gave to Robin: open it to see its permissions, its History ("created the
+  role from Viewer") and Robin under People, with "1 job". **New role** copies a role and opens the copy to change.
+  Deleting Interviewer is refused while Robin has it, saying so.
+- **Job access.** Team's Jobs column says "1 job" for Robin and "All jobs" for everyone else. **Edit access** in Robin's
+  menu opens his role and job access, with the Senior .NET Engineer job listed. On a job, **Hiring team** lists Jordan
+  (on every job) and, on the .NET job, Robin; **Add a person** and **Copy from another job** change it. Sign in as Robin
+  through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
+  candidates, saved views and My tasks hold only that job's.
+- **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
+  http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
+  back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.
+- **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
+  Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
+  `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
+  from the row's menu.
+- **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
+  turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
+  delivery log with replay).
 
 ## What is faked locally
 
@@ -164,12 +250,12 @@ second browser window on the same job to show live updates.
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 
-The [MVP status](../README.md#mvp-status) lists what each of these needs before real use.
+The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.
 
 ## When something looks wrong
 
 - **A resource is unhealthy in the Aspire dashboard.** Open its logs there. Docker not running and a port already in
-  use are the usual causes.
+  use are the usual causes. `pnpm docker:start` starts Docker Desktop and waits for the engine.
 - **No integrity chips yet.** The worker assesses after the API has started; give it a few seconds. The first assessment
   after a cold start is the slowest.
 - **The sandbox board still says "Submitted".** It waits 20 seconds on purpose, like a real board's review.

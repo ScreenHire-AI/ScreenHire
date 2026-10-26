@@ -36,12 +36,12 @@
 </script>
 
 <div class="flex flex-col gap-1.5">
-  <label for={id} class="text-sm font-bold">
+  <label for={id} class="text-candidate-body font-bold">
     {label}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </label>
-  {#if hint}<p id={`${id}-hint`} class="text-[13px] text-candidate-muted-foreground">{hint}</p>{/if}
-  {#if error}<p id={`${id}-error`} class="text-sm font-semibold text-destructive">{error}</p>{/if}
+  {#if hint}<p id={`${id}-hint`} class="text-candidate-hint text-candidate-muted-foreground">{hint}</p>{/if}
+  {#if error}<p id={`${id}-error`} class="text-candidate-body font-semibold text-destructive">{error}</p>{/if}
   {#if multiline}
     <textarea
       {id}

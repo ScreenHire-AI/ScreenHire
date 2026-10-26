@@ -1,7 +1,29 @@
+---
+type: Design
+title: "Real-time updates"
+description: "How an ITenantEvent reaches open dashboards: the API's own Wolverine cluster in wolverine_api, the SignalR hub at /v1/hubs/events and its tenant and job groups, the packages/realtime client and cache invalidation, the C# to Zod contract test, and scaling out."
+tags: [realtime, signalr, events]
+sources:
+  - resource: apps/api/Realtime/EventsHub.cs
+  - resource: apps/api/Realtime/RealtimeConnections.cs
+  - resource: apps/api/Realtime/RealtimeGroups.cs
+  - resource: apps/api/Realtime/RealtimeSetup.cs
+  - resource: apps/api/Realtime/TenantEventPusher.cs
+  - resource: packages/realtime/src/backoff.ts
+  - resource: packages/realtime/src/client.ts
+  - resource: packages/realtime/src/connection-state.svelte.ts
+  - resource: packages/realtime/src/events.ts
+  - resource: packages/realtime/src/index.ts
+  - resource: packages/realtime/src/invalidation.ts
+  - resource: packages/realtime/contract/events.json
+  - resource: apps/dashboard/src/lib/realtime.ts
+  - resource: tests/ScreenHire.UnitTests/Realtime/RealtimeContractTests.cs
+---
 # Real-time updates
 
 The recruiter dashboard updates live. A job published or closed, and later a new application, a stage move or a
-finished assessment, appears in every open tab of that organization without a reload, and nowhere else. Any message
+finished assessment, appears in every open tab of that organization that sees the job without a reload, and nowhere
+else. Any message
 that implements `ITenantEvent` is pushed. A feature task defines the event and its Zod schema, and never touches the
 hub. The procedure is the [`/add-realtime-event`](../../.claude/skills/add-realtime-event/SKILL.md) skill.
 
@@ -13,8 +35,9 @@ API endpoint or worker handler
         │
         ├──▶ Postgres queue "worker"    ──▶ worker handlers (if any; otherwise marked handled)
         └──▶ Postgres queue "realtime"  ──▶ API: TenantEventPusher<JobPublished>
-                                               └─▶ SignalR group org:{organizationId}  ──▶ browsers
-                                                   (or org:{id}:{topic}:{recordId} for an ITopicEvent)
+                                               └─▶ SignalR groups org:{id}:all-jobs and org:{id}:team:{jobId}
+                                                   for an IJobEvent, org:{id}:{topic}:{recordId} for an
+                                                   ITopicEvent, org:{id} for anything else  ──▶ browsers
 ```
 
 1. Both hosts route every `ITenantEvent` to the `realtime` queue and to the `worker` queue
@@ -78,17 +101,36 @@ The migration `GrantAppRoleApiMessagingAccess` creates `wolverine_api` and grant
   `UseWebSockets` that `MapHub` runs answers any other `Origin` with 403. A request with no `Origin` is not a
   browser's and gets through to the cookie check.
 - **Tenant.** Each hub call runs in its own DI scope, which `TenantResolutionMiddleware` never sees. Each call
-  therefore resolves the user's organization itself (`Memberships.ResolveTenantAsync`). On connect the connection
-  joins `org:{organizationId}`. A signed-in user without an organization is disconnected.
+  therefore resolves the user's organization and job access itself (`Memberships.ResolveTenantAsync`). On connect the
+  connection joins `org:{organizationId}`. A signed-in user without an organization is disconnected.
+- **Job groups** (ADR-0015). A connection of a member who sees all jobs also joins `org:{organizationId}:all-jobs`; one
+  of a member on Only jobs they're on joins `org:{organizationId}:team:{jobId}` for each job whose hiring team they are
+  on. A connection is in one of the two kinds, never both, so an event sent to both arrives once, and neither name is a
+  record topic. Every tenant event that carries a job id implements `IJobEvent` and goes to the all-jobs group and its
+  job's team group (`RealtimeGroups.For`, held by `RealtimeGroupsTests`); one with no job, such as
+  `HiringTemplateVersionPublished`, goes to `org:{organizationId}`. `TeamNotified` and `TeammateMentioned` are job
+  events too, so a notification card never tells anyone about a job they cannot see.
 - **Subscriptions.** `Subscribe(topic, id)` and `Unsubscribe(topic, id)` add a connection to one record's group,
-  `org:{organizationId}:{topic}:{id}`. `RealtimeTopics.Exists` checks the record as the caller's organization, so
-  another organization's record fails exactly like a missing one. Today the only topic is `job`. `application` arrives
-  with the applications entity, which the hub cannot validate yet. An event that implements `ITopicEvent` goes only to
-  its record's group, for chatty per-record updates. Every other event goes to the whole organization.
+  `org:{organizationId}:{topic}:{id}`. `RealtimeTopics.Exists` checks the record as the caller, so another
+  organization's record, and a job outside a member's hiring teams, fails exactly like a missing one. Today the only
+  topic is `job`. `application` arrives with the applications entity, which the hub cannot validate yet. An event that
+  implements `ITopicEvent` goes only to its record's group, for chatty per-record updates.
 - **One direction.** The hub has no methods that change data. Changes stay REST, with antiforgery.
 
 Group names always start with the organization, so no group a client can join spans two tenants. Removing someone
-from an organization stops their events when they reconnect. A connection keeps the groups it joined at connect.
+from an organization closes their connections into it at once: `RealtimeConnections` lists this process's
+connections by user and organization, and the remove route aborts theirs. A connection keeps the groups it joined at
+connect, so switching organizations (`POST /v1/auth/switch-organization`) aborts the user's connections into the one
+they left, on every device, and each client reconnects into the new one.
+Accepting an invitation also makes the new organization the active one but closes nothing: a dashboard already
+connected as that user follows it on its next reconnect.
+
+A change to the jobs a member sees moves their connections too (`RealtimeConnections`). Joining a hiring team, or
+creating a job, adds the job's team group to the open connections of a member on Only jobs they're on, before the save,
+because the save's own `HiringTeamChanged` can reach the hub before the request runs on; if the save fails, their
+connections close. Leaving a team, a change of job access, or a role change across Owner or Admin closes their
+connections, and each client reconnects into the right groups and refetches. `HiringTeamChanged` refetches the jobs
+and the Team page's counts, so a person just added sees the job appear.
 
 ## Client: `packages/realtime`
 
@@ -102,11 +144,16 @@ from an organization stops their events when they reconnect. A connection keeps 
 - `invalidateOnEvents(client, map, invalidate)` invalidates cache keys by event type, and every mapped key after a
   reconnect. The dashboard maps each event to the API paths it changes (`JobPublished` to `/v1/jobs`,
   `ApplicationMoved` to `/v1/jobs`, `/v1/applications` and `/v1/candidates`), and invalidates every TanStack Query
-  query under each path. `apps/dashboard/src/lib/realtime.ts` holds the map.
+  query under each path. `apps/dashboard/src/lib/realtime.ts` holds the map. An event that needs more than a refetch
+  goes through `LiveUpdates.onEvent`: the shell turns `TeamNotified` into a notification in its tray, after reading the
+  application and the run through the API, because the event carries ids only. `TeammateMentioned` reaches the whole
+  organization like every event, and only the dashboard of `mentionedUserId` shows its card; the worker's handler of the
+  same event sends the mention email.
 - `realtimeEventSchemas` has a Zod schema per event. `parseRealtimeEvent` ignores an unknown type, which a newer API may
   send, and throws on a known type that does not match its schema.
 
-The dashboard's Vite proxy forwards `/v1` with `ws: true`, in `dev` and `preview` alike, so the hub stays same-origin
+The dashboard's Vite proxy forwards `/v1` with `ws: true` in `dev`, and the AppHost's Caddyfile does the same for the
+built dashboard (`ScreenHire:Frontends=Built`, `apps/apphost/Caddy/dashboard/Caddyfile`), so the hub stays same-origin
 and the cookie applies.
 
 ## Contract test
@@ -140,12 +187,16 @@ otherwise run.
 | Test | Proves |
 |---|---|
 | `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a WebSocket from another origin gets 403; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
-| `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none; editing a job's workflow raises `JobWorkflowChanged` with the new version to its own organization only; the worker's `IntegrityAssessed` reaches its own organization with ids and levels only |
+| `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none; editing a job's workflow raises `JobWorkflowChanged` with the new version to its own organization only; the worker's `IntegrityAssessed` reaches its own organization with ids and levels only; a note, a tag, a task made by hand, a completed and a reopened task and a submitted scorecard raise `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationTaskCreated`, `ApplicationTaskCompleted`, `ApplicationTaskReopened` and `ScorecardSubmitted` with ids only, to their own organization only |
+| `ApplicationNotesTests` (integration) | editing and deleting a note raise `ApplicationNoteEdited` and `ApplicationNoteDeleted`, and a mention raises `TeammateMentioned` with the mentioned person's id, ids only and to their own organization only |
+| `EmailTests` (integration) | a send to a selection raises `ApplicationEmailed` to its own organization once each email is on the timeline, and never to another |
+| `FollowUpQuestionnaireTests` (integration) | answering a follow-up questionnaire raises `QuestionnaireAnswered` with ids only, to its own organization only |
 | `AutomationRealtimeTests` (integration) | a NotifyTeam automation raises `TeamNotified` and `AutomationRunFinished` to its own organization, with ids and the status only, and never to another |
 | `JobCloseTests` (integration) | `POST /v1/jobs/{id}/close` closes once and raises `JobClosed` once; 404 for another organization; antiforgery and sign-in |
 | `DistributionTests` (integration) | publish and close raise one `JobPostingsChanged` per change, not one per board (job-distribution.md §5) |
-| `RealtimeContractTests`, `RealtimeGroupsTests` (unit) | the contract file; group names and topic routing |
+| `RealtimeContractTests`, `RealtimeGroupsTests` (unit) | the contract file; group names, topic and job routing, and every event with a job id being an `IJobEvent` |
 | `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling (against the real SignalR stack too), schema parsing, invalidation, the runes store |
+| `JobScopeRealtimeTests` (integration) | a member on Only jobs they're on receives events about their team's job and none about another, `TeamNotified` and `TeammateMentioned` included; subscribing to a hidden job fails; joining a team starts its events without a reconnect; leaving it, or a change of job access, closes the connection |
 | `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |
 
 `CheckLiveUpdates` exists so that a test, or an operator, can prove the worker-to-browser path without a feature that

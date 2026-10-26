@@ -21,6 +21,8 @@ public sealed class AuthOptions
 
     public MagicLinkOptions MagicLink { get; set; } = new();
 
+    public InvitationOptions Invitation { get; set; } = new();
+
     /// <summary>Requests per minute per client IP address across the sign-in endpoints that change state.</summary>
     [Range(1, 10_000)]
     public int PermitsPerMinute { get; set; } = 100;
@@ -61,4 +63,10 @@ public sealed class MagicLinkOptions
 
     /// <summary>The From address of sign-in emails. Defaults to <c>no-reply@{BaseDomain}</c>.</summary>
     public string? From { get; set; }
+}
+
+public sealed class InvitationOptions
+{
+    /// <summary>How long an emailed invitation to join an organization works.</summary>
+    public TimeSpan Lifetime { get; set; } = TimeSpan.FromDays(7);
 }

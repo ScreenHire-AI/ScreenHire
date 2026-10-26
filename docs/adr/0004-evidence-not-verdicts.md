@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0004: Integrity output is evidence, not verdicts"
+description: "The integrity non-negotiables: two categorical assessments with reason codes and counter-evidence, no numeric fraud score, never auto-reject on integrity, two signal categories before a level rises, no emotion or biometric inference, and notice before collection."
+tags: [adr, integrity, legal]
+---
 # ADR-0004: Integrity output is evidence, not verdicts
 
 - **Status:** Accepted (2026-10-18)

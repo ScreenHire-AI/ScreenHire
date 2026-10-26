@@ -1,3 +1,9 @@
+---
+type: Decision
+title: "ADR-0003: Astro for all public, SEO-critical surfaces (marketing site + careers pages)"
+description: "Why the marketing site is static Astro and the careers pages are Astro SSR: the technical SEO baseline, the 15 KB JS and Lighthouse budgets, tenant careers hosts, the embeddable apply widget as an iframe, and domains as configuration."
+tags: [adr, astro, seo, careers, marketing]
+---
 # ADR-0003: Astro for all public, SEO-critical surfaces (marketing site + careers pages)
 
 - **Status:** Accepted (2026-10-18)
@@ -25,6 +31,10 @@ islands, Vite DX and image tooling. Angular SSR cannot reach zero JS (64–85 KB
   - Build-time Open Graph images; RSS for the blog.
   - **Performance budgets**: ≤ 15 KB br JS per marketing page; mobile LCP < 1.8 s, CLS < 0.05, INP < 150 ms;
     Lighthouse CI fails the build on regressions.
+    *Amended 2026-10-21:* `apps/marketing/scripts/check-dist.mjs` enforces the JS budget on every build. Lighthouse
+    (`pnpm verify:lighthouse`, not Lighthouse CI) enforces LCP and CLS once per marketing change, in the Testing
+    column before merge, one run at a time on the machine. INP is not checked yet; the pages ship no JS but JSON-LD.
+    See `docs/process/testing.md`, "Marketing site checks".
   - **AI-search visibility**: `llms.txt`, clear entity/definition pages, concise FAQ blocks — buyers increasingly
     discover tools through AI assistants.
 - **Content**: Astro content collections (Markdown/MDX) in the repo, with a git-based CMS (candidate: Keystatic) so

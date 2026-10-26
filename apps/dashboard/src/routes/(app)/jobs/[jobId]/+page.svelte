@@ -1,30 +1,55 @@
 <script lang="ts">
-  import type { ApplicationSummary } from '@screenhire/api-client';
-  import { ApiError, createCloseJob, createGetJob, createListBoards, createListJobApplications } from '@screenhire/api-client/svelte-query';
+  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import PencilIcon from '@lucide/svelte/icons/pencil';
+  import SendIcon from '@lucide/svelte/icons/send';
+  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
+  import WorkflowIcon from '@lucide/svelte/icons/workflow';
+  import {
+    ApiError,
+    createGetJob,
+    createGetJobHiringTeam,
+    createListBoards,
+    createListJobApplications,
+    createListTeamMembers,
+    createPublishJob,
+    getGetJobHistoryQueryOptions,
+  } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import ApplicationTable from '#lib/components/application-table.svelte';
-  import DistributionStrip from '#lib/components/distribution-strip.svelte';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
-  import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
-  import IntegrityOverview from '#lib/components/integrity-overview.svelte';
-  import JobDetailsSheet from '#lib/components/job-details-sheet.svelte';
-  import MoveToStage from '#lib/components/move-to-stage.svelte';
-  import PipelineBoard from '#lib/components/pipeline-board.svelte';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
+  import DistributionPanel from '#lib/components/distribution-panel.svelte';
+  import Fact from '#lib/components/fact.svelte';
+  import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
+  import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
+  import JobPipeline from '#lib/components/job-pipeline.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
+  import Notice from '#lib/components/notice.svelte';
+  import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-  import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { age, ago, employmentLabel, formatSalary, formatShortDate, initials, sourceLabel } from '#lib/format.js';
-  import { integrityColumns } from '#lib/integrity-columns.js';
-  import { bulkMoveStages, chipOf, isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import { boardRows, postingCounts, postingProblems } from '#lib/distribution.js';
+  import { employmentLabel, formatSalary } from '#lib/format.js';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
+  import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
-  import { preferences } from '#lib/preferences.svelte.js';
+  import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
-  import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
-  import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -34,73 +59,74 @@
   const job = createGetJob(() => params.jobId);
   const applications = createListJobApplications(() => params.jobId);
   const boards = createListBoards();
-  const moves = createMoves();
-  const close = createCloseJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
+  // Every move control on the page (table, board, selection) shows only for a role with Move candidates (ADR-0014).
+  const moves = createMoves({ allowed: () => can(page.data.user, 'MoveCandidates') });
+  // Phones fold the secondary actions into More (design system section 8), with the sidebar's own phone test.
+  const sidebar = Sidebar.useSidebar();
+  const publish = createPublishJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
 
   const detail = $derived(job.data?.data);
+  // Last updated and History (T6): every change to the posting, its status and its workflow.
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  let historyOpen = $state(false);
+  // Hiring team (ADR-0015): who works on the job, and who on Only jobs they're on sees it.
+  const hiringTeam = createGetJobHiringTeam(() => params.jobId);
+  const teamCount = $derived(hiringTeam.data?.data.length);
+  let teamOpen = $state(false);
+  let teamChosen = false;
+  const currentMemberId = $derived(members?.find((member) => member.userId === currentUserId)?.id);
+  const history = createHistoryPages(
+    (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
+    () => historyOpen,
+  );
   const stages = $derived(detail?.workflow.stages ?? []);
   const all = $derived(applications.data?.data ?? []);
+  const rows = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings) : []);
+  const boardCount = $derived(rows.length);
+  const publishable = $derived(detail?.status === 'Draft' && boardCount > 0);
+  // A posting that needs fixes is a notice where people will see it, naming the board, with a link to the fix (E2). Only
+  // an open job is on the boards.
+  const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
 
-  let stageFilter = $state<string | null>(null);
-  // Set from the overview's legend or the filter menu, through setIntegrityFilter.
-  let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
-  let view = $state<'table' | 'board'>('table');
-  let activeId = $state<string | null>(null);
-  let selectedIds = $state<string[]>([]);
-  let confirmClose = $state(false);
-  let editing = $state(false);
-  let saved = $state('');
-  let closeFailure = $state('');
-
-  const shown = $derived(
-    all.filter((application) => (!stageFilter || application.stage.id === stageFilter) && matchesIntegrityFilter(application, integrityFilter)),
-  );
-  const filtering = $derived(Boolean(stageFilter) || isIntegrityFiltered(integrityFilter));
-  const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
-  const active = $derived(all.find((application) => application.id === activeId));
-  const selected = $derived(all.filter((application) => selectedIds.includes(application.id)));
-  const countIn = (stageId: string) => all.filter((application) => application.stage.id === stageId).length;
-
-  const meta = $derived.by(() => {
-    if (!detail) return [];
-    const parts = [detail.location, employmentLabel(detail.employmentType)];
-    if (detail.salary) parts.push(formatSalary(detail.salary));
-    if (applications.isSuccess) parts.push(`${all.length} ${all.length === 1 ? 'applicant' : 'applicants'}`);
-    if (detail.status === 'Open' && detail.publishedAt) parts.push(`Opened ${ago(detail.publishedAt, Date.now())}`);
-    else if (detail.status === 'Closed' && detail.closedAt) parts.push(`Closed ${formatShortDate(detail.closedAt)}`);
-    else parts.push(detail.status);
-    return parts.filter(Boolean);
+  // The job's peer views (section 21): the work area first, then Distribution, whose count says how many boards the job
+  // is on (E2). The tab is in the address, so a link reaches it and a reload keeps it.
+  const tab = $derived((page.shallow?.url ?? page.url).searchParams.get('tab') === 'distribution' ? 'distribution' : 'candidates');
+  const sections = $derived.by((): RecordTab[] => {
+    const counts = postingCounts(rows);
+    return [
+      { value: 'candidates', label: 'Candidates', count: applications.isSuccess ? all.length : undefined },
+      boards.data
+        ? { value: 'distribution', label: 'Distribution', count: counts.posted, of: counts.total, countLabel: `posted on ${counts.posted} of ${counts.total} boards` }
+        : { value: 'distribution', label: 'Distribution' },
+    ];
   });
 
-  // V switches between the table and the board while focus is in the pipeline.
-  function onPipelineKeydown(event: KeyboardEvent) {
-    if (!preferences.shortcutsEnabled || hasModifier(event) || isTypingTarget(event.target)) return;
-    if (event.key.toLowerCase() === 'v') {
-      event.preventDefault();
-      view = view === 'table' ? 'board' : 'table';
-    }
+  // A tab is a view of the same page, so switching only changes the address (shallow), keeping the page's state.
+  function showTab(next: string) {
+    const url = new URL(page.url.href);
+    if (next === 'distribution') url.searchParams.set('tab', next);
+    else url.searchParams.delete('tab');
+    void goto(url, { shallow: true, replace: true, state: page.state });
   }
 
-  // A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
-  // filter's menu (bulkMoveStages). The filter applies to the table, so it shows the table.
-  function setIntegrityFilter(next: IntegrityFilter) {
-    integrityFilter = next;
-    selectedIds = [];
-    view = 'table';
-  }
+  let view = $state<'table' | 'board'>('table');
+  // The table or the board fills the window below the header and scrolls inside itself, so the page never scrolls
+  // (S6, section 21).
+  const boardFills = $derived(tab === 'candidates' && !sidebar.isMobile);
+  let confirmClose = $state(false);
+  // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
+  let closeChosen = false;
+  let publishFailure = $state('');
 
-  async function moveSelected(stage: (typeof stages)[number]) {
-    // The ones that failed stay selected, so they can be moved again.
-    selectedIds = await moves.moveAll(selected, stage);
-  }
-
-  async function closeEverywhere() {
-    closeFailure = '';
+  // A draft's primary action: publish to every board at once.
+  async function publishEverywhere() {
+    publishFailure = '';
     try {
-      await close.mutateAsync({ jobId: params.jobId });
-      confirmClose = false;
+      await publish.mutateAsync({ jobId: params.jobId });
     } catch (error) {
-      closeFailure = describeError(error, 'Could not close the job');
+      publishFailure = describeError(error, 'Could not publish the job');
     }
   }
 
@@ -111,215 +137,190 @@
   <title>{detail?.title ?? 'Job'} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Jobs', href: '/' }, ...(detail?.department ? [{ label: detail.department }] : []), { label: detail?.title ?? 'Job' }]} />
+<TopBar
+  crumbs={[{ label: 'Jobs', href: '/' }, ...(detail?.department ? [{ label: detail.department }] : []), { label: detail?.title ?? 'Job' }]}
+  back
+/>
 
-<main class="flex flex-col gap-3.5 px-5 pt-4.5 pb-9">
-  {#if job.isError}
-    {#if notFound}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Job not found</h1>
-      <p class="text-muted-foreground">This job does not exist, or it belongs to another organization. <a href="/">Back to jobs</a></p>
-    {:else}
-      <h1 class="font-display text-[30px] font-bold tracking-[-0.02em]">Job</h1>
-      <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} />
-    {/if}
+<main class={['flex flex-col', sidebar.isMobile && publishable && 'pb-28', boardFills && 'h-[calc(100svh-3.5rem)] min-h-160']}>
+  <!-- A failed refetch keeps the job on screen; the error replaces it only when there is nothing to show. -->
+  {#if job.isError && !detail}
+    <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
+    <div class="w-full px-4 py-6 md:px-6">
+      <Panel title={notFound ? 'Details' : 'Could not load the job'}>
+        {#if notFound}
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Description>It does not exist, or it belongs to another organization.</Empty.Description>
+            </Empty.Header>
+            <Empty.Content><Button href="/" variant="outline" size="lg"><ArrowLeftIcon aria-hidden="true" />Back to jobs</Button></Empty.Content>
+          </Empty.Root>
+        {:else}
+          <QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset />
+        {/if}
+      </Panel>
+    </div>
   {:else if !detail}
-    <div aria-hidden="true" class="flex flex-col gap-2">
-      <Skeleton class="h-9 w-80" />
-      <Skeleton class="h-4 w-96" />
-      <Skeleton class="mt-2 h-10 w-full" />
+    <!-- Skeletons of the header band and the work area (E1). -->
+    <div aria-hidden="true" class="border-b border-border bg-card">
+      <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
+        <Skeleton class="h-9 w-full max-w-80" />
+        <Skeleton class="h-10 w-full max-w-120" />
+      </div>
+    </div>
+    <div aria-hidden="true" class="flex w-full px-4 py-6 md:px-6">
+      <Skeleton class="h-80 w-full rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}
-    <section aria-label="Job" class="flex flex-wrap items-start justify-between gap-3">
-      <div class="flex min-w-0 flex-col gap-1.5">
-        <h1 class="font-display text-[30px] leading-[1.1] font-bold tracking-[-0.02em]">{detail.title}</h1>
-        <ul aria-label="Job details" class="flex flex-wrap gap-x-3.5 gap-y-1 font-mono text-[11.5px] text-muted-foreground uppercase">
-          {#each meta as part (part)}<li>{part}</li>{/each}
-        </ul>
+    <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
+      <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
+           the actions onto a second row. -->
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure ? outcome : undefined}>
+        {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
+        {#snippet actions()}
+          <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
+          {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
+          {#if !sidebar.isMobile}
+            {#if detail.status !== 'Closed'}
+              <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
+            {/if}
+            <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
+            <Button variant="outline" size="lg" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
+              <UsersRoundIcon aria-hidden="true" />Hiring team{#if teamCount !== undefined}<Badge variant="count">{teamCount}</Badge>{/if}
+            </Button>
+          {/if}
+          <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
+          {#if sidebar.isMobile || detail.status === 'Open'}
+            <MoreMenu
+              label="More actions"
+              onclosed={() => {
+                if (closeChosen) confirmClose = true;
+                if (teamChosen) teamOpen = true;
+                closeChosen = false;
+                teamChosen = false;
+              }}
+            >
+              {#if sidebar.isMobile}
+                {#if detail.status !== 'Closed'}
+                  <!-- Items that go to a page are links (A5). -->
+                  <DropdownMenu.Item>
+                    {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
+                  </DropdownMenu.Item>
+                {/if}
+                <DropdownMenu.Item>
+                  {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/workflow`}><WorkflowIcon aria-hidden="true" />Edit workflow</a>{/snippet}
+                </DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Hiring team</DropdownMenu.Item>
+              {/if}
+              {#if detail.status === 'Open'}
+                {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
+                <DropdownMenu.Item variant="destructive" onSelect={() => (closeChosen = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
+              {/if}
+            </MoreMenu>
+          {/if}
+        {/snippet}
+        {#snippet facts()}
+          <Fact label="Location">{detail.location}</Fact>
+          <Fact label="Type">{employmentLabel(detail.employmentType)}</Fact>
+          {#if detail.salary}<Fact label="Salary">{formatSalary(detail.salary)}</Fact>{/if}
+          {#if detail.status === 'Open' && detail.publishedAt}
+            <Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>
+          {:else if detail.status === 'Closed' && detail.closedAt}
+            <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
+          {:else}
+            <Fact label="Created"><RelativeTime at={detail.createdAt} /></Fact>
+          {/if}
+          {#if detail.template}
+            <Fact label="Template">
+              <!-- The fact's state in its words, never a pill in a header (section 11, Fact pill). -->
+              {detail.template.templateName} v{detail.template.version}{#if detail.template.updateAvailable}, update available{/if}
+            </Fact>
+          {/if}
+          <Fact label="Last updated">
+            <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
+          </Fact>
+        {/snippet}
+        {#snippet tabs()}<RecordTabs label="Job sections" tabs={sections} />{/snippet}
+      </HeaderBand>
+      <HiringTeamSheet
+        bind:open={teamOpen}
+        kind="job"
+        id={detail.id}
+        name={detail.title}
+        mayEdit={can(page.data.user, 'EditJobs')}
+        {currentMemberId}
+        seesAllJobs={seesAllJobs(page.data.user)}
+      />
+      <HistorySheet
+        bind:open={historyOpen}
+        name={detail.title}
+        entries={history.entries}
+        error={history.error}
+        onretry={history.retry}
+        hasMore={history.hasMore}
+        loadingMore={history.loadingMore}
+        onmore={history.more}
+        {members}
+        {currentUserId}
+      />
+
+      <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
+      <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
+        <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
+          {#each problems as problem (problem.kind)}
+            <Notice href="?tab=distribution" link="Fix on Distribution">{problem.text}</Notice>
+          {/each}
+          <JobPipeline
+            bind:view
+            jobTitle={detail.title}
+            {stages}
+            applications={all}
+            pending={applications.isPending}
+            error={applications.isError ? applications.error : null}
+            onretry={() => applications.refetch()}
+            {moves}
+          />
+        </Tabs.Content>
+        <Tabs.Content value="distribution">
+          {#if boards.data}
+            <DistributionPanel job={detail} boards={boards.data.data} />
+          {:else if boards.isError}
+            <Panel title="Distribution">
+              <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />
+            </Panel>
+          {:else}
+            <!-- Rows of the panel's shape: a board's name, then its state (E1). -->
+            <Panel title="Distribution" flush>
+              <div aria-hidden="true" class="flex flex-col">
+                {#each [0, 1] as row (row)}
+                  <div class="flex flex-col gap-2 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
+                    <Skeleton class="h-5 w-32" />
+                    <Skeleton class="h-5 w-20" />
+                  </div>
+                {/each}
+              </div>
+            </Panel>
+          {/if}
+        </Tabs.Content>
       </div>
-      <div class="flex flex-wrap gap-2">
-        {#if detail.status !== 'Closed'}
-          <Button variant="outline" class="h-[34px] font-semibold" onclick={() => ((saved = ''), (editing = true))}>Edit details</Button>
-        {/if}
-        <a href={`/jobs/${detail.id}/workflow`} class={cn(buttonVariants({ variant: 'outline' }), 'h-[34px] font-semibold')}>
-          Workflow{#if detail.template?.updateAvailable}<span class="text-primary"> · update available</span>{/if}
-        </a>
-        {#if detail.status === 'Open'}
-          <Button variant="outline" class="h-[34px] border-destructive/40 font-semibold text-destructive" onclick={() => (confirmClose = true)}
-            >Close &amp; remove everywhere</Button
-          >
-        {/if}
-      </div>
-    </section>
+    </Tabs.Root>
 
-    <p role="status" class="text-[12.5px] text-muted-foreground empty:hidden">{saved}</p>
-    <JobDetailsSheet job={detail} bind:open={editing} onsaved={(message) => (saved = message)} />
-
-    <DistributionStrip job={detail} boards={boards.data?.data ?? []} />
-
-    {#if applications.isSuccess && all.length > 0}
-      <IntegrityOverview applications={all} bind:filter={() => integrityFilter, setIntegrityFilter} />
+    {#if sidebar.isMobile && publishable}
+      <ActionBar>{@render publishButton()}</ActionBar>
     {/if}
 
-    <div class="flex flex-wrap items-start gap-3.5">
-      <!-- svelte-ignore a11y_no_noninteractive_element_interactions: V is a shortcut for the focusable rows and cards inside, whose key presses bubble here -->
-      <section
-        aria-label="Pipeline"
-        class="min-w-0 flex-[999_1_600px] overflow-hidden rounded-xl border border-border bg-card"
-        onkeydown={onPipelineKeydown}
-      >
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle px-2.5 py-2">
-          {#if view === 'table'}
-            <div role="group" aria-label="Stage" class="flex flex-wrap gap-0.5 rounded-[9px] bg-secondary p-[3px]">
-              {#each [{ id: null, name: 'All', count: all.length }, ...stages.map((stage) => ({ id: stage.id, name: stage.name, count: countIn(stage.id) }))] as option (option.id ?? 'all')}
-                <button
-                  type="button"
-                  aria-pressed={stageFilter === option.id}
-                  onclick={() => (stageFilter = option.id)}
-                  class={[
-                    'h-7 rounded-[7px] px-2.5',
-                    stageFilter === option.id
-                      ? 'bg-card font-bold text-foreground shadow-[0_1px_2px_color-mix(in_oklab,var(--foreground)_14%,transparent)]'
-                      : 'font-semibold text-secondary-foreground hover:bg-card/60',
-                  ]}
-                >
-                  {option.name}
-                  <span class="font-mono text-[11px] font-medium text-muted-foreground tabular-nums">{option.count}</span>
-                </button>
-              {/each}
-            </div>
-          {:else}
-            <h2 class="px-1 font-bold">Board</h2>
-          {/if}
-          <div class="flex flex-wrap items-center gap-2">
-            {#if view === 'table'}
-              <IntegrityFilterMenu bind:filter={() => integrityFilter, setIntegrityFilter} />
-            {/if}
-            {#if view === 'table' && selected.length > 0}
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
-                  Move {selected.length} selected…
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" class="w-52">
-                  {#each moveTargets as stage (stage.id)}
-                    <DropdownMenu.Item onSelect={() => moveSelected(stage)}>{stage.name}</DropdownMenu.Item>
-                  {/each}
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-            {/if}
-            <div role="group" aria-label="View" class="flex gap-0.5 rounded-[9px] bg-secondary p-[3px]">
-              {#each [{ id: 'table', label: 'Table' }, { id: 'board', label: 'Board' }] as const as option (option.id)}
-                <button
-                  type="button"
-                  aria-pressed={view === option.id}
-                  aria-keyshortcuts={preferences.shortcutsEnabled ? 'V' : undefined}
-                  onclick={() => (view = option.id)}
-                  class={['h-7 rounded-[7px] px-2.5', view === option.id ? 'bg-card font-bold' : 'font-semibold text-secondary-foreground']}
-                  >{option.label}</button
-                >
-              {/each}
-            </div>
-          </div>
-        </div>
-
-        {#if applications.isError}
-          <div class="p-3">
-            <QueryError message={describeError(applications.error, 'Could not load the candidates')} onretry={() => applications.refetch()} />
-          </div>
-        {:else if applications.isPending}
-          <div aria-hidden="true" class="flex flex-col gap-1 p-3">
-            {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-8 w-full" />{/each}
-          </div>
-        {:else if view === 'table'}
-          <ApplicationTable
-            applications={shown}
-            label={`Candidates for ${detail.title}`}
-            {stages}
-            {moves}
-            extraColumns={integrityColumns}
-            bind:activeId
-            bind:selectedIds
-            emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
-          >
-            {#snippet hints()}<span><kbd>V</kbd> board view</span>{/snippet}
-          </ApplicationTable>
-        {:else}
-          <PipelineBoard applications={all} {stages} {moves} />
-          <p class="border-t border-border-subtle bg-muted px-3 py-2 font-mono text-[11px] text-muted-foreground">
-            <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> move a card · <kbd>Space</kbd> pick up · <kbd>Enter</kbd> open
-            {#if preferences.shortcutsEnabled}· <kbd>V</kbd> table view{/if}
-          </p>
-        {/if}
-        <p role="status" class={['px-3 py-1.5 text-[12.5px] empty:hidden', moves.failure ? 'text-status-verify' : 'text-muted-foreground']}>
-          {moves.announcement}
-        </p>
-      </section>
-
-      <!-- The panel keeps its place before a row is chosen: appearing on the first click's mousedown narrowed the table
-           under the pointer, so the mouseup missed the candidate's link and the click never opened it. -->
-      {#if view === 'table' && all.length > 0}
-        {#if active}
-          {@render panel(active)}
-        {:else}
-          <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-xl border border-border bg-card">
-            <p class="px-4 py-3.5 text-[13px] text-muted-foreground">Choose a candidate to see their stage and checks here.</p>
-          </aside>
-        {/if}
-      {/if}
-    </div>
+    <CloseJobDialog jobId={detail.id} bind:open={confirmClose} />
   {/if}
 </main>
 
-{#snippet panel(application: ApplicationSummary)}
-  <aside aria-label="Selected candidate" class="flex min-w-0 flex-[1_1_320px] flex-col rounded-xl border border-border bg-card">
-    <div class="flex items-center gap-2.5 border-b border-border-subtle px-4 py-3.5">
-      <span aria-hidden="true" class="grid size-10 flex-none place-items-center rounded-full bg-secondary font-bold text-secondary-foreground"
-        >{initials(application.candidateName)}</span
-      >
-      <div class="flex min-w-0 flex-col">
-        <h2 class="font-display text-[19px] font-bold">{application.candidateName}</h2>
-        <span class="text-[12.5px] text-muted-foreground">
-          Applied {ago(application.submittedAt, Date.now())} via {sourceLabel(application.source)}
-        </span>
-      </div>
-    </div>
-    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-b border-border-subtle px-4 py-3.5">
-      <dt class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">Stage</dt>
-      <dd>{application.stage.name}</dd>
-      <dt class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">In stage</dt>
-      <dd>{age(application.stageEnteredAt, Date.now())}</dd>
-      {#each [{ kind: 'authenticity', label: 'Authenticity' }, { kind: 'aiAssistance', label: 'AI assist' }] as const as row (row.kind)}
-        {@const chip = chipOf(application.integrity, row.kind)}
-        <dt class="font-mono text-[10.5px] tracking-[0.06em] text-muted-foreground uppercase">{row.label}</dt>
-        <dd><IntegrityChip kind={row.kind} level={chip?.level ?? null} reasons={chip?.reasons ?? 0} dismissed={chip?.dismissed ?? false} /></dd>
-      {/each}
-    </dl>
-    <div class="flex flex-wrap gap-1.5 px-4 py-3.5">
-      <a href={`/applications/${application.id}`} class={cn(buttonVariants({ size: 'sm' }))}>Open application</a>
-      <MoveToStage
-        candidateName={application.candidateName}
-        currentStageId={application.stage.id}
-        {stages}
-        disabled={moves.pending}
-        onmove={(stage) => moves.move(application, stage)}
-      />
-    </div>
-  </aside>
+{#snippet publishButton()}
+  <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
+    <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
+  </Button>
 {/snippet}
 
-<Dialog.Root bind:open={confirmClose}>
-  <Dialog.Content class="sm:max-w-md">
-    <Dialog.Header>
-      <Dialog.Title>Close this job and remove it everywhere?</Dialog.Title>
-      <Dialog.Description>
-        The careers page stops taking applications at once, and every board is asked to remove the job. Boards that
-        refresh on their own schedule may show it until they do. A closed job cannot be reopened.
-      </Dialog.Description>
-    </Dialog.Header>
-    <p role="status" class="text-status-verify empty:hidden">{closeFailure}</p>
-    <Dialog.Footer>
-      <Dialog.Close class={cn(buttonVariants({ variant: 'outline' }))}>Keep it open</Dialog.Close>
-      <Button variant="destructive" disabled={close.isPending} onclick={closeEverywhere}>Close &amp; remove everywhere</Button>
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+{#snippet outcome()}
+  <p role="status" class="empty:hidden">{page.state.saved ?? ''}</p>
+  <FailureText message={publishFailure} />
+{/snippet}

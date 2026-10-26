@@ -1,7 +1,7 @@
 import type { JobLocation, SalaryPeriod, WorkplaceType } from '@screenhire/api-client';
 import { areCountryCodes, countryCodes, paragraphs } from './forms.js';
 
-// The posting fields the New job dialog and the job details sheet share, checked as JobPublishValidator and
+// The posting fields the New job page and the Edit details form share, checked as JobPublishValidator and
 // JobContentValidator will check them, so a job made or edited in the dashboard can be published.
 
 /** Where the work happens, as the forms hold it: countries for a remote job, one city and country otherwise. */

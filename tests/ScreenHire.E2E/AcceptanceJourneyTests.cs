@@ -55,8 +55,9 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var templateName = await ArrangeTemplateWithStageEmailAsync(recruiter);
 
         // 2. A job from the template, published to every board.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "New job" }).ClickAsync();
-        var newJob = Page.GetByRole(AriaRole.Dialog, new() { Name = "New job" });
+        // The header band's New job; a list with no jobs offers it in its empty state too.
+        await Page.Locator("[data-slot='header-band']").GetByRole(AriaRole.Link, new() { Name = "New job" }).ClickAsync();
+        var newJob = Page.GetByRole(AriaRole.Form, new() { Name = "New job" });
         await newJob.GetByLabel("Title").FillAsync(JobTitle);
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
         await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "Remote" });
@@ -68,25 +69,29 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         var jobSlug = (await DashboardJsonAsync($"/v1/jobs/{jobId}")).GetProperty("slug").GetString()!;
 
         // The details the template does not set: a salary range, before anyone sees the job.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Edit details" }).ClickAsync();
-        var details = Page.GetByRole(AriaRole.Dialog, new() { Name = "Edit job details" });
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Edit details" }).ClickAsync();
+        var details = Page.GetByRole(AriaRole.Form, new() { Name = "Edit job details" });
         await details.GetByLabel("From", new() { Exact = true }).FillAsync("70000");
         await details.GetByLabel("To", new() { Exact = true }).FillAsync("90000");
         await ExpectNoAccessibilityViolationsAsync();
         await details.GetByRole(AriaRole.Button, new() { Name = "Save details" }).ClickAsync();
         await Expect(details).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("£70k-£90k");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(JobTitle);
+        await Expect(HeaderBand).ToContainTextAsync(new Regex("£70[Kk]-£90[Kk]")); // "K" or "k", by the browser's locale
 
-        var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" });
-        await distribution.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        // Each board's answer reaches this page as a live event, so check the connection first: a lost one fails here
+        // with its own name, not as a board that seems to stay Queued.
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
+        await HeaderBand.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board("sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(organizationSlug)).Should().Contain(jobId.ToString(), "the sandbox board lists the job");
         await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Candidates") }).ClickAsync();
 
         // The recruiter keeps the job open while candidates apply; nothing below reloads it.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {JobTitle}" });
-        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
         await Page.EvaluateAsync("() => { window.__screenhireNoReload = true; }");
 
         // 3. The candidates apply on the careers site, each in a browser of their own. The genuine candidate's browser runs
@@ -100,16 +105,17 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName, Exact = true })).ToBeVisibleAsync();
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = bot.FullName, Exact = true })).ToBeVisibleAsync();
         await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
+        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the table updated in place");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "acceptance-job-with-candidates-light");
 
         // The bot's evidence: what the form and the identity checks saw, the next step, and nothing that decides.
         await OpenApplicationAsync(table, bot.FullName);
-        var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" });
-        await Expect(authenticity).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        var panel = Page.GetByRole(AriaRole.Tabpanel);
+        var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true });
+        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(new() { Timeout = 60_000 });
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_WEBDRIVER", "AUTO_SUBMIT_VELOCITY", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID" })
         {
             await Expect(authenticity.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
@@ -124,29 +130,33 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         // 4. The genuine candidate: nothing to act on, so the recruiter moves them to Screening.
         await Page.GoBackAsync();
         await OpenApplicationAsync(table, genuine.FullName);
-        var genuinePanel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" })).ToContainTextAsync("Authenticity: No concerns", Assessed);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        var genuinePanel = Page.GetByRole(AriaRole.Tabpanel);
+        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true }).GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: No concerns") })).ToBeVisibleAsync(new() { Timeout = 60_000 });
         await Expect(genuinePanel).ToContainTextAsync("Suggested next step: No action needed.");
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {genuine.FullName}", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Timeline" })).ToContainTextAsync("Moved from Applied to Screening by you");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");
 
         // The template's automation emails the candidate, through the outbox, the worker and Mailpit.
         var sent = await Fixture.Mailpit.WaitForMessagesAsync(genuineEmail, 1, Ct);
         sent.Should().ContainSingle();
         sent[0].Subject.Should().Be($"An update on your application for {JobTitle}");
-        sent[0].Text.Should().Contain($"Hi {genuine.FullName}").And.Contain("has moved to the next step: Screening");
+        sent[0].Text.Should().Contain($"Hi {genuine.FirstName},").And.Contain("has moved to the next step: Screening");
         (await Fixture.Mailpit.MessagesAsync(botEmail, Ct)).Should().BeEmpty("nobody moved the bot, and no integrity result sends anything");
 
         // 5. Close the job: it comes down from every board, and the careers page answers 410 Gone.
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Close & remove everywhere" }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Close this job and remove it everywhere?" });
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Removed:");
         await Expect(Board("sandbox")).ToContainTextAsync("Removed:", WaitForBoard);
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Job details" })).ToContainTextAsync("Closed");
+        await Expect(HeaderBand).ToContainTextAsync("Closed");
         (await SandboxListingsAsync(organizationSlug)).Should().NotContain(jobId.ToString(), "the sandbox board dropped the job");
 
         await using var visitor = await Fixture.Browser.NewContextAsync();
@@ -191,7 +201,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" }).ClickAsync();
 
         await Expect(page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" })).ToBeVisibleAsync();
-        await page.GetByLabel("Full name").FillAsync(applicant.FullName);
+        await page.GetByLabel("First name").FillAsync(applicant.FirstName);
+        await page.GetByLabel("Last name").FillAsync(applicant.LastName);
         await page.GetByLabel("Email").FillAsync(email);
         await page.GetByLabel("Phone").FillAsync(applicant.Phone!);
         await page.GetByLabel("Your CV or resume").SetInputFilesAsync(
@@ -211,7 +222,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await page.GotoAsync(CareersUrl($"/{organization}/jobs/{job}/apply"));
         await page.Locator("astro-island:not([ssr])").WaitForAsync(); // hydrated: the upload island and the telemetry module
 
-        await page.GetByLabel("Full name").FillAsync(applicant.FullName);
+        await page.GetByLabel("First name").FillAsync(applicant.FirstName);
+        await page.GetByLabel("Last name").FillAsync(applicant.LastName);
         await page.GetByLabel("Email").FillAsync(email);
         await page.GetByLabel("Phone").FillAsync(applicant.Phone!);
         await page.GetByLabel("Your CV or resume").SetInputFilesAsync(
@@ -251,6 +263,9 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
     private ILocator Chip(string candidate, string kind) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
             .Locator($"[data-integrity-chip='{kind}']");
+
+    // The job page's header band: its title, status badge, actions and facts.
+    private ILocator HeaderBand => Page.Locator("[data-slot='header-band']");
 
     private ILocator Board(string boardId) =>
         Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" }).Locator($"[data-board='{boardId}']");

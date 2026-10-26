@@ -10,7 +10,7 @@ namespace ScreenHire.Domain.Integrity;
 /// writes a new row, and the newest row per <see cref="Kind"/> is the current one, so the history of what reviewers saw
 /// stays. Never a number: no score, no percentage.
 /// </summary>
-public sealed class IntegrityAssessment : ITenantOwned
+public sealed class IntegrityAssessment : IApplicationScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

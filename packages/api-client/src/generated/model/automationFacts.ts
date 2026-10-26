@@ -25,4 +25,6 @@ export interface AutomationFacts {
   integrityAiAssistance?: string | null;
   /** @nullable */
   verificationResult?: string | null;
+  /** @nullable */
+  reviewerRecommendation?: string | null;
 }

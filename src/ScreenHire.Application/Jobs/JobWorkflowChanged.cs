@@ -7,4 +7,4 @@ namespace ScreenHire.Application.Jobs;
 /// the change, through the outbox, so open dashboards refetch the job's stages and "update available". Nothing in the
 /// worker handles it.
 /// </summary>
-public sealed record JobWorkflowChanged(Guid OrganizationId, Guid JobId, int WorkflowVersion, DateTimeOffset ChangedAt) : ITenantEvent;
+public sealed record JobWorkflowChanged(Guid OrganizationId, Guid JobId, int WorkflowVersion, DateTimeOffset ChangedAt) : IJobEvent;

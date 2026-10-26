@@ -28,4 +28,6 @@ export interface AutomationAction {
   assigneeUserId?: string | null;
   /** @nullable */
   verificationProvider?: string | null;
+  /** @nullable */
+  questionnaireId?: string | null;
 }

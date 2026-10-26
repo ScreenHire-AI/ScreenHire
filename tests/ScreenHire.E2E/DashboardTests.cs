@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
@@ -14,10 +15,21 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await GoToAsync("dashboard", "/");
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/sign-in"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Sign in to ScreenHire");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Sign in");
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" })).ToBeVisibleAsync();
         await Expect(Page.GetByLabel("Work email")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
+    public async Task Style_guide_is_a_development_page_only()
+    {
+        // The end-to-end tests serve the production build, where the style guide's load answers 404.
+        await GoToAsync("dashboard", "/style-guide");
+
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/style-guide"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Page not found");
+        await Expect(Page.GetByText("Error 404")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -51,8 +63,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-        await Expect(Page.GetByText("0 jobs · 0 open")).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Cell)).ToHaveTextAsync("No jobs yet.");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("No jobs yet");
         await ExpectNoAccessibilityViolationsAsync();
 
         // The user menu names the account and signs out.
@@ -87,10 +98,40 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await ExpectBrightwaterJobsAsync();
     }
 
+    [Fact]
+    public async Task An_emailed_invitation_signs_the_invitee_in_to_the_team()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var owner = new ApiSession(Fixture);
+        await owner.SignInWithMagicLinkAsync(ApiSession.NewEmail("owner"), cancellationToken);
+        await owner.OnboardAsync(cancellationToken);
+        var invitee = ApiSession.NewEmail("invitee");
+        using (var invited = await owner.PostAsync("/v1/organization/invitations", new { email = invitee, role = "Recruiter" }, cancellationToken))
+        {
+            invited.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        var link = await Fixture.Mailpit.WaitForInvitationLinkAsync(invitee, cancellationToken);
+        link.GetLeftPart(UriPartial.Authority).Should().Be(Fixture.GetEndpoint("dashboard").GetLeftPart(UriPartial.Authority));
+        await Page.GotoAsync(link.ToString());
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Join your team");
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = invitee })).ToBeVisibleAsync();
+
+        // The link works once: opening it again explains that instead of signing anyone in.
+        await Page.GotoAsync(link.ToString());
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("This invitation doesn't work");
+    }
+
     private async Task ExpectBrightwaterJobsAsync()
     {
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-        var table = Page.GetByRole(AriaRole.Region, new() { Name = "Jobs" }).GetByRole(AriaRole.Table);
+        var table = Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" }).GetByRole(AriaRole.Table, new() { Name = "Jobs" });
         var rows = table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Cell) });
         await Expect(rows).ToHaveCountAsync(4);
 
@@ -104,22 +145,25 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         foreach (var (title, location, status) in seeded)
         {
             var cells = rows.Filter(new() { HasText = title }).GetByRole(AriaRole.Cell);
-            await Expect(cells.Nth(0)).ToHaveTextAsync(title);
-            await Expect(cells.Nth(1)).ToHaveTextAsync(location);
-            await Expect(cells.Nth(2)).ToHaveTextAsync(status);
-            // Published date ("20 Oct", "5 Sept") for open jobs; a hyphen for the draft, which was never published.
-            await Expect(cells.Nth(3)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
+            // Status first (T2), then the title, location, type and publish date.
+            await Expect(cells.Nth(0)).ToHaveTextAsync(status);
+            await Expect(cells.Nth(1)).ToHaveTextAsync(title);
+            await Expect(cells.Nth(2)).ToHaveTextAsync(location);
+            // Published date ("Oct 20, 2026") for open jobs; a hyphen for the draft, which was never published.
+            await Expect(cells.Nth(4)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
         }
 
-        await Expect(Page.GetByText("4 jobs · 3 open")).ToBeVisibleAsync();
+        // The status filter counts each status in a count badge after its label; All's count is the header's (W4).
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button))
+            .ToHaveTextAsync([new Regex(@"^All$"), new Regex(@"^Open\s*3$"), new Regex(@"^Draft\s*1$"), new Regex(@"^Closed\s*0$")]);
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Avery Quinn" })).ToContainTextAsync("Brightwater Studio");
         await ExpectNoAccessibilityViolationsAsync();
     }
 
     private string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
 
-    // en-GB short months are three letters except September ("5 Sept"). Playwright runs the pattern as a JavaScript
-    // regex without the `u` flag, so use a plain class: `\p{L}` would match a literal "p".
-    [GeneratedRegex(@"^\d{1,2} [A-Za-z]{3,4}$")]
+    // The en-US medium date. Playwright runs the pattern as a JavaScript regex without the `u` flag, so use a plain
+    // class: `\p{L}` would match a literal "p".
+    [GeneratedRegex(@"^[A-Z][a-z]{2} \d{1,2}, \d{4}$")]
     private static partial Regex PublishedDate();
 }

@@ -38,11 +38,20 @@ internal static class Antiforgery
         });
     }
 
-    /// <summary>Rejects a request without a valid antiforgery header with 400 problem details.</summary>
+    /// <summary>
+    /// Rejects a request without a valid antiforgery header with 400 problem details. A request an API key authenticated
+    /// passes: it carries no cookie a forged cross-site request could ride on, and browsers cannot add an
+    /// <c>Authorization</c> header to one.
+    /// </summary>
     public static TBuilder RequireAntiforgeryToken<TBuilder>(this TBuilder builder)
         where TBuilder : IEndpointConventionBuilder =>
         builder.AddEndpointFilter(async (invocation, next) =>
         {
+            if (invocation.HttpContext.User.IsApiKey())
+            {
+                return await next(invocation);
+            }
+
             var antiforgery = invocation.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
             return await antiforgery.IsRequestValidAsync(invocation.HttpContext)
                 ? await next(invocation)

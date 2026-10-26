@@ -1,3 +1,22 @@
+---
+type: Design
+title: "Messaging and background work"
+description: "Wolverine on Postgres: publishing from an endpoint through the outbox, the worker queue, database roles and provisioning, how tenant messages keep row-level security, idempotency keys and [Deduplicated], retries and dead letters, cron schedules, and telemetry."
+tags: [messaging, wolverine, outbox]
+sources:
+  - resource: src/ScreenHire.Application/Messaging/ITenantEvent.cs
+  - resource: src/ScreenHire.Application/Messaging/MessagingSettings.cs
+  - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
+  - resource: src/ScreenHire.Application/Messaging/TenantMessageMiddleware.cs
+  - resource: apps/worker/Program.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/DeadLetterTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/HiringMessagingTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/MessagingHost.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/OutboxTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/RecurringMessageTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/WolverineStore.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/WorkerMessagingTests.cs
+---
 # Messaging and background work
 
 Background work, domain events and scheduled jobs run on Wolverine 6.51 (MIT, ADR-0008) with Postgres as the only
@@ -115,11 +134,13 @@ the `DbContext` already run in one transaction with their outbox (`AutoApplyTran
 `ITenantEvent` marks an integration event that belongs to one organization (`OrganizationId`) and that its signed-in
 users may see. The API pushes every `ITenantEvent` to that organization's connected clients
 ([real-time updates](realtime.md)), so a feature task only defines the event and its Zod schema
-(`/add-realtime-event`). Events carry ids and the facts a client needs to refresh, never personal data.
+(`/add-realtime-event`). Events carry ids and the facts a client needs to refresh, never personal data. An event about one job, or anything under it,
+implements `IJobEvent` (`JobId`), and reaches only the members who see that job (ADR-0015).
 
 A worker handler connects as `screenhire_app` too, so it sees no tenant rows until it has a tenant. Every message that
 touches one organization's data implements `ITenantMessage` (`OrganizationId`); `ITenantEvent` extends it.
 `TenantMessageMiddleware` runs before each such handler and makes `OrganizationId` the tenant of the handler's scope,
+with every job in reach (a handler has no member, so job access never narrows it),
 and `TenantSessionInterceptor` then sets `app.tenant_id` inside the handler's transaction (`AutoApplyTransactions`
 gives each handler one). The tenant filter and row-level security scope the handler exactly as they scope a request.
 `JobPublishedHandler` reads its job back, so a missing tenant fails loudly and goes through the retry policy.
@@ -182,13 +203,17 @@ nothing.
   The message is stored durably and released by the durability agent.
 - **Recurring:** `opts.Schedules.ScheduleRecurring<T>("cron")` in `ScheduleRecurringMessages`, worker only. Times are
   UTC. The example is `ReportOpenJobs` every five minutes, which replaced the scaffold's heartbeat loop. The integrity
-  engine's retention sweep, `PurgeExpiredIntegrityData`, runs daily and fans out one tenant message per organization.
+  engine's retention sweep, `PurgeExpiredIntegrityData`, runs daily and fans out one tenant message per organization;
+  `PurgeExpiredWebhookDeliveries` does the same for webhook delivery logs.
   A schedule faster than every five seconds is refused.
 - **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
   `ReconcileJobPosting` for the time the board gave, as a cascading message (`OutgoingMessages.Schedule`). Two
   recurring messages back it up: `ReconcileJobPostings` every five minutes and `DispatchIndexingNotifications` every
   minute. Both walk the organizations and hand each organization's work to an `ITenantMessage`, which runs as that
   organization.
+- **Webhook subscriptions** (workflow-engine.md §5) schedule their own retries. A failed attempt records itself on its
+  delivery row and returns the next `DeliverWebhook` as a scheduled cascading message. Throwing into the error policy
+  instead would roll back the attempt it should record. The delays come from `ScreenHire:Webhooks:RetryDelays`.
 
 ## Telemetry
 
@@ -208,7 +233,10 @@ counter in process; no test reads them back from the dashboard.
 | `RecurringMessageTests` | `ReportOpenJobs` is registered every five minutes, tracked durably, and its handler runs when triggered |
 | `Automations/AutomationEmailTests` | the workflow engine through the running stack: entering a stage sends the configured email (read back from Mailpit), and replaying the same `ApplicationMoved` sends nothing twice |
 | `Automations/TimeElapsedTests` | entering a stage schedules a durable timer; the timer runs its automation when it fires, and a timer from a stage entry the application has left does nothing |
+| `Webhooks/WebhookSubscriptionTests` | webhook subscriptions through the running stack, with a receiver on loopback (`WebhookReceiver`): signed deliveries with ids only, secret rotation, retries with backoff, replay, automatic disabling and re-enabling, tenant isolation, URL and event validation |
 | `Automations/WorkflowEngineTests` | validate and simulate; a manual run's tag and rejection-review task; two automations moving an application back and forth stopped as a loop; and, in a private schema with no retries, a dead-lettered action reaching the automation issues list |
+| `Automations/TaskTests` | My tasks (`/v1/tasks`) on tasks a manual run made: the person's own, the team's and everyone's, completing once with who did it, reopening (Undo) once, done tasks; another organization sees, completes and reopens none, and a Viewer can do neither |
+| `Automations/ScorecardTests` | A submitted scorecard, its answers checked by kind, runs its ReviewerDecision automation once with the recommendation as a fact; the same submission again, or two at once, is one scorecard and one run; a different one conflicts; another organization reads and submits none, and a Viewer only reads |
 
 Real-time delivery has its own tests (realtime.md). `MessagingHost` starts those private-schema hosts, and a publisher
 whose storage is private but whose queues are the running stack's, to put a message on the real worker queue. `WolverineStore` reads Wolverine's tables and finds a test's own

@@ -12,8 +12,8 @@ import {
   integrityApplicationId,
   pendingIntegrity,
 } from '../../test-support/integrity-fixtures.js';
+import IntegrityHarness from '../../test-support/integrity-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
-import IntegrityPanel from './integrity-panel.svelte';
 
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
 
@@ -38,7 +38,7 @@ function serve(initial: ApplicationIntegrity, posts: Record<string, (body: unkno
 }
 
 function renderPanel() {
-  return render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId } } });
+  return render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId } } });
 }
 
 const section = (name: string) => screen.getByRole('region', { name });
@@ -53,26 +53,59 @@ describe('integrity panel', () => {
     renderPanel();
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: Verification recommended')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: 'Authenticity: Verification suggested, the highest of 3' })).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('3 observations from network and automation checks back each other up.');
     expect(authenticity).toHaveTextContent('Suggested next step: Confirm the candidate is who they say they are');
-    expect(within(authenticity).getByRole('heading', { name: 'Reasons · 3' })).toBeInTheDocument();
+    expect(within(authenticity).getByRole('heading', { name: 'Reasons 3' })).toBeInTheDocument();
     const codes = [...authenticity.querySelectorAll('[data-signal]')].map((item) => item.getAttribute('data-signal'));
     expect(codes).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER', 'NET_DATACENTER_IP', 'NET_ANON_PROXY']);
     expect(within(authenticity).getByRole('heading', { name: 'Context, not counted toward the level' })).toBeInTheDocument();
     expect(authenticity.querySelector('[data-signal="AUTO_SUBMIT_VELOCITY"] [data-evidence-kind="Metric"]')).toHaveTextContent('6 seconds');
     const counter = authenticity.querySelector('[data-signal="NET_DATACENTER_IP"] [data-counter-evidence]')!;
-    expect(counter).toHaveTextContent('Counter-evidence · The candidate gave a phone number in the same country.');
+    expect(counter).toHaveTextContent('Counter-evidence: The candidate gave a phone number in the same country.');
     expect(counter).toHaveTextContent('Phone country: United Kingdom');
   });
 
-  it('shows AI assistance as information, with the job policy and the candidate declaration', async () => {
+  it('shows a summary card per kind of check, marking the ones that fed the level and leaving the rest neutral', async () => {
     serve(botIntegrity());
     renderPanel();
 
-    const ai = await screen.findByRole('region', { name: /AI assistance/ });
-    expect(within(ai).getByRole('heading', { level: 3 })).toHaveTextContent('AI assistance · informational');
-    expect(ai).toHaveTextContent('Job policy: Allowed with disclosure · Declared AI use: No');
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    const titles = [...authenticity.querySelectorAll('[data-slot="card-title"]')].map((title) => title.textContent?.trim());
+    expect(titles).toEqual(['Network', 'Identity', 'Automation', 'Content']);
+    const cards = [...authenticity.querySelectorAll('[data-slot="card"]')];
+    const network = cards.find((card) => card.textContent?.includes('Network'))!;
+    const identity = cards.find((card) => card.textContent?.includes('Identity'))!;
+    expect(network).toHaveTextContent('1 signal');
+    expect(network.querySelector('svg.lucide-triangle-alert')).toBeInTheDocument();
+    expect(identity).toHaveTextContent('Nothing found.');
+    expect(identity.querySelector('svg.lucide-triangle-alert')).not.toBeInTheDocument();
+  });
+
+  it('expands every reason at once and closes them again', async () => {
+    serve(botIntegrity());
+    renderPanel();
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    const reasons = () => [...authenticity.querySelectorAll('[data-signal] details')] as HTMLDetailsElement[];
+    expect(reasons().some((reason) => reason.open)).toBe(false);
+    await fireEvent.click(within(authenticity).getAllByRole('button', { name: 'Expand all' })[0]!);
+    await waitFor(() => expect(reasons().slice(0, 3).every((reason) => reason.open)).toBe(true));
+    await fireEvent.click(within(authenticity).getAllByRole('button', { name: 'Collapse all' })[0]!);
+    await waitFor(() => expect(reasons().slice(0, 3).some((reason) => reason.open)).toBe(false));
+  });
+
+  it("shows AI assistance as information, with the job policy and not the candidate's declaration", async () => {
+    serve(botIntegrity());
+    renderPanel();
+
+    const ai = await screen.findByRole('region', { name: 'AI assistance' });
+    expect(within(ai).getByRole('heading', { level: 2 })).toHaveTextContent('AI assistance');
+    expect(within(ai).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
+    expect(ai).toHaveTextContent('Informational');
+    expect(ai).toHaveTextContent('Job policy: Allowed with disclosure');
+    // The declaration has its own place on the page, in Declarations (section 16).
+    expect(ai).not.toHaveTextContent(/Declared AI use/);
     expect(ai.querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-evidence-kind="TextComparison"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-slot="badge"]')!.className).not.toMatch(/status-(review|verify)/);
@@ -87,16 +120,29 @@ describe('integrity panel', () => {
       expect(control.textContent).not.toMatch(/reject|decline|disqualif/i);
     }
     expect(container.textContent).not.toMatch(/%|score/i);
-    expect(section('Integrity')).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(container).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
-  it('keeps request verification disabled with the phase 2 hint', async () => {
+  it('hides request verification until it exists', async () => {
     serve(botIntegrity());
     renderPanel();
+    await screen.findByRole('region', { name: 'Authenticity' });
 
-    const request = await screen.findByRole('button', { name: 'Request verification' });
-    expect(request).toBeDisabled();
-    expect(request).toHaveAccessibleDescription('Phase 2 Identity verification arrives in phase 2.');
+    expect(screen.queryByRole('button', { name: /Request verification/ })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/phase 2/i);
+  });
+
+  it('keeps a calm next step as a quiet line and a concern in an inset', async () => {
+    serve(genuineIntegrity());
+    const { unmount } = renderPanel();
+    const calm = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(within(calm).getByText('Suggested next step: No action needed.')).not.toHaveClass('bg-secondary');
+    unmount();
+
+    serve(botIntegrity());
+    renderPanel();
+    const concern = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(within(concern).getByText(/Confirm the candidate is who they say they are/)).toHaveClass('bg-secondary');
   });
 
   it('dismisses an assessment with a reason, which lands in the review log', async () => {
@@ -115,7 +161,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Verified outside ScreenHire' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Video call on Monday.' } });
@@ -127,9 +173,10 @@ describe('integrity panel', () => {
     await within(log).findByText(/Dismissed authenticity: Verified outside ScreenHire/);
     expect(log).toHaveTextContent('by you');
     expect(log).toHaveTextContent('"Video call on Monday."');
-    // The level stays as assessed; the chip says it was dismissed and the button is gone.
+    // The level stays as assessed; the panel says who dismissed it and the button is gone.
     const authenticity = section('Authenticity');
-    expect(within(authenticity).getByText('Authenticity: Verification recommended, dismissed after review')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
+    expect(authenticity).toHaveTextContent(/Dismissed by you/);
     expect(within(authenticity).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
   });
 
@@ -139,7 +186,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Other reason' }));
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
@@ -155,7 +202,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
 
@@ -169,7 +216,7 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
     let dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Explained by the candidate' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Said so on the phone.' } });
@@ -180,7 +227,7 @@ describe('integrity panel', () => {
 
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    await fireEvent.click(screen.getByRole('button', { name: 'Dismiss authenticity with a reason' }));
+    await fireEvent.click(within(section('Authenticity')).getByRole('button', { name: 'Dismiss' }));
     dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('radio', { name: 'The observations do not apply' })).toBeChecked();
     expect(within(dialog).getByLabelText('Note (optional)')).toHaveValue('');
@@ -195,10 +242,10 @@ describe('integrity panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a note' });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add review note' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a review note' });
     await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: 'A note.' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add note' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add review note' }));
 
     expect(await within(dialog).findByText('The note is too long.')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Note')).toHaveAttribute('aria-invalid', 'true');
@@ -211,7 +258,7 @@ describe('integrity panel', () => {
       vi.fn(apiStub({ [`GET ${base}`]: () => (failing ? Response.json({ title: 'Server error', status: 500 }, { status: 500 }) : Response.json(botIntegrity())) })),
     );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId }, client } });
+    render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId }, client } });
     await screen.findByRole('region', { name: 'Authenticity' });
 
     failing = true;
@@ -229,10 +276,10 @@ describe('integrity panel', () => {
     const sent = serve(botIntegrity(), { [`POST ${base}/notes`]: () => ({ status: 200, body: noted, next: noted }) });
     renderPanel();
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add note' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a note' });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add review note' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a review note' });
     await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: '  Asked for references. ' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add note' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add review note' }));
 
     await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/notes`, body: { note: 'Asked for references.' } }]));
     const log = screen.getByRole('region', { name: 'Review log' });
@@ -245,7 +292,7 @@ describe('integrity panel', () => {
     renderPanel();
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: No concerns')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: 'Authenticity: No concerns, the lowest of 3' })).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('Suggested next step: No action needed.');
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
     expect(within(section('Review log')).getByText('No review actions yet.')).toBeInTheDocument();
@@ -255,7 +302,7 @@ describe('integrity panel', () => {
     let assessed = false;
     vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET ${base}`]: () => Response.json(assessed ? botIntegrity() : pendingIntegrity()) })));
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(WithQueryClient, { props: { component: IntegrityPanel, props: { applicationId: integrityApplicationId }, client } });
+    render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId }, client } });
     await screen.findByText(/Checks are still running/);
 
     // What the shell's live connection does with the event (#lib/realtime.ts).
@@ -263,7 +310,7 @@ describe('integrity panel', () => {
     await Promise.all((invalidations.IntegrityAssessed ?? []).map((path) => invalidatePath(client, path)));
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByText('Authenticity: Verification recommended')).toBeInTheDocument();
+    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
     expect(screen.queryByText(/Checks are still running/)).not.toBeInTheDocument();
   });
 

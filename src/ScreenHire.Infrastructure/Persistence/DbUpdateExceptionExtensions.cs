@@ -11,4 +11,11 @@ public static class DbUpdateExceptionExtensions
         ArgumentNullException.ThrowIfNull(exception);
         return exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
     }
+
+    /// <summary>A foreign key refused the write: the row it points at was deleted by a request that committed first.</summary>
+    public static bool IsForeignKeyViolation(this DbUpdateException exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        return exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation };
+    }
 }

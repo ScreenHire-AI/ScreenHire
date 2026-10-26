@@ -1,15 +1,17 @@
 # ScreenHire — agent guide
 
 ScreenHire is an affordable applicant tracking system (ATS) for small hiring teams that detects AI-generated, fraudulent
-and bot applicants and explains every signal in plain language. Decisions, research and designs live in
-[`docs/README.md`](docs/README.md) — read the relevant ADR / architecture doc before changing a subsystem.
+and bot applicants and explains every signal in plain language. Decisions, research and designs live in `docs/`.
+Start at [`docs/index.md`](docs/index.md): it and each folder's `index.md` list every doc with one line on what only
+that doc holds, so open the one that answers the question. Read the relevant ADR / architecture doc before changing a
+subsystem.
 
 ## Repo layout
 
 | Path | What |
 |---|---|
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
-| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`) and the SignalR hub (`Realtime/*`, `/v1/hubs/events`); emits `packages/api-client/openapi.json` at build |
+| `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`), the SignalR hub (`Realtime/*`, `/v1/hubs/events`) and the MCP server for AI assistants (`Mcp/*`, `/v1/mcp`, [`docs/architecture/mcp-server.md`](docs/architecture/mcp-server.md)); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow ([`docs/architecture/apply-flow.md`](docs/architecture/apply-flow.md)) |
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
@@ -26,8 +28,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 
 ## Commands
 
-- First run: Docker running, then `pnpm install` at the repo root (Aspire does **not** run installs) and
-  `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
+- First run: Docker running (`pnpm docker:start` starts Docker Desktop when the engine is down and waits for it;
+  never launch Docker Desktop from a task's shell, the guard refuses it), then `pnpm install` at the repo root
+  (Aspire does **not** run installs) and `dotnet tool restore` (the repo-local tools: `dotnet-ef` and the Aspire CLI, run as `dotnet aspire ...`), then
   `pnpm e2e:install` once per machine (Playwright's Chromium for the end-to-end tests; again after bumping
   `Microsoft.Playwright`).
 - Run everything: `pnpm dev` (= `dotnet run --project apps/apphost`). API :5080, marketing :4321, careers :4322,
@@ -51,16 +54,18 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
-  name after checking their Aspire labels.
+  name after checking their Aspire labels. Never TaskStop a running `pnpm verify`: on Windows its tree keeps running.
+  Aspire's teardown on Windows can also kill an unrelated process whose launcher has exited; see "Processes on the
+  dev machine" in [`docs/process/board-pipeline.md`](docs/process/board-pipeline.md).
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
   `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
-  end-to-end; the last two boot the AppHost, so Docker must be running, and the end-to-end tests serve the
-  `pnpm -r build` output).
+  end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
+  tests serve the `pnpm -r build` output).
 - **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
-  `Built` (production previews, used by the end-to-end tests) or `None` (used by the integration tests).
+  `Built` (the production builds served as they ship, used by the end-to-end tests) or `None` (used by the integration tests).
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
   `ScreenHire:Integrity:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
@@ -68,14 +73,18 @@ and bot applicants and explains every signal in plain language. Decisions, resea
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
-- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check, the
-  marketing site's Lighthouse budgets and every test suite (unit, Vitest, Aspire integration, Playwright end-to-end;
-  steps `verify:dotnet`, `verify:contract`, `verify:lighthouse` and `verify:test` run alone too). It is the only CI for
-  now; see the `/verify` skill.
+- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and
+  every test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract`
+  and `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
-  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium.
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. It is not in `pnpm verify`: the
+  Testing column runs it once for a branch that changes the marketing build, and only one run measures at a time on
+  the machine (the next one waits).
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
+- After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
+  list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;
+  `DocsBundleTests` checks both (ADR-0012).
 - After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
   rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
   `pnpm --filter @screenhire/realtime test` passes, and commit both (`/add-realtime-event`).
@@ -86,8 +95,9 @@ and bot applicants and explains every signal in plain language. Decisions, resea
 
 ## Board pipeline (Kangentic)
 
-Tasks move Executing → Code Review → Testing → Merge → Done on their own. Workflow tasks skip Planning, where Kangentic
-approves the plan automatically; their briefs are the plan. Each column's automation reads the **last line** of the
+Tasks move (Planning →) Executing → Code Review → Testing → Merge → Done on their own. Long, complex tasks go through
+Planning, where Kangentic approves the plan automatically; simple ones start at Executing, and their briefs are the
+plan. Each column's automation reads the **last line** of the
 agent's final message, so these lines are contracts: print one only when its condition holds, alone, with nothing
 after it.
 
@@ -95,7 +105,7 @@ after it.
 |---|---|---|
 | Executing | (the brief) | `Implementation: complete` when the brief is done and `pnpm verify` passes. The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
 | Code Review | `/task-review` (isolated session) | `Verdict: Ready` → Testing; numbered steps + `Verdict: Blocked` → back to Executing (at most 3 times) |
-| Testing | `/pull-request` | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
+| Testing | `/pull-request` (plus Lighthouse for a marketing change) | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
 | Merge | `/merge-pull-request` | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
 
 Unattended-run rules are in `.claude/rules/unattended-runs.md`, and the conflict playbook for integrating `main` is
@@ -138,7 +148,7 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
 - **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
 - **Tokens only:** colours, fonts, type sizes and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
-  `text-status-review`); never hard-code hex values or pixel font sizes. Status = shape mark + colour + text label,
+  `text-status-review`); never hard-code hex values or pixel font sizes. Status = its icon + colour + text label,
   always.
 - **Public pages ship ~0 KB JS:** Astro components and native HTML controls; Svelte islands only where behaviour is
   needed. Embeddable apply widget = iframe (never Shadow DOM).
@@ -162,15 +172,22 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
   A message about one organization's data implements `ITenantMessage`, or its handler sees no tenant rows under RLS;
   client-visible events implement `ITenantEvent`, which extends it. Every `ITenantEvent` reaches its organization's open
   dashboards with no hub code; add its Zod schema and invalidation with `/add-realtime-event`.
+- Change history: an edit of a hiring template, an email template or a job is recorded by `ChangeHistoryInterceptor`
+  in the same save; `TrackedKinds` is the allow-list, and tracking another kind is one line there plus a history route
+  ([`docs/architecture/change-history.md`](docs/architecture/change-history.md)). Change tracked objects through the
+  change tracker, never `ExecuteUpdate`/`ExecuteDelete`, or the change goes unrecorded.
 - Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
   twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
   `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,
   unique index or upsert).
 - Sign-in and tenancy (`docs/architecture/sign-in-and-tenancy.md`): every route needs a signed-in user unless it
-  calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Tenant-owned entities
-  implement `ITenantOwned` and get a row-level security policy in their migration. The API and worker connect as
-  `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic
-  OIDC providers appear only when their client id and secret are in user secrets.
+  calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Hiring API groups (jobs,
+  applications, candidates, templates) use `.AllowApiKeys()`, which also accepts an organization API key (ADR-0011);
+  nothing else does. Tenant-owned entities implement `ITenantOwned` and get a row-level security policy in their
+  migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
+  policy too, and an event that carries a `JobId` implements `IJobEvent` (ADR-0015). The API and worker connect as
+  `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user
+  secrets.
 - Postgres: connect directly (not transaction-mode PgBouncer) — Wolverine leader election and transaction-local tenant
   settings need it. The DbContext is registered without EF's retrying execution strategy (`DisableRetry`), which
   refuses the outbox's transaction.

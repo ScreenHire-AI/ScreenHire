@@ -25,7 +25,7 @@ public sealed record PublicTelemetrySettings(string SessionToken, DeviceCheckBas
 public sealed record TelemetrySnapshotInput(
     string SessionToken, Guid PageViewId, int Sequence, IReadOnlyList<FieldTelemetryInput> Fields, PageTelemetryInput Page);
 
-/// <summary>Counts for one form field. <c>fieldId</c> is a question id or one of the form's own fields (<c>fullName</c>, ...).</summary>
+/// <summary>Counts for one form field. <c>fieldId</c> is a question id or one of the form's own fields (<c>firstName</c>, ...).</summary>
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record FieldTelemetryInput(
     string FieldId,

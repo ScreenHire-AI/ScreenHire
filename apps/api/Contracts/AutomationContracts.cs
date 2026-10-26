@@ -1,3 +1,4 @@
+using FluentValidation;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
 
@@ -11,6 +12,7 @@ namespace ScreenHire.Api.Contracts;
 /// <c>eventId</c>: The trigger event: a timeline entry, or a manual run's request id.
 /// <c>chain</c>: The automations whose actions led to this run, nearest first.
 /// <c>detail</c>: Why it was skipped, blocked or failed.
+/// <c>triggerQuestionnaireId</c>: For a QuestionnaireCompleted trigger, the follow-up questionnaire that was answered.
 /// </remarks>
 public sealed record AutomationRunEntry(
     Guid Id,
@@ -31,7 +33,8 @@ public sealed record AutomationRunEntry(
     string? Detail,
     IReadOnlyList<AutomationActionEntry> Actions,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? FinishedAt);
+    DateTimeOffset? FinishedAt,
+    string? TriggerQuestionnaireId = null);
 
 public sealed record AutomationActionEntry(int Index, AutomationAction Action, AutomationActionStatus Status, string? Detail, DateTimeOffset? FinishedAt);
 
@@ -50,8 +53,64 @@ public sealed record AutomationIssue(
     DateTimeOffset CreatedAt);
 
 /// <summary>Something a person should do about an application: a review, a to-do, or a rejection to decide on.</summary>
+/// <remarks>
+/// <c>assigneeUserId</c>: Who should do it; null for anyone on the hiring team.
+/// <c>completedByUserId</c>: Who marked it done; null while it is open.
+/// </remarks>
 public sealed record ApplicationTaskEntry(
-    Guid Id, Guid ApplicationId, ApplicationTaskKind Kind, string Note, Guid? AssigneeUserId, Guid? AutomationRunId, DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt);
+    Guid Id,
+    Guid ApplicationId,
+    ApplicationTaskKind Kind,
+    string Note,
+    Guid? AssigneeUserId,
+    Guid? AutomationRunId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? CompletedAt,
+    Guid? CompletedByUserId);
+
+/// <summary>A task in a list across applications (My tasks): the task, and the candidate and job it is about.</summary>
+/// <remarks>
+/// <c>assigneeUserId</c>: Who should do it; null for anyone on the hiring team.
+/// <c>completedByUserId</c>: Who marked it done; null while it is open.
+/// </remarks>
+public sealed record TaskListItem(
+    Guid Id,
+    Guid ApplicationId,
+    Guid JobId,
+    string CandidateName,
+    string JobTitle,
+    ApplicationTaskKind Kind,
+    string Note,
+    Guid? AssigneeUserId,
+    Guid? AutomationRunId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? CompletedAt,
+    Guid? CompletedByUserId);
+
+/// <summary>Which tasks a list shows: the open ones, or the ones done.</summary>
+public enum TaskStatusFilter
+{
+    Open,
+    Completed,
+}
+
+/// <summary>
+/// Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),
+/// or everyone's (every task the person can see).
+/// </summary>
+public enum TaskScope
+{
+    Mine,
+    Team,
+    Everyone,
+}
+
+/// <summary>A task for the hiring team about one application, from a person or an API key.</summary>
+/// <remarks>
+/// <c>assigneeUserId</c>: The member who should do it, a user id as on the team list; null for anyone on the hiring team.
+/// They must see the job: all jobs, or on its hiring team.
+/// </remarks>
+public sealed record CreateApplicationTaskRequest(string Note, Guid? AssigneeUserId = null);
 
 /// <summary>A manual automation was queued. <c>eventId</c> keys its run: find it in the application's automation runs.</summary>
 public sealed record ManualAutomationQueued(Guid ApplicationId, string AutomationId, Guid EventId);
@@ -62,11 +121,21 @@ internal static class AutomationMappings
         new(run.Id, run.ApplicationId, run.JobId, run.AutomationId, run.AutomationName, run.WorkflowVersion, run.Trigger, run.TriggerStageId,
             run.EventId, run.EventOccurredAt, run.Chain, run.ActorUserId, run.Facts, run.RuleResults, run.Status, run.Detail,
             [.. actions.OrderBy(a => a.Index).Select(a => new AutomationActionEntry(a.Index, a.Action, a.Status, a.Detail, a.FinishedAt))],
-            run.CreatedAt, run.FinishedAt);
+            run.CreatedAt, run.FinishedAt, run.TriggerQuestionnaireId);
 
     public static AutomationIssue ToIssue(this AutomationRun run) =>
         new(run.Id, run.ApplicationId, run.JobId, run.AutomationId, run.AutomationName, run.Status, run.Detail, run.CreatedAt);
 
     public static ApplicationTaskEntry ToEntry(this ApplicationTask task) =>
-        new(task.Id, task.ApplicationId, task.Kind, task.Note, task.AssigneeUserId, task.AutomationRunId, task.CreatedAt, task.CompletedAt);
+        new(task.Id, task.ApplicationId, task.Kind, task.Note, task.AssigneeUserId, task.AutomationRunId, task.CreatedAt, task.CompletedAt,
+            task.CompletedByUserId);
+}
+
+internal sealed class CreateApplicationTaskRequestValidator : AbstractValidator<CreateApplicationTaskRequest>
+{
+    public CreateApplicationTaskRequestValidator()
+    {
+        RuleFor(r => r.Note).NotEmpty().Must(note => !string.IsNullOrWhiteSpace(note)).WithMessage("Say what the task is.")
+            .MaximumLength(ApplicationTask.MaxNoteLength);
+    }
 }

@@ -19,5 +19,6 @@ public sealed class MetaTests(AppHostFixture fixture)
         meta.GetProperty("name").GetString().Should().Be("ScreenHire");
         meta.GetProperty("version").GetString().Should().NotBeNullOrWhiteSpace();
         meta.GetProperty("environment").GetString().Should().Be("Development", "the AppHost runs the API in Development");
+        new Uri(meta.GetProperty("apiOrigin").GetString()!).Authority.Should().Be(client.BaseAddress!.Authority, "the API's public origin is its own host here");
     }
 }

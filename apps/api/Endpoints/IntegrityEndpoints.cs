@@ -6,6 +6,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Integrity.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -28,16 +29,16 @@ internal static class IntegrityEndpoints
         group.MapGet("/", GetIntegrity).WithName("GetApplicationIntegrity").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/assessments/{assessmentId:guid}/dismiss", Dismiss).WithName("DismissIntegrityAssessment")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.ReviewIntegrity)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/notes", AddNote).WithName("AddIntegrityNote")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.ReviewIntegrity)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/request-verification", RequestVerification).WithName("RequestIdentityVerification")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.ReviewIntegrity)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }

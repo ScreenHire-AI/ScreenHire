@@ -84,7 +84,7 @@ export function createWorkflowDraft() {
         const errors = problemErrors(error.body);
         if (errors.length > 0) {
           saveErrors = { snapshot, errors };
-          return 'The workflow has problems to fix; they are listed above.';
+          return 'The workflow has problems to fix; they are listed below.';
         }
       }
       return describeError(error, fallback);

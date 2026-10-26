@@ -1,4 +1,10 @@
-# Job-Board Multiposting — Integration Landscape
+---
+type: Research
+title: "Job-Board Multiposting: Integration Landscape"
+description: "Which job boards can be integrated and how: Google for Jobs as the only self-serve channel, partner gating at Indeed and LinkedIn, EU and UK boards on the customer's credentials, unified APIs, traffic rankings and a phased plan."
+tags: [research, job-boards]
+---
+# Job-Board Multiposting: Integration Landscape
 
 > Research snapshot: **2026-10-18**. Goal: in-house, proprietary one-click post + teardown across major boards.
 

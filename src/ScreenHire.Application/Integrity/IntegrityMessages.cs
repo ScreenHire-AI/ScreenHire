@@ -28,7 +28,7 @@ public sealed record IntegrityAssessed(
     AiAssistanceLevel AiAssistance,
     string RulesetVersion,
     Guid EventId,
-    DateTimeOffset AssessedAt) : ITenantEvent;
+    DateTimeOffset AssessedAt) : IJobEvent;
 
 public static partial class AnalyzeApplicationIntegrityHandler
 {

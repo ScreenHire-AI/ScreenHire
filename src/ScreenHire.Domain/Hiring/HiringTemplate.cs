@@ -1,3 +1,5 @@
+using ScreenHire.Domain.Jobs;
+
 namespace ScreenHire.Domain.Hiring;
 
 /// <summary>
@@ -27,21 +29,60 @@ public sealed class HiringTemplate
 
     public DateTimeOffset? UpdatedAt { get; private set; }
 
+    /// <summary>The template this one was copied from, a system template or the organization's own, if any.</summary>
+    public Guid? CopiedFromTemplateId { get; init; }
+
     /// <summary>The newest published version's number, or null if none is published yet.</summary>
     public int? LatestPublishedVersion { get; private set; }
 
     public bool IsSystem => OrganizationId is null;
+
+    /// <summary>
+    /// The hiring team a new job from this template starts with, as organization member ids (ADR-0015). On the template,
+    /// not a version: it says who works on the jobs, not how they are run. A system template has none.
+    /// </summary>
+    public List<Guid> DefaultHiringTeam { get; private set; } = [];
+
+    /// <summary>Replaces the default hiring team and returns who joined and who left. System templates have none.</summary>
+    public HiringTeamChange SetDefaultHiringTeam(IEnumerable<Guid> memberIds)
+    {
+        if (IsSystem)
+        {
+            throw new InvalidOperationException("A system template has no default hiring team.");
+        }
+
+        var after = memberIds.Distinct().ToList();
+        var change = new HiringTeamChange([.. after.Except(DefaultHiringTeam)], [.. DefaultHiringTeam.Except(after)]);
+        if (!change.IsEmpty)
+        {
+            DefaultHiringTeam = after;
+        }
+
+        return change;
+    }
+
+    /// <summary>
+    /// When the organization archived it, or null. An archived template leaves the pickers and reads only; jobs started
+    /// from it keep their copy. System templates are never archived.
+    /// </summary>
+    public DateTimeOffset? ArchivedAt { get; private set; }
 
     /// <summary>Every version, oldest first. Load them with the template before calling the methods below.</summary>
     public IReadOnlyList<HiringTemplateVersion> Versions => versions;
 
     public HiringTemplateVersion? Draft => versions.SingleOrDefault(v => v.Status == TemplateVersionStatus.Draft);
 
-    /// <summary>A new organization template whose first version is a draft holding <paramref name="definition"/>.</summary>
+    /// <summary>
+    /// A new organization template whose first version is a draft holding <paramref name="definition"/>, copied from
+    /// the template <paramref name="copiedFrom"/> when one is given.
+    /// </summary>
     public static HiringTemplate Create(
-        Guid organizationId, string name, string? description, HiringTemplateDefinition definition, DateTimeOffset now, Guid? userId)
+        Guid organizationId, string name, string? description, HiringTemplateDefinition definition, DateTimeOffset now, Guid? userId, Guid? copiedFrom = null)
     {
-        var template = new HiringTemplate { OrganizationId = organizationId, Name = name, Description = description, CreatedAt = now };
+        var template = new HiringTemplate
+        {
+            OrganizationId = organizationId, Name = name, Description = description, CreatedAt = now, CopiedFromTemplateId = copiedFrom,
+        };
         template.CreateDraft(definition, now, userId);
         return template;
     }
@@ -93,11 +134,46 @@ public sealed class HiringTemplate
         UpdatedAt = now;
     }
 
+    /// <summary>Takes an organization template out of the pickers. Its jobs keep their copy.</summary>
+    public void Archive(DateTimeOffset now)
+    {
+        if (ArchivedAt is not null)
+        {
+            return;
+        }
+
+        EnsureEditable();
+        ArchivedAt = now;
+        UpdatedAt = now;
+    }
+
+    /// <summary>Puts an archived template back in the pickers.</summary>
+    public void Unarchive(DateTimeOffset now)
+    {
+        if (IsSystem)
+        {
+            throw new InvalidOperationException("System templates are read-only; copy one to customise it.");
+        }
+
+        if (ArchivedAt is null)
+        {
+            return;
+        }
+
+        ArchivedAt = null;
+        UpdatedAt = now;
+    }
+
     private void EnsureEditable()
     {
         if (IsSystem)
         {
             throw new InvalidOperationException("System templates are read-only; copy one to customise it.");
+        }
+
+        if (ArchivedAt is not null)
+        {
+            throw new InvalidOperationException("The template is archived; restore it to change it.");
         }
     }
 }

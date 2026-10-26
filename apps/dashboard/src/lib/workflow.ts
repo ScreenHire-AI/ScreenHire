@@ -4,15 +4,21 @@
 // so conditions offer the operators a fact allows.
 import type {
   ActionType,
+  AiUsePolicy,
   Automation,
   AutomationAction,
   AutomationCondition,
   ConditionOperator,
+  CriterionRating,
   DefinitionError,
+  FollowUpQuestionnaire,
   HiringWorkflow,
   Question,
   QuestionType,
+  Recommendation,
+  ScorecardQuestionType,
   StageKind,
+  TeamMember,
   TriggerType,
   WorkflowStage,
 } from '@screenhire/api-client';
@@ -40,9 +46,10 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
   StageEntered: 'A candidate enters a stage',
   StageExited: 'A candidate leaves a stage',
   TimeElapsed: 'Time passes in a stage',
-  QuestionnaireCompleted: 'The questionnaire is completed',
+  QuestionnaireCompleted: 'A follow-up questionnaire is answered',
   IntegrityAssessed: 'The integrity checks finish',
   ReviewerDecision: 'A reviewer records a decision',
+  SlaBreached: "A stage's time limit passes",
   Manual: 'Someone runs it by hand',
 };
 
@@ -50,9 +57,77 @@ export const triggerTypes = Object.keys(triggerLabels) as TriggerType[];
 
 export const triggerNeedsStage = (type: TriggerType): boolean => type === 'StageEntered' || type === 'StageExited' || type === 'TimeElapsed';
 
-/** Actions v1 runs. SendQuestionnaire, RequestVerification and ScheduleInterview are refused at save, so not offered. */
+/**
+ * A reviewer decision may name the stage whose scorecards it fires on, and a passed time limit the stage whose limit it
+ * watches; without one, either fires on any stage's.
+ */
+export const triggerMayHaveStage = (type: TriggerType): boolean => type === 'ReviewerDecision' || type === 'SlaBreached';
+
+/** Whether a stage's time limit counts: it has one, and the stage does not end the application (WorkflowStage.HasSla). */
+export const hasTimeLimit = (stage: WorkflowStage): boolean => Boolean(stage.slaDays) && !isTerminal(stage.kind);
+
+/**
+ * What a passed time limit may do (DefinitionValidator's SlaBreachActions). It measures the team's delay, never the
+ * candidate, so it may only remind the team.
+ */
+export const timeLimitActions: readonly ActionType[] = ['NotifyTeam', 'AssignReviewer', 'CreateTask', 'AddTag'];
+
+/**
+ * The actions the builder offers for an automation on `trigger`: all of `actionTypes`, or only the reminders for a
+ * passed time limit. A saved action outside that list stays offered as `current`, so the form shows what is saved and
+ * the validator's message beside it.
+ */
+export function actionsFor(trigger: TriggerType, current?: ActionType): ActionType[] {
+  const offered = trigger === 'SlaBreached' ? actionTypes.filter((type) => timeLimitActions.includes(type)) : [...actionTypes];
+  return current && !offered.includes(current) ? [...offered, current] : offered;
+}
+
+/**
+ * A completed questionnaire names the follow-up questionnaire that fires it. Without one it fires on any follow-up,
+ * which is how workflows saved before follow-ups existed still read; the apply form never fires it.
+ */
+export const triggerMayHaveQuestionnaire = (type: TriggerType): boolean => type === 'QuestionnaireCompleted';
+
+/** The workflow's follow-up questionnaires, an empty list for a workflow saved before they existed. */
+export const followUpsOf = (workflow: HiringWorkflow): FollowUpQuestionnaire[] => workflow.followUpQuestionnaires ?? [];
+
+/** Every question of the workflow: the apply form's, then each follow-up's. Ids are unique across all of them. */
+export const allQuestions = (workflow: HiringWorkflow): Question[] => [
+  ...workflow.questionnaire.questions,
+  ...followUpsOf(workflow).flatMap((followUp) => followUp.questions),
+];
+
+/** A follow-up questionnaire's name, or its id when it has none yet. */
+export const followUpName = (workflow: HiringWorkflow, id: string | null | undefined): string =>
+  followUpsOf(workflow).find((followUp) => followUp.id === id)?.name || id || '?';
+
+/**
+ * The labelled scale of v0.2 scorecards (CriterionRating), kept so the scorecards submitted then read as they were.
+ * Those labels were never numbers, so they never count toward the candidate's rating.
+ */
+export type Rating = NonNullable<CriterionRating>;
+
+export const ratingLabels: Record<Rating, string> = {
+  NotDemonstrated: 'Not demonstrated',
+  PartlyDemonstrated: 'Partly demonstrated',
+  Demonstrated: 'Demonstrated',
+  StronglyDemonstrated: 'Strongly demonstrated',
+};
+
+/** A reviewer's overall recommendation; automations test it as `reviewer.recommendation`. */
+export const recommendationLabels: Record<Recommendation, string> = {
+  StrongNo: 'Strong no',
+  No: 'No',
+  Yes: 'Yes',
+  StrongYes: 'Strong yes',
+};
+
+export const recommendations = Object.keys(recommendationLabels) as Recommendation[];
+
+/** Actions v1 runs. RequestVerification and ScheduleInterview are refused at save, so not offered. */
 export const actionLabels: Partial<Record<ActionType, string>> = {
   SendEmail: 'Send an email',
+  SendQuestionnaire: 'Send a questionnaire',
   MoveToStage: 'Move to a stage',
   AddTag: 'Add a tag',
   AssignReviewer: 'Assign a reviewer',
@@ -66,10 +141,11 @@ export const actionLabels: Partial<Record<ActionType, string>> = {
 export const actionTypes = Object.keys(actionLabels) as ActionType[];
 
 /** The one field each action needs, as DefinitionValidator requires it. Reject may also name an email template. */
-export type ActionField = 'emailTemplate' | 'stageId' | 'tag' | 'note' | 'url' | 'reason';
+export type ActionField = 'emailTemplate' | 'stageId' | 'tag' | 'note' | 'url' | 'reason' | 'questionnaireId';
 
 export const actionField: Partial<Record<ActionType, ActionField>> = {
   SendEmail: 'emailTemplate',
+  SendQuestionnaire: 'questionnaireId',
   MoveToStage: 'stageId',
   AddTag: 'tag',
   NotifyTeam: 'note',
@@ -86,35 +162,70 @@ export const actionFieldLabels: Record<ActionField, string> = {
   note: 'Note',
   url: 'URL (https)',
   reason: 'Reason',
+  questionnaireId: 'Questionnaire',
 };
 
-/** The emails an automation may send (EmailTemplateIds.cs). The rejection email is sent only by Reject. */
-export const emailTemplates = [
-  { id: 'application-received', label: 'Application received' },
-  { id: 'stage-change', label: 'Moved to the next step' },
+/**
+ * The built-in emails a SendEmail automation may send (EmailTemplateIds.cs), with their names until the organization's
+ * list loads (`GET /v1/email-templates`), which adds its own templates. The rejection email is sent only by Reject,
+ * and the follow-up questions email only by SendQuestionnaire.
+ */
+export const builtInEmailTemplates = [
+  { id: 'application-received', name: 'Application received' },
+  { id: 'stage-change', name: 'Moved to the next step' },
 ];
 
-/** A fresh action of `type`, carrying only that type's field: the validator refuses fields a type does not take. */
-export const newAction = (type: ActionType, stages: readonly WorkflowStage[] = []): AutomationAction => {
+/** Template names by id, for `describeAction`: the organization's list, or the built-in names until it loads. */
+export function emailTemplateNames(templates: readonly { id: string; name: string }[] | undefined): ReadonlyMap<string, string> {
+  return new Map([...builtInEmailTemplates, ...(templates ?? [])].map((template) => [template.id, template.name]));
+}
+
+/**
+ * A fresh action of `type`, carrying only that type's field: the validator refuses fields a type does not take.
+ * SendQuestionnaire starts with the first follow-up questionnaire in `followUps`.
+ */
+export const newAction = (
+  type: ActionType,
+  stages: readonly WorkflowStage[] = [],
+  followUps: readonly FollowUpQuestionnaire[] = [],
+): AutomationAction => {
   const field = actionField[type];
   if (!field) return { type };
-  if (field === 'emailTemplate') return { type, emailTemplate: emailTemplates[0]!.id };
+  if (field === 'emailTemplate') return { type, emailTemplate: builtInEmailTemplates[0]!.id };
   if (field === 'stageId') return { type, stageId: stages.find((stage) => !isTerminal(stage.kind))?.id ?? stages[0]?.id ?? '' };
+  if (field === 'questionnaireId') return { type, questionnaireId: followUps[0]?.id ?? '' };
   return { type, [field]: '' };
 };
 
-export const questionTypeLabels: Record<QuestionType, string> = {
-  ShortText: 'Short answer',
-  LongText: 'Long answer',
-  YesNo: 'Yes or no',
-  SingleChoice: 'One choice',
-  MultiChoice: 'Several choices',
-  Number: 'Number',
-  Url: 'Link',
-  File: 'File upload',
+/** The AI-use policy as candidates are told it before they start. */
+export const aiUseLabels: Record<AiUsePolicy, string> = {
+  Allowed: 'Allowed: candidates may use AI tools and need not say so',
+  AllowedWithDisclosure: 'Allowed with disclosure: candidates say if they used AI tools',
+  NotAllowed: 'Not allowed: candidates are asked to write without AI tools',
 };
 
-export const questionTypes = Object.keys(questionTypeLabels) as QuestionType[];
+export const questionTypeLabels: Record<QuestionType, string> = {
+  ShortText: 'Short text',
+  LongText: 'Long text',
+  YesNo: 'Yes or no',
+  SingleChoice: 'Choice',
+  MultiChoice: 'Multi-choice',
+  Number: 'Number',
+  Url: 'Link',
+  File: 'File',
+};
+
+/** A scorecard question's answer kind as the answer menu names it; the Rating kinds sit under its Rating heading. */
+export const scorecardQuestionTypeLabels: Record<ScorecardQuestionType, string> = {
+  YesNo: 'Yes or no',
+  SingleChoice: 'Choice',
+  MultiChoice: 'Multi-choice',
+  ShortText: 'Short text',
+  LongText: 'Long text',
+  Rating5: '1 to 5',
+  Rating10: '1 to 10',
+  RatingYesNo: 'Yes or no',
+};
 
 export const operatorLabels: Record<ConditionOperator, string> = {
   EqualTo: 'is',
@@ -127,7 +238,7 @@ export const operatorLabels: Record<ConditionOperator, string> = {
   Exists: 'is given',
 };
 
-export type FactType = 'Text' | 'TextList' | 'Number' | 'YesNo' | 'Choice' | 'MultiChoice' | 'File' | 'Level';
+export type FactType = 'Text' | 'TextList' | 'Number' | 'YesNo' | 'Choice' | 'MultiChoice' | 'File' | 'Level' | 'Recommendation';
 
 /** One fact a condition can test, with the values it may take when they are a fixed list. */
 export interface FactOption {
@@ -147,6 +258,7 @@ const operatorsByType: Record<FactType, ConditionOperator[]> = {
   YesNo: ['EqualTo', 'Exists'],
   Choice: ['EqualTo', 'In', 'Exists'],
   Level: ['EqualTo', 'In', 'Exists'],
+  Recommendation: ['EqualTo', 'In', 'Exists'],
   File: ['Exists'],
 };
 
@@ -156,13 +268,13 @@ export const operatorsFor = (type: FactType): ConditionOperator[] => operatorsBy
 export const authenticityLevels = [
   { value: 'NoConcerns', label: 'No concerns' },
   { value: 'ReviewSuggested', label: 'Review suggested' },
-  { value: 'VerificationRecommended', label: 'Verification recommended' },
+  { value: 'VerificationRecommended', label: 'Verification suggested' },
 ];
 
 export const aiAssistanceLevels = [
-  { value: 'NotIndicated', label: 'Not indicated' },
-  { value: 'SomeIndicators', label: 'Some indicators' },
-  { value: 'StrongIndicators', label: 'Strong indicators' },
+  { value: 'NotIndicated', label: 'No signs of AI help' },
+  { value: 'SomeIndicators', label: 'Some signs of AI help' },
+  { value: 'StrongIndicators', label: 'Strong signs of AI help' },
 ];
 
 const answerType: Record<QuestionType, FactType> = {
@@ -181,12 +293,26 @@ const yesNo = [
   { value: 'no', label: 'No' },
 ];
 
-/** Every fact a condition in this workflow can test: one per question, then the application's and the signals. */
-export function factsFor(workflow: HiringWorkflow): FactOption[] {
-  const answers = workflow.questionnaire.questions.map(
-    (question): FactOption => ({
+/** Where an application came from (ApplicationSource), as `application.source` holds it. */
+export const sources = [
+  { value: 'CareersSite', label: 'Careers site' },
+  { value: 'Recruiter', label: 'Added by a recruiter' },
+];
+
+/**
+ * Every fact a condition in this workflow can test: one per question of the apply form and of each follow-up
+ * questionnaire (a follow-up's answers hold only for triggers after it was answered), then the application's and the
+ * signals, and for a reviewer-decision automation the reviewer's recommendation, which only that trigger has.
+ */
+export function factsFor(workflow: HiringWorkflow, trigger?: TriggerType): FactOption[] {
+  const questions = [
+    ...workflow.questionnaire.questions.map((question) => ({ question, from: null as string | null })),
+    ...followUpsOf(workflow).flatMap((followUp) => followUp.questions.map((question) => ({ question, from: followUp.name || followUp.id }))),
+  ];
+  const answers = questions.map(
+    ({ question, from }): FactOption => ({
       fact: `answers.${question.id}`,
-      label: `Answer: ${question.label || question.id}`,
+      label: from ? `Answer (${from}): ${question.label || question.id}` : `Answer: ${question.label || question.id}`,
       type: answerType[question.type],
       signal: false,
       values:
@@ -200,10 +326,21 @@ export function factsFor(workflow: HiringWorkflow): FactOption[] {
   return [
     ...answers,
     { fact: 'application.tags', label: 'Tags', type: 'TextList', signal: false },
-    { fact: 'application.source', label: 'Source', type: 'Text', signal: false },
+    { fact: 'application.source', label: 'Source', type: 'Text', signal: false, values: sources },
     { fact: 'application.hoursInStage', label: 'Hours in stage', type: 'Number', signal: false },
     { fact: 'integrity.authenticity', label: 'Integrity: authenticity', type: 'Level', signal: true, values: authenticityLevels },
     { fact: 'integrity.aiAssistance', label: 'Integrity: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
+    ...(trigger === 'ReviewerDecision'
+      ? [
+          {
+            fact: 'reviewer.recommendation',
+            label: "Reviewer's recommendation",
+            type: 'Recommendation' as const,
+            signal: false,
+            values: recommendations.map((value) => ({ value, label: recommendationLabels[value] })),
+          },
+        ]
+      : []),
   ];
 }
 
@@ -239,9 +376,16 @@ export function newStage(workflow: HiringWorkflow): WorkflowStage {
   return { id: idFrom('stage', workflow.stages.map((stage) => stage.id), 'stage'), name: 'New stage', kind: 'Custom' };
 }
 
+/** A new question with an id unique across every questionnaire of the workflow, so `answers.{id}` names one question. */
 export function newQuestion(workflow: HiringWorkflow, type: QuestionType = 'ShortText'): Question {
-  const id = idFrom('question', workflow.questionnaire.questions.map((question) => question.id), 'question');
+  const id = idFrom('question', allQuestions(workflow).map((question) => question.id), 'question');
   return withQuestionType({ id, type: 'ShortText', label: 'New question', required: false }, type);
+}
+
+/** A new follow-up questionnaire with one question, its id unique among the workflow's follow-ups. */
+export function newFollowUp(workflow: HiringWorkflow): FollowUpQuestionnaire {
+  const id = idFrom('questionnaire', followUpsOf(workflow).map((followUp) => followUp.id), 'questionnaire');
+  return { id, name: 'New questionnaire', questions: [newQuestion(workflow)] };
 }
 
 /** The question as `type`, keeping what carries over and dropping members the type does not take. */
@@ -276,16 +420,7 @@ export function newAutomation(workflow: HiringWorkflow, stageId: string | null):
 
 /** The stage an automation belongs to in the pipeline view, or null for the whole workflow. */
 export const laneOf = (automation: Automation): string | null =>
-  triggerNeedsStage(automation.trigger.type) ? (automation.trigger.stageId ?? null) : null;
-
-/** `list` with the item at `index` moved by `delta`, or unchanged at either end. The non-drag way to reorder. */
-export function moveItem<T>(list: readonly T[], index: number, delta: -1 | 1): T[] {
-  const target = index + delta;
-  if (target < 0 || target >= list.length) return [...list];
-  const next = [...list];
-  [next[index], next[target]] = [next[target]!, next[index]!];
-  return next;
-}
+  triggerNeedsStage(automation.trigger.type) || triggerMayHaveStage(automation.trigger.type) ? (automation.trigger.stageId ?? null) : null;
 
 /** `list` with `item` at `index`. */
 export const replaceAt = <T>(list: readonly T[], index: number, item: T): T[] => list.map((existing, i) => (i === index ? item : existing));
@@ -324,6 +459,13 @@ export function describePath(workflow: HiringWorkflow, path: string): string {
     const part = automation[2] !== undefined ? `, action ${Number(automation[2]) + 1}` : automation[3] !== undefined ? `, condition ${Number(automation[3]) + 1}` : '';
     return `Automation "${name}"${part}`;
   }
+  const followUp = /^followUpQuestionnaires\[(\d+)\](?:\.questions\[(\d+)\])?/.exec(path);
+  if (followUp) {
+    const questionnaire = followUpsOf(workflow)[Number(followUp[1])];
+    const name = questionnaire?.name || `Follow-up ${Number(followUp[1]) + 1}`;
+    if (followUp[2] === undefined) return `Questionnaire "${name}"`;
+    return `Question "${questionnaire?.questions[Number(followUp[2])]?.label ?? Number(followUp[2]) + 1}" in "${name}"`;
+  }
   const question = /^questionnaire\.questions\[(\d+)\]/.exec(path);
   if (question) return `Question "${workflow.questionnaire.questions[Number(question[1])]?.label ?? Number(question[1]) + 1}"`;
   const stage = /^stages\[(\d+)\]/.exec(path);
@@ -333,8 +475,19 @@ export function describePath(workflow: HiringWorkflow, path: string): string {
   return 'Workflow';
 }
 
-/** One sentence for an automation, as the pipeline view lists it: "When a candidate enters Screening: add a tag." */
-export function summarize(automation: Automation, workflow: HiringWorkflow): string {
+/** A team member as an AssignReviewer action names them. */
+type Reviewer = Pick<TeamMember, 'userId' | 'displayName'>;
+
+/**
+ * One sentence for an automation, as the pipeline view lists it: "When a candidate enters Screening: add a tag."
+ * `members` names an AssignReviewer action's reviewer; `templateNames` names a SendEmail action's template.
+ */
+export function summarize(
+  automation: Automation,
+  workflow: HiringWorkflow,
+  members?: readonly Reviewer[],
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): string {
   const stage = (id: string | null | undefined) => workflow.stages.find((candidate) => candidate.id === id)?.name ?? id ?? '?';
   const { trigger } = automation;
   const when =
@@ -344,17 +497,39 @@ export function summarize(automation: Automation, workflow: HiringWorkflow): str
         ? `When a candidate leaves ${stage(trigger.stageId)}`
         : trigger.type === 'TimeElapsed'
           ? `${trigger.afterHours ?? '?'} hours after entering ${stage(trigger.stageId)}`
+          : trigger.type === 'ReviewerDecision' && trigger.stageId
+            ? `When a reviewer records a decision on ${stage(trigger.stageId)}`
+          : trigger.type === 'SlaBreached' && trigger.stageId
+            ? `When the time limit in ${stage(trigger.stageId)} passes`
+          : trigger.type === 'QuestionnaireCompleted' && trigger.questionnaireId
+            ? `When the candidate answers "${followUpName(workflow, trigger.questionnaireId)}"`
           : (triggerLabels[trigger.type] ?? trigger.type).replace(/^./, (first) => `When ${first.toLowerCase()}`);
   const rules = automation.conditions?.rules.length ?? 0;
   const condition = rules > 0 ? `, if ${rules} ${rules === 1 ? 'condition holds' : automation.conditions?.match === 'Any' ? 'conditions: any holds' : 'conditions hold'}` : '';
-  const actions = automation.actions.map((action) => describeAction(action, workflow).toLowerCase()).join(', then ');
+  // Only the first letter drops to lower case, so stage, template and people's names keep theirs.
+  const actions = automation.actions
+    .map((action) => describeAction(action, workflow, members, templateNames).replace(/^./, (first) => first.toLowerCase()))
+    .join(', then ');
   return `${when}${condition}: ${actions}.`;
 }
 
-export function describeAction(action: AutomationAction, workflow: HiringWorkflow): string {
+export function describeAction(
+  action: AutomationAction,
+  workflow: HiringWorkflow,
+  members?: readonly Reviewer[],
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): string {
   const label = actionLabels[action.type] ?? action.type;
+  if (action.type === 'AssignReviewer') {
+    if (!action.assigneeUserId) return 'Ask the team to review';
+    return `Ask ${members?.find((member) => member.userId === action.assigneeUserId)?.displayName ?? 'a teammate'} to review`;
+  }
   if (action.type === 'MoveToStage') return `Move to ${workflow.stages.find((stage) => stage.id === action.stageId)?.name ?? action.stageId}`;
   if (action.type === 'AddTag') return `Add the tag "${action.tag ?? ''}"`;
-  if (action.type === 'SendEmail') return `Send the "${emailTemplates.find((template) => template.id === action.emailTemplate)?.label ?? action.emailTemplate}" email`;
+  if (action.type === 'SendQuestionnaire') return `Send the "${followUpName(workflow, action.questionnaireId)}" questionnaire`;
+  if (action.type === 'SendEmail') {
+    const name = action.emailTemplate ? templateNames.get(action.emailTemplate) : undefined;
+    return name ? `Send the "${name}" email` : 'Send an email';
+  }
   return label;
 }

@@ -1,4 +1,64 @@
-# Integrity Engine — Applicant Authenticity & AI-Assistance Signals
+---
+type: Design
+title: "Integrity Engine: Applicant Authenticity & AI-Assistance Signals"
+description: "The Authenticity and AI-assistance assessments: level rules, the collection timeline, the signal catalogue, the analyzers and the versioned IntegrityRuleset, retention, the LLM consistency check, content forensics, synthetic applicants and golden files, and the Signal Network design."
+tags: [integrity, signals, ruleset, telemetry]
+sources:
+  - resource: src/ScreenHire.Domain/Integrity/AnswerFingerprint.cs
+  - resource: src/ScreenHire.Domain/Integrity/ApplicationDocument.cs
+  - resource: src/ScreenHire.Domain/Integrity/ConsistencyCheck.cs
+  - resource: src/ScreenHire.Domain/Integrity/Identifiers.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityAnalyzerRun.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityAssessment.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityReviewAction.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegrityRuleset.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegritySettings.cs
+  - resource: src/ScreenHire.Domain/Integrity/IntegritySignal.cs
+  - resource: src/ScreenHire.Domain/Integrity/SignalCatalogue.cs
+  - resource: src/ScreenHire.Domain/Integrity/SignalNetworkEntry.cs
+  - resource: src/ScreenHire.Domain/Integrity/SubmissionObservation.cs
+  - resource: src/ScreenHire.Domain/Integrity/TelemetrySnapshot.cs
+  - resource: src/ScreenHire.Application/Integrity/AutomationAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/BehaviouralAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/AnswerAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ApplicationText.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ConsistencyAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ContentMessages.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ContentPatterns.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/ContentRecords.cs
+  - resource: src/ScreenHire.Application/Integrity/Content/DocumentAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/DuplicateAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/IIntegrityAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/IdentityAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/IntegrityMessages.cs
+  - resource: src/ScreenHire.Application/Integrity/IntegrityPipeline.cs
+  - resource: src/ScreenHire.Application/Integrity/IntegrityRegistration.cs
+  - resource: src/ScreenHire.Application/Integrity/NetworkAnalyzer.cs
+  - resource: src/ScreenHire.Application/Integrity/SyntheticApplicants.cs
+  - resource: src/ScreenHire.Application/Integrity/SyntheticDocuments.cs
+  - resource: src/ScreenHire.Application/Integrity/TelemetrySource.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Data/disposable-email-domains.txt
+  - resource: src/ScreenHire.Infrastructure/Integrity/Documents/DocumentExtraction.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Documents/PdfText.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Documents/WordText.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/IdentityChecks.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/IntegrityOptions.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/IpIntelligence.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/KeyedHashing.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/ConsistencyBudget.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/ConsistencyChecker.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/ConsistencyPrompts.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/FakeConsistencyChatClient.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/Llm/LlmAccess.cs
+  - resource: src/ScreenHire.Infrastructure/Integrity/TextSimilarity.cs
+  - resource: apps/api/Endpoints/IntegrityEndpoints.cs
+  - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
+  - resource: apps/dashboard/src/lib/integrity.ts
+  - resource: packages/telemetry/src/collector.ts
+  - resource: packages/telemetry/src/device.ts
+  - resource: packages/telemetry/src/index.ts
+---
+# Integrity Engine: Applicant Authenticity & AI-Assistance Signals
 
 > Status: **v1 application stage built (2026-10-20)**, content forensics included (§10.10); §10 describes the implementation. Design draft v0.1
 > (2026-10-18), grounded in `docs/research/legal.md` and `docs/research/competitors.md`.
@@ -27,8 +87,8 @@ engine produces **two independent assessments**, each with a level and reason co
 
 | Assessment | Question | Levels | Typical evidence |
 |---|---|---|---|
-| **Authenticity** | Is this a real, unique, present person who is who they claim to be? | `No concerns` · `Review suggested` · `Verification recommended` | Data-centre IP + mismatched claimed location; disposable or 2-day-old email; VoIP phone; automation markers; same device across many applications; stand-in at interview |
-| **AI Assistance** | How much of the content appears generated or templated? | `Not indicated` · `Some indicators` · `Strong indicators` | Whole answers pasted in seconds; answers near-identical to other applicants; resume built by a generator; hidden prompt-injection text |
+| **Authenticity** | Is this a real, unique, present person who is who they claim to be? | No concerns, Review suggested, Verification suggested (`NoConcerns`, `ReviewSuggested`, `VerificationRecommended`) | Data-centre IP + mismatched claimed location; disposable or 2-day-old email; VoIP phone; automation markers; same device across many applications; stand-in at interview |
+| **AI Assistance** | How much of the content appears generated or templated? | No signs, Some signs or Strong signs of AI help (`NotIndicated`, `SomeIndicators`, `StrongIndicators`) | Whole answers pasted in seconds; answers near-identical to other applicants; resume built by a generator; hidden prompt-injection text |
 
 AI Assistance is **informational and policy-relative**: each employer sets whether AI help is allowed, allowed with
 disclosure, or not allowed for a given job. Candidates can **declare** AI use (the "declared-AI lane"), which changes how
@@ -156,20 +216,27 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 ## 7. Recruiter & candidate experience
 
 - **Recruiter**: assessment chips on every candidate card (`Authenticity: Review suggested · 3 reasons`), a detail
-  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add note*.
-  Every action is audit-logged. No "reject" button sits in the integrity panel.
+  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add review note*.
+  Every action is audit-logged. No "reject" button sits in the integrity panel, the candidate's Integrity tab.
 
-  Built in v1 (`apps/dashboard`): Authenticity and AI assist chip columns in every candidate table, sortable by level
-  and filterable from an "Integrity" menu; a job overview with a numeric legend (each entry filters the table) and an
-  `aria-hidden` stacked bar; the "Needs review" and "Verification recommended" saved views (authenticity above its
-  lowest level, not dismissed; AI assistance is information, not a queue); and the evidence panel on the application
-  page. The panel shows each assessment's summary, suggested next step, reasons (signals that count toward the level)
-  and context signals with their evidence drawn by kind (§10.1) and counter-evidence, the AI policy and the
-  candidate's declaration, any dismissal, and the review log. Its actions are *Dismiss with a reason* (per assessment
-  above the lowest level) and *Add note*; *Request verification* is shown disabled with the API's phase 2 reason. The
-  footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed` refetches the chips,
-  overview and panel live. AI chips use one colour and a ring mark, so they read as information; "Not indicated" is
-  neutral. While an integrity filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a
+  Built in v1 (`apps/dashboard`): Authenticity and AI assistance chip columns in every candidate table, sortable by
+  level and filterable from an "Integrity" menu on the Candidates list, with calm authenticity quiet, calm AI assistance
+  empty but for its words for screen readers, and the reason count as plain text after the chip; a job's authenticity
+  filter chips, one per level with its count, which filter the job's table and board; the "To review" and "To verify" saved views (authenticity above its
+  lowest level, not dismissed; AI assistance is information, not a queue); and the candidate's Integrity tab, marked
+  with a dot when authenticity is above its lowest level and not dismissed. The tab shows each assessment's level on
+  its three-step scale, a summary card per kind of check (Network, Identity, Automation and Content always; Files for
+  `Document` and Form activity for `Behavioural` only when they found something, kept apart because the levels count
+  categories apart), its summary, suggested next step (one quiet line for a calm result), reasons
+  (signals that count toward the level) and context signals, each expanding, with their evidence drawn by kind (§10.1) and
+  counter-evidence, the job's AI policy and any dismissal. Overview repeats the suggested next step while the level
+  needs a look, with "Not a reason to reject on its own". The candidate's AI declaration is on the Application tab,
+  not repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
+  log panel beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until
+  phase 2 builds it. The footer reads "No automated decision has been made. Every action is logged."
+  `IntegrityAssessed` refetches the chips, overview and panel live. AI chips take the AI colour and the sparkles icon at
+  every level, and stay quiet in lists, so they read as information. While an integrity filter is set, the job page's bulk move offers no
+  Rejected or Withdrawn stage, and a
   new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a filtered "select all" must not become
   rejection driven by integrity signals. Moving one candidate stays a person's decision about that candidate.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
@@ -340,11 +407,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-20.4`)
+### 10.3 Ruleset (`IntegrityRuleset`, version `2026-10-21.2`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -363,8 +430,9 @@ categories, and only when the level is raised; other signals are still shown, as
 
 The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
 (`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the summary
-and the next step only. The summary states the policy and the declaration side by side ("Declared AI use: no."), and
-the next step is the same whatever the candidate declared, so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
+and the next step only. The summary states the job's policy and not the declaration, which the application page shows
+in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
+so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
 number that grades the candidate.
 
 Changing a weight, threshold or rule means a new `IntegrityRuleset.Version`. Assessments store the version they were
@@ -433,7 +501,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../integrity/notes` | a note on the application's integrity or one assessment |
 | `POST .../integrity/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/integrity-settings` | whether the consistency check is on, its monthly token budget, and the tokens used this month |
-| `PUT /v1/organization/integrity-settings` | turn the check on or off and set the budget (organization admins) |
+| `PUT /v1/organization/integrity-settings` | turn the check on or off and set the budget (organization admins, in the dashboard's Settings > Integrity) |
 
 The integrity view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
 each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance.
@@ -487,9 +555,10 @@ assessment, shown next to it as context; it is never a reason on its own.
 - Version 1 of the "Software engineer" system template tests `integrity.aiAssistance` for `ReviewSuggested`, an
   authenticity level, so that half of its integrity automation never matches. Version 2 (migration
   `AddSoftwareEngineerTemplateVersion2`) corrects it: a reviewer is asked when either assessment is above its lowest
-  level. New jobs and the Brightwater seed use version 2; jobs copied from version 1 keep their copy and show "update
-  available". Level names in conditions are still not validated, because validation would block those version 1 jobs
-  until someone adopts version 2. Turning it on is a small change once no job uses version 1.
+  level. Version 3 (`AddScorecards`) keeps the correction and adds default scorecards; a new Brightwater seed copies
+  version 3. Jobs copied from version 1 keep their copy and show "update available". Level names in conditions are
+  still not validated, because validation would block those version 1 jobs until someone adopts version 2. Turning it
+  on is a small change once no job uses version 1.
 - Duplicates do not revisit earlier applications (§10.2).
 - With the demo seeding on in the end-to-end stack, `LiveUpdatesTests` failed in 3 of 9 runs: a live `JobClosed` took
   more than 5 seconds to reach the second browser. With it off, 10 of 10 runs passed. The demo itself finished well
@@ -505,8 +574,8 @@ assessment, shown next to it as context; it is never a reason on its own.
   device duplicate check; the network, identity, honeypot and duplicate checks still run.
 - The device-check basis follows where the job is, not where the candidate is, because there is no other footing
   before submission. A remote job with no country takes `DeviceCheck:Default`.
-- Session tokens need the API's Data Protection keys to be kept and shared across instances in production (an owner
-  action); locally the default key ring is enough.
+- Session tokens use the Data Protection key ring the API instances and the worker share in Postgres
+  (`AddScreenHireDataProtection`), so they read on every instance.
 - The apply page's JavaScript budget rose from about 20 KB to about 22 KB brotli for the module.
 
 - Content forensics read only `.pdf` and `.docx` files. Word 97 (`.doc`), `.rtf` and images are recorded as unsupported,

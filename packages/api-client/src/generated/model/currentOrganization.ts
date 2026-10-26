@@ -5,13 +5,22 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { OrganizationRole } from './organizationRole.ts';
+import type { Permission } from './permission.ts';
 
 /**
- * The organization the signed-in user works in, and their role there.
+ * The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),
+ * its name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;
+ * the API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only
+ * jobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015).
  */
 export interface CurrentOrganization {
   id: string;
   name: string;
   slug: string;
   role: OrganizationRole;
+  /** @nullable */
+  customRoleId: string | null;
+  roleName: string;
+  permissions: Permission[];
+  seesAllJobs: boolean;
 }

@@ -1,4 +1,7 @@
 <script lang="ts">
+	// Our change: an error is a problem to fix, so it carries the problem icon and the verify colour, as the workflow builder's
+	// FieldErrors does (design system T1, section 11 "Form field").
+	import ProblemIcon from "#lib/components/problem-icon.svelte";
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import type { Snippet } from "svelte";
 	import type { HTMLAttributes } from "svelte/elements";
@@ -38,18 +41,18 @@
 		bind:this={ref}
 		role="alert"
 		data-slot="field-error"
-		class={cn("text-destructive text-sm font-normal", className)}
+		class={cn("text-status-verify text-body font-semibold", className)}
 		{...restProps}
 	>
 		{#if children}
 			{@render children()}
 		{:else if singleErrorMessage}
-			{singleErrorMessage}
+			<span class="flex items-baseline gap-1.5"><ProblemIcon class="size-3.5 self-center" />{singleErrorMessage}</span>
 		{:else if isMultipleErrors}
-			<ul class="ml-4 flex list-disc flex-col gap-1">
+			<ul class="flex flex-col gap-0.5">
 				{#each errors ?? [] as error, index (index)}
 					{#if error?.message}
-						<li>{error.message}</li>
+						<li class="flex items-baseline gap-1.5"><ProblemIcon class="size-3.5 self-center" />{error.message}</li>
 					{/if}
 				{/each}
 			</ul>

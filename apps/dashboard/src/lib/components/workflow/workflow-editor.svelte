@@ -1,28 +1,41 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+  import { tick } from 'svelte';
+  import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { describePath, laneOf, newAutomation, removeAt } from '#lib/workflow.js';
+  import { laneOf, removeAt } from '#lib/workflow.js';
+  import { LANE_NODE, addAutomation, connect, removeAutomation, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
-  import ProblemMark from './problem-mark.svelte';
+  import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
+  import ScorecardPicker from './scorecard-picker.svelte';
   import SimulatePanel from './simulate-panel.svelte';
+  import type { GraphActions } from './step-node.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
 
-  // The workflow builder (workflow-engine.md §4) for a template version or a job's own copy: pipeline, graph,
-  // questionnaire and simulation over one workflow. The page owns loading and saving; `errors` are the API validator's,
-  // with paths relative to the workflow.
+  // The workflow builder (workflow-engine.md §4) for a template's draft or a job's own copy: pipeline, graph,
+  // questionnaire and simulation over one workflow, as the panes of the page's `Tabs.Root` (`WorkflowTabs` sits on the
+  // header band). The page owns loading and saving, and shows the validation result beside its title; `errors` are the
+  // API validator's, with paths relative to the workflow. A version that cannot be edited is a `WorkflowSummary`.
   let {
     workflow = $bindable(),
     errors,
-    checking = false,
-    readonly = false,
-  }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; checking?: boolean; readonly?: boolean } = $props();
+    tab,
+  }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
 
-  let tab = $state('pipeline');
   let drawerOpen = $state(false);
+  let scorecardOpen = $state(false);
+  // The stage whose scorecard the sheet edits, by id, so reordering stages behind the sheet keeps the same one.
+  let scorecardStageId = $state<string | null>(null);
+  const scorecardIndex = $derived(workflow.stages.findIndex((stage) => stage.id === scorecardStageId));
+
+  function openScorecard(index: number) {
+    scorecardStageId = workflow.stages[index]?.id ?? null;
+    scorecardOpen = true;
+  }
   let drawerLane = $state<string | null>(null);
   // The automations listed in the open drawer, fixed when it opens, so changing one's trigger does not make it vanish.
   let drawerIds = $state<string[]>([]);
@@ -32,90 +45,109 @@
     drawerIds.map((id) => workflow.automations.findIndex((automation) => automation.id === id)).filter((index) => index >= 0),
   );
 
+  // Opened from the graph: the form control to focus first (`data-focus` in AutomationForm), and the graph node that
+  // takes the focus back when the sheet closes if the button that opened it is gone.
+  let focusPath = $state<string | null>(null);
+  let returnTo = $state<{ node: string; opener: Element | null } | null>(null);
+
+  function openAutomation(index: number, path: string) {
+    const automation = workflow.automations[index];
+    if (!automation) return;
+    drawerLane = laneOf(automation);
+    drawerIds = [automation.id];
+    focusPath = path;
+    returnTo = { node: triggerNode(automation.id), opener: document.activeElement };
+    drawerOpen = true;
+  }
+
+  // The graph's edits: each one a change to the workflow from #lib/workflow-graph.ts, or the automation's own form.
+  const graphActions: GraphActions = {
+    edit: openAutomation,
+    add(stageId) {
+      const added = addAutomation(workflow, stageId);
+      workflow.automations = added.workflow.automations;
+      const index = workflow.automations.findIndex((automation) => automation.id === added.id);
+      // A new automation's form starts at its name; closing it goes to its trigger node, not back to Add.
+      openAutomation(index, `automations[${index}]`);
+      returnTo = { node: triggerNode(added.id), opener: null };
+    },
+    async remove(automationId) {
+      const automation = workflow.automations.find((candidate) => candidate.id === automationId);
+      if (!automation) return;
+      const lane = laneOf(automation);
+      workflow.automations = removeAutomation(workflow, automationId).automations;
+      // Its nodes are gone with it, so the focus goes to the lane or stage it was on.
+      await tick();
+      focusNode(lane && workflow.stages.some((stage) => stage.id === lane) ? stageNode(lane) : LANE_NODE);
+    },
+    connect(source, target) {
+      workflow.automations = connect(workflow, source, target).automations;
+    },
+  };
+
+  function focusNode(id: string): boolean {
+    const node = document.querySelector(`.svelte-flow__node[data-id="${CSS.escape(id)}"]`);
+    if (!(node instanceof HTMLElement)) return false;
+    node.focus();
+    return true;
+  }
+
+  function onOpenAutoFocus(event: Event) {
+    const target = focusPath ? document.querySelector(`[data-focus="${CSS.escape(focusPath)}"]`) : null;
+    if (!(target instanceof HTMLElement)) return;
+    event.preventDefault();
+    target.focus();
+  }
+
+  function onCloseAutoFocus(event: Event) {
+    const back = returnTo;
+    focusPath = null;
+    returnTo = null;
+    if (!back || (back.opener?.isConnected && back.opener !== document.body)) return;
+    if (focusNode(back.node)) event.preventDefault();
+  }
+
   function openLane(stageId: string | null) {
+    focusPath = null;
+    returnTo = null;
     drawerLane = stageId;
     drawerIds = workflow.automations.filter((automation) => laneOf(automation) === stageId).map((automation) => automation.id);
     drawerOpen = true;
   }
 
-  function openAutomation(index: number) {
-    const automation = workflow.automations[index];
-    if (!automation) return;
-    drawerLane = laneOf(automation);
-    drawerIds = [automation.id];
-    drawerOpen = true;
-  }
-
-  function addAutomation() {
-    const automation = newAutomation(workflow, drawerLane);
-    workflow.automations = [...workflow.automations, automation];
-    drawerIds = [...drawerIds, automation.id];
+  function addToDrawer() {
+    const added = addAutomation(workflow, drawerLane);
+    workflow.automations = added.workflow.automations;
+    drawerIds = [...drawerIds, added.id];
   }
 </script>
 
-<div class="flex flex-col gap-3">
-  <section aria-label="Validation" aria-live="polite" class="text-[13px]">
-    {#if errors.length > 0}
-      <div class="rounded-xl border border-destructive/40 bg-card px-3.5 py-2.5">
-        <p class="font-semibold text-destructive">
-          <ProblemMark />
-          {errors.length}
-          {errors.length === 1 ? 'problem' : 'problems'} to fix before this can be saved{checking ? ' (checking your latest change)' : ''}
-        </p>
-        <ul class="mt-1 flex flex-col gap-0.5">
-          {#each errors as error, index (index)}
-            <li><span class="font-semibold">{describePath(workflow, error.path)}:</span> {error.message}</li>
-          {/each}
-        </ul>
-      </div>
-    {:else}
-      <p class="text-muted-foreground">{checking ? 'Checking…' : 'No problems found.'}</p>
-    {/if}
-  </section>
+<ProblemsPanel title="Problems to fix" {workflow} {errors} />
 
-  <Tabs.Root bind:value={tab}>
-    <Tabs.List aria-label="Builder views">
-      <Tabs.Trigger value="pipeline">Pipeline</Tabs.Trigger>
-      <Tabs.Trigger value="graph">Graph</Tabs.Trigger>
-      <Tabs.Trigger value="questionnaire">Questionnaire</Tabs.Trigger>
-      <Tabs.Trigger value="simulate">Simulate</Tabs.Trigger>
-    </Tabs.List>
-    <Tabs.Content value="pipeline" class="pt-2">
-      <PipelineView bind:workflow {errors} {readonly} onopen={openLane} />
-    </Tabs.Content>
-    <Tabs.Content value="graph" class="pt-2">
-      <p class="mb-2 text-[12.5px] text-muted-foreground">
-        The same workflow as a graph: stages along the top, then each automation from trigger to actions. Edit an automation
-        from its node, or in the pipeline view.
-      </p>
-      <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph fits its view to the size
-           it mounts at, which is nothing while hidden. -->
-      {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} onedit={openAutomation} />{/if}
-    </Tabs.Content>
-    <Tabs.Content value="questionnaire" class="pt-2">
-      <QuestionnaireBuilder bind:workflow {errors} {readonly} />
-    </Tabs.Content>
-    <Tabs.Content value="simulate" class="pt-2">
-      <SimulatePanel {workflow} />
-    </Tabs.Content>
-  </Tabs.Root>
-</div>
+<Tabs.Content value="pipeline">
+  <PipelineView bind:workflow {errors} onopen={openLane} onscorecard={openScorecard} />
+</Tabs.Content>
+<Tabs.Content value="graph">
+  <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph measures its nodes when
+       it mounts, which it cannot do while hidden. -->
+  <Panel title="Stages and automations" flush>
+    {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} actions={graphActions} />{/if}
+  </Panel>
+</Tabs.Content>
+<Tabs.Content value="questionnaire">
+  <QuestionnaireBuilder bind:workflow {errors} />
+</Tabs.Content>
+<Tabs.Content value="simulate">
+  <SimulatePanel {workflow} />
+</Tabs.Content>
 
 <Sheet.Root bind:open={drawerOpen}>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl">
+  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl" {onOpenAutoFocus} {onCloseAutoFocus}>
     <Sheet.Header>
       <Sheet.Title>Automations: {laneName}</Sheet.Title>
-      <Sheet.Description>
-        {drawerLane === null
-          ? 'Automations tied to no one stage. Each runs its actions when its trigger fires and its conditions hold.'
-          : `Automations that fire when candidates enter, leave or wait in ${laneName}.`}
-      </Sheet.Description>
+      <Sheet.Description>Each runs on its own when its trigger happens, and saves with the workflow.</Sheet.Description>
     </Sheet.Header>
-    <fieldset disabled={readonly} class="flex flex-col gap-3 px-4 pb-4">
-      <legend class="sr-only">Automations for {laneName}</legend>
-      {#if drawerItems.length === 0}
-        <p class="text-[13px] text-muted-foreground">No automations here yet.</p>
-      {/if}
+    <div class="@container flex flex-col gap-6 px-4 pb-4">
       {#each drawerItems as index (workflow.automations[index]!.id)}
         <AutomationForm
           bind:automation={workflow.automations[index]!}
@@ -124,10 +156,24 @@
           {errors}
           onremove={() => (workflow.automations = removeAt(workflow.automations, index))}
         />
+      {:else}
+        <p class="text-muted-foreground">No automations here yet.</p>
       {/each}
-      {#if !readonly}
-        <div><Button variant="outline" onclick={addAutomation}>Add automation</Button></div>
+      <div><Button variant="outline" size="lg" onclick={addToDrawer}>Add automation</Button></div>
+    </div>
+  </Sheet.Content>
+</Sheet.Root>
+
+<Sheet.Root bind:open={scorecardOpen}>
+  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl">
+    <Sheet.Header>
+      <Sheet.Title>Scorecard: {workflow.stages[scorecardIndex]?.name ?? ''}</Sheet.Title>
+      <Sheet.Description>Choose one from the library. A job keeps its own copy of the questions.</Sheet.Description>
+    </Sheet.Header>
+    <div class="@container px-4 pb-4">
+      {#if scorecardIndex >= 0}
+        <ScorecardPicker bind:stage={workflow.stages[scorecardIndex]!} index={scorecardIndex} {errors} />
       {/if}
-    </fieldset>
+    </div>
   </Sheet.Content>
 </Sheet.Root>

@@ -31,3 +31,13 @@ public interface ITopicEvent : ITenantEvent
     /// <summary>The record's id.</summary>
     Guid TopicId { get; }
 }
+
+/// <summary>
+/// A tenant event about one job, or something under it such as an application. The API pushes it only to the members
+/// who see that job: everyone who sees all jobs, and the members on its hiring team (ADR-0015,
+/// docs/architecture/realtime.md). Every tenant event that carries a job id implements it.
+/// </summary>
+public interface IJobEvent : ITenantEvent
+{
+    Guid JobId { get; }
+}

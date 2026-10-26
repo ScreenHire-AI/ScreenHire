@@ -223,7 +223,7 @@ internal static class PublicApplicationEndpoints
             await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken));
 
         var submitted = await ApplicationSubmission.SubmitAsync(
-            outbox, job, request.Candidate,
+            outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             intake, files, time.GetUtcNow(), actorUserId: null, cancellationToken,
             new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.FormStartedAt, request.AutomationMarkers),

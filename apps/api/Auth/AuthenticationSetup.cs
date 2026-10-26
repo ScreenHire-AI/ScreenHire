@@ -27,9 +27,12 @@ internal static class AuthenticationSetup
     /// <summary>The per-IP rate limit on sign-in endpoints that change state.</summary>
     public const string RateLimitPolicy = "auth";
 
+    /// <summary>The session cookie.</summary>
+    public const string SessionCookie = "sh.session";
+
     // The build writes openapi.json by starting the app inside this tool, with no configuration at all (Microsoft's
     // documented check for build-time document generation). Settings are validated when the app really runs.
-    private static readonly bool GeneratingOpenApiDocument = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+    internal static readonly bool GeneratingOpenApiDocument = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 
     public static WebApplicationBuilder AddScreenHireAuthentication(this WebApplicationBuilder builder)
     {
@@ -60,7 +63,7 @@ internal static class AuthenticationSetup
         authentication.AddIdentityCookies();
         services.ConfigureApplicationCookie(options =>
         {
-            options.Cookie.Name = "sh.session";
+            options.Cookie.Name = SessionCookie;
             options.Cookie.HttpOnly = true;
             options.Cookie.SameSite = SameSiteMode.Lax;
             options.Cookie.SecurePolicy = secure;
@@ -146,6 +149,14 @@ internal static class AuthenticationSetup
         services.AddSingleton<IValidator<MagicLinkRequest>, MagicLinkRequestValidator>();
         services.AddSingleton<IValidator<MagicLinkVerification>, MagicLinkVerificationValidator>();
         services.AddSingleton<IValidator<OnboardingRequest>, OnboardingRequestValidator>();
+        services.AddSingleton<IValidator<InvitationAcceptance>, InvitationAcceptanceValidator>();
+        services.AddSingleton<IValidator<InvitationRequest>, InvitationRequestValidator>();
+        services.AddSingleton<IValidator<ChangeMemberRoleRequest>, ChangeMemberRoleRequestValidator>();
+        services.AddSingleton<IValidator<ChangeMemberJobAccessRequest>, ChangeMemberJobAccessRequestValidator>();
+        services.AddSingleton<IValidator<HiringTeamRequest>, HiringTeamRequestValidator>();
+        services.AddSingleton<IValidator<CreateRoleRequest>, CreateRoleRequestValidator>();
+        services.AddSingleton<IValidator<UpdateRoleRequest>, UpdateRoleRequestValidator>();
+        services.AddSingleton<IValidator<UpdateOrganizationRequest>, UpdateOrganizationRequestValidator>();
 
         return builder;
     }

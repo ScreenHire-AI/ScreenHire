@@ -16,7 +16,7 @@ namespace ScreenHire.Testing;
 public static class SyntheticApplications
 {
     /// <summary>The careers notice version the submissions say the applicant saw (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-20.4";
+    public const string PrivacyNoticeVersion = "2026-10-23.1";
 
     /// <summary>
     /// Applies to a published job of the organization with this slug and returns the application's id: the applicant's
@@ -49,7 +49,10 @@ public static class SyntheticApplications
 
         var body = new JsonObject
         {
-            ["candidate"] = new JsonObject { ["fullName"] = applicant.FullName, ["email"] = applicant.Email, ["phone"] = applicant.Phone },
+            ["candidate"] = new JsonObject
+            {
+                ["firstName"] = applicant.FirstName, ["lastName"] = applicant.LastName, ["email"] = applicant.Email, ["phone"] = applicant.Phone,
+            },
             ["privacyNoticeVersion"] = PrivacyNoticeVersion,
             ["answers"] = submitted,
             // The default workflow wants AI use disclosed, so an applicant who did not say is sent as "did not use".

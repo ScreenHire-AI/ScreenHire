@@ -1,0 +1,41 @@
+<script lang="ts">
+	import { cn, type WithElementRef } from "#lib/utils.js";
+	import type { Snippet } from "svelte";
+	import type { HTMLAnchorAttributes } from "svelte/elements";
+
+	let {
+		ref = $bindable(null),
+		children,
+		child,
+		class: className,
+		size = "md",
+		isActive = false,
+		...restProps
+	}: WithElementRef<HTMLAnchorAttributes> & {
+		child?: Snippet<[{ props: Record<string, unknown> }]>;
+		size?: "sm" | "md";
+		isActive?: boolean;
+	} = $props();
+
+	const mergedProps = $derived({
+		class: cn(
+			"text-sidebar-foreground hover:bg-secondary active:bg-secondary [&>svg]:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-7 gap-2 rounded-md px-2 data-[size=md]:text-body data-[size=sm]:text-caption [&>svg]:size-4 flex min-w-0 -translate-x-px items-center overflow-hidden group-data-[collapsible=icon]:hidden disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:shrink-0",
+			className
+		),
+		"data-slot": "sidebar-menu-sub-button",
+		"data-sidebar": "menu-sub-button",
+		"data-size": size,
+		// Present only when active: Tailwind's `data-active:` variant matches the attribute, whatever its value.
+		"data-active": isActive ? "" : undefined,
+		"aria-current": isActive ? ("page" as const) : undefined,
+		...restProps,
+	});
+</script>
+
+{#if child}
+	{@render child({ props: mergedProps })}
+{:else}
+	<a bind:this={ref} {...mergedProps}>
+		{@render children?.()}
+	</a>
+{/if}

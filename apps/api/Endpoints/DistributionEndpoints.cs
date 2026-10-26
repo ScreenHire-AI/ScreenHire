@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Distribution;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -24,7 +25,7 @@ internal static class DistributionEndpoints
         group.MapGet("/jobs/{jobId:guid}/postings", ListJobPostings).WithName("ListJobPostings").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/jobs/{jobId:guid}/postings/{boardId}/close", CloseJobPosting).WithName("CloseJobPosting")
             .RequireAntiforgeryToken()
-            .RequireHiringRole()
+            .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
@@ -76,6 +77,8 @@ internal static class DistributionEndpoints
                 statusCode: StatusCodes.Status409Conflict);
         }
 
+        // Waits out a board answer the worker is saving, so the take-down plans on the posting's latest state.
+        await using var transaction = await PostingLocks.BeginForJobAsync(db, jobId, boardId, cancellationToken);
         var changes = await JobEndpoints.TearDownAsync(db, planner, jobId, boardId, cancellationToken);
         foreach (var message in changes.Messages)
         {
@@ -90,7 +93,8 @@ internal static class DistributionEndpoints
             }
             catch (DbUpdateConcurrencyException)
             {
-                // A board's answer for this posting was saved after we loaded it.
+                // The backstop. A write that skipped the posting lock changed the posting after it was loaded. A close
+                // of the job takes the same lock, so this take-down waited for it and planned on the closed posting.
                 return JobEndpoints.ChangedMeanwhile();
             }
         }

@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using ScreenHire.Infrastructure.Email;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.Infrastructure.Persistence;
@@ -48,6 +51,9 @@ public static class DatabaseRegistration
     {
         builder.Services.AddScoped<TenantContext>();
         builder.Services.AddScoped<ITenantContext>(services => services.GetRequiredService<TenantContext>());
+        // Change history (ChangeHistoryInterceptor) needs ScreenHire's wording of the built-in email templates.
+        builder.Services.TryAddSingleton<EmailTemplates>();
+        builder.Services.TryAddSingleton<ChangeHistoryInterceptor>();
         // Read when the first context is built, not at registration: the build-time OpenAPI document generator starts
         // the API with no connection strings at all.
         builder.Services.AddDbContext<ScreenHireDbContext>((services, options) => options
@@ -55,7 +61,8 @@ public static class DatabaseRegistration
                 ?? throw new InvalidOperationException(
                     $"ConnectionStrings:{AppConnectionName} is not set. The AppHost provides it; outside Aspire, set it to a " +
                     "connection string for the screenhire_app role."))
-            .UseScreenHireConventions());
+            .UseScreenHireConventions()
+            .AddInterceptors(services.GetRequiredService<ChangeHistoryInterceptor>()));
         builder.EnrichNpgsqlDbContext<ScreenHireDbContext>(settings => settings.DisableRetry = true);
         return builder;
     }

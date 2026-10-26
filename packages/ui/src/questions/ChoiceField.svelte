@@ -25,12 +25,12 @@
 
 <!-- tabindex -1: the error summary's link focuses the group. -->
 <fieldset {id} tabindex="-1" aria-describedby={describedBy(id, hint, error)} class="flex flex-col gap-2">
-  <legend class="mb-1.5 text-sm font-bold">
+  <legend class="mb-1.5 text-candidate-body font-bold">
     {legend}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </legend>
-  {#if hint}<p id={`${id}-hint`} class="-mt-1 text-[13px] text-candidate-muted-foreground">{hint}</p>{/if}
-  {#if error}<p id={`${id}-error`} class="text-sm font-semibold text-destructive">{error}</p>{/if}
+  {#if hint}<p id={`${id}-hint`} class="-mt-1 text-candidate-hint text-candidate-muted-foreground">{hint}</p>{/if}
+  {#if error}<p id={`${id}-error`} class="text-candidate-body font-semibold text-destructive">{error}</p>{/if}
   {#each options as option (option.value)}
     <label class="choice">
       <input

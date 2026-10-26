@@ -1,5 +1,6 @@
 using FluentValidation;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Organizations;
 
@@ -86,7 +87,7 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// invalid one is dropped, never a reason to refuse.
 /// </remarks>
 public sealed record PublicApplicationRequest(
-    CandidateInput Candidate,
+    PublicCandidateInput Candidate,
     string PrivacyNoticeVersion,
     IReadOnlyList<ApplicationAnswer>? Answers = null,
     bool AccommodationRequested = false,
@@ -102,8 +103,34 @@ public sealed record PublicApplicationRequest(
     string? TelemetrySessionToken = null,
     TelemetrySnapshotInput? Telemetry = null);
 
+/// <summary>The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone.</summary>
+public sealed record PublicCandidateInput(string FirstName, string Email, string? LastName = null, string? Phone = null);
+
 /// <summary>Confirms that an application arrived.</summary>
 public sealed record PublicApplicationReceipt(Guid ApplicationId, DateTimeOffset SubmittedAt);
+
+/// <summary>
+/// A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.
+/// <c>questions</c> are listed only while the link is <c>Open</c>; knockout settings stay on the server.
+/// </summary>
+public sealed record PublicQuestionnaire(
+    PublicOrganization Organization, string JobTitle, string Name, PublicQuestionnaireStatus Status, IReadOnlyList<PublicQuestion> Questions);
+
+/// <summary>
+/// Whether a follow-up questionnaire's link can still be answered: <c>Answered</c> once the candidate sent their answers,
+/// <c>Expired</c> after the link's time ran out, <c>Closed</c> when the questionnaire, the job or the application is no
+/// longer open.
+/// </summary>
+public enum PublicQuestionnaireStatus
+{
+    Open,
+    Answered,
+    Expired,
+    Closed,
+}
+
+/// <summary>The candidate's answers to a follow-up questionnaire, keyed by question id as on the apply form.</summary>
+public sealed record PublicQuestionnaireAnswers(IReadOnlyList<ApplicationAnswer> Answers);
 
 internal static class PublicApplicationMappings
 {
@@ -128,7 +155,11 @@ internal sealed class PublicApplicationRequestValidator : AbstractValidator<Publ
     public PublicApplicationRequestValidator()
     {
         RuleFor(r => r.Candidate).NotNull();
-        RuleFor(r => r.Candidate.FullName).NotEmpty().WithMessage("Enter your full name.").MaximumLength(200)
+        RuleFor(r => r.Candidate.FirstName).NotEmpty().WithMessage("Enter your first name.")
+            .MaximumLength(Candidate.MaxNamePartLength).WithMessage($"Keep your first name to {Candidate.MaxNamePartLength} characters or fewer.")
+            .When(r => r.Candidate is not null);
+        RuleFor(r => r.Candidate.LastName)
+            .MaximumLength(Candidate.MaxNamePartLength).WithMessage($"Keep your last name to {Candidate.MaxNamePartLength} characters or fewer.")
             .When(r => r.Candidate is not null);
         RuleFor(r => r.Candidate.Email).NotEmpty().WithMessage("Enter your email address.").MaximumLength(320)
             .EmailAddress().WithMessage("Enter an email address like name@example.com.")

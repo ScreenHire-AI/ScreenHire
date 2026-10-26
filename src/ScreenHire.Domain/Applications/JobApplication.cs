@@ -1,3 +1,4 @@
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -14,7 +15,7 @@ namespace ScreenHire.Domain.Applications;
 /// Applications only move when a person moves them, or later when an automation the workflow validator accepted moves
 /// them. Nothing here rejects anyone on its own (CLAUDE.md non-negotiable 2).
 /// </remarks>
-public sealed class JobApplication : ITenantOwned
+public sealed class JobApplication : IJobScoped
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -72,10 +73,11 @@ public sealed class JobApplication : ITenantOwned
     /// </summary>
     /// <remarks>
     /// <paramref name="intake"/> says how the application arrived; leave it null for one a recruiter added by hand.
+    /// <paramref name="actorApiKeyId"/> is the API key that added it, if one did.
     /// </remarks>
     public static (JobApplication Application, ApplicationEvent Submitted) Submit(
         Job job, Candidate candidate, bool accommodationRequested, AiUseDeclaration aiUseDeclaration, string? aiUseDetails,
-        DateTimeOffset now, Guid? actorUserId, ApplicationIntake? intake = null)
+        DateTimeOffset now, Guid? actorUserId, ApplicationIntake? intake = null, Guid? actorApiKeyId = null)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(candidate);
@@ -110,14 +112,17 @@ public sealed class JobApplication : ITenantOwned
             BotCheck = intake.BotCheck,
         };
 
-        return (application, application.NewEvent(ApplicationEventType.Submitted, new ApplicationEventData(ToStageId: firstStage.Id), now, actorUserId));
+        return (application, application.NewEvent(
+            ApplicationEventType.Submitted, new ApplicationEventData(ToStageId: firstStage.Id, ApiKeyId: actorApiKeyId), now, actorUserId));
     }
 
     /// <summary>
     /// Moves the application to <paramref name="target"/>, a stage of its job's workflow, and returns the timeline event.
-    /// Moving to the stage it is already in changes nothing and returns null.
+    /// Moving to the stage it is already in changes nothing and returns null. <paramref name="actorApiKeyId"/> is the API
+    /// key that moved it, if one did.
     /// </summary>
-    public ApplicationEvent? MoveTo(WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null)
+    public ApplicationEvent? MoveTo(
+        WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null, Guid? actorApiKeyId = null)
     {
         ArgumentNullException.ThrowIfNull(target);
         if (target.Id == CurrentStageId)
@@ -130,16 +135,24 @@ public sealed class JobApplication : ITenantOwned
         StageEnteredAt = now;
         return NewEvent(
             ApplicationEventType.StageChanged,
-            new ApplicationEventData(from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId),
+            new ApplicationEventData(
+                from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId, ApiKeyId: actorApiKeyId),
             now,
             actorUserId);
     }
 
+    /// <summary>The longest tag, as the workflow validator allows it in an AddTag action.</summary>
+    public const int MaxTagLength = 50;
+
+    /// <summary>The longest note a person can add to the timeline.</summary>
+    public const int MaxNoteLength = 2000;
+
     /// <summary>
     /// Adds <paramref name="tag"/> (trimmed; tags compare ignoring case) and returns the timeline event. A tag the
-    /// application already has changes nothing and returns null.
+    /// application already has changes nothing and returns null. <paramref name="actorApiKeyId"/> is the API key that
+    /// added it, if one did.
     /// </summary>
-    public ApplicationEvent? AddTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null)
+    public ApplicationEvent? AddTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null, Guid? actorApiKeyId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
         var trimmed = tag.Trim();
@@ -149,7 +162,181 @@ public sealed class JobApplication : ITenantOwned
         }
 
         Tags = [.. Tags, trimmed];
-        return NewEvent(ApplicationEventType.TagAdded, new ApplicationEventData(Tag: trimmed, AutomationRunId: automationRunId), now, actorUserId);
+        return NewEvent(
+            ApplicationEventType.TagAdded, new ApplicationEventData(Tag: trimmed, AutomationRunId: automationRunId, ApiKeyId: actorApiKeyId), now, actorUserId);
+    }
+
+    /// <summary>
+    /// Removes <paramref name="tag"/> (compared ignoring case) and returns the timeline event, which names the tag as
+    /// the application had it. A tag the application does not have changes nothing and returns null. Only people and
+    /// API keys remove tags; no automation action does.
+    /// </summary>
+    public ApplicationEvent? RemoveTag(string tag, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+        var trimmed = tag.Trim();
+        var existing = Tags.FirstOrDefault(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+        {
+            return null;
+        }
+
+        Tags = [.. Tags.Where(t => t != existing)];
+        return NewEvent(ApplicationEventType.TagRemoved, new ApplicationEventData(Tag: existing, ApiKeyId: actorApiKeyId), now, actorUserId);
+    }
+
+    /// <summary>
+    /// A note from the hiring team (<paramref name="text"/>, trimmed) and the timeline entry that records it with its
+    /// author and time. The entry names the note and never holds its text, so deleting the note erases it
+    /// (<see cref="ApplicationNote"/>). It changes nothing else about the application, and no automation reads it.
+    /// </summary>
+    public (ApplicationNote Note, ApplicationEvent Entry) AddNote(string text, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        var note = ApplicationNote.Create(this, text.Trim(), now, actorUserId, actorApiKeyId);
+        return (note, NewEvent(ApplicationEventType.NoteAdded, new ApplicationEventData(ApiKeyId: actorApiKeyId, NoteId: note.Id), now, actorUserId));
+    }
+
+    /// <summary>
+    /// Changes <paramref name="note"/>'s text and returns the timeline entry with the mentions the new text adds. Null
+    /// when the text is unchanged, which records nothing. The caller checks <see cref="NotePolicy.MayEdit"/>.
+    /// </summary>
+    public (ApplicationEvent Entry, IReadOnlyList<ApplicationNoteMention> Added)? EditNote(
+        ApplicationNote note, string text, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        EnsureOwn(note);
+        if (note.Edit(text.Trim(), now) is not { } added)
+        {
+            return null;
+        }
+
+        return (NewEvent(ApplicationEventType.NoteEdited, new ApplicationEventData(ApiKeyId: actorApiKeyId, NoteId: note.Id), now, actorUserId), added);
+    }
+
+    /// <summary>
+    /// The timeline entry for deleting <paramref name="note"/>: who and when, never the text. The caller removes the
+    /// note's row, which erases its text, and checks <see cref="NotePolicy.MayDelete"/>.
+    /// </summary>
+    public ApplicationEvent DeleteNote(ApplicationNote note, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        EnsureOwn(note);
+        return NewEvent(ApplicationEventType.NoteDeleted, new ApplicationEventData(ApiKeyId: actorApiKeyId, NoteId: note.Id), now, actorUserId);
+    }
+
+    private void EnsureOwn(ApplicationNote note)
+    {
+        if (note.ApplicationId != Id || note.OrganizationId != OrganizationId)
+        {
+            throw new InvalidOperationException($"Note {note.Id} is not on application {Id}.");
+        }
+    }
+
+    /// <summary>
+    /// A reviewer's scorecard for <paramref name="stage"/> and the timeline entry that records it, which raises the
+    /// ReviewerDecision trigger. <paramref name="answers"/> holds answers by question id, checked by the caller with
+    /// <see cref="ScorecardAnswers.Check"/> against the stage's scorecard; a question it leaves out is unanswered.
+    /// </summary>
+    public (ApplicationScorecard Scorecard, ApplicationEvent Entry) SubmitScorecard(
+        WorkflowStage stage,
+        Guid reviewerUserId,
+        IReadOnlyDictionary<string, ScorecardAnswerValue> answers,
+        Recommendation recommendation,
+        string? note,
+        int workflowVersion,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(stage);
+        ArgumentNullException.ThrowIfNull(answers);
+        var card = stage.Scorecard ?? throw new InvalidOperationException($"Stage {stage.Id} has no scorecard.");
+        if (ScorecardAnswers.Check(card, answers) is { Count: > 0 } errors)
+        {
+            throw new ArgumentException($"The answers do not fit the scorecard: {errors[0].Message}", nameof(answers));
+        }
+
+        var scorecardId = Guid.CreateVersion7();
+        var entry = NewEvent(
+            ApplicationEventType.ScorecardSubmitted,
+            new ApplicationEventData(ScorecardId: scorecardId, StageId: stage.Id, Recommendation: recommendation.ToString()),
+            now,
+            reviewerUserId);
+        var scorecard = new ApplicationScorecard
+        {
+            Id = scorecardId,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            JobId = JobId,
+            StageId = stage.Id,
+            ReviewerUserId = reviewerUserId,
+            Answers = ScorecardAnswers.Keep(card, answers),
+            Recommendation = recommendation,
+            Note = ApplicationScorecard.Normalize(note),
+            WorkflowVersion = workflowVersion,
+            TimelineEventId = entry.Id,
+            SubmittedAt = now,
+        };
+        return (scorecard, entry);
+    }
+
+    /// <summary>
+    /// The copy of an email to the candidate, rendered for them, before it goes. <paramref name="sendId"/> is the send's
+    /// own id, created once, so a redelivered send finds its copy and its timeline entry.
+    /// </summary>
+    public ApplicationEmail PrepareEmail(
+        Guid sendId, string? templateId, string to, string subject, string textBody, string htmlBody, DateTimeOffset now) =>
+        new()
+        {
+            Id = sendId,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            TemplateId = templateId,
+            To = to,
+            Subject = subject,
+            TextBody = textBody,
+            HtmlBody = htmlBody,
+            CreatedAt = now,
+        };
+
+    /// <summary>
+    /// The timeline event for an email that went to the candidate. It takes the copy's id, the send's own id, so a
+    /// redelivered send finds its event and records nothing twice, and it points at the copy, which holds the body.
+    /// </summary>
+    public ApplicationEvent EmailSent(ApplicationEmail email, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
+        new()
+        {
+            Id = email.Id,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Type = ApplicationEventType.EmailSent,
+            Data = new ApplicationEventData(
+                AutomationRunId: automationRunId, EmailTemplateId: email.TemplateId, EmailSubject: email.Subject, EmailId: email.Id),
+            ActorUserId = actorUserId,
+            OccurredAt = now,
+        };
+
+    /// <summary>
+    /// A task a person or an API key gives the hiring team about this application (<paramref name="note"/>, trimmed), for
+    /// <paramref name="assigneeUserId"/> or, when null, anyone on the team, and the timeline entry that records it with
+    /// who created it. The task starts in the application's current stage; it changes nothing about the application.
+    /// </summary>
+    public (ApplicationTask Task, ApplicationEvent Entry) AddTask(
+        string note, Guid? assigneeUserId, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(note);
+        var task = new ApplicationTask
+        {
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Kind = ApplicationTaskKind.Task,
+            Note = note.Trim(),
+            AssigneeUserId = assigneeUserId,
+            StageId = CurrentStageId,
+            CreatedAt = now,
+        };
+        return (task, NewEvent(
+            ApplicationEventType.TaskCreated, new ApplicationEventData(Note: task.Note, ApiKeyId: actorApiKeyId, TaskId: task.Id), now, actorUserId));
     }
 
     private ApplicationEvent NewEvent(ApplicationEventType type, ApplicationEventData data, DateTimeOffset now, Guid? actorUserId) =>

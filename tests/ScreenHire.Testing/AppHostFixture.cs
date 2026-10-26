@@ -1,7 +1,12 @@
+using System.Collections.Concurrent;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Xunit;
@@ -12,16 +17,46 @@ namespace ScreenHire.Testing;
 /// Boots the whole AppHost (requires Docker) once per test assembly. Register it with
 /// <c>[assembly: AssemblyFixture(typeof(AppHostFixture))]</c> and take it as a constructor parameter.
 /// Every run gets fresh infrastructure: no data volumes and random ports, so it never collides with a running dev
-/// stack or a sibling worktree, and Aspire removes the containers when the assembly finishes.
+/// stack or a sibling worktree, and Aspire removes the containers when the assembly finishes. Every resource's console
+/// log goes to <c>TestResults/logs/{fixture}/{resource}.log</c> next to the test assembly, and a resource that stops
+/// while the tests run is kept in <see cref="StoppedResources"/>, so a server that dies mid-run names itself.
 /// </summary>
 public class AppHostFixture : IAsyncLifetime
 {
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
 
+    // Aspire's KnownProperties.Executable.Pid, which is internal.
+    private const string ExecutablePidProperty = "executable.pid";
+
+    // How far a process's start time may lie from the start Aspire reported for it and still be the same process.
+    private static readonly TimeSpan ProcessIdentityTolerance = TimeSpan.FromSeconds(5);
+
     /// <summary>The sandbox board's acceptance and removal delay in the test stack.</summary>
     public static readonly TimeSpan SandboxDelay = TimeSpan.FromSeconds(4);
 
+    /// <summary>The waits before a webhook delivery's second and third attempts in the test stack.</summary>
+    public static readonly TimeSpan[] WebhookRetryDelays = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(3)];
+
+    /// <summary>Failed deliveries in a row that disable a webhook endpoint in the test stack.</summary>
+    public const int WebhookDisableAfterFailedDeliveries = 2;
+
+    private readonly CancellationTokenSource watching = new();
+    private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
+    private Task? watcher;
     private DistributedApplication? app;
+
+    /// <summary>
+    /// Where each resource's console log is written, one <c>{resource}.log</c> per resource, in a folder per fixture type
+    /// (<c>TestResults/logs/AppHostFixture</c>), since a fixture of its own boots a second stack beside the shared one.
+    /// </summary>
+    public string LogDirectory => Path.Combine(AppContext.BaseDirectory, "TestResults", "logs", GetType().Name);
+
+    /// <summary>
+    /// Every resource that stopped with an error after it started (a crash, a non-zero exit), with its exit code and log
+    /// file. Empty while the stack is whole.
+    /// </summary>
+    public IReadOnlyCollection<string> StoppedResources => [.. stopped.Values];
 
     /// <summary>The AppHost's <c>ScreenHire:Frontends</c> mode. <c>None</c> starts only the API, worker and infrastructure.</summary>
     protected virtual string Frontends => "None";
@@ -31,6 +66,14 @@ public class AppHostFixture : IAsyncLifetime
     /// stack with a setting of its own. The shared fixture adds none.
     /// </summary>
     protected virtual IReadOnlyList<string> ExtraArguments => [];
+
+    /// <summary>
+    /// Changes to the AppHost's resources before it builds, for a fixture whose stack differs in more than a setting (an
+    /// API in another environment). The shared fixture changes nothing.
+    /// </summary>
+    protected virtual void Configure(IDistributedApplicationTestingBuilder builder)
+    {
+    }
 
     /// <summary>Resources that must report healthy before any test runs.</summary>
     protected virtual IReadOnlyList<string> RequiredResources => ["api"];
@@ -51,10 +94,18 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Distribution:Sandbox:AcceptanceDelay={SandboxDelay}",
                 $"--ScreenHire:Distribution:Sandbox:RemovalDelay={SandboxDelay}",
                 "--ScreenHire:Distribution:GoogleIndexing:Mode=Local",
+                // Webhooks: the tests' receivers listen on loopback (WebhookReceiver), and retries and automatic
+                // disabling are short enough to watch: three attempts a delivery, two failed deliveries to disable.
+                "--ScreenHire:Webhooks:AllowLoopback=true",
+                $"--ScreenHire:Webhooks:RetryDelays:0={WebhookRetryDelays[0]}",
+                $"--ScreenHire:Webhooks:RetryDelays:1={WebhookRetryDelays[1]}",
+                $"--ScreenHire:Webhooks:DisableAfterFailedDeliveries={WebhookDisableAfterFailedDeliveries}",
                 .. ExtraArguments,
             ],
             startup.Token);
+        Configure(builder);
         app = await builder.BuildAsync(startup.Token);
+        watcher = WatchResourcesAsync(app, watching.Token);
         try
         {
             await app.StartAsync(startup.Token);
@@ -70,7 +121,7 @@ public class AppHostFixture : IAsyncLifetime
 
     // A resource that fails to start (a missing build, a pnpm error) fails the run at once instead of after the timeout,
     // and a timeout names the resource that never became healthy.
-    private static async Task WaitUntilHealthyAsync(DistributedApplication app, string resource, CancellationToken cancellationToken)
+    private async Task WaitUntilHealthyAsync(DistributedApplication app, string resource, CancellationToken cancellationToken)
     {
         try
         {
@@ -81,8 +132,134 @@ public class AppHostFixture : IAsyncLifetime
         {
             throw new TimeoutException(
                 $"The AppHost resource '{resource}' was not healthy within {StartupTimeout.TotalMinutes:0} minutes. " +
-                "Check its logs in the test output.",
+                $"Check its log in {LogDirectory}.",
                 exception);
+        }
+    }
+
+    // Writes each resource instance's console log to its file as it arrives, and keeps every resource that stops with an
+    // error. Uses Aspire's own log and state streams, which carry every line the dashboard shows.
+    private async Task WatchResourcesAsync(DistributedApplication started, CancellationToken cancellationToken)
+    {
+        var directory = LogDirectory;
+        Directory.CreateDirectory(directory);
+        foreach (var old in Directory.EnumerateFiles(directory, "*.log"))
+        {
+            try
+            {
+                File.Delete(old); // the files describe this run only
+            }
+            catch (IOException)
+            {
+                // Still open in a test host left over from an earlier run. The diagnostics never fail the run.
+            }
+        }
+
+        var logs = started.Services.GetRequiredService<ResourceLoggerService>();
+        var logging = new ConcurrentDictionary<string, Task>(StringComparer.Ordinal);
+        try
+        {
+            await foreach (var update in started.ResourceNotifications.WatchAsync(cancellationToken))
+            {
+                var path = Path.Combine(directory, $"{update.Resource.Name}.log");
+                // By instance id, not by name: the log stream of a running project carries a suffix after its name.
+                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, cancellationToken), cancellationToken));
+
+                var snapshot = update.Snapshot;
+                RecordProcess(update.ResourceId, snapshot);
+                if (snapshot.State?.Text is { } state && KnownResourceStates.TerminalStates.Contains(state)
+                    && (snapshot.ExitCode is not (null or 0) || state == KnownResourceStates.FailedToStart))
+                {
+                    stopped[update.ResourceId] =
+                        $"The AppHost resource '{update.Resource.Name}' stopped ({state}, exit code {snapshot.ExitCode?.ToString(CultureInfo.InvariantCulture) ?? "none"}) " +
+                        $"at {DateTimeOffset.UtcNow:HH:mm:ss} UTC. Its log: {path}";
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+
+        try
+        {
+            await Task.WhenAll(logging.Values);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    // Keeps the process of every running executable resource (projects and JS apps; containers have none), so the
+    // teardown can stop it by identity. See StopOwnProcesses.
+    private void RecordProcess(string resourceId, CustomResourceSnapshot snapshot)
+    {
+        var pid = snapshot.Properties.FirstOrDefault(property => property.Name == ExecutablePidProperty)?.Value;
+        if (snapshot.State?.Text == KnownResourceStates.Running && snapshot.StartTimeStamp is { } started
+            && int.TryParse(Convert.ToString(pid, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, out var id))
+        {
+            processes[resourceId] = new OwnProcess(id, started.ToUniversalTime());
+        }
+        else if (snapshot.State?.Text is { } state && KnownResourceStates.TerminalStates.Contains(state))
+        {
+            processes.TryRemove(resourceId, out _);
+        }
+    }
+
+    // Aspire's DCP 0.26 stops an executable with `dcp stop-process-tree`, which counts every process whose recorded
+    // parent PID matches a PID in the tree as a descendant, without checking that it started after that parent. Windows
+    // reuses PIDs, so an older, unrelated process whose launcher has exited (Explorer, a terminal, with everything under
+    // them) can be force-killed with the stack. Process.Kill(entireProcessTree: true) only follows children that started
+    // after their parent, so the fixture stops the app's own processes that way first, and DCP has no app process tree
+    // left to walk. DCP still stops its own `docker events` watchers with the same walk; that part only the upstream fix
+    // removes (DCP 0.27, https://github.com/microsoft/dcp/pull/278). Delete this once the pinned Aspire ships it.
+    // docs/process/board-pipeline.md, "Processes on the dev machine", has the measurements.
+    private void StopOwnProcesses()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        foreach (var (pid, startedUtc) in processes.Values)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                // The identity check DCP makes for its root: a PID handed to another process since is left alone.
+                if ((process.StartTime.ToUniversalTime() - startedUtc).Duration() > ProcessIdentityTolerance)
+                {
+                    continue;
+                }
+
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(TimeSpan.FromSeconds(10));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or Win32Exception
+                or AggregateException)
+            {
+                // Already gone, or not ours to read. Kill throws AggregateException when part of the tree would not stop.
+            }
+        }
+
+        processes.Clear();
+    }
+
+    // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
+    private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var file = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) { AutoFlush = true };
+            await foreach (var batch in logs.WatchAsync(resourceId).WithCancellation(cancellationToken))
+            {
+                foreach (var line in batch)
+                {
+                    await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                }
+            }
+        }
+        catch (IOException)
+        {
         }
     }
 
@@ -123,17 +300,42 @@ public class AppHostFixture : IAsyncLifetime
     public virtual async ValueTask DisposeAsync()
     {
         await DisposeAppAsync();
+        watching.Dispose();
         GC.SuppressFinalize(this);
     }
 
     // Idempotent: runs after a failed start and again if xUnit then disposes the fixture.
     private async ValueTask DisposeAppAsync()
     {
-        if (app is not null)
+        // Stop watching first: shutting the stack down is not a crash, and the streams end with the app's services.
+        // A watcher that failed still lets the stack shut down, so its containers never outlive the run.
+        await watching.CancelAsync();
+        try
         {
-            var started = app;
-            app = null;
-            await started.DisposeAsync();
+            if (watcher is not null)
+            {
+                var watched = watcher;
+                watcher = null;
+                await watched;
+            }
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                var started = app;
+                app = null;
+                try
+                {
+                    StopOwnProcesses();
+                }
+                finally
+                {
+                    await started.DisposeAsync();
+                }
+            }
         }
     }
+
+    private sealed record OwnProcess(int Pid, DateTime StartedUtc);
 }

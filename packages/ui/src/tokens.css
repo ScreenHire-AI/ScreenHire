@@ -5,12 +5,21 @@
  */
 
 :root {
-  --radius: 0.625rem;
+  /* Section 5: 8px buttons and inputs; the theme derives 6px (`rounded-md`, key caps) and 12px (`rounded-xl`). */
+  --radius: 0.5rem;
 
   --sh-font-display: "Bricolage Grotesque Variable", "Hanken Grotesk Variable", system-ui, sans-serif;
   --sh-font-body: "Hanken Grotesk Variable", system-ui, sans-serif;
   --sh-font-data: "JetBrains Mono Variable", ui-monospace, monospace;
 
+  /* The page title is the one size that steps down on phones; theme.css maps it to `text-page-title`. */
+  --sh-page-title-size: 1.5rem;
+  --sh-page-title-leading: 1.875rem;
+}
+
+/* `.light` lets a box show the light theme inside a dark page, as the style guide does (section 3.3). */
+:root,
+.light {
   /* Recruiter app — light */
   --background: #f7f5f0;
   --foreground: #1c1b19;
@@ -32,6 +41,12 @@
   --input: #ddd7cc;
   --ring: #4338ca;
   --row-selected: #f3f1fc;
+  --scrim: #1c1b19;
+  /* Section 6: the soft surface shadow (panels and cards), the raised layer (the card in hand) and the overlay layer
+     (menus, tooltips, sheets, dialogs). */
+  --elevation-surface: 0 1px 2px rgb(28 27 25 / 0.06), 0 1px 3px rgb(28 27 25 / 0.04);
+  --elevation-raised: 0 4px 12px rgb(28 27 25 / 0.14);
+  --elevation-overlay: 0 16px 48px rgb(28 27 25 / 0.18);
 
   --sidebar: #fbfaf6;
   --sidebar-foreground: #3a3630;
@@ -42,7 +57,7 @@
   --sidebar-border: #e6e1d8;
   --sidebar-ring: #4338ca;
 
-  /* Integrity & status semantics: always shape + colour + label (ADR-0004, design-system §2.2) */
+  /* Status (section 3.2): always its icon, colour and label. `-mark` is the icon colour, `-soft` the badge fill. */
   --status-clear: #0b5d4f;
   --status-clear-soft: #e3f1ec;
   --status-clear-mark: #0f766e;
@@ -54,6 +69,7 @@
   --status-verify-mark: #b4461f;
   --status-ai: #2b2788;
   --status-ai-soft: #ecebfa;
+  --status-ai-mark: #2b2788;
 
   /* Candidate & marketing — warm. Careers pages override the cta tokens with the employer brand. */
   --candidate-background: #fbf6ee;
@@ -69,6 +85,13 @@
   /* Brand-coloured text on the page (4.5:1) and brand borders and focus rings (3:1). */
   --candidate-brand-text: #c2462f;
   --candidate-brand-ui: #c2462f;
+}
+
+@media (width >= 48rem) {
+  :root {
+    --sh-page-title-size: 1.75rem;
+    --sh-page-title-leading: 2.125rem;
+  }
 }
 
 .dark {
@@ -92,6 +115,9 @@
   --input: #3a3731;
   --ring: #9b9cf8;
   --row-selected: #2a2722;
+  --scrim: #000000;
+  /* A dark page swallows a light shadow, so the surface shadow is darker and the layers above get lighter (3.3). */
+  --elevation-surface: 0 1px 2px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.3);
 
   --sidebar: #181714;
   --sidebar-foreground: #cfcac1;
@@ -113,6 +139,7 @@
   --status-verify-mark: #f27a55;
   --status-ai: #c7c8fa;
   --status-ai-soft: #26264a;
+  --status-ai-mark: #c7c8fa;
 
   --candidate-background: #1a1714;
   --candidate-surface: #23201c;

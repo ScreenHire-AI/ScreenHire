@@ -4,9 +4,11 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 
 /**
- * A hiring template in a list. System templates ship with the product and are read-only.
+ * A hiring template in a list. System templates ship with the product and are read-only. An archived template
+ * (`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy.
  */
 export interface HiringTemplateSummary {
   id: string;
@@ -23,4 +25,6 @@ export interface HiringTemplateSummary {
   createdAt: string;
   /** @nullable */
   updatedAt: string | null;
+  lastUpdated: LastUpdate;
+  archived: boolean;
 }

@@ -6,10 +6,12 @@
  */
 
 /**
- * What is serving this API: the product name, the build version and the hosting environment.
+ * What is serving this API: the product name, the build version, the hosting environment, and the API's public origin
+ * (`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.
  */
 export interface ApiMeta {
   name: string;
   version: string;
   environment: string;
+  apiOrigin: string;
 }

@@ -28,7 +28,9 @@ new route is the `/add-dashboard-page` skill.
   `@screenhire/api-client/svelte-query`: `createListJobs()`, `createGetJob(() => params.jobId)`,
   `createMoveApplication(...)`. Their query functions throw `ApiError` on a status outside 2xx, so `query.isError` and
   `query.error.status` are the error state; `describeError` in `#lib/query.ts` words it. `query.data` is the response
-  (`query.data.data` is the body). Never hand-write a `fetch` or a query key.
+  (`query.data.data` is the body). Never hand-write a `fetch` or a query key. The one exception is a file's bytes,
+  which the generated client cannot read: `FileFrame` (the file viewer's isolated frame) fetches the generated download
+  URL itself.
 - The `(app)` shell owns the one `QueryClient` (`#lib/query.ts`) and clears it on sign-out. Component tests render a
   page inside `src/test-support/with-query-client.svelte` and stub `fetch`.
 - The root `+layout.ts` load (the auth guard) is the one SvelteKit `load` that calls the API, with the plain fetch
@@ -48,14 +50,20 @@ new route is the `/add-dashboard-page` skill.
   review checklist (section 2), page templates (section 7) and component catalogue (section 11). This rule covers
   only the code conventions that serve it.
 - shadcn-svelte components in `src/lib/components/ui` are our code: edit them freely, and keep ScreenHire variants
-  there (the `clear`, `review`, `verify` and `ai` badge variants). Add new ones with
+  there (the `clear`, `review`, `verify`, `ai`, `neutral`, `quiet`, `muted` and `count` badge variants). Add new ones with
   `pnpm exec svelte-kit sync` then `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install` from
-  `apps/dashboard`. Use `field` with superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
+  `apps/dashboard`, then change only what the tokens rule below needs (`card` came in this way). Use `field` with
+  superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
 - Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
   `text-muted-foreground`, `text-status-review`). Never a hex value, never `rgb(...)`, never a Tailwind palette
-  colour such as `text-red-600`, never a pixel font size such as `text-[11px]`.
-- Status is a shape mark, a colour and a text label, always all three (design system section 3.2). Colour alone
-  fails WCAG 1.4.1.
+  colour such as `text-red-600`, never a pixel font size such as `text-[11px]`. Type sizes are the type tokens
+  (`text-body`, `text-caption`, ...), never Tailwind's defaults (`text-sm`) or `tracking-*`. A new `--text-*` token
+  also joins `typeScale` in `#lib/utils.ts`, or `cn()` reads it as a colour and drops it; a new named radius
+  (`rounded-panel`) joins `radii` there for the same reason.
+- Status is its icon, a colour and a text label, always all three (design system section 3.2). Colour alone
+  fails WCAG 1.4.1. Every status is a name in `statuses` (`#lib/status.ts`), which holds its icon and colour;
+  `StatusBadge` takes the name and a label. A new status takes the row whose meaning it shares and joins the table in
+  section 3.2.
 - Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
   reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves
   take their stages from `bulkMoveStages` (`#lib/integrity.ts`).
@@ -66,16 +74,26 @@ new route is the `/add-dashboard-page` skill.
   `preferences.shortcutsEnabled` (WCAG 2.1.4: the person can turn them off), skip text fields, menus and dialogs
   (`isTypingTarget` in `#lib/shortcuts.ts`), and work only while their table or board has focus, except the G chords.
   Every shortcut has a visible control. Hints appear as key caps in tooltips, menus and the `?` dialog (design system
-  section 15), never in an always-on bar.
+  section 15), never in an always-on bar. A new shortcut joins `shortcutGroups` in `#lib/shortcuts.ts`, which the `?`
+  dialog lists.
 - The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
-  `extraColumns`, between Stage and Source; build them with `candidateColumns` from `#lib/candidate-table.ts`. The
+  `extraColumns`, right after Candidate (status first, T2); build them with `candidateColumns` from `#lib/candidate-table.ts`. The
   integrity chips are `integrityColumns` (`#lib/integrity-columns.ts`). The table sorts (a column with an accessor gets
-  a header button and `aria-sort`) but never filters: pages filter the rows they pass in (stage, saved view,
-  `IntegrityFilter`), so the count and "select all" match what is shown. Saved views are the list in
-  `#lib/saved-views.ts`.
-- Integrity levels are drawn from `#lib/integrity.ts` (label, shape, tone, badge variant) through `IntegrityChip`;
+  a header button and `aria-sort`, through `SortHeader`) but never filters: pages filter the rows they pass in (stage, saved view,
+  `IntegrityFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
+  the list in `#lib/saved-views.ts`.
+- Every TanStack table sorts the same way (design system L2): `SortHeader` draws each header, and `createTableSort`
+  with `tableSortOptions` (`#lib/table-sort.svelte.ts`) gives it one sorted column, the table's default, two states
+  per column, and the person's choice remembered per table through `preferences` (in the browser). `SortMenu` is the
+  phone's Sort chip on the same table.
+- Reorderable lists are `ReorderList` with its `ReorderGrip`s (design system A7), never up and down buttons. Each list
+  is its own svelte-dnd-action zone with its own type; the library's settings live once in `#lib/dnd.ts`.
+- Integrity levels are drawn from `#lib/integrity.ts` (label, short label, status) through `IntegrityChip`;
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 
 ## Checks
 
 - `pnpm --filter @screenhire/dashboard check` runs `svelte-check --fail-on-warnings`. A warning fails the gate.
+- `src/tokens-only.test.ts` (Vitest) fails on a font size or letter spacing off the type tokens, a hex colour, a
+  colour function such as `rgb(` or a Tailwind palette colour anywhere in `apps/dashboard/src`, the shadcn-svelte
+  sources included.

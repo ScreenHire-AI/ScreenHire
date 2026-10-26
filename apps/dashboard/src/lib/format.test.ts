@@ -1,32 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { age, ago, eta, formatSalary, initials } from './format.js';
-
-const now = Date.parse('2026-10-20T12:00:00Z');
-const before = (ms: number) => new Date(now - ms).toISOString();
-
-describe('age and ago', () => {
-  it.each([
-    [30_000, 'now', 'just now'],
-    [5 * 60_000, '5m', '5m ago'],
-    [3 * 3_600_000, '3h', '3h ago'],
-    [2 * 86_400_000, '2d', '2d ago'],
-    [15 * 86_400_000, '2w', '2w ago'],
-  ])('%i ms ago is %s, or "%s" in a sentence', (elapsed, compact, sentence) => {
-    expect(age(before(elapsed), now)).toBe(compact);
-    expect(ago(before(elapsed), now)).toBe(sentence);
-  });
-});
-
-describe('eta', () => {
-  it.each([
-    [4_000, '~4s'],
-    [5 * 60_000, '~5m'],
-    [4 * 3_600_000, '~4h'],
-    [86_400_000 + 300_000, '~1d'],
-  ])('%i ms from now is %s', (remaining, expected) => {
-    expect(eta(new Date(now + remaining).toISOString(), now)).toBe(expected);
-  });
-});
+import { fileSize, formatSalary, initials } from './format.js';
 
 describe('formatSalary', () => {
   // The compact suffix's case comes from the runtime's locale data: "K" in Chromium, "k" in some Node builds.
@@ -42,5 +15,15 @@ describe('initials', () => {
     expect(initials('Casey Morgan')).toBe('CM');
     expect(initials('Riley')).toBe('R');
     expect(initials('Ana María de la Cruz')).toBe('AM');
+  });
+});
+
+describe('fileSize', () => {
+  it.each([
+    [120, '1 kB'],
+    [48_200, '48 kB'],
+    [2_430_000, '2.4 MB'],
+  ])('%i bytes is %s', (bytes, expected) => {
+    expect(fileSize(bytes)).toBe(expected);
   });
 });

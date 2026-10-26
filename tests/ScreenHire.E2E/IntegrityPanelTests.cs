@@ -10,13 +10,15 @@ namespace ScreenHire.E2E;
 /// The integrity UI in a real browser (ADR-0004, docs/architecture/integrity-engine.md section 7): the synthetic
 /// applicants apply through the careers submission path while the recruiter watches the job, their chips and the job's
 /// overview arrive live, the evidence panel shows the reasons, evidence, next step and AI policy, and a dismissal with a
-/// reason lands in the audit log and takes the candidate out of "Needs review". Each test signs in as a new person with
+/// reason lands in the audit log and takes the candidate out of "To review". Each test signs in as a new person with
 /// a new organization.
 /// </summary>
 public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixture)
 {
     // The worker assesses asynchronously after each submission; the first run after the stack starts is the slowest.
     private static readonly LocatorAssertionsToContainTextOptions Assessed = new() { Timeout = 60_000 };
+
+    private static readonly LocatorAssertionsToBeVisibleOptions Visible = new() { Timeout = 60_000 };
 
     private static readonly string[] Gb = ["GB"];
 
@@ -52,54 +54,60 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         // (tests/ScreenHire.UnitTests/Integrity/Golden); the farm's reason counts differ from them because these
         // submissions answer only the resume question, which makes 20 seconds a plausible time to complete the form.
         await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification recommended, 6 reasons", Assessed);
-        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
-        await Expect(Chip(farmSecond.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
-        await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: Not indicated");
+        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested, 6 reasons", Assessed);
+        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
+        await Expect(Chip(farmSecond.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
+        await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: No signs of AI help");
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the chips updated in place");
 
-        var legend = Page.GetByRole(AriaRole.List, new() { Name = "Authenticity levels" });
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "1 No concerns" })).ToBeVisibleAsync();
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "3 Verification recommended" })).ToBeVisibleAsync();
+        var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 1" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-integrity-job-light");
 
         // The legend filters the table to one level, and a second press shows everyone again.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
-        await legend.GetByRole(AriaRole.Button, new() { Name = "3 Verification recommended" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(3);
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName })).ToHaveCountAsync(0);
-        await legend.GetByRole(AriaRole.Button, new() { Name = "3 Verification recommended" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(4);
 
-        // The bot's evidence panel: reasons, evidence, the next step and the AI policy, and nothing that decides.
+        // The bot's Integrity tab: reasons, evidence, the next step and the AI policy, and nothing that decides.
         await table.GetByRole(AriaRole.Link, new() { Name = bot.FullName }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(bot.FullName);
-        var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" });
-        await Expect(authenticity).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"\?tab=integrity$"));
+        var tab = Page.GetByRole(AriaRole.Tabpanel);
+        var authenticity = Region("Authenticity");
+        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(Visible);
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_SUBMIT_VELOCITY", "AUTO_WEBDRIVER", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID", "NET_DATACENTER_IP" })
         {
             await Expect(authenticity.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
         }
 
         await Expect(authenticity).ToContainTextAsync("Suggested next step: Confirm the candidate is who they say they are");
+        // A reason expands to its evidence.
+        await ExpandAllAsync(authenticity);
         await Expect(authenticity.Locator("[data-signal='NET_DATACENTER_IP']")).ToContainTextAsync("Example Cloud Hosting (AS64497)");
         await Expect(authenticity.Locator("[data-signal='AUTO_WEBDRIVER'] [data-evidence-kind='List']")).ToContainTextAsync("webdriver");
         await Expect(authenticity.Locator("[data-signal='AUTO_SUBMIT_VELOCITY'] [data-evidence-kind='Metric']")).ToContainTextAsync("Plausible minimum for this form");
-        var ai = panel.GetByRole(AriaRole.Region, new() { Name = "AI assistance · informational" });
-        await Expect(ai).ToContainTextAsync("AI assistance: Not indicated");
-        await Expect(ai).ToContainTextAsync("Job policy: Allowed with disclosure · Declared AI use: No");
-        await Expect(panel.GetByRole(AriaRole.Button, new() { Name = "Request verification" })).ToBeDisabledAsync();
-        await Expect(panel).ToContainTextAsync("Phase 2");
-        await Expect(panel.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("reject", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
-        await Expect(panel).ToContainTextAsync("No automated decision has been made. Every action is logged.");
-        (await panel.TextContentAsync()).Should().NotContain("%", "integrity output has no percentage (ADR-0004)");
+        var ai = Region("AI assistance");
+        await Expect(ai.GetByRole(AriaRole.Img, new() { NameRegex = new("^AI assistance: No signs of AI help") })).ToBeVisibleAsync();
+        await Expect(ai).ToContainTextAsync("Job policy: Allowed with disclosure");
+        (await ai.TextContentAsync()).Should().NotContain("Declared AI use", "the declaration is on the Application tab, not repeated here");
+        // A feature that does not exist yet is hidden, not shown disabled (design system A3).
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Request verification", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
+        await Expect(tab).Not.ToContainTextAsync("Phase 2");
+        await Expect(tab.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("reject", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
+        await Expect(tab).ToContainTextAsync("No automated decision has been made. Every action is logged.");
+        (await tab.TextContentAsync()).Should().NotContain("%", "integrity output has no percentage (ADR-0004)");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-integrity-panel-light");
 
         // Dismissing with a reason records the decision; the level stays as assessed.
-        await authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss authenticity with a reason" }).ClickAsync();
+        await authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Dismiss this authenticity assessment?" });
         await dialog.GetByRole(AriaRole.Radio, new() { Name = "Verified outside ScreenHire" }).CheckAsync();
         await dialog.GetByLabel("Note (optional)").FillAsync("Video call on Monday; ID checked.");
@@ -107,11 +115,14 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Dismiss with this reason" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
 
-        var log = panel.GetByRole(AriaRole.Region, new() { Name = "Review log" });
+        var log = Region("Review log");
         await Expect(log).ToContainTextAsync("Dismissed authenticity: Verified outside ScreenHire by you");
         await Expect(log).ToContainTextAsync("\"Video call on Monday; ID checked.\"");
-        await Expect(authenticity).ToContainTextAsync("Authenticity: Verification recommended, dismissed after review");
-        await Expect(authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss authenticity with a reason" })).ToHaveCountAsync(0);
+        await Expect(authenticity).ToContainTextAsync("Dismissed by you");
+        await Expect(authenticity).ToContainTextAsync("Verified outside ScreenHire");
+        // The level stays as assessed.
+        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync();
+        await Expect(authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true })).ToHaveCountAsync(0);
 
         // The audit entry is in the API's record too, with the reviewer.
         var record = await Page.APIRequest.GetAsync(DashboardUrl($"/v1/applications/{botId}/integrity"));
@@ -131,31 +142,33 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await SaveScreenshotAsync(Page, "dashboard-integrity-panel-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
 
-        // "Needs review" now holds the two farm members; the dismissed bot and the genuine applicant are not in it.
-        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^Needs review") }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Needs review");
+        // "To review" now holds the two farm members; the dismissed bot and the genuine applicant are not in it.
+        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^To review") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("To review");
         var queue = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
         await Expect(CandidateLinks(queue)).ToHaveCountAsync(2);
         await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmFirst.FullName })).ToBeVisibleAsync();
         await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmSecond.FullName })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
-        // A farm member's panel shows what it shares with the others; the genuine applicant's has nothing to dismiss.
+        // A farm member's Integrity tab shows what it shares with the others; the genuine applicant's has nothing to dismiss.
         await queue.GetByRole(AriaRole.Link, new() { Name = farmSecond.FullName }).ClickAsync();
-        var farmPanel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        await Expect(farmPanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" })).ToContainTextAsync("Authenticity: Verification recommended", Assessed);
-        var shared = farmPanel.Locator("[data-signal='ID_DUPLICATE_IN_ORG']");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        await Expect(Region("Authenticity").GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(Visible);
+        var shared = Page.Locator("[data-signal='ID_DUPLICATE_IN_ORG']");
+        await ExpandAllAsync(Region("Authenticity"));
         await Expect(shared).ToContainTextAsync("Same device");
         await Expect(shared).ToContainTextAsync("Same resume file");
-        await Expect(farmPanel.Locator("[data-signal='NET_DATACENTER_IP']")).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-signal='NET_DATACENTER_IP']")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         await Page.GotoAsync(DashboardUrl($"/jobs/{scene.JobId}"));
         await Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = genuine.FullName }).ClickAsync();
-        var genuinePanel = Page.GetByRole(AriaRole.Region, new() { Name = "Integrity" });
-        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity" })).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(genuinePanel).ToContainTextAsync("Suggested next step: No action needed.");
-        await Expect(genuinePanel.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Dismiss") })).ToHaveCountAsync(0);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Integrity") }).ClickAsync();
+        var genuineTab = Page.GetByRole(AriaRole.Tabpanel);
+        await Expect(Region("Authenticity").GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: No concerns") })).ToBeVisibleAsync(Visible);
+        await Expect(genuineTab).ToContainTextAsync("Suggested next step: No action needed.");
+        await Expect(genuineTab.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Dismiss") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
     }
 
@@ -209,6 +222,19 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
     private ILocator Chip(string candidate, string kind) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
             .Locator($"[data-integrity-chip='{kind}']");
+
+    private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
+
+    // Opens every list of reasons in the panel; the button turns into Collapse all, so the count of Expand all falls.
+    private static async Task ExpandAllAsync(ILocator panel)
+    {
+        var expand = panel.GetByRole(AriaRole.Button, new() { Name = "Expand all" });
+        for (var left = await expand.CountAsync(); left > 0; left--)
+        {
+            await expand.First.ClickAsync();
+            await Expect(expand).ToHaveCountAsync(left - 1);
+        }
+    }
 
     private static ILocator CandidateLinks(ILocator table) => table.Locator("[data-row-link]");
 

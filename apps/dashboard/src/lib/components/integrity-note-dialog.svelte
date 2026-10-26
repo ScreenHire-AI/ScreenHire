@@ -1,9 +1,11 @@
 <script lang="ts">
+  import ClipboardPenIcon from '@lucide/svelte/icons/clipboard-pen';
   import { addIntegrityNote } from '@screenhire/api-client';
   import { AddIntegrityNoteBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -56,7 +58,7 @@
 <Dialog.Root bind:open>
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
-      <Dialog.Title>Add a note</Dialog.Title>
+      <Dialog.Title>Add a review note</Dialog.Title>
       <Dialog.Description>Your team sees it in the review log, with your name and the time.</Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
@@ -73,11 +75,11 @@
         <Field.Error id="integrity-note-error" errors={$errors.note?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $errors._errors}
-        <p role="alert" class="text-sm text-destructive">{$errors._errors[0]}</p>
+        <FailureText message={$errors._errors[0]} />
       {/if}
       <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline' }))}>Cancel</Dialog.Close>
-        <Button type="submit" disabled={$submitting}>Add note</Button>
+        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+        <Button type="submit" size="lg" disabled={$submitting}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

@@ -89,7 +89,7 @@ public sealed class ApplicationFilesTests(AppHostFixture fixture)
 
     private static JsonObject Application(Guid uploadId) => new()
     {
-        ["candidate"] = new JsonObject { ["fullName"] = "Casey Morgan", ["email"] = "casey.morgan@example.com" },
+        ["candidate"] = new JsonObject { ["firstName"] = "Casey", ["lastName"] = "Morgan", ["email"] = "casey.morgan@example.com" },
         ["privacyNoticeVersion"] = "2026-10-20",
         ["answers"] = new JsonArray(
             new JsonObject { ["questionId"] = "work_authorization", ["value"] = "yes" },

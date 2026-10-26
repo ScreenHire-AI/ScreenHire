@@ -13,6 +13,10 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     // WCAG 2.2 level A and AA (CLAUDE.md, Frontend rules); axe's best-practice rules are advisory, so not enforced here.
     private static readonly List<string> WcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
+    // The dashboard formats dates in the browser's locale (design system section 13); pin it so tests read the same text
+    // on every machine.
+    private const string Locale = "en-US";
+
     private IBrowserContext? context;
     private bool javaScriptEnabled = true;
 
@@ -22,7 +26,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        context = await fixture.Browser.NewContextAsync();
+        context = await fixture.Browser.NewContextAsync(new() { Locale = Locale });
         Page = await context.NewPageAsync();
     }
 
@@ -34,6 +38,12 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
             {
                 if (TestContext.Current.TestState?.Result == TestResult.Failed)
                 {
+                    // A server that died mid-run fails every test that reaches it, each with its own symptom.
+                    foreach (var stopped in fixture.StoppedResources)
+                    {
+                        TestContext.Current.TestOutputHelper?.WriteLine(stopped);
+                    }
+
                     await SaveScreenshotAsync();
                 }
             }
@@ -65,16 +75,24 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     /// Replaces <see cref="Page"/> with one in a fresh context that runs no JavaScript, like a browser with scripts
     /// turned off, for journeys that must work on plain HTML.
     /// </summary>
-    protected async Task WithoutJavaScriptAsync()
+    protected Task WithoutJavaScriptAsync() => NewContextAsync(javaScript: false);
+
+    /// <summary>
+    /// Replaces <see cref="Page"/> with one in a fresh context that runs JavaScript again, for a journey that hands over
+    /// from a page without scripts (a candidate) to one that needs them (the dashboard). Cookies start empty.
+    /// </summary>
+    protected Task WithJavaScriptAsync() => NewContextAsync(javaScript: true);
+
+    private async Task NewContextAsync(bool javaScript)
     {
         if (context is not null)
         {
             await context.DisposeAsync();
         }
 
-        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false });
+        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = javaScript, Locale = Locale });
         Page = await context.NewPageAsync();
-        javaScriptEnabled = false;
+        javaScriptEnabled = javaScript;
     }
 
     /// <summary>Runs axe on the current page and fails with a readable list of every WCAG 2.2 AA violation.</summary>
@@ -118,7 +136,10 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
         // CSS transitions only: an endless animation (a skeleton's pulse) would never finish.
         await page.EvaluateAsync(
             "() => Promise.all(document.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished.catch(() => undefined)))");
-        var result = await page.RunAxe(new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
+        // A frame sandboxed with no permissions (an email preview) runs no scripts, so axe could never answer from inside
+        // it and the run would wait forever. Its element, title included, is still checked from the page.
+        var context = new AxeRunContext { Exclude = [new AxeSelector("iframe[sandbox='']")] };
+        var result = await page.RunAxe(context, new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
 
         result.Violations.Should().BeEmpty("axe found WCAG 2.2 AA violations on {0}:{1}", page.Url, Describe(result.Violations));
     }

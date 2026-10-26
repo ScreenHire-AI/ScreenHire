@@ -8,9 +8,11 @@
 //                               override individual ports with Ports:Api / Ports:Marketing / Ports:Careers / Ports:Dashboard
 //                               / Ports:Mailpit (its web UI) / Ports:DevSso. `aspire start --isolated` (what /preview
 //                               uses in a worktree) randomises every port, these and the Aspire dashboard's included.
-//   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: each app's `preview` script over the output of
-//                               `pnpm -r build`, i.e. what ships (the end-to-end tests use it). None: no JS apps at all
-//                               (the integration tests use it; only the API, worker and infrastructure start).
+//   Frontends   (default Dev)   Dev: dev servers with hot reload. Built: the output of `pnpm -r build` served as it
+//                               ships (the end-to-end tests use it): the dashboard and marketing sites from Caddy
+//                               containers (Caddy/*/Caddyfile; the dashboard's sends /v1 to the API), careers from its
+//                               own Node server, dist/server/entry.mjs. None: no JS apps at all (the integration tests
+//                               use it; only the API, worker and infrastructure start).
 //   Demo        (on with Dev)   the local demo's data on Brightwater (the API's DevelopmentDemo): on with Frontends Dev,
 //                               off with Built and None, which the test stacks use. The integration tests'
 //                               DevelopmentDemoTests turn it on for a stack of their own. With it on, the API is healthy
@@ -24,6 +26,11 @@
 //                               worker. The worker's Development settings use the deterministic fake model; Provider
 //                               None turns the check into "unavailable"; in Anthropic mode the key comes from the secret
 //                               parameter anthropic-api-key, never from these keys.
+//   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
+//                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
+//                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
+//                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
+//                               never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -43,8 +50,10 @@ var demo = bool.TryParse(settings["Demo"], out var demoSetting) ? demoSetting : 
 int? PortFor(string name, int fallback) =>
     !pinPorts ? null : int.TryParse(settings[$"Ports:{name}"], out var port) ? port : fallback;
 
-// pgvector image: near-duplicate answer detection needs the `vector` extension (ADR-0008).
-var postgres = builder.AddPostgres("postgres").WithImage("pgvector/pgvector", "pg17");
+// pgvector image: near-duplicate answer detection needs the `vector` extension (ADR-0008). The API, the worker, their
+// Wolverine agents and the tests each keep their own connection pool, so a burst (the worker assessing every applicant
+// at start) went past Postgres's default 100 connections and refused clients; 300 leaves room for all of them.
+var postgres = builder.AddPostgres("postgres").WithImage("pgvector/pgvector", "pg17").WithArgs("-c", "max_connections=300");
 if (persistData)
 {
     postgres.WithDataVolume();
@@ -129,10 +138,12 @@ if (builder.Environment.IsDevelopment())
         .WaitFor(devSso);
 }
 
-// The key CallWebhook automations sign their deliveries with (ScreenHire:Webhooks:SigningKey). Generated per run
-// locally; production sets its own secret.
+// The platform key webhooks are signed with (ScreenHire:Webhooks:SigningKey): CallWebhook automations derive each
+// organization's key from it, subscriptions each endpoint's secret. The worker signs; the API derives an endpoint's
+// secret to show it once. Generated and kept in the AppHost's user secrets locally; production sets its own secret.
 var webhookSigningKey = builder.AddParameter(
     "webhook-signing-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+api.WithEnvironment("ScreenHire__Webhooks__SigningKey", webhookSigningKey);
 
 var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
     .WithReference(appDatabase)
@@ -149,6 +160,17 @@ foreach (var (key, value) in settings.GetSection("Distribution").AsEnumerable(ma
     if (value is not null && !key.Equals("GoogleIndexing:ServiceAccountKeyJson", StringComparison.OrdinalIgnoreCase))
     {
         var name = $"ScreenHire__Distribution__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePathsRelative: true))
+{
+    // The signing key is a secret: it goes through the parameter above, never as plain configuration.
+    if (value is not null && !key.Equals("SigningKey", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Webhooks__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
     }
@@ -194,12 +216,25 @@ if (demo)
 if (frontends != FrontendMode.None)
 {
     var apiUrl = api.GetEndpoint("http");
-    var script = frontends == FrontendMode.Built ? "preview" : "dev";
+    var built = frontends == FrontendMode.Built;
+
+    // Built serves what ships, with no Vite or Astro preview server: their Node processes died mid-run in the end-to-end
+    // tests with a native abort (0xC0000409) and no message (docs/process/testing.md, "Flake history"). The static apps
+    // go to Caddy, a real static file server, with Caddyfiles in Caddy/; careers runs its own Node server, the one that
+    // ships, with no pnpm or Astro CLI around it. Caddy is the official caddy image (Apache-2.0), pinned.
+    IResourceBuilder<ContainerResource> StaticSite(string name, string site, int? port) =>
+        builder.AddContainer(name, "caddy", "2.10.2-alpine")
+            .WithBindMount(Path.Combine(builder.AppHostDirectory, "Caddy", name), "/etc/caddy", isReadOnly: true)
+            .WithBindMount(Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", site)), "/srv", isReadOnly: true)
+            .WithHttpEndpoint(port: port, targetPort: 8080)
+            .WithHttpHealthCheck("/");
 
     // Health checks make WaitFor and the test fixtures wait until each server actually answers, not just until the
     // process starts. Careers' "/" redirects to the demo board, which also proves the API round trip.
-    var careers = builder.AddJavaScriptApp("careers", "../careers", script)
-        .WithPnpm(install: false)
+    IResourceBuilder<Aspire.Hosting.JavaScript.JavaScriptAppResource> careers = built
+        ? builder.AddNodeApp("careers", "../careers", "dist/server/entry.mjs")
+        : builder.AddJavaScriptApp("careers", "../careers", "dev");
+    careers.WithPnpm(install: false)
         .WithHttpEndpoint(port: PortFor("Careers", 4322), env: "PORT")
         .WithEnvironment("API_URL", apiUrl)
         .WithHttpHealthCheck("/")
@@ -207,35 +242,51 @@ if (frontends != FrontendMode.None)
 
     // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
     // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
-    // The careers server and the API read the same ScreenHire:Domains settings, so the canonical, sitemap, feed, job-board
-    // API and Google URLs the API builds are these tenant hosts.
+    // The careers server, the API and the worker read the same ScreenHire:Domains settings, so the canonical, sitemap,
+    // feed, job-board API and Google URLs the API builds, and the follow-up questionnaire links the worker emails, are
+    // these tenant hosts.
     var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
-    foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api })
+    foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api, worker })
     {
         resource.WithEnvironment("ScreenHire__Domains__CareersDomain", careersDomain)
             .WithEnvironment("ScreenHire__Domains__CareersHostPattern", "{tenant}.{CareersDomain}");
     }
 
-    builder.AddJavaScriptApp("marketing", "../marketing", script)
-        .WithPnpm(install: false)
-        .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")
-        .WithHttpHealthCheck("/");
+    if (built)
+    {
+        StaticSite("marketing", "marketing/dist", PortFor("Marketing", 4321));
+    }
+    else
+    {
+        builder.AddJavaScriptApp("marketing", "../marketing", "dev")
+            .WithPnpm(install: false)
+            .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")
+            .WithHttpHealthCheck("/");
+    }
 
-    var dashboard = builder.AddViteApp("dashboard", "../dashboard", script)
-        .WithPnpm(install: false)
-        .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Dashboard", 4323))
-        .WithEnvironment("API_URL", apiUrl)
-        .WithHttpHealthCheck("/")
-        .WaitFor(api);
+    // The dashboard reaches the API through its own /v1 path (cookies stay same-origin): the Vite dev server's proxy, or
+    // in Built mode the Caddyfile's, which also carries the real-time hub's WebSocket.
+    IResourceBuilder<IResourceWithEndpoints> dashboard = built
+        ? StaticSite("dashboard", "dashboard/build", PortFor("Dashboard", 4323)).WithEnvironment("API_URL", apiUrl).WaitFor(api)
+        : builder.AddViteApp("dashboard", "../dashboard", "dev")
+            .WithPnpm(install: false)
+            .WithEndpoint("http", endpoint => endpoint.Port = PortFor("Dashboard", 4323))
+            .WithEnvironment("API_URL", apiUrl)
+            .WithHttpHealthCheck("/")
+            .WaitFor(api);
 
     // Sign-in cookies, OIDC redirect URIs and emailed links point at the dashboard, which reaches the API through its
-    // /v1 proxy. Its real endpoint, because ports are random in tests.
-    api.WithEnvironment("ScreenHire__Domains__AppHost", dashboard.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
+    // /v1 proxy. Its real endpoint, because ports are random in tests. The worker links to it from mention emails.
+    var appHost = dashboard.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    api.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
+    worker.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
 }
 else
 {
-    // No dashboard: the API serves its own sign-in redirects.
-    api.WithEnvironment("ScreenHire__Domains__AppHost", api.GetEndpoint("http").Property(EndpointProperty.HostAndPort));
+    // No dashboard: the API serves its own sign-in redirects, and mention emails link to the same host.
+    var appHost = api.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    api.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
+    worker.WithEnvironment("ScreenHire__Domains__AppHost", appHost);
 }
 
 api.WithEnvironment("ScreenHire__Domains__ApiHost", api.GetEndpoint("http").Property(EndpointProperty.HostAndPort));

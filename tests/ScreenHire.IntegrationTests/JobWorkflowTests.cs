@@ -433,13 +433,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
             tenant.SetOrganization(organizationId);
             await using (var db = await fixture.CreateDbContextAsync(tenant, cancellationToken))
             {
-                db.OrganizationMembers.Add(new OrganizationMember
-                {
-                    OrganizationId = organizationId,
-                    UserId = userId,
-                    Role = OrganizationRole.Viewer,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                });
+                db.OrganizationMembers.Add(OrganizationMember.Create(organizationId, userId, OrganizationRole.Viewer, DateTimeOffset.UtcNow));
                 await db.SaveChangesAsync(cancellationToken);
             }
 

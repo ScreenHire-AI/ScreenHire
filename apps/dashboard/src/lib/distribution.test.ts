@@ -1,34 +1,33 @@
 import type { JobPostingStatus } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { board, now, posting } from '../test-support/fixtures.js';
-import { boardAction, boardRows, describePosting } from './distribution.js';
+import { boardAction, boardRows, describePosting, postingCounts, postingProblems } from './distribution.js';
 
 const later = (ms: number) => new Date(now + ms).toISOString();
 
 describe('describePosting', () => {
-  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string][] = [
-    ['Live', {}, 'LIVE', 'circle'],
-    ['Queued', { expectedBy: later(20_000) }, 'QUEUED · ~20S', 'diamond'],
-    ['Submitted', { expectedBy: later(90_000) }, 'SUBMITTED · ~2M', 'diamond'],
-    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'SENT · ~1D', 'diamond'],
-    ['Submitted', { confirmsLive: false }, 'SENT', 'diamond'],
-    ['Closing', { expectedBy: later(30_000) }, 'REMOVING · ~30S', 'diamond'],
-    ['Closing', { confirmsRemoval: false }, 'REMOVAL REQUESTED', 'diamond'],
-    ['Closed', {}, 'REMOVED', 'ring'],
-    ['Rejected', { lastError: 'Title too long.' }, 'REJECTED', 'square'],
-    ['Error', {}, 'ERROR', 'square'],
-    ['Draft', { issues: ['The description needs 100 characters.'] }, 'NEEDS FIXES', 'square'],
+  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string | null, string][] = [
+    ['Live', {}, 'Live', null, 'open'],
+    ['Queued', { expectedBy: later(20_000) }, 'Queued', '~20s', 'waiting'],
+    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', '~2m', 'waiting'],
+    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', '~1d', 'waiting'],
+    ['Submitted', { confirmsLive: false }, 'Sent', null, 'waiting'],
+    ['Closing', { expectedBy: later(30_000) }, 'Removing', '~30s', 'waiting'],
+    ['Closing', { confirmsRemoval: false }, 'Removal requested', null, 'waiting'],
+    ['Closed', {}, 'Removed', null, 'notInEffect'],
+    ['Rejected', { lastError: 'Title too long.' }, 'Needs fixes', null, 'needsFixes'],
+    ['Error', {}, 'Error', null, 'needsFixes'],
+    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', null, 'needsFixes'],
   ];
 
-  it.each(cases)('%s %o reads %s with a %s mark', (state, overrides, label, shape) => {
+  it.each(cases)('%s %o reads %s, estimate %s, as a %s status', (state, overrides, label, eta, status) => {
     const view = describePosting(posting('board', 'Board', { state, ...overrides }), now);
 
-    expect(view.label).toBe(label);
-    expect(view.shape).toBe(shape);
+    expect(view).toMatchObject({ label, eta, status });
   });
 
   it('says an estimate has passed instead of counting below zero', () => {
-    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).label).toBe('QUEUED · OVERDUE');
+    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).eta).toBe('Overdue');
   });
 
   it("explains a refusal with the board's reason and fixes with the board's issues", () => {
@@ -37,7 +36,7 @@ describe('describePosting', () => {
   });
 
   it('reads "not posted" for a board the job is not on', () => {
-    expect(describePosting(undefined, now)).toMatchObject({ label: 'NOT POSTED', shape: 'ring' });
+    expect(describePosting(undefined, now)).toMatchObject({ label: 'Not posted', status: 'notInEffect' });
   });
 });
 
@@ -79,5 +78,54 @@ describe('boardRows', () => {
       ['sandbox', 'Live'],
       ['retired', 'Closing'],
     ]);
+  });
+});
+
+describe('postingCounts', () => {
+  it('counts the boards a posting is on or on its way to, out of every board', () => {
+    const boards = [board('careers', 'Careers page'), board('adzuna', 'Adzuna'), board('jooble', 'Jooble'), board('sandbox', 'Sandbox board')];
+    const rows = boardRows(boards, [
+      posting('careers', 'Careers page', { state: 'Live' }),
+      posting('adzuna', 'Adzuna', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] }),
+      posting('jooble', 'Jooble', { state: 'Submitted', confirmsLive: false }),
+    ]);
+
+    expect(postingCounts(rows)).toEqual({ posted: 2, total: 4 });
+  });
+});
+
+describe('postingProblems', () => {
+  const rowsWith = (...postings: JobPostingStatus[]) => boardRows(postings.map((p) => board(p.boardId, p.boardName)), postings);
+
+  it('says a posting whose checks found issues was not taken, with the issues, never that the board refused it', () => {
+    const problems = postingProblems(rowsWith(posting('adzuna', 'Adzuna', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] })));
+
+    expect(problems).toEqual([
+      { kind: 'notTaken', boards: ['Adzuna'], text: 'Adzuna did not take this job. Adzuna needs a description of at least 100 characters.' },
+    ]);
+  });
+
+  it("names every board a refusal covers, with each board's reason", () => {
+    const problems = postingProblems(
+      rowsWith(
+        posting('adzuna', 'Adzuna', { state: 'Rejected', lastError: 'Title too long.' }),
+        posting('jooble', 'Jooble', { state: 'Rejected', lastError: null }),
+        posting('careers', 'Careers page', { state: 'Live' }),
+      ),
+    );
+
+    expect(problems).toEqual([
+      { kind: 'refused', boards: ['Adzuna', 'Jooble'], text: "Adzuna and Jooble refused this job's posting. Adzuna: Title too long." },
+    ]);
+  });
+
+  it('says a board that did not answer did not answer', () => {
+    expect(postingProblems(rowsWith(posting('sandbox', 'Sandbox board', { state: 'Error' })))).toEqual([
+      { kind: 'noAnswer', boards: ['Sandbox board'], text: 'Sandbox board did not answer. Retry to send it again.' },
+    ]);
+  });
+
+  it('finds nothing when every posting is fine', () => {
+    expect(postingProblems(rowsWith(posting('careers', 'Careers page', { state: 'Live' }), posting('jooble', 'Jooble', { state: 'Closing' })))).toEqual([]);
   });
 });

@@ -1,3 +1,9 @@
+---
+type: Research
+title: "Bootstrap Hosting (< $250/mo) with a Path to SOC 2"
+description: "Bootstrap hosting configurations under $250 a month compared, startup credits, Cloudflare Free in front, transactional email providers, and the path to SOC 2 Type II, behind ADR-0007."
+tags: [research, hosting, soc2]
+---
 # Bootstrap Hosting (< $250/mo) with a Path to SOC 2
 
 > Research snapshot: **2026-10-18**. Owner constraint: well under $250/mo now; room to grow into SOC 2 Type II.

@@ -1,5 +1,13 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
-import { createColumnHelper, createSortedRowModel, rowSortingFeature, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
+import {
+  createColumnHelper,
+  createSortedRowModel,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_basic,
+  tableFeatures,
+  type ColumnDef,
+} from '@tanstack/svelte-table';
 
 /**
  * The candidate table's TanStack Table setup, shared with code that adds columns. It sorts (a column with an accessor
@@ -10,7 +18,7 @@ import { createColumnHelper, createSortedRowModel, rowSortingFeature, sortFn_bas
 export const candidateTableFeatures = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
-  sortFns: { basic: sortFn_basic },
+  sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric },
 });
 
 export type CandidateTableFeatures = typeof candidateTableFeatures;
@@ -19,8 +27,8 @@ export type CandidateTableFeatures = typeof candidateTableFeatures;
 export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSummary, any>;
 
 /**
- * Builds extra columns for the table's `extraColumns` slot, which sits between Stage and Source. The integrity columns
- * go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
+ * Builds extra columns for the table's `extraColumns` slot, which sits right after Candidate (status first, T2). The
+ * integrity columns go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
  * column that only draws something is a display column:
  *
  * ```ts
@@ -29,5 +37,13 @@ export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSumma
  */
 export const candidateColumns = createColumnHelper<CandidateTableFeatures, ApplicationSummary>();
 
-/** Each row is exactly this tall (design-system section 4); the virtualizer relies on it. */
-export const candidateRowHeight = 40;
+/** Each row is exactly this tall (design system section 5); the virtualizer relies on it. */
+export const candidateRowHeight = 48;
+
+/** A list's search: every word of the query appears in the candidate's name, or the job's title when `withJob`. */
+export function matchesSearch(application: ApplicationSummary, query: string, withJob = false): boolean {
+  const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const text = (withJob ? `${application.candidateName} ${application.jobTitle}` : application.candidateName).toLocaleLowerCase();
+  return words.every((word) => text.includes(word));
+}

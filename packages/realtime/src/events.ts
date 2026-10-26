@@ -18,6 +18,24 @@ export const realtimeEventSchemas = {
     eventId: id,
     movedAt: instant,
   }),
+  // An email went to an application's candidate and is on its timeline.
+  ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant }),
+  // A note from the hiring team: ids only, the dashboard reads the note through GET /v1/applications/{id}/timeline.
+  ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant }),
+  // A note's author changed its text, or someone deleted it (and its text): the timeline refetches.
+  ApplicationNoteEdited: z.object({ organizationId: id, applicationId: id, jobId: id, noteId: id, editedAt: instant }),
+  ApplicationNoteDeleted: z.object({ organizationId: id, applicationId: id, jobId: id, noteId: id, deletedAt: instant }),
+  // A note mentioned a teammate; only their dashboard shows a card. authorUserId is null when an API key wrote it.
+  TeammateMentioned: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    noteId: id,
+    mentionId: id,
+    mentionedUserId: id,
+    authorUserId: id.nullable(),
+    mentionedAt: instant,
+  }),
   ApplicationSubmitted: z.object({
     organizationId: id,
     applicationId: id,
@@ -26,6 +44,14 @@ export const realtimeEventSchemas = {
     eventId: id,
     submittedAt: instant,
   }),
+  // A person or an API key added or removed a tag; lists that filter by tag refetch.
+  ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant }),
+  ScorecardSubmitted: z.object({ organizationId: id, applicationId: id, jobId: id, scorecardId: id, eventId: id, submittedAt: instant }),
+  QuestionnaireAnswered: z.object({ organizationId: id, applicationId: id, jobId: id, requestId: id, eventId: id, answeredAt: instant }),
+  ApplicationTaskCreated: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, createdAt: instant }),
+  ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, completedAt: instant }),
+  // Undo after ticking a task.
+  ApplicationTaskReopened: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, reopenedAt: instant }),
   // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
   AutomationRunFinished: z.object({
     organizationId: id,
@@ -55,6 +81,8 @@ export const realtimeEventSchemas = {
     eventId: id,
     assessedAt: instant,
   }),
+  // Someone joined or left a job's hiring team (ADR-0015): the job's team, the Team page's job counts and the jobs list refetch.
+  HiringTeamChanged: z.object({ organizationId: id, jobId: id, changedAt: instant }),
   JobClosed: z.object({ organizationId: id, jobId: id, closedAt: instant }),
   // A job's postings changed (docs/architecture/job-distribution.md): the dashboard refetches GET /v1/jobs/{jobId}/postings.
   JobPostingsChanged: z.object({ organizationId: id, jobId: id, changedAt: instant }),

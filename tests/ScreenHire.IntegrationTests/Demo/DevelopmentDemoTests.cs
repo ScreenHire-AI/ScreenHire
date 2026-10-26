@@ -10,8 +10,9 @@ namespace ScreenHire.IntegrationTests.Demo;
 
 /// <summary>
 /// <c>pnpm dev</c> brings up a working demo: once the API is healthy, Brightwater has its template, the draft and closed
-/// jobs, the open jobs on their boards, the candidate emails and the applicants from <see cref="SyntheticApplicants"/> and
-/// <see cref="DemoCandidates"/> (docs/operations/local-demo.md). The API reports healthy only after the demo has run, so
+/// jobs, the open jobs on their boards, the candidate emails, a questionnaire on every job and the applicants from
+/// <see cref="SyntheticApplicants"/> and <see cref="DemoCandidates"/>, who answered every question
+/// (docs/operations/local-demo.md). The API reports healthy only after the demo has run, so
 /// what the API itself adds is there at once; what the worker does afterwards (emails) is awaited with a deadline.
 /// Template, job, board, stage and automation names are written out here from that guide, not read from the seeder.
 /// </summary>
@@ -36,6 +37,10 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
 
     private static readonly TimeSpan Deadline = TimeSpan.FromMinutes(3);
 
+    // The candidate the demo emails a template changed for one send, and the sentence it adds (docs/operations/local-demo.md).
+    private const string JoelsEmail = "joel.mensah@example.org";
+    private const string OneOffSentence = "Your answer about the billing ledger stood out, and we would like to hear more about it.";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -51,6 +56,8 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             await ClosedJobUnmetAsync(owner),
             await SyntheticApplicantsUnmetAsync(owner),
             await DemoCandidatesUnmetAsync(owner),
+            await QuestionnairesUnmetAsync(owner),
+            await AnswersUnmetAsync(owner),
         ];
         unmet.Should().AllSatisfy(problem => problem.Should().BeNull());
     }
@@ -62,6 +69,79 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
 
         await EventuallyAsync(() => TemplateUnmetAsync(owner));
     }
+
+    [Fact]
+    public async Task The_template_a_job_and_an_email_template_have_history_by_two_people()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var members = (await GetAsync(owner, "/v1/organization/members")).EnumerateArray().ToList();
+        string UserId(string name) => members.Single(m => m.GetProperty("displayName").GetString() == name).GetProperty("userId").GetString()!;
+        var avery = UserId("Avery Quinn");
+        var jordan = UserId("Jordan Ellis");
+
+        var template = (await GetAsync(owner, "/v1/templates")).EnumerateArray().Single(t => t.GetProperty("name").GetString() == TemplateName);
+        var templateHistory = await HistoryAsync(owner, $"/v1/templates/{template.GetProperty("id").GetString()}/history");
+        templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("started version 2")
+            && e.Lines.Contains("added What is your notice period?") && e.Lines.Any(l => l.StartsWith("changed the time limit of Interview", StringComparison.Ordinal)));
+        templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("made What is your notice period? required"));
+        templateHistory.Should().Contain(e => e.By == avery && e.Lines.Contains("created the template from Software engineer"));
+
+        var draft = await FindJobAsync(owner, DraftJobSlug);
+        (await HistoryAsync(owner, $"/v1/jobs/{draft!.Value.GetProperty("id").GetString()}/history"))
+            .Should().Contain(e => e.By == jordan && e.Lines.Contains("changed the salary"));
+
+        var email = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
+            .Single(t => t.GetProperty("name").GetString() == "Interview invitation");
+        (await HistoryAsync(owner, $"/v1/email-templates/{email.GetProperty("id").GetString()}/history"))
+            .Select(e => (e.By, e.Lines[0])).Should().Equal((avery, "changed the subject"), (avery, "created the template"));
+
+        // A built-in the team edited, for the Templates page's Reset to original.
+        var rejected = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
+            .Single(t => t.GetProperty("id").GetString() == "application-rejected");
+        rejected.GetProperty("edited").GetBoolean().Should().BeTrue();
+        rejected.GetProperty("subject").GetString().Should().Be("About your application for {{ jobTitle }}");
+        rejected.GetProperty("lastUpdated").GetProperty("userId").GetString().Should().Be(avery);
+        template.GetProperty("draftVersion").GetInt32().Should().Be(2, "the Templates page shows Jordan's draft");
+    }
+
+    [Fact]
+    public async Task Robin_hale_is_an_interviewer_by_a_custom_role_avery_made()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var members = (await GetAsync(owner, "/v1/organization/members")).EnumerateArray().ToList();
+        var avery = members.Single(m => m.GetProperty("displayName").GetString() == "Avery Quinn").GetProperty("userId").GetString();
+        var robin = members.Single(m => m.GetProperty("displayName").GetString() == "Robin Hale");
+
+        robin.GetProperty("role").GetString().Should().Be("Custom");
+        robin.GetProperty("roleName").GetString().Should().Be("Interviewer");
+        var role = await GetAsync(owner, $"/v1/organization/roles/{robin.GetProperty("customRoleId").GetString()}");
+        role.GetProperty("permissions").EnumerateArray().Select(p => p.GetString())
+            .Should().Equal("ViewHiring", "AddNotesAndTags", "FillInScorecards");
+        (await HistoryAsync(owner, $"/v1/organization/roles/{role.GetProperty("id").GetString()}/history"))
+            .Should().ContainSingle(e => e.By == avery && e.Lines.Contains("created the role from Viewer"));
+    }
+
+    [Fact]
+    public async Task Robin_hale_sees_only_the_dotnet_job_through_its_hiring_team()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var robin = (await GetAsync(owner, "/v1/organization/members")).EnumerateArray()
+            .Single(m => m.GetProperty("displayName").GetString() == "Robin Hale");
+        robin.GetProperty("jobAccess").GetString().Should().Be("HiringTeamOnly");
+        robin.GetProperty("jobCount").GetInt32().Should().Be(1);
+        (await GetAsync(owner, "/v1/jobs")).GetArrayLength().Should().BeGreaterThan(1, "Avery, an Owner, sees every job");
+
+        using var session = new ApiSession(fixture);
+        await session.SignInWithDevSsoAsync("brightwater-interviewer", Ct);
+        (await GetAsync(session, "/v1/jobs")).EnumerateArray().Select(j => j.GetProperty("slug").GetString())
+            .Should().Equal(SeniorDotnetSlug);
+    }
+
+    // Each entry's author and its lines' text, newest first.
+    private static async Task<List<(string? By, List<string> Lines)>> HistoryAsync(ApiSession owner, string path) =>
+        [.. (await GetAsync(owner, path)).GetProperty("entries").EnumerateArray().Select(e => (
+            e.GetProperty("userId").GetString(),
+            e.GetProperty("lines").EnumerateArray().Select(l => l.GetProperty("text").GetString()!).ToList()))];
 
     [Fact]
     public async Task The_payments_job_is_a_draft()
@@ -96,6 +176,43 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         using var owner = await SignedInOwnerAsync();
 
         await EventuallyAsync(() => DemoCandidatesUnmetAsync(owner));
+    }
+
+    [Fact]
+    public async Task A_dotnet_candidate_has_notes_that_mention_teammates_one_of_them_edited()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var me = (await owner.CurrentUserAsync(Ct))!.Value.GetProperty("id").GetGuid();
+        var application = (await ApplicantsAsync(owner, SeniorDotnetSlug))
+            .Single(a => a.GetProperty("candidateName").GetString() == "Joel Mensah");
+
+        var timeline = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}/timeline")).EnumerateArray().ToList();
+        var notes = timeline.Where(e => e.GetProperty("type").GetString() == "NoteAdded").ToList();
+
+        notes.Should().HaveCount(2);
+        notes.Should().ContainSingle(n => n.GetProperty("note").GetString()!.Contains($"@[{me}]"), "Jordan mentions Avery");
+        notes.Should().ContainSingle(n => n.GetProperty("actorUserId").GetGuid() == me && n.GetProperty("noteEditedAt").ValueKind == JsonValueKind.String,
+            "Avery's note mentions Jordan and was edited");
+        var moved = timeline.Where(e => e.GetProperty("type").GetString() is "Submitted" or "StageChanged")
+            .Max(e => e.GetProperty("occurredAt").GetDateTimeOffset());
+        notes.Should().OnlyContain(n => n.GetProperty("occurredAt").GetDateTimeOffset() > moved,
+            "the notes come after the candidate applied and was moved, so Overview's last five show them");
+    }
+
+    [Fact]
+    public async Task Every_job_has_a_questionnaire()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        await EventuallyAsync(() => QuestionnairesUnmetAsync(owner));
+    }
+
+    [Fact]
+    public async Task Each_demo_candidate_answered_every_question_of_their_job()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        await EventuallyAsync(() => AnswersUnmetAsync(owner));
     }
 
     [Fact]
@@ -175,13 +292,52 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         }
     }
 
+    // The email composer in the demo: Avery sent Joel Mensah the "Interview invitation" template with a sentence added
+    // for him alone. Mailpit and his Messages have the changed email; the template does not.
+    [Fact]
+    public async Task A_dotnet_candidate_has_an_email_changed_for_one_send_in_messages()
+    {
+        using var owner = await SignedInOwnerAsync();
+        var sent = await fixture.Mailpit.WaitForMessagesAsync(JoelsEmail, 1, Ct);
+        await EventuallyAsync(async () =>
+            (await fixture.Mailpit.MessagesAsync(JoelsEmail, Ct)).Any(m => m.Text.Contains(OneOffSentence, StringComparison.Ordinal))
+                ? null
+                : "the changed email has not reached Mailpit");
+        var application = (await ApplicantsAsync(owner, SeniorDotnetSlug))
+            .Single(a => a.GetProperty("candidateName").GetString() == "Joel Mensah");
+        var candidate = (await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}")).GetProperty("candidate").GetProperty("id").GetGuid();
+
+        JsonElement changed = default;
+        await EventuallyAsync(async () =>
+        {
+            var emails = (await GetAsync(owner, $"/v1/candidates/{candidate}/emails")).EnumerateArray().ToList();
+            var found = emails.FirstOrDefault(e => e.GetProperty("subject").GetString() == "Interview for Senior .NET Engineer at Brightwater Studio");
+            if (found.ValueKind == JsonValueKind.Undefined)
+            {
+                return "the changed email is not in Messages";
+            }
+
+            changed = found.Clone();
+            return null;
+        });
+        changed.GetProperty("kept").GetBoolean().Should().BeTrue();
+        var copy = await GetAsync(owner, $"/v1/emails/{changed.GetProperty("id").GetGuid()}");
+        copy.GetProperty("text").GetString().Should().Contain(OneOffSentence).And.Contain("Hi Joel,");
+
+        var template = (await GetAsync(owner, "/v1/email-templates")).GetProperty("templates").EnumerateArray()
+            .Single(t => t.GetProperty("name").GetString() == "Interview invitation");
+        template.GetProperty("body").GetString().Should().NotContain(OneOffSentence, "the change was for one email only");
+        sent.Should().NotBeEmpty();
+    }
+
     [Fact]
     public async Task Starting_the_api_again_adds_nothing()
     {
         using var first = await SignedInOwnerAsync();
         await EventuallyAsync(async () =>
             await TemplateUnmetAsync(first) ?? await DraftJobUnmetAsync(first) ?? await AutomationsUnmetAsync(first, SeniorDotnetSlug)
-            ?? await SyntheticApplicantsUnmetAsync(first) ?? await DemoCandidatesUnmetAsync(first) ?? await ClosedJobUnmetAsync(first));
+            ?? await SyntheticApplicantsUnmetAsync(first) ?? await DemoCandidatesUnmetAsync(first) ?? await ClosedJobUnmetAsync(first)
+            ?? await AnswersUnmetAsync(first));
         var before = await CountsAsync(first);
 
         // Watch the API's log from before the restart, so the line the second start logs is told apart from the first's.
@@ -245,16 +401,20 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         return session;
     }
 
-    // What the demo adds, counted: templates, jobs, applications, postings, and the timeline entries the API writes
-    // (submissions and moves; the worker's tags and assessments arrive on their own schedule, so they are left out).
-    private static async Task<(int Templates, int Jobs, int Applications, int Postings, int Moves)> CountsAsync(ApiSession owner)
+    // What the demo adds, counted: templates, jobs, applications, postings, workflow edits (emails and questions), and the
+    // timeline entries the API writes (submissions and moves; the worker's tags and assessments arrive on their own
+    // schedule, so they are left out).
+    private static async Task<(int Templates, int Jobs, int Applications, int Postings, int WorkflowVersions, int Moves)> CountsAsync(ApiSession owner)
     {
         var jobs = (await GetAsync(owner, "/v1/jobs")).EnumerateArray().ToList();
         var applications = (await GetAsync(owner, "/v1/applications")).EnumerateArray().ToList();
         var postings = 0;
+        var workflowVersions = 0;
         foreach (var job in jobs)
         {
-            postings += (await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).GetProperty("postings").GetArrayLength();
+            var detail = await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}");
+            postings += detail.GetProperty("postings").GetArrayLength();
+            workflowVersions += detail.GetProperty("workflowVersion").GetInt32();
         }
 
         var moves = 0;
@@ -264,7 +424,7 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
                 .Count(e => e.GetProperty("type").GetString() is "Submitted" or "StageChanged");
         }
 
-        return ((await GetAsync(owner, "/v1/templates")).GetArrayLength(), jobs.Count, applications.Count, postings, moves);
+        return ((await GetAsync(owner, "/v1/templates")).GetArrayLength(), jobs.Count, applications.Count, postings, workflowVersions, moves);
     }
 
     private static async Task<string?> TemplateUnmetAsync(ApiSession owner)
@@ -352,6 +512,98 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
 
         return null;
     }
+
+    // Every Brightwater job, seeded or added by the demo, asks at least one question besides the resume. The questions the
+    // demo copies from the "Software engineer" template still read as the template's do on the .NET job.
+    private static async Task<string?> QuestionnairesUnmetAsync(ApiSession owner)
+    {
+        var dotnet = await FindJobAsync(owner, SeniorDotnetSlug);
+        if (dotnet is null)
+        {
+            return $"no job '{SeniorDotnetSlug}'";
+        }
+
+        var template = Questions(await GetAsync(owner, $"/v1/jobs/{dotnet.Value.GetProperty("id").GetGuid()}"))
+            .ToDictionary(q => q.GetProperty("id").GetString()!);
+        foreach (var job in (await GetAsync(owner, "/v1/jobs")).EnumerateArray())
+        {
+            var slug = job.GetProperty("slug").GetString();
+            var questions = Questions(await GetAsync(owner, $"/v1/jobs/{job.GetProperty("id").GetGuid()}")).ToList();
+            if (questions.All(q => q.GetProperty("id").GetString() == "resume"))
+            {
+                return $"'{slug}' has no questionnaire";
+            }
+
+            foreach (var question in questions)
+            {
+                var id = question.GetProperty("id").GetString()!;
+                if (!template.TryGetValue(id, out var original))
+                {
+                    continue;
+                }
+
+                // Each job words "experience" for its own field; the bands stay the template's.
+                var (asked, expected) = id == "experience"
+                    ? (question.GetProperty("options").GetRawText(), original.GetProperty("options").GetRawText())
+                    : (question.GetRawText(), original.GetRawText());
+                if (asked != expected)
+                {
+                    return $"'{slug}' asks '{id}' differently from the \"Software engineer\" template";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // What the candidate page shows: an answer, and the resume, for every question of the job.
+    private static async Task<string?> AnswersUnmetAsync(ApiSession owner)
+    {
+        foreach (var group in DemoCandidates.All.GroupBy(c => c.JobSlug))
+        {
+            var job = await FindJobAsync(owner, group.Key);
+            if (job is null)
+            {
+                return $"no job '{group.Key}'";
+            }
+
+            var questions = QuestionIds(await GetAsync(owner, $"/v1/jobs/{job.Value.GetProperty("id").GetGuid()}")).Append("resume").Distinct().ToList();
+            var applicants = await ApplicantsAsync(owner, group.Key);
+            foreach (var candidate in group)
+            {
+                var application = applicants.FirstOrDefault(a => a.GetProperty("candidateName").GetString() == candidate.Applicant.FullName);
+                if (application.ValueKind == JsonValueKind.Undefined)
+                {
+                    return $"'{candidate.Applicant.FullName}' has not applied to '{group.Key}'";
+                }
+
+                var detail = await GetAsync(owner, $"/v1/applications/{application.GetProperty("id").GetGuid()}");
+                var answered = detail.GetProperty("answers").EnumerateArray().Where(HasValue).Select(a => a.GetProperty("questionId").GetString()).ToList();
+                var missing = questions.Except(answered).ToList();
+                if (missing.Count > 0)
+                {
+                    return $"'{candidate.Applicant.FullName}' on '{group.Key}' has no answer to {string.Join(", ", missing)}";
+                }
+
+                if (!detail.GetProperty("files").EnumerateArray().Any(f => f.GetProperty("questionId").GetString() == "resume"))
+                {
+                    return $"'{candidate.Applicant.FullName}' on '{group.Key}' has no resume file";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static JsonElement.ArrayEnumerator Questions(JsonElement jobDetail) =>
+        jobDetail.GetProperty("workflow").GetProperty("questionnaire").GetProperty("questions").EnumerateArray();
+
+    private static IEnumerable<string?> QuestionIds(JsonElement jobDetail) =>
+        Questions(jobDetail).Select(q => q.GetProperty("id").GetString());
+
+    private static bool HasValue(JsonElement answer) =>
+        (answer.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.String && value.GetString()!.Length > 0)
+        || (answer.TryGetProperty("values", out var values) && values.ValueKind == JsonValueKind.Array && values.GetArrayLength() > 0);
 
     private static async Task<List<string?>> BoardsOfAsync(ApiSession owner, string slug)
     {

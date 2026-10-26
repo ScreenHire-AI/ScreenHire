@@ -175,8 +175,9 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
     }
 
     /// <summary>
-    /// Local development and tests only: creates the container and lets browsers upload to the emulator from any origin
-    /// (the upload link is the credential). A real storage account gets both from its deployment.
+    /// Local development and tests only: creates the container and lets browsers upload to the emulator, and the
+    /// dashboard's resume preview read from it, from any origin (the link is the credential). A real storage account
+    /// gets both from its deployment.
     /// </summary>
     public async Task ProvisionDevelopmentStorageAsync(CancellationToken cancellationToken = default)
     {
@@ -187,7 +188,7 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
             new BlobCorsRule
             {
                 AllowedOrigins = "*",
-                AllowedMethods = "PUT,OPTIONS",
+                AllowedMethods = "GET,PUT,OPTIONS",
                 AllowedHeaders = "*",
                 ExposedHeaders = "*",
                 MaxAgeInSeconds = 3600,

@@ -13,4 +13,13 @@ export const ApplicationEventType = {
   StageChanged: 'StageChanged',
   TagAdded: 'TagAdded',
   IntegrityAssessed: 'IntegrityAssessed',
+  TagRemoved: 'TagRemoved',
+  NoteAdded: 'NoteAdded',
+  ScorecardSubmitted: 'ScorecardSubmitted',
+  EmailSent: 'EmailSent',
+  QuestionnaireSent: 'QuestionnaireSent',
+  QuestionnaireCompleted: 'QuestionnaireCompleted',
+  NoteEdited: 'NoteEdited',
+  NoteDeleted: 'NoteDeleted',
+  TaskCreated: 'TaskCreated',
 } as const;

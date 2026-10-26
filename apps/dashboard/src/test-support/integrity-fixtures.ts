@@ -53,7 +53,7 @@ function signal(code: string, title: string, overrides: Partial<IntegritySignalV
   };
 }
 
-/** The bot: verification recommended, with reasons, one context signal and counter-evidence. */
+/** The bot: verification suggested, with reasons, one context signal and counter-evidence. */
 export function botIntegrity(overrides: Partial<ApplicationIntegrity> = {}): ApplicationIntegrity {
   return {
     applicationId: integrityApplicationId,
@@ -82,7 +82,7 @@ export function botIntegrity(overrides: Partial<ApplicationIntegrity> = {}): App
       id: aiAssessmentId,
       level: 'SomeIndicators',
       reasonCodes: ['CNT_PROMPT_INJECTION', 'CNT_NEAR_DUPLICATE_ANSWER'],
-      summary: 'Some answers look generated or templated. Declared AI use: no.',
+      summary: 'Some answers look generated or templated. This job allows AI help when disclosed.',
       nextStep: 'Ask about the answers in the first conversation.',
       signals: [
         signal('CNT_PROMPT_INJECTION', 'Hidden instructions in the resume', { category: 'Document', evidence: [evidenceOfEveryKind.Quote] }),

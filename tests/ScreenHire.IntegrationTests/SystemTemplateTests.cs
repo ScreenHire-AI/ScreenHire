@@ -12,7 +12,11 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
     {
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion1, 1, "Software engineer" },
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion2, 2, "Software engineer" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion3, 3, "Software engineer" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion4, 4, "Software engineer" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, 1, "Hourly role" },
+        { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion2, 2, "Hourly role" },
+        { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion3, 3, "Hourly role" },
     };
 
     [Theory]
@@ -30,6 +34,29 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         definition.Should().NotBeNull();
         DefinitionValidator.Validate(definition).Should().BeEmpty();
         definition!.Workflow.Stages[0].Kind.Should().Be(StageKind.Applied);
+    }
+
+    // Every stored version names built-in scorecards (migration AddScorecardTemplates) and holds no copy of their questions.
+    [Theory]
+    [MemberData(nameof(Templates))]
+    public async Task A_system_template_version_names_built_in_scorecards_and_holds_no_copy_of_them(Guid templateId, Guid versionId, int number, string name)
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+
+        var version = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{number}")).Expect(HttpStatusCode.OK);
+        var stages = version.At("definition.workflow.stages").EnumerateArray().ToList();
+        var named = stages.Where(s => s.Has("scorecardTemplateId")).ToDictionary(s => s.GetProperty("id").GetString()!, s => s.GetProperty("scorecardTemplateId").GetString()!);
+
+        version.Id().Should().Be(versionId);
+        stages.Should().OnlyContain(s => !s.Has("scorecard"), $"{name} version {number} is a template, which names its scorecards");
+        named.Values.Should().OnlyContain(id => BuiltInScorecards.Find(id) != null, "a system template can only name ScreenHire's own scorecards");
+        string[] expected = (templateId == SystemTemplates.SoftwareEngineer, number) switch
+        {
+            (true, >= 3) => ["screening", "technical-exercise", "engineering-interview"],
+            (false, >= 2) => ["phone-screen", "hourly-interview"],
+            _ => [],
+        };
+        named.Values.Should().BeEquivalentTo(expected);
     }
 
     [Theory]

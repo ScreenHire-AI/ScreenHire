@@ -1,16 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Application.Jobs;
 
 /// <summary>
 /// Runs in the worker once per <see cref="JobPublished"/>: reads the job back as its organization and records that the
-/// worker saw it. Board postings come from the publish transaction itself (docs/architecture/job-distribution.md §5).
+/// worker saw it, and raises the <c>job.published</c> webhook event. Board postings come from the publish transaction
+/// itself (docs/architecture/job-distribution.md §5).
 /// </summary>
 public static partial class JobPublishedHandler
 {
-    public static async Task Handle(JobPublished message, ScreenHireDbContext db, ILogger<JobPublished> logger, CancellationToken cancellationToken)
+    public static async Task<FanOutWebhook> Handle(JobPublished message, ScreenHireDbContext db, ILogger<JobPublished> logger, CancellationToken cancellationToken)
     {
         // Row-level security shows the job only to its own organization, so this works only because the worker made the
         // message's organization the tenant (TenantMessageMiddleware). A failure goes through the retry policy.
@@ -20,6 +22,7 @@ public static partial class JobPublishedHandler
         }
 
         LogJobPublished(logger, message.JobId, message.OrganizationId);
+        return WebhookEvents.From(message);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Job {JobId} published for organization {OrganizationId}")]

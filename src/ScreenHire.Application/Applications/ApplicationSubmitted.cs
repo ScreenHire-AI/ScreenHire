@@ -4,6 +4,7 @@ using ScreenHire.Application.Automations;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Integrity.Content;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
@@ -16,13 +17,14 @@ namespace ScreenHire.Application.Applications;
 /// candidate details.
 /// </summary>
 public sealed record ApplicationSubmitted(
-    Guid OrganizationId, Guid ApplicationId, Guid JobId, string StageId, Guid EventId, DateTimeOffset SubmittedAt) : ITenantEvent;
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, string StageId, Guid EventId, DateTimeOffset SubmittedAt) : IJobEvent;
 
 /// <summary>
 /// Runs in the worker once per <see cref="ApplicationSubmitted"/>: the workflow engine's <c>ApplicationSubmitted</c>
 /// trigger, and <c>StageEntered</c> for the first stage, which the application has just entered (it also starts that
 /// stage's TimeElapsed timers). It also starts the integrity pipeline (<see cref="AnalyzeApplicationIntegrity"/>) and
-/// the consistency check (<see cref="CheckApplicationConsistency"/>).
+/// the consistency check (<see cref="CheckApplicationConsistency"/>), and raises the <c>application.submitted</c> webhook
+/// event (<see cref="WebhookEvents"/>).
 /// </summary>
 public static partial class ApplicationSubmittedHandler
 {
@@ -47,6 +49,7 @@ public static partial class ApplicationSubmittedHandler
         // consistency check waits for the files to be read; an application without files can be checked now.
         outgoing.Add(new AnalyzeApplicationIntegrity(message.OrganizationId, message.ApplicationId));
         outgoing.Add(new CheckApplicationConsistency(message.OrganizationId, message.ApplicationId));
+        outgoing.Add(WebhookEvents.From(message));
         return outgoing;
     }
 

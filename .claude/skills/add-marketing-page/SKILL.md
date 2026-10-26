@@ -78,7 +78,8 @@ pnpm --filter @screenhire/marketing lighthouse /<path>/
 
 `build` ends with `check-dist`, which fails on more than 15 KB of JS on any page or a broken internal link.
 `lighthouse` fails on mobile LCP of 1.8 s or more, or CLS of 0.05 or more. In Git Bash, prefix it with
-`MSYS_NO_PATHCONV=1`.
+`MSYS_NO_PATHCONV=1`. It may first wait for another task's run to finish. `pnpm verify` does not run it; the Testing
+column runs it on every page.
 
 ## 5. Tests
 

@@ -119,11 +119,15 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await using var db = await TenantDbAsync(organization.Id);
         var candidate = await db.Candidates.SingleAsync(c => c.Email == "sam.lee@example.com", Ct);
+        // The form asks for the name in two parts; the candidate keeps both, and the full name is the two together.
+        candidate.FirstName.Should().Be("Casey");
+        candidate.LastName.Should().Be("Morgan");
+        candidate.FullName.Should().Be("Casey Morgan");
         var application = await db.Applications.SingleAsync(a => a.CandidateId == candidate.Id, Ct);
         var snapshots = await db.TelemetrySnapshots.Where(s => s.ApplicationId == application.Id).ToListAsync(Ct);
         snapshots.Should().HaveCount(2, "the details and questions steps each sent one; the review step had nothing typed to measure");
         snapshots.SelectMany(s => s.Fields).Should().Contain(f => f.FieldId == "notice_period" && f.TypedCharacters == "Two months, negotiable".Length);
-        snapshots.SelectMany(s => s.Fields).Select(f => f.FieldId).Should().OnlyContain(id => id == "fullName" || id == "email" || id == "phone" || id == "notice_period" || id == "work_sample" || id == "aiUseDetails");
+        snapshots.SelectMany(s => s.Fields).Select(f => f.FieldId).Should().OnlyContain(id => id == "firstName" || id == "lastName" || id == "email" || id == "phone" || id == "notice_period" || id == "work_sample" || id == "aiUseDetails");
 
         // The device check and automation markers came with the submission: the job is in the UK, where the notice is
         // the footing, and Playwright's browser says it is automated.
@@ -268,12 +272,12 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         // The notice comes before anything is asked for.
         var notice = Page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" });
         await Expect(notice).ToBeVisibleAsync();
-        (await notice.BoundingBoxAsync())!.Y.Should().BeLessThan((await Page.GetByLabel("Full name").BoundingBoxAsync())!.Y);
+        (await notice.BoundingBoxAsync())!.Y.Should().BeLessThan((await Page.GetByLabel("First name").BoundingBoxAsync())!.Y);
         await ExpectNoAccessibilityViolationsAsync();
 
         // A step sent with nothing in it explains itself.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
-        await Expect(ErrorSummary()).ToContainTextAsync("Enter your full name.");
+        await Expect(ErrorSummary()).ToContainTextAsync("Enter your first name.");
         await Expect(ErrorSummary()).ToContainTextAsync("Add a file.");
         await ExpectNoAccessibilityViolationsAsync();
 
@@ -363,7 +367,8 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private async Task FillDetailsAsync(string email)
     {
-        await Page.GetByLabel("Full name").FillAsync("Casey Morgan");
+        await Page.GetByLabel("First name").FillAsync("Casey");
+        await Page.GetByLabel("Last name").FillAsync("Morgan");
         await Page.GetByLabel("Email").FillAsync(email);
         await Page.GetByLabel("Phone").FillAsync("+44 20 7946 0000");
     }

@@ -1,6 +1,7 @@
 using FluentValidation;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Persistence.History;
 
 namespace ScreenHire.Api.Contracts;
 
@@ -52,7 +53,8 @@ public sealed record JobSummary(
     DateTimeOffset? PublishedAt,
     EmploymentType EmploymentType,
     string? Department,
-    bool TemplateUpdateAvailable);
+    bool TemplateUpdateAvailable,
+    LastUpdate LastUpdated);
 
 /// <summary>Everything about one job: posting content, lifecycle, its workflow copy and where that came from.</summary>
 /// <remarks>
@@ -83,7 +85,8 @@ public sealed record JobDetail(
     DateTimeOffset? UpdatedAt,
     DateTimeOffset? PublishedAt,
     DateTimeOffset? ClosedAt,
-    IReadOnlyList<JobPostingStatus> Postings);
+    IReadOnlyList<JobPostingStatus> Postings,
+    LastUpdate LastUpdated);
 
 /// <summary>The template version a job's workflow was copied from, and whether a newer one is published.</summary>
 public sealed record JobTemplateSource(
@@ -178,22 +181,25 @@ internal static class JobMappings
             job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period,
             job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url);
 
-    public static JobSummary ToSummary(this Job job, int? latestTemplateVersion = null) =>
+    public static JobSummary ToSummary(this Job job, ChangeStamp? lastChange, int? latestTemplateVersion = null) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.Status, job.CreatedAt, job.PublishedAt,
-            job.EmploymentType, job.Department, latestTemplateVersion > job.SourceTemplateVersion);
+            job.EmploymentType, job.Department, latestTemplateVersion > job.SourceTemplateVersion,
+            LastUpdate.From(lastChange, job.UpdatedAt ?? job.CreatedAt));
 
     /// <param name="job">The job.</param>
     /// <param name="latestSnapshot">The newest <c>JobVersion</c>'s content, or null if it was never published.</param>
     /// <param name="templateName">The source template's name, if the job has one.</param>
     /// <param name="latestTemplateVersion">The source template's newest published version number.</param>
     /// <param name="postings">The job's postings, as statuses.</param>
+    /// <param name="lastChange">The job's newest recorded change, or null when it has none.</param>
     public static JobDetail ToDetail(
-        this Job job, JobSnapshot? latestSnapshot, string? templateName, int? latestTemplateVersion, IReadOnlyList<JobPostingStatus> postings) =>
+        this Job job, JobSnapshot? latestSnapshot, string? templateName, int? latestTemplateVersion, IReadOnlyList<JobPostingStatus> postings,
+        ChangeStamp? lastChange) =>
         new(job.Id, job.Title, job.Slug, job.Status, job.Description, job.Department, job.EmploymentType, job.WorkplaceType,
             job.Locations, job.ApplicantLocationRequirements, job.LocationLabel(), job.Salary, job.ValidThrough,
             job.Workflow, job.WorkflowVersion, job.ToTemplateSource(templateName, latestTemplateVersion), job.PublishedVersion,
             job.Status == JobStatus.Open && latestSnapshot != job.Snapshot(),
-            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings);
+            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings, LastUpdate.From(lastChange, job.UpdatedAt ?? job.CreatedAt));
 
     private static JobTemplateSource? ToTemplateSource(this Job job, string? templateName, int? latestTemplateVersion) =>
         job is { SourceTemplateId: { } templateId, SourceTemplateVersionId: { } versionId, SourceTemplateVersion: { } version }

@@ -1,12 +1,20 @@
 /**
- * Per-browser preferences: the colour theme and whether single-key shortcuts are on. They live in localStorage, which
- * can be missing or refuse writes (private windows, blocked site data), so every read and write falls back quietly.
+ * Per-browser preferences: the colour theme, whether single-key shortcuts are on, and each table's sort. They live in
+ * localStorage, which can be missing or refuse writes (private windows, blocked site data), so every read and write
+ * falls back quietly. Being per browser, a sort does not follow a person to another browser.
  */
 
 export type Theme = 'light' | 'dark';
 
+/** A table's one sorted column (design system L2). */
+export interface TableSort {
+  id: string;
+  desc: boolean;
+}
+
 const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
+const sortKey = (table: string) => `screenhire:sort:${table}`;
 
 function read(key: string): string | null {
   try {
@@ -60,6 +68,23 @@ class Preferences {
   setShortcutsEnabled(enabled: boolean): void {
     this.shortcutsEnabled = enabled;
     write(shortcutsKey, enabled ? 'on' : 'off');
+  }
+
+  /** The sort the person last chose for a table, read from storage each time; anything unreadable counts as none. */
+  sortFor(table: string): TableSort | undefined {
+    try {
+      const value: unknown = JSON.parse(read(sortKey(table)) ?? 'null');
+      if (typeof value === 'object' && value !== null && 'id' in value && 'desc' in value && typeof value.id === 'string' && typeof value.desc === 'boolean') {
+        return { id: value.id, desc: value.desc };
+      }
+    } catch {
+      // Not JSON: someone else's value under our key.
+    }
+    return undefined;
+  }
+
+  setSort(table: string, sort: TableSort): void {
+    write(sortKey(table), JSON.stringify({ id: sort.id, desc: sort.desc }));
   }
 
   #applyTheme(): void {

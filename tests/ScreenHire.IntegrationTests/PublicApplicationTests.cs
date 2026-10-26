@@ -72,6 +72,8 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         application.Answers.Should().ContainEquivalentOf(new ApplicationAnswer("resume", uploadId.ToString()));
 
         var candidate = await db.Candidates.SingleAsync(c => c.Id == application.CandidateId, Ct);
+        candidate.FirstName.Should().Be("Casey");
+        candidate.LastName.Should().Be("Morgan");
         candidate.FullName.Should().Be("Casey Morgan");
         candidate.Email.Should().Be("casey.morgan@example.com");
 
@@ -286,7 +288,8 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         (await SubmitAsync(client, organization, job.Id, Application("ari.moss@example.com", await UploadAsync(client, organization, job, "resume", "cv.pdf", Pdf))))
             .StatusCode.Should().Be(HttpStatusCode.Created);
         var again = Application("ARI.MOSS@example.com", await UploadAsync(client, organization, job, "resume", "cv.pdf", Pdf));
-        again["candidate"]!["fullName"] = "Someone Else";
+        again["candidate"]!["firstName"] = "Someone";
+        again["candidate"]!["lastName"] = "Else";
 
         var response = await SubmitAsync(client, organization, job.Id, again);
 
@@ -328,7 +331,7 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
 
         return new JsonObject
         {
-            ["candidate"] = new JsonObject { ["fullName"] = "Casey Morgan", ["email"] = email, ["phone"] = "+44 20 7946 0000" },
+            ["candidate"] = new JsonObject { ["firstName"] = "Casey", ["lastName"] = "Morgan", ["email"] = email, ["phone"] = "+44 20 7946 0000" },
             ["privacyNoticeVersion"] = "2026-10-20",
             ["answers"] = answers,
             ["accommodationRequested"] = true,

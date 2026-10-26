@@ -9,6 +9,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();
+builder.AddScreenHireDataProtection();
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 builder.AddJobDistribution();
 

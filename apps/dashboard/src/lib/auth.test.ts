@@ -8,7 +8,16 @@ const signedIn = (organization: CurrentUser['organization']): CurrentUser => ({
   displayName: 'Avery Quinn',
   organization,
 });
-const member = signedIn({ id: '01a157d4-0000-7000-8000-000000000002', name: 'Brightwater Studio', slug: 'brightwater', role: 'Owner' });
+const member = signedIn({
+  id: '01a157d4-0000-7000-8000-000000000002',
+  name: 'Brightwater Studio',
+  slug: 'brightwater',
+  role: 'Owner',
+  customRoleId: null,
+  roleName: 'Owner',
+  permissions: ['ViewHiring'],
+  seesAllJobs: true,
+});
 const newcomer = signedIn(null);
 const url = (path: string) => new URL(path, 'http://localhost:4323');
 
@@ -19,6 +28,19 @@ describe('auth guard', () => {
       '/sign-in?returnUrl=%2Fcandidates%3Fstage%3Dnew',
     );
     expect(guardRedirect(null, null, url('/no-such-page'))).toBe('/sign-in?returnUrl=%2Fno-such-page');
+  });
+
+  it('lets everyone reach the style guide and its pop-out preview, whose own loads hide them outside development', () => {
+    for (const user of [null, newcomer, member]) {
+      expect(guardRedirect('/(dev)/style-guide', user, url('/style-guide'))).toBeNull();
+      expect(guardRedirect('/(dev)/style-guide/preview', user, url('/style-guide/preview?channel=abc'))).toBeNull();
+    }
+  });
+
+  it('lets everyone open an invitation, signed in to any organization or none', () => {
+    for (const user of [null, newcomer, member]) {
+      expect(guardRedirect('/(auth)/invitations/accept', user, url('/invitations/accept#invitation=abc'))).toBeNull();
+    }
   });
 
   it('lets signed-out visitors use the sign-in pages', () => {

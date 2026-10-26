@@ -1,4 +1,10 @@
-# Legal & Regulatory Landscape — Applicant Fraud / AI-Applicant Detection
+---
+type: Research
+title: "Legal & Regulatory Landscape: Applicant Fraud / AI-Applicant Detection"
+description: "Not legal advice: the EU AI Act, GDPR, NYC Local Law 144 and the US state rules as they bear on detecting fraudulent and AI applicants, a per-signal risk matrix, the product principles that follow, and open uncertainties."
+tags: [research, legal, ai-act, gdpr]
+---
+# Legal & Regulatory Landscape: Applicant Fraud / AI-Applicant Detection
 
 > Research snapshot: **2026-10-18**. Product-design input, **not legal advice**. Items marked (†) rest on
 > secondary sources or recollection and were not re-verified against a primary source.

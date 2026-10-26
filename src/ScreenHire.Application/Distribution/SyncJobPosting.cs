@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Messaging;
@@ -151,9 +152,36 @@ public static class ReconcileJobPostingHandler
         posting.ExternalId is null ? PostingAction.Publish : PostingAction.Update;
 }
 
-/// <summary>Shared steps of the posting handlers.</summary>
-internal static class PostingLocks
+/// <summary>Shared steps of the posting handlers, and the lock the API's publish and close take.</summary>
+public static class PostingLocks
 {
+    /// <summary>
+    /// Begins a transaction on <paramref name="db"/> and locks the job's postings in it (one board's, or every board's),
+    /// the same row lock a handler holds while it calls a board and saves the answer. The API's publish and close take it
+    /// before they load postings, so they wait out a board call in flight and plan on its answer instead of failing on a
+    /// stale row version. Rows lock in id order, so two requests for one job queue rather than deadlock; a handler locks
+    /// one row only. The outbox's <c>SaveChangesAndFlushMessagesAsync</c> commits the transaction; disposing it without
+    /// a commit rolls back and releases the locks.
+    /// </summary>
+    public static async Task<IDbContextTransaction> BeginForJobAsync(
+        ScreenHireDbContext db, Guid jobId, string? boardId, CancellationToken cancellationToken)
+    {
+        var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await (boardId is null
+                ? db.Database.ExecuteSqlAsync($"SELECT 1 FROM job_postings WHERE job_id = {jobId} ORDER BY id FOR UPDATE", cancellationToken)
+                : db.Database.ExecuteSqlAsync(
+                    $"SELECT 1 FROM job_postings WHERE job_id = {jobId} AND board_id = {boardId} ORDER BY id FOR UPDATE", cancellationToken));
+            return transaction;
+        }
+        catch
+        {
+            await transaction.DisposeAsync();
+            throw;
+        }
+    }
+
     /// <summary>
     /// Loads the posting with a row lock held to the end of the handler's transaction, so a publish, a close and a status
     /// check for one posting never interleave around a board call. Runs as the message's organization.

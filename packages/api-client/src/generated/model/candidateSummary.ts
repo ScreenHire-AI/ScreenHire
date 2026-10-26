@@ -15,4 +15,7 @@ export interface CandidateSummary {
   /** @nullable */
   phone: string | null;
   createdAt: string;
+  firstName: string;
+  /** @nullable */
+  lastName: string | null;
 }

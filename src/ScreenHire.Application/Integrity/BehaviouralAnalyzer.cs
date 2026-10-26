@@ -42,7 +42,7 @@ public sealed class BehaviouralAnalyzer(ITelemetrySource telemetry) : IIntegrity
 /// non-negotiable 4). Never raw keystrokes, key values, timings per key or field content.
 /// </summary>
 /// <remarks>
-/// <c>fields</c> are per-field aggregates keyed by the form's field id (a question id, <c>fullName</c>, ...).
+/// <c>fields</c> are per-field aggregates keyed by the form's field id (a question id, <c>firstName</c>, ...).
 /// <c>page</c> holds page-level counts and the automation markers the page reported.
 /// </remarks>
 public sealed record TelemetrySessionAggregates(

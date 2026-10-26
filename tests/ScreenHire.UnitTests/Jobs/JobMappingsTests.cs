@@ -36,11 +36,12 @@ public sealed class JobMappingsTests
     {
         var job = OpenJob();
 
-        var summary = job.ToSummary();
+        var summary = job.ToSummary(lastChange: null);
 
         summary.Should().BeEquivalentTo(new JobSummary(
             job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
-            JobStatus.Open, job.CreatedAt, Published, EmploymentType.Contract, "Engineering", false));
+            JobStatus.Open, job.CreatedAt, Published, EmploymentType.Contract, "Engineering", false,
+            new LastUpdate(job.UpdatedAt ?? job.CreatedAt, null)));
     }
 
     [Fact]
@@ -49,10 +50,10 @@ public sealed class JobMappingsTests
         var job = OpenJob();
         var published = job.Snapshot();
 
-        job.ToDetail(published, null, null, []).HasUnpublishedChanges.Should().BeFalse();
+        job.ToDetail(published, null, null, [], null).HasUnpublishedChanges.Should().BeFalse();
         job.Revise(published with { Title = "Svelte Engineer" }, Published.AddDays(1));
-        job.ToDetail(published, null, null, []).HasUnpublishedChanges.Should().BeTrue();
-        job.ToDetail(published, null, null, []).Template.Should().BeNull("the job has no source template");
+        job.ToDetail(published, null, null, [], null).HasUnpublishedChanges.Should().BeTrue();
+        job.ToDetail(published, null, null, [], null).Template.Should().BeNull("the job has no source template");
     }
 
     private static Job OpenJob()
