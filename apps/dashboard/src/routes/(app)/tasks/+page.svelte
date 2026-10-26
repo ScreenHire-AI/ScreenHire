@@ -65,13 +65,13 @@
       <Panel title={panelTitle} flush>
         <!-- The filters, in a row under the header because the list has no search (section 7). Each group stays on one
              line (F5); in a narrow container the two groups stack, so every choice shows at a glance (section 11). -->
-        <div class="@container/filters border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+        <div class="@container/filters overflow-x-auto [scrollbar-width:thin] border-b border-border-subtle px-4.5 py-2 max-md:px-4">
           <div class="flex flex-col items-start gap-2 @md/filters:flex-row @md/filters:items-center @md/filters:gap-4">
             <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
               <Toggle size="lg" bind:pressed={() => status === 'Open', () => (status = 'Open')}>Open</Toggle>
               <Toggle size="lg" bind:pressed={() => status === 'Completed', () => (status = 'Completed')}>Done</Toggle>
             </div>
-            <div role="group" aria-label="Whose" class="flex flex-wrap gap-1">
+            <div role="group" aria-label="Whose" class="flex shrink-0 gap-1">
               {#each scopes as option (option.value)}
                 <Toggle size="lg" bind:pressed={() => scope === option.value, () => (scope = option.value)}>
                   {option.label}
