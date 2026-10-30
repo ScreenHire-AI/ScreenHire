@@ -2,7 +2,7 @@ import { CompleteOnboardingBody } from '@screenhire/api-client/zod';
 import { defaults } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { describe, expect, it } from 'vitest';
-import { applyValidationProblem, areCountryCodes, countryCodes, paragraphs, slugify } from './forms.js';
+import { applyValidationProblem, paragraphs, slugify } from './forms.js';
 
 describe('applyValidationProblem', () => {
   it("puts the API's errors on the fields they name, and unknown fields on the form", () => {
@@ -41,19 +41,6 @@ describe('slugify', () => {
 
     expect(slug.length).toBeLessThanOrEqual(63);
     expect(slug.endsWith('-')).toBe(false);
-  });
-});
-
-describe('countryCodes', () => {
-  it('reads codes separated by commas or spaces, upper-cased and each once', () => {
-    expect(countryCodes(' gb, IE;ie  fr ')).toEqual(['GB', 'IE', 'FR']);
-    expect(countryCodes('')).toEqual([]);
-  });
-
-  it('tells real two-letter codes from anything else', () => {
-    expect(areCountryCodes(['GB', 'IE'])).toBe(true);
-    expect(areCountryCodes(['GB', 'UK1'])).toBe(false);
-    expect(areCountryCodes(['ENGLAND'])).toBe(false);
   });
 });
 

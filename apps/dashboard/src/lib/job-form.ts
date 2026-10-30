@@ -1,13 +1,16 @@
 import type { JobLocation, SalaryPeriod, WorkplaceType } from '@screenhire/api-client';
-import { areCountryCodes, countryCodes, paragraphs } from './forms.js';
+import { paragraphs } from './forms.js';
 
 // The posting fields the New job page and the Edit details form share, checked as JobPublishValidator and
 // JobContentValidator will check them, so a job made or edited in the dashboard can be published.
 
-/** Where the work happens, as the forms hold it: countries for a remote job, one city and country otherwise. */
+/**
+ * Where the work happens, as the forms hold it: countries for a remote job, one city and country otherwise. Countries
+ * are ISO 3166-1 alpha-2 codes, picked by name (W8).
+ */
 export interface WhereFields {
   workplaceType: '' | WorkplaceType;
-  countries: string;
+  countries: string[];
   city: string;
   country: string;
 }
@@ -27,11 +30,9 @@ export function checkWhere(value: WhereFields, issue: Issue<WhereFields>): void 
   if (value.workplaceType === '') {
     issue('workplaceType', 'Choose where the work happens.');
   } else if (value.workplaceType === 'Remote') {
-    const codes = countryCodes(value.countries);
-    if (codes.length === 0) issue('countries', 'List the countries candidates can work from, such as GB, IE.');
-    else if (!areCountryCodes(codes)) issue('countries', 'Use two-letter country codes, such as GB.');
-  } else if (!areCountryCodes([value.country.trim().toUpperCase()])) {
-    issue('country', 'Give the country as a two-letter code, such as GB.');
+    if (value.countries.length === 0) issue('countries', 'Choose at least one country candidates can work from.');
+  } else if (!value.country) {
+    issue('country', 'Choose the country the job is in.');
   }
 }
 
@@ -44,11 +45,11 @@ export function whereBody(value: WhereFields, current: readonly JobLocation[] = 
   const remote = value.workplaceType === 'Remote';
   const [first, ...others] = current;
   const city = value.city.trim() || null;
-  const country = value.country.trim().toUpperCase();
+  const country = value.country;
   const region = first && first.city === city && first.country === country ? first.region : null;
   return {
     workplaceType: value.workplaceType || null,
-    applicantLocationRequirements: remote ? countryCodes(value.countries) : null,
+    applicantLocationRequirements: remote ? [...value.countries] : null,
     locations: remote ? null : [{ city, region, country }, ...others],
   };
 }
@@ -58,7 +59,7 @@ export function whereFields(job: { workplaceType: WorkplaceType; applicantLocati
   const first = job.locations[0];
   return {
     workplaceType: job.workplaceType,
-    countries: job.applicantLocationRequirements.join(', '),
+    countries: [...job.applicantLocationRequirements],
     city: first?.city ?? '',
     country: first?.country ?? '',
   };
