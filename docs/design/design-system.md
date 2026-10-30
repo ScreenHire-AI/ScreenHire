@@ -576,15 +576,16 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - Facts shown elsewhere on the page (the candidate's AI declaration) are not repeated in the panel (W7).
 - On a candidate it is the Verification tab. When the level needs a look, the tab's count is the signals behind it, in
   the grey every tab's count has (E2), and the level is the candidate's status badge beside their name (T2). Each
-  assessment is one panel with one skeleton and no labels over sentences (W9): its name, level badge, a small meter of
-  the three steps and, for AI assistance, the job's policy as a pill ("AI allowed with disclosure") in the header, with
-  Expand all on the right. When the level needs a look the next step leads, semibold, in a callout edged in the level's
-  colour with an arrow, the summary a muted line under it; a calm or dismissed result is one muted line, the summary
-  then its next step (W10). Then the reasons, grouped by the kind of check that found them (Network, Identity,
-  Automation, Content) and a last Context group for what does not count, each group's name and signal count beside its
-  reasons, each reason opening (A9) to what was observed, its evidence as a facts row, any counter-evidence in its own
-  card, and its code. The panel ends with Dismiss on the left and "Assessed 2 hours ago" and "Ruleset" in caption size
-  on the right. A calm result has no list of empty checks: its summary already says so.
+  assessment is one panel with one skeleton and no labels over sentences (W9): its name, level badge (unless the page
+  header already shows it, W7), a small meter of the three steps and, for AI assistance, the job's policy as a pill ("AI
+  allowed with disclosure") in the header, with Expand all on the right. When the level needs a look the next step
+  leads, semibold, in a callout edged in the level's colour with an arrow, the summary a muted line under it; a calm or
+  dismissed result is one muted line, the summary then its next step (W10). Then the reasons, grouped by the kind of
+  check that found them (Network, Identity, Automation, Content) and a last Context group for what does not count, each
+  group's name and signal count beside its reasons, each reason opening (A9) to what was observed, its evidence as a
+  facts row, any counter-evidence in its own card, and its code. The panel ends with Dismiss on the left and "Assessed 2
+  hours ago" and "Ruleset" in caption size on the right. A calm result has no list of empty checks: its summary already
+  says so.
 - Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
   Some signs or Strong signs of AI help.
 

@@ -218,7 +218,9 @@
        says what it is. -->
   <Panel title={assessmentNames[kind]} data-assessment={kind} footer={last ? decisions : undefined}>
     {#snippet tools()}
-      <StatusBadge status={level.status} label={level.label} />
+      <!-- An authenticity level that needs a look is already the candidate's status in the page header, so here it is
+           only its place on the three-step scale (W7). A calm or dismissed one, and AI assistance, show nowhere else. -->
+      {#if kind !== 'authenticity' || level.rank === 0 || view.dismissal}<StatusBadge status={level.status} label={level.label} />{/if}
       <LevelScale {levels} current={level} name={assessmentNames[kind]} compact />
       <!-- The job's policy, so a reader sees why AI help is or is not a concern. The candidate's own declaration is on
            the Application tab (W7). -->
