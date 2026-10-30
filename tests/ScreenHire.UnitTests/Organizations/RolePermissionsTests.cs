@@ -36,6 +36,8 @@ public sealed partial class RolePermissionsTests
         ["SendEmails"] = Permission.EmailCandidates,
         ["SubmitScorecard"] = Permission.FillInScorecards,
         ["DismissIntegrityAssessment"] = Permission.ReviewIntegrity,
+        ["ExplainIntegrityReason"] = Permission.ReviewIntegrity,
+        ["UndoIntegrityReasonExplanation"] = Permission.ReviewIntegrity,
         ["AddIntegrityNote"] = Permission.ReviewIntegrity,
         ["RequestIdentityVerification"] = Permission.ReviewIntegrity,
         ["RunManualAutomation"] = Permission.RunAutomations,

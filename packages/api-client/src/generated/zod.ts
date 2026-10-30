@@ -4068,7 +4068,15 @@ export const GetApplicationIntegrityResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -4149,7 +4157,15 @@ export const GetApplicationIntegrityResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -4167,14 +4183,17 @@ export const GetApplicationIntegrityResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
   "note": zod.string().nullable(),
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
-  "occurredAt": zod.iso.datetime({"offset":true})
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "signalId": zod.uuid().nullable(),
+  "signalTitle": zod.string().nullable(),
+  "explainReason": zod.union([zod.null(),zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.')])
 }).describe('One entry of the integrity audit log, oldest first.')),
   "requestVerification": zod.object({
   "available": zod.boolean(),
@@ -4275,7 +4294,15 @@ export const DismissIntegrityAssessmentResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -4356,7 +4383,15 @@ export const DismissIntegrityAssessmentResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -4374,14 +4409,466 @@ export const DismissIntegrityAssessmentResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
   "note": zod.string().nullable(),
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
-  "occurredAt": zod.iso.datetime({"offset":true})
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "signalId": zod.uuid().nullable(),
+  "signalTitle": zod.string().nullable(),
+  "explainReason": zod.union([zod.null(),zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.')])
+}).describe('One entry of the integrity audit log, oldest first.')),
+  "requestVerification": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}).describe('Whether an action is offered, and why not when it is not.'),
+  "consistencyCheck": zod.union([zod.null(),zod.object({
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "note": zod.string().nullable(),
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string().nullable(),
+  "consistencyModel": zod.string().nullable(),
+  "contradictions": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+
+
+export const ExplainIntegrityReasonParams = zod.object({
+  "applicationId": zod.uuid(),
+  "assessmentId": zod.uuid(),
+  "signalId": zod.uuid()
+})
+
+export const ExplainIntegrityReasonBody = zod.object({
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullish()
+}).describe('Marks one reason explained. A reason is required; `Other` also needs a note.')
+
+export const explainIntegrityReasonResponseAiAssistanceTwoDeclarationDefault = `NotProvided`;
+
+export const ExplainIntegrityReasonResponse = zod.object({
+  "applicationId": zod.uuid(),
+  "status": zod.enum(['Pending', 'Assessed']),
+  "authenticity": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "level": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
+  "reasonCodes": zod.array(zod.string()),
+  "summary": zod.string(),
+  "nextStep": zod.string(),
+  "signals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "code": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
+  "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
+  "countsTowardLevel": zod.boolean(),
+  "contextOnly": zod.boolean(),
+  "accessibilitySensitive": zod.boolean(),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+  "counterEvidence": zod.array(zod.object({
+  "explanation": zod.string(),
+  "evidence": zod.union([zod.null(),zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
+  "source": zod.string(),
+  "sourceVersion": zod.int(),
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+  "rulesetVersion": zod.string(),
+  "assessedAt": zod.iso.datetime({"offset":true}),
+  "dismissal": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "dismissedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer set an assessment aside. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('Is this a real, unique, present person who is who they say they are?')]),
+  "aiAssistance": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "level": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
+  "reasonCodes": zod.array(zod.string()),
+  "summary": zod.string(),
+  "nextStep": zod.string(),
+  "signals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "code": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
+  "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
+  "countsTowardLevel": zod.boolean(),
+  "contextOnly": zod.boolean(),
+  "accessibilitySensitive": zod.boolean(),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+  "counterEvidence": zod.array(zod.object({
+  "explanation": zod.string(),
+  "evidence": zod.union([zod.null(),zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
+  "source": zod.string(),
+  "sourceVersion": zod.int(),
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+  "rulesetVersion": zod.string(),
+  "assessedAt": zod.iso.datetime({"offset":true}),
+  "dismissal": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "dismissedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer set an assessment aside. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "declaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(explainIntegrityReasonResponseAiAssistanceTwoDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "policyContext": zod.enum(['AllowedByPolicy', 'Disclosed', 'NotDisclosed', 'DeclaredUseNotAllowed', 'NotAllowed']).describe('Where the candidate\'s AI use stands against the job\'s policy, from the policy and the declaration only.')
+}).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
+  "reviewLog": zod.array(zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone']),
+  "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
+  "assessmentId": zod.uuid().nullable(),
+  "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "signalId": zod.uuid().nullable(),
+  "signalTitle": zod.string().nullable(),
+  "explainReason": zod.union([zod.null(),zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.')])
+}).describe('One entry of the integrity audit log, oldest first.')),
+  "requestVerification": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}).describe('Whether an action is offered, and why not when it is not.'),
+  "consistencyCheck": zod.union([zod.null(),zod.object({
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "note": zod.string().nullable(),
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string().nullable(),
+  "consistencyModel": zod.string().nullable(),
+  "contradictions": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+
+
+export const UndoIntegrityReasonExplanationParams = zod.object({
+  "applicationId": zod.uuid(),
+  "assessmentId": zod.uuid(),
+  "signalId": zod.uuid()
+})
+
+export const undoIntegrityReasonExplanationResponseAiAssistanceTwoDeclarationDefault = `NotProvided`;
+
+export const UndoIntegrityReasonExplanationResponse = zod.object({
+  "applicationId": zod.uuid(),
+  "status": zod.enum(['Pending', 'Assessed']),
+  "authenticity": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "level": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (integrity-engine.md §2).'),
+  "reasonCodes": zod.array(zod.string()),
+  "summary": zod.string(),
+  "nextStep": zod.string(),
+  "signals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "code": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
+  "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
+  "countsTowardLevel": zod.boolean(),
+  "contextOnly": zod.boolean(),
+  "accessibilitySensitive": zod.boolean(),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+  "counterEvidence": zod.array(zod.object({
+  "explanation": zod.string(),
+  "evidence": zod.union([zod.null(),zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
+  "source": zod.string(),
+  "sourceVersion": zod.int(),
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+  "rulesetVersion": zod.string(),
+  "assessedAt": zod.iso.datetime({"offset":true}),
+  "dismissal": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "dismissedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer set an assessment aside. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('Is this a real, unique, present person who is who they say they are?')]),
+  "aiAssistance": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "level": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
+  "reasonCodes": zod.array(zod.string()),
+  "summary": zod.string(),
+  "nextStep": zod.string(),
+  "signals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "code": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
+  "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
+  "countsTowardLevel": zod.boolean(),
+  "contextOnly": zod.boolean(),
+  "accessibilitySensitive": zod.boolean(),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+  "counterEvidence": zod.array(zod.object({
+  "explanation": zod.string(),
+  "evidence": zod.union([zod.null(),zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
+  "source": zod.string(),
+  "sourceVersion": zod.int(),
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+  "rulesetVersion": zod.string(),
+  "assessedAt": zod.iso.datetime({"offset":true}),
+  "dismissal": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "dismissedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer set an assessment aside. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "declaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(undoIntegrityReasonExplanationResponseAiAssistanceTwoDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "policyContext": zod.enum(['AllowedByPolicy', 'Disclosed', 'NotDisclosed', 'DeclaredUseNotAllowed', 'NotAllowed']).describe('Where the candidate\'s AI use stands against the job\'s policy, from the policy and the declaration only.')
+}).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
+  "reviewLog": zod.array(zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone']),
+  "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
+  "assessmentId": zod.uuid().nullable(),
+  "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "signalId": zod.uuid().nullable(),
+  "signalTitle": zod.string().nullable(),
+  "explainReason": zod.union([zod.null(),zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.')])
 }).describe('One entry of the integrity audit log, oldest first.')),
   "requestVerification": zod.object({
   "available": zod.boolean(),
@@ -4481,7 +4968,15 @@ export const AddIntegrityNoteResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -4562,7 +5057,15 @@ export const AddIntegrityNoteResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')])
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -4580,14 +5083,17 @@ export const AddIntegrityNoteResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
   "note": zod.string().nullable(),
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
-  "occurredAt": zod.iso.datetime({"offset":true})
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "signalId": zod.uuid().nullable(),
+  "signalTitle": zod.string().nullable(),
+  "explainReason": zod.union([zod.null(),zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.')])
 }).describe('One entry of the integrity audit log, oldest first.')),
   "requestVerification": zod.object({
   "available": zod.boolean(),

@@ -147,6 +147,73 @@ public sealed class IntegrityTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Reviewers_mark_each_reason_explained_and_undo_their_own_and_explaining_decides_nothing()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        var (slug, jobId) = await OpenJobAsync(owner);
+        var bot = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var integrity = await AssessedAsync(owner, bot);
+        var assessmentId = integrity.Id("authenticity.id");
+        var reasons = integrity.At("authenticity.signals").EnumerateArray()
+            .Where(s => s.GetProperty("countsTowardLevel").GetBoolean()).Select(s => s.GetProperty("id").GetGuid()).ToList();
+        reasons.Should().HaveCountGreaterThan(1);
+        var first = reasons[0];
+        var before = await ListedAsync(owner, jobId, bot);
+        string Reason(Guid signalId, string action) => $"/v1/applications/{bot}/integrity/assessments/{assessmentId}/signals/{signalId}/{action}";
+        static JsonElement SignalOf(ApiResult result, Guid signalId) =>
+            result.At("authenticity.signals").EnumerateArray().Single(s => s.GetProperty("id").GetGuid() == signalId);
+
+        (await owner.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "Other" })).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("note");
+        (await viewer.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.Forbidden);
+        (await owner.PostAsync(Reason(Guid.CreateVersion7(), "explain"), new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.NotFound);
+
+        var explained = (await owner.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "ExpectedForRole", ["note"] = "Remote role." }))
+            .Expect(HttpStatusCode.OK);
+        var explanation = SignalOf(explained, first).GetProperty("explained");
+        explanation.GetProperty("reason").GetString().Should().Be("ExpectedForRole");
+        explanation.GetProperty("note").GetString().Should().Be("Remote role.");
+        explanation.GetProperty("actorUserId").GetGuid().Should().Be(owner.UserId);
+        explained.Text("authenticity.level").Should().Be("VerificationRecommended", "explaining a reason never changes the level");
+        explained.At("authenticity.dismissal").ValueKind.Should().Be(JsonValueKind.Null);
+        var entry = explained.At("reviewLog").EnumerateArray().Single();
+        entry.GetProperty("type").GetString().Should().Be("ReasonExplained");
+        entry.GetProperty("signalId").GetGuid().Should().Be(first);
+        entry.GetProperty("signalTitle").GetString().Should().Be(SignalOf(explained, first).GetProperty("title").GetString());
+        entry.GetProperty("explainReason").GetString().Should().Be("ExpectedForRole");
+
+        (await recruiter.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "KnownFalsePositive" })).Expect(HttpStatusCode.Conflict);
+        (await recruiter.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("Author only");
+        var undone = (await owner.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.OK);
+        SignalOf(undone, first).GetProperty("explained").ValueKind.Should().Be(JsonValueKind.Null);
+        undone.At("reviewLog").EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Equal("ReasonExplained", "ExplanationUndone");
+        (await owner.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.Conflict);
+
+        // Every reason that counts explained still decides nothing: the level, the list's chips (which filters and saved
+        // views read) and the stage stay as they were, until a person dismisses.
+        var last = undone;
+        foreach (var reason in reasons)
+        {
+            last = (await recruiter.PostAsync(Reason(reason, "explain"), new JsonObject { ["reason"] = "KnownFalsePositive" })).Expect(HttpStatusCode.OK);
+        }
+
+        reasons.Should().AllSatisfy(r => SignalOf(last, r).GetProperty("explained").ValueKind.Should().Be(JsonValueKind.Object));
+        last.Text("authenticity.level").Should().Be("VerificationRecommended");
+        last.At("authenticity.dismissal").ValueKind.Should().Be(JsonValueKind.Null);
+        var after = await ListedAsync(owner, jobId, bot);
+        after.GetProperty("integrity").GetRawText().Should().Be(before.GetProperty("integrity").GetRawText());
+        after.GetProperty("integrity").GetProperty("authenticityDismissed").GetBoolean().Should().BeFalse("only a dismissal takes a candidate out of To review");
+        after.GetProperty("stage").GetRawText().Should().Be(before.GetProperty("stage").GetRawText());
+
+        // Once dismissed, the explanations are part of the record: nothing more to explain or undo.
+        (await owner.PostAsync($"/v1/applications/{bot}/integrity/assessments/{assessmentId}/dismiss", new JsonObject { ["reason"] = "FalsePositive" }))
+            .Expect(HttpStatusCode.OK);
+        (await recruiter.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.Conflict).Text("title").Should().Be("Already dismissed");
+    }
+
+    [Fact]
     public async Task Another_organization_sees_and_changes_nothing()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
@@ -160,6 +227,9 @@ public sealed class IntegrityTests(AppHostFixture fixture)
             $"/v1/applications/{applicationId}/integrity/assessments/{integrity.Id("authenticity.id")}/dismiss",
             new JsonObject { ["reason"] = "FalsePositive" })).Expect(HttpStatusCode.NotFound);
         (await other.PostAsync($"/v1/applications/{applicationId}/integrity/notes", new JsonObject { ["note"] = "x" })).Expect(HttpStatusCode.NotFound);
+        var reason = $"/v1/applications/{applicationId}/integrity/assessments/{integrity.Id("authenticity.id")}/signals/{integrity.Id("authenticity.signals.0.id")}";
+        (await other.PostAsync($"{reason}/explain", new JsonObject { ["reason"] = "KnownFalsePositive" })).Expect(HttpStatusCode.NotFound);
+        (await other.PostAsync($"{reason}/undo-explanation")).Expect(HttpStatusCode.NotFound);
 
         await using var theirs = await TenantDbAsync(other.OrganizationId);
         (await theirs.IntegritySignals.AnyAsync(s => s.ApplicationId == applicationId, Ct)).Should().BeFalse();
@@ -402,6 +472,11 @@ public sealed class IntegrityTests(AppHostFixture fixture)
         await transaction.RollbackAsync(Ct);
         return result;
     }
+
+    // One application as the job's candidate list shows it: its stage and the chips that filters and saved views read.
+    private static async Task<JsonElement> ListedAsync(Tenant tenant, Guid jobId, Guid applicationId) =>
+        (await tenant.GetAsync($"/v1/jobs/{jobId}/applications")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Single(a => a.GetProperty("id").GetGuid() == applicationId);
 
     private Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId) => IntegritySupport.TenantDbAsync(fixture, organizationId);
 

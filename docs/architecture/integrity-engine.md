@@ -234,8 +234,15 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   not count, each reason expanding to its evidence drawn by kind (§10.1) and counter-evidence; and last, the dismissal
   or Dismiss, with when it was assessed and the ruleset. Overview repeats the suggested next step while the level needs
   a look, with "Not a reason to reject on its own". The candidate's AI declaration is on the Application tab, not
-  repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review log panel
-  beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until phase 2
+  repeated here, and the summary leaves out the job's AI policy, which the pill shows. Each reason of an assessment
+  above the lowest level and not dismissed can be *Marked explained*, with a reason (Confirmed with the candidate,
+  Expected for this role, A known false positive, or Other with a note) and an optional note; it then shows closed, as
+  Explained, with who, when and why, and *Undo* for its author only. Explaining decides nothing: the level, the status
+  badge, the chips, the filters, "To review", the workflow engine's facts, webhooks and the MCP server never read it.
+  Once every reason that counts is explained, Dismiss reads *Dismiss all* and opens the same dismiss dialog with the
+  explained reasons and their notes listed; it is still one dismissal with its own reason. After a dismissal the
+  explanations are read only. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
+  log panel beside it lists every dismissal, explanation, undo and note and holds *Add review note*. *Request verification* is hidden until phase 2
   builds it. The footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed`
   refetches the chips, overview and panel live. AI chips take the AI colour and the sparkles icon at every level, and
   stay quiet in lists, so they read as information. While an integrity filter is set, the job page's bulk move offers no
@@ -432,9 +439,9 @@ Levels: Authenticity `NoConcerns`, `ReviewSuggested`, `VerificationRecommended`;
 categories, and only when the level is raised; other signals are still shown, as context.
 
 The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
-(`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the summary
-and the next step only. The summary states the job's policy and not the declaration, which the application page shows
-in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
+(`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the next step
+only. The summary states neither: the panel shows the job's policy as a pill beside the level, and the application
+page shows the declaration in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
 so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
 number that grades the candidate.
 
@@ -501,6 +508,8 @@ Every route is tenant-scoped (another organization's application is 404). No res
 |---|---|
 | `GET /v1/applications/{id}/integrity` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log, and whether verification can be requested (not until phase 2) |
 | `POST .../integrity/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
+| `POST .../integrity/assessments/{assessmentId}/signals/{signalId}/explain` | marks one reason explained: a reason (`ConfirmedWithCandidate`, `ExpectedForRole`, `KnownFalsePositive`, or `Other` with a note) and an optional note; only the current assessment, above the lowest level and not dismissed, and once until undone. It changes nothing but the review log |
+| `POST .../integrity/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
 | `POST .../integrity/notes` | a note on the application's integrity or one assessment |
 | `POST .../integrity/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/integrity-settings` | whether the consistency check is on, its monthly token budget, and the tokens used this month |
@@ -511,7 +520,11 @@ each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` prove
 
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
 A unique index (`ix_integrity_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers
-dismiss at once; the second gets the same 409 as a later attempt.
+dismiss at once; the second gets the same 409 as a later attempt. The review log is append-only, so an undo is a row of
+its own (`ExplanationUndone`) and the latest explain or undo row for a reason decides; each signal in the view carries
+`explained` (who, when, why) while one stands, and a reassessment starts with nothing explained. Two reviewers who
+explain one reason at the same moment both land in the log, and the later one shows. `ApplicationSummary.integrity` and
+`IntegrityAssessed` never carry explanations.
 `ApplicationSummary.integrity` carries the chips for lists: both levels, their reason codes and whether each was
 dismissed. The `IntegrityAssessed` tenant event carries ids, the two level names and the ruleset version, never
 evidence.

@@ -88,6 +88,9 @@ internal sealed class IntegrityReviewActionConfiguration : IEntityTypeConfigurat
     {
         builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.DismissReason).HasConversion<string>().HasMaxLength(30);
+        // No foreign key to the signal: signals have no (organization_id, id) key to point at. The endpoint checks the
+        // signal is one of the assessment's, and the assessment's key cascades.
+        builder.Property(a => a.ExplainReason).HasConversion<string>().HasMaxLength(30);
         builder.Property(a => a.Note).HasMaxLength(IntegrityReviewAction.MaxNoteLength);
 
         builder.HasOne<JobApplication>().WithMany()

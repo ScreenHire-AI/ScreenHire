@@ -1,6 +1,6 @@
 <script lang="ts">
   import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
-  import { dismissIntegrityAssessment, DismissReason } from '@screenhire/api-client';
+  import { dismissIntegrityAssessment, DismissReason, type ExplainReason } from '@screenhire/api-client';
   import { DismissIntegrityAssessmentBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
@@ -11,7 +11,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { assessmentNames, dismissReasonLabels, type AssessmentKind } from '#lib/integrity.js';
+  import { assessmentNames, dismissReasonLabels, explainReasonLabels, type AssessmentKind } from '#lib/integrity.js';
   import { cn } from '#lib/utils.js';
 
   // Dismissing records a reviewer's decision in the audit log. It never changes the assessment or its evidence, and
@@ -20,11 +20,17 @@
     open = $bindable(false),
     applicationId,
     assessment,
+    explained = [],
     ondone,
   }: {
     open?: boolean;
     applicationId: string;
     assessment: { id: string; kind: AssessmentKind } | null;
+    /**
+     * With Dismiss all: each reason people marked explained, listed so the dismisser reads them first. They inform the
+     * decision and preselect nothing; the dismissal keeps its own reason and note.
+     */
+    explained?: readonly { id: string; title: string; reason: ExplainReason; note: string | null; actor: string }[];
     /** After the API answered: a sentence for the panel's status line. */
     ondone: (message: string) => void;
   } = $props();
@@ -80,6 +86,16 @@
         The evidence stays on record and your reason goes in the review log{assessment?.kind === 'authenticity' ? '; the candidate leaves "To review".' : '.'}
       </Dialog.Description>
     </Dialog.Header>
+    {#if explained.length > 0}
+      <ul aria-label="Explained reasons" class="flex flex-col gap-2" data-explained-reasons>
+        {#each explained as item (item.id)}
+          <li class="flex flex-col gap-0.5">
+            <span class="font-semibold">{item.title}</span>
+            <span class="text-muted-foreground">{explainReasonLabels[item.reason]}, by {item.actor}{item.note ? `. "${item.note}"` : ''}</span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
       <Field.Set>
         <Field.Legend variant="label">Reason</Field.Legend>

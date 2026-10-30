@@ -3825,6 +3825,186 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/signals/{signalId}/explain": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "operationId": "ExplainIntegrityReason",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assessmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "signalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainIntegrityReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/signals/{signalId}/undo-explanation": {
+      "post": {
+        "tags": [
+          "Integrity"
+        ],
+        "operationId": "UndoIntegrityReasonExplanation",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assessmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "signalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/integrity/notes": {
       "post": {
         "tags": [
@@ -10846,6 +11026,33 @@
         ],
         "description": "How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal."
       },
+      "ExplainIntegrityReasonRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "$ref": "#/components/schemas/ExplainReason"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Marks one reason explained. A reason is required; `Other` also needs a note."
+      },
+      "ExplainReason": {
+        "enum": [
+          "ConfirmedWithCandidate",
+          "ExpectedForRole",
+          "KnownFalsePositive",
+          "Other"
+        ],
+        "description": "Why a reviewer marked a reason explained."
+      },
       "FieldTelemetryInput": {
         "required": [
           "fieldId",
@@ -11525,10 +11732,53 @@
         },
         "description": "The template's integrity settings (ADR-0004). Only the AI-use policy exists so far."
       },
+      "IntegrityReasonExplanation": {
+        "required": [
+          "actionId",
+          "reason",
+          "note",
+          "actorUserId",
+          "actorName",
+          "explainedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ExplainReason"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "explainedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A reviewer marked one reason explained. `actorName` is the reviewer's display name, when they have one."
+      },
       "IntegrityReviewActionType": {
         "enum": [
           "Dismissed",
-          "NoteAdded"
+          "NoteAdded",
+          "ReasonExplained",
+          "ExplanationUndone"
         ]
       },
       "IntegrityReviewEntry": {
@@ -11541,7 +11791,10 @@
           "note",
           "actorUserId",
           "actorName",
-          "occurredAt"
+          "occurredAt",
+          "signalId",
+          "signalTitle",
+          "explainReason"
         ],
         "type": "object",
         "properties": {
@@ -11598,6 +11851,29 @@
           "occurredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "signalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "signalTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "explainReason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExplainReason"
+              }
+            ]
           }
         },
         "description": "One entry of the integrity audit log, oldest first."
@@ -11620,7 +11896,8 @@
           "sourceVersion",
           "observedAt",
           "informational",
-          "llm"
+          "llm",
+          "explained"
         ],
         "type": "object",
         "properties": {
@@ -11688,6 +11965,16 @@
               },
               {
                 "$ref": "#/components/schemas/LlmProvenance"
+              }
+            ]
+          },
+          "explained": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IntegrityReasonExplanation"
               }
             ]
           }
