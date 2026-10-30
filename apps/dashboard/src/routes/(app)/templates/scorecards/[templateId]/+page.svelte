@@ -24,7 +24,7 @@
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton from '#lib/components/count-button.svelte';
-  import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
+  import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -68,8 +68,9 @@
 
   // One library scorecard in its editor (design system sections 7 and 21, builder): the header band with Used by (the
   // hiring templates whose stages name it, T4), its questions and rating questions, and Last updated with History (T6);
-  // then the Edit / Preview switch (A8). Edit is the form builder with the rating kinds; Preview is the scorecard as a
-  // reviewer fills it in, at its real size, and pops out into a window that follows the edits. A built-in reads only,
+  // then the editor and its preview (A8): side by side where both fit, else the Edit / Preview switch. Edit is the form
+  // builder with the rating kinds; Preview is the scorecard as a reviewer fills it in, at its real size, and pops out
+  // into a window that follows the edits. A built-in reads only,
   // says why, and offers Copy scorecard (E3); so does an archived one, with Restore, and so does every scorecard for a
   // role that cannot change hiring templates. Jobs keep the copy they took, so an edit here reaches new jobs only.
   let { params }: PageProps = $props();
@@ -324,33 +325,38 @@
       />
     {/if}
 
-    <div class="flex w-full flex-col gap-4 px-4 py-6 md:px-6">
-      <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/scorecard')} />
-      {#if mode === 'preview'}
-        <ScorecardPreview {questions} />
-      {:else if editable}
-        <div class="flex w-full max-w-form flex-col gap-5">
-          <Panel title="Details">
-            <Field.Field data-invalid={nameErrors.length > 0 ? true : undefined}>
-              <Field.Label for="scorecard-name">Name</Field.Label>
-              <Input
-                id="scorecard-name"
-                maxlength={maxNameLength.scorecards}
-                autocomplete="off"
-                bind:value={name}
-                aria-invalid={nameErrors.length > 0 ? 'true' : undefined}
-                aria-describedby={nameErrors.length > 0 ? 'scorecard-name-error' : undefined}
-              />
-              <Field.Error id="scorecard-name-error" errors={nameErrors} />
-            </Field.Field>
+    <div class="flex w-full flex-col px-4 py-6 md:px-6">
+      <EditPreviewLayout bind:mode onpopout={() => source.open('/preview/scorecard')}>
+        {#snippet editor()}
+          {#if editable}
+            <Panel title="Details">
+              <Field.Field data-invalid={nameErrors.length > 0 ? true : undefined}>
+                <Field.Label for="scorecard-name">Name</Field.Label>
+                <Input
+                  id="scorecard-name"
+                  maxlength={maxNameLength.scorecards}
+                  autocomplete="off"
+                  bind:value={name}
+                  aria-invalid={nameErrors.length > 0 ? 'true' : undefined}
+                  aria-describedby={nameErrors.length > 0 ? 'scorecard-name-error' : undefined}
+                />
+                <Field.Error id="scorecard-name-error" errors={nameErrors} />
+              </Field.Field>
+            </Panel>
+            <ScorecardBuilder bind:questions {errors} />
+          {:else}
+            <Panel title="Questions" count={questions.length}>
+              <div class="flex flex-col gap-2"><ScorecardQuestionList {questions} /></div>
+            </Panel>
+          {/if}
+        {/snippet}
+        {#snippet preview(popout)}
+          <!-- The scorecard as a reviewer fills it in, at the sheet's width, in an inset like a candidate page's preview. -->
+          <Panel title="Preview" actions={popout}>
+            <div class="flex justify-center rounded-lg bg-secondary p-4"><ScorecardPreview {questions} /></div>
           </Panel>
-          <ScorecardBuilder bind:questions {errors} />
-        </div>
-      {:else}
-        <Panel title="Questions" count={questions.length} class="max-w-form">
-          <div class="flex flex-col gap-2"><ScorecardQuestionList {questions} /></div>
-        </Panel>
-      {/if}
+        {/snippet}
+      </EditPreviewLayout>
     </div>
 
     {#if sidebar.isMobile && mayEdit}

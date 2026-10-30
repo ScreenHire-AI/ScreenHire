@@ -32,9 +32,10 @@ describe('settings menu', () => {
       'Team',
       'Roles',
       'Branding',
-      'Integrity',
+      'Verification',
       'API keys',
       'Webhooks',
+      'MCP server',
     ]);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');

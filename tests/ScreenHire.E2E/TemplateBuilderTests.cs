@@ -13,7 +13,7 @@ namespace ScreenHire.E2E;
 /// </summary>
 public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 {
-    private const string Guardrail = "Integrity signals never drive rejection";
+    private const string Guardrail = "Verification signals never drive rejection";
 
     private const string RightToWork = "Do you have the right to work in the UK?";
 
@@ -88,9 +88,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await drawer.GetByRole(AriaRole.Button, new() { Name = "Add automation" }).ClickAsync();
         var firstAction = drawer.GetByRole(AriaRole.Combobox, new() { NameRegex = new Regex("^Action 1") });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Route for review");
-        await drawer.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The integrity checks finish" });
+        await drawer.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The verification checks finish" });
         await drawer.GetByRole(AriaRole.Button, new() { Name = "Add condition" }).ClickAsync();
-        await drawer.GetByLabel("Fact for condition 1").SelectOptionAsync(new SelectOptionValue { Label = "Integrity: authenticity" });
+        await drawer.GetByLabel("Fact for condition 1").SelectOptionAsync(new SelectOptionValue { Label = "Verification: authenticity" });
         await drawer.GetByLabel("Value for condition 1").SelectOptionAsync(new SelectOptionValue { Label = "Verification suggested" });
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Reject" });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Reason", Exact = true }).FillAsync("The role needs a verified identity.");
@@ -108,7 +108,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Whole workflow" }))
-            .ToContainTextAsync("When the integrity checks finish, if 1 condition holds: add the tag \"needs-review\".");
+            .ToContainTextAsync("When the verification checks finish, if 1 condition holds: add the tag \"needs-review\".");
 
         // The graph is the same workflow.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
@@ -172,7 +172,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
         var sample = Page.GetByRole(AriaRole.Form, new() { Name = "Sample application" });
-        await sample.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The integrity checks finish" });
+        await sample.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The verification checks finish" });
         await sample.GetByLabel("Authenticity").SelectOptionAsync(new SelectOptionValue { Label = "Verification suggested" });
         await sample.GetByLabel(RightToWork).SelectOptionAsync(new SelectOptionValue { Label = "Yes" });
         await sample.GetByRole(AriaRole.Button, new() { Name = "Run test" }).ClickAsync();

@@ -4,6 +4,7 @@
   import MoonIcon from '@lucide/svelte/icons/moon';
   import SearchIcon from '@lucide/svelte/icons/search';
   import SunIcon from '@lucide/svelte/icons/sun';
+  import LiveIndicator from '#lib/components/live-indicator.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
@@ -12,8 +13,8 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { getShell } from '#lib/shell.js';
 
-  // The bar above every signed-in page: where you are, search (the command palette), the shortcuts dialog and the theme
-  // switch. On a phone it starts with the menu button, or with Back on a detail page (design system section 8).
+  // The bar above every signed-in page: where you are, whether the page is live, search (the command palette), the
+  // shortcuts dialog and the theme switch. On a phone it starts with the menu button, or with Back on a detail page (design system section 8).
   let {
     crumbs,
     back = false,
@@ -76,6 +77,9 @@
       {/each}
     </ol>
   </nav>
+
+  <!-- Outside the signed-in shell (a page's own test) there is no hub connection to show. -->
+  {#if shell}<LiveIndicator status={shell.live()} />{/if}
 
   <Tooltip.Root>
     <Tooltip.Trigger>

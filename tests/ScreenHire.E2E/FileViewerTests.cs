@@ -8,7 +8,7 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The file viewer in a real browser (design system sections 9 and 11): the candidate page never embeds a file, a
-/// resume opens from its row in the details rail in a dialog that fills the window, and the PDF is drawn in a sandboxed
+/// resume opens from its row in the Files panel on Overview in a dialog that fills the window, and the PDF is drawn in a sandboxed
 /// frame, where nothing in the file can run script with the dashboard's origin, cookies, DOM or API. Each test signs in as
 /// a new person with a new organization.
 /// </summary>
@@ -19,7 +19,7 @@ public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_resume_opens_full_window_from_the_rail_and_its_frame_cannot_reach_the_dashboard()
+    public async Task A_resume_opens_full_window_from_its_files_row_and_its_frame_cannot_reach_the_dashboard()
     {
         var applicant = SyntheticApplicants.GenuineHuman;
         var (email, applicationId) = await ApplicationAsync(applicant);
@@ -31,7 +31,7 @@ public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
         await SignInAsync(email);
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
 
-        // The row is in the rail with its size, View and Download; the page itself embeds no preview.
+        // The row is in Overview's Files panel with its size, View and Download; the page itself embeds no preview.
         var files = Page.GetByRole(AriaRole.Region, new() { Name = "Files", Exact = true });
         await Expect(files.GetByRole(AriaRole.Link, new() { Name = $"Download {applicant.ResumeFileName}" })).ToBeVisibleAsync();
         await Expect(Page.Locator("iframe")).ToHaveCountAsync(0);

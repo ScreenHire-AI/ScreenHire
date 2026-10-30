@@ -3,8 +3,6 @@
   import type { TaskListItem, TaskScope, TaskStatusFilter } from '@screenhire/api-client';
   import { createListTasks, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
-  import { can } from '#lib/permissions.js';
-  import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -16,7 +14,6 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { describeError } from '#lib/query.js';
-  import { createTaskCompletion } from '#lib/tasks.svelte.js';
 
   // The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview), on the list template. Mine is the
   // tasks assigned to the person, For the team the tasks assigned to nobody in particular, and Everyone's every task the
@@ -24,6 +21,7 @@
   // TaskScope splits them. Done tasks are each scope's newest 200 (TaskEndpoints), so each scope asks for its own: split
   // from everyone's, a busy team's newest 200 would hide the person's older ones. New tasks arrive live with
   // AutomationRunFinished, and completions with ApplicationTaskCompleted and ApplicationTaskReopened (#lib/realtime.ts).
+  // A task is ticked off where its work is done, on the candidate's Next steps, so each row here links there.
   const scopes: readonly { value: TaskScope; label: string }[] = [
     { value: 'Mine', label: 'Mine' },
     { value: 'Team', label: 'For the team' },
@@ -41,18 +39,12 @@
   const tasks = $derived(status === 'Open' ? open : done[scope]);
   const team = createListTeamMembers();
   const currentUserId = $derived(page.data.user?.id);
-  const editable = $derived(can(page.data.user, 'CompleteTasks'));
-  const completion = createTaskCompletion(() => currentUserId);
-  // A ticked task keeps its place for its 10 seconds of Undo, though the refetched open list no longer has it.
-  const everyone = $derived(
-    completion.withHeld(open.data?.data ?? []).toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)),
-  );
+  const everyone = $derived((open.data?.data ?? []).toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)));
   const inScope = (task: TaskListItem, which: TaskScope) =>
     which === 'Everyone' || (which === 'Mine' ? task.assigneeUserId === currentUserId && currentUserId !== undefined : task.assigneeUserId === null);
   const shown = $derived(status === 'Open' ? everyone.filter((task) => inScope(task, scope)) : (done[scope].data?.data ?? []));
-  // Open counts leave out the ticked tasks the list still shows.
   const countOf = (which: TaskScope) =>
-    status === 'Open' ? everyone.filter((task) => !task.completedAt && inScope(task, which)).length : done[which].data?.data.length;
+    status === 'Open' ? everyone.filter((task) => inScope(task, which)).length : done[which].data?.data.length;
   // The panel is Tasks whichever toggle is pressed, so its title does not repeat the toggle (W4); the list says which.
   const listLabel = $derived(status === 'Open' ? 'Open tasks' : 'Done tasks');
 </script>
@@ -129,17 +121,12 @@
               tasks={shown}
               members={team.data?.data}
               {currentUserId}
-              oncomplete={editable ? (task) => completion.complete(task) : undefined}
-              onundo={(taskId) => completion.undo(taskId)}
-              undoable={(taskId) => completion.undoable(taskId)}
+              href={(task) => `/applications/${task.applicationId}`}
               showCandidate
             />
-            <FailureText message={completion.failure} />
           </div>
         {/if}
       </Panel>
     </div>
   </div>
-  <!-- Outside the list, which leaves when its last open task is done. -->
-  <p role="status" class="sr-only">{completion.announcement}</p>
 </main>

@@ -12,12 +12,18 @@
     levels,
     current,
     name,
+    compact = false,
   }: {
     /** Lowest first. */
     levels: readonly LevelView[];
     current: LevelView;
     /** The assessment, for screen readers: "Authenticity". */
     name: string;
+    /**
+     * A small meter of three short steps, for a panel's header beside the level's badge, which carries the words: the
+     * current step in the level's colour, the others neutral.
+     */
+    compact?: boolean;
   } = $props();
 
   const marks: Record<StatusTone, string> = {
@@ -38,6 +44,14 @@
   const place = $derived(position === 0 ? 'the lowest' : position === levels.length - 1 ? 'the highest' : 'the middle');
 </script>
 
+{#if compact}
+  <span role="img" aria-label={`${name}: ${current.label}, ${place} of ${levels.length}`} data-level-scale class="inline-flex items-center gap-1">
+    {#each levels as level (level.label)}
+      {@const here = level.label === current.label}
+      <span aria-hidden="true" data-current={here || undefined} class={cn('h-1.5 w-6 rounded-full', here ? marks[statuses[level.status].tone] : 'bg-border')}></span>
+    {/each}
+  </span>
+{:else}
 <div
   role="img"
   aria-label={`${name}: ${current.label}, ${place} of ${levels.length}`}
@@ -58,3 +72,4 @@
     </div>
   {/each}
 </div>
+{/if}

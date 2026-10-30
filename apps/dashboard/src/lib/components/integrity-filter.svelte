@@ -37,7 +37,7 @@
   // ellipsis (F5).
   let labelCut = $state(false);
   const watchLabel = watchTruncation((cut) => (labelCut = cut));
-  const summary = $derived(`Integrity: ${active.length > 0 ? active.join(', ') : 'all'}`);
+  const summary = $derived(`Verification: ${active.length > 0 ? active.join(', ') : 'all'}`);
 
   // bits-ui radio groups take strings; "all" stands for no filter.
   const authenticityValue = $derived(filter.authenticity ?? 'all');

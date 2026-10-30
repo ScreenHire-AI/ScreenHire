@@ -61,8 +61,8 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill scorecard" })).ToHaveCountAsync(0);
-        // The automation's move shows in the rail's Stage and in Activity.
-        await Expect(Page.GetByRole(AriaRole.Complementary, new() { Name = "Details" })).ToContainTextAsync("Offer", new() { Timeout = 30_000 });
+        // The automation's move shows in the header's stage and in Activity.
+        await Expect(Page.Locator("[data-slot='header-band'] dl")).ToContainTextAsync("Offer", new() { Timeout = 30_000 });
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         var activity = Region("Activity");
         await Expect(activity).ToContainTextAsync("Scorecard for Interview by you");

@@ -142,7 +142,11 @@
       cell: ({ row }) => renderSnippet(lastUsedCell, row.original),
     }),
     ...(kindOf === 'hiring'
-      ? [column.accessor((row) => row.published ?? row.draft ?? 0, { id: 'version', header: 'Version', sortFn: 'basic', cell: ({ row }) => renderSnippet(versionCell, row.original) })]
+      ? [
+          column.accessor((row) => row.published ?? undefined, { id: 'version', header: 'Version', sortFn: 'basic', sortUndefined: 'last', cell: ({ row }) => renderSnippet(versionCell, row.original) }),
+          // A draft in progress is its own column, not a badge squeezed beside the version.
+          column.accessor((row) => row.draft ?? undefined, { id: 'draft', header: 'Draft', sortFn: 'basic', sortUndefined: 'last', cell: ({ row }) => renderSnippet(draftCell, row.original) }),
+        ]
       : []),
     column.accessor((row) => row.lastUpdated.at ?? undefined, {
       id: 'updatedAt',
@@ -349,11 +353,14 @@
 {/snippet}
 
 {#snippet versionCell(row: TemplateRow)}
-  <!-- The newest published version, then a draft as its status badge (W6). -->
-  <span class="flex items-center gap-2">
-    {#if row.published}<span class="text-foreground">{row.published}</span>{/if}
-    {#if row.draft}<StatusBadge status="draft" label={`Draft ${row.draft}`} quiet />{/if}
-  </span>
+  <!-- The newest published version; a template that was never published has none. -->
+  {#if row.published}<span class="text-foreground">{row.published}</span>{:else}<span class="text-muted-foreground">None</span>{/if}
+{/snippet}
+
+{#snippet draftCell(row: TemplateRow)}
+  <!-- The version being drafted, as plain text in its own column; most rows have none, so their cell is blank and only
+       a screen reader hears "No draft" (L1). -->
+  {#if row.draft}<span class="text-foreground">Version {row.draft}</span>{:else}<span class="sr-only">No draft</span>{/if}
 {/snippet}
 
 {#snippet updatedCell(row: TemplateRow)}

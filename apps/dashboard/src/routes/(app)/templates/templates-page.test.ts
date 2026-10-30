@@ -120,7 +120,8 @@ describe('templates page', () => {
     const own = await within(table).findByRole('row', { name: /Brightwater engineering/ });
 
     await waitFor(() => expect(own).toHaveTextContent('2 jobs'));
-    expect(own).toHaveTextContent('Draft 2');
+    // The draft has its own column, not a badge beside the version.
+    expect(own).toHaveTextContent('Version 2');
     expect(own).toHaveTextContent('by you');
     expect(within(table).getByRole('row', { name: /Hourly role/ })).toHaveTextContent('Built in');
     expect(within(table).getByRole('row', { name: /Hourly role/ })).toHaveTextContent('by ScreenHire');

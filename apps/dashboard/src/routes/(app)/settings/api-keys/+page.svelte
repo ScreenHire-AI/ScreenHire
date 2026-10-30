@@ -239,7 +239,7 @@
     <Panel title="Use the ScreenHire API">
       <div class="flex flex-col gap-4">
         <p class="max-w-measure">
-          A key lets another system read and change your jobs, candidates, applications and templates. A key never sees integrity
+          A key lets another system read and change your jobs, candidates, applications and templates. A key never sees verification
           results.
         </p>
         <SummaryList>

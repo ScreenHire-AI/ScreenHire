@@ -68,7 +68,7 @@ Every page handles all four:
 ## 5. Components
 
 - Build the page from the catalogue in design system section 11: `HeaderBand` and `Fact`, `Panel`, `StatusBadge`,
-  `SummaryList`, `FileRow`, `DetailLayout`, `DetailsRail`, `RecordTabs`, `ActivityList`, `ListItem`, `RelativeTime`, `TruncatedText` in
+  `SummaryList`, `FileRow`, `RecordTabs`, `ActivityList`, `ListItem`, `RelativeTime`, `TruncatedText` in
   `#lib/components`. The style guide (`/style-guide` while `pnpm dev` or `/preview` runs) shows each one in every
   state; compare your page against it.
 - Use the shadcn-svelte components in `#lib/components/ui`. To add one, from `apps/dashboard`:

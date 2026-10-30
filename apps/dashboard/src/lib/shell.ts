@@ -2,6 +2,7 @@ import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
 import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
 import ListTodoIcon from '@lucide/svelte/icons/list-todo';
 import UsersIcon from '@lucide/svelte/icons/users';
+import type { ConnectionStatus } from '@screenhire/realtime';
 import { getContext, setContext } from 'svelte';
 
 /** What the signed-in shell offers the pages inside it. */
@@ -10,6 +11,8 @@ export interface Shell {
   openPalette(): void;
   /** Opens the keyboard shortcuts dialog (`?`). */
   openShortcuts(): void;
+  /** The hub connection's state, for the top bar's Live indicator. */
+  live(): ConnectionStatus;
 }
 
 const key = Symbol('shell');

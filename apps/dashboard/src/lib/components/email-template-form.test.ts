@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import Harness from '../../test-support/email-template-form-harness.svelte';
 import { apiStub } from '../../test-support/fixtures.js';
+import { inHiddenPane } from '../../test-support/panes.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
 const variables: EmailTemplateVariableEntry[] = [
@@ -67,16 +68,20 @@ afterEach(() => {
 });
 
 describe('email template form', () => {
-  it('shows the wording or the email, never both, and the preview follows the wording with the sample candidate (A8)', async () => {
+  it('shows the wording and the email side by side where both fit, else one at a time, and the preview follows the wording (A8)', async () => {
     const { previews } = renderForm();
-    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull();
+    const pane = screen.getByRole('region', { name: 'Preview' }).closest('[data-preview-pane]');
+    // Container queries put the panes side by side in a wide container; jsdom has none, so this is the narrow layout.
+    expect(pane).toHaveClass('@[82rem]/editor:flex');
+    expect(inHiddenPane(pane)).toBe(true);
     await waitFor(() => expect(previews).toHaveLength(1));
     expect(previews[0]).toEqual({ subject: 'An update on {{ jobTitle }}', body: 'Hi {{ candidateName }},', templateId: 'stage-change' });
 
     await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'News about {{ jobTitle }}' } });
     await showPreview();
     const preview = screen.getByRole('region', { name: 'Preview' });
-    expect(screen.queryByLabelText('Subject')).toBeNull();
+    expect(inHiddenPane(preview)).toBe(false);
+    expect(inHiddenPane(screen.getByLabelText('Subject'))).toBe(true);
     expect(await within(preview).findByText('News about Product designer')).toBeInTheDocument();
 
     await fireEvent.click(within(preview).getByRole('button', { name: 'Plain text' }));

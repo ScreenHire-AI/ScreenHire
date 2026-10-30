@@ -33,7 +33,7 @@ public sealed class WorkflowEngineTests(AppHostFixture fixture)
         var refused = (await recruiter.PostAsync("/v1/workflows/validate", new JsonObject { ["workflow"] = workflow })).Expect(HttpStatusCode.OK);
         refused.At("valid").GetBoolean().Should().BeFalse();
         refused.Text("errors.0.path").Should().Be("automations[0].actions[0]");
-        refused.Text("errors.0.message").Should().Contain("Integrity signals never drive rejection");
+        refused.Text("errors.0.message").Should().Contain("Verification signals never drive rejection");
     }
 
     [Fact]

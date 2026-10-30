@@ -126,7 +126,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
 
         create.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.automations[0].actions[0]");
         update.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.automations[0].actions[0]");
-        create.At("errors").EnumerateObject().Single().Value[0].GetString().Should().Contain("Integrity signals never drive rejection");
+        create.At("errors").EnumerateObject().Single().Value[0].GetString().Should().Contain("Verification signals never drive rejection");
     }
 
     [Fact]

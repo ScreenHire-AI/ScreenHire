@@ -1,6 +1,9 @@
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import BriefcaseBusinessIcon from '@lucide/svelte/icons/briefcase-business';
+  import CalendarIcon from '@lucide/svelte/icons/calendar';
   import MailIcon from '@lucide/svelte/icons/mail';
+  import StarIcon from '@lucide/svelte/icons/star';
   import {
     ApiError,
     createGetApplication,
@@ -19,16 +22,16 @@
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
+  import PhoneIcon from '@lucide/svelte/icons/phone';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
-  import CandidateRail from '#lib/components/candidate/candidate-rail.svelte';
   import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
   import OverviewTab from '#lib/components/candidate/overview-tab.svelte';
   import ScorecardsTab from '#lib/components/candidate/scorecards-tab.svelte';
-  import DetailLayout from '#lib/components/detail-layout.svelte';
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
+  import MetaItem from '#lib/components/meta-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
@@ -37,9 +40,13 @@
   import QueryError from '#lib/components/query-error.svelte';
   import Rating from '#lib/components/rating.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -57,12 +64,15 @@
 
   let { params }: PageProps = $props();
 
-  // A candidate (design system sections 7 and 21): the header band with the same six tabs in the same order for
-  // everyone, and the details rail, which never moves. The tab is in the address (?tab=), so a link can open one: the
-  // Overview's "All in Activity", a mention email's link to the note. Each tab's body is its own component.
-  const tabs = ['overview', 'application', 'messages', 'scorecards', 'integrity', 'activity'] as const;
+  // A candidate (design system sections 7 and 22): the header band holds who they are and where they stand (contact under
+  // the name, then a meta line of the stage, job, when and where from, and rating) above the same six tabs in the same order for
+  // everyone, so the facts sit where the eye starts on every tab. The tab is in the address (?tab=), so a link can open
+  // one: the Overview's "All in Activity", a mention email's link to the note. Each tab's body is its own component.
+  const tabs = ['overview', 'application', 'messages', 'scorecards', 'verification', 'activity'] as const;
   type Tab = (typeof tabs)[number];
-  const tab = $derived<Tab>(tabs.find((value) => value === page.url.searchParams.get('tab')) ?? 'overview');
+  // ?tab=integrity is the tab's address from before it was called Verification, kept so an old link still opens it.
+  const requested = $derived(page.url.searchParams.get('tab') === 'integrity' ? 'verification' : page.url.searchParams.get('tab'));
+  const tab = $derived<Tab>(tabs.find((value) => value === requested) ?? 'overview');
 
   function selectTab(value: string) {
     const url = new URL(page.url.href);
@@ -147,20 +157,20 @@
       .toSorted((a, b) => Number(b.id === detail?.stage.id) - Number(a.id === detail?.stage.id)),
   );
 
-  // Counts where a count fits, and a marker on Integrity when the level needs a look (E2).
+  // A count on each tab where one fits (E2). When the authenticity level needs a look, Integrity's count is the signals
+  // behind it, in the same grey as every tab, and the level is the candidate's status beside the name (W7).
   const authenticity = $derived(integrity.data?.data.authenticity);
-  const marker = $derived.by((): RecordTab['marker'] => {
+  const attention = $derived.by(() => {
     if (!authenticity || authenticity.dismissal) return undefined;
     const level = authenticityLevels[authenticity.level];
-    if (level.rank === 0) return undefined;
-    return { label: level.label, tone: level.rank === 1 ? 'review' : 'verify' };
+    return level.rank === 0 ? undefined : { level, signals: authenticity.signals.filter((signal) => signal.countsTowardLevel).length };
   });
   const recordTabs = $derived<RecordTab[]>([
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
     { value: 'messages', label: 'Messages', count: candidateEmails.data?.data.length },
     { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
-    { value: 'integrity', label: 'Integrity', marker },
+    { value: 'verification', label: 'Verification', count: attention?.signals },
     { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length : undefined },
   ]);
 
@@ -251,30 +261,53 @@
         <Skeleton class="h-11 w-96 max-w-full" />
       </div>
     </div>
-    <div aria-hidden="true" class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 lg:flex-row-reverse">
-      <Skeleton class="h-48 rounded-panel lg:basis-rail" />
-      <Skeleton class="h-96 flex-1 rounded-panel" />
+    <div aria-hidden="true" class="@container grid w-full items-start gap-5 px-4 py-5 md:px-6 @5xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <Skeleton class="h-96 rounded-panel" />
+      <Skeleton class="h-48 rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
     <Tabs.Root bind:value={() => tab, selectTab}>
       <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs}>
         {#snippet status()}
+          <!-- Status first, beside the name, on every tab (S2, T2): the authenticity level when it needs a look. A calm
+               level says nothing. It is a badge, never a link (A5); Next steps links to the reasons. -->
+          {#if attention}<StatusBadge status={attention.level.status} label={attention.level.label} />{/if}
           <OverdueBadge dueAt={detail.slaDueAt} />
-          <!-- The candidate's rating, from people's scorecards only (ADR-0013); it opens to each scorecard. -->
-          <Rating rating={detail.rating} scorecards={scorecards.data?.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
+        {/snippet}
+        {#snippet details()}
+          <!-- Contact on the muted line under the name: each an icon and its value, no labels (section 7). -->
+          <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
+          {#if detail.candidate.phone}
+            <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
+          {/if}
+        {/snippet}
+        {#snippet meta()}
+          <!-- The stage is the one fact a recruiter acts on, so it is a muted pill: a fact, not a second status (T2). -->
+          <MetaItem label="Stage"><Badge variant="muted">{detail.stage.name}</Badge></MetaItem>
+          <MetaItem label="Job" icon={BriefcaseBusinessIcon}><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></MetaItem>
+          <!-- When and where from, as one phrase that reads without its label. -->
+          <MetaItem label="Applied" icon={CalendarIcon}>
+            <span>
+              {#if detail.source === 'CareersSite'}Applied <RelativeTime at={detail.submittedAt} class="inline" /> via the careers page{:else}Added by a
+                recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
+            </span>
+          </MetaItem>
+          <MetaItem label="Rating" icon={StarIcon}>
+            <!-- From people's scorecards only (ADR-0013); it opens to each scorecard. -->
+            <Rating rating={detail.rating} scorecards={scorecards.data?.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
+          </MetaItem>
         {/snippet}
       </HeaderBand>
 
       <div class="@container w-full px-4 py-5 md:px-6 md:py-6">
-        <!-- A move that worked shows in the rail's Stage and in Activity, so only screen readers hear it. A failure shows
-             in the header band, beside Move to stage. -->
+        <!-- A move that worked shows in the header's Stage and in Activity, so only screen readers hear it. A failure
+             shows in the header band, beside Move to stage. -->
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
 
         <!-- Only the selected tab's body is rendered: each loads what it shows, and a note's anchor is on the page once. -->
-        <DetailLayout>
-          {#snippet rail()}<CandidateRail {detail} editable={mayNote} />{/snippet}
+        <div class="flex min-w-0 flex-col gap-5">
           <Tabs.Content value="overview" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'overview'}
               <OverviewTab
@@ -289,6 +322,7 @@
                 {names}
                 {questions}
                 {manualAutomations}
+                tagsEditable={mayNote}
               />
             {/if}
           </Tabs.Content>
@@ -325,8 +359,8 @@
               />
             {/if}
           </Tabs.Content>
-          <Tabs.Content value="integrity" class="flex min-w-0 flex-col gap-5">
-            {#if tab === 'integrity'}
+          <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'verification'}
               <IntegrityPanel applicationId={detail.id} />
               <ReviewLog applicationId={detail.id} />
             {/if}
@@ -346,7 +380,7 @@
               />
             {/if}
           </Tabs.Content>
-        </DetailLayout>
+        </div>
       </div>
     </Tabs.Root>
 

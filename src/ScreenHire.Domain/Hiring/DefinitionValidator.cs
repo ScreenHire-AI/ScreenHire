@@ -941,9 +941,9 @@ public static partial class DefinitionValidator
                 || (action.Type == ActionType.MoveToStage && target is not null && !SignalSafeStages.Contains(target.Kind))))
             {
                 errors.Add(new(actionPath,
-                    "An automation that uses an integrity or verification signal, directly or through a tag or stage another such " +
+                    "An automation that uses a verification signal, directly or through a tag or stage another such " +
                     "automation sets, may only request verification, assign a reviewer, add a tag or move to a screening, " +
-                    "assessment, verification or interview stage. Integrity signals never drive rejection (ADR-0004)."));
+                    "assessment, verification or interview stage. Verification signals never drive rejection (ADR-0004)."));
                 continue;
             }
 

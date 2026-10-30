@@ -15,6 +15,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
+  import { locales } from '#lib/dates.js';
   import { employmentLabel } from '#lib/format.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import {
@@ -22,6 +23,7 @@
     checkWhere,
     closingDate,
     closingInstant,
+    currencyOptions,
     descriptionBody,
     descriptionText,
     periodOptions,
@@ -44,6 +46,8 @@
   const update = createUpdateJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
 
   const employmentTypes = UpdateJobBody.shape.employmentType.options;
+  // The job's own currency stays in the list even if this browser does not know it.
+  const currencies = $derived(currencyOptions(locales, job.salary?.currency ?? 'GBP'));
 
   const schema = UpdateJobBody.pick({ title: true })
     .extend({
@@ -195,7 +199,10 @@
           </Field.Field>
           <Field.Field data-invalid={$errors.currency ? true : undefined}>
             <Field.Label for="job-currency">Currency</Field.Label>
-            <Input id="job-currency" name="currency" maxlength={3} autocomplete="off" bind:value={$form.currency} aria-invalid={$errors.currency ? 'true' : undefined} aria-describedby={describedBy('job-currency-error', $errors.currency)} />
+            <!-- Picked by name, never typed as a code; the value is the ISO code the API takes. -->
+            <select id="job-currency" name="currency" class={selectClass} bind:value={$form.currency} aria-invalid={$errors.currency ? 'true' : undefined} aria-describedby={describedBy('job-currency-error', $errors.currency)}>
+              {#each currencies as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </select>
             <Field.Error id="job-currency-error" errors={$errors.currency?.map((message) => ({ message }))} />
           </Field.Field>
           <Field.Field>
@@ -208,7 +215,7 @@
       </fieldset>
 
       <Field.Field data-invalid={$errors.closingDate ? true : undefined}>
-        <Field.Label for="job-closing">Closing date, UTC <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+        <Field.Label for="job-closing">Closing date <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
         <Input id="job-closing" name="closingDate" type="date" bind:value={$form.closingDate} aria-invalid={$errors.closingDate ? 'true' : undefined} aria-describedby={describedBy('job-closing-error', $errors.closingDate)} />
         <Field.Error id="job-closing-error" errors={$errors.closingDate?.map((message) => ({ message }))} />
       </Field.Field>

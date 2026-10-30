@@ -23,14 +23,14 @@
   } = $props();
 
   let shortcutsOpen = $state(false);
-  setShell({ openPalette: () => {}, openShortcuts: () => (shortcutsOpen = true) });
+  setShell({ openPalette: () => {}, openShortcuts: () => (shortcutsOpen = true), live: () => 'connected' });
   const laptop = new MediaQuery('min-width: 1024px');
 </script>
 
 <!-- The root layout's tooltip provider. -->
 <Tooltip.Provider>
   <Sidebar.Provider open={laptop.current}>
-    <AppSidebar {user} {viewCounts} live="connected" />
+    <AppSidebar {user} {viewCounts} />
     <Sidebar.Inset>
       <TopBar {crumbs} {back} />
       <main><h1>Page</h1></main>

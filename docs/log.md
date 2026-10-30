@@ -1,5 +1,25 @@
 # Log
 
+## 2026-10-30
+
+**The owner reviewed the v0.3 build** ([ADR-0017](adr/0017-design-system-v0-3-owner-review.md)) and the dashboard
+changed with it. The candidate page has no details rail: who they are and where they stand is one meta line in the
+header, with the authenticity level as their status beside the name, and Overview is a grid of panels. The feature
+people see is Verification, not Integrity: the tab, the Settings page (`/settings/verification`, the old addresses
+redirect), the filter, the workflow trigger and facts, the role permission and the guardrail's message; code, API
+routes, events and tables keep "integrity" for now. Each assessment leads with its next step in a callout, groups its
+reasons under the check that found them and puts when it was assessed last. My tasks links each task to its candidate,
+where it is ticked off. Candidates filter by several jobs and stages at once. Settings gains an MCP server page with the
+values any client needs, and every settings header is one row, so nothing jumps between them. The Live indicator moved
+to the top bar. Scorecard templates, email templates and questionnaires show the editor and its preview side by side
+where both fit. The job form picks a currency by name and a closing date in the person's own time zone.
+
+New rules in `design/design-system.md`: S8 (moving between sibling pages never shifts the frame), A9 (expandable rows
+have a chevron), F6 (a field's actions share its message's row), W7 (say it once per screen), W8 (never ask people to
+type a code), W9 (a label only where the value cannot explain itself) and W10 (what to do first, audit details last); A8
+now lets an editor and its preview share the screen, and L1 says an empty cell is blank. The roadmap moves the MCP
+server to Done and adds rich text, Connect to Slack and teammates' changes as toasts.
+
 ## 2026-10-25
 
 **The dashboard is built to v0.3.** The last screens landed (Tasks with Mine, For the team and Everyone's, each ticked

@@ -49,11 +49,13 @@ afterEach(() => {
 });
 
 describe('organization settings page', () => {
-  it('loads the name, with Last updated and History last in the header (T6)', async () => {
+  it('loads the name, with Updated and History on the title row, so every settings header is one row (T6, S8)', async () => {
     renderPage();
 
     expect(await screen.findByDisplayValue('Brightwater Studio')).toBe(await name());
-    expect(screen.getByText('Last updated')).toBeInTheDocument();
+    const updated = document.querySelector('[data-last-updated]')!;
+    expect(updated).toHaveTextContent(/^Last updated:\s*Updated /);
+    expect(updated.closest('[data-slot="header-band"]')?.querySelector('dl')).toBeNull();
     expect(screen.getByRole('button', { name: /^History/ })).toBeInTheDocument();
     await expectNoAxeViolations();
   });

@@ -214,45 +214,47 @@ const noteItem = (noteId: string) =>
 const lines = (region: HTMLElement) => within(region).getAllByRole('listitem').map((item) => item.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim());
 
 describe('application page', () => {
-  it('has the same six tabs in the same order, with counts and a marker on Integrity when the level needs a look', async () => {
+  it('has the same six tabs in the same order, with counts, and the signals on Verification when the level needs a look', async () => {
     stubApi({ [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...botIntegrity(), applicationId }) });
     renderPage();
 
     const tabs = await screen.findByRole('tablist', { name: 'Candidate sections' });
-    await waitFor(() => expect(within(tabs).getByRole('tab', { name: 'Integrity, Verification suggested' })).toBeInTheDocument());
+    await waitFor(() => expect(within(tabs).getByRole('tab', { name: /^Verification \d+$/ })).toBeInTheDocument());
     await waitFor(() =>
       expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
         'Overview',
         'Application',
         'Messages 0',
         'Scorecards 0',
-        'Integrity',
+        expect.stringMatching(/^Verification \d+$/),
         'Activity 6',
       ]),
     );
     expect(within(tabs).getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
-    expect(tabs.querySelector('[data-tab-marker]')).toBeInTheDocument();
   });
 
-  it('keeps the job, contact, files and tags in the details rail', async () => {
+  it('puts who they are and where they stand in the header, and the files and tags on Overview', async () => {
     renderPage();
-    const rail = await screen.findByRole('complementary', { name: 'Details' });
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
+    const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
 
-    const facts = within(rail)
+    // One meta line above the tabs, where the eye starts on every tab; there is no rail at the window's far edge. Each
+    // value reads without its label, which only screen readers hear.
+    const facts = within(band)
       .getAllByRole('term')
-      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
-    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Source', 'Email']);
+      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim()]);
+    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Rating']);
+    for (const term of within(band).getAllByRole('term')) expect(term).toHaveClass('sr-only');
     expect(facts[0]![1]).toBe('Screening');
-    expect(facts[3]![1]).toBe('Careers page');
-    expect(within(rail).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
-    expect(within(rail).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
-    const files = within(rail).getByRole('region', { name: 'Files' });
+    expect(facts[2]![1]).toMatch(/^Applied .+ via the careers page$/);
+    expect(within(band).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
+    expect(within(band).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
+    expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
+    const files = await screen.findByRole('region', { name: 'Files' });
     expect(within(files).getByRole('button', { name: 'View Casey Morgan CV.pdf' })).toBeInTheDocument();
     // The scan withheld the portfolio, so its row says why and offers neither View nor Download.
     expect(files).toHaveTextContent('Unsafe file');
-    expect(within(rail).getByRole('region', { name: 'Tags' })).toBeInTheDocument();
-    const band = screen.getByRole('heading', { level: 1, name: 'Casey Morgan' }).closest<HTMLElement>('[data-slot="header-band"]')!;
-    expect(within(band).queryAllByRole('term')).toEqual([]);
+    expect(screen.getByRole('region', { name: 'Tags' })).toBeInTheDocument();
     expect(await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeInTheDocument();
   });
 
@@ -274,7 +276,7 @@ describe('application page', () => {
     expect(within(activity).getByRole('link', { name: 'All 6 in Activity' })).toHaveAttribute('href', '?tab=activity');
     await screen.findByRole('region', { name: 'Automations' });
     const panels = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
-    expect(panels).toEqual(['Next steps', 'Automations', 'Activity', 'Answers']);
+    expect(panels).toEqual(['Next steps', 'Automations', 'Activity', 'Files', 'Tags', 'Answers']);
   });
 
   it('shows the integrity next step on Overview when the level needs a look, never as a reason to reject', async () => {
@@ -283,8 +285,13 @@ describe('application page', () => {
     const steps = await screen.findByRole('region', { name: 'Next steps' });
 
     await within(steps).findByText(/Confirm the candidate is who they say they are/);
-    expect(steps).toHaveTextContent('Not a reason to reject on its own.');
-    expect(within(steps).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=integrity');
+    // The caveat shows exactly once: this step's own words carry it, so the row adds none of its own (ADR-0004).
+    expect(steps.textContent?.match(/not a reason to reject/gi)).toHaveLength(1);
+    expect(steps).toHaveTextContent('Verification suggested by the verification checks.');
+    expect(within(steps).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=verification');
+    // The level is also the candidate's status, beside the name on every tab (S2, T2).
+    const band = screen.getByRole('heading', { level: 1 }).closest<HTMLElement>('[data-slot="header-band"]')!;
+    expect(within(band).getByText('Verification suggested')).toBeInTheDocument();
   });
 
   it("labels each answer with the job's question and shows choices by their labels", async () => {
@@ -315,7 +322,7 @@ describe('application page', () => {
       'Moved from Screening to Interview by you',
       'Tagged "fast-track" by an automation',
       'Moved from Applied to Screening by Robin Ashby',
-      'Integrity checks ran',
+      'Verification checks ran',
       'Applied on the careers page, into Applied',
     ]);
     expect(within(region).getByText('"Strong portfolio."')).toBeInTheDocument();
@@ -493,10 +500,12 @@ describe('application page', () => {
     expect(within(messages).queryByRole('form')).not.toBeInTheDocument();
   });
 
-  it('shows the Integrity tab with its checks and the review log', async () => {
+  it('shows the Verification tab with its checks and the review log, also at its old address', async () => {
+    // ?tab=integrity is the tab's old address: a link from before the rename still opens it.
     renderPage('integrity');
 
     await screen.findByText(/Checks are still running/);
+    expect(screen.getByRole('tab', { name: /^Verification/ })).toHaveAttribute('aria-selected', 'true');
     expect(document.body).toHaveTextContent('No automated decision has been made. Every action is logged.');
     expect(await screen.findByRole('region', { name: 'Review log' })).toBeInTheDocument();
   });
@@ -566,6 +575,106 @@ describe('application page', () => {
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url) === `/v1/tasks/${taskId}/complete` && init?.method === 'POST')).toBe(true));
     expect(await within(tasks).findByRole('button', { name: 'Undo, Call the references.' })).toBeInTheDocument();
     expect(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' })).toBeChecked();
+  });
+
+  describe('ticking a task on Next steps', () => {
+    const tick = 'Mark done for Call the references.';
+    const undo = 'Undo, Call the references.';
+    const posted = (fetch: ReturnType<typeof stubApi>, url: string) =>
+      fetch.mock.calls.some(([called, init]) => String(called) === url && init?.method === 'POST');
+    const doneTask = { ...task, completedAt: '2026-10-20T12:00:00Z', completedByUserId: user.id };
+
+    afterEach(() => vi.useRealTimers());
+
+    it('keeps Undo for 10 seconds, then shows the task done with who did it', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      let listed = [task];
+      stubApi({
+        [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json(listed),
+        [`POST /v1/tasks/${taskId}/complete`]: () => {
+          listed = [doneTask];
+          return Response.json(doneTask);
+        },
+      });
+      renderPage();
+      const steps = await screen.findByRole('region', { name: 'Next steps' });
+
+      await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
+      expect(await screen.findByText('Marked "Call the references." done.')).toBeInTheDocument();
+      expect(within(steps).getByRole('button', { name: undo })).toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      await waitFor(() => expect(within(steps).queryByRole('button', { name: undo })).not.toBeInTheDocument());
+      expect(within(steps).queryByRole('checkbox', { name: tick })).not.toBeInTheDocument();
+      expect(steps).toHaveTextContent(/Done .* by you/);
+    });
+
+    it('opens the task again on Undo, and on unticking it', async () => {
+      const fetch = stubApi({
+        [`POST /v1/tasks/${taskId}/complete`]: () => Response.json(doneTask),
+        [`POST /v1/tasks/${taskId}/reopen`]: () => Response.json(task),
+      });
+      renderPage();
+      const steps = await screen.findByRole('region', { name: 'Next steps' });
+
+      await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
+      await fireEvent.click(await within(steps).findByRole('button', { name: undo }));
+      await waitFor(() => expect(posted(fetch, `/v1/tasks/${taskId}/reopen`)).toBe(true));
+      expect(await screen.findByText('"Call the references." is open again.')).toBeInTheDocument();
+      expect(within(steps).getByRole('checkbox', { name: tick })).not.toBeChecked();
+      expect(within(steps).queryByRole('button', { name: /^Undo/ })).not.toBeInTheDocument();
+
+      fetch.mockClear();
+      await fireEvent.click(within(steps).getByRole('checkbox', { name: tick }));
+      await waitFor(() => expect(within(steps).getByRole('checkbox', { name: tick })).toBeChecked());
+      await fireEvent.click(within(steps).getByRole('checkbox', { name: tick }));
+      await waitFor(() => expect(posted(fetch, `/v1/tasks/${taskId}/reopen`)).toBe(true));
+    });
+
+    it('keeps Undo for a task ticked again while its Undo is still saving, and completes it after the reopen', async () => {
+      let finishReopen = () => {};
+      const order: string[] = [];
+      const fetch = stubApi({
+        [`POST /v1/tasks/${taskId}/complete`]: () => {
+          order.push('complete');
+          return Response.json(doneTask);
+        },
+        [`POST /v1/tasks/${taskId}/reopen`]: () =>
+          new Promise<Response>((resolve) => {
+            finishReopen = () => {
+              order.push('reopen');
+              resolve(Response.json(task));
+            };
+          }),
+      });
+      renderPage();
+      const steps = await screen.findByRole('region', { name: 'Next steps' });
+
+      await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
+      await fireEvent.click(await within(steps).findByRole('button', { name: undo }));
+      await waitFor(() => expect(posted(fetch, `/v1/tasks/${taskId}/reopen`)).toBe(true));
+      await waitFor(() => expect(within(steps).getByRole('checkbox', { name: tick })).not.toBeChecked());
+
+      // Ticked again before the reopen has answered.
+      await fireEvent.click(within(steps).getByRole('checkbox', { name: tick }));
+      await waitFor(() => expect(within(steps).getByRole('checkbox', { name: tick })).toBeChecked());
+      finishReopen();
+
+      await waitFor(() => expect(order).toEqual(['complete', 'reopen', 'complete']));
+      expect(within(steps).getByRole('checkbox', { name: tick })).toBeChecked();
+      expect(within(steps).getByRole('button', { name: undo })).toBeInTheDocument();
+    });
+
+    it('unticks the task and says why when completing fails', async () => {
+      stubApi({ [`POST /v1/tasks/${taskId}/complete`]: () => new Response(null, { status: 500 }) });
+      renderPage();
+      const steps = await screen.findByRole('region', { name: 'Next steps' });
+
+      await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
+
+      expect((await screen.findAllByText(/Could not complete the task/)).length).toBeGreaterThan(0);
+      expect(within(steps).getByRole('checkbox', { name: tick })).not.toBeChecked();
+    });
   });
 
   it('runs a manual automation with its own idempotency key, and offers only manual ones', async () => {

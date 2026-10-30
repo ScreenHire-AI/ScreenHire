@@ -680,7 +680,7 @@ public sealed class DefinitionValidatorTests
         var errors = DefinitionValidator.Validate(workflow);
 
         errors.Should().ContainSingle(e => e.Path == actionPath).Which.Message
-            .Should().Contain("integrity or verification signal").And.Contain("Integrity signals never drive rejection (ADR-0004)");
+            .Should().Contain("uses a verification signal").And.Contain("Verification signals never drive rejection (ADR-0004)");
         errors.Should().HaveCount(1);
     }
 

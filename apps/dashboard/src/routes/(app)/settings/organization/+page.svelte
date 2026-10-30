@@ -92,7 +92,7 @@
 
 <main class="flex flex-col">
   <HeaderBand title="Organization">
-    {#snippet facts()}
+    {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name={detail.name} page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
     {/snippet}
   </HeaderBand>

@@ -65,8 +65,8 @@ describe('visibleSettingsSections', () => {
   const labels = (user: CurrentUser | null) => visibleSettingsSections(user).map((section) => section.label);
 
   it('shows Owners and Admins every page, and email templates on the Templates page instead', () => {
-    expect(labels(userAs('Owner'))).toHaveLength(7);
-    expect(labels(userAs('Admin'))).toHaveLength(7);
+    expect(labels(userAs('Owner'))).toHaveLength(8);
+    expect(labels(userAs('Admin'))).toHaveLength(8);
     expect(labels(userAs('Owner'))).not.toContain('Email templates');
   });
 
@@ -79,7 +79,7 @@ describe('visibleSettingsSections', () => {
 
   it('shows a custom role the pages its permissions open', () => {
     const keeper: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageApiKeys'] } };
-    expect(labels(keeper)).toEqual(['API keys']);
+    expect(labels(keeper)).toEqual(['API keys', 'MCP server']);
   });
 
   it('finds the page a path belongs to', () => {

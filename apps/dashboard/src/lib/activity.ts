@@ -101,7 +101,7 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return 'Deleted a note';
     case 'IntegrityAssessed':
       // Levels and evidence are the Integrity tab's to show; Activity records only that the checks ran.
-      return 'Integrity checks ran';
+      return 'Verification checks ran';
     case 'ScorecardSubmitted':
       // The ratings and the recommendation are the Scorecards tab's to show.
       return `Scorecard for ${names.stageName(entry.stageId)}`;

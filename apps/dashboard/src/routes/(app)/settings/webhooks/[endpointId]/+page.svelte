@@ -30,9 +30,6 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
-  import DetailLayout from '#lib/components/detail-layout.svelte';
-  import DetailsRailSection from '#lib/components/details-rail-section.svelte';
-  import DetailsRail from '#lib/components/details-rail.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -199,9 +196,9 @@
         <Skeleton class="h-10 w-full max-w-120" />
       </div>
     </div>
-    <div aria-hidden="true" class="flex w-full flex-col gap-5 px-4 py-6 md:px-6 lg:flex-row">
-      <Skeleton class="h-80 min-w-0 flex-1 rounded-panel" />
-      <Skeleton class="h-48 rounded-panel lg:basis-rail" />
+    <div aria-hidden="true" class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+      <Skeleton class="h-32 rounded-panel" />
+      <Skeleton class="h-80 rounded-panel" />
     </div>
     <p class="sr-only" role="status">Loading the endpoint…</p>
   {:else}
@@ -248,20 +245,16 @@
         </Notice>
       {/if}
 
-      <DetailLayout>
-        {#snippet rail()}
-          <DetailsRail>
-            <DetailsRailSection title="Events" count={detail.events.length}>
-              <ul class="flex flex-col gap-2" aria-label="Event types">
-                {#each detail.events as type (type)}
-                  <!-- Each event in words, then its type as the code a receiver reads (W2), as the Webhooks page lists them. -->
-                  <li class="min-w-0 break-words">{eventLabel(type)} <span class="font-mono text-code break-all text-muted-foreground">{type}</span></li>
-                {/each}
-              </ul>
-            </DetailsRailSection>
-          </DetailsRail>
-        {/snippet}
-        <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
+      <!-- The events it sends, then its deliveries, one column: nothing sits beside the table (S7). -->
+      <Panel title="Events" count={detail.events.length}>
+        <ul class="flex flex-col gap-2" aria-label="Event types">
+          {#each detail.events as type (type)}
+            <!-- Each event in words, then its type as the code a receiver reads (W2), as the Webhooks page lists them. -->
+            <li class="min-w-0 break-words">{eventLabel(type)} <span class="font-mono text-code break-all text-muted-foreground">{type}</span></li>
+          {/each}
+        </ul>
+      </Panel>
+      <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
           {#if deliveries.isError}
             <div class="p-4">
               <QueryError message={describeError(deliveries.error, 'Could not load the deliveries')} onretry={() => deliveries.refetch()} inset />
@@ -338,7 +331,6 @@
             </div>
           {/if}
         </Panel>
-      </DetailLayout>
     </div>
 
     {#if sidebar.isMobile && !detail.enabled}

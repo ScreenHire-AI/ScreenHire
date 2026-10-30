@@ -6,7 +6,6 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
-  import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import EmailTemplateForm from '#lib/components/email-template-form.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
@@ -74,11 +73,11 @@
         <p class="sr-only" role="status">Loading…</p>
       </Panel>
     {:else}
-      <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/email')} />
       <EmailTemplateForm
         variables={list.variables}
         sendingEnabled={list.sendingEnabled}
         bind:mode
+        onpopout={() => source.open('/preview/email')}
         bind:rendered
         bind:dirty
         {formId}
