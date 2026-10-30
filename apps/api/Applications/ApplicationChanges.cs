@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -203,6 +205,83 @@ internal static class ApplicationChanges
 
         var now = time.GetUtcNow();
         var (task, entry) = application.AddTask(request.Note, request.AssigneeUserId, now, tenant.UserId, user.ApiKeyId());
+        db.ApplicationTasks.Add(task);
+        db.ApplicationEvents.Add(entry);
+        await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.Created($"/v1/applications/{application.Id}/tasks", task.ToEntry());
+    }
+
+    /// <summary>
+    /// Asks a teammate for a scorecard: a Scorecard task assigned to them, a timeline entry naming who asked, and
+    /// ApplicationTaskCreated. The teammate must see the job (<see cref="AudienceAsync"/>) and their role must fill in
+    /// scorecards, or the task could never be done; the scorecard must be in the library and not archived, or be one the
+    /// job's stages hold. Asking again while the same request is open, or for a scorecard they already gave, is a 409.
+    /// </summary>
+    public static async Task<Results<Created<ApplicationTaskEntry>, NotFound, ValidationProblem, ProblemHttpResult>> RequestScorecardAsync(
+        Guid applicationId,
+        RequestScorecardRequest request,
+        IValidator<RequestScorecardRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var db = outbox.DbContext;
+        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == applicationId, cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        switch (await AudienceAsync(db, tenant, application.JobId, [request.AssigneeUserId], cancellationToken))
+        {
+            case JobAudience.NotMembers:
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem("assigneeUserId", "Ask a member of this organization."));
+            case JobAudience.CannotSee:
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                    "assigneeUserId", "Ask someone who can see this candidate. Add them to the job's hiring team first."));
+        }
+
+        var role = await RoleAccess.ForMemberAsync(db, application.OrganizationId, request.AssigneeUserId, cancellationToken);
+        if (role is null || !role.Permissions.Contains(Permission.FillInScorecards))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "assigneeUserId", "Their role does not fill in scorecards. Ask someone whose role does."));
+        }
+
+        var key = request.ScorecardTemplateId;
+        var workflow = await db.Jobs.AsNoTracking().Where(j => j.Id == application.JobId).Select(j => j.Workflow).SingleAsync(cancellationToken);
+        if (await ScorecardReferences.ForJobAsync(db, workflow, application.CurrentStageId, key, cancellationToken) is not { Archived: false } scorecard)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "scorecardTemplateId", "This scorecard is not in the library, or it is archived. Choose another."));
+        }
+
+        if (await db.ApplicationTasks.AnyAsync(
+            t => t.ApplicationId == application.Id && t.Kind == ApplicationTaskKind.Scorecard && t.AssigneeUserId == request.AssigneeUserId
+                && t.ScorecardTemplateId == key && t.CompletedAt == null,
+            cancellationToken))
+        {
+            return TypedResults.Problem(
+                title: "Already asked", detail: "They already have this scorecard to fill in for this candidate.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        if (await db.ApplicationScorecards.AnyAsync(
+            s => s.ApplicationId == application.Id && s.ReviewerUserId == request.AssigneeUserId && s.ScorecardTemplateId == key, cancellationToken))
+        {
+            return TypedResults.Problem(
+                title: "Already given", detail: "They already gave this scorecard for this candidate.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var now = time.GetUtcNow();
+        var (task, entry) = application.RequestScorecard(key, scorecard.Card.Name, request.AssigneeUserId, request.Note, now, tenant.UserId, user.ApiKeyId());
         db.ApplicationTasks.Add(task);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));

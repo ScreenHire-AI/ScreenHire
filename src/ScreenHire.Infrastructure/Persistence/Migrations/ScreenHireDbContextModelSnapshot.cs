@@ -446,6 +446,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("reviewer_user_id");
 
+                    b.Property<string>("ScorecardName")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("scorecard_name");
+
+                    b.Property<string>("ScorecardTemplateId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("scorecard_template_id");
+
                     b.Property<string>("StageId")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -470,9 +480,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "JobId")
                         .HasDatabaseName("ix_application_scorecards_organization_id_job_id");
 
-                    b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId")
+                    b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId", "ScorecardTemplateId")
                         .IsUnique()
                         .HasDatabaseName("ix_application_scorecards_organization_id_application_id_stage");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId", "ScorecardTemplateId"), false);
 
                     b.ToTable("application_scorecards", (string)null);
                 });
@@ -718,6 +730,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<string>("ScorecardTemplateId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("scorecard_template_id");
 
                     b.Property<string>("StageId")
                         .HasMaxLength(40)
