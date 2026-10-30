@@ -64,6 +64,7 @@ import type {
   EmailTemplateList,
   EmailsQueued,
   GetEmailTemplateHistoryParams,
+  GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
@@ -71,6 +72,7 @@ import type {
   GetOrganizationIntegritySettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
+  HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
   HiringTemplateDetail,
@@ -11759,6 +11761,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getReopenTaskMutationOptions(options?.()) }), queryClient);
     }
+
+export type getHiringReportResponse200 = {
+  data: HiringReport
+  status: 200
+}
+
+export type getHiringReportResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getHiringReportResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
+  headers: Headers;
+};
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+  headers: Headers;
+};
+
+export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["jobId"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/reports/hiring?${stringifiedParams}` : `/v1/reports/hiring`
+}
+
+export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringReportResponseSuccess> => {
+
+  return apiQueryFetch<getHiringReportResponseSuccess>(getGetHiringReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHiringReportQueryKey = (params?: GetHiringReportParams,) => {
+    return [
+    'v1','reports','hiring', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetHiringReportQueryOptions = <TData = Awaited<ReturnType<typeof getHiringReport>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetHiringReportParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringReport>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHiringReportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHiringReport>>> = ({ signal }) => getHiringReport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getHiringReport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetHiringReportQueryResult = NonNullable<Awaited<ReturnType<typeof getHiringReport>>>
+export type GetHiringReportQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetHiringReport<TData = Awaited<ReturnType<typeof getHiringReport>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetHiringReportParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringReport>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetHiringReportQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listApplicationScorecardsResponse200 = {
   data: ScorecardEntry[]

@@ -6238,6 +6238,73 @@
         ]
       }
     },
+    "/v1/reports/hiring": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetHiringReport",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiringReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/scorecards": {
       "get": {
         "tags": [
@@ -10916,6 +10983,67 @@
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
       },
+      "FunnelStage": {
+        "required": [
+          "kind",
+          "applications",
+          "movedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "movedOn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "One row of the funnel: a stage kind and the applications that reached it or a later one."
+      },
+      "HiringReport": {
+        "required": [
+          "from",
+          "to",
+          "funnel",
+          "timeToHire",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "funnel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelStage"
+            }
+          },
+          "timeToHire": {
+            "$ref": "#/components/schemas/TimeToHire"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceCount"
+            }
+          }
+        },
+        "description": "The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\r\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\r\n(integrity) results."
+      },
       "HiringTeamMember": {
         "required": [
           "memberId",
@@ -12545,6 +12673,33 @@
           }
         },
         "description": "The template version a job's workflow was copied from, and whether a newer one is published."
+      },
+      "JobTimeToHire": {
+        "required": [
+          "jobId",
+          "jobTitle",
+          "hires",
+          "medianDays"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianDays": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "One job's hires in the range and their median days from applying to being hired."
       },
       "JobVersionDetail": {
         "required": [
@@ -14874,6 +15029,28 @@
         },
         "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\r\nfor facts it does not have."
       },
+      "SourceCount": {
+        "required": [
+          "source",
+          "applications",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/ApplicationSource"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Applications submitted in the range from one source, and how many of them are hired now."
+      },
       "StageKind": {
         "enum": [
           "Applied",
@@ -15192,6 +15369,34 @@
           }
         },
         "description": "A test send went to the signed-in person's own address."
+      },
+      "TimeToHire": {
+        "required": [
+          "medianDays",
+          "hires",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "medianDays": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobTimeToHire"
+            }
+          }
+        },
+        "description": "Days from applying to being hired, for the hires made in the range."
       },
       "TriggerType": {
         "enum": [
@@ -15979,6 +16184,9 @@
     },
     {
       "name": "Tasks"
+    },
+    {
+      "name": "Reports"
     },
     {
       "name": "Scorecard templates"
