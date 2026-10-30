@@ -99,7 +99,7 @@
         <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
           <p class="max-w-measure font-semibold">{integrityStep.view.nextStep}</p>
           <p class="max-w-measure text-muted-foreground">
-            {integrityStep.level.label} by the verification checks.{#if !/reject/i.test(integrityStep.view.nextStep)}{' '}Not a reason to reject on its own.{/if}
+            {integrityStep.level.label} by the checks.{#if !/reject/i.test(integrityStep.view.nextStep)}{' '}Not a reason to reject on its own.{/if}
           </p>
         </div>
         <a href="?tab=verification" class="inline-flex min-h-6 shrink-0 items-center pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>

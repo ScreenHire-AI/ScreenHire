@@ -287,7 +287,7 @@ describe('application page', () => {
     await within(steps).findByText(/Confirm the candidate is who they say they are/);
     // The caveat shows exactly once: this step's own words carry it, so the row adds none of its own (ADR-0004).
     expect(steps.textContent?.match(/not a reason to reject/gi)).toHaveLength(1);
-    expect(steps).toHaveTextContent('Verification suggested by the verification checks.');
+    expect(steps).toHaveTextContent('Verification suggested by the checks.');
     expect(within(steps).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=verification');
     // The level is also the candidate's status, beside the name on every tab (S2, T2).
     const band = screen.getByRole('heading', { level: 1 }).closest<HTMLElement>('[data-slot="header-band"]')!;
