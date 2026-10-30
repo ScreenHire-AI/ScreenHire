@@ -89,7 +89,7 @@ export const roleCatalogue: RoleCatalogue = {
     },
   ],
   permissions: [
-    { permission: 'ViewHiring', group: 'Hiring', name: 'See jobs and candidates', description: 'Jobs, candidates, their files, scorecards and integrity results.', ownerOnly: false, everyRole: true },
+    { permission: 'ViewHiring', group: 'Hiring', name: 'See jobs and candidates', description: 'Jobs, candidates, their files, scorecards and verification results.', ownerOnly: false, everyRole: true },
     { permission: 'MoveCandidates', group: 'Hiring', name: 'Move candidates', description: 'Move a candidate to another stage.', ownerOnly: false, everyRole: false },
     { permission: 'FillInScorecards', group: 'Hiring', name: 'Fill in scorecards', description: 'Score a candidate at a stage.', ownerOnly: false, everyRole: false },
     { permission: 'ManageTeam', group: 'Organization', name: 'Manage the team', description: 'Invite people, change roles and remove members, except Owners, and make roles.', ownerOnly: false, everyRole: false },

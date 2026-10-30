@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../../test-support/axe.js';
 import { apiStub, user, userAs } from '../../../../../test-support/fixtures.js';
+import { inHiddenPane } from '../../../../../test-support/panes.js';
 import WithQueryClient from '../../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -84,8 +85,9 @@ describe('scorecard template page', () => {
 
     await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Technical review' } });
     await fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'Preview' }));
-    expect(screen.queryByLabelText('Name')).toBeNull();
+    expect(inHiddenPane(screen.getByLabelText('Name'))).toBe(true);
     const preview = screen.getByRole('region', { name: 'Scorecard for Jordan Lee' });
+    expect(inHiddenPane(preview)).toBe(false);
     expect(within(preview).getByText('Problem solving')).toBeInTheDocument();
     expect(within(preview).getByText('Overall recommendation')).toBeInTheDocument();
     await expectNoAxeViolations();

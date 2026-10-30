@@ -177,12 +177,12 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 
 What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`). The
 Templates page has a tab each for hiring templates, library scorecards (`/templates/scorecards/{id}`, the form builder
-with an Edit / Preview switch) and email templates ([email.md](email.md)), each listed by `template-list.svelte` with
-where it is used, from `GET /v1/template-usage`. The workflow builder is one
-editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own copy, with four tabs on
-the page's header band. A workflow that cannot be edited there (a ScreenHire template, a published version, a closed
-job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no form controls. The
-validation result is a status badge beside the page title.
+with its preview beside it, or behind an Edit / Preview switch where both do not fit) and email templates
+([email.md](email.md)), each listed by `template-list.svelte` with where it is used, from `GET /v1/template-usage`. The
+workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
+copy, with four tabs on the page's header band. A workflow that cannot be edited there (a ScreenHire template, a
+published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
+form controls. The validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered by dragging a grip, or from the menu the grip opens, `ReorderList`), and an automation's actions the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
@@ -219,17 +219,17 @@ validation result is a status badge beside the page title.
 - **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, in the form builder
   (`#lib/components/form-builder.svelte`, design system section 11): a row per question that opens to edit, with its
   answer kind from the answer menu, Duplicate, Delete, Required and a grip to reorder. The kinds a question takes
-  (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; a follow-up offers all but File,
-  because its page takes no uploads. What a kind needs beyond its text and options (a knockout, a number's range, the
-  longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow, so
-  `answers.{id}` still names one question. The Edit / Preview switch shows the candidate's form at phone, tablet or
-  desktop width, rendered by the shared components in `packages/ui/src/questions` that the careers pages render, and
-  its window icon opens it at `/preview/form`, a window that follows each edit. The apply form's preview starts with the
-  candidate's details and the resume; a follow-up's is its questions alone, as its page shows them. Marking a yes/no
-  question as a knockout shows what a knockout may be (an objective eligibility check, never AI use or an
-  accommodation). The automation form offers "Send a questionnaire" and the "questionnaire answered" trigger's picker
-  only when the workflow has a follow-up to name. A version that cannot be edited reads its questions as content, with
-  the same switch.
+  (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; a follow-up offers all but
+  File, because its page takes no uploads. What a kind needs beyond its text and options (a knockout, a number's range,
+  the longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow,
+  so `answers.{id}` still names one question. The preview beside the builder, or behind the Edit / Preview switch where
+  both do not fit, shows the candidate's form at phone, tablet or desktop width, rendered by the shared components in
+  `packages/ui/src/questions` that the careers pages render, and its window icon opens it at `/preview/form`, a window
+  that follows each edit. The apply form's preview starts with the candidate's details and the resume; a follow-up's is
+  its questions alone, as its page shows them. Marking a yes/no question as a knockout shows what a knockout may be (an
+  objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
+  the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
+  edited reads its questions as content, with the same switch.
 - **Simulate:** a sample application's answers, tags, source, hours in stage and integrity levels through
   `POST /v1/workflows/simulate`, unsaved changes included.
 

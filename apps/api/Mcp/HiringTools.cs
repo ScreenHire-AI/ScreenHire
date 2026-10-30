@@ -55,7 +55,7 @@ internal sealed class HiringTools(
     [McpServerTool(Name = "find_candidates", Title = "Find candidates", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Find candidates' applications, newest first, by words in the candidate's name or email, optionally on one job. "
         + "Each match is one application with its stage and tags; pass its applicationId to get_application. "
-        + "Integrity results are not included: a person reviews them in the ScreenHire dashboard.")]
+        + "Verification results are not included: a person reviews them in the ScreenHire dashboard.")]
     public async Task<McpApplicationMatches> FindCandidates(
         ClaimsPrincipal user,
         [Description("Words in the candidate's name or email. Leave out for every candidate.")] string? text = null,

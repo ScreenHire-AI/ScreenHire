@@ -18,7 +18,10 @@
     kind: AssessmentKind;
     /** Null while the checks are pending. */
     level?: LevelView | null;
-    /** How many reason codes raised the level; plain muted text after the chip, as a count in a table is (T4). */
+    /**
+     * How many reason codes raised the level. Screen readers hear it in the chip's description; it is not shown, because a
+     * bare number after the chip says nothing on its own, and the reasons themselves live on the Integrity tab (W6).
+     */
     reasons?: number;
     /** A reviewer dismissed the assessment; the level stays as it was assessed. */
     dismissed?: boolean;
@@ -54,9 +57,6 @@
       <span aria-hidden="true">{words}</span>
       <span class="sr-only">{description}</span>
     </Badge>
-    {#if reasons > 0 && !quiet}
-      <span aria-hidden="true" data-reasons class="text-caption text-muted-foreground tabular-nums">{reasons}</span>
-    {/if}
     {#if dismissed}
       <span aria-hidden="true" class="text-caption text-muted-foreground">Dismissed</span>
     {/if}

@@ -72,7 +72,7 @@
 
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
-  setShell({ openPalette: () => (paletteOpen = true), openShortcuts: () => (shortcutsOpen = true) });
+  setShell({ openPalette: () => (paletteOpen = true), openShortcuts: () => (shortcutsOpen = true), live: () => live.connection.status });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
 
@@ -105,7 +105,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {viewCounts} live={live.connection.status} />
+  <AppSidebar user={data.user} {viewCounts} />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

@@ -41,7 +41,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('integrity settings page', () => {
+describe('verification settings page', () => {
   it('loads the switch and the budget', async () => {
     renderPage({ llmConsistencyCheck: true, monthlyTokenBudget: 250000, tokensUsedThisMonth: 420, lastUpdated });
 

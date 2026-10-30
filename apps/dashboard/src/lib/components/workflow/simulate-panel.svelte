@@ -212,7 +212,7 @@
       </fieldset>
 
       <fieldset class="flex flex-col gap-2">
-        <legend class={kickerClass}>Integrity levels</legend>
+        <legend class={kickerClass}>Verification levels</legend>
         <div class="grid gap-2 @md:grid-cols-2">
           <label class={labelClass}>
             Authenticity

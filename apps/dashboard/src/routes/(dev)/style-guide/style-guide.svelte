@@ -36,11 +36,9 @@
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
   import Picker from '#lib/components/picker.svelte';
   import DateText from '#lib/components/date-text.svelte';
-  import DetailLayout from '#lib/components/detail-layout.svelte';
-  import DetailsRailSection from '#lib/components/details-rail-section.svelte';
-  import DetailsRail from '#lib/components/details-rail.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
   import Fact from '#lib/components/fact.svelte';
+  import FilterMenu from '#lib/components/filter-menu.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileRow from '#lib/components/file-row.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -51,6 +49,7 @@
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
+  import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import ExpandableRow from '#lib/components/expandable-row.svelte';
@@ -154,13 +153,13 @@
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
 
-  // A record's tabs (section 11): counts in the count badge, a state in the count where one fits, a marker where not.
+  // A record's tabs (section 11): counts in the count badge, and a state in the count where one fits (7/8).
   const candidateTabs: RecordTab[] = [
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
     { value: 'messages', label: 'Messages', count: 3 },
     { value: 'scorecards', label: 'Scorecards', count: 0 },
-    { value: 'integrity', label: 'Integrity', marker: { label: 'verification suggested', tone: 'verify' } },
+    { value: 'verification', label: 'Verification', count: 5 },
     { value: 'activity', label: 'Activity', count: 10 },
   ];
   const jobTabs: RecordTab[] = [
@@ -176,6 +175,15 @@
     values.map((value, index) => ({ label: `Week of ${formatDate(ago((values.length - 1 - index) * 7 * day))}`, value }));
 
   // Behind a count (T4): two items list as they are; past 10 the sheet offers a search.
+  const guideStages = [
+    { value: 'applied', label: 'Applied', count: 4 },
+    { value: 'screening', label: 'Screening', count: 2 },
+    { value: 'interview', label: 'Interview', count: 1 },
+  ];
+  const guideJobs = [
+    { value: 'dotnet', label: 'Senior .NET Engineer', count: 7 },
+    { value: 'support', label: 'Support Engineer', count: 3 },
+  ];
   const usedBy: CountItem[] = [
     { id: 'j1', label: 'Senior product designer', href: '#count-button' },
     { id: 'j2', label: 'Support engineer', href: '#count-button' },
@@ -872,7 +880,7 @@
       <Panel title="Tabs">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">A candidate: counts in the count badge, and a marker where no count fits</figcaption>
+            <figcaption class="text-caption text-muted-foreground">A candidate: a count on each tab where one fits</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <Tabs.Root bind:value={candidateTab}>
                 <div class="border-b border-border bg-card px-4 pt-2 md:px-6"><RecordTabs label="Candidate sections" tabs={candidateTabs} /></div>
@@ -939,29 +947,6 @@
         </SummaryBand>
       </Panel>
 
-      <!-- The details rail as a detail page holds it: on the page itself, beside the tabs' panels, never inside a panel (S4). -->
-      <section aria-label="Details rail">
-        <DetailLayout>
-          {#snippet rail()}
-            <DetailsRail>
-              <DetailsRailSection title="Details">
-                <SummaryList>
-                  <SummaryItem label="Job"><TruncatedText text="Senior product designer" href="#details-rail" underlined /></SummaryItem>
-                  <SummaryItem label="Applied"><RelativeTime at={ago(12 * minute)} /></SummaryItem>
-                  <SummaryItem label="Source">Careers page</SummaryItem>
-                </SummaryList>
-              </DetailsRailSection>
-              <DetailsRailSection title="Files">
-                <FileRow {applicationId} file={files.clean} description="Jordan Ellis, Senior product designer" />
-              </DetailsRailSection>
-              <DetailsRailSection title="Tags">
-                <div class="flex flex-wrap gap-1.5"><Badge variant="muted">Referral</Badge></div>
-              </DetailsRailSection>
-            </DetailsRail>
-          {/snippet}
-          <Panel title="Details rail, beside a tab's panel"><p>The selected tab's content.</p></Panel>
-        </DetailLayout>
-      </section>
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="File row and file viewer" class="flex-[999_1_520px]">
@@ -982,6 +967,12 @@
                 <Fact label="Used by"><CountButton items={usedBy} one="job" other="jobs" title="Used by" description="Technical interview" /></Fact>
                 <Fact label="Open in"><CountButton items={manyJobs} one="job" other="jobs" title="Open in" description="Brightwater engineering" /></Fact>
               </dl>
+            </div>
+          </Panel>
+          <Panel title="Filter menu">
+            <div class="flex flex-wrap items-center gap-2">
+              <FilterMenu label="Stage" options={guideStages} total={7} />
+              <MultiFilterMenu label="Job" options={guideJobs} values={['support', 'dotnet']} />
             </div>
           </Panel>
           <Panel title="Built in badge">

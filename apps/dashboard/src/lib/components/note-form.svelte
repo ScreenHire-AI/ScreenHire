@@ -119,13 +119,16 @@
       onsave={() => submit()}
       oncancel={note ? oncancel : undefined}
     />
-    <Field.Error id={`${fieldId}-error`} errors={$errors.note?.map((message) => ({ message }))} />
   </Field.Field>
-  {#if $errors._errors}
-    <FailureText message={$errors._errors[0]} />
-  {/if}
-  <div class="flex items-center justify-end gap-2">
-    <div class="mr-auto md:hidden">
+  <!-- The message sits under the field, and the actions share its row rather than starting one of their own (F6). -->
+  <div class="flex flex-wrap items-start gap-2">
+    <div class="flex min-w-0 flex-[1_1_12rem] flex-col gap-1 pt-2">
+      <Field.Error id={`${fieldId}-error`} errors={$errors.note?.map((message) => ({ message }))} />
+      {#if $errors._errors}
+        <FailureText message={$errors._errors[0]} />
+      {/if}
+    </div>
+    <div class="md:hidden">
       <IconButton label="Mention someone" variant="outline" size="icon-lg" onclick={() => field?.startMention()}><AtSignIcon aria-hidden="true" /></IconButton>
     </div>
     {#if note}

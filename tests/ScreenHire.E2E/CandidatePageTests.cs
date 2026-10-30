@@ -8,15 +8,16 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The candidate page on the detail template (design system sections 7, 11 and 21) at the sizes F1 names and the review
-/// canvas's 820 and 390: the content and the 340px details rail side by side from a laptop up, the rail above the content
-/// on a tablet and a phone, and Move to stage in a bar at the bottom on a phone. The same six tabs for every candidate,
-/// and a rail that does not move between them. Signs in as a new person with a new organization.
+/// canvas's 820 and 390: who they are and where they stand in the header band, with no rail at the window's edge (S7);
+/// Overview's two columns of panels where they fit, one column below that; and Move to stage in a bar at the bottom on a
+/// phone. The same six tabs for every candidate, and a header that does not move between them. Signs in as a new person
+/// with a new organization.
 /// </summary>
 public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture)
 {
     private static readonly string[] Gb = ["GB"];
 
-    private static readonly string[] TabNames = ["Overview", "Application", "Messages", "Scorecards", "Integrity", "Activity"];
+    private static readonly string[] TabNames = ["Overview", "Application", "Messages", "Scorecards", "Verification", "Activity"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -34,29 +35,26 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(move).ToBeVisibleAsync();
         await WaitForTabCountsAsync();
 
-        // Desktop and laptop: the content and the rail side by side. Tablet and phone: one column, the rail first.
+        // Wide: Overview's two columns side by side, Files beside Next steps. Narrower: one column, Files after Next steps.
         foreach (var (width, height, name) in new[] { (1920, 1080, "wide"), (1440, 1000, "desktop"), (1024, 900, "laptop"), (820, 1180, "tablet"), (768, 1024, "small-tablet"), (390, 844, "phone"), (360, 780, "small-phone") })
         {
             await Page.SetViewportSizeAsync(width, height);
             await Page.EvaluateAsync("() => window.scrollTo(0, 0)");
             await SettledAsync();
 
-            var rail = await BoxAsync(Rail);
+            (await Page.GetByRole(AriaRole.Complementary, new() { Name = "Details" }).CountAsync()).Should().Be(0, "a detail page has no rail (S7)");
+            var files = await BoxAsync(Region("Files"));
             var content = await BoxAsync(Region("Next steps"));
             var action = await BoxAsync(move);
-            if (width >= 1024)
+            if (width >= 1440)
             {
-                // The 340px details rail is right of the content, level with its first panel (design system section 5, S4).
-                rail.X.Should().BeGreaterThan(content.X + content.Width, $"the rail is right of the content at {width}px");
-                rail.Y.Should().BeApproximately(content.Y, 1, "panels in a row share a top edge (S4)");
-                rail.Width.Should().BeApproximately(340, 1);
+                files.X.Should().BeGreaterThan(content.X + content.Width, $"Files is beside Next steps at {width}px");
+                files.Y.Should().BeApproximately(content.Y, 1, "panels in a row share a top edge (S4)");
             }
             else
             {
-                // One column: the rail folds under the header, then the content.
-                content.Y.Should().BeGreaterThan(rail.Y + rail.Height, $"the rail comes first at {width}px");
-                content.X.Should().BeApproximately(rail.X, 1);
-                content.Width.Should().BeApproximately(rail.Width, 1);
+                files.Y.Should().BeGreaterThan(content.Y + content.Height, $"one column at {width}px, Files after Next steps");
+                files.X.Should().BeApproximately(content.X, 1);
             }
 
             if (width < 768)
@@ -65,7 +63,7 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
             }
             else
             {
-                action.Y.Should().BeLessThan(Math.Min(rail.Y, content.Y), "the primary action is in the header band");
+                action.Y.Should().BeLessThan(content.Y, "the primary action is in the header band");
             }
 
             await ExpectNoSideScrollAsync();
@@ -93,21 +91,22 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(genuine.FullName);
         var genuineTabs = await TabLabelsAsync();
 
-        // The bot's level needs a look, so its Integrity tab carries a marker the genuine candidate's does not.
+        // The bot's level needs a look, so its Verification tab counts the signals behind it; the genuine candidate's has
+        // no count.
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationIds[1]}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(bot.FullName);
-        await Expect(Tab("Integrity")).ToHaveAccessibleNameAsync(new Regex(@"^Integrity, Verification suggested$"), new() { Timeout = 60_000 });
+        await Expect(Tab("Verification")).ToHaveAccessibleNameAsync(new Regex(@"^Verification \d+$"), new() { Timeout = 60_000 });
         var botTabs = await TabLabelsAsync();
 
         genuineTabs.Should().Equal(TabNames);
         botTabs.Should().Equal(TabNames);
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationIds[0]}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(genuine.FullName);
-        await Expect(Tab("Integrity")).ToHaveAccessibleNameAsync("Integrity", new() { Timeout = 60_000 });
+        await Expect(Tab("Verification")).ToHaveAccessibleNameAsync("Verification", new() { Timeout = 60_000 });
     }
 
     [Fact]
-    public async Task The_details_rail_does_not_move_when_the_tab_changes()
+    public async Task The_header_does_not_move_when_the_tab_changes()
     {
         var applicant = SyntheticApplicants.GenuineHuman;
         var (email, applicationIds) = await ApplicationsAsync(applicant);
@@ -119,14 +118,14 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         // The tabs' counts arrive with the timeline; measure once the header band has taken its final shape.
         await WaitForTabCountsAsync();
         await SettledAsync();
-        await Page.EvaluateAsync("() => { document.querySelector('aside[aria-label=\"Details\"]').dataset.probe = 'same element'; }");
-        var before = await BoxAsync(Rail);
+        await Page.EvaluateAsync("() => { document.querySelector('[data-slot=\"header-band\"]').dataset.probe = 'same element'; }");
+        var before = await BoxAsync(Band);
         await ExpectNoAccessibilityViolationsAsync();
 
-        // Each tab shows its own panel; the rail is the same element in the same place, with the same sections.
+        // Each tab shows its own panel; the header band, with the candidate's facts, is the same element in the same place.
         var tabs = new (string Tab, string Url, ILocator Content)[]
         {
-            ("Integrity", "tab=integrity", Region("Review log")),
+            ("Verification", "tab=verification", Region("Review log")),
             ("Activity", "tab=activity", Page.GetByRole(AriaRole.Group, new() { Name = "Show" })),
             ("Application", "tab=application", Region("Declarations")),
             ("Messages", "tab=messages", Region("Messages")),
@@ -140,20 +139,16 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
             await Expect(Page).ToHaveURLAsync(new Regex(url.Length == 0 ? @"/applications/[0-9a-f-]+$" : Regex.Escape(url) + "$"));
             await Expect(content).ToBeVisibleAsync();
 
-            var after = await BoxAsync(Rail);
-            after.X.Should().BeApproximately(before.X, 1, $"the rail stays put on {tab}");
-            after.Y.Should().BeApproximately(before.Y, 1, $"the rail stays put on {tab}");
-            after.Width.Should().BeApproximately(before.Width, 1, $"the rail keeps its width on {tab}");
-            (await Page.EvaluateAsync<string?>("() => document.querySelector('aside[aria-label=\"Details\"]')?.dataset.probe ?? null"))
-                .Should().Be("same element", $"the rail is not rebuilt on {tab}");
-            foreach (var section in new[] { "Details", "Files", "Tags" })
-            {
-                await Expect(Rail.GetByRole(AriaRole.Region, new() { Name = section, Exact = true })).ToBeVisibleAsync();
-            }
+            var after = await BoxAsync(Band);
+            after.Y.Should().BeApproximately(before.Y, 1, $"the header stays put on {tab}");
+            after.Height.Should().BeApproximately(before.Height, 1, $"the header keeps its height on {tab} (S8)");
+            (await Page.EvaluateAsync<string?>("() => document.querySelector('[data-slot=\"header-band\"]')?.dataset.probe ?? null"))
+                .Should().Be("same element", $"the header is not rebuilt on {tab}");
+            await Expect(Band.GetByRole(AriaRole.Link, new() { Name = "Platform Engineer" })).ToBeVisibleAsync();
         }
     }
 
-    private ILocator Rail => Page.GetByRole(AriaRole.Complementary, new() { Name = "Details", Exact = true });
+    private ILocator Band => Page.Locator("[data-slot='header-band']");
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 

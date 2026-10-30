@@ -41,10 +41,9 @@
   --text-candidate-hint: 0.8125rem;
 
   /* Widths (section 5). Pages fill the window and have none. `max-w-measure` stops a long paragraph at 72 characters,
-     `max-w-form` is the 688px form column and `basis-rail` the 340px details rail. */
+     and `max-w-form` is the 688px form column. */
   --container-measure: 72ch;
   --container-form: 43rem;
-  --container-rail: 21.25rem;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

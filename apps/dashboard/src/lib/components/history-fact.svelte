@@ -3,13 +3,13 @@
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { CreateQueryOptions, QueryKey } from '@tanstack/svelte-query';
   import { page as appPage } from '$app/state';
-  import Fact from '#lib/components/fact.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
 
-  // A header's last fact (design system T6, section 11 History sheet): Last updated with History, and the sheet it
-  // opens, for a page whose header shows nothing else of the history. `page` is the generated query options for one
+  // When the page last changed and who changed it, with History and the sheet it opens (design system T6, section 11
+  // History sheet), on the title's row (the header band's actions): a settings page's header is then one row, the same
+  // height on every settings page, so moving between them never shifts the menu (S8). `page` is the generated query options for one
   // page of the object's history.
   let {
     value,
@@ -30,9 +30,10 @@
   );
 </script>
 
-<Fact label="Last updated">
+<span class="flex min-w-0 items-center gap-1 text-muted-foreground" data-last-updated>
+  <span class="sr-only">Last updated:</span><span aria-hidden="true">Updated</span>
   <LastUpdated {value} members={team.data?.data} currentUserId={appPage.data.user?.id} onhistory={() => (open = true)} />
-</Fact>
+</span>
 <HistorySheet
   bind:open
   {name}

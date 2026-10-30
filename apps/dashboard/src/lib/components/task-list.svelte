@@ -41,6 +41,7 @@
     onundo,
     undoable = () => false,
     showCandidate = false,
+    href,
     label,
   }: {
     tasks: readonly TaskRow[];
@@ -51,6 +52,11 @@
     /** Whether the task was just ticked and still offers Undo. */
     undoable?: (taskId: string) => boolean;
     showCandidate?: boolean;
+    /**
+     * Where the task's work is done. The whole row then links there, and the task is ticked off in that place, not here
+     * (My tasks): a list of things to do takes you to each one.
+     */
+    href?: (task: TaskRow) => string;
     label: string;
   } = $props();
 
@@ -64,13 +70,14 @@
     {@const undo = Boolean(onundo) && undoable(task.id)}
     <!-- In a narrow container (the 320px side column) Undo goes under the facts, so the text and pills keep the row's
          width (F2). -->
-    <li class="@container/task border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
+    <li class={['@container/task relative border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0', href && 'rounded-md hover:bg-secondary/60']}>
       <div class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 @md/task:grid-cols-[auto_minmax(0,1fr)_auto]">
         {#if (!done && oncomplete) || undo}
           <!-- The task checkbox, centred in the icon's 28px place. Its hit area reaches 44px on touch (F4). -->
           <span class="grid size-7 shrink-0 place-items-center">
+            <!-- A round to-do tick with a 2px edge, so it reads as something to tick before anyone presses it. -->
             <Checkbox
-              class="size-5 pointer-coarse:after:-inset-3"
+              class="size-5 rounded-full border-2 hover:border-foreground pointer-coarse:after:-inset-3"
               checked={done}
               aria-label={`Mark done for ${describe(task)}`}
               onCheckedChange={(checked) => (checked ? oncomplete?.(task) : onundo?.(task.id))}
@@ -81,10 +88,17 @@
             {#if done}<CheckIcon />{:else}<ListTodoIcon />{/if}
           </span>
         {/if}
-        <div class="flex min-w-0 flex-col gap-1.5 pt-1">
-          <p class={['max-w-measure break-words', undo && 'text-muted-foreground line-through']}>{task.note}</p>
-          {#if showCandidate && task.candidateName}
-            <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
+        <!-- The task, then its facts on the same line when they fit, so a list of steps stays compact. -->
+        <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
+          {#if href}
+            <!-- The row is the link to the work (the whole row is its target), so the candidate's name is plain text. -->
+            <a href={href(task)} class="min-w-0 max-w-measure font-semibold break-words text-foreground no-underline after:absolute after:inset-0 hover:underline">{task.note}</a>
+            {#if showCandidate && task.candidateName}<span class="min-w-0 truncate font-semibold">{task.candidateName}</span>{/if}
+          {:else}
+            <p class={['min-w-0 max-w-measure font-semibold break-words', undo && 'text-muted-foreground line-through']}>{task.note}</p>
+            {#if showCandidate && task.candidateName}
+              <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
+            {/if}
           {/if}
           <div class="flex flex-wrap items-center gap-2">
             {#if showCandidate && task.jobTitle}<Badge variant="muted" class="max-w-60 min-w-0"><TruncatedText text={task.jobTitle} /></Badge>{/if}

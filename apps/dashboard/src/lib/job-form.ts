@@ -105,15 +105,43 @@ export function salaryBody(value: SalaryFields) {
   return min === null && max === null ? null : { min, max, currency: value.currency.trim().toUpperCase(), period: value.period };
 }
 
-/** The date input's value for a closing instant. */
-export const closingDate = (instant: string | null | undefined): string => (instant ? instant.slice(0, 10) : '');
+const twoDigits = (value: number) => String(value).padStart(2, '0');
+
+/** The date input's value for a closing instant: its date in the person's own time zone. */
+export function closingDate(instant: string | null | undefined): string {
+  if (!instant) return '';
+  const at = new Date(instant);
+  return `${at.getFullYear()}-${twoDigits(at.getMonth() + 1)}-${twoDigits(at.getDate())}`;
+}
 
 /**
- * A closing date (`YYYY-MM-DD`, the date input's value) as the last second of that day in UTC, or null. The date of
- * `original` keeps `original` as it is, so a closing time set through the API survives an edit of something else.
+ * A closing date (`YYYY-MM-DD`, the date input's value) as the last second of that day where the person is, sent as a
+ * UTC instant (.claude/rules/utc-timestamps.md), or null. The date of `original` keeps `original` as it is, so a closing
+ * time set through the API survives an edit of something else.
  */
 export const closingInstant = (date: string, original?: string | null): string | null =>
-  original && date === closingDate(original) ? original : date ? `${date}T23:59:59Z` : null;
+  original && date === closingDate(original) ? original : date ? new Date(`${date}T23:59:59`).toISOString().replace('.000Z', 'Z') : null;
+
+/**
+ * Every currency the browser knows, by name with its symbol ("British pound (£)"), sorted by name, so nobody types an
+ * ISO code; the value stays the code the API takes. `current` stays in the list even if the browser does not know it.
+ */
+export function currencyOptions(locales: readonly string[], current: string): { value: string; label: string }[] {
+  const names = new Intl.DisplayNames([...locales], { type: 'currency' });
+  const symbol = (code: string) =>
+    new Intl.NumberFormat([...locales], { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0)
+      .find((part) => part.type === 'currency')?.value ?? code;
+  const codes = new Set(Intl.supportedValuesOf('currency'));
+  if (current) codes.add(current.toUpperCase());
+  return [...codes]
+    .map((code) => {
+      const name = names.of(code) ?? code;
+      const mark = symbol(code);
+      return { value: code, label: mark === code ? `${name} (${code})` : `${name} (${mark})` };
+    })
+    .toSorted((a, b) => a.label.localeCompare(b.label, [...locales]));
+}
 
 /**
  * A job description's HTML as plain paragraphs for a text box: a block per paragraph, heading or list item (list items

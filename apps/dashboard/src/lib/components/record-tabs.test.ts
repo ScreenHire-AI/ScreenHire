@@ -4,7 +4,7 @@ import { expectNoAxeViolations } from '../../test-support/axe.js';
 import RecordTabsHarness from '../../test-support/record-tabs-harness.svelte';
 
 describe('record tabs', () => {
-  it('shows each tab with its count, a state in the count where one fits, and a marker where it does not', async () => {
+  it('shows each tab with its count in the same grey badge, and a state in the count where one fits', async () => {
     render(RecordTabsHarness);
 
     expect(screen.getByRole('tablist', { name: 'Job sections' })).toBeInTheDocument();
@@ -13,13 +13,10 @@ describe('record tabs', () => {
     // does not; the end-to-end tests pin the browser's name.
     const distribution = screen.getByRole('tab', { name: /^Distribution ?posted on 7 of 8 boards$/ });
     expect(distribution).toHaveTextContent('7/8');
-    // The marker is a dot, not a status icon (I2), with its words.
-    const integrity = screen.getByRole('tab', { name: 'Integrity, verification suggested' });
-    expect(integrity.querySelector('[data-tab-marker]')).toHaveClass('bg-status-verify-mark');
-    expect(integrity.querySelector('svg')).toBeNull();
+    // Every count is the same grey: a state that needs a look is the record's status, not a coloured tab (E2, W7).
+    expect(screen.getByRole('tab', { name: 'Verification 5' }).querySelector('[data-slot="badge"]')).toHaveClass('bg-secondary');
     expect(screen.getByRole('tab', { name: 'Details' })).toBeInTheDocument();
-    // A marked tab with a count keeps the count in its name.
-    expect(screen.getByRole('tab', { name: 'Activity 3, review suggested' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Activity 3' })).toBeInTheDocument();
     await expectNoAxeViolations(document.body);
   });
 });

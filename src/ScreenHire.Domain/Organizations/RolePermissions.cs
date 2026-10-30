@@ -63,7 +63,7 @@ public static class RolePermissions
     public static IReadOnlyList<PermissionDefinition> Permissions { get; } =
     [
         new(Permission.ViewHiring, PermissionGroup.Hiring, "See jobs and candidates",
-            "Jobs, candidates, their files, scorecards and integrity results.", EveryRole: true),
+            "Jobs, candidates, their files, scorecards and verification results.", EveryRole: true),
         new(Permission.EditJobs, PermissionGroup.Hiring, "Edit jobs",
             "Create, edit, post and close jobs, and change their workflows."),
         new(Permission.AddCandidates, PermissionGroup.Hiring, "Add candidates", "Add a candidate to a job by hand."),
@@ -76,7 +76,7 @@ public static class RolePermissions
         new(Permission.CompleteTasks, PermissionGroup.Hiring, "Complete tasks", "Mark a candidate's task done."),
         new(Permission.EmailCandidates, PermissionGroup.Hiring, "Email candidates", "Send an email to one candidate or a selection."),
         new(Permission.FillInScorecards, PermissionGroup.Hiring, "Fill in scorecards", "Score a candidate at a stage."),
-        new(Permission.ReviewIntegrity, PermissionGroup.Hiring, "Review integrity results",
+        new(Permission.ReviewIntegrity, PermissionGroup.Hiring, "Review verification results",
             "Dismiss a result, add a review note or ask for identity verification."),
         new(Permission.RunAutomations, PermissionGroup.Hiring, "Run automations", "Run a manual automation on a candidate."),
         new(Permission.EditHiringTemplates, PermissionGroup.Templates, "Edit hiring templates",
@@ -84,7 +84,7 @@ public static class RolePermissions
         new(Permission.EditEmailTemplates, PermissionGroup.Templates, "Edit email templates",
             "Create, edit and delete email templates, and send a test."),
         new(Permission.EditSettings, PermissionGroup.Organization, "Edit settings",
-            "The organization's name, branding and integrity settings."),
+            "The organization's name, branding and verification settings."),
         new(Permission.ManageApiKeys, PermissionGroup.Organization, "Manage API keys", "Create, see and revoke API keys."),
         new(Permission.ManageWebhooks, PermissionGroup.Organization, "Manage webhooks",
             "Add, change and remove webhook endpoints, and replay deliveries."),

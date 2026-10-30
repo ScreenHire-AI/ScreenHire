@@ -76,7 +76,6 @@ const panels: Record<string, string[]> = {
   'Email composer': ['Email composer'],
   'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
-  'Details rail': ['Details rail'],
   Tabs: ['Tabs'],
   Notice: ['Notice'],
   'Expandable row': ['Expandable row'],
@@ -94,6 +93,7 @@ const panels: Record<string, string[]> = {
   Rating: ['Rating'],
   'Rating answer': ['Rating answer'],
   'Choice card': ['Choice card'],
+  'Filter menu': ['Filter menu'],
   Picker: ['Picker'],
 };
 

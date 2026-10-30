@@ -11,7 +11,7 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
   import PlusIcon from '@lucide/svelte/icons/plus';
-  import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
+  import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import FormBuilder from '#lib/components/form-builder.svelte';
   import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -29,8 +29,8 @@
 
   // The apply form's questions and AI-use policy, and the follow-up questionnaires an automation sends after someone
   // applied, in the form builder. One questionnaire shows at a time; the toggles are peer views of the workflow's
-  // questionnaires (design system section 11). The Edit / Preview switch swaps the builder for the candidate's form at
-  // its real size, and its window icon opens that form in a second window that follows each edit (A8).
+  // questionnaires (design system section 11). Beside the builder where both fit, or behind the Edit / Preview switch,
+  // the candidate's form at its real size; the window icon opens it in a second window that follows each edit (A8).
   let { workflow = $bindable(), errors }: { workflow: HiringWorkflow; errors: readonly DefinitionError[] } = $props();
 
   /** `apply`, or the id of the follow-up questionnaire on show. */
@@ -69,32 +69,31 @@
   }
 </script>
 
-<div class="flex flex-col gap-5">
-  <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-    <div class="flex min-w-0 flex-wrap items-center gap-2">
-      <div role="group" aria-label="Questionnaire" class="flex min-w-0 gap-1 overflow-x-auto">
-        <Toggle class="shrink-0" bind:pressed={() => selected === 'apply', (pressed) => pressed && (selected = 'apply')}>Apply form</Toggle>
-        {#each followUps as followUp (followUp.id)}
-          <Toggle class="shrink-0" bind:pressed={() => selected === followUp.id, (pressed) => pressed && (selected = followUp.id)}>
-            {followUp.name || followUp.id}
-          </Toggle>
-        {/each}
-      </div>
-      <Button variant="outline" onclick={addFollowUp}><PlusIcon aria-hidden="true" />Add follow-up questionnaire</Button>
-    </div>
-    <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/form')} />
-  </div>
-  <!-- A problem with the follow-ups as a whole, said in the surface below the switch (S3). -->
-  {#snippet followUpsErrors()}<FieldErrors id="follow-ups-errors" messages={errorsAt(errors, 'followUpQuestionnaires')} />{/snippet}
+<!-- A problem with the follow-ups as a whole, said in the surface below the switch (S3). -->
+{#snippet followUpsErrors()}<FieldErrors id="follow-ups-errors" messages={errorsAt(errors, 'followUpQuestionnaires')} />{/snippet}
 
-  {#if mode === 'preview'}
-    <Panel title="Preview">
-      {@render followUpsErrors()}
+<EditPreviewLayout bind:mode onpopout={() => source.open('/preview/form')}>
+  {#snippet toolbar()}
+    <div role="group" aria-label="Questionnaire" class="flex min-w-0 gap-1 overflow-x-auto">
+      <Toggle class="shrink-0" bind:pressed={() => selected === 'apply', (pressed) => pressed && (selected = 'apply')}>Apply form</Toggle>
+      {#each followUps as followUp (followUp.id)}
+        <Toggle class="shrink-0" bind:pressed={() => selected === followUp.id, (pressed) => pressed && (selected = followUp.id)}>
+          {followUp.name || followUp.id}
+        </Toggle>
+      {/each}
+    </div>
+    <Button variant="outline" onclick={addFollowUp}><PlusIcon aria-hidden="true" />Add follow-up questionnaire</Button>
+  {/snippet}
+
+  {#snippet preview(popout)}
+    <Panel title="Preview" actions={popout}>
       <PreviewFrame>
         <QuestionnairePreview {questions} followUp={!!current} />
       </PreviewFrame>
     </Panel>
-  {:else}
+  {/snippet}
+
+  {#snippet editor()}
     {#if current}
       <Panel title="Follow-up questionnaire">
         {#snippet actions()}
@@ -155,5 +154,5 @@
         {#snippet settings(question)}<QuestionSettings {question} />{/snippet}
       </FormBuilder>
     {/key}
-  {/if}
-</div>
+  {/snippet}
+</EditPreviewLayout>

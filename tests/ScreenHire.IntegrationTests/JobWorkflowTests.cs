@@ -158,7 +158,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
         update.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("workflow.automations[0].actions[0]");
         update.ProblemKeys().Should().OnlyContain(k => k.StartsWith("workflow.", StringComparison.Ordinal));
         update.At("errors").GetProperty("workflow.automations[0].actions[0]")[0].GetString()
-            .Should().Contain("Integrity signals never drive rejection");
+            .Should().Contain("Verification signals never drive rejection");
         var stored = (await recruiter.GetAsync($"/v1/jobs/{job.Id()}")).Expect(HttpStatusCode.OK);
         stored.At("workflowVersion").GetInt32().Should().Be(1);
         stored.Count("workflow.automations").Should().Be(0);
@@ -191,7 +191,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
         var apply = await recruiter.PostAsync($"/v1/jobs/{job.Id()}/workflow/apply-template-update", ApplyRequest(version2, 1));
 
         apply.Expect(HttpStatusCode.BadRequest).At("errors").GetProperty("workflow.automations[0].actions[0]")[0].GetString()
-            .Should().Contain("Integrity signals never drive rejection");
+            .Should().Contain("Verification signals never drive rejection");
         var stored = await recruiter.GetAsync($"/v1/jobs/{job.Id()}");
         stored.At("workflowVersion").GetInt32().Should().Be(1);
         stored.At("template.version").GetInt32().Should().Be(1);

@@ -5,6 +5,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub } from '../../../test-support/fixtures.js';
+import { inHiddenPane } from '../../../test-support/panes.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import { stubViewport } from '../../../test-support/viewport.js';
 import WorkflowHarness from '../../../test-support/workflow-harness.svelte';
@@ -225,9 +226,10 @@ describe('workflow builder', () => {
 
     // The follow-up's page asks only its questions: no details and no resume.
     await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
-    expect(within(pane).queryByRole('region', { name: 'Questions' })).toBeNull();
-    expect(within(pane).queryByRole('textbox', { name: /First name/ })).toBeNull();
-    expect(within(pane).getAllByRole('textbox', { name: /^New question/ })).toHaveLength(3);
+    expect(inHiddenPane(within(pane).getByRole('region', { name: 'Questions' }))).toBe(true);
+    const shown = within(pane.querySelector<HTMLElement>('[data-preview-pane]')!);
+    expect(shown.queryByRole('textbox', { name: /First name/ })).toBeNull();
+    expect(shown.getAllByRole('textbox', { name: /^New question/ })).toHaveLength(3);
     await fireEvent.click(within(pane).getByRole('button', { name: 'Edit' }));
 
     await fireEvent.click(within(pane).getByRole('button', { name: 'Remove questionnaire' }));

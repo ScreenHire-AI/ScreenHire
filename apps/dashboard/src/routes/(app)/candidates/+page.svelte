@@ -9,6 +9,7 @@
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
+  import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
@@ -22,6 +23,7 @@
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
   import { matchesTag, tagsOf } from '#lib/tags.js';
+  import { jobOptions, stageOptions } from '#lib/candidate-filters.js';
 
   // Every application in the organization, newest first; new ones, stage moves and integrity levels arrive live
   // (#lib/realtime.ts).
@@ -31,7 +33,15 @@
   // The sidebar counts use the same clock, so a view and its count agree.
   let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
   let tagFilter = $state<string | null>(null);
+  // Several jobs and several stages at once, such as Support Engineer and Senior .NET Engineer in Screening or Interview.
+  // Stages are matched by name across jobs, and the Stage menu lists the stages of the jobs picked.
+  let jobFilter = $state<string[]>([]);
+  let stageFilter = $state<string[]>([]);
   let search = $state('');
+  const jobs = $derived(jobOptions(all));
+  const stages = $derived(stageOptions(all, jobFilter));
+  // A stage picked before the jobs changed counts only while one of the picked jobs has it.
+  const stagesPicked = $derived(stageFilter.filter((name) => stages.some((stage) => stage.value === name)));
   // Tags people and automations put on applications; tags and removals arrive live (ApplicationTagsChanged).
   const tags = $derived(tagsOf(all));
   const shown = $derived(
@@ -40,11 +50,15 @@
         (!view || view.matches(application, clock.now)) &&
         matchesIntegrityFilter(application, integrityFilter) &&
         matchesTag(application, tagFilter) &&
+        (jobFilter.length === 0 || jobFilter.includes(application.jobId)) &&
+        (stagesPicked.length === 0 || stagesPicked.includes(application.stage.name)) &&
         matchesSearch(application, search, true),
     ),
   );
   // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
-  const narrowed = $derived(isIntegrityFiltered(integrityFilter) || tagFilter !== null || Boolean(search.trim()));
+  const narrowed = $derived(
+    isIntegrityFiltered(integrityFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
+  );
   const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
@@ -88,13 +102,19 @@
       <Panel title="Applications" flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
         {#snippet tools()}
           <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
-          <IntegrityFilterMenu bind:filter={integrityFilter} />
-          <TagFilterMenu bind:tag={tagFilter} {tags} />
           {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}
           {#if canEmail && selectedCount > 0 && !phone.current}
             <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
           {/if}
         {/snippet}
+        <!-- The filters: one row under the header, outside the table, that scrolls inside the panel rather than wrapping
+             (F5), as on a job's pipeline. -->
+        <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+          <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
+          <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
+          <IntegrityFilterMenu bind:filter={integrityFilter} />
+          <TagFilterMenu bind:tag={tagFilter} {tags} />
+        </div>
         {#if applications.isError}
           <div class="p-4">
             <QueryError message={describeError(applications.error, 'Could not load candidates')} onretry={() => applications.refetch()} inset />
@@ -113,7 +133,9 @@
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
-            onclearfilters={narrowed ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter }), (tagFilter = null)) : undefined}
+            onclearfilters={narrowed
+              ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter }), (tagFilter = null), (jobFilter = []), (stageFilter = []))
+              : undefined}
           />
         {/if}
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>

@@ -26,7 +26,6 @@
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton from '#lib/components/count-button.svelte';
-  import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import EmailTemplateForm from '#lib/components/email-template-form.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -257,7 +256,6 @@
     />
 
     <div class="flex w-full flex-col gap-4 px-4 py-6 md:px-6">
-      <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/email')} />
       <!-- A reset or a restore changes what the form starts from, so the form starts again. -->
       {#key `${detail.id}:${editable}:${detail.edited}`}
         <EmailTemplateForm
@@ -266,6 +264,7 @@
           sendingEnabled={list.sendingEnabled}
           {editable}
           bind:mode
+          onpopout={() => source.open('/preview/email')}
           bind:rendered
           bind:dirty
           {formId}

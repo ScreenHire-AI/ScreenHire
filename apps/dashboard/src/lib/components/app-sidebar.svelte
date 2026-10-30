@@ -1,13 +1,10 @@
 <script lang="ts">
   import type { CurrentUser } from '@screenhire/api-client';
-  import type { ConnectionStatus } from '@screenhire/realtime';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
   import { page } from '$app/state';
-  import Hint from '#lib/components/hint.svelte';
-  import LiveIndicator, { liveStatus } from '#lib/components/live-indicator.svelte';
   import LogoMark from '#lib/components/logo-mark.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -26,12 +23,10 @@
   let {
     user,
     viewCounts,
-    live,
   }: {
     user: CurrentUser | null;
     /** Applications in each saved view, by view id; missing while the list loads. */
     viewCounts: Readonly<Record<string, number | undefined>>;
-    live: ConnectionStatus;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -205,14 +200,6 @@
   </Sidebar.Content>
 
   <Sidebar.Footer>
-    <!-- In the rail the status keeps its label in a tooltip: shape, colour and label, always (T1). -->
-    <Hint content={liveStatus[live].label} disabled={!rail}>
-      {#snippet children({ props })}
-        <div {...props} class="rounded-md">
-          <LiveIndicator status={live} />
-        </div>
-      {/snippet}
-    </Hint>
 
     {#if user}
       <Sidebar.Menu>

@@ -1,13 +1,14 @@
 ---
 type: Design
 title: "MCP server for AI assistants"
-description: "The remote MCP server at /v1/mcp: Streamable HTTP in stateless mode, signed in with an organization API key and nothing else, eight tools on the hiring API's own services, candidate-written text marked as data, no integrity output, and how to connect Claude Code or VS Code."
+description: "The remote MCP server at /v1/mcp: Streamable HTTP in stateless mode, signed in with an organization API key and nothing else, eight tools on the hiring API's own services, candidate-written text marked as data, no integrity output, and the values any MCP client needs to connect."
 tags: [mcp, api-keys, ai]
 sources:
   - resource: apps/api/Mcp/McpSetup.cs
   - resource: apps/api/Mcp/HiringTools.cs
   - resource: apps/api/Mcp/McpContracts.cs
   - resource: apps/api/Mcp/McpResults.cs
+  - resource: apps/dashboard/src/routes/(app)/settings/mcp-server/+page.svelte
   - resource: apps/api/Applications/ApplicationReads.cs
   - resource: apps/api/Applications/ApplicationChanges.cs
   - resource: apps/api/Hiring/JobReads.cs
@@ -98,35 +99,37 @@ person's choice made through their assistant. Nothing in the server acts on inte
 any. The tool description and the server instructions tell the assistant to move a candidate to a Rejected stage only
 when the person it works for explicitly asks. The timeline records the key that moved them.
 
-## Connecting an assistant
+## Connecting a client
 
-An Owner or Admin creates a key in Settings > API keys: Read for an assistant that only looks, Write for one that also
-changes things. The server's address is the API's origin, which `GET /v1/meta` reports as `apiOrigin`
-(`ScreenHire:Domains:ApiHost`), followed by `/v1/mcp`. The examples use `https://api.example.com`.
+Settings > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
+creates a key in Settings > API keys: Read for a client that only looks, Write for one that also changes things. The
+server's address is the API's origin, which `GET /v1/meta` reports as `apiOrigin` (`ScreenHire:Domains:ApiHost`),
+followed by `/v1/mcp`. The example uses `https://api.example.com`.
 
-Claude Code:
+| Setting | Value |
+|---|---|
+| Server URL | `https://api.example.com/v1/mcp` |
+| Transport | Streamable HTTP |
+| Header | `Authorization: Bearer shk_...` |
 
-```
-claude mcp add --transport http screenhire https://api.example.com/v1/mcp --header "Authorization: Bearer shk_..."
-```
-
-VS Code (`.vscode/mcp.json`), with the key asked for once and kept out of the file:
+Most clients take those values in a config file of this shape; each client documents where its file lives and what
+it calls the top-level key:
 
 ```json
 {
-  "inputs": [{ "type": "promptString", "id": "screenhire-key", "description": "ScreenHire API key", "password": true }],
-  "servers": {
+  "mcpServers": {
     "screenhire": {
       "type": "http",
       "url": "https://api.example.com/v1/mcp",
-      "headers": { "Authorization": "Bearer ${input:screenhire-key}" }
+      "headers": { "Authorization": "Bearer <your API key>" }
     }
   }
 }
 ```
 
-Any client that sends a bearer header over Streamable HTTP works the same way. Locally, `/preview` prints the API's
-address, and `npx @modelcontextprotocol/inspector` with the header above lists and calls the tools.
+Neither the page nor this doc gives one client's setup steps: they change with each client's releases. Locally,
+`/preview` prints the API's address, and `npx @modelcontextprotocol/inspector` with the header above lists and calls
+the tools.
 
 **OAuth waits** (ADR-0011 decision 6). A client that signs in only with OAuth, such as a claude.ai custom connector,
 cannot connect until ScreenHire runs an authorization server.

@@ -50,19 +50,17 @@ describe('integrity chip', () => {
     expect(chip.spoken).toBe(`AI assistance: ${label}`);
   });
 
-  it("uses the table's short words, the number of reasons as plain text, and says them in full (T4, W3)", () => {
+  it("uses the table's short words and says the number of reasons only to screen readers (W3, W6)", () => {
     const { container } = render(IntegrityChip, {
       props: { kind: 'authenticity', level: authenticityLevels.ReviewSuggested, reasons: 3, compact: true },
     });
     const chip = parts(container);
-    const count = container.querySelector('[data-reasons]');
 
     expect(chip.words).toBe('Review suggested');
     expect(chip.badge).toHaveClass('bg-status-review-soft');
-    // In a table a count is plain text, never a second pill beside the status (T4).
     expect(container.querySelectorAll('[data-slot="badge"]')).toHaveLength(1);
-    expect(count).toHaveTextContent(/^3$/);
-    expect(count).toHaveClass('text-muted-foreground');
+    // A bare number after the chip says nothing on its own; the reasons live on the Integrity tab (W6).
+    expect(container.querySelector('[data-reasons]')).toBeNull();
     expect(container).not.toHaveTextContent('·');
     expect(chip.spoken).toBe('Authenticity: Review suggested, 3 reasons');
   });

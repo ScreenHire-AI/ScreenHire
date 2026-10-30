@@ -18,13 +18,14 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0014: Permissions, not role names, and custom roles](0014-permissions-and-custom-roles.md) - The server checks the permission catalogue on every route instead of role names; organizations make custom roles by copying one; a member holds one role, built-in or custom; nobody gives a role with more access than their own; Owner-only permissions stay with Owners; API keys keep their scopes and are capped by their creator.
 * [ADR-0015: Job access through each job's hiring team](0015-job-access-through-hiring-teams.md) - A member sees all jobs, or only the jobs whose hiring team they are on; the scope is a transaction-local setting that restrictive row-level security policies and a JobScope query filter both apply; Owners, Admins, API keys and background work see every job; live updates go to per-job groups.
 * [ADR-0016: Design system v0.3 amendments from the full review](0016-design-system-v0-3-review-amendments.md) - What the first whole-dashboard design review settled in ADR-0013: a page's action that opens another page is a button rendered as a link, a record whose row holds a secret has no change history, a form keeps its actions at its end on a phone, and a table wider than its panel beside the full sidebar scrolls inside it.
+* [ADR-0017: Design system v0.3 changes from the owner's review of the build](0017-design-system-v0-3-owner-review.md) - What the owner's review of the running v0.3 dashboard changed: a record's facts sit in its header instead of a details rail, a tab's state is always a count, a field's actions share the row of its message, checkbox edges meet 3:1, and a candidate's integrity level is their status beside the name.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001 to 0004, 0006 to 0008, 0011, 0012, 0014 to 0016 | Accepted |
+| 0001 to 0004, 0006 to 0008, 0011, 0012, 0014 to 0017 | Accepted |
 | 0005 | Accepted with a gate: the Signal Network stays flagged off until a legal review and DPIA |
 | 0009 | Accepted, amended by 0010 |
 | 0010 | Accepted, amended by 0013 |
-| 0013 | Accepted, amended by 0016 |
+| 0013 | Accepted, amended by 0016 and 0017 |

@@ -40,14 +40,15 @@ describe('candidates page', () => {
     expect(heading.closest('[data-slot="header-band"]')).toContainElement(count);
   });
 
-  it('holds the search and the integrity filter in the table panel header, and the search narrows the rows and the count', async () => {
+  it('holds the search in the table panel header and the filters in a row under it, and the search narrows the rows and the count', async () => {
     render_();
     const panel = await screen.findByRole('region', { name: 'Applications' });
     const header = panel.querySelector('header')!;
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
-    expect(within(header).getByRole('button', { name: /^Integrity: all/ })).toBeInTheDocument();
+    const filters = panel.querySelector<HTMLElement>('[data-filters]')!;
+    expect(within(filters).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Job: All', 'Stage: All', 'Verification: all', 'Tag: all']);
 
     await fireEvent.input(within(header).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'jordan' } });
 
@@ -55,12 +56,12 @@ describe('candidates page', () => {
     expect(screen.getByText('1', { selector: '[data-slot="badge"]' })).toHaveTextContent('1 application');
   });
 
-  it('filters by a tag the listed applications carry, from the panel header', async () => {
+  it('filters by a tag the listed applications carry, from the filter row', async () => {
     render_();
     const panel = await screen.findByRole('region', { name: 'Applications' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
-    const trigger = within(panel.querySelector('header')!).getByRole('button', { name: /^Tag: all/ });
+    const trigger = within(panel.querySelector<HTMLElement>('[data-filters]')!).getByRole('button', { name: /^Tag: all/ });
     await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
     const menu = await screen.findByRole('menu');
     expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Any tag', 'Referral']);
@@ -69,7 +70,50 @@ describe('candidates page', () => {
     await waitFor(() =>
       expect(screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent)).toEqual(['Jordan Lee']),
     );
-    expect(within(panel.querySelector('header')!).getByRole('button', { name: /^Tag: Referral/ })).toBeInTheDocument();
+    expect(within(panel.querySelector<HTMLElement>('[data-filters]')!).getByRole('button', { name: /^Tag: Referral/ })).toBeInTheDocument();
+  });
+
+  it('filters by several jobs and several stages at once, each choice a pill with its own remove button', async () => {
+    const other = '01a157d4-0000-7000-8000-0000000009aa';
+    const rows: ApplicationSummary[] = [
+      ...applications,
+      { ...applications[0]!, id: '01a157d4-0000-7000-8000-0000000001aa', candidateName: 'Riley Shaw', jobId: other, jobTitle: 'Support Engineer' },
+      {
+        ...applications[0]!,
+        id: '01a157d4-0000-7000-8000-0000000001ab',
+        candidateName: 'Avery Stone',
+        jobId: '01a157d4-0000-7000-8000-0000000009ab',
+        jobTitle: 'Product Designer',
+      },
+    ];
+    render_(rows);
+    const panel = await screen.findByRole('region', { name: 'Applications' });
+    const filters = panel.querySelector<HTMLElement>('[data-filters]')!;
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+    const names = () => screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor|Riley Shaw|Avery Stone)$/ }).map((link) => link.textContent).toSorted();
+
+    await fireEvent.pointerDown(within(filters).getByRole('button', { name: 'Job: All' }), { button: 0, pointerType: 'mouse' });
+    const jobs = await screen.findByRole('menu');
+    expect(within(jobs).getAllByRole('menuitemcheckbox').map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'Product Designer 1',
+      'Senior .NET Engineer 3',
+      'Support Engineer 1',
+    ]);
+    await fireEvent.click(within(jobs).getByRole('menuitemcheckbox', { name: /Senior \.NET Engineer/ }));
+    await fireEvent.click(within(jobs).getByRole('menuitemcheckbox', { name: /Support Engineer/ }));
+    await waitFor(() => expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Riley Shaw', 'Sam Taylor']));
+    expect(within(filters).getByRole('button', { name: 'Job: 2 chosen' })).toBeInTheDocument();
+    await fireEvent.keyDown(jobs, { key: 'Escape' });
+
+    // Stages are matched by name across the picked jobs.
+    await fireEvent.pointerDown(within(filters).getByRole('button', { name: 'Stage: All' }), { button: 0, pointerType: 'mouse' });
+    const stageMenu = await screen.findByRole('menu');
+    await fireEvent.click(within(stageMenu).getByRole('menuitemcheckbox', { name: new RegExp(applications[0]!.stage.name) }));
+    await waitFor(() => expect(names()).toEqual(['Casey Morgan', 'Riley Shaw', 'Sam Taylor']));
+    await fireEvent.keyDown(stageMenu, { key: 'Escape' });
+
+    await fireEvent.click(within(filters).getByRole('button', { name: 'Remove Job Support Engineer' }));
+    await waitFor(() => expect(names()).toEqual(['Casey Morgan', 'Sam Taylor']));
   });
 
   it('counts the ticked rows in a pill in the panel header, as the table has no footer (K1, W3)', async () => {

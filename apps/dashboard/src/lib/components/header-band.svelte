@@ -12,6 +12,7 @@
     details,
     actions,
     facts,
+    meta,
     tabs,
     form = false,
     level = 1,
@@ -30,6 +31,8 @@
     actions?: Snippet;
     /** `Fact` items: a labelled facts row. */
     facts?: Snippet;
+    /** `MetaItem` items: one line of facts that read without their labels, each with its icon. */
+    meta?: Snippet;
     /** Tabs on the band's bottom edge. */
     tabs?: Snippet;
     /** A form page's band, its title in line with the 688px column (section 7). */
@@ -44,7 +47,9 @@
 <div data-slot="header-band" class="@container border-b border-border bg-card">
   <!-- The band fills the window, as the page does (S6); on a form page its contents line up with the 688px column. -->
   <div class={['flex w-full flex-col gap-4 px-4 pt-5 md:px-6', form && 'mx-auto max-w-form', !tabs && 'pb-5']}>
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+    <!-- At least a button's height, so a header with actions and one without are the same height and moving between
+         sibling pages never shifts what is below (S8). -->
+    <div class="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-3">
       <div class="flex min-w-0 flex-[1_1_16rem] flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
           <svelte:element this={`h${level}`} bind:this={heading} tabindex="-1" class="min-w-0 font-display text-page-title break-words"
@@ -63,6 +68,9 @@
         <div class="flex flex-wrap items-center gap-2">{@render actions()}</div>
       {/if}
     </div>
+    {#if meta}
+      <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">{@render meta()}</dl>
+    {/if}
     {#if facts}
       <!-- The clip hides each line's first rule; its 4px margin keeps focus rings inside it. -->
       <div class="-m-1 overflow-hidden p-1">

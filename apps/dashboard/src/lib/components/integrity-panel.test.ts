@@ -55,31 +55,46 @@ describe('integrity panel', () => {
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
     expect(within(authenticity).getByRole('img', { name: 'Authenticity: Verification suggested, the highest of 3' })).toBeInTheDocument();
     expect(authenticity).toHaveTextContent('3 observations from network and automation checks back each other up.');
-    expect(authenticity).toHaveTextContent('Suggested next step: Confirm the candidate is who they say they are');
-    expect(within(authenticity).getByRole('heading', { name: 'Reasons 3' })).toBeInTheDocument();
+    expect(authenticity.querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate is who they say they are/);
+    // The next step leads, in a callout, with the summary under it; no labels, and no heading over the reasons.
+    expect(authenticity.querySelector('[data-summary]')?.firstElementChild?.nextElementSibling?.firstElementChild).toHaveAttribute('data-next-step');
+    expect(authenticity.querySelector('[data-summary] dt')).toBeNull();
+    expect(within(authenticity).getByRole('list', { name: 'Reasons' })).toBeInTheDocument();
     const codes = [...authenticity.querySelectorAll('[data-signal]')].map((item) => item.getAttribute('data-signal'));
-    expect(codes).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER', 'NET_DATACENTER_IP', 'NET_ANON_PROXY']);
-    expect(within(authenticity).getByRole('heading', { name: 'Context, not counted toward the level' })).toBeInTheDocument();
+    // Grouped by the check that found them, so the order follows the checks, not the list the API sends.
+    expect(codes.toSorted()).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER', 'NET_ANON_PROXY', 'NET_DATACENTER_IP']);
+    const context = authenticity.querySelector('[data-check="context"]')!;
+    expect(within(context as HTMLElement).getByRole('heading', { name: 'Context' })).toBeInTheDocument();
+    expect(context).toHaveTextContent('Not counted toward the level');
+    // When it was assessed and under which rules: audit details, on the panel's last line.
+    expect(authenticity.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
     expect(authenticity.querySelector('[data-signal="AUTO_SUBMIT_VELOCITY"] [data-evidence-kind="Metric"]')).toHaveTextContent('6 seconds');
     const counter = authenticity.querySelector('[data-signal="NET_DATACENTER_IP"] [data-counter-evidence]')!;
-    expect(counter).toHaveTextContent('Counter-evidence: The candidate gave a phone number in the same country.');
+    // The other side of the argument, in its own card under its label.
+    expect(counter.firstElementChild).toHaveTextContent(/^Counter-evidence$/);
+    expect(counter).toHaveTextContent('The candidate gave a phone number in the same country.');
     expect(counter).toHaveTextContent('Phone country: United Kingdom');
   });
 
-  it('shows a summary card per kind of check, marking the ones that fed the level and leaving the rest neutral', async () => {
+  it('groups the reasons under the check that found them, marking the checks that fed the level (W6)', async () => {
     serve(botIntegrity());
     renderPanel();
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    const titles = [...authenticity.querySelectorAll('[data-slot="card-title"]')].map((title) => title.textContent?.trim());
-    expect(titles).toEqual(['Network', 'Identity', 'Automation', 'Content']);
-    const cards = [...authenticity.querySelectorAll('[data-slot="card"]')];
-    const network = cards.find((card) => card.textContent?.includes('Network'))!;
-    const identity = cards.find((card) => card.textContent?.includes('Identity'))!;
+    const checks = [...authenticity.querySelectorAll<HTMLElement>('[data-check]')];
+    expect(checks.map((check) => check.querySelector('h3')?.textContent?.trim())).toEqual(['Network', 'Identity', 'Automation', 'Content', 'Context']);
+    const network = checks.find((check) => check.dataset.check === 'Network')!;
+    const identity = checks.find((check) => check.dataset.check === 'Identity')!;
     expect(network).toHaveTextContent('1 signal');
     expect(network.querySelector('svg.lucide-triangle-alert')).toBeInTheDocument();
-    expect(identity).toHaveTextContent('Nothing found.');
+    // Its reason sits under it and does not repeat the check's name.
+    const reason = network.querySelector('[data-signal="NET_DATACENTER_IP"] summary')!;
+    expect(reason).not.toHaveTextContent('Network');
+    expect(reason.querySelector('svg.lucide-chevron-down')).toBeInTheDocument();
+    expect(identity).toHaveTextContent('Nothing found');
     expect(identity.querySelector('svg.lucide-triangle-alert')).not.toBeInTheDocument();
+    // There is no second list of the same reasons.
+    expect(authenticity.querySelectorAll('[data-signal="NET_DATACENTER_IP"]')).toHaveLength(1);
   });
 
   it('expands every reason at once and closes them again', async () => {
@@ -103,7 +118,9 @@ describe('integrity panel', () => {
     expect(within(ai).getByRole('heading', { level: 2 })).toHaveTextContent('AI assistance');
     expect(within(ai).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
     expect(ai).toHaveTextContent('Informational');
-    expect(ai).toHaveTextContent('Job policy: Allowed with disclosure');
+    // The job's policy is a pill in the header, beside the level.
+    expect(within(ai).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    expect(ai.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
     // The declaration has its own place on the page, in Declarations (section 16).
     expect(ai).not.toHaveTextContent(/Declared AI use/);
     expect(ai.querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
@@ -132,17 +149,27 @@ describe('integrity panel', () => {
     expect(document.body).not.toHaveTextContent(/phase 2/i);
   });
 
-  it('keeps a calm next step as a quiet line and a concern in an inset', async () => {
+  it('says why, then the next step: quiet when calm, semibold when the level needs a look', async () => {
     serve(genuineIntegrity());
     const { unmount } = renderPanel();
     const calm = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(calm).getByText('Suggested next step: No action needed.')).not.toHaveClass('bg-secondary');
+    // A calm result is one quiet line: the summary, then its next step, which every result carries.
+    const line = calm.querySelector('[data-summary]')!;
+    expect(line.tagName).toBe('P');
+    expect(line).toHaveClass('text-muted-foreground');
+    expect(line.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
+    // Its summary already says nothing was found, so there is no list of empty checks under it (W7).
+    expect(within(calm).queryByRole('list', { name: 'Reasons' })).toBeNull();
     unmount();
 
     serve(botIntegrity());
     renderPanel();
     const concern = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(concern).getByText(/Confirm the candidate is who they say they are/)).toHaveClass('bg-secondary');
+    // A level that needs a look leads with its next step, semibold, in a callout edged in the level's colour.
+    const callout = concern.querySelector('[data-summary]')!;
+    expect(callout).toHaveClass('border-status-verify-mark');
+    expect(callout.querySelector('[data-next-step]')).toHaveClass('font-semibold');
+    expect(callout).toHaveTextContent(botIntegrity().authenticity!.summary);
   });
 
   it('dismisses an assessment with a reason, which lands in the review log', async () => {
@@ -264,8 +291,8 @@ describe('integrity panel', () => {
     failing = true;
     await invalidatePath(client, '/v1/applications');
 
-    expect(await screen.findByText(/Could not load the integrity checks/)).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Authenticity' })).toHaveTextContent('Suggested next step');
+    expect(await screen.findByText(/Could not load the verification checks/)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Authenticity' }).querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate/);
   });
 
   it('adds a note to the review log', async () => {
@@ -293,7 +320,7 @@ describe('integrity panel', () => {
 
     const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
     expect(within(authenticity).getByRole('img', { name: 'Authenticity: No concerns, the lowest of 3' })).toBeInTheDocument();
-    expect(authenticity).toHaveTextContent('Suggested next step: No action needed.');
+    expect(authenticity.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
     expect(within(section('Review log')).getByText('No review actions yet.')).toBeInTheDocument();
   });

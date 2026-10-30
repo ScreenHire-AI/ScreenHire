@@ -47,7 +47,7 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
   StageExited: 'A candidate leaves a stage',
   TimeElapsed: 'Time passes in a stage',
   QuestionnaireCompleted: 'A follow-up questionnaire is answered',
-  IntegrityAssessed: 'The integrity checks finish',
+  IntegrityAssessed: 'The verification checks finish',
   ReviewerDecision: 'A reviewer records a decision',
   SlaBreached: "A stage's time limit passes",
   Manual: 'Someone runs it by hand',
@@ -328,8 +328,8 @@ export function factsFor(workflow: HiringWorkflow, trigger?: TriggerType): FactO
     { fact: 'application.tags', label: 'Tags', type: 'TextList', signal: false },
     { fact: 'application.source', label: 'Source', type: 'Text', signal: false, values: sources },
     { fact: 'application.hoursInStage', label: 'Hours in stage', type: 'Number', signal: false },
-    { fact: 'integrity.authenticity', label: 'Integrity: authenticity', type: 'Level', signal: true, values: authenticityLevels },
-    { fact: 'integrity.aiAssistance', label: 'Integrity: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
+    { fact: 'integrity.authenticity', label: 'Verification: authenticity', type: 'Level', signal: true, values: authenticityLevels },
+    { fact: 'integrity.aiAssistance', label: 'Verification: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
     ...(trigger === 'ReviewerDecision'
       ? [
           {

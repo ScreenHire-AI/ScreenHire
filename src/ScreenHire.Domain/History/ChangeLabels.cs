@@ -53,7 +53,7 @@ public static class ChangeLabels
         TriggerType.StageExited => "A candidate leaves a stage",
         TriggerType.TimeElapsed => "Time passes in a stage",
         TriggerType.QuestionnaireCompleted => "A follow-up questionnaire is answered",
-        TriggerType.IntegrityAssessed => "The integrity checks finish",
+        TriggerType.IntegrityAssessed => "The verification checks finish",
         TriggerType.ReviewerDecision => "A reviewer records a decision",
         TriggerType.SlaBreached => "A stage's time limit passes",
         TriggerType.Manual => "Someone runs it by hand",

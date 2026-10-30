@@ -20,12 +20,19 @@
   const current = $derived(liveStatus[status]);
 </script>
 
-<!-- A status region, so a screen reader hears when live updates drop and come back. -->
-<!-- In the sidebar's icon rail only the icon shows; the sidebar gives it a tooltip. -->
+<!-- A status region, so a screen reader hears when live updates drop and come back. A pill in the top bar, where it is
+     in view on every page. While connected its icon has a slow, soft pulse behind it, so a glance says the page is live;
+     the pulse stops when the person asks for less motion (section 17), and the icon and label still say it. On a phone
+     only the icon shows, and the label stays for screen readers. -->
 <p
   role="status"
-  class={['flex h-6 items-center gap-2 px-1.5 text-caption font-semibold group-data-[collapsible=icon]:justify-center', current.text]}
+  class={['inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-caption font-semibold max-md:px-2', current.text]}
 >
-  <StatusIcon status={current.status} />
-  <span class="group-data-[collapsible=icon]:sr-only"><span class="sr-only">Live updates:</span> {current.label}</span>
+  <span class="relative grid place-items-center">
+    {#if status === 'connected'}
+      <span aria-hidden="true" data-live-pulse class="absolute inset-0 rounded-full bg-status-clear/30 motion-safe:animate-ping motion-safe:[animation-duration:2.4s]"></span>
+    {/if}
+    <StatusIcon status={current.status} class="relative" />
+  </span>
+  <span class="max-md:sr-only"><span class="sr-only">Live updates:</span> {current.label}</span>
 </p>

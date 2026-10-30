@@ -87,16 +87,16 @@
 </script>
 
 <svelte:head>
-  <title>Integrity · ScreenHire</title>
+  <title>Verification · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrity' }]} />
+<TopBar crumbs={[{ label: 'Settings' }, { label: 'Verification' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Integrity">
-    {#snippet facts()}
+  <HeaderBand title="Verification">
+    {#snippet actions()}
       {#if detail}
-        <HistoryFact value={detail.lastUpdated} name="Integrity settings" page={(before) => getGetOrganizationIntegritySettingsHistoryQueryOptions({ before })} />
+        <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationIntegritySettingsHistoryQueryOptions({ before })} />
       {/if}
     {/snippet}
   </HeaderBand>
@@ -105,12 +105,12 @@
     <div class="flex w-full max-w-form flex-col gap-5">
     {#if settings.isError && !detail}
       <Panel title="Consistency check">
-        <QueryError message={describeError(settings.error, 'Could not load the integrity settings')} onretry={() => settings.refetch()} inset />
+        <QueryError message={describeError(settings.error, 'Could not load the verification settings')} onretry={() => settings.refetch()} inset />
       </Panel>
     {:else if !detail}
       <Panel title="Consistency check">
         <div aria-hidden="true" class="flex flex-col gap-4"><Skeleton class="h-10 w-full" /><Skeleton class="h-14 w-full" /></div>
-        <p class="sr-only" role="status">Loading the integrity settings…</p>
+        <p class="sr-only" role="status">Loading the verification settings…</p>
       </Panel>
     {:else}
       <form method="POST" use:enhance novalidate aria-label="Consistency check">
