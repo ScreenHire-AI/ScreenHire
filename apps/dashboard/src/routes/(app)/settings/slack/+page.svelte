@@ -4,7 +4,7 @@
   import SaveIcon from '@lucide/svelte/icons/save';
   import SendIcon from '@lucide/svelte/icons/send';
   import UnplugIcon from '@lucide/svelte/icons/unplug';
-  import type { HttpValidationProblemDetails, SlackChannelEvent } from '@screenhire/api-client';
+  import { type HttpValidationProblemDetails, SlackChannelEvent } from '@screenhire/api-client';
   import {
     ApiError,
     createDisconnectSlack,
@@ -21,6 +21,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -84,7 +85,7 @@
 
   const schema = z.object({
     channelId: z.string().min(1, 'Pick a channel.'),
-    events: z.array(z.enum(['ApplicationSubmitted', 'ApplicationMoved', 'AutomationFailed', 'JobPublished'])),
+    events: z.array(z.enum(SlackChannelEvent)),
   });
 
   let saved = $state('');
@@ -170,19 +171,28 @@
       {#if connected && settings}<StatusBadge {...workspaceStatus(settings.problem)} />{/if}
     {/snippet}
     {#snippet actions()}
-      {#if connected && settings && current?.workspace}
-        <!-- When and by whom, on the title's row (S8). The row holds the bot token, so it has no History (T6, ADR-0016). -->
-        <span class="flex min-w-0 items-center text-muted-foreground">
-          <TruncatedText text={current.workspace.teamName} class="min-w-0" /><span class="shrink-0">, connected <RelativeTime at={settings.connectedAt} />{settings.connectedBy ? ` by ${settings.connectedBy}` : ''}</span>
-        </span>
+      {#if connected && settings}
+        <!-- Once Slack no longer accepts ScreenHire, Reconnect is the fix the notice names, so it leaves the menu (W7). -->
+        {#if settings.problem === 'Disconnected'}
+          <Button variant="outline" disabled={connecting} onclick={connect}><RefreshCwIcon aria-hidden="true" />Reconnect</Button>
+        {/if}
         <MoreMenu label="More actions" onclosed={onMenuClosed}>
           {#if settings.channel && settings.problem !== 'Disconnected'}
             <DropdownMenu.Item onSelect={() => (chosen = 'test')}><SendIcon aria-hidden="true" />Send test message</DropdownMenu.Item>
           {/if}
-          <DropdownMenu.Item onSelect={() => (chosen = 'reconnect')}><RefreshCwIcon aria-hidden="true" />Reconnect</DropdownMenu.Item>
-          <DropdownMenu.Separator />
+          {#if settings.problem !== 'Disconnected'}
+            <DropdownMenu.Item onSelect={() => (chosen = 'reconnect')}><RefreshCwIcon aria-hidden="true" />Reconnect</DropdownMenu.Item>
+            <DropdownMenu.Separator />
+          {/if}
           <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = 'disconnect')}><UnplugIcon aria-hidden="true" />Disconnect Slack</DropdownMenu.Item>
         </MoreMenu>
+      {/if}
+    {/snippet}
+    {#snippet facts()}
+      {#if connected && settings && current?.workspace}
+        <!-- The row holds the bot token, so it has no History (T6, ADR-0016). -->
+        <Fact label="Workspace"><TruncatedText text={current.workspace.teamName} /></Fact>
+        <Fact label="Added"><RelativeTime at={settings.connectedAt} />{settings.connectedBy ? ` by ${settings.connectedBy}` : ''}</Fact>
       {/if}
     {/snippet}
   </HeaderBand>
@@ -229,9 +239,6 @@
             {slackProblems[settings.problem]}
             {#if settings.problemAt}Since <RelativeTime at={settings.problemAt} />.{/if}
           </Notice>
-          {#if settings.problem === 'Disconnected'}
-            <div><Button variant="outline" size="lg" disabled={connecting} onclick={connect}><RefreshCwIcon aria-hidden="true" />Reconnect</Button></div>
-          {/if}
         {/if}
 
         <form method="POST" use:enhance novalidate aria-label="Channel">

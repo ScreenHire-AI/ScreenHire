@@ -33,7 +33,7 @@ public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Button, new() { Name = "Add to Slack" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/slack"));
         await Expect(Page.Locator("[data-slot=header-band]")).ToContainTextAsync("Connected");
-        await Expect(Page.Locator("[data-slot=header-band]")).ToContainTextAsync("ScreenHire sandbox, connected");
+        await Expect(Page.Locator("[data-slot=header-band] [data-slot=fact]").First).ToContainTextAsync("ScreenHire sandbox");
 
         // Pick #hiring from the channel list and the events, and save.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Pick a channel" }).ClickAsync();

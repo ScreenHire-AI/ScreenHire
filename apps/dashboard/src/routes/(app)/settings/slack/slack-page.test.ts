@@ -89,8 +89,9 @@ describe('Slack page', () => {
     renderPage(connected());
 
     expect(await screen.findByText('#hiring')).toBeInTheDocument();
-    expect(screen.getByText('ScreenHire sandbox')).toBeInTheDocument();
-    expect(screen.getByText(/, connected/)).toHaveTextContent('by Avery Quinn');
+    // The workspace and when it was added are labelled facts in the header band (W3).
+    expect(screen.getByText('Workspace', { selector: 'dt' }).nextElementSibling).toHaveTextContent('ScreenHire sandbox');
+    expect(screen.getByText('Added', { selector: 'dt' }).nextElementSibling).toHaveTextContent('by Avery Quinn');
     expect(screen.getByText('Connected')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'New application' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Job published' })).not.toBeChecked();
@@ -121,11 +122,14 @@ describe('Slack page', () => {
     expect(screen.getByText(/Invite the app to it in Slack/)).toBeInTheDocument();
   });
 
-  it('offers Reconnect beside the notice once Slack no longer accepts ScreenHire', async () => {
+  it('offers Reconnect once, in the header, once Slack no longer accepts ScreenHire', async () => {
     renderPage(connected({ problem: 'Disconnected', problemAt: '2026-10-30T09:00:00Z' }));
 
     expect(await screen.findByText('Disconnected')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reconnect' })).toBeInTheDocument();
+    await fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Disconnect Slack']);
   });
 
   it('keeps Disconnect in the More menu, behind a dialog', async () => {

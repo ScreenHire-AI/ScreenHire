@@ -213,7 +213,7 @@ internal static partial class SlackEndpoints
         }
         catch (SlackApiException e) when (e.Problem is { } problem)
         {
-            var recorded = problem == SlackProblem.CannotMessage ? SlackProblem.CannotPost : problem;
+            var recorded = SlackErrors.InChannel(problem);
             installation.RecordProblem(recorded, now);
             await db.SaveChangesAsync(cancellationToken);
             return TypedResults.Ok(new SlackTestResult(false, recorded));
@@ -372,6 +372,12 @@ internal static partial class SlackEndpoints
         catch (SlackApiException e)
         {
             LogOAuthFailed(logger, round.Purpose, round.OrganizationId, e.Code);
+            return Outcome(app, round, "failed");
+        }
+        catch (DbUpdateException)
+        {
+            // Two round trips finished at once and the other one saved first (one workspace, one link per person).
+            LogOAuthFailed(logger, round.Purpose, round.OrganizationId, "concurrent_save");
             return Outcome(app, round, "failed");
         }
     }

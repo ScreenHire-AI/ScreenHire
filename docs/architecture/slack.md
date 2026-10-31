@@ -109,8 +109,9 @@ A direct message goes for:
 
 - **A mention.** `ApplicationChanges.PublishMentionsAsync` publishes `SendSlackDirectMessage` beside
   `TeammateMentioned`, as its own message, so a failing email never holds it up.
-- **A task given to someone.** `ApplicationChanges.CreateTaskAsync` (the route and the MCP tool), when the assignee is
-  not the person creating it, and `ExecuteAutomationActionHandler.AddTask` for an AssignReviewer task.
+- **A task given to someone.** `ApplicationChanges.CreateTaskAsync` (the route and the MCP tool) and
+  `ApplicationChanges.RequestScorecardAsync` (a requested scorecard), when the assignee is not the person creating it,
+  and `ExecuteAutomationActionHandler.AddTask` for an AssignReviewer task.
 
 The handler sends nothing to someone who did it themselves, has that kind off, left the organization or no longer sees
 the job (`JobAccessQueries.SeesJobAsync`, the check the mention email makes), nor for a mention removed or a task done

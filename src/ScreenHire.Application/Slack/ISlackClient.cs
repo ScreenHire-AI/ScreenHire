@@ -88,4 +88,8 @@ public static class SlackErrors
         "user_not_found" or "user_disabled" or "cannot_dm_bot" or "messages_tab_disabled" or "user_not_visible" => SlackProblem.CannotMessage,
         _ => null,
     };
+
+    /// <summary>A problem posting to the channel: there, Slack's "cannot message" codes mean the workspace stops the app posting.</summary>
+    public static SlackProblem InChannel(SlackProblem problem) =>
+        problem == SlackProblem.CannotMessage ? SlackProblem.CannotPost : problem;
 }

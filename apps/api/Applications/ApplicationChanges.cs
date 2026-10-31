@@ -235,6 +235,7 @@ internal static class ApplicationChanges
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -300,6 +301,13 @@ internal static class ApplicationChanges
         db.ApplicationTasks.Add(task);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        // A requested scorecard is a task given to them, so it reaches them in Slack too (docs/architecture/slack.md).
+        if (slack.IsConfigured && request.AssigneeUserId != tenant.UserId)
+        {
+            await outbox.PublishAsync(new SendSlackDirectMessage(
+                application.OrganizationId, SlackDirectMessageKind.Task, task.Id, request.AssigneeUserId, application.Id, application.JobId, tenant.UserId));
+        }
+
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Created($"/v1/applications/{application.Id}/tasks", task.ToEntry());
     }

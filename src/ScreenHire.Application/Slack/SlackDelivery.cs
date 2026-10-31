@@ -136,8 +136,7 @@ public static partial class PostSlackChannelMessageHandler
         }
         catch (SlackApiException e) when (e.Problem is { } problem)
         {
-            // In a channel, Slack's "cannot message" codes mean the workspace stops the app posting there.
-            installation.RecordProblem(problem == SlackProblem.CannotMessage ? SlackProblem.CannotPost : problem, now);
+            installation.RecordProblem(SlackErrors.InChannel(problem), now);
             SlackRecords.Add(db, message.OrganizationId, message.IdempotencyKey, SlackMessageOutcome.Refused, e.Code, now);
             LogNotPosted(logger, message.Event, message.OrganizationId, e.Code);
             return;

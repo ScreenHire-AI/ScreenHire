@@ -42,8 +42,7 @@
   const settingsPages = $derived(visibleSettingsSections(user));
 
   // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
-  const slackStatus = $derived(slack);
-  const slackConnected = $derived(Boolean(slackStatus?.available && slackStatus.workspace));
+  const slackConnected = $derived(Boolean(slack?.available && slack.workspace));
   let slackOpen = $state(false);
   let slackOutcome = $state('');
   // Linking comes back to the page it started on with ?slack-account=: the sheet opens to show how it went, and the
@@ -278,6 +277,6 @@
   </Sidebar.Footer>
 </Sidebar.Root>
 
-{#if slackStatus?.available}
-  <SlackAccountSheet bind:open={slackOpen} status={slackStatus} outcome={slackOutcome} />
+{#if slack?.available}
+  <SlackAccountSheet bind:open={slackOpen} status={slack} outcome={slackOutcome} />
 {/if}
