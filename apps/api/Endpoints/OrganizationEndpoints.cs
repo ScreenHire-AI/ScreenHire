@@ -364,7 +364,18 @@ internal static class OrganizationEndpoints
 
         db.BrandImages.Add(image);
         await outbox.PublishAsync(new ScanBrandImage(organization.Id, image.Id, uploads.ContainerName));
-        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+        // A second verify of the same upload (a double click, a retry) kept it between the read above and this insert.
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation()
+            && exception.InnerException is Npgsql.PostgresException { TableName: "brand_images" })
+        {
+            db.ChangeTracker.Clear();
+            image = await db.BrandImages.AsNoTracking().SingleAsync(i => i.Id == imageId, cancellationToken);
+        }
+
         return TypedResults.Ok(image.ToBrandingImage(board));
     }
 

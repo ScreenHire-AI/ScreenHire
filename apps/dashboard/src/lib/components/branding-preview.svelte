@@ -23,7 +23,8 @@
   // heading font, the shared link a social site shows, and the top of an email to a candidate, each at its real size.
   // The colours are the form's own as typed (runtime custom properties over the candidate tokens), so a failing colour
   // shows as it would look. Only servable images draw.
-  let { draft }: { draft: BrandingDraft } = $props();
+  // `headingLevel` is 3 under a Panel title, and 2 in the pop-out, where the page's h1 is the only heading above it.
+  let { draft, headingLevel = 3 }: { draft: BrandingDraft; headingLevel?: 2 | 3 } = $props();
 
   const logo = $derived(draft.logo?.url ? draft.logo : null);
   const favicon = $derived(draft.favicon?.url ? draft.favicon : null);
@@ -41,7 +42,7 @@
   style:--sh-font-display={family}
 >
   <section aria-label="Careers page" class="flex flex-col gap-2">
-    <h3 class="text-heading">Careers page</h3>
+    <svelte:element this={`h${headingLevel}`} class="text-heading">Careers page</svelte:element>
     <PreviewFrame>
       <div class="bg-candidate-background text-candidate-body text-candidate-foreground">
         <div class="flex items-center gap-2 border-b border-candidate-border bg-candidate-surface px-3 py-2 text-caption text-candidate-muted-foreground">
@@ -77,7 +78,7 @@
   </section>
 
   <section aria-label="Shared link" class="flex flex-col gap-2">
-    <h3 class="text-heading">Shared link</h3>
+    <svelte:element this={`h${headingLevel}`} class="text-heading">Shared link</svelte:element>
     <div class="max-w-form overflow-hidden rounded-lg border border-border bg-card">
       {#if sharing}
         <img src={sharing.url} alt="" width={sharing.width} height={sharing.height} class="aspect-[1.91/1] w-full object-cover" />
@@ -92,7 +93,7 @@
   </section>
 
   <section aria-label="Email to a candidate" class="flex flex-col gap-2">
-    <h3 class="text-heading">Email to a candidate</h3>
+    <svelte:element this={`h${headingLevel}`} class="text-heading">Email to a candidate</svelte:element>
     <div class="max-w-form overflow-hidden rounded-lg border border-border bg-card">
       <div class={['flex items-center px-5 py-4', draft.header ? 'bg-candidate-header text-candidate-header-foreground' : 'border-b border-border']}>
         {#if logo}

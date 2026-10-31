@@ -20,7 +20,7 @@
     <p role="status" class="pb-4 text-muted-foreground">Editor closed.</p>
   {/if}
   {#if sink.value}
-    <BrandingPreview draft={sink.value} />
+    <BrandingPreview draft={sink.value} headingLevel={2} />
   {:else}
     <div class="flex flex-col gap-4" aria-hidden="true">
       <Skeleton class="h-40 w-full" />

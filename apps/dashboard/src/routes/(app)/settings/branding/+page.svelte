@@ -197,8 +197,16 @@
     {:else if !detail}
       <div class="flex w-full max-w-form flex-col gap-5">
         <Panel title="Colours">
-          <div aria-hidden="true"><Skeleton class="h-14 w-full" /></div>
+          <div aria-hidden="true" class="flex flex-col gap-5"><Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" /></div>
           <p class="sr-only" role="status">Loading the branding…</p>
+        </Panel>
+        <Panel title="Heading font">
+          <div aria-hidden="true" class="grid gap-2 sm:grid-cols-2">
+            {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
+          </div>
+        </Panel>
+        <Panel title="Images">
+          <div aria-hidden="true" class="flex flex-col gap-6"><Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" /></div>
         </Panel>
       </div>
     {:else}
@@ -224,23 +232,26 @@
                   check={checks?.secondColor}
                   errors={$errors.secondColor}
                   fallback={headerDefault}
+                  placeholder="None"
                 />
               </div>
             </Panel>
 
             <Panel title="Heading font">
-              <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @container sm:grid-cols-2">
-                {#each fonts as font (font.value)}
-                  <label
-                    class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-                  >
-                    <input type="radio" name="headingFont" value={font.value} bind:group={$form.headingFont} class="mt-1 size-4 shrink-0 accent-primary" />
-                    <span class="flex min-w-0 flex-col gap-0.5">
-                      <span class="text-panel-title font-bold break-words" style:font-family={font.family}>{font.title}</span>
-                      {#if font.description}<span class="text-muted-foreground">{font.description}</span>{/if}
-                    </span>
-                  </label>
-                {/each}
+              <div class="@container">
+                <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @md:grid-cols-2">
+                  {#each fonts as font (font.value)}
+                    <label
+                      class="flex cursor-pointer items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                    >
+                      <input type="radio" name="headingFont" value={font.value} bind:group={$form.headingFont} class="mt-1 size-4 shrink-0 accent-primary" />
+                      <span class="flex min-w-0 flex-col gap-0.5">
+                        <span class="text-panel-title font-bold break-words" style:font-family={font.family}>{font.title}</span>
+                        {#if font.description}<span class="text-muted-foreground">{font.description}</span>{/if}
+                      </span>
+                    </label>
+                  {/each}
+                </div>
               </div>
             </Panel>
 

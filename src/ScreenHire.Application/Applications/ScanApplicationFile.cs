@@ -53,9 +53,7 @@ public static partial class ScanApplicationFileHandler
             return []; // a redelivered message for a file already scanned, whose reading was sent with the scan
         }
 
-        // The API's setting, as the worker's file store reads it.
-        var container = configuration["ScreenHire:Apply:Container"] is { Length: > 0 } name ? name : "applicant-uploads";
-        var status = await scanner.ScanAsync(container, file.BlobName, cancellationToken);
+        var status = await scanner.ScanAsync(ApplicantUploadsContainer.From(configuration), file.BlobName, cancellationToken);
         file.RecordScan(status, time.GetUtcNow());
         LogScanned(logger, file.Id, message.ApplicationId, status);
         return [new ExtractApplicationDocument(message.OrganizationId, message.ApplicationId, file.Id)];

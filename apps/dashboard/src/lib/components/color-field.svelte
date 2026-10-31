@@ -17,6 +17,7 @@
     check,
     errors,
     fallback,
+    placeholder = "ScreenHire's",
   }: {
     id: string;
     label: string;
@@ -27,6 +28,8 @@
     errors?: string[];
     /** What the picker shows while the field is empty: the default this colour falls back to. */
     fallback: string;
+    /** What the empty field says it means. */
+    placeholder?: string;
   } = $props();
 
   const whole = $derived(brandColorPattern.test(value.trim()));
@@ -53,7 +56,7 @@
       maxlength={7}
       autocomplete="off"
       spellcheck={false}
-      placeholder="ScreenHire's"
+      {placeholder}
       class="min-w-0 flex-1 font-mono"
       bind:value
       aria-invalid={problems.length > 0 ? 'true' : undefined}

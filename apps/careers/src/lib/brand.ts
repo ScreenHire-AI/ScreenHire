@@ -3,6 +3,10 @@ import type { PublicBrandImage, PublicBranding } from '@screenhire/api-client';
 import { headingFont } from '@screenhire/ui/heading-fonts';
 
 const hexColor = /^#[0-9a-f]{6}$/;
+// One uuid pattern for the image ids the pages link and the paths the image route reads.
+const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const imageId = new RegExp(`^${uuid}$`);
+const imageFile = new RegExp(String.raw`/brand/images/(${uuid})\.(png|jpg)$`);
 const imageTypes: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg' };
 
 /**
@@ -53,13 +57,13 @@ function color(value: string): string {
  */
 export function brandImagePath(base: string, image: PublicBrandImage): string {
   const extension = imageTypes[image.contentType];
-  if (!extension || !/^[0-9a-f-]{36}$/.test(image.id)) throw new Error('Brand images are PNG or JPEG with a uuid.');
+  if (!extension || !imageId.test(image.id)) throw new Error('Brand images are PNG or JPEG with a uuid.');
   return `${base}/brand/images/${image.id}.${extension}`;
 }
 
 /** The image id and media type a `/brand/images/{file}` path names, or null for anything else. */
 export function parseBrandImageFile(pathname: string): { id: string; contentType: string } | null {
-  const match = /\/brand\/images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(png|jpg)$/.exec(pathname);
+  const match = imageFile.exec(pathname);
   if (!match) return null;
   return { id: match[1], contentType: match[2] === 'png' ? 'image/png' : 'image/jpeg' };
 }
