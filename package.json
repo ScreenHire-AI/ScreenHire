@@ -1,6 +1,7 @@
 {
   "name": "screenhire",
   "private": true,
+  "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.5.0",
   "engines": {
     "node": ">=22.22.0"

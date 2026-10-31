@@ -10,6 +10,7 @@ subsystem.
 
 | Path | What |
 |---|---|
+| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux) and the shared toolchain setup, `actions/setup` |
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
 | `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`), the SignalR hub (`Realtime/*`, `/v1/hubs/events`) and the MCP server for AI assistants (`Mcp/*`, `/v1/mcp`, [`docs/architecture/mcp-server.md`](docs/architecture/mcp-server.md)); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
@@ -77,7 +78,9 @@ subsystem.
   describes every setting.
 - **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and
   every test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract`
-  and `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
+  and `verify:test` run alone too); see the `/verify` skill. The board gates on this local run. GitHub Actions
+  (`.github/workflows/ci.yml`) runs the same suites on Linux for every pull request, behind one required check,
+  `Gate` ([`docs/process/testing.md`](docs/process/testing.md#continuous-integration)).
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
   under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. It is not in `pnpm verify`: the

@@ -48,7 +48,7 @@ public sealed class PersonalInfoTests
     [MemberData(nameof(Findings))]
     public void A_planted_value_is_found(string kind, string text)
     {
-        var finding = PersonalInfoScan.Scan("docs/notes.md", $"first line\n{text}\n", NoIdentity).Should().ContainSingle().Subject;
+        var finding = PersonalInfoScan.Scan("notes.md", $"first line\n{text}\n", NoIdentity).Should().ContainSingle().Subject;
 
         finding.Kind.Should().Be(kind);
         finding.Line.Should().Be(2);
@@ -69,7 +69,7 @@ public sealed class PersonalInfoTests
     [InlineData("AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==")]
     public void A_placeholder_or_reserved_value_is_allowed(string text)
     {
-        PersonalInfoScan.Scan("docs/notes.md", text, NoIdentity).Should().BeEmpty();
+        PersonalInfoScan.Scan("notes.md", text, NoIdentity).Should().BeEmpty();
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class PersonalInfoTests
         PersonalInfoScan.Scan("pnpm-lock.yaml", token, NoIdentity).Should().BeEmpty();
         PersonalInfoScan.Scan("apps/api/packages.lock.json", token, NoIdentity).Should().BeEmpty();
         PersonalInfoScan.Scan("src/ScreenHire.Infrastructure/Verification/Data/disposable-email-domains.txt", token, NoIdentity).Should().BeEmpty();
-        PersonalInfoScan.Scan("docs/pnpm-lock.yaml.md", token, NoIdentity).Should().ContainSingle();
+        PersonalInfoScan.Scan("notes/pnpm-lock.yaml.md", token, NoIdentity).Should().ContainSingle();
     }
 
     [Fact]

@@ -40,9 +40,18 @@ The demo script, logins, what is faked and how to reset the data: [`docs/operati
 What is built and what the owner still has to do before real use: [MVP status](docs/status.md).
 
 Tests and the gate: `pnpm e2e:install` once per machine, then `pnpm verify`
-([`docs/process/testing.md`](docs/process/testing.md)).
+([`docs/process/testing.md`](docs/process/testing.md)). GitHub Actions runs the same suites on Linux for every pull
+request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Stack
 
 ASP.NET Core (.NET 10) · PostgreSQL · .NET Aspire · Astro 7 · SvelteKit 3 + Svelte 5 · shadcn-svelte · Tailwind 4 ·
 Orval · Azure (Container Apps, PostgreSQL Flexible Server, Blob Storage) behind Cloudflare.
+
+## Licence
+
+The source is available under the GNU Affero General Public License v3.0 only ([`LICENSE`](LICENSE)). If you run a
+modified version as a network service, the licence requires you to offer its source to that service's users.
+
+The project does not accept contributions from outside ([`CONTRIBUTING.md`](CONTRIBUTING.md)). To report a
+vulnerability, use GitHub's private vulnerability reporting, never a public issue ([`SECURITY.md`](SECURITY.md)).

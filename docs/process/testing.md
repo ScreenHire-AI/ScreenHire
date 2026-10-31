@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: "Testing"
-description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, the flake policy and its history, and gate time."
+description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, CI on GitHub Actions and how to read a failed run, the flake policy and its history, and gate time."
 tags: [testing, xunit, playwright, vitest]
 sources:
   - resource: tests/ScreenHire.Testing/AppHostFixture.cs
@@ -11,11 +11,14 @@ sources:
   - resource: apps/marketing/scripts/lighthouse.mjs
   - resource: scripts/install-browsers.mjs
   - resource: global.json
+  - resource: .github/workflows/ci.yml
+  - resource: .github/actions/setup/action.yml
 ---
 # Testing
 
-Every tier of test has a home, a pattern and a place in `pnpm verify`, so a feature task only adds tests. The gate is
-the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite that is not in it does not exist.
+Every tier of test has a home, a pattern and a place in `pnpm verify`, so a feature task only adds tests. The local
+gate ([`/verify`](../../.claude/skills/verify/SKILL.md)) is the board's gate, and CI runs the same suites on Linux for
+every pull request ([Continuous integration](#continuous-integration)); a suite that is in neither does not exist.
 
 ## Which tier for what
 
@@ -252,12 +255,13 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 |---|---|---|
 | Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
-| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`; not in `pnpm verify` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`, and by CI's report-only `lighthouse` job for the same paths; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
 
 `MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
 sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
-Playwright's Chromium, then an installed Chrome. Its simulated mobile numbers were identical to within 3 ms across
+Playwright's Chromium, then an installed Chrome. On Linux it starts Chrome with `--no-sandbox`, because Ubuntu 24.04
+restricts the user namespaces Chromium's sandbox needs; Playwright's own launches run without it by default. Its simulated mobile numbers were identical to within 3 ms across
 two consecutive full runs (about 90 s each). Run a subset with
 `pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
 paths are rewritten into Windows paths.
@@ -312,6 +316,58 @@ What the agent browser lacks, so the trial cannot stand in for the budget:
 
 It is still useful while working on a page: a quick look for layout shifts and their sources, or for a script that
 should not be there. The budget stays with Lighthouse.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the gate's suites on GitHub's hosted Linux runners
+for every pull request to `main`, every push to `main`, and on demand (`workflow_dispatch`). A newer push to the same
+branch cancels the run before it. The board still gates on the local `pnpm verify`; CI is the second opinion on
+another OS until the board moves to it.
+
+| Job | Runs | Timeout |
+|---|---|---|
+| `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, `pnpm -r --if-present test` (Vitest) and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 25 min |
+| `integration` | `dotnet test --project tests/ScreenHire.IntegrationTests` on the runner's Docker Engine | 30 min |
+| `e2e` | `pnpm -r build`, then `dotnet test --project tests/ScreenHire.E2E` with Playwright's Chromium | 30 min |
+| `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui` or `pnpm-lock.yaml` (otherwise a notice says so). Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
+| `gate` (`Gate`) | Nothing but a check that `checks`, `integration` and `e2e` all succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. It is the one check branch protection requires | 5 min |
+
+Every job runs on `ubuntu-24.04`, pinned, and sets up through
+[`.github/actions/setup`](../../.github/actions/setup/action.yml):
+- pnpm (from `packageManager`), Node 24 with the pnpm store cached, and the .NET SDK from `global.json` with NuGet
+  packages cached;
+- `pnpm install --frozen-lockfile` and `dotnet tool restore`;
+- `dotnet aspire setup`, which lays out the Aspire CLI's bundle (DCP and the dashboard) under `~/.aspire`. The AppHost
+  sets `AspireUseCliBundle=true` and reads DCP from there, as on a dev machine;
+- for `e2e` and `lighthouse`, `pnpm e2e:install`, with Playwright's browsers cached on the `Microsoft.Playwright`
+  version.
+
+The integration and end-to-end jobs pull the AppHost's container images (`APPHOST_IMAGES` in the workflow) before
+the tests, so the pulls do not count against the fixture's 3-minute start. DCP builds its own small container-tunnel
+image at the first start; it is not on the list.
+
+CI never sees a secret: the repository's logs and artifacts are public, and nothing in the stack needs a real
+credential (the consistency check's LLM is the Development fake). No test retries in CI either (flake policy).
+`CiWorkflowTests` (`tests/ScreenHire.UnitTests/Tooling/`) fails when a job leaves `ubuntu-24.04` or has no timeout,
+when `Gate` does not need every test job, when anything under `.github/` reads `secrets.` or runs on a self-hosted
+runner, and when `APPHOST_IMAGES` differs from the images `apps/apphost/AppHost.cs` names. That is why `AppHost.cs`
+names Azurite's and Mailpit's tags itself: bump them with the Aspire packages.
+
+### Reading a failed run
+
+1. `gh run list --branch <branch> --workflow CI` finds the run, and `gh pr checks <number>` shows each job on a PR.
+2. `gh run view <run-id> --log-failed` prints the log of each failed step only. A test failure names the test and
+   its assertion there, as it does locally.
+3. When `integration` or `e2e` fails or is cancelled (a timeout included), the job uploads its `TestResults` folder as
+   an artifact for 7 days: `integration-logs` or `e2e-results`, with each resource's console log in `logs/` and a
+   screenshot of every failed end-to-end test in `screenshots/`. `gh run download <run-id> -n e2e-results` fetches it.
+   Read the resource logs first, as locally ([`AppHostFixture`](#apphostfixture-testsscreenhiretesting)).
+4. Rerun a job only to tell a flake from a defect, and record a flake in [Flake history](#flake-history) as for a
+   local run.
+
+### Time
+
+Measurements are added after the first green run.
 
 ## Flake policy
 
