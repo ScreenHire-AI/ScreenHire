@@ -15,10 +15,12 @@ namespace ScreenHire.Application.Applications;
 /// <summary>
 /// An application arrived in its job's first stage. <see cref="EventId"/> is its timeline event, the key the workflow
 /// engine uses to run each automation once per event (docs/architecture/workflow-engine.md §3). Ids only: no
-/// candidate details.
+/// candidate details. <see cref="ActorUserId"/> is the member who added the candidate by hand, null when the candidate
+/// applied or an API key added them.
 /// </summary>
 public sealed record ApplicationSubmitted(
-    Guid OrganizationId, Guid ApplicationId, Guid JobId, string StageId, Guid EventId, DateTimeOffset SubmittedAt) : IJobEvent;
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, string StageId, Guid EventId, DateTimeOffset SubmittedAt,
+    Guid? ActorUserId = null) : IJobEvent;
 
 /// <summary>
 /// Runs in the worker once per <see cref="ApplicationSubmitted"/>: the workflow engine's <c>ApplicationSubmitted</c>

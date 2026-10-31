@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Real-time updates"
-description: "How an ITenantEvent reaches open dashboards: the API's own Wolverine cluster in wolverine_api, the SignalR hub at /v1/hubs/events and its tenant and job groups, the packages/realtime client and cache invalidation, the C# to Zod contract test, and scaling out."
+description: "How an ITenantEvent reaches open dashboards: the API's own Wolverine cluster in wolverine_api, the SignalR hub at /v1/hubs/events and its tenant and job groups, the packages/realtime client and cache invalidation, teammates' changes as toasts with each member's notification settings, the C# to Zod contract test, and scaling out."
 tags: [realtime, signalr, events]
 sources:
   - resource: apps/api/Realtime/EventsHub.cs
@@ -17,6 +17,13 @@ sources:
   - resource: packages/realtime/src/invalidation.ts
   - resource: packages/realtime/contract/events.json
   - resource: apps/dashboard/src/lib/realtime.ts
+  - resource: apps/dashboard/src/lib/teammate-changes.ts
+  - resource: apps/dashboard/src/lib/teammate-toasts.ts
+  - resource: apps/dashboard/src/lib/notifications.svelte.ts
+  - resource: apps/dashboard/src/lib/components/notification-tray.svelte
+  - resource: apps/dashboard/src/lib/components/notification-settings-sheet.svelte
+  - resource: apps/api/Endpoints/NotificationSettingsEndpoints.cs
+  - resource: src/ScreenHire.Domain/Organizations/NotificationSettings.cs
   - resource: tests/ScreenHire.UnitTests/Realtime/RealtimeContractTests.cs
 ---
 # Real-time updates
@@ -156,6 +163,52 @@ The dashboard's Vite proxy forwards `/v1` with `ws: true` in `dev`, and the AppH
 built dashboard (`ScreenHire:Frontends=Built`, `apps/apphost/Caddy/dashboard/Caddyfile`), so the hub stays same-origin
 and the cookie applies.
 
+## Who made a change
+
+An event a person causes carries `ActorUserId`: the member who made the change, or null when no member did (an API
+key, an automation, the candidate, the demo's setup). `ApplicationMoved`, `ApplicationSubmitted` (a candidate added by
+hand), `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ScorecardSubmitted`, `ApplicationEmailed`, the three task
+events and `HiringTemplateVersionPublished` have it, and `TeammateMentioned` has its `AuthorUserId`. The task events
+also carry `AssigneeUserId` (null for anyone on the hiring team), and `HiringTemplateVersionPublished` carries
+`PreviousEditorUserId`: the member who changed the template last, read from its change history before the publish
+(`ChangeHistoryQueries.LastAsync`), and null when that was the publisher, an API key or ScreenHire. They are ids, like everything else in an
+event. Each was added last with a null default, so an envelope queued before it still deserializes, and the Zod side
+reads a missing one as no member.
+
+## Teammates' changes as toasts
+
+While someone has the dashboard open, a teammate's change to something they work on shows as a toast in the shell's
+notification tray (design system section 11, Notification tray): who did what, with the record as a link. The shell
+feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.ts`) through `LiveUpdates.onEvent`;
+`changeFor` (`teammate-changes.ts`) decides, from ids alone:
+
+| Kind | Event | For the person when |
+|---|---|---|
+| Moves, New candidates, Notes, Tags, Emails, Scorecards | `ApplicationMoved`, `ApplicationSubmitted`, `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationEmailed`, `ScorecardSubmitted` | the job is one whose hiring team they are on (`GET /v1/organization/members/{memberId}/jobs`); seeing the job is not enough (ADR-0015) |
+| Tasks | `ApplicationTaskCreated`, `ApplicationTaskCompleted`, `ApplicationTaskReopened` | the task is assigned to them |
+| Templates | `HiringTemplateVersionPublished` | they are its `PreviousEditorUserId` |
+
+Every toast needs an `ActorUserId` that is not the person's own. A change by an API key, an automation or the candidate
+never toasts: it is not a teammate's, and a key may be the person's own AI assistant. Any event the table does not name
+never toasts, so a verification result (`IntegrityAssessed`) cannot. Edits to a hiring template's draft raise no event,
+so only a publish toasts. Email and scorecard template edits raise no event, so they do not toast yet.
+
+Each change waits one second under its kind, its actor and its job before anything is read: one becomes a toast about
+the candidate, read with `GET /v1/applications/{id}`; several become one toast about the job, so a bulk move or a bulk
+email makes one toast and no request per candidate. A `TeammateMentioned` for the person drops a waiting note toast
+from the same author on the same application: the mention card already says it. Reads go through the shell's query
+cache, so a burst of events reads the team once, and a read that fails drops the toast.
+
+Each member picks what they get in the Notifications sheet, from the account menu: toasts on or off, each kind, and
+whether toasts close on their own. The settings are on their membership (`organization_members.notifications`, JSONB,
+`NotificationSettings`), so each organization keeps its own and they follow the person to another browser. They hold
+the kinds turned off, so a kind added later starts on.
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /v1/notification-settings` | The signed-in member | Their settings in the current organization; everything on until they change it. |
+| `PUT /v1/notification-settings` | The signed-in member | Replaces them. A kind named twice in `off` is a 400. Session only, with antiforgery; no permission, because it changes only the caller's own membership. |
+
 ## Contract test
 
 `tests/ScreenHire.UnitTests/Realtime/RealtimeContractTests.cs` serializes a sample of every `ITenantEvent` exactly as
@@ -197,6 +250,10 @@ otherwise run.
 | `RealtimeContractTests`, `RealtimeGroupsTests` (unit) | the contract file; group names, topic and job routing, and every event with a job id being an `IJobEvent` |
 | `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling (against the real SignalR stack too), schema parsing, invalidation, the runes store |
 | `JobScopeRealtimeTests` (integration) | a member on Only jobs they're on receives events about their team's job and none about another, `TeamNotified` and `TeammateMentioned` included; subscribing to a hidden job fails; joining a team starts its events without a reconnect; leaving it, or a change of job access, closes the connection |
+| `TeammateChangesRealtimeTests` (integration) | a person's move, note, tags, scorecard, task create, complete and reopen, and email carry their `actorUserId`, and the task events `assigneeUserId`; the same move by an API key carries none; publishing a template another member last changed carries both ids; each reaches its own organization only |
+| `NotificationSettingsTests` (integration) | the defaults, saving and reading back, each member and each organization keeping their own, a kind named twice, antiforgery, and an API key refused |
+| `teammate-changes.test.ts`, `teammate-toasts.test.ts`, `notifications.test.ts` (Vitest) | which changes toast and their words, grouping, a mention's note left to its card, the shared limit of three, and the countdown and what holds it |
+| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the sheet stops it, and on a phone the toast ends above the jobs list's action bar |
 | `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |
 
 `CheckLiveUpdates` exists so that a test, or an operator, can prove the worker-to-browser path without a feature that

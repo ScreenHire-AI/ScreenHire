@@ -6438,6 +6438,26 @@ export const RevokeInvitationParams = zod.object({
 export const RevokeInvitationResponse = zod.void()
 
 
+export const GetNotificationSettingsResponse = zod.object({
+  "toasts": zod.boolean(),
+  "closeToasts": zod.boolean(),
+  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text.'))
+}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\r\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\r\nthe kinds of change that do not toast. Everything starts on.')
+
+
+export const UpdateNotificationSettingsBody = zod.object({
+  "toasts": zod.boolean(),
+  "closeToasts": zod.boolean(),
+  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text.'))
+}).describe('Replaces the signed-in member\'s notification settings; `off` names each kind at most once.')
+
+export const UpdateNotificationSettingsResponse = zod.object({
+  "toasts": zod.boolean(),
+  "closeToasts": zod.boolean(),
+  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text.'))
+}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\r\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\r\nthe kinds of change that do not toast. Everything starts on.')
+
+
 export const GetJobHiringTeamParams = zod.object({
   "jobId": zod.uuid()
 })

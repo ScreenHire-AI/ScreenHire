@@ -40,8 +40,12 @@ public sealed record SendAutomationEmail(
     string? Reason = null,
     string? QuestionnaireLink = null) : ITenantMessage;
 
-/// <summary>An email went to an application's candidate and is on its timeline: open dashboards refetch its activity.</summary>
-public sealed record ApplicationEmailed(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset SentAt) : IJobEvent;
+/// <summary>
+/// An email went to an application's candidate and is on its timeline: open dashboards refetch its activity.
+/// <see cref="ActorUserId"/> is the member who sent it, null for an automation's email.
+/// </summary>
+public sealed record ApplicationEmailed(
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid EventId, DateTimeOffset SentAt, Guid? ActorUserId = null) : IJobEvent;
 
 /// <summary>
 /// What happened to one email to a candidate: sent, with its timeline entry, or not sent and why. <c>templateMissing</c>
@@ -225,7 +229,7 @@ public static partial class SendApplicationEmailHandler
 
         var now = time.GetUtcNow();
         await ApplicationEmails.SendCopyAsync(db, email, application, copy, message.ActorUserId, now, cancellationToken);
-        outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now));
+        outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now, message.ActorUserId));
         return outgoing;
     }
 
