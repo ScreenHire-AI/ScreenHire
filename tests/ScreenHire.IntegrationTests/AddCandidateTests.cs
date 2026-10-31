@@ -31,7 +31,7 @@ public sealed class AddCandidateTests(AppHostFixture fixture)
         created.Count("files").Should().Be(1);
         created.Text("files.0.questionId").Should().Be("resume");
         created.Text("files.0.fileName").Should().Be("jordan-lee.pdf");
-        await using var db = await IntegritySupport.TenantDbAsync(fixture, recruiter.OrganizationId);
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, recruiter.OrganizationId);
         (await db.SubmissionObservations.AnyAsync(o => o.ApplicationId == created.Id(), Ct)).Should().BeFalse();
         (await db.TelemetrySnapshots.AnyAsync(t => t.ApplicationId == created.Id(), Ct)).Should().BeFalse();
         (await db.Applications.SingleAsync(a => a.Id == created.Id(), Ct)).PrivacyNoticeVersion.Should().BeNull();

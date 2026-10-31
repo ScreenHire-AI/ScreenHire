@@ -6,7 +6,7 @@ namespace ScreenHire.Domain.Applications;
 /// <summary>
 /// An application a candidate saved on the careers apply form to finish later (apply-flow.md §7): what they typed, kept
 /// under their email, with a signed link emailed to that address. It is not an application: no event, automation or
-/// integrity check ever reads it, so nothing in it can end anything before the candidate sends it.
+/// verification check ever reads it, so nothing in it can end anything before the candidate sends it.
 /// </summary>
 /// <remarks>
 /// Answers only: the contact details, the answers to the non-file questions, the assistive-technology switch (so a

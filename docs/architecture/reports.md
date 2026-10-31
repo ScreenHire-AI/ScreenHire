@@ -67,8 +67,8 @@ Only jobs they're on, and a filter naming a hidden job.
 
 ## 4. No verification data
 
-Reports show no levels, no signals and no counts by level (ADR-0004). They read no integrity table. A
-**Verification-kind stage has no row** either: integrity conditions may route candidates into it
+Reports show no levels, no signals and no counts by level (ADR-0004). They read no verification table. A
+**Verification-kind stage has no row** either: verification conditions may route candidates into it
 (`DefinitionValidator.SignalSafeStages`), so counting it would count what the checks found. An application that passed
 through one counts at the rows it reached around it. Custom stages have no row because they have no fixed place in a
 pipeline, and Rejected and Withdrawn end an application without moving it on.

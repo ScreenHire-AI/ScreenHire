@@ -7,7 +7,7 @@ namespace ScreenHire.Domain.Applications;
 /// One reviewer's scorecard for one stage of one application: an answer to each question of the job's copy of the
 /// stage's <see cref="Scorecard"/> and an overall recommendation (workflow-engine.md §8). Final once submitted: a reviewer
 /// gives one judgement per stage, and the <c>ScorecardSubmitted</c> timeline entry it comes with is what raises the
-/// ReviewerDecision trigger, once. Nothing here reads integrity output. Its rating answers make the candidate's rating
+/// ReviewerDecision trigger, once. Nothing here reads verification output. Its rating answers make the candidate's rating
 /// (<see cref="RatingRule"/>, ADR-0013), worked out when it is read and never stored.
 /// </summary>
 public sealed class ApplicationScorecard : IJobScoped

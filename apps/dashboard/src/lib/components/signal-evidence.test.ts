@@ -1,7 +1,7 @@
 import type { SignalEvidence as SignalEvidenceView } from '@screenhire/api-client';
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { evidenceOfEveryKind } from '../../test-support/integrity-fixtures.js';
+import { evidenceOfEveryKind } from '../../test-support/verification-fixtures.js';
 import SignalEvidence from './signal-evidence.svelte';
 
 describe('signal evidence', () => {

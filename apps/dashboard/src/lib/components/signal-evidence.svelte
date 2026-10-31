@@ -12,7 +12,7 @@
   import { locales } from '#lib/dates.js';
 
   // One piece of evidence, rendered by its kind rather than by the signal it belongs to, so a new signal needs no
-  // dashboard code (docs/architecture/integrity-engine.md, section 10.1). A metric is a measurement next to its
+  // dashboard code (docs/architecture/verification-engine.md, section 10.1). A metric is a measurement next to its
   // reference, never a likelihood. With `fact`, a short one is a `Fact` in the caller's facts row (`<dl>`), the same
   // label-above-value pattern as a header's facts (section 7), so a reason's evidence reads across; a quote, a
   // comparison or a list is a block with its label above it either way.

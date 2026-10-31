@@ -324,7 +324,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         file.FileName.Should().Be("Casey CV.pdf");
         file.SizeBytes.Should().Be(Pdf.Length);
 
-        // The careers server passed on what the integrity engine reads: the candidate's browser, not its own. These
+        // The careers server passed on what the verification engine reads: the candidate's browser, not its own. These
         // journeys switch assistive technology on, so no form timing is kept (CLAUDE.md non-negotiable 4).
         var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application.Id, Ct);
         observation.UserAgent.Should().Contain("Chrome");

@@ -3,10 +3,10 @@ using FluentValidation;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Applications;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Verification;
 
 namespace ScreenHire.Api.Applications;
 
@@ -22,8 +22,8 @@ internal static class ApplySetup
         services.AddOptions<ApplyOptions>().BindConfiguration(ApplyOptions.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddOptions<TurnstileOptions>().BindConfiguration(TurnstileOptions.Section).ValidateDataAnnotations().ValidateOnStart();
 
-        // The integrity engine's settings the submission needs: the device-hash key and the raw data's retention.
-        services.AddIntegrityOptions();
+        // The verification engine's settings the submission needs: the device-hash key and the raw data's retention.
+        services.AddVerificationOptions();
 
         services.AddSingleton<ApplicantUploads>();
         services.AddSingleton<TelemetrySessions>();

@@ -1,4 +1,4 @@
-// The careers apply form's telemetry module (integrity-engine.md §5 and §10.2): session aggregates per field, computed
+// The careers apply form's telemetry module (verification-engine.md §5 and §10.2): session aggregates per field, computed
 // in the browser and sent as cumulative snapshots with navigator.sendBeacon. Framework-free and under 5 KB brotli.
 //
 // Notice before collection (CLAUDE.md non-negotiable 4): on the step that shows the notice, nothing is recorded until

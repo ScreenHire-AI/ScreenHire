@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Automations;
-using ScreenHire.Application.Integrity;
-using ScreenHire.Application.Integrity.Content;
+using ScreenHire.Application.Verification;
+using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.Webhooks;
@@ -25,7 +25,7 @@ public sealed record ApplicationSubmitted(
 /// <summary>
 /// Runs in the worker once per <see cref="ApplicationSubmitted"/>: the workflow engine's <c>ApplicationSubmitted</c>
 /// trigger, and <c>StageEntered</c> for the first stage, which the application has just entered (it also starts that
-/// stage's TimeElapsed timers). It also starts the integrity pipeline (<see cref="AnalyzeApplicationIntegrity"/>) and
+/// stage's TimeElapsed timers). It also starts the verification pipeline (<see cref="AnalyzeApplicationVerification"/>) and
 /// the consistency check (<see cref="CheckApplicationConsistency"/>), and raises the <c>application.submitted</c> webhook
 /// event (<see cref="WebhookEvents"/>) and its Slack post (<see cref="SlackEvents"/>).
 /// </summary>
@@ -48,9 +48,9 @@ public static partial class ApplicationSubmittedHandler
             onlyAutomationId: null,
             cancellationToken);
 
-        // The integrity pipeline is its own message, so it retries and fails apart from the automations above. The
+        // The verification pipeline is its own message, so it retries and fails apart from the automations above. The
         // consistency check waits for the files to be read; an application without files can be checked now.
-        outgoing.Add(new AnalyzeApplicationIntegrity(message.OrganizationId, message.ApplicationId));
+        outgoing.Add(new AnalyzeApplicationVerification(message.OrganizationId, message.ApplicationId));
         outgoing.Add(new CheckApplicationConsistency(message.OrganizationId, message.ApplicationId));
         outgoing.Add(WebhookEvents.From(message));
         if (SlackEvents.From(message, slack) is { } post)

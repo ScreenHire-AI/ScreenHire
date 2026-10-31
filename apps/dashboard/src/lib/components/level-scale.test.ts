@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/integrity.js';
+import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/verification.js';
 import LevelScale from './level-scale.svelte';
 
 const authenticity = authenticityOrder.map((level) => authenticityLevels[level]);

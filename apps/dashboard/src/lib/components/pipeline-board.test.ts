@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowStage } from '@screenhire/api-client';
 import { applications, apiStub, jobId, stages } from '../../test-support/fixtures.js';
-import { summary } from '../../test-support/integrity-fixtures.js';
+import { summary } from '../../test-support/verification-fixtures.js';
 import PipelineHarness from '../../test-support/pipeline-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
@@ -136,8 +136,8 @@ describe('pipeline board', () => {
 
   it('says nothing on a calm card, and shows only what needs a look (section 21)', async () => {
     const rows = [
-      { ...applications[0]!, integrity: summary() },
-      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'], aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['B'] }) },
+      { ...applications[0]!, verification: summary() },
+      { ...applications[2]!, verification: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'], aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['B'] }) },
     ];
     stubApi({ rows });
     renderBoard();

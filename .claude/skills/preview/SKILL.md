@@ -61,8 +61,8 @@ Then the same for `dashboard`, `careers` and `mailpit`. The API turns healthy on
 means the data is there. A first start pulls images and builds, hence the long timeout. If a wait fails, report its
 output and `dotnet aspire logs <resource> --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj`.
 
-Ready does **not** wait for the integrity chips: the worker assesses the synthetic applicants after it starts, within
-about a minute, and live updates can lag until its backlog drains (`docs/architecture/integrity-engine.md` §10.9).
+Ready does **not** wait for the verification chips: the worker assesses the synthetic applicants after it starts, within
+about a minute, and live updates can lag until its backlog drains (`docs/architecture/verification-engine.md` §10.9).
 Step 5 waits for the chips where they show.
 
 ## 4. Report
@@ -98,7 +98,7 @@ In a Kangentic task, use the task's browser pane (the `kangentic_browser_*` tool
    "Unverified address" button signs in with Avery's email and is refused. Wait for `h1` with text `Jobs`.
 4. `kangentic_browser_query_all` on `a[href^="/jobs/"]` with `includeHtml`, take the `href` of "Senior .NET Engineer"
    and `kangentic_browser_navigate` to it. Clicking by text can land on the first job link.
-5. Wait up to 60 s, twice if needed, for `[data-integrity-chip="authenticity"][data-level="Verification suggested"]`.
+5. Wait up to 60 s, twice if needed, for `[data-verification-chip="authenticity"][data-level="Verification suggested"]`.
    Text alone matches the sidebar's saved view of the same name.
 
 An offscreen pane (another project is open in Kangentic) screenshots blank; read the page with

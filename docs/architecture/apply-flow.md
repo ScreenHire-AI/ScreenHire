@@ -49,7 +49,7 @@ never calls the API.
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
-| `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (integrity-engine.md §10.2, "Form telemetry"). |
+| `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (verification-engine.md §10.2, "Form telemetry"). |
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
 | `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
@@ -85,7 +85,7 @@ What this build records with an application (`JobApplication`): the answers, the
 (`AccommodationRequested`, which later turns telemetry and typing signals off and is never a signal itself), the
 AI-use declaration and details, `PrivacyNoticeVersion`, `Source = CareersSite` (with `SourceSite`, the organization's
 own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), and two automation signals
-for the integrity engine:
+for the verification engine:
 
 - `HoneypotFilled` (`AUTO_HONEYPOT`): an off-screen field that only bots fill;
 - `BotCheck` (`AUTO_TURNSTILE_FAIL`): Cloudflare Turnstile's result when `ScreenHire:Turnstile:SiteKey` and `SecretKey`
@@ -93,8 +93,8 @@ for the integrity engine:
 
 Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.
 
-With a careers-site application the API also stores a `SubmissionObservation` for the integrity engine
-(integrity-engine.md §10): the candidate's address (from `X-Forwarded-For`), their browser's user agent, which the
+With a careers-site application the API also stores a `SubmissionObservation` for the verification engine
+(verification-engine.md §10): the candidate's address (from `X-Forwarded-For`), their browser's user agent, which the
 careers server passes on as `userAgent` because the API only sees the server's, and `pageTimes`, the active seconds on
 each page as the careers server measured them (§7; kept in the step state, so they round-trip through the browser and
 are only a hint, and never sent with the switch on). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
@@ -220,7 +220,7 @@ contact fields. The review lists the answers page by page, each with its own Cha
 (Next, Back, Change, Save) adds the time since, at most 30 minutes, to `pageSeconds` for that step. A break between
 saving and coming back is never inside a page, so it never counts. Submission sends the totals as `pageTimes`, which
 the API stores on the submission's observation (dropping anything out of range rather than refusing the application)
-for the submit-velocity check (integrity-engine.md §10.2). Nothing new runs in the browser: this is the careers server's
+for the submit-velocity check (verification-engine.md §10.2). Nothing new runs in the browser: this is the careers server's
 own measure.
 
 **Save and finish later.** On the pages and the review, when the form says `saveDraftEnabled` (an `IEmailSender` is
@@ -257,14 +257,14 @@ in, with a fresh telemetry session, so the notice shows again before anything is
 unknown one "We could not find your saved answers", and both offer a fresh form.
 
 **Deletion.** Sending the application deletes the job's drafts for that email in the same save, and the one saved last
-tells the observation that the application was resumed and which answers it carried over (integrity-engine.md §10.2).
+tells the observation that the application was resumed and which answers it carried over (verification-engine.md §10.2).
 `PurgeExpiredApplicationDrafts` runs daily at 04:07 UTC and deletes drafts 30 days after their first save; later saves
 never move that date. A link stays readable for 30 days past its draft's expiry, but once the sweep has run the draft
 is gone, so the page says "We could not find your saved answers" (whose text covers answers sent or deleted) rather
 than "expired". Two sends of one resumed form at the same moment can fail the second on the draft delete; sending
 again succeeds or reports the application as already sent.
 
-**Knockouts.** A draft is never an application: saving one raises no event and runs no automation or integrity check,
+**Knockouts.** A draft is never an application: saving one raises no event and runs no automation or verification check,
 and the careers server never learns knockout settings. A knockout answer on an early page therefore ends nothing
 before the candidate sends the application; sent, it is judged as on any application (workflow-engine.md §2).
 

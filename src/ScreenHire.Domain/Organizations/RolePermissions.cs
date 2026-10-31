@@ -19,7 +19,7 @@ public enum Permission
     CompleteTasks,
     EmailCandidates,
     FillInScorecards,
-    ReviewIntegrity,
+    ReviewVerification,
     RunAutomations,
     EditHiringTemplates,
     EditEmailTemplates,
@@ -77,7 +77,7 @@ public static class RolePermissions
         new(Permission.CompleteTasks, PermissionGroup.Hiring, "Complete tasks", "Mark a candidate's task done."),
         new(Permission.EmailCandidates, PermissionGroup.Hiring, "Email candidates", "Send an email to one candidate or a selection."),
         new(Permission.FillInScorecards, PermissionGroup.Hiring, "Fill in scorecards", "Score a candidate at a stage."),
-        new(Permission.ReviewIntegrity, PermissionGroup.Hiring, "Review verification results",
+        new(Permission.ReviewVerification, PermissionGroup.Hiring, "Review verification results",
             "Dismiss a result, add a review note or ask for identity verification."),
         new(Permission.RunAutomations, PermissionGroup.Hiring, "Run automations", "Run a manual automation on a candidate."),
         new(Permission.EditHiringTemplates, PermissionGroup.Templates, "Edit hiring templates",
@@ -108,7 +108,7 @@ public static class RolePermissions
     public static IReadOnlySet<Permission> HiringWrites { get; } = new HashSet<Permission>(
     [
         Permission.EditJobs, Permission.AddCandidates, Permission.MoveCandidates, Permission.AddNotesAndTags,
-        Permission.CreateTasks, Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
+        Permission.CreateTasks, Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewVerification,
         Permission.RunAutomations, Permission.EditHiringTemplates,
     ]);
 

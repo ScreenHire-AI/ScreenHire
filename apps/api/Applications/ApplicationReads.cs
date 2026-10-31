@@ -23,7 +23,7 @@ internal sealed record ApplicationFilter(Guid? JobId = null, string? Search = nu
 
 /// <summary>
 /// Reading applications, for the hiring API's routes and the MCP tools alike, so both apply the same rules: the tenant
-/// and job-scope filters, no integrity output for an API key (ADR-0011), and the rating as the reader may see it
+/// and job-scope filters, no verification output for an API key (ADR-0011), and the rating as the reader may see it
 /// (<see cref="RatingReads"/>).
 /// </summary>
 internal static class ApplicationReads
@@ -32,7 +32,7 @@ internal static class ApplicationReads
     /// <remarks>
     /// One statement reads the rows and each one's last activity (<see cref="ApplicationActivity"/>): the latest counted
     /// timeline entry and the latest finished task are correlated subqueries, served by the
-    /// <c>(organization_id, application_id, occurred_at)</c> index. Integrity and ratings follow in one query each.
+    /// <c>(organization_id, application_id, occurred_at)</c> index. Verification and ratings follow in one query each.
     /// </remarks>
     public static async Task<List<ApplicationSummary>> ListAsync(
         ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, ApplicationFilter filter, CancellationToken cancellationToken)
@@ -73,12 +73,12 @@ internal static class ApplicationReads
                     .Max(t => t.CompletedAt),
             })
             .ToListAsync(cancellationToken);
-        var integrity = await IntegritySummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
+        var verification = await VerificationSummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. found.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
         var poolMonths = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         return [.. found.Select(r => r.Application.ToSummary(
             r.Job, r.Candidate, ApplicationActivity.LastAt(r.Application.SubmittedAt, r.LastEventAt, r.LastTaskCompletedAt), poolMonths,
-            integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
+            verification.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
     }
 
     /// <summary>One application with its candidate, files and follow-ups, or null when the reader cannot see it.</summary>
@@ -100,7 +100,7 @@ internal static class ApplicationReads
 
     /// <summary>
     /// The application's timeline, oldest first, or null when the reader cannot see the application. A key sees no
-    /// integrity assessments here either: not even that one ran, or when (<see cref="IntegritySummariesAsync"/>).
+    /// verification assessments here either: not even that one ran, or when (<see cref="VerificationSummariesAsync"/>).
     /// </summary>
     public static async Task<List<ApplicationTimelineEntry>?> TimelineAsync(
         ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken)
@@ -110,10 +110,10 @@ internal static class ApplicationReads
             return null;
         }
 
-        var withIntegrity = !user.IsApiKey();
+        var withVerification = !user.IsApiKey();
         var events = await db.ApplicationEvents.AsNoTracking()
             .Where(e => e.ApplicationId == applicationId)
-            .Where(e => withIntegrity || e.Type != ApplicationEventType.IntegrityAssessed)
+            .Where(e => withVerification || e.Type != ApplicationEventType.VerificationAssessed)
             .OrderBy(e => e.OccurredAt)
             .ThenBy(e => e.Id)
             .ToListAsync(cancellationToken);
@@ -138,12 +138,12 @@ internal static class ApplicationReads
     }
 
     /// <summary>
-    /// Integrity output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:
+    /// Verification output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:
     /// an integrator's system could reject on it, which ScreenHire's own automations may not (ADR-0011).
     /// </summary>
-    public static async Task<Dictionary<Guid, IntegritySummary>> IntegritySummariesAsync(
+    public static async Task<Dictionary<Guid, VerificationSummary>> VerificationSummariesAsync(
         ClaimsPrincipal user, ScreenHireDbContext db, IReadOnlyCollection<Guid> applicationIds, CancellationToken cancellationToken) =>
-        user.IsApiKey() ? [] : await IntegrityReads.SummariesAsync(db, applicationIds, cancellationToken);
+        user.IsApiKey() ? [] : await VerificationReads.SummariesAsync(db, applicationIds, cancellationToken);
 
     private static async Task<List<ApplicationFile>> FilesOfAsync(ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken) =>
         await db.ApplicationFiles.AsNoTracking()

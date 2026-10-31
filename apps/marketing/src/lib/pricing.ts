@@ -42,7 +42,7 @@ export const plans: Plan[] = [
 /** What every plan includes. Each line describes the product as designed (docs/architecture). */
 export const includedInEveryPlan = [
   'Unlimited users',
-  'Applicant integrity checks with evidence, counter-evidence and a suggested next step',
+  'Applicant verification with evidence, counter-evidence and a suggested next step',
   'Careers page and posting to Google for Jobs',
   'Hiring workflows built from reusable templates',
   'The public API',

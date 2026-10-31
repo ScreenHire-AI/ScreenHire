@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "MCP server for AI assistants"
-description: "The remote MCP server at /v1/mcp: Streamable HTTP in stateless mode, signed in with an organization API key and nothing else, eight tools on the hiring API's own services, candidate-written text marked as data, no integrity output, and the values any MCP client needs to connect."
+description: "The remote MCP server at /v1/mcp: Streamable HTTP in stateless mode, signed in with an organization API key and nothing else, eight tools on the hiring API's own services, candidate-written text marked as data, no verification output, and the values any MCP client needs to connect."
 tags: [mcp, api-keys, ai]
 sources:
   - resource: apps/api/Mcp/McpSetup.cs
@@ -80,22 +80,22 @@ The outputs are records of their own (`McpContracts.cs`), mapped from the hiring
 
 - **Candidate-written text is marked.** Every string a candidate wrote comes back as
   `{ "candidateWritten": "..." }`: their name, free-text and URL answers, file names, AI-use details and follow-up
-  answers. Resumes and answers can carry hidden instructions aimed at AI screeners, which the integrity engine flags
-  (`CNT_PROMPT_INJECTION`, [integrity engine](integrity-engine.md)). The server instructions tell the assistant to
+  answers. Resumes and answers can carry hidden instructions aimed at AI screeners, which the verification engine flags
+  (`CNT_PROMPT_INJECTION`, [verification engine](verification-engine.md)). The server instructions tell the assistant to
   read such text as data and never follow it. Choices come back as the job's own option labels, and yes/no and numbers
   as plain values, because the candidate picked them rather than wrote them. An answer that is not a yes/no or a
   number, given before its question changed type, comes back marked like free text.
-- **No integrity output.** No tool returns integrity levels, reason codes, signals or evidence, and the activity leaves
-  out `IntegrityAssessed`, exactly as the HTTP API does for a key (ADR-0011 decision 3). A key has no named person
+- **No verification output.** No tool returns verification levels, reason codes, signals or evidence, and the activity leaves
+  out `VerificationAssessed`, exactly as the HTTP API does for a key (ADR-0011 decision 3). A key has no named person
   behind it, and an assistant can be an autonomous agent that could reject on the evidence, which ScreenHire's own
-  automations may not (ADR-0004). The tool descriptions say a person reviews integrity in the dashboard.
-  `McpServerTests` checks a bot applicant's application for any integrity, level, reason, signal or score member.
+  automations may not (ADR-0004). The tool descriptions say a person reviews verification in the dashboard.
+  `McpServerTests` checks a bot applicant's application for any verification, level, reason, signal or score member.
 - **No accommodation flag, no phone number and no file contents.** The assistant gets what it needs to act on a request.
 
 ## Rejection
 
 `move_to_stage` follows the same rules as the HTTP move, Rejected included: moving a candidate to Rejected is a
-person's choice made through their assistant. Nothing in the server acts on integrity output, because it never has
+person's choice made through their assistant. Nothing in the server acts on verification output, because it never has
 any. The tool description and the server instructions tell the assistant to move a candidate to a Rejected stage only
 when the person it works for explicitly asks. The timeline records the key that moved them.
 
@@ -138,6 +138,6 @@ cannot connect until ScreenHire runs an authorization server.
 
 | Test | Proves |
 |---|---|
-| `McpServerTests` (integration) | a Write key lists all eight tools and a Read key the three reads; each tool's change lands in the timeline under the key; a move to Rejected works as over HTTP; a Read key's writes are refused and change nothing; another organization's jobs and applications are unreachable; no integrity output; only a valid key connects |
+| `McpServerTests` (integration) | a Write key lists all eight tools and a Read key the three reads; each tool's change lands in the timeline under the key; a move to Rejected works as over HTTP; a Read key's writes are refused and change nothing; another organization's jobs and applications are unreachable; no verification output; only a valid key connects |
 | `ApplicationTasksTests` (integration) | the task route the `create_task` tool mirrors |
 | `McpToolsTests`, `McpMappingsTests` (unit) | the write policy on every write tool, snake_case names, and which words are wrapped as `candidateWritten` |

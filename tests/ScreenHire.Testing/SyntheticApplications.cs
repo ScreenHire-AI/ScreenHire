@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 
 namespace ScreenHire.Testing;
@@ -10,7 +10,7 @@ namespace ScreenHire.Testing;
 /// <summary>
 /// Submits an applicant (<see cref="SyntheticApplicants"/> or one a test builds) the way the careers server does: the
 /// resume upload, then the submission with the session context and the candidate's address in <c>X-Forwarded-For</c>,
-/// which the API trusts from loopback. The integrity engine then assesses it like any careers application. The one
+/// which the API trusts from loopback. The verification engine then assesses it like any careers application. The one
 /// implementation, used by the integration and the end-to-end tests.
 /// </summary>
 public static class SyntheticApplications

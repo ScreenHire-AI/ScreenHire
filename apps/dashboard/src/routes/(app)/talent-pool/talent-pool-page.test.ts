@@ -117,7 +117,7 @@ describe('talent pool page', () => {
     const filters = (await panel()).querySelector<HTMLElement>('[data-filters]')!;
 
     expect(within(filters).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Kept from: All', 'Tag: All']);
-    expect(screen.queryByRole('columnheader', { name: /verification|authenticity|integrity/i })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /integrity|authenticity|verification/i })).toBeNull();
     expect(document.body.textContent).not.toMatch(/Checks pending|Looks genuine|Authenticity/);
   });
 

@@ -8,12 +8,12 @@ import { softwareApplication } from '../lib/seo';
 const { title, description, path, label } = pages.product;
 const site = Astro.site ?? new URL(Astro.url.origin);
 
-// Each section describes the product as designed in docs/architecture (integrity engine, job distribution, workflow
+// Each section describes the product as designed in docs/architecture (verification engine, job distribution, workflow
 // engine). Keep the copy in step with those docs.
 const sections = [
   {
-    id: 'integrity',
-    kicker: 'Applicant integrity',
+    id: 'verification',
+    kicker: 'Applicant verification',
     title: 'Two questions, answered separately',
     body: 'Most tools blur "used AI" with "is a fraud". ScreenHire keeps them apart, because many genuine applicants use AI to polish an application.',
     points: [
@@ -30,7 +30,7 @@ const sections = [
     body: 'A hiring template bundles stages, screening questions, automations and posting defaults for a type of role.',
     points: [
       'Templates are versioned. A job copies a version, and you choose when to apply a newer one, so live jobs never change under you.',
-      'Automations route, tag, assign or request verification. Rules built on integrity signals can never reject anyone.',
+      'Automations route, tag, assign or request an identity check. Rules built on verification signals can never reject anyone.',
       'Everything you can do in the dashboard is available through the public API.',
     ],
   },
@@ -67,7 +67,7 @@ const sections = [
   <PageHeader
     kicker="Product"
     title="An applicant tracker that tells you who is really applying."
-    lead="ScreenHire is an applicant tracking system for small hiring teams, with an integrity layer that explains every flag in plain language. A person always makes the decision."
+    lead="ScreenHire is an applicant tracking system for small hiring teams, with a verification layer that explains every flag in plain language. A person always makes the decision."
   />
 
   <nav aria-label="On this page" class="mx-auto max-w-6xl px-6">

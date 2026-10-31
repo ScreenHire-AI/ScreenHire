@@ -3,7 +3,7 @@
   import FilterMenu from '#lib/components/filter-menu.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
-  import { authenticityLevels, authenticityOrder, integrityOverview, pendingLevel, type IntegrityFilter } from '#lib/integrity.js';
+  import { authenticityLevels, authenticityOrder, verificationOverview, pendingLevel, type VerificationFilter } from '#lib/verification.js';
 
   // A job's authenticity levels as filter chips with counts (design system section 21): one toggle per level, which
   // filters the candidates, and a second click clears it. The chips carry words and counts only: status icons belong in
@@ -16,14 +16,14 @@
     menu = false,
   }: {
     applications: readonly ApplicationSummary[];
-    filter: IntegrityFilter;
+    filter: VerificationFilter;
     /** Called with the new filter; the page decides what a new filter resets (the selection, ADR-0004). */
-    onchange: (next: IntegrityFilter) => void;
+    onchange: (next: VerificationFilter) => void;
     /** A filter menu instead of chips, for a phone. */
     menu?: boolean;
   } = $props();
 
-  const overview = $derived(integrityOverview(applications));
+  const overview = $derived(verificationOverview(applications));
 
   const entries = $derived([
     ...authenticityOrder.map((id) => ({ id, view: authenticityLevels[id], count: overview.levels[id] })),

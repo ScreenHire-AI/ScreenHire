@@ -2,7 +2,7 @@ import type { WorkflowStage } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
-import type { IntegrityFilter } from '#lib/integrity.js';
+import type { VerificationFilter } from '#lib/verification.js';
 import { apiStub, applications, stages, user } from '../../test-support/fixtures.js';
 import JobPipelineHarness from '../../test-support/job-pipeline-harness.svelte';
 import { stubViewport } from '../../test-support/viewport.js';
@@ -18,7 +18,7 @@ function canSendEmail() {
   vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) })));
 }
 
-function renderPipeline(overrides: { stages?: WorkflowStage[]; integrityFilter?: IntegrityFilter } = {}) {
+function renderPipeline(overrides: { stages?: WorkflowStage[]; verificationFilter?: VerificationFilter } = {}) {
   return render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications, ...overrides } } });
 }
 
@@ -48,7 +48,7 @@ describe('job pipeline', () => {
     expect(header.querySelector('[data-slot="badge"]')).toBeNull();
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
     expect(within(within(header).getByRole('group', { name: 'View' })).getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(header).queryByRole('button', { name: /^Integrity/ })).toBeNull();
+    expect(within(header).queryByRole('button', { name: /^Verification/ })).toBeNull();
 
     expect(within(filters()).getByRole('button', { name: 'Stage: All' })).toBeInTheDocument();
     // The fixtures have no assessment yet, so every candidate is waiting for checks.
@@ -138,14 +138,14 @@ describe('job pipeline', () => {
     expect(names().toSorted()).toEqual(applications.map((application) => application.candidateName).toSorted());
   });
 
-  it('offers no stage that ends a candidacy to a bulk move while an integrity filter is set (ADR-0004)', async () => {
+  it('offers no stage that ends a candidacy to a bulk move while a verification filter is set (ADR-0004)', async () => {
     const withEnds: WorkflowStage[] = [
       ...stages,
       { id: 'rejected', name: 'Rejected', kind: 'Rejected' },
       { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' },
     ];
     // The fixtures have no assessment yet, so the Pending filter shows every row.
-    renderPipeline({ stages: withEnds, integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ stages: withEnds, verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
 
     await fireEvent.pointerDown(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
@@ -154,7 +154,7 @@ describe('job pipeline', () => {
     expect(items).toEqual(stages.map((stage) => stage.name));
   });
 
-  it('offers Email for the ticked rows, and none while an integrity filter picked them (ADR-0004)', async () => {
+  it('offers Email for the ticked rows, and none while a verification filter picked them (ADR-0004)', async () => {
     canSendEmail();
     const { unmount } = renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
@@ -162,21 +162,21 @@ describe('job pipeline', () => {
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
-    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
-  it('offers Keep in mind for the ticked rows, and none while an integrity filter picked them (ADR-0004)', async () => {
+  it('offers Keep in mind for the ticked rows, and none while a verification filter picked them (ADR-0004)', async () => {
     const { unmount } = renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Keep in mind, 1 selected' })).toBeInTheDocument();
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
-    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
     expect(within(selectionBar()).queryByRole('button', { name: /in mind/ })).toBeNull();
@@ -243,7 +243,7 @@ describe('job pipeline', () => {
   });
 
   it('keeps every move on a filtered board to one card: no ticks and no selection bar (ADR-0004)', async () => {
-    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();

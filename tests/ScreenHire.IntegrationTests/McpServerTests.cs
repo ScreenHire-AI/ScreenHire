@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using ModelContextProtocol;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -9,13 +9,13 @@ namespace ScreenHire.IntegrationTests;
 /// The MCP server at <c>/v1/mcp</c> (docs/architecture/mcp-server.md), driven by a real MCP client as an AI assistant
 /// would drive it: an organization API key signs it in, a Read key sees and calls only the read tools, every change goes
 /// through the hiring API's own rules and lands in Activity under the key, another organization's data is out of reach,
-/// and no tool returns integrity output (ADR-0011).
+/// and no tool returns verification output (ADR-0011).
 /// </summary>
 public sealed class McpServerTests(AppHostFixture fixture)
 {
     // The worker assesses each new application on its own time, so its entry may or may not be on the timeline when a
     // test reads it; what the key did or could not do is the rest.
-    private const string Assessed = "IntegrityAssessed";
+    private const string Assessed = "VerificationAssessed";
 
     private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application"];
 
@@ -78,7 +78,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
 
         (await owner.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
         var keyId = key.Id("key.id");
-        // The owner's timeline also holds the worker's integrity assessment, which has no actor and lands whenever the
+        // The owner's timeline also holds the worker's verification assessment, which has no actor and lands whenever the
         // worker gets to it; the key's own changes are the rest.
         var changes = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
             .Where(e => e.GetProperty("type").GetString() is not ("Submitted" or Assessed))
@@ -150,12 +150,12 @@ public sealed class McpServerTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_application_comes_back_without_integrity_output_and_with_the_candidates_words_marked()
+    public async Task An_application_comes_back_without_verification_output_and_with_the_candidates_words_marked()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, owner);
-        var applicationId = await IntegritySupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
-        await IntegritySupport.AssessedAsync(owner, applicationId);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+        var applicationId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        await VerificationSupport.AssessedAsync(owner, applicationId);
         await using var mcp = await McpSupport.ConnectAsync(fixture, (await owner.CreateKeyAsync("Reader", ["Read"])).Text("token"));
 
         var application = await mcp.CallAsync("get_application", new() { ["applicationId"] = applicationId });
@@ -164,16 +164,17 @@ public sealed class McpServerTests(AppHostFixture fixture)
         foreach (var result in new[] { application, found })
         {
             McpSupport.PropertyNames(result).Should().NotContain(
-                name => name.Contains("integrity", StringComparison.OrdinalIgnoreCase)
+                name => name.Contains("verification", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("integrity", StringComparison.OrdinalIgnoreCase)
                     || name.Contains("level", StringComparison.OrdinalIgnoreCase)
                     || name.Contains("reason", StringComparison.OrdinalIgnoreCase)
                     || name.Contains("signal", StringComparison.OrdinalIgnoreCase)
                     || name.Contains("score", StringComparison.OrdinalIgnoreCase),
-                "integrity output is for the person reviewing, never for a key (ADR-0011)");
+                "verification output is for the person reviewing, never for a key (ADR-0011)");
         }
 
         application.GetProperty("activity").EnumerateArray().Select(e => e.GetProperty("type").GetString())
-            .Should().NotContain("IntegrityAssessed", "a key does not learn that an assessment ran");
+            .Should().NotContain("VerificationAssessed", "a key does not learn that an assessment ran");
         var resume = application.GetProperty("answers").EnumerateArray().Single(a => a.GetProperty("questionId").GetString() == "resume");
         resume.GetProperty("text").GetProperty("candidateWritten").GetString().Should().NotBeNullOrEmpty("a file's name is the candidate's words");
         application.GetProperty("files").EnumerateArray().Should().OnlyContain(f => f.GetProperty("fileName").GetProperty("candidateWritten").ValueKind == JsonValueKind.String);

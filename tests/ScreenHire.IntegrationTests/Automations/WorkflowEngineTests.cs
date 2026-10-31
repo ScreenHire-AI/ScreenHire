@@ -29,7 +29,7 @@ public sealed class WorkflowEngineTests(AppHostFixture fixture)
         var valid = (await recruiter.PostAsync("/v1/workflows/validate", new JsonObject { ["workflow"] = workflow.DeepClone() })).Expect(HttpStatusCode.OK);
         valid.At("valid").GetBoolean().Should().BeTrue();
 
-        workflow["automations"] = new JsonArray(Samples.IntegrityAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "Looks automated" }));
+        workflow["automations"] = new JsonArray(Samples.VerificationAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "Looks automated" }));
         var refused = (await recruiter.PostAsync("/v1/workflows/validate", new JsonObject { ["workflow"] = workflow })).Expect(HttpStatusCode.OK);
         refused.At("valid").GetBoolean().Should().BeFalse();
         refused.Text("errors.0.path").Should().Be("automations[0].actions[0]");
@@ -75,11 +75,11 @@ public sealed class WorkflowEngineTests(AppHostFixture fixture)
         })).Expect(HttpStatusCode.OK);
         skipped.Text("automations.0.outcome").Should().Be("Skipped");
 
-        workflow["automations"] = new JsonArray(Samples.IntegrityAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "No" }));
+        workflow["automations"] = new JsonArray(Samples.VerificationAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "No" }));
         var invalid = await recruiter.PostAsync("/v1/workflows/simulate", new JsonObject
         {
             ["workflow"] = workflow.DeepClone(),
-            ["trigger"] = new JsonObject { ["type"] = "IntegrityAssessed" },
+            ["trigger"] = new JsonObject { ["type"] = "VerificationAssessed" },
         });
         invalid.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("workflow.automations[0].actions[0]");
     }

@@ -5,7 +5,7 @@ import { uuid } from '@screenhire/ui/questions/files';
 import { organizationOf } from '../../lib/host';
 import { MAX_TELEMETRY_BYTES, parseSnapshot } from '../../lib/telemetry';
 
-// The telemetry module's beacons (packages/telemetry; integrity-engine.md §10.2), passed on to the API's ingest with the
+// The telemetry module's beacons (packages/telemetry; verification-engine.md §10.2), passed on to the API's ingest with the
 // candidate's address. navigator.sendBeacon posts a string, so the body arrives as text/plain. Only this site's own pages
 // may post here (Sec-Fetch-Site), and a snapshot binds to nothing without the session token the API issued for the job.
 // The answer is always 204: a beacon never reads it, and the page never learns anything from it.

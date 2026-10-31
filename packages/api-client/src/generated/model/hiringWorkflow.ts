@@ -6,18 +6,18 @@
  */
 import type { Automation } from './automation.ts';
 import type { FollowUpQuestionnaire } from './followUpQuestionnaire.ts';
-import type { IntegrityPolicy } from './integrityPolicy.ts';
 import type { Questionnaire } from './questionnaire.ts';
+import type { VerificationPolicy } from './verificationPolicy.ts';
 import type { WorkflowStage } from './workflowStage.ts';
 
 /**
- * What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity
+ * What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification
  * policy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.
  */
 export interface HiringWorkflow {
   stages: WorkflowStage[];
   questionnaire: Questionnaire;
-  integrityPolicy: IntegrityPolicy;
+  verificationPolicy: VerificationPolicy;
   automations: Automation[];
   /** @nullable */
   followUpQuestionnaires?: FollowUpQuestionnaire[] | null;

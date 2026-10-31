@@ -16,7 +16,7 @@ public sealed record TalentPoolChanged(Guid OrganizationId, Guid ApplicationId, 
 /// <summary>
 /// Joining and leaving the talent pool, shared by the API's routes, the public link to stop being kept and the worker's
 /// expiry sweep, so every way in or out keeps the same record: an entry while they are in, and the reason on the kept
-/// application's Activity when they leave. Never reads integrity output (ADR-0004). The caller saves.
+/// application's Activity when they leave. Never reads verification output (ADR-0004). The caller saves.
 /// </summary>
 public static class TalentPoolMembership
 {

@@ -149,11 +149,11 @@ describe('candidates page', () => {
     expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
   });
 
-  it('offers Email for the ticked rows, and none in a view that integrity picked (ADR-0004)', async () => {
+  it('offers Email for the ticked rows, and none in a view that verification picked (ADR-0004)', async () => {
     appPage.data = { user };
     const flagged = applications.map((application) => ({
       ...application,
-      integrity: {
+      verification: {
         authenticity: 'ReviewSuggested' as const,
         authenticityReasons: ['RESUME_TEMPLATE_MATCH'],
         authenticityDismissed: false,

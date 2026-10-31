@@ -263,7 +263,7 @@
             </div>
             {#if fact?.signal}
               <p class="text-caption text-muted-foreground">
-                An integrity signal can route a candidate for review, never reject them.
+                A verification signal can route a candidate for review, never reject them.
               </p>
             {/if}
             <FieldErrors id={`${uid}-rule-${ruleIndex}-errors`} messages={ruleErrors} />

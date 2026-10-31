@@ -18,8 +18,8 @@ public static class FactSchema
     public const string Tags = "application.tags";
     public const string Source = "application.source";
     public const string HoursInStage = "application.hoursInStage";
-    public const string IntegrityAuthenticity = "integrity.authenticity";
-    public const string IntegrityAiAssistance = "integrity.aiAssistance";
+    public const string VerificationAuthenticity = "verification.authenticity";
+    public const string VerificationAiAssistance = "verification.aiAssistance";
     public const string VerificationResult = "verification.result";
 
     /// <summary>
@@ -29,7 +29,7 @@ public static class FactSchema
     /// </summary>
     public const string ReviewerRecommendation = "reviewer.recommendation";
 
-    // Telemetry facts arrive with the integrity engine. The prefix is reserved now so the accommodation rule already
+    // Telemetry facts arrive with the verification engine. The prefix is reserved now so the accommodation rule already
     // covers them (workflow-engine.md §2, guardrail 4).
     private const string TelemetryPrefix = "telemetry.";
 
@@ -39,8 +39,8 @@ public static class FactSchema
         new(Tags, FactType.TextList, FactCategory.Application),
         new(Source, FactType.Text, FactCategory.Application),
         new(HoursInStage, FactType.Number, FactCategory.Timing),
-        new(IntegrityAuthenticity, FactType.Level, FactCategory.Signal),
-        new(IntegrityAiAssistance, FactType.Level, FactCategory.Signal),
+        new(VerificationAuthenticity, FactType.Level, FactCategory.Signal),
+        new(VerificationAiAssistance, FactType.Level, FactCategory.Signal),
         new(VerificationResult, FactType.Level, FactCategory.Signal),
         new(ReviewerRecommendation, FactType.Recommendation, FactCategory.Reviewer),
     ];
@@ -76,7 +76,10 @@ public static class FactSchema
         _ => ExistsOnly,
     };
 
-    /// <summary>An integrity or verification signal: an automation that reads one may only route (ADR-0004).</summary>
+    /// <summary>
+    /// A verification signal (a check's level, or phase 2's identity verification): an automation that reads one may only
+    /// route (ADR-0004). A leftover <c>integrity.</c> fact from before the rename still counts, as defence in depth (ADR-0019).
+    /// </summary>
     public static bool IsSignal(string? fact) =>
         fact is not null && (fact.StartsWith("integrity.", StringComparison.Ordinal) || fact.StartsWith("verification.", StringComparison.Ordinal));
 
@@ -139,7 +142,7 @@ public sealed record FactDefinition(string Name, FactType Type, FactCategory Cat
 
 /// <summary>
 /// How a fact's values read. Level facts are categorical (ADR-0004): equality only, never "greater than", until the
-/// integrity engine publishes its levels.
+/// verification engine publishes its levels.
 /// </summary>
 public enum FactType
 {

@@ -23,7 +23,7 @@ namespace ScreenHire.Api.Endpoints;
 /// whose job has closed, is a 410, so the page can say so plainly.
 /// </para>
 /// <para>
-/// A draft is never an application. Saving one raises no event and runs no automation or integrity check, so a knockout
+/// A draft is never an application. Saving one raises no event and runs no automation or verification check, so a knockout
 /// answer on an early page never ends anything before the candidate sends it (CLAUDE.md non-negotiable 2). Saving a new
 /// draft answers the same whether or not the address applied or saved before, so it tells nobody who applied.
 /// </para>

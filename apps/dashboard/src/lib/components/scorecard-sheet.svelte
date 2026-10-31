@@ -21,7 +21,7 @@
   // now. Each question answers in its own kind: ratings and yes-or-no on one row of joined buttons (Rating answer),
   // choices as radios or checkboxes, text in a box. A question left alone is unanswered, which a required one may not be.
   // The overall recommendation is required: it is what ReviewerDecision automations test. Nothing here shows or takes
-  // integrity output (CLAUDE.md non-negotiable 2); the rating answers make the candidate's rating on the server.
+  // verification output (CLAUDE.md non-negotiable 2); the rating answers make the candidate's rating on the server.
   let {
     open = $bindable(false),
     applicationId,

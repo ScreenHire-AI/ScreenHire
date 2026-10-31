@@ -20,13 +20,13 @@ internal static class DefinitionSchemas
         typeof(HiringTemplateDefinition),
         "/v1/schemas/hiring-template-definition.json",
         "Hiring template definition",
-        "A hiring template version's content: the workflow a job copies (stages, questionnaire, integrity policy, automations) and posting defaults.");
+        "A hiring template version's content: the workflow a job copies (stages, questionnaire, verification policy, automations) and posting defaults.");
 
     public static readonly DefinitionSchema HiringWorkflow = new(
         typeof(HiringWorkflow),
         "/v1/schemas/hiring-workflow.json",
         "Hiring workflow",
-        "A job's own copy of a hiring workflow: stages, questionnaire, integrity policy and automations.");
+        "A job's own copy of a hiring workflow: stages, questionnaire, verification policy and automations.");
 
     public static readonly DefinitionSchema Questionnaire = new(
         typeof(Questionnaire),

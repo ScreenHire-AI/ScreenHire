@@ -57,7 +57,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToBeVisibleAsync();
         await applications.GetByRole(AriaRole.Button, new() { Name = "Tag: all" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Referral" }).ClickAsync();
-        // A filter menu stays open for another choice, as the integrity filter does.
+        // A filter menu stays open for another choice, as the verification filter does.
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.GetByRole(AriaRole.Menu)).ToHaveCountAsync(0);
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToHaveCountAsync(0);

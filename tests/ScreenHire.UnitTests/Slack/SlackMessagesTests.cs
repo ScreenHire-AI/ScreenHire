@@ -1,5 +1,5 @@
 using ScreenHire.Application.Slack;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Slack;
 
 namespace ScreenHire.UnitTests.Slack;

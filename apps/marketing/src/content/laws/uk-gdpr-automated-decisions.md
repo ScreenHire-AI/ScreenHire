@@ -45,7 +45,7 @@ The ICO's 2024 audit of AI recruitment tools found vendors classing themselves a
 
 ## How ScreenHire is designed around it
 
-- Integrity signals never make a hiring decision. Integrity levels can route, tag, assign or suggest verification, and workflows that would reject on integrity signals are refused.
+- Verification signals never make a hiring decision. Verification levels can route, tag, assign or suggest an identity check, and workflows that would reject on verification signals are refused.
 - Each flag shows its evidence and counter-evidence, so the reviewer weighs something real rather than accepting a score.
 - Candidate-facing notice comes before collection, and the design includes a "why we asked you to verify" page and a way to ask for human review.
 

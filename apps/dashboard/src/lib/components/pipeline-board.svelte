@@ -8,7 +8,7 @@
   import { tick } from 'svelte';
   import { dndzone, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
   import { goto } from '$app/navigation';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
+  import VerificationChip from '#lib/components/verification-chip.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -16,7 +16,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { clock } from '#lib/clock.svelte.js';
   import { initials } from '#lib/format.js';
-  import { chipOf } from '#lib/integrity.js';
+  import { chipOf } from '#lib/verification.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
@@ -132,8 +132,8 @@
           onfinalize={(event) => onfinalize(column.stage, event)}
         >
           {#each column.cards as card (card.id)}
-            {@const authenticity = chipOf(card.integrity, 'authenticity')}
-            {@const ai = chipOf(card.integrity, 'aiAssistance')}
+            {@const authenticity = chipOf(card.verification, 'authenticity')}
+            {@const ai = chipOf(card.verification, 'aiAssistance')}
             <!-- Calm says nothing (section 21): the status row shows only what needs a look or is still waiting. -->
             {@const showStatus = isOverdue(card, clock.now) || !authenticity || authenticity.level.rank > 0 || (ai !== null && ai.level.rank > 0)}
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions: svelte-dnd-action makes each card focusable (tabindex 0) and draggable; these keys are its non-drag alternative -->
@@ -160,7 +160,7 @@
                 <!-- Status first (T2); the column already says the stage. Overdue is the team's status and leads. -->
                 <span class="flex flex-wrap items-center gap-1.5">
                   <OverdueBadge dueAt={card.slaDueAt} />
-                  <IntegrityChip
+                  <VerificationChip
                     kind="authenticity"
                     compact
                     hideCalm
@@ -169,7 +169,7 @@
                     dismissed={authenticity?.dismissed ?? false}
                   />
                   {#if ai && ai.level.rank > 0}
-                    <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
+                    <VerificationChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
                   {/if}
                 </span>
               {/if}

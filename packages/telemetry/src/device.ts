@@ -22,7 +22,7 @@ export function automationMarkers(w: Window = window): AutomationMarker[] {
 /**
  * A device fingerprint: SHA-256 over coarse traits the browser reports (user agent, languages, screen, time zone,
  * hardware concurrency). No canvas, audio or font probing. The API keyed-hashes it again per organization before
- * storing it, so it never matches across employers (integrity-engine.md §10.4). Null where Web Crypto is missing.
+ * storing it, so it never matches across employers (verification-engine.md §10.4). Null where Web Crypto is missing.
  */
 export async function deviceFingerprint(w: Window = window): Promise<string | null> {
   const subtle = w.crypto?.subtle;

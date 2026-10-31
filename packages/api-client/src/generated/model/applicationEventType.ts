@@ -12,7 +12,7 @@ export const ApplicationEventType = {
   Submitted: 'Submitted',
   StageChanged: 'StageChanged',
   TagAdded: 'TagAdded',
-  IntegrityAssessed: 'IntegrityAssessed',
+  VerificationAssessed: 'VerificationAssessed',
   TagRemoved: 'TagRemoved',
   NoteAdded: 'NoteAdded',
   ScorecardSubmitted: 'ScorecardSubmitted',

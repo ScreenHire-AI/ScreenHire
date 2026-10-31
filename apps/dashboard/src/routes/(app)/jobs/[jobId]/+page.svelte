@@ -58,7 +58,7 @@
   let { params }: PageProps = $props();
 
   const queryClient = useQueryClient();
-  // ApplicationSubmitted, ApplicationMoved, IntegrityAssessed and JobPostingsChanged refetch them live (#lib/realtime.ts).
+  // ApplicationSubmitted, ApplicationMoved, VerificationAssessed and JobPostingsChanged refetch them live (#lib/realtime.ts).
   const job = createGetJob(() => params.jobId);
   const applications = createListJobApplications(() => params.jobId);
   const boards = createListBoards();

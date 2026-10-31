@@ -70,7 +70,7 @@ export const forwardedFor = (address: string | undefined): RequestInit | undefin
  * brings the candidate back to it) keep what was typed without checking it, and so does Save (`intent` = `save`), which
  * keeps a draft to finish later. Next checks the step and moves on. On the last step, everything is checked again and
  * sent to the API, with the candidate's browser (`userAgent`), the time on each page and what the telemetry module left
- * in the form for the integrity engine. `embed` is the site the careers page is embedded in, from the step form's
+ * in the form for the verification engine. `embed` is the site the careers page is embedded in, from the step form's
  * address; it goes with the application only while it is on the organization's list (docs/architecture/careers-widget.md).
  */
 export async function applyStep(

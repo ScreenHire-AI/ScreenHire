@@ -68,7 +68,7 @@ public sealed class JobApplication : IJobScoped
     public string? PrivacyNoticeVersion { get; init; }
 
     /// <summary>
-    /// The careers form's hidden trap field had a value. An automation signal for the integrity engine
+    /// The careers form's hidden trap field had a value. An automation signal for the verification engine
     /// (<c>AUTO_HONEYPOT</c>), recorded and never used to refuse or reject the application.
     /// </summary>
     public bool HoneypotFilled { get; init; }
@@ -187,7 +187,7 @@ public sealed class JobApplication : IJobScoped
     /// Keeps the candidate in mind: they leave the job without a rejection, and everything on the application stays with
     /// it. <paramref name="note"/> says why, and lives on the returned timeline entry only. Throws when the application has
     /// ended (<paramref name="stage"/> is its current stage) or has no permission for future roles at
-    /// <paramref name="now"/>. Never reads integrity output (ADR-0004): only the stage and the candidate's own answer.
+    /// <paramref name="now"/>. Never reads verification output (ADR-0004): only the stage and the candidate's own answer.
     /// </summary>
     public ApplicationEvent KeepInMind(WorkflowStage? stage, int organizationMonths, DateTimeOffset now, Guid? actorUserId, string? note)
     {

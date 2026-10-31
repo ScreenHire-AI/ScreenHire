@@ -35,13 +35,13 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// </summary>
 /// <remarks>
 /// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>tags</c> are the
-/// application's tags, which lists filter by. <c>integrity</c> holds the integrity chips; null until the application
-/// has been assessed, and always null for an API key, because integrity evidence is for a person reviewing the
+/// application's tags, which lists filter by. <c>verification</c> holds the verification chips; null until the application
+/// has been assessed, and always null for an API key, because verification evidence is for a person reviewing the
 /// application (ADR-0011). <c>slaDueAt</c> is when the application passes its stage's time limit: overdue from then
 /// on, which measures the hiring team's delay and never counts against the candidate. Null when the stage has no limit.
 /// <c>rating</c> is the candidate's rating as the reader may see it (<c>ApplicationRating</c>). <c>lastActivityAt</c> is
 /// when anything last happened to the application, from the candidate (applied, answered a questionnaire) or the team
-/// (moved, noted, tagged, emailed, scored, gave or finished a task); never earlier than <c>submittedAt</c>. The integrity
+/// (moved, noted, tagged, emailed, scored, gave or finished a task); never earlier than <c>submittedAt</c>. The verification
 /// checks do not move it.
 /// <c>keptInMindAt</c>: when the team kept the candidate in mind, which ended the application without a rejection; the
 /// stage is where they were. <c>futureRolesUntil</c>: when the candidate's permission to keep their details for future
@@ -61,7 +61,7 @@ public sealed record ApplicationSummary(
     string JobTitle,
     ApplicationSource Source,
     IReadOnlyList<string> Tags,
-    IntegritySummary? Integrity = null,
+    VerificationSummary? Verification = null,
     DateTimeOffset? SlaDueAt = null,
     ApplicationRating? Rating = null,
     DateTimeOffset? KeptInMindAt = null,
@@ -72,7 +72,7 @@ public sealed record ApplicationSummary(
 /// The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
 /// maps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each
 /// scorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one
-/// decimal. It is people's judgement of the work only: never integrity results, AI signals or the stage. No automation
+/// decimal. It is people's judgement of the work only: never verification results, AI signals or the stage. No automation
 /// reads it. A reviewer who still has their own scorecard to give reads <c>AfterYourScorecard</c>, with no value, until
 /// they give it, so it cannot anchor them.
 /// </summary>
@@ -288,9 +288,9 @@ internal static class ApplicationMappings
     /// <summary>The application in a list; <paramref name="poolMonths"/> is the organization's talent pool permission period.</summary>
     public static ApplicationSummary ToSummary(
         this JobApplication application, Job job, Candidate candidate, DateTimeOffset lastActivityAt, int poolMonths,
-        IntegritySummary? integrity = null, ApplicationRating? rating = null) =>
+        VerificationSummary? verification = null, ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
-            application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, integrity,
+            application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, verification,
             application.SlaDueAt(job), rating ?? ApplicationRating.NotRated, application.KeptInMindAt,
             application.FutureRolesUntil(poolMonths), application.SourceSite);
 

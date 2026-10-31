@@ -28,7 +28,7 @@ describe('activity', () => {
     entry('e4', { type: 'NoteEdited', noteId: 'n1' }),
     entry('e5', { type: 'NoteDeleted', noteId: 'n2', actorUserId: 'u1' }),
     entry('e6', { type: 'EmailSent', emailSubject: 'Application received' }),
-    entry('e7', { type: 'IntegrityAssessed' }),
+    entry('e7', { type: 'VerificationAssessed' }),
   ];
 
   it('lists entries newest first without edit lines or deleted notes', () => {

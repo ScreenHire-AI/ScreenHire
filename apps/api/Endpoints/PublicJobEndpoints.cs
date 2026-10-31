@@ -8,7 +8,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Jobs;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -125,7 +125,7 @@ internal static class PublicJobEndpoints
         ApplicantUploads uploads,
         TurnstileVerifier turnstile,
         TelemetrySessions telemetry,
-        IOptions<IntegrityOptions> integrity,
+        IOptions<VerificationOptions> verification,
         IOptions<DomainOptions> domains,
         ApplicationDrafts drafts,
         TimeProvider time,
@@ -147,11 +147,11 @@ internal static class PublicJobEndpoints
             await organization.ToPublicAsync(db, domains.Value, cancellationToken),
             job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)),
             [.. ApplicationForm.QuestionsFor(job.Workflow).Select(q => q.ToPublic(FileTypes.AcceptedBy))],
-            job.Workflow.IntegrityPolicy.AiUse,
+            job.Workflow.VerificationPolicy.AiUse,
             new PublicUploadSettings(uploads.MaxBytes, uploads.Origin),
             turnstile.SiteKey,
             new PublicTelemetrySettings(
-                telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, integrity.Value)),
+                telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, verification.Value)),
             job.Workflow.Questionnaire.Sections is { Count: > 0 } sections ? sections : null,
             organization.QuestionsPerPage,
             drafts.IsEnabled,

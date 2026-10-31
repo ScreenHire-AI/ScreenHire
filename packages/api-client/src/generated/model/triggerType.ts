@@ -13,7 +13,7 @@ export const TriggerType = {
   StageEntered: 'StageEntered',
   StageExited: 'StageExited',
   QuestionnaireCompleted: 'QuestionnaireCompleted',
-  IntegrityAssessed: 'IntegrityAssessed',
+  VerificationAssessed: 'VerificationAssessed',
   VerificationCompleted: 'VerificationCompleted',
   ReviewerDecision: 'ReviewerDecision',
   TimeElapsed: 'TimeElapsed',

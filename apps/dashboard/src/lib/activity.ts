@@ -70,7 +70,7 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   StageChanged: ArrowRightIcon,
   TagAdded: TagIcon,
   TagRemoved: TagsIcon,
-  IntegrityAssessed: ScanSearchIcon,
+  VerificationAssessed: ScanSearchIcon,
   NoteAdded: StickyNoteIcon,
   NoteEdited: PencilIcon,
   NoteDeleted: Trash2Icon,
@@ -121,8 +121,8 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
     case 'NoteDeleted':
       // Who and when only: the note's text is gone.
       return 'Deleted a note';
-    case 'IntegrityAssessed':
-      // Levels and evidence are the Integrity tab's to show; Activity records only that the checks ran.
+    case 'VerificationAssessed':
+      // Levels and evidence are the Verification tab's to show; Activity records only that the checks ran.
       return 'Verification checks ran';
     case 'ScorecardSubmitted':
       // The ratings and the recommendation are the Scorecards tab's to show.

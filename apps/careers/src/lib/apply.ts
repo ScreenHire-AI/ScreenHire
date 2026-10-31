@@ -66,7 +66,7 @@ export interface ApplyState {
   /**
    * When this server showed the current step (ISO 8601), or empty. On each post of the step its time goes into
    * `pageSeconds`. Set by the server, not the browser, but it round-trips through the hidden field like everything else,
-   * so the integrity engine treats the times as a hint (submit velocity measures active time per page).
+   * so the verification engine treats the times as a hint (submit velocity measures active time per page).
    */
   pageShownAt: string;
   /** The active seconds on each step so far in this sitting, at most `MAX_PAGE_SECONDS` each. */
@@ -77,7 +77,7 @@ export interface ApplyState {
   draft: DraftRef | null;
   /**
    * The telemetry session the API issued with the form the first time this server showed it, or empty. The telemetry
-   * module sends its snapshots with it, and submission binds them to the application (integrity-engine.md §10.2).
+   * module sends its snapshots with it, and submission binds them to the application (verification-engine.md §10.2).
    */
   telemetrySession: string;
   /** The candidate ticked the device check, where the job's basis asks for consent. */
@@ -431,7 +431,7 @@ export function toRequest(
     aiUseDetails: state.aiUseDetails || null,
     honeypotFilled: checks.honeypotFilled,
     botCheckToken: checks.botCheckToken,
-    // Session context for the integrity engine: the candidate's browser (the API only sees this server's) and the
+    // Session context for the verification engine: the candidate's browser (the API only sees this server's) and the
     // active seconds on each page.
     userAgent: checks.userAgent ? checks.userAgent.slice(0, 1024) : null,
     pageTimes: measured ? Object.entries(state.pageSeconds).map(([page, seconds]) => ({ page, seconds })) : null,

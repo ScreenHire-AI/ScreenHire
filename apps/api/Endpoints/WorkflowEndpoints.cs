@@ -36,7 +36,7 @@ internal static class WorkflowEndpoints
     }
 
     // The workflow must be valid first: simulating a definition the save would refuse would show actions that can
-    // never run, such as an integrity-driven rejection.
+    // never run, such as a verification-driven rejection.
     private static Results<Ok<WorkflowSimulationResult>, ValidationProblem> SimulateWorkflow(SimulateWorkflowRequest request)
     {
         if (DefinitionValidator.Validate(request.Workflow).ToProblems("workflow") is { } problems)

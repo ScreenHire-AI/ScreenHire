@@ -81,7 +81,7 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// never held against anyone. <c>privacyNoticeVersion</c> is the notice the candidate was shown before anything was
 /// collected. <c>honeypotFilled</c> and <c>botCheckToken</c> come from the form's bot checks; they are recorded as signals
 /// and never refuse a submission.
-/// The rest is session context for the integrity engine, all optional and none of it ever a reason to refuse:
+/// The rest is session context for the verification engine, all optional and none of it ever a reason to refuse:
 /// <c>userAgent</c> is the candidate's browser as the careers server received it; <c>pageTimes</c> is the active seconds
 /// on each page of the form in the sitting that sends it, as the careers server measured it (entries out of range are
 /// dropped); <c>automationMarkers</c> are markers the page detected, such as <c>webdriver</c>;

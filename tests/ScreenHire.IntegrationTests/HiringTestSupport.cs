@@ -219,16 +219,16 @@ internal static class Samples
         ["actions"] = new JsonArray(new JsonObject { ["type"] = "SendEmail", ["emailTemplate"] = "stage-change" }),
     };
 
-    /// <summary>An automation on a signal fact (<c>integrity.authenticity</c>) whose only action is <paramref name="action"/>.</summary>
-    public static JsonObject IntegrityAutomation(JsonObject action) => new()
+    /// <summary>An automation on a signal fact (<c>verification.authenticity</c>) whose only action is <paramref name="action"/>.</summary>
+    public static JsonObject VerificationAutomation(JsonObject action) => new()
     {
-        ["id"] = "integrity-rule",
-        ["name"] = "Integrity rule",
-        ["trigger"] = new JsonObject { ["type"] = "IntegrityAssessed" },
+        ["id"] = "verification-rule",
+        ["name"] = "Verification rule",
+        ["trigger"] = new JsonObject { ["type"] = "VerificationAssessed" },
         ["conditions"] = new JsonObject
         {
             ["match"] = "All",
-            ["rules"] = new JsonArray(new JsonObject { ["fact"] = "integrity.authenticity", ["operator"] = "EqualTo", ["value"] = "low" }),
+            ["rules"] = new JsonArray(new JsonObject { ["fact"] = "verification.authenticity", ["operator"] = "EqualTo", ["value"] = "low" }),
         },
         ["actions"] = new JsonArray(action),
     };

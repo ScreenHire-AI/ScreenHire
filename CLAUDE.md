@@ -68,7 +68,7 @@ subsystem.
   `Built` (the production builds served as they ship, used by the end-to-end tests) or `None` (used by the integration tests).
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
-  `ScreenHire:Integrity:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
+  `ScreenHire:Verification:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
   `anthropic-api-key` secret) goes to the worker. `ScreenHire:Slack:*` (real Slack with `ClientId` and the
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
   test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
@@ -90,9 +90,9 @@ subsystem.
 - After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
   rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
   `pnpm --filter @screenhire/realtime test` passes, and commit both (`/add-realtime-event`).
-- After changing an integrity analyzer, the signal catalogue or the ruleset: `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"`
-  rewrites the synthetic applicants' golden files; review the diff, and bump `IntegrityRuleset.Version` for a rule change
-  ([`docs/architecture/integrity-engine.md`](docs/architecture/integrity-engine.md) §10).
+- After changing a verification analyzer, the signal catalogue or the ruleset: `UPDATE_VERIFICATION_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*VerificationGoldenTests"`
+  rewrites the synthetic applicants' golden files; review the diff, and bump `VerificationRuleset.Version` for a rule change
+  ([`docs/architecture/verification-engine.md`](docs/architecture/verification-engine.md) §10).
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 
 ## Board pipeline (Kangentic)
@@ -116,12 +116,12 @@ process-killing commands.
 
 ## Product & legal non-negotiables (ADR-0004, ADR-0005, docs/research/legal.md)
 
-1. **Evidence, not verdicts.** Integrity output is categorical levels with reason codes, evidence, counter-evidence,
+1. **Evidence, not verdicts.** Verification output is categorical levels with reason codes, evidence, counter-evidence,
    a plain-language summary and a suggested next step — never a numeric fraud score or "% AI-written".
-2. **Integrity signals never drive rejection.** No auto-reject from `integrity.*` conditions; the workflow engine must
-   refuse such definitions at validation time. No "reject" control inside integrity UI.
+2. **Verification signals never drive rejection.** No auto-reject from `verification.*` conditions; the workflow engine must
+   refuse such definitions at validation time. No "reject" control inside verification UI.
 3. **No emotion / intent / honesty / personality inference.** No biometric templates. **v1 has no biometrics at all**
-   (ID/liveness is phase 2, interview integrity phase 3).
+   (ID/liveness is phase 2, interview verification phase 3).
 4. **Notice before collection.** Browsing collects only server/security logs. Fingerprinting and form telemetry start at
    application start, after the notice, and the assistive-tech toggle disables telemetry with no negative inference.
    Telemetry is aggregates only — never raw keystrokes. Telemetry alone never raises a level.

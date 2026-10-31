@@ -115,7 +115,7 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         string[] recruiting =
         [
             .. viewing, "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CreateTasks", "CompleteTasks", "EmailCandidates",
-            "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
+            "FillInScorecards", "ReviewVerification", "RunAutomations", "EditHiringTemplates",
         ];
         string[] administering = [.. recruiting, "DeleteAnyNote", "EditEmailTemplates", "EditSettings", "ManageApiKeys", "ManageWebhooks", "ManageIntegrations", "ManageTeam"];
         string[] owning = [.. administering, "ManageOwners"];
@@ -232,7 +232,7 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
         string[] otherWrites =
         [
             "ViewHiring", "ManageApiKeys", "EditJobs", "AddCandidates", "MoveCandidates", "AddNotesAndTags", "CompleteTasks",
-            "EmailCandidates", "FillInScorecards", "ReviewIntegrity", "RunAutomations", "EditHiringTemplates",
+            "EmailCandidates", "FillInScorecards", "ReviewVerification", "RunAutomations", "EditHiringTemplates",
         ];
         (await owner.PutAsync($"/v1/organization/roles/{lead}", Update("Team lead", otherWrites))).Expect(HttpStatusCode.OK);
         (await member.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write") }))

@@ -42,11 +42,11 @@ public sealed partial class RolePermissionsTests
         ["AddFromTalentPool"] = Permission.AddCandidates,
         ["SubmitScorecard"] = Permission.FillInScorecards,
         ["RequestScorecard"] = Permission.CreateTasks,
-        ["DismissIntegrityAssessment"] = Permission.ReviewIntegrity,
-        ["ExplainIntegrityReason"] = Permission.ReviewIntegrity,
-        ["UndoIntegrityReasonExplanation"] = Permission.ReviewIntegrity,
-        ["AddIntegrityNote"] = Permission.ReviewIntegrity,
-        ["RequestIdentityVerification"] = Permission.ReviewIntegrity,
+        ["DismissVerificationAssessment"] = Permission.ReviewVerification,
+        ["ExplainVerificationReason"] = Permission.ReviewVerification,
+        ["UndoVerificationReasonExplanation"] = Permission.ReviewVerification,
+        ["AddVerificationNote"] = Permission.ReviewVerification,
+        ["RequestIdentityVerification"] = Permission.ReviewVerification,
         ["RunManualAutomation"] = Permission.RunAutomations,
         ["CreateHiringTemplate"] = Permission.EditHiringTemplates,
         ["UpdateHiringTemplate"] = Permission.EditHiringTemplates,
@@ -71,7 +71,7 @@ public sealed partial class RolePermissionsTests
         ["UpdateOrganizationBranding"] = Permission.EditSettings,
         ["CreateBrandImageUpload"] = Permission.EditSettings,
         ["VerifyBrandImageUpload"] = Permission.EditSettings,
-        ["UpdateOrganizationIntegritySettings"] = Permission.EditSettings,
+        ["UpdateOrganizationVerificationSettings"] = Permission.EditSettings,
         ["UpdateOrganizationTalentPoolSettings"] = Permission.EditSettings,
         ["ListApiKeys"] = Permission.ManageApiKeys,
         ["CreateApiKey"] = Permission.ManageApiKeys,
@@ -125,7 +125,7 @@ public sealed partial class RolePermissionsTests
         Permission[] recruiter =
         [
             .. viewer, Permission.EditJobs, Permission.AddCandidates, Permission.MoveCandidates, Permission.AddNotesAndTags,
-            Permission.CreateTasks, Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewIntegrity,
+            Permission.CreateTasks, Permission.CompleteTasks, Permission.EmailCandidates, Permission.FillInScorecards, Permission.ReviewVerification,
             Permission.RunAutomations, Permission.EditHiringTemplates,
         ];
         Permission[] admin =

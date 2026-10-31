@@ -44,7 +44,7 @@ pnpm dev       # = dotnet run --project apps/apphost
 The first start pulls the container images (Postgres with pgvector, Azurite, Mailpit, the Dev SSO server) and takes a
 few minutes; later starts are much quicker. The console prints the Aspire dashboard's link with a login token.
 The API listens only once it has migrated and seeded the database, and reports healthy only once the demo's data is
-in, so when the dashboard shows every resource as healthy, the demo data is there. The synthetic applicants' integrity
+in, so when the dashboard shows every resource as healthy, the demo data is there. The synthetic applicants' verification
 levels follow within a minute, once the worker has assessed them.
 
 Frontend changes reload on their own while it runs. After a change to the API or the worker, rebuild just that service
@@ -122,7 +122,7 @@ numbers are made up.
 | Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
 
 Every job asks questions, and every demo candidate answers each question of their job, so their pages show answers.
-The synthetic applicants keep the answers their integrity scenarios need.
+The synthetic applicants keep the answers their verification scenarios need.
 The .NET, Support Engineer and Backend Engineer (Payments) jobs ask the "Software engineer" questions through their
 template. The designer, frontend and Customer Success Lead jobs are seeded without one, so the demo adds a questionnaire
 to each, as a recruiter's workflow edit (`DemoQuestionnaires` in `apps/api/Demo`). All three ask about right to work
@@ -140,7 +140,7 @@ locally.
 The three open jobs send the candidate emails: one when a candidate applies, and one when they reach Screening or
 Interview. Mailpit keeps them with the rest of the data. Every candidate except the synthetic applicants is in
 `apps/api/Demo/DemoCandidates.cs`; the synthetic applicants are `SyntheticApplicants` in `ScreenHire.Application`, the
-same people the integrity golden tests use ([integrity-engine.md](../architecture/integrity-engine.md) §10.8).
+same people the verification golden tests use ([verification-engine.md](../architecture/verification-engine.md) §10.8).
 
 Templates: the Templates page has a tab each for hiring templates, scorecards and emails. Hiring: the two system
 templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the Software engineer pipeline and
@@ -158,7 +158,7 @@ built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history
 
 | Layer | Runs | Adds |
 |---|---|---|
-| `DevelopmentDataSeeder` (`src/ScreenHire.Infrastructure/Persistence`) | Every stack in Development, tests included, before the API listens | Brightwater Studio, its brand colour and integrity settings, Avery Quinn as Owner, three open jobs and the Customer Success Lead draft. Tests treat it as read-only ([testing.md](../process/testing.md)) |
+| `DevelopmentDataSeeder` (`src/ScreenHire.Infrastructure/Persistence`) | Every stack in Development, tests included, before the API listens | Brightwater Studio, its brand colour and verification settings, Avery Quinn as Owner, three open jobs and the Customer Success Lead draft. Tests treat it as read-only ([testing.md](../process/testing.md)) |
 | `DevelopmentDemo` (`apps/api/Demo`) | `pnpm dev` and `/preview` only (`ScreenHire:Demo`), after the API starts; `/health` waits for it | Everything else on this page. Each step looks for what it adds first, so a restart with kept data adds nothing |
 | Dev SSO users (`apps/apphost/DevSso`) | Every Development stack | The sign-in choices under "Demo logins" |
 
@@ -167,8 +167,8 @@ built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, opens on the last
    updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's saved views count what needs attention: "To review" and "To verify".
-2. **Integrity, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
-   applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Integrity tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
+2. **Verification, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
+   applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Verification tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
    provider's network) with its evidence and a suggested next step. Point out what is not there: no score, no
    percentage, no reject button. Open Taylor Brook, the last of the three-person farm to apply, for "Same device" and
@@ -195,8 +195,8 @@ Rating column on Frontend Engineer and a candidate's stars, which open to each s
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
 the Talent pool (Grace Adeyemi, kept from Support Engineer: Invite to apply sends the invitation to Mailpit with the
-job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses an
-integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
+job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses a
+verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
 
 Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filtered by All, In use, Not used in 6 months
@@ -238,7 +238,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it
   from the row's menu.
-- **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
+- **Team**, **Organization** (rename; the careers address stays), **Verification** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).
 - **Slack.** With no Slack app it says "Slack is not set up here", as `pnpm dev` starts. To try it, turn on the local
@@ -257,9 +257,9 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | Google, Microsoft and other sign-in providers | Dev SSO (navikt/mock-oauth2-server) with the users above; the real providers are hidden until their client ids are in user secrets | `apps/apphost/DevSso`, `ScreenHire:Auth` |
 | Email provider | Mailpit catches every email | `ScreenHire:Email` |
 | File storage | Azurite (Azure Storage emulator) | Aspire |
-| LLM consistency check | A deterministic fake model; on for Brightwater only | `ScreenHire:Integrity:Llm` (worker) |
+| LLM consistency check | A deterministic fake model; on for Brightwater only | `ScreenHire:Verification:Llm` (worker) |
 | Job boards | The sandbox board (accepts after 20 s, removes after 30 s) and the feeds; nothing leaves the machine. Google Indexing is off | `ScreenHire:Distribution` |
-| IP intelligence | Development's fixed ranges for the RFC 5737 documentation addresses the synthetic applicants use | `ScreenHire:Integrity:Network` (worker) |
+| IP intelligence | Development's fixed ranges for the RFC 5737 documentation addresses the synthetic applicants use | `ScreenHire:Verification:Network` (worker) |
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 | Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
@@ -270,7 +270,7 @@ The [MVP status](../status.md#owner-actions) lists what each of these needs befo
 
 - **A resource is unhealthy in the Aspire dashboard.** Open its logs there. Docker not running and a port already in
   use are the usual causes. `pnpm docker:start` starts Docker Desktop and waits for the engine.
-- **No integrity chips yet.** The worker assesses after the API has started; give it a few seconds. The first assessment
+- **No verification chips yet.** The worker assesses after the API has started; give it a few seconds. The first assessment
   after a cold start is the slowest.
 - **The sandbox board still says "Submitted".** It waits 20 seconds on purpose, like a real board's review.
 - **No email in Mailpit.** Automations send from the worker after the move commits; it takes a second or two. Only

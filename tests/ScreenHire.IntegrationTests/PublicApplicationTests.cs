@@ -277,7 +277,7 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         var application = await db.Applications.SingleAsync(Ct);
         application.HoneypotFilled.Should().BeTrue();
         application.BotCheck.Should().Be(BotCheckResult.NotChecked);
-        application.CurrentStageId.Should().Be("applied", "integrity signals never move or reject an application");
+        application.CurrentStageId.Should().Be("applied", "verification signals never move or reject an application");
     }
 
     [Fact]

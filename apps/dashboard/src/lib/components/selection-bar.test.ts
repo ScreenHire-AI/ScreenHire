@@ -34,7 +34,7 @@ describe('selection bar', () => {
     expect(onclear).toHaveBeenCalled();
   });
 
-  it('offers no Email when the page leaves it out, as it does under an integrity filter (ADR-0004)', () => {
+  it('offers no Email when the page leaves it out, as it does under a verification filter (ADR-0004)', () => {
     renderBar();
 
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
@@ -53,7 +53,7 @@ describe('selection bar', () => {
     expect(onkeep).toHaveBeenCalledTimes(1);
   });
 
-  it('offers no Keep in mind when the page leaves it out, as it does under an integrity filter or without Move candidates (ADR-0004)', () => {
+  it('offers no Keep in mind when the page leaves it out, as it does under a verification filter or without Move candidates (ADR-0004)', () => {
     renderBar();
 
     expect(screen.queryByRole('button', { name: /in mind/ })).toBeNull();

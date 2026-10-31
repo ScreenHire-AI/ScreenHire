@@ -128,7 +128,7 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_integrity_assessment_reaches_its_own_organization_with_levels_and_no_evidence()
+    public async Task A_verification_assessment_reaches_its_own_organization_with_levels_and_no_evidence()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var ours = await fixture.SignedInWithOrganizationAsync();
@@ -140,7 +140,7 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
 
         // A recruiter-added application is the quickest trigger: the worker assesses it like any other.
         var application = await ours.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("candidate"));
-        var assessed = await ourClient.WaitForAsync("IntegrityAssessed", "applicationId", application.Id(), cancellationToken);
+        var assessed = await ourClient.WaitForAsync("VerificationAssessed", "applicationId", application.Id(), cancellationToken);
 
         assessed.GetProperty("jobId").GetGuid().Should().Be(job.Id());
         assessed.GetProperty("authenticity").GetString().Should().Be("NoConcerns");

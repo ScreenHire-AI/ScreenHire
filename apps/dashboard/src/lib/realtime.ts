@@ -24,8 +24,8 @@ export const reportsPath = '/v1/reports';
  * `/v1/jobs` covers the jobs list, each job (its postings and applicant count) and each job's applications.
  * HiringTemplateVersionPublished is here because the jobs list shows "template update available" and the templates
  * pages show each template's versions; an automation run can tag an application, which its page shows.
- * IntegrityAssessed changes the chips in every list, the job's overview and the application's integrity panel
- * (`/v1/applications/{id}/integrity`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
+ * VerificationAssessed changes the chips in every list, the job's overview and the application's verification panel
+ * (`/v1/applications/{id}/verification`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show, and so can a person or an API key (ApplicationTaskCreated), which Activity shows too.
  * Tags show in every list, which filter by them. Every list also shows each application's last activity
  * (`lastActivityAt`), which anything the candidate or the team does moves: a note and its edits and deletion, a sent
@@ -59,7 +59,7 @@ export const invalidations: InvalidationMap = {
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [jobsPath, applicationsPath, candidatesPath, tasksPath],
-  IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
+  VerificationAssessed: [jobsPath, applicationsPath, candidatesPath],
   // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
   // and the kept application's page.
   TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],

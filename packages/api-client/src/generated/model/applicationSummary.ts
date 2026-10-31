@@ -7,7 +7,7 @@
 import type { ApplicationRating } from './applicationRating.ts';
 import type { ApplicationSource } from './applicationSource.ts';
 import type { ApplicationStage } from './applicationStage.ts';
-import type { IntegritySummary } from './integritySummary.ts';
+import type { VerificationSummary } from './verificationSummary.ts';
 
 /**
  * An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the
@@ -25,7 +25,7 @@ export interface ApplicationSummary {
   jobTitle: string;
   source: ApplicationSource;
   tags: string[];
-  integrity?: null | IntegritySummary;
+  verification?: null | VerificationSummary;
   /** @nullable */
   slaDueAt?: string | null;
   rating?: null | ApplicationRating;

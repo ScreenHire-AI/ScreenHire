@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ScreenHire.Domain.Hiring;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
@@ -64,7 +64,7 @@ public static class DevelopmentDataSeeder
         var organization = await SeedOrganizationAsync(db, now, cancellationToken);
         tenant.SetOrganization(organization.Id);
         await SeedBrandAsync(db, organization, cancellationToken);
-        await SeedIntegritySettingsAsync(db, organization, now, cancellationToken);
+        await SeedVerificationSettingsAsync(db, organization, now, cancellationToken);
         await SeedMemberAsync(db, organization, DemoOwnerSubject, DemoOwnerEmail, DemoOwnerName, OrganizationRole.Owner, now, cancellationToken);
         await SeedMemberAsync(
             db, organization, DemoRecruiterSubject, DemoRecruiterEmail, DemoRecruiterName, OrganizationRole.Recruiter, now, cancellationToken);
@@ -74,11 +74,11 @@ public static class DevelopmentDataSeeder
 
     // Brightwater has the LLM consistency check on, so the demo shows it; locally the fake model answers. A step of its
     // own, for data volumes seeded before the setting existed.
-    private static async Task SeedIntegritySettingsAsync(ScreenHireDbContext db, Organization organization, DateTimeOffset now, CancellationToken cancellationToken)
+    private static async Task SeedVerificationSettingsAsync(ScreenHireDbContext db, Organization organization, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (!await db.IntegritySettings.AnyAsync(s => s.OrganizationId == organization.Id, cancellationToken))
+        if (!await db.VerificationSettings.AnyAsync(s => s.OrganizationId == organization.Id, cancellationToken))
         {
-            db.IntegritySettings.Add(new IntegritySettings { OrganizationId = organization.Id, LlmConsistencyCheckEnabled = true, UpdatedAt = now });
+            db.VerificationSettings.Add(new VerificationSettings { OrganizationId = organization.Id, LlmConsistencyCheckEnabled = true, UpdatedAt = now });
             await db.SaveChangesAsync(cancellationToken);
         }
     }
@@ -122,7 +122,7 @@ public static class DevelopmentDataSeeder
         // template, so the demo shows a job with a template source.
         string[] ukAndIreland = ["GB", "IE"];
         var engineer = NewJob(organization, "Senior .NET Engineer", "senior-dotnet-engineer", WorkplaceType.Remote, [], ukAndIreland, 75_000, 95_000);
-        var softwareEngineer = await db.HiringTemplateVersions.SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion4, cancellationToken);
+        var softwareEngineer = await db.HiringTemplateVersions.SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion5, cancellationToken);
         engineer.UseTemplate(softwareEngineer);
 
         Job[] jobs =

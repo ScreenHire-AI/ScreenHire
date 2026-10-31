@@ -6,7 +6,7 @@
  */
 
 /**
- * Authenticity levels, lowest first (integrity-engine.md §2).
+ * Authenticity levels, lowest first (verification-engine.md §2).
  */
 export type AuthenticityLevel = typeof AuthenticityLevel[keyof typeof AuthenticityLevel];
 

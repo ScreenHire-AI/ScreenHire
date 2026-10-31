@@ -34,8 +34,8 @@ sources:
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
 templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
-its branding and its integrity settings, each with a history of its own (`/v1/organization/history`,
-`/branding/history`, `/integrity-settings/history`). The Team page and the API keys page have one history each: the
+its branding and its verification settings, each with a history of its own (`/v1/organization/history`,
+`/branding/history`, `/verification-settings/history`). The Team page and the API keys page have one history each: the
 team's members, roles, job access and invitations, and every key created and revoked. Built-in roles never change, so
 they have no history. A webhook
 endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
@@ -49,7 +49,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `IntegritySettings`, `Team` or `ApiKeys`, and its id (the organization's id for the last five). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `Team` or `ApiKeys`, and its id (the organization's id for the last five). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |

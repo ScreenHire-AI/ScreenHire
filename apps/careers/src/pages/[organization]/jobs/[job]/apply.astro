@@ -111,7 +111,7 @@ const aiIntro = {
   AllowedWithDisclosure: 'AI help is fine for this role, as long as you tell us. We ask at the end.',
   NotAllowed: `${employer.name} asks you to write this application without AI tools. We ask about it at the end.`,
 }[policy];
-// Telemetry (integrity-engine.md §10.2): never with the assistive-technology switch on, and the device check only on the
+// Telemetry (verification-engine.md §10.2): never with the assistive-technology switch on, and the device check only on the
 // footing the job's countries allow (`Consent` needs the candidate's tick).
 const telemetry = form && !state.accommodationRequested && state.telemetrySession ? form.telemetry : null;
 const deviceCheck = form?.telemetry.deviceCheck ?? 'Off';

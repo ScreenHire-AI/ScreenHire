@@ -22,11 +22,17 @@ internal sealed partial class DocsBundle
         ["claude.md", "claude.local.md", "agents.md", "gemini.md", "qwen.md", "warp.md", "grok.md"];
 
     /// <summary>
-    /// Files whose <c>docs/</c> paths are not citations: the docs log (history names what a path was), and this check
-    /// and its tests, whose examples and fixtures name made-up docs on purpose.
+    /// Files whose <c>docs/</c> paths are not citations: the docs log (history names what a path was), a merged migration
+    /// that names a doc renamed since (a migration is frozen once it has run, ADR-0019), and this check and its tests,
+    /// whose examples and fixtures name made-up docs on purpose.
     /// </summary>
     private static readonly string[] CitationExempt =
-        ["docs/log.md", "tests/ScreenHire.UnitTests/Tooling/DocsBundle.cs", "tests/ScreenHire.UnitTests/Tooling/DocsBundleTests.cs"];
+    [
+        "docs/log.md",
+        "src/ScreenHire.Infrastructure/Persistence/Migrations/20261020140035_AddSoftwareEngineerTemplateVersion2.cs",
+        "tests/ScreenHire.UnitTests/Tooling/DocsBundle.cs",
+        "tests/ScreenHire.UnitTests/Tooling/DocsBundleTests.cs",
+    ];
 
     private DocsBundle(string root, Model model)
     {

@@ -154,7 +154,7 @@ internal sealed class ApplicationFileConfiguration : IEntityTypeConfiguration<Ap
             .HasForeignKey(f => new { f.OrganizationId, f.ApplicationId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
-        // Same-organization duplicate checks look files up by content (integrity-engine.md, ID_DUPLICATE_IN_ORG).
+        // Same-organization duplicate checks look files up by content (verification-engine.md, ID_DUPLICATE_IN_ORG).
         builder.HasIndex(f => new { f.OrganizationId, f.Sha256 });
         // One file answers one question of one application; also the index for an application's files.
         builder.HasIndex(f => new { f.OrganizationId, f.ApplicationId, f.QuestionId }).IsUnique();

@@ -11,10 +11,10 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Branding;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.History;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.TalentPool;
-using ScreenHire.Infrastructure.Integrity.Llm;
+using ScreenHire.Infrastructure.Verification.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
@@ -23,11 +23,11 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The signed-in user's organization: its name, the sites allowed to embed its careers pages, its branding, its integrity settings and its talent pool settings (how
+/// The signed-in user's organization: its name, the sites allowed to embed its careers pages, its branding, its verification settings and its talent pool settings (how
 /// long a candidate's permission for future roles lasts). Branding colours are checked against WCAG 2.2 AA before they
 /// save, and a colour that fails is refused with the nearest passing shade (ADR-0018); brand images upload straight to
 /// storage and are checked, then scanned, before a save may use them (docs/architecture/branding.md). Each settings page
-/// has its history (design system T6): the name, the branding, the integrity settings and the talent pool settings,
+/// has its history (design system T6): the name, the branding, the verification settings and the talent pool settings,
 /// readable by every member like the settings themselves.
 /// </summary>
 internal static class OrganizationEndpoints
@@ -38,7 +38,7 @@ internal static class OrganizationEndpoints
         group.MapGet("", GetOrganization).WithName("GetOrganization").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/history", GetOrganizationHistory).WithName("GetOrganizationHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/branding/history", GetBrandingHistory).WithName("GetOrganizationBrandingHistory").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/integrity-settings/history", GetIntegritySettingsHistory).WithName("GetOrganizationIntegritySettingsHistory")
+        group.MapGet("/verification-settings/history", GetVerificationSettingsHistory).WithName("GetOrganizationVerificationSettingsHistory")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("", UpdateOrganization).WithName("UpdateOrganization")
             .RequireAntiforgeryToken()
@@ -63,9 +63,9 @@ internal static class OrganizationEndpoints
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/branding/images/{imageId:guid}", GetBrandImage).WithName("GetBrandImage").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/integrity-settings", GetIntegritySettings).WithName("GetOrganizationIntegritySettings")
+        group.MapGet("/verification-settings", GetVerificationSettings).WithName("GetOrganizationVerificationSettings")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/integrity-settings", UpdateIntegritySettings).WithName("UpdateOrganizationIntegritySettings")
+        group.MapPut("/verification-settings", UpdateVerificationSettings).WithName("UpdateOrganizationVerificationSettings")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -171,9 +171,9 @@ internal static class OrganizationEndpoints
         Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         HistoryAsync(ChangeSubjectKind.Branding, before, limit, db, tenant, cancellationToken);
 
-    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetIntegritySettingsHistory(
+    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetVerificationSettingsHistory(
         Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
-        HistoryAsync(ChangeSubjectKind.IntegritySettings, before, limit, db, tenant, cancellationToken);
+        HistoryAsync(ChangeSubjectKind.VerificationSettings, before, limit, db, tenant, cancellationToken);
 
     private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetTalentPoolSettingsHistory(
         Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
@@ -185,7 +185,7 @@ internal static class OrganizationEndpoints
         return TypedResults.Ok(await ToTalentPoolSettingsAsync(db, settings, cancellationToken));
     }
 
-    // Upserts the organization's row, as the integrity settings do. A shorter period applies to every permission at once
+    // Upserts the organization's row, as the verification settings do. A shorter period applies to every permission at once
     // (the daily sweep takes out whoever it ends for); a longer one never extends a permission already given.
     private static async Task<Results<Ok<OrganizationTalentPoolSettings>, ValidationProblem>> UpdateTalentPoolSettings(
         UpdateTalentPoolSettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
@@ -239,30 +239,30 @@ internal static class OrganizationEndpoints
         ChangeSubjectKind kind, Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         ChangeHistoryRoutes.OrganizationPageAsync(kind, before, limit, db, tenant, cancellationToken);
 
-    private static async Task<Ok<OrganizationIntegritySettings>> GetIntegritySettings(
+    private static async Task<Ok<OrganizationVerificationSettings>> GetVerificationSettings(
         ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
     {
-        var settings = await db.IntegritySettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(await ToIntegritySettingsAsync(db, settings, time.GetUtcNow(), cancellationToken));
+        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        return TypedResults.Ok(await ToVerificationSettingsAsync(db, settings, time.GetUtcNow(), cancellationToken));
     }
 
     // Upserts the organization's row. The check runs per application when it is next triggered; turning it on does not
     // reach back to applications already checked or skipped.
-    private static async Task<Results<Ok<OrganizationIntegritySettings>, ValidationProblem>> UpdateIntegritySettings(
-        UpdateIntegritySettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    private static async Task<Results<Ok<OrganizationVerificationSettings>, ValidationProblem>> UpdateVerificationSettings(
+        UpdateVerificationSettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
-        if (request.MonthlyTokenBudget is { } budget && budget is < 1 or > IntegritySettings.MaxMonthlyTokenBudget)
+        if (request.MonthlyTokenBudget is { } budget && budget is < 1 or > VerificationSettings.MaxMonthlyTokenBudget)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "monthlyTokenBudget", $"A monthly budget is between 1 and {IntegritySettings.MaxMonthlyTokenBudget.ToString("N0", CultureInfo.InvariantCulture)} tokens."));
+                "monthlyTokenBudget", $"A monthly budget is between 1 and {VerificationSettings.MaxMonthlyTokenBudget.ToString("N0", CultureInfo.InvariantCulture)} tokens."));
         }
 
         var now = time.GetUtcNow();
-        var settings = await db.IntegritySettings.SingleOrDefaultAsync(cancellationToken);
+        var settings = await db.VerificationSettings.SingleOrDefaultAsync(cancellationToken);
         if (settings is null)
         {
-            settings = new IntegritySettings { OrganizationId = tenant.OrganizationId!.Value };
-            db.IntegritySettings.Add(settings);
+            settings = new VerificationSettings { OrganizationId = tenant.OrganizationId!.Value };
+            db.VerificationSettings.Add(settings);
         }
 
         Apply(settings, request, now);
@@ -275,31 +275,31 @@ internal static class OrganizationEndpoints
             // Two first saves at once: the other created the row. A PUT replaces the settings, so this one is applied
             // on top of it (last write wins) instead of failing.
             db.Entry(settings).State = EntityState.Detached;
-            settings = await db.IntegritySettings.SingleAsync(cancellationToken);
+            settings = await db.VerificationSettings.SingleAsync(cancellationToken);
             Apply(settings, request, now);
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        return TypedResults.Ok(await ToIntegritySettingsAsync(db, settings, now, cancellationToken));
+        return TypedResults.Ok(await ToVerificationSettingsAsync(db, settings, now, cancellationToken));
     }
 
-    private static void Apply(IntegritySettings settings, UpdateIntegritySettingsRequest request, DateTimeOffset now)
+    private static void Apply(VerificationSettings settings, UpdateVerificationSettingsRequest request, DateTimeOffset now)
     {
         settings.LlmConsistencyCheckEnabled = request.LlmConsistencyCheck;
         settings.MonthlyTokenBudget = request.MonthlyTokenBudget;
         settings.UpdatedAt = now;
     }
 
-    private static async Task<OrganizationIntegritySettings> ToIntegritySettingsAsync(
-        ScreenHireDbContext db, IntegritySettings? settings, DateTimeOffset now, CancellationToken cancellationToken)
+    private static async Task<OrganizationVerificationSettings> ToVerificationSettingsAsync(
+        ScreenHireDbContext db, VerificationSettings? settings, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);
         var last = settings is null
             ? null
-            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.IntegritySettings, SubjectId(settings.OrganizationId), cancellationToken);
+            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.VerificationSettings, SubjectId(settings.OrganizationId), cancellationToken);
         // No row is ScreenHire's defaults, which nobody in the organization has changed.
         var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, settings.UpdatedAt);
-        return new OrganizationIntegritySettings(settings?.LlmConsistencyCheckEnabled ?? false, settings?.MonthlyTokenBudget, used, lastUpdated);
+        return new OrganizationVerificationSettings(settings?.LlmConsistencyCheckEnabled ?? false, settings?.MonthlyTokenBudget, used, lastUpdated);
     }
 
     private static async Task<Results<Ok<OrganizationBranding>, NotFound>> GetBranding(

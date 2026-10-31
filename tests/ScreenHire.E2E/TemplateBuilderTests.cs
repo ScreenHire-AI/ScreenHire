@@ -7,7 +7,7 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The workflow builder in a real browser (docs/architecture/workflow-engine.md §4): building a hiring template with a
-/// knockout question and an automation, the guardrail that refuses an integrity-driven rejection, publishing, creating a
+/// knockout question and an automation, the guardrail that refuses a verification-driven rejection, publishing, creating a
 /// job from the template and simulating an application through it; and a job taking a template update. Each test signs
 /// in as a new person with a new organization.
 /// </summary>
@@ -81,7 +81,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
 
-        // An automation on the integrity checks that tries to reject: the API's guardrail refuses it.
+        // An automation on the verification checks that tries to reject: the API's guardrail refuses it.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Edit automations for the whole workflow") }).ClickAsync();
         var drawer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Whole workflow" });
@@ -178,7 +178,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await sample.GetByRole(AriaRole.Button, new() { Name = "Run test" }).ClickAsync();
         var results = Page.GetByRole(AriaRole.Region, new() { Name = "What would happen" });
         var fired = results.GetByRole(AriaRole.Listitem, new() { Name = "Route for review: Would run" });
-        await Expect(fired).ToContainTextAsync("integrity.authenticity is: holds");
+        await Expect(fired).ToContainTextAsync("verification.authenticity is: holds");
         await Expect(fired).ToContainTextAsync("Add the tag \"needs-review\"");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-simulate-light");

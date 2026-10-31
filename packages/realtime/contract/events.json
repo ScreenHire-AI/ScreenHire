@@ -146,19 +146,6 @@
     }
   },
   {
-    "type": "IntegrityAssessed",
-    "data": {
-      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
-      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
-      "jobId": "0199f0c4-0000-7000-8000-000000000003",
-      "authenticity": "NoConcerns",
-      "aiAssistance": "NotIndicated",
-      "rulesetVersion": "sample-6",
-      "eventId": "0199f0c4-0000-7000-8000-000000000007",
-      "assessedAt": "2026-10-20T09:08:00+00:00"
-    }
-  },
-  {
     "type": "JobClosed",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",
@@ -254,6 +241,19 @@
       "mentionedUserId": "0199f0c4-0000-7000-8000-000000000006",
       "authorUserId": "0199f0c4-0000-7000-8000-000000000007",
       "mentionedAt": "2026-10-20T09:08:00+00:00"
+    }
+  },
+  {
+    "type": "VerificationAssessed",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "authenticity": "NoConcerns",
+      "aiAssistance": "NotIndicated",
+      "rulesetVersion": "sample-6",
+      "eventId": "0199f0c4-0000-7000-8000-000000000007",
+      "assessedAt": "2026-10-20T09:08:00+00:00"
     }
   }
 ]

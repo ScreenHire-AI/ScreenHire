@@ -25,7 +25,7 @@ namespace ScreenHire.Api.Endpoints;
 /// The talent pool (docs/architecture/talent-pool.md): keeping a candidate in mind, the pool's list, taking someone out,
 /// inviting them to apply for another job and adding them to one. People only, like the email routes: no API key, so no
 /// integration and no MCP tool acts on it. The tenant and job-scope filters apply as everywhere, so a member on Only jobs
-/// they're on sees and acts on the people kept from their own jobs. Nothing here reads integrity output (ADR-0004).
+/// they're on sees and acts on the people kept from their own jobs. Nothing here reads verification output (ADR-0004).
 /// </summary>
 internal static class TalentPoolEndpoints
 {

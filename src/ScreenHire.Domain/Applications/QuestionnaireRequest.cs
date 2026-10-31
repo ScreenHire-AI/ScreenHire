@@ -11,7 +11,7 @@ namespace ScreenHire.Domain.Applications;
 /// </summary>
 /// <remarks>
 /// The answers are kept with the questions as the candidate saw them (<see cref="Questions"/>), as a scorecard keeps its
-/// criteria's labels, so a later change to the workflow cannot make them unreadable. Integrity analysis does not read
+/// criteria's labels, so a later change to the workflow cannot make them unreadable. Verification analysis does not read
 /// them; it reads the apply form only.
 /// </remarks>
 public sealed class QuestionnaireRequest : IJobScoped

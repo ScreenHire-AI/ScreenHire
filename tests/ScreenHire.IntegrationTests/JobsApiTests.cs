@@ -45,7 +45,7 @@ public sealed class JobsApiTests(AppHostFixture fixture)
         var body = new JsonObject
         {
             ["title"] = "Backend Engineer",
-            ["templateVersionId"] = SystemTemplates.SoftwareEngineerVersion4,
+            ["templateVersionId"] = SystemTemplates.SoftwareEngineerVersion5,
             ["applicantLocationRequirements"] = new JsonArray("GB"),
         };
 
@@ -55,10 +55,10 @@ public sealed class JobsApiTests(AppHostFixture fixture)
         created.Text("workplaceType").Should().Be("Remote");
         created.Text("employmentType").Should().Be("FullTime");
         created.Text("description").Should().Contain("About the role");
-        created.Text("template.versionId").Should().Be(SystemTemplates.SoftwareEngineerVersion4.ToString());
+        created.Text("template.versionId").Should().Be(SystemTemplates.SoftwareEngineerVersion5.ToString());
         created.Text("template.templateId").Should().Be(SystemTemplates.SoftwareEngineer.ToString());
         created.Text("template.templateName").Should().Be("Software engineer");
-        created.At("template.version").GetInt32().Should().Be(4);
+        created.At("template.version").GetInt32().Should().Be(5);
         created.At("template.updateAvailable").GetBoolean().Should().BeFalse();
         var templateVersion = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/versions/4");
         // The template's stages name library scorecards; the job holds a copy of their questions, and nothing else differs.

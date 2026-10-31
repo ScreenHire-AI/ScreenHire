@@ -32,8 +32,8 @@ public enum ApplicationEventType
     StageChanged,
     TagAdded,
 
-    /// <summary>The integrity engine assessed the application, or reassessed it with a different result.</summary>
-    IntegrityAssessed,
+    /// <summary>The verification engine assessed the application, or reassessed it with a different result.</summary>
+    VerificationAssessed,
 
     /// <summary>A person or an API key took a tag off the application.</summary>
     TagRemoved,
@@ -79,8 +79,8 @@ public enum ApplicationEventType
 /// <remarks>
 /// <c>automationRunId</c>: The automation run that made the change; null when a person or the candidate did. The engine
 /// follows it to find which automations led to a move (depth limit and cycle detection).
-/// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.IntegrityAssessed"/>,
-/// the levels as they stood after the assessment; automation conditions read them as integrity facts.
+/// <c>authenticityLevel</c>, <c>aiAssistanceLevel</c>, <c>rulesetVersion</c>: For <see cref="ApplicationEventType.VerificationAssessed"/>,
+/// the levels as they stood after the assessment; automation conditions read them as verification facts.
 /// <c>apiKeyId</c>: The organization API key that made the change; null when a person, the candidate or the system did.
 /// <c>scorecardId</c>, <c>stageId</c>, <c>recommendation</c>: For <see cref="ApplicationEventType.ScorecardSubmitted"/>, the
 /// scorecard, the stage it rates and its overall recommendation, which a ReviewerDecision automation reads as a fact.

@@ -6,7 +6,7 @@
  */
 
 /**
- * Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy
+ * Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy
  * source, such as a corporate VPN, cannot raise a level by itself.
  */
 export type SignalCategory = typeof SignalCategory[keyof typeof SignalCategory];

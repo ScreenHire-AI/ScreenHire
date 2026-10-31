@@ -9,7 +9,7 @@ namespace ScreenHire.Api.Hiring;
 /// <summary>
 /// The candidate's rating on each application, as the person reading may see it (ADR-0013 decision 13,
 /// workflow-engine.md section 8). It averages people's rating answers only (<see cref="RatingRule"/>), never
-/// integrity results, AI signals or the stage, and no automation reads it. A reviewer who still has their own scorecard
+/// verification results, AI signals or the stage, and no automation reads it. A reviewer who still has their own scorecard
 /// to give (<see cref="ReviewerGate"/>) reads "after your scorecard" instead, and the other scorecards are left out of
 /// what they read, so neither can anchor them. Everyone else, an API key included, sees it. Worked out on each read:
 /// nothing derived is stored.

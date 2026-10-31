@@ -43,7 +43,7 @@ describe('which teammates changes toast', () => {
 
   it('never toasts a verification result, whatever its level', () => {
     const assessed: RealtimeEvent = {
-      type: 'IntegrityAssessed',
+      type: 'VerificationAssessed',
       data: { ...ids, jobId: teamJob, authenticity: 'VerificationRecommended', aiAssistance: 'StrongIndicators', rulesetVersion: '1', assessedAt: at },
     };
     expect(changeFor(assessed, context)).toBeUndefined();

@@ -48,15 +48,15 @@
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.3.0" />
     <!-- Transactional email templates (Liquid). MIT; its dependencies Parlot (BSD-3-Clause) and TimeZoneConverter (MIT). -->
     <PackageVersion Include="Fluid.Core" Version="2.40.0" />
-    <!-- Integrity identity checks: phone validation and number type (Apache-2.0, a port of Google's libphonenumber) and
+    <!-- Verification identity checks: phone validation and number type (Apache-2.0, a port of Google's libphonenumber) and
          MX lookups (DnsClient, Apache-2.0). -->
     <PackageVersion Include="libphonenumber-csharp" Version="9.0.41" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
-    <!-- Integrity content forensics: resume text, metadata and hidden text. PdfPig is Apache-2.0; DocumentFormat.OpenXml
+    <!-- Verification content forensics: resume text, metadata and hidden text. PdfPig is Apache-2.0; DocumentFormat.OpenXml
          and its DocumentFormat.OpenXml.Framework dependency are MIT. -->
     <PackageVersion Include="PdfPig" Version="0.1.16" />
     <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
-    <!-- LLM access for the consistency check (integrity-engine.md §10.10). Microsoft.Extensions.AI is MIT. Anthropic is
+    <!-- LLM access for the consistency check (verification-engine.md §10.10). Microsoft.Extensions.AI is MIT. Anthropic is
          Anthropic's official C# SDK, MIT, and implements IChatClient; its dependencies (System.Net.ServerSentEvents,
          System.Text.Json) are MIT. -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />

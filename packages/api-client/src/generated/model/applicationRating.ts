@@ -10,7 +10,7 @@ import type { RatingState } from './ratingState.ts';
  * The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
  * maps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each
  * scorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one
- * decimal. It is people's judgement of the work only: never integrity results, AI signals or the stage. No automation
+ * decimal. It is people's judgement of the work only: never verification results, AI signals or the stage. No automation
  * reads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until
  * they give it, so it cannot anchor them.
  */

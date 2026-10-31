@@ -20,13 +20,16 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0016: Design system v0.3 amendments from the full review](0016-design-system-v0-3-review-amendments.md) - What the first whole-dashboard design review settled in ADR-0013: a page's action that opens another page is a button rendered as a link, a record whose row holds a secret has no change history, a form keeps its actions at its end on a phone, and a table wider than its panel beside the full sidebar scrolls inside it.
 * [ADR-0017: Design system v0.3 changes from the owner's review of the build](0017-design-system-v0-3-owner-review.md) - What the owner's review of the running v0.3 dashboard changed: a record's facts sit in its header instead of a details rail, a tab's state is always a count, a field's actions share the row of its message, checkbox edges meet 3:1, and a candidate's integrity level is their status beside the name.
 * [ADR-0018: Employer branding refuses failing colours, hosts six heading fonts and serves images on the careers origin](0018-branding.md) - Branding v1: a colour is used as given and refused with the nearest passing shade when it fails WCAG 2.2 AA, the second colour fills the header band with white or ink on it, six self-hosted OFL heading fonts, PNG and JPEG images only, served same-origin at one address per image, and an email logo that can never be a tracking pixel.
+* [ADR-0019: Integrity is renamed Verification in code, the API, events, configuration and tables](0019-rename-integrity-to-verification.md) - Before launch, every name that said integrity says verification: API routes and schemas, the verification.assessed webhook event, the realtime event, ScreenHire:Verification configuration, the verification_* tables by a migration that renames and never drops, namespaces, the dashboard, docs and agents; what keeps its name and why.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001 to 0004, 0006 to 0008, 0011, 0012, 0014 to 0018 | Accepted |
+| 0001 to 0003, 0006 to 0008, 0012, 0014 to 0016, 0018, 0019 | Accepted |
+| 0004, 0011 | Accepted, terminology amended by 0019 (integrity is called verification) |
 | 0005 | Accepted with a gate: the Signal Network stays flagged off until a legal review and DPIA |
 | 0009 | Accepted, amended by 0010 and 0018 |
 | 0010 | Accepted, amended by 0013 |
 | 0013 | Accepted, amended by 0016 and 0017 |
+| 0017 | Accepted, decision 16 amended by 0019 |

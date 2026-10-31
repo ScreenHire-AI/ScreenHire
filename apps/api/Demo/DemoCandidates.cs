@@ -1,4 +1,4 @@
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 
 namespace ScreenHire.Api.Demo;
@@ -8,7 +8,7 @@ namespace ScreenHire.Api.Demo;
 /// boards look lived in and every stage of both workflows holds someone. Each answers every question of their job, in
 /// words that fit their resume. All fictional (.claude/rules/no-personal-info.md): <c>example.*</c> addresses and links,
 /// Ofcom's drama landline ranges and the RFC 5737 home broadband range Development's network settings describe. Each
-/// applies from a device of their own and takes minutes, so the integrity checks find nothing to report. Only these people are ever rejected, each with a recruiter's reason: never a synthetic applicant an integrity
+/// applies from a device of their own and takes minutes, so the verification checks find nothing to report. Only these people are ever rejected, each with a recruiter's reason: never a synthetic applicant a verification
 /// check flagged (CLAUDE.md non-negotiable 2).
 /// </summary>
 internal static class DemoCandidates
