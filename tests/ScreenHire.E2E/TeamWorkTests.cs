@@ -44,6 +44,10 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(tags.GetByRole(AriaRole.List, new() { Name = "Tags" })).ToContainTextAsync("Referral");
         await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Remove tag Referral" })).ToBeVisibleAsync();
         await Expect(activity).ToContainTextAsync("Tagged \"Referral\" by you");
+        // The Activity line can arrive before the tag's request has settled. Both buttons are disabled until it has, and
+        // enabling one eases its colours back; axe measuring mid-ease reports a button at half contrast.
+        await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Add tag" })).ToBeEnabledAsync();
+        await Expect(activity.GetByRole(AriaRole.Button, new() { Name = "Save note", Exact = true })).ToBeEnabledAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-team-work-application");
 
